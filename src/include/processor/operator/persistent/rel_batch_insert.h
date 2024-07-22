@@ -63,16 +63,15 @@ public:
     }
 
 private:
-    static void appendNodeGroup(transaction::Transaction* transaction,
-        storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
-        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState);
+    void appendNodeGroup(transaction::Transaction* transaction, storage::CSRNodeGroup& nodeGroup,
+        const RelBatchInsertInfo& relInfo, RelBatchInsertLocalState& localState,
+        BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState);
 
-    static void populateCSROffsets(storage::ChunkedNodeGroupCollection& partition,
+    void populateCSROffsets(storage::ChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
 
-    static void populateCSRLengths(storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
+    void populateCSRLengths(storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         storage::ChunkedNodeGroupCollection& partition, common::column_id_t boundNodeOffsetColumn);
 
     static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,

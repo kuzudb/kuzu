@@ -138,7 +138,6 @@ public:
         const std::vector<common::partition_idx_t>& numPartitions);
 
 private:
-    void evaluateData(const common::sel_t& numTuples) const;
     common::DataChunk constructDataChunk(
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be

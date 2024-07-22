@@ -5,7 +5,6 @@
 #include "processor/execution_context.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -66,7 +65,7 @@ void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitio
     for (auto partitionIdx = 0u; partitionIdx < partitions.size(); partitionIdx++) {
         auto& sharedPartition = partitions[partitionIdx];
         auto& localPartition = localPartitioningState->partitions[partitionIdx];
-        sharedPartition->merge(std::move(localPartition));
+        sharedPartition->merge(*localPartition);
     }
 }
 
@@ -93,13 +92,6 @@ void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     }
 }
 
-void Partitioner::evaluateData(const sel_t& numTuples) const {
-    for (auto& evaluator : dataInfo.columnEvaluators) {
-        evaluator->getLocalStateUnsafe().count = numTuples;
-        evaluator->evaluate();
-    }
-}
-
 DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>& state) const {
     const auto numColumns = dataInfo.columnEvaluators.size();
     DataChunk dataChunk(numColumns, state);
@@ -120,7 +112,7 @@ void Partitioner::initializePartitioningStates(PartitionerDataInfo& dataInfo,
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
             partitioningBuffer->partitions.push_back(std::make_unique<ChunkedNodeGroupCollection>(
-                ResidencyState::IN_MEMORY, LogicalType::copy(dataInfo.columnTypes)));
+                LogicalType::copy(dataInfo.columnTypes)));
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }
@@ -174,7 +166,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx,
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         const auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        partition->append(&transaction::DUMMY_TRANSACTION, vectorsToAppend, posToCopyFrom, 1);
+        partition->append(vectorsToAppend, posToCopyFrom, 1);
     }
 }
 

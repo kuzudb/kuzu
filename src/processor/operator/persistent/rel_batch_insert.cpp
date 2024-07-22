@@ -101,13 +101,13 @@ void RelBatchInsert::populateCSROffsets(ChunkedNodeGroupCollection& partition,
     csrHeader.setNumValues(numNodes);
     // Populate start csr offsets and lengths for each node.
     populateCSRLengths(csrHeader, numNodes, partition, relInfo.boundNodeOffsetColumnID);
-    const auto gaps = csrHeader.populateStartCSROffsetsAndGaps(leaveGaps);
     const auto invalid = checkRelMultiplicityConstraint(csrHeader, relInfo);
     if (invalid.has_value()) {
         throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
             relInfo.tableEntry->getName(), std::to_string(invalid.value() + startNodeOffset),
             RelDataDirectionUtils::relDirectionToString(relInfo.direction)));
     }
+    const auto gaps = csrHeader.populateStartCSROffsetsAndGaps(leaveGaps);
     // Resize csr data column chunks.
     const offset_t csrChunkCapacity =
         csrHeader.getEndCSROffset(numNodes - 1) + csrHeader.getCSRLength(numNodes - 1);
@@ -132,6 +132,13 @@ void RelBatchInsert::populateCSRLengths(ChunkedCSRHeader& csrHeader, offset_t nu
         for (auto i = 0u; i < offsetChunk.getNumValues(); i++) {
             const auto nodeOffset = offsetChunk.getData().getValue<offset_t>(i);
             KU_ASSERT(nodeOffset < numNodes);
+            if (info->ptrCast<RelBatchInsertInfo>()->direction == RelDataDirection::FWD) {
+                if (lengthData[nodeOffset] != 0) {
+                    throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
+                        info->tableEntry->getName(), std::to_string(nodeOffset),
+                        RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD)));
+                }
+            }
             lengthData[nodeOffset]++;
         }
     }
