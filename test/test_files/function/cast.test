@@ -58,11 +58,13 @@ banana|1.000000|697.900000
 ---- error
 Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] or DOUBLE[].
 -STATEMENT RETURN array_cosine_similarity([1.0, 2.0], [3.0, 4.0]);
----- error
-Binder exception: ARRAY_COSINE_SIMILARITY requires at least one argument to be ARRAY but all parameters are LIST.
+---- 1
+0.983870
+
 -STATEMENT RETURN array_cosine_similarity(cast([1.0, 2.0], 'DOUBLE[2]'), [3.0, 4.0]);
 ---- 1
 0.983870
+
 -STATEMENT RETURN array_cosine_similarity(cast([1.0, 2.0] as DOUBLE[2]), [3.0, 4.0]);
 ---- 1
 0.983870
