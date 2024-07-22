@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types/ku_string.h"
-#include "function/string/functions/find_function.h"
 
 namespace kuzu {
 namespace function {
