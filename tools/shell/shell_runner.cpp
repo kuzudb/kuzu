@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
 
     std::vector<std::string> lCaseArgsStrings;
-    for (auto i = 0u; i < argc; ++i) {
+    for (auto i = 0; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg.size() > 1 && arg[0] == '-') {
             std::string lArg = arg;
