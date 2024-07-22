@@ -29,8 +29,6 @@ public:
 
     binder::Expression* getRowIDExpression() const { return rowIDExpression.get(); }
 
-    std::string getExpressionsForPrinting() const override { return tableFunc.name; }
-
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(),
             outputExpressions, rowIDExpression);

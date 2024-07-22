@@ -42,14 +42,6 @@ void LogicalInsert::computeFlatSchema() {
     }
 }
 
-std::string LogicalInsert::getExpressionsForPrinting() const {
-    std::string result;
-    for (auto i = 0u; i < infos.size() - 1; ++i) {
-        result += infos[i].pattern->toString() + ",";
-    }
-    result += infos[infos.size() - 1].pattern->toString();
-    return result;
-}
 
 f_group_pos_set LogicalInsert::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();

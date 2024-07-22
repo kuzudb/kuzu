@@ -16,8 +16,6 @@ public:
     inline void computeFactorizedSchema() final { copyChildSchema(0); }
     inline void computeFlatSchema() final { copyChildSchema(0); }
 
-    std::string getExpressionsForPrinting() const final;
-
     inline bool hasSkipNum() const { return skipNum != UINT64_MAX; }
     inline uint64_t getSkipNum() const { return skipNum; }
     inline bool hasLimitNum() const { return limitNum != UINT64_MAX; }

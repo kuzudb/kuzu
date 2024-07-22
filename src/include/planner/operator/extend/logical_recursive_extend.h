@@ -1,7 +1,7 @@
 #pragma once
 
 #include "planner/operator/extend/base_logical_extend.h"
-#include "planner/operator/extend/recursive_join_type.h"
+#include "planner/operator/extend/e_join_type.h"
 #include "planner/operator/sip/side_way_info_passing.h"
 
 namespace kuzu {
@@ -50,8 +50,6 @@ public:
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
-
-    std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
 
     std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
 

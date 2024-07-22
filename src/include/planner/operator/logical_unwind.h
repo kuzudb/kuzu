@@ -23,8 +23,6 @@ public:
     bool hasIDExpr() const { return idExpr != nullptr; }
     std::shared_ptr<binder::Expression> getIDExpr() const { return idExpr; }
 
-    std::string getExpressionsForPrinting() const override { return inExpr->toString(); }
-
     std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalUnwind>(inExpr, outExpr, idExpr, children[0]->copy());
     }

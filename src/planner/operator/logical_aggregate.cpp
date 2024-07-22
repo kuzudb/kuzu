@@ -33,22 +33,6 @@ f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
     return f_group_pos_set{};
 }
 
-std::string LogicalAggregate::getExpressionsForPrinting() const {
-    std::string result = "Group By [";
-    for (auto& expression : keys) {
-        result += expression->toString() + ", ";
-    }
-    for (auto& expression : dependentKeys) {
-        result += expression->toString() + ", ";
-    }
-    result += "], Aggregate [";
-    for (auto& expression : aggregates) {
-        result += expression->toString() + ", ";
-    }
-    result += "]";
-    return result;
-}
-
 bool LogicalAggregate::hasDistinctAggregate() {
     for (auto& expression : aggregates) {
         auto funcExpr = expression->constPtrCast<binder::AggregateFunctionExpression>();

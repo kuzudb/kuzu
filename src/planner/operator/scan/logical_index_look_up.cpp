@@ -5,13 +5,6 @@
 namespace kuzu {
 namespace planner {
 
-std::string LogicalPrimaryKeyLookup::getExpressionsForPrinting() const {
-    binder::expression_vector expressions;
-    for (auto& info : infos) {
-        expressions.push_back(info.offset);
-    }
-    return binder::ExpressionUtil::toString(expressions);
-}
 
 void LogicalPrimaryKeyLookup::computeFactorizedSchema() {
     copyChildSchema(0);

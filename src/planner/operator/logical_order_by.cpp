@@ -42,14 +42,5 @@ void LogicalOrderBy::computeFlatSchema() {
     }
 }
 
-std::string LogicalOrderBy::getExpressionsForPrinting() const {
-    auto result = binder::ExpressionUtil::toString(expressionsToOrderBy) + " ";
-    if (hasLimitNum()) {
-        result += "SKIP " + std::to_string(skipNum) + " ";
-        result += "LIMIT " + std::to_string(limitNum);
-    }
-    return result;
-}
-
 } // namespace planner
 } // namespace kuzu

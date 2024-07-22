@@ -32,8 +32,6 @@ public:
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    std::string getExpressionsForPrinting() const final;
-
     common::idx_t getNumInfos() const { return infos.size(); }
     const LogicalPartitionerInfo* getInfo(common::idx_t idx) const {
         KU_ASSERT(idx < infos.size());

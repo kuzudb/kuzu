@@ -18,10 +18,6 @@ public:
         : LogicalOperator{LogicalOperatorType::COPY_FROM, std::move(children)},
           info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
-    inline std::string getExpressionsForPrinting() const override {
-        return info.tableEntry->getName();
-    }
-
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
