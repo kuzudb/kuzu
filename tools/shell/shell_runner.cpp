@@ -15,13 +15,13 @@ int main(int argc, char* argv[]) {
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes",
-        {'d', "default_bp_size", "defaultbpsize"},
-        -1u);
+        {'d', "default_bp_size", "defaultbpsize"}, -1u);
     args::Flag disableCompression(parser, "no_compression", "Disable compression",
         {"no_compression", "nocompression"});
     args::Flag readOnlyMode(parser, "read_only", "Open database at read-only mode.",
         {'r', "read_only", "readonly"});
-    args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history", {'p', "path_history"});
+    args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history",
+        {'p', "path_history"});
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
 
     std::vector<std::string> lCaseArgsStrings;
@@ -38,8 +38,8 @@ int main(int argc, char* argv[]) {
     }
     std::vector<char*> lCaseArgs;
     for (auto& arg : lCaseArgsStrings) {
-		lCaseArgs.push_back(const_cast<char*>(arg.c_str()));
-	}
+        lCaseArgs.push_back(const_cast<char*>(arg.c_str()));
+    }
 
     try {
         parser.ParseCLI(lCaseArgs.size(), lCaseArgs.data());
