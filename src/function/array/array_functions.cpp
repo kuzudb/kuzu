@@ -139,8 +139,14 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
 template<typename OPERATION>
 std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName,
     const binder::expression_vector& arguments, Function* function) {
-    const auto& leftType = arguments[0]->dataType;
-    const auto& rightType = arguments[1]->dataType;
+    auto leftType = arguments[0]->dataType.copy();
+    auto rightType = arguments[1]->dataType.copy(); // we need left and right to be mutable
+    if (arguments[0]->expressionType == ExpressionType::LITERAL) {
+        leftType = LogicalType::ARRAY(ListType::getChildType(leftType).copy(), arguments[0]->getNumChildren());
+    }
+    if (arguments[1]->expressionType == ExpressionType::LITERAL) {
+        rightType = LogicalType::ARRAY(ListType::getChildType(rightType).copy(), arguments[1]->getNumChildren());
+    }
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
     function->ptrCast<ScalarFunction>()->execFunc =
         std::move(getScalarExecFunc<OPERATION>(paramType.copy()));
