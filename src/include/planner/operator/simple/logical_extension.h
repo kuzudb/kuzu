@@ -15,8 +15,6 @@ public:
         : LogicalSimple{LogicalOperatorType::EXTENSION, std::move(outputExpression)},
           action{action}, path{std::move(path)} {}
 
-    std::string getExpressionsForPrinting() const override { return path; }
-
     ExtensionAction getAction() const { return action; }
     std::string getPath() const { return path; }
 

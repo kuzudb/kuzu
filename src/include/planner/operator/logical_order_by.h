@@ -18,8 +18,6 @@ public:
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    std::string getExpressionsForPrinting() const final;
-
     inline binder::expression_vector getExpressionsToOrderBy() const {
         return expressionsToOrderBy;
     }

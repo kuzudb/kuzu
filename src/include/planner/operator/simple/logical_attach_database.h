@@ -15,8 +15,6 @@ public:
 
     binder::AttachInfo getAttachInfo() const { return attachInfo; }
 
-    std::string getExpressionsForPrinting() const override { return attachInfo.dbPath; }
-
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalAttachDatabase>(attachInfo, outputExpression);
     }

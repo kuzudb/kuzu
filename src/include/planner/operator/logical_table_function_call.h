@@ -27,8 +27,6 @@ public:
 
     std::shared_ptr<binder::Expression> getOffset() const { return offset; }
 
-    std::string getExpressionsForPrinting() const override { return tableFunc.name; }
-
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(), columns,
             offset);
