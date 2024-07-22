@@ -73,6 +73,11 @@ struct EncodeException {
 
         return exceptionSizeBytes;
     }
+
+    bool operator<(const EncodeException<T>& o) const {
+        KU_ASSERT(posInPage != o.posInPage);
+        return posInPage < o.posInPage;
+    }
 };
 
 } // namespace storage

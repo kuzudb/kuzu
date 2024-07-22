@@ -355,6 +355,45 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
     });
 }
 
+TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
+    std::vector<double> src(11 * 1024, 5.6);
+    src[1] = 123456789012.56;
+    for (size_t i = 11; i < src.size(); i += 10) {
+        src[i] = src[i - 10] + 7890123.567;
+    }
+
+    testCompressChunk(src, [&src, this](ColumnReader* reader, transaction::Transaction* transaction,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               const LogicalType& dataType) {
+        std::vector<double> out(src.size());
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+
+        static constexpr size_t numValuesToSet = 5;
+        const size_t cpyOffset = 0;
+        src[cpyOffset] = 10101010100101;
+        for (size_t i = 2; i < numValuesToSet; i += 2) {
+            src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
+        }
+
+        KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+            numValuesToSet, dataType.getPhysicalType()));
+        reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
+            (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
+            WriteCompressedValuesToPage(dataType));
+
+        auto* clientContext = getClientContext(*conn);
+        clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+    });
+}
+
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
     std::vector<double> src(10 * 1024, 5.6);
     src[1] = 123456789012.56;
@@ -414,6 +453,51 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
         src[cpyOffset] = 10101010100101;
         for (size_t i = 2; i < numValuesToSet; i += 2) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
+        }
+
+        KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+            numValuesToSet, dataType.getPhysicalType()));
+        reader->writeValuesToPageFromBuffer(chunkMeta, numValuesPerPage, cpyOffset,
+            (uint8_t*)src.data(), nullptr, cpyOffset, numValuesToSet,
+            WriteCompressedValuesToPage(dataType));
+
+        auto* clientContext = getClientContext(*conn);
+        clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
+
+        reader->readCompressedValuesToPage(transaction, chunkMeta, numValuesPerPage,
+            (uint8_t*)out.data(), 0, 0, out.size(), ReadCompressedValuesFromPage(dataType),
+            [](offset_t, offset_t) { return true; });
+        EXPECT_THAT(out, ::testing::ContainerEq(src));
+    });
+}
+
+TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
+    std::vector<double> src(256, 0.54);
+    testCompressChunk(src,
+        [](ColumnReader*, transaction::Transaction*, ColumnChunkMetadata& chunkMeta, uint64_t,
+            const LogicalType& dataType) {
+            double newVal = -1;
+            EXPECT_FALSE(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)&newVal, 0, 1,
+                dataType.getPhysicalType()));
+        });
+}
+
+TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) {
+    std::vector<float> src(100);
+    src[0] = 54387589.8341;
+    for (size_t i = 1; i < src.size(); i += 1) {
+        src[i] = (src[i - 1] + 4385.2348) * 0.9788;
+    }
+
+    testCompressChunk(src, [&src, this](ColumnReader* reader, transaction::Transaction* transaction,
+                               ColumnChunkMetadata& chunkMeta, uint64_t numValuesPerPage,
+                               const LogicalType& dataType) {
+        std::vector<float> out(src.size());
+
+        static constexpr size_t cpyOffset = 3;
+        const size_t numValuesToSet = src.size() - cpyOffset;
+        for (size_t i = cpyOffset; i < cpyOffset + numValuesToSet; ++i) {
+            src[i] = i + 0.01;
         }
 
         KU_ASSERT(chunkMeta.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,

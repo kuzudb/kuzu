@@ -1,5 +1,7 @@
 #include "storage/store/column_read.h"
 
+#include <queue>
+
 #include "alp/encode.hpp"
 #include "common/utils.h"
 #include "storage/compression/compression_float.h"
@@ -134,7 +136,7 @@ public:
         return {pageBaseCursor.pageIdx + (page_idx_t)exceptionPageOffset, 0};
     }
 
-    size_t getExceptionCount() const { return exceptionCount; }
+    size_t& getExceptionCount() { return exceptionCount; }
 
 private:
     void shiftExceptionsToRight(offset_t startExceptionIdx, size_t shift) {
@@ -198,7 +200,7 @@ public:
         uint32_t posInVectorToWriteFrom,
         write_values_from_vector_func_t writeFromVectorFunc) override {
         writeValuesToPage(chunkMetadata, numValuesPerPage, offsetInChunk, vectorToWriteFrom,
-            posInVectorToWriteFrom, 1, writeFromVectorFunc);
+            posInVectorToWriteFrom, 1, writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
     void writeValuesToPageFromBuffer(ColumnChunkMetadata& chunkMetadata, uint64_t numValuesPerPage,
@@ -214,7 +216,7 @@ public:
         common::offset_t dstOffset, InputType data, common::offset_t srcOffset,
         common::offset_t numValues,
         write_values_to_page_func_t<InputType, AdditionalArgs...> writeFunc,
-        AdditionalArgs... additionalArgs) {
+        const NullMask* nullMask) {
         auto numValuesWritten = 0u;
         auto cursor =
             getPageCursorForOffsetInGroup(dstOffset, chunkMetadata.pageIdx, numValuesPerPage);
@@ -222,8 +224,13 @@ public:
             auto numValuesToWriteInPage =
                 std::min(numValues - numValuesWritten, numValuesPerPage - cursor.elemPosInPage);
             updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
-                writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                    numValuesToWriteInPage, chunkMetadata.compMeta, additionalArgs...);
+                if constexpr (std::is_same_v<InputType, ValueVector*>) {
+                    writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                        numValuesToWriteInPage, chunkMetadata.compMeta);
+                } else {
+                    writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                        numValuesToWriteInPage, chunkMetadata.compMeta, nullMask);
+                }
             });
             numValuesWritten += numValuesToWriteInPage;
             cursor.nextPage();
@@ -324,20 +331,29 @@ public:
         common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom,
         write_values_from_vector_func_t writeFromVectorFunc) override {
-        writeValueToPage(metadata, numValuesPerPage, offsetInChunk, vectorToWriteFrom,
-            posInVectorToWriteFrom, writeFromVectorFunc);
+        if (metadata.compMeta.compression != CompressionType::FLOAT) {
+            return defaultReader->writeValueToPageFromVector(metadata, numValuesPerPage,
+                offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom, writeFromVectorFunc);
+        }
+
+        writeValuesToPage(metadata, numValuesPerPage, offsetInChunk, vectorToWriteFrom,
+            posInVectorToWriteFrom, 1, writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
     void writeValuesToPageFromBuffer(ColumnChunkMetadata& chunkMetadata, uint64_t numValuesPerPage,
         common::offset_t dstOffset, const uint8_t* data, const common::NullMask* nullChunkData,
         common::offset_t srcOffset, common::offset_t numValues,
         write_values_func_t writeFunc) override {
-        for (size_t i = 0; i < numValues; ++i) {
-            writeValueToPage(chunkMetadata, numValuesPerPage, dstOffset + i, data, srcOffset + i,
-                writeFunc, nullChunkData);
+        if (chunkMetadata.compMeta.compression != CompressionType::FLOAT) {
+            return defaultReader->writeValuesToPageFromBuffer(chunkMetadata, numValuesPerPage,
+                dstOffset, data, nullChunkData, srcOffset, numValues, writeFunc);
         }
+
+        writeValuesToPage(chunkMetadata, numValuesPerPage, dstOffset, data, srcOffset, numValues,
+            writeFunc, nullChunkData);
     }
 
+private:
     template<typename InputType>
     T getValueFromInput(InputType data, uint32_t srcOffset) {
         if constexpr (std::is_same_v<decltype(data), const uint8_t*>) {
@@ -348,7 +364,6 @@ public:
         }
     }
 
-private:
     template<typename OutputType>
     void patchFloatExceptions(Transaction* transaction, const ColumnChunkMetadata& metadata,
         uint64_t numValuesPerPage, offset_t startOffsetInChunk, size_t numValuesToScan,
@@ -392,13 +407,13 @@ private:
             exceptionChunk.findFirstExceptionAtOrPastOffset(offsetInChunk);
 
         do {
-            if (firstExceptionIdx == exceptionChunk.getExceptionCount()) {
+            if (metadata.compMeta.compression != CompressionType::FLOAT ||
+                firstExceptionIdx == exceptionChunk.getExceptionCount()) {
                 break;
             }
 
             const auto searchedException = exceptionChunk.getExceptionAt(firstExceptionIdx);
-            if (metadata.compMeta.compression != CompressionType::FLOAT ||
-                searchedException.posInPage != offsetInChunk) {
+            if (searchedException.posInPage != offsetInChunk) {
                 break;
             }
 
@@ -438,44 +453,85 @@ private:
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    void writeValueToPage(ColumnChunkMetadata& metadata, uint64_t numValuesPerPage,
-        common::offset_t offsetInChunk, InputType data, uint32_t srcOffset,
+    void writeValuesToPage(ColumnChunkMetadata& metadata, uint64_t numValuesPerPage,
+        common::offset_t offsetInChunk, InputType data, uint32_t srcOffset, size_t numValues,
         write_values_to_page_func_t<InputType, AdditionalArgs...> writeFunc,
-        AdditionalArgs... additionalArgs) {
-
-        const T newValue = getValueFromInput(data, srcOffset);
-        const int64_t encodedValue = alp::AlpEncode<T>::encode_value(newValue,
-            metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
-        const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
-            metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
+        const NullMask* nullMask) {
 
         // TODO: pass in from caller
         transaction::Transaction transaction{TransactionType::WRITE};
         ExceptionChunk<T> exceptionChunk{this, &transaction, metadata, numValuesPerPage};
 
-        {
-            offset_t curExceptionIdx =
-                exceptionChunk.findFirstExceptionAtOrPastOffset(offsetInChunk);
+        std::queue<offset_t> exceptionIndexesToRemove;
+        std::queue<EncodeException<T>> exceptionsToAdd;
+
+        size_t startExceptionIdxToSort = exceptionChunk.getExceptionCount();
+        for (size_t i = 0; i < numValues; ++i) {
+
+            const size_t writeOffset = offsetInChunk + i;
+            const size_t readOffset = srcOffset + i;
+
+            if (nullMask && nullMask->isNull(readOffset)) {
+                continue;
+            }
+
+            const T newValue = getValueFromInput(data, readOffset);
+            const int64_t encodedValue = alp::AlpEncode<T>::encode_value(newValue,
+                metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
+            const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
+                metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
+
+            const offset_t curExceptionIdx =
+                exceptionChunk.findFirstExceptionAtOrPastOffset(writeOffset);
             const auto curException = exceptionChunk.getExceptionAt(curExceptionIdx);
 
             if (curExceptionIdx < exceptionChunk.getExceptionCount() &&
-                curException.posInPage == offsetInChunk) {
-                exceptionChunk.removeExceptionAt(curExceptionIdx);
+                curException.posInPage == writeOffset) {
+                exceptionIndexesToRemove.push(curExceptionIdx);
+                startExceptionIdxToSort = std::min(startExceptionIdxToSort, curExceptionIdx);
+            }
+
+            if (newValue != decodedValue) {
+                exceptionsToAdd.emplace(newValue, writeOffset);
+                startExceptionIdxToSort = std::min(startExceptionIdxToSort, writeOffset);
+            } else {
+                defaultReader->writeValuesToPage(metadata, numValuesPerPage, writeOffset, data,
+                    readOffset, 1, writeFunc, nullMask);
             }
         }
 
-        if (newValue != decodedValue) {
-            EncodeException<T> newException{.value = newValue,
-                .posInPage = (uint32_t)offsetInChunk};
-            exceptionChunk.addExceptions(std::span<const EncodeException<T>>{&newException, 1});
-        } else {
-            defaultReader->writeValuesToPage(metadata, numValuesPerPage, offsetInChunk, data,
-                srcOffset, 1, writeFunc, additionalArgs...);
+        // read exceptions to sort into buffer
+        std::queue<EncodeException<T>> oldExceptions;
+        for (offset_t i = startExceptionIdxToSort; i < exceptionChunk.getExceptionCount(); ++i) {
+            if (!exceptionIndexesToRemove.empty() && exceptionIndexesToRemove.front() == i) {
+                exceptionIndexesToRemove.pop();
+            } else {
+                oldExceptions.push(exceptionChunk.getExceptionAt(i));
+            }
         }
 
+        std::vector<EncodeException<T>> newExceptions;
+        while (!oldExceptions.empty() || !exceptionsToAdd.empty()) {
+            if (exceptionsToAdd.empty() ||
+                oldExceptions.front().posInPage < exceptionsToAdd.front().posInPage) {
+                newExceptions.push_back(oldExceptions.front());
+                oldExceptions.pop();
+            } else {
+                newExceptions.push_back(exceptionsToAdd.front());
+                exceptionsToAdd.pop();
+            }
+        }
+
+        // write exceptions back into disk
+        for (size_t i = 0; i < newExceptions.size(); ++i) {
+            exceptionChunk.writeExceptionAt(newExceptions[i], startExceptionIdxToSort + i);
+        }
+
+        metadata.compMeta.alpMetadata.exceptionCount =
+            startExceptionIdxToSort + newExceptions.size();
+        exceptionChunk.getExceptionCount() = metadata.compMeta.alpMetadata.exceptionCount;
         KU_ASSERT(
             exceptionChunk.getExceptionCount() <= metadata.compMeta.alpMetadata.exceptionCapacity);
-        metadata.compMeta.alpMetadata.exceptionCount = exceptionChunk.getExceptionCount();
     }
 
     std::unique_ptr<DefaultColumnReader> defaultReader;
