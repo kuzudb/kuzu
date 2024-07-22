@@ -10,25 +10,30 @@ class LogicalCrossProduct : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CROSS_PRODUCT;
 
 public:
-    LogicalCrossProduct(common::AccumulateType accumulateType,
+    LogicalCrossProduct(common::AccumulateType accumulateType, std::shared_ptr<binder::Expression> mark,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> buildChild)
         : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
-          accumulateType{accumulateType} {}
+          accumulateType{accumulateType}, mark{std::move(mark)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string(); }
+    std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline common::AccumulateType getAccumulateType() const { return accumulateType; }
+    common::AccumulateType getAccumulateType() const { return accumulateType; }
+    bool hasMark() const {
+        return mark != nullptr;
+    }
+    std::shared_ptr<binder::Expression> getMark() const { return mark; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCrossProduct>(accumulateType, children[0]->copy(),
+    std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalCrossProduct>(accumulateType, mark, children[0]->copy(),
             children[1]->copy());
     }
 
 private:
     common::AccumulateType accumulateType;
+    std::shared_ptr<binder::Expression> mark;
 };
 
 } // namespace planner

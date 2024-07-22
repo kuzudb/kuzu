@@ -49,9 +49,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::ACCUMULATE: {
         visitAccumulate(op);
     } break;
-    case LogicalOperatorType::MARK_ACCUMULATE: {
-        visitMarkAccumulate(op);
-    } break;
     case LogicalOperatorType::DISTINCT: {
         visitDistinct(op);
     } break;
@@ -134,9 +131,6 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::ACCUMULATE: {
         return visitAccumulateReplace(op);
-    }
-    case LogicalOperatorType::MARK_ACCUMULATE: {
-        return visitMarkAccumulateReplace(op);
     }
     case LogicalOperatorType::DISTINCT: {
         return visitDistinctReplace(op);

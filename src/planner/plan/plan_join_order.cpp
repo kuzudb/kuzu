@@ -587,8 +587,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planCrossProduct(
         for (auto& rightPlan : rightPlans) {
             auto leftPlanCopy = leftPlan->shallowCopy();
             auto rightPlanCopy = rightPlan->shallowCopy();
-            appendCrossProduct(AccumulateType::REGULAR, *leftPlanCopy, *rightPlanCopy,
-                *leftPlanCopy);
+            appendCrossProduct(*leftPlanCopy, *rightPlanCopy, *leftPlanCopy);
             result.push_back(std::move(leftPlanCopy));
         }
     }

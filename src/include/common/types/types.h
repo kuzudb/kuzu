@@ -56,6 +56,8 @@ using sequence_id_t = uint64_t;
 
 using transaction_t = uint64_t;
 constexpr transaction_t INVALID_TRANSACTION = UINT64_MAX;
+using executor_id_t = uint64_t;
+using executor_info = std::unordered_map<common::executor_id_t, uint64_t>;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

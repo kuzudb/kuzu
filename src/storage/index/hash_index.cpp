@@ -331,8 +331,10 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
             }
         }
     }
-    KU_ASSERT(originalNumEntries + insertLocalStorage.getIndexHeader().numEntries ==
-              indexHeaderForWriteTrx.numEntries);
+    // TODO(Guodong): Fix this assertion statement which doesn't count the entries in
+    // deleteLocalStorage.
+    //     KU_ASSERT(originalNumEntries + insertLocalStorage.getIndexHeader().numEntries ==
+    //               indexHeaderForWriteTrx.numEntries);
 }
 
 template<typename T>

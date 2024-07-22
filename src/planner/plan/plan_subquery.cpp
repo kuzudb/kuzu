@@ -56,9 +56,9 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         // No join condition, apply cross product.
         auto rightPlan = planQueryGraphCollection(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
-            appendCrossProduct(AccumulateType::OPTIONAL_, *rightPlan, leftPlan, leftPlan);
+            appendOptionalCrossProduct(mark, *rightPlan, leftPlan, leftPlan);
         } else {
-            appendCrossProduct(AccumulateType::OPTIONAL_, leftPlan, *rightPlan, leftPlan);
+            appendOptionalCrossProduct(mark, leftPlan, *rightPlan, leftPlan);
         }
         return;
     }
@@ -108,9 +108,9 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         info.subqueryType = SubqueryType::NONE;
         auto rightPlan = planQueryGraphCollectionInNewContext(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
-            appendCrossProduct(AccumulateType::REGULAR, *rightPlan, leftPlan, leftPlan);
+            appendCrossProduct(*rightPlan, leftPlan, leftPlan);
         } else {
-            appendCrossProduct(AccumulateType::REGULAR, leftPlan, *rightPlan, leftPlan);
+            appendCrossProduct(leftPlan, *rightPlan, leftPlan);
         }
     } else {
         // TODO(Xiyang): there is a question regarding if we want to plan as a correlated subquery
@@ -156,7 +156,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
         default:
             KU_UNREACHABLE;
         }
-        appendCrossProduct(AccumulateType::REGULAR, outerPlan, *innerPlan, outerPlan);
+        appendCrossProduct(outerPlan, *innerPlan, outerPlan);
     } else {
         auto isInternalIDCorrelated =
             ExpressionUtil::isExpressionsWithDataType(correlatedExprs, LogicalTypeID::INTERNAL_ID);

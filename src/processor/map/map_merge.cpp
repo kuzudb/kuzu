@@ -7,16 +7,29 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
+static FactorizedTableSchema getFactorizedTableSchema(const binder::expression_vector& keys,
+    uint64_t numNodeInsertExecutors, uint64_t numRelInsertExecutors) {
+    auto tableSchema = FactorizedTableSchema();
+    auto isUnFlat = false;
+    auto groupID = 0u;
+    for (auto& key : keys) {
+        auto size = common::LogicalTypeUtils::getRowLayoutSize(key->dataType);
+        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, size));
+    }
+    auto numNodeIDFields = numNodeInsertExecutors + numRelInsertExecutors;
+    for (auto i = 0u; i < numNodeIDFields; i++) {
+        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, sizeof(common::nodeID_t)));
+    }
+    tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, sizeof(common::hash_t)));
+    return tableSchema;
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator* logicalOperator) {
     auto& logicalMerge = logicalOperator->constCast<LogicalMerge>();
     auto outSchema = logicalMerge.getSchema();
     auto inSchema = logicalMerge.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto existenceMarkPos = getDataPos(*logicalMerge.getExistenceMark(), *inSchema);
-    auto distinctMarkPos = DataPos();
-    if (logicalMerge.hasDistinctMark()) {
-        distinctMarkPos = getDataPos(*logicalMerge.getDistinctMark(), *inSchema);
-    }
     std::vector<NodeInsertExecutor> nodeInsertExecutors;
     for (auto& info : logicalMerge.getInsertNodeInfos()) {
         nodeInsertExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema));
@@ -34,11 +47,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
         onCreateRelSetExecutors.push_back(getRelSetExecutor(info, *inSchema));
     }
     std::vector<std::unique_ptr<NodeSetExecutor>> onMatchNodeSetExecutors;
-    for (auto& info : logicalMerge.getOnMatchSetNodeInfos()) {
+    common::executor_info executorInfo;
+    for (auto i = 0u; i < logicalMerge.getOnMatchSetNodeInfos().size(); i++) {
+        auto& info = logicalMerge.getOnMatchSetNodeInfos()[i];
+        for (auto j = 0u; j < logicalMerge.getInsertNodeInfos().size(); j++) {
+            if (*info.pattern == *logicalMerge.getInsertNodeInfos()[j].pattern) {
+                executorInfo.emplace(j, i);
+            }
+        }
         onMatchNodeSetExecutors.push_back(getNodeSetExecutor(info, *inSchema));
     }
     std::vector<std::unique_ptr<RelSetExecutor>> onMatchRelSetExecutors;
-    for (auto& info : logicalMerge.getOnMatchSetRelInfos()) {
+    for (auto i = 0u; i < logicalMerge.getOnMatchSetRelInfos().size(); i++) {
+        auto& info = logicalMerge.getOnMatchSetRelInfos()[i];
+        for (auto j = 0u; j < logicalMerge.getInsertRelInfos().size(); j++) {
+            if (*info.pattern == *logicalMerge.getInsertRelInfos()[j].pattern) {
+                executorInfo.emplace(j + logicalMerge.getInsertNodeInfos().size(),
+                    i + logicalMerge.getOnMatchSetNodeInfos().size());
+            }
+        }
         onMatchRelSetExecutors.push_back(getRelSetExecutor(info, *inSchema));
     }
     binder::expression_vector expressions;
@@ -68,10 +95,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     }
     auto printInfo =
         std::make_unique<MergePrintInfo>(expressions, onCreateOperation, onMatchOperation);
-    return std::make_unique<Merge>(existenceMarkPos, distinctMarkPos,
-        std::move(nodeInsertExecutors), std::move(relInsertExecutors),
+    MergeInfo mergeInfo{getDataPos(logicalMerge.getKeys(), *inSchema),
+        getFactorizedTableSchema(logicalMerge.getKeys(),
+            logicalMerge.getOnMatchSetNodeInfos().size(),
+            logicalMerge.getOnMatchSetRelInfos().size()),
+        std::move(executorInfo), existenceMarkPos};
+    return std::make_unique<Merge>(std::move(nodeInsertExecutors), std::move(relInsertExecutors),
         std::move(onCreateNodeSetExecutors), std::move(onCreateRelSetExecutors),
-        std::move(onMatchNodeSetExecutors), std::move(onMatchRelSetExecutors),
+        std::move(onMatchNodeSetExecutors), std::move(onMatchRelSetExecutors), std::move(mergeInfo),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }
 

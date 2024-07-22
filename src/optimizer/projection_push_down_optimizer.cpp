@@ -194,10 +194,7 @@ void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
 }
 
 void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
-    auto merge = (LogicalMerge*)op;
-    if (merge->hasDistinctMark()) {
-        collectExpressionsInUse(merge->getDistinctMark());
-    }
+    auto merge = op->ptrCast<LogicalMerge>();
     collectExpressionsInUse(merge->getExistenceMark());
     for (auto& info : merge->getInsertNodeInfos()) {
         visitInsertInfo(info);

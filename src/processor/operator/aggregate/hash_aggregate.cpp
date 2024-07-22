@@ -2,7 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/utils.h"
-#include "processor/result/mark_hash_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -62,15 +61,13 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
 
 HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
     std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
-    FactorizedTableSchema tableSchema, HashTableType hashTableType)
+    FactorizedTableSchema tableSchema)
     : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
-      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)},
-      hashTableType{hashTableType} {}
+      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)} {}
 
 HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
     : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
-      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()},
-      hashTableType{other.hashTableType} {}
+      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
 
 void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* context,
     HashAggregateInfo& info,
@@ -95,19 +92,10 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
     }
     leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
                                               unFlatKeyVectors[0]->state.get();
-    switch (info.hashTableType) {
-    case HashTableType::AGGREGATE_HASH_TABLE:
-        aggregateHashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
-            std::move(keyDataTypes), std::move(payloadDataTypes), aggregateFunctions,
-            std::move(types), 0, std::move(info.tableSchema));
-        break;
-    case HashTableType::MARK_HASH_TABLE:
-        aggregateHashTable = std::make_unique<MarkHashTable>(*context->getMemoryManager(),
-            std::move(keyDataTypes), std::move(payloadDataTypes), 0, std::move(info.tableSchema));
-        break;
-    default:
-        KU_UNREACHABLE;
-    }
+
+    aggregateHashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
+        std::move(keyDataTypes), std::move(payloadDataTypes), aggregateFunctions, std::move(types),
+        0, std::move(info.tableSchema));
 }
 
 void HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
