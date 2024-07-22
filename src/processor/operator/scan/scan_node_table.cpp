@@ -8,8 +8,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction,
-    NodeTable* table) {
+void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction, NodeTable* table,
+    std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {
     this->table = table;
     this->currentCommittedGroupIdx = 0;
     this->currentUnCommittedGroupIdx = 0;
@@ -21,12 +21,15 @@ void ScanNodeTableSharedState::initialize(const transaction::Transaction* transa
             this->numUnCommittedNodeGroups = localNodeTable.getNumNodeGroups();
         }
     }
+    progressSharedState->numGroups += numCommittedNodeGroups;
 }
 
-void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
+void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
+    std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {
     std::unique_lock lck{mtx};
     if (currentCommittedGroupIdx < numCommittedNodeGroups) {
         scanState.nodeGroupIdx = currentCommittedGroupIdx++;
+        progressSharedState->numGroups++;
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
@@ -73,7 +76,8 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == nodeInfos.size());
     for (auto i = 0u; i < nodeInfos.size(); i++) {
-        sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table);
+        sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table,
+            progressSharedState);
     }
 }
 
@@ -92,7 +96,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
                 }
             }
         }
-        sharedStates[currentTableIdx]->nextMorsel(scanState);
+        sharedStates[currentTableIdx]->nextMorsel(scanState, progressSharedState);
         if (scanState.source == TableScanSource::NONE) {
             currentTableIdx++;
         } else {
@@ -104,7 +108,18 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {
     return make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
-        printInfo->copy());
+        printInfo->copy(), progressSharedState);
+}
+
+double ScanNodeTable::getProgress(ExecutionContext* context) const {
+    if (currentTableIdx >= nodeInfos.size()) {
+        return 1.0;
+    }
+    if (progressSharedState->numGroups == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(progressSharedState->numGroupsScanned) /
+           progressSharedState->numGroups;
 }
 
 } // namespace processor
