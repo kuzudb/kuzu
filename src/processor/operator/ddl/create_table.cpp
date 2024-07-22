@@ -11,8 +11,7 @@ namespace processor {
 
 std::string CreateTablePrintInfo::toString() const {
     std::string result = "";
-    auto* tableInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
-        binder::BoundExtraCreateTableInfo*>(info);
+    auto* tableInfo = info->ptrCast<binder::BoundExtraCreateTableInfo>();
     switch (tableType) {
     case TableType::NODE: {
         result += "Create Node Table: ";
@@ -28,8 +27,7 @@ std::string CreateTablePrintInfo::toString() const {
         result += "Create Relationship Table: ";
         result += tableName;
         result += ",Multiplicity: ";
-        auto* relInfo = common::ku_dynamic_cast<binder::BoundExtraCreateTableInfo*,
-            binder::BoundExtraCreateRelTableInfo*>(tableInfo);
+        auto* relInfo = tableInfo->ptrCast<binder::BoundExtraCreateRelTableInfo>();
         if (relInfo->srcMultiplicity == RelMultiplicity::ONE) {
             result += "ONE";
         } else {
@@ -51,15 +49,13 @@ std::string CreateTablePrintInfo::toString() const {
     case TableType::REL_GROUP: {
         result += "Create Relationship Group Table: ";
         result += tableName;
-        auto* relGroupInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
-            binder::BoundExtraCreateRelTableGroupInfo*>(info);
+        auto* relGroupInfo = info->ptrCast<binder::BoundExtraCreateRelTableGroupInfo>();
         result += ",Tables: ";
         for (auto& createInfo : relGroupInfo->infos) {
             result += createInfo.tableName;
             result += ", ";
         }
-        auto* groupTableInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
-            binder::BoundExtraCreateTableInfo*>(relGroupInfo->infos[0].extraInfo.get());
+        auto* groupTableInfo = relGroupInfo->infos[0].extraInfo->ptrCast<binder::BoundExtraCreateTableInfo>();
         result += "Properties: ";
         for (auto& prop : groupTableInfo->propertyInfos) {
             result += prop.name;

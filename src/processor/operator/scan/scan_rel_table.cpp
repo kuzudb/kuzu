@@ -10,26 +10,6 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::string relToString(const binder::RelExpression& rel) {
-    auto result = rel.toString();
-    switch (rel.getRelType()) {
-    case QueryRelType::SHORTEST: {
-        result += "SHORTEST";
-    } break;
-    case QueryRelType::ALL_SHORTEST: {
-        result += "ALL SHORTEST";
-    } break;
-    default:
-        break;
-    }
-    if (QueryRelTypeUtils::isRecursive(rel.getRelType())) {
-        result += std::to_string(rel.getLowerBound());
-        result += "..";
-        result += std::to_string(rel.getUpperBound());
-    }
-    return result;
-}
-
 std::string ScanRelTablePrintInfo::toString() const {
     std::string result = "Tables: ";
     for (auto& tableName : tableNames) {
@@ -44,17 +24,17 @@ std::string ScanRelTablePrintInfo::toString() const {
     switch (direction) {
     case ExtendDirection::FWD: {
         result += "-[";
-        result += relToString(*rel);
+        result += rel->expressionToString();
         result += "]->";
     } break;
     case ExtendDirection::BWD: {
         result += "<-[";
-        result += relToString(*rel);
+        result += rel->expressionToString();
         result += "]-";
     } break;
     case ExtendDirection::BOTH: {
         result += "<-[";
-        result += relToString(*rel);
+        result += rel->expressionToString();
         result += "]->";
     } break;
     default:
