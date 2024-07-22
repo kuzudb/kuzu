@@ -84,6 +84,10 @@ Binder exception: ARRAY_CROSS_PRODUCT requires both arrays to have the same elem
 0.950000
 0.970000
 
+-STATEMENT RETURN ARRAY_COSINE_SIMILARITY([1, 2, 3.0], [4, 5, 6.0])
+---- 1
+0.974632
+
 -LOG ArrayCosineSimilarityWrongType
 -STATEMENT MATCH (p:person) return ARRAY_COSINE_SIMILARITY(p.grades, p.grades)
 ---- error
@@ -100,6 +104,10 @@ Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] o
 5.750000
 6.410000
 
+-STATEMENT RETURN ARRAY_DISTANCE([-1, -2, -3.0], [2, -6.0, -3])
+---- 1
+5.000000
+
 -LOG ArrayInnerProduct
 -STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_INNER_PRODUCT(e.location, array_value(to_float(3.4), to_float(2.7))),2)
 ---- 7
@@ -110,6 +118,10 @@ Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] o
 31.780000
 35.200000
 36.150000
+
+-STATEMENT RETURN ARRAY_INNER_PRODUCT([0, 1, 2.3], [5.12, 7.2, 8.8])
+---- 1
+27.440000
 
 -LOG ArrayDotProduct
 -STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_DOT_PRODUCT(e.location, array_value(to_float(5.6), to_float(2.1))),2)
