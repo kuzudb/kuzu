@@ -12,22 +12,19 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+static LogicalType interpretLogicalType(binder::Expression* expr) {
+    if (expr->expressionType == ExpressionType::LITERAL &&
+        expr->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
+        auto numChildren = expr->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
+        return LogicalType::ARRAY(ListType::getChildType(expr->dataType).copy(), numChildren);
+    }
+    return expr->dataType.copy();
+}
+
 std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    auto leftType = arguments[0]->dataType.copy();
-    auto rightType = arguments[1]->dataType.copy(); // we need left and right to be mutable
-    if (arguments[0]->expressionType == ExpressionType::LITERAL &&
-        leftType.getLogicalTypeID() == LogicalTypeID::LIST) {
-        auto numChildren =
-            arguments[0]->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
-        leftType = LogicalType::ARRAY(ListType::getChildType(leftType).copy(), numChildren);
-    }
-    if (arguments[1]->expressionType == ExpressionType::LITERAL &&
-        rightType.getLogicalTypeID() == LogicalTypeID::LIST) {
-        auto numChildren =
-            arguments[1]->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
-        rightType = LogicalType::ARRAY(ListType::getChildType(rightType).copy(), numChildren);
-    }
+    auto leftType = interpretLogicalType(arguments[0].get());
+    auto rightType = interpretLogicalType(arguments[1].get());
     if (leftType != rightType) {
         throw BinderException(
             stringFormat("{} requires both arrays to have the same element type and size of 3",
@@ -152,20 +149,8 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
 template<typename OPERATION>
 std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName,
     const binder::expression_vector& arguments, Function* function) {
-    auto leftType = arguments[0]->dataType.copy();
-    auto rightType = arguments[1]->dataType.copy(); // we need left and right to be mutable
-    if (arguments[0]->expressionType == ExpressionType::LITERAL &&
-        leftType.getLogicalTypeID() == LogicalTypeID::LIST) {
-        auto numChildren =
-            arguments[0]->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
-        leftType = LogicalType::ARRAY(ListType::getChildType(leftType).copy(), numChildren);
-    }
-    if (arguments[1]->expressionType == ExpressionType::LITERAL &&
-        rightType.getLogicalTypeID() == LogicalTypeID::LIST) {
-        auto numChildren =
-            arguments[1]->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
-        rightType = LogicalType::ARRAY(ListType::getChildType(rightType).copy(), numChildren);
-    }
+    auto leftType = interpretLogicalType(arguments[0].get());
+    auto rightType = interpretLogicalType(arguments[1].get());
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
     function->ptrCast<ScalarFunction>()->execFunc =
         std::move(getScalarExecFunc<OPERATION>(paramType.copy()));
