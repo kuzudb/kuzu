@@ -11,13 +11,14 @@ namespace function {
 
 struct SubStr {
 public:
+
     static inline void operation(common::ku_string_t& src, int64_t start, int64_t len,
         common::ku_string_t& result, common::ValueVector& resultValueVector) {
         std::string srcStr = src.getAsString();
         bool isAscii = true;
         int64_t startPos = start - 1;
         int64_t endPos = std::min(srcStr.size(), (size_t)(startPos + len));
-        if (startPos >= endPos) {
+        if (startPos >= endPos || src.isOutOfBounds(startPos) || src.isOutOfBounds(endPos - 1)) {
             result.len = 0;
             return;
         }
