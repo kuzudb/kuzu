@@ -276,7 +276,7 @@ bool VersionInfo::isInserted(const transaction::Transaction* transaction,
         return vectorsInfo[vectorIdx]->isInserted(transaction->getStartTS(), transaction->getID(),
             rowInVector);
     }
-    return false;
+    return true;
 }
 
 row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transaction) const {

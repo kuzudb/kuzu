@@ -89,7 +89,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         KU_ASSERT(i < columnVectors.size());
         const auto columnVector = columnVectors[i];
         // TODO(Guodong): Should add `slice` interface to SelVector.
-        SelectionVector selVector;
+        SelectionVector selVector(numRowsToAppendInChunk);
         for (auto row = 0u; row < numRowsToAppendInChunk; row++) {
             selVector.getMultableBuffer()[row] =
                 columnVector->state->getSelVector()[startRowInVectors + row];

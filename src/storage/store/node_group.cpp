@@ -453,6 +453,7 @@ bool NodeGroup::isDeleted(const transaction::Transaction* transaction,
     auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
     return chunkedGroup->isDeleted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
 }
+
 bool NodeGroup::isInserted(const transaction::Transaction* transaction,
     common::offset_t offsetInGroup) {
     auto lock = chunkedGroups.lock();
