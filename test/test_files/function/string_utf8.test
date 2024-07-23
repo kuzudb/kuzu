@@ -30,6 +30,9 @@ False
 -STATEMENT return ends_with("bbbb", "b");
 ---- 1
 True
+-STATEMENT return ends_with(string("The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 "),string("🚗 "));
+---- 1
+True
 
 -LOG StrLower
 -STATEMENT MATCH (m:movies) RETURN lower(m.name)
