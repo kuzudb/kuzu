@@ -1,9 +1,7 @@
 -DATASET CSV empty
 
 --
-# TODO(Sam/Guodong): regenerate extensions when MVCC branch is ready
 -CASE ShowDatabasesTest
--SKIP
 -SKIP_MUSL
 -LOG InstallExtension
 -STATEMENT INSTALL duckdb;
