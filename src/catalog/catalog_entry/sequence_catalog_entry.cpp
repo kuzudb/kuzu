@@ -67,7 +67,8 @@ void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const
         }
         resultVector.setValue(i, tmp);
     }
-    SequenceRollbackData rollbackData{sequenceData.usageCount, sequenceData.currVal, sequenceData.nextVal};
+    SequenceRollbackData rollbackData{sequenceData.usageCount, sequenceData.currVal,
+        sequenceData.nextVal};
     sequenceData.currVal = tmp;
     sequenceData.usageCount += count;
     transaction->pushSequenceChange(this, count, rollbackData);

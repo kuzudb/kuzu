@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
@@ -141,8 +142,8 @@ struct UpdateSequenceRecord final : public WALRecord {
     UpdateSequenceRecord()
         : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{0}, kCount{0} {}
     UpdateSequenceRecord(common::sequence_id_t sequenceID, uint64_t kCount)
-        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{sequenceID},
-          kCount{kCount} {}
+        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{sequenceID}, kCount{kCount} {
+    }
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<UpdateSequenceRecord> deserialize(common::Deserializer& deserializer);

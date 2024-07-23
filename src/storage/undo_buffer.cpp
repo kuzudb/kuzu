@@ -98,7 +98,8 @@ void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalo
     *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
-void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry, const SequenceRollbackData& data) {
+void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
+    const SequenceRollbackData& data) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(SequenceEntryRecord));
     const UndoRecordHeader recordHeader{UndoRecordType::SEQUENCE_ENTRY,
         sizeof(SequenceEntryRecord)};
