@@ -1,4 +1,5 @@
 #include "catalog/catalog_set.h"
+
 #include <memory>
 #include <mutex>
 
@@ -58,7 +59,7 @@ void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEn
 }
 
 void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry,
-    std::unique_lock<std::mutex>&lck) {
+    std::unique_lock<std::mutex>& lck) {
     // LCOV_EXCL_START
     validateNotExistNoLock(transaction, entry->getName());
     // LCOV_EXCL_STOP
