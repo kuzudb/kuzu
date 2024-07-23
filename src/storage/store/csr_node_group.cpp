@@ -73,8 +73,7 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
         }
         auto& chunk = persistentChunkGroup->getColumnChunk(relScanState.columnIDs[i]);
         chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-        // TODO: Not a good way to initialize column for chunkState here.
-        nodeGroupScanState.chunkStates[i].column = relScanState.columns[i];
+        relScanState.columns[i]->initializeScanState(nodeGroupScanState.chunkStates[i]);
     }
 }
 

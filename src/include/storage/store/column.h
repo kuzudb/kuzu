@@ -82,6 +82,8 @@ public:
 
     virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
 
+    virtual void initializeScanState(ChunkState& state);
+
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<Column&, TARGET&>(*this);

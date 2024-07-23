@@ -196,8 +196,8 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
         nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
     }
-    columnReader->readCompressedValuesToVector(transaction, state.metadata, state.numValuesPerPage,
-        resultVector, offsetInVector, startOffsetInGroup, endOffsetInGroup, readToVectorFunc,
+    columnReader->readCompressedValuesToVector(transaction, state, resultVector, offsetInVector,
+        startOffsetInGroup, endOffsetInGroup, readToVectorFunc,
         [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
 }
 
@@ -226,17 +226,17 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     cursor.pageIdx += state.metadata.pageIdx;
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
 
-    const uint64_t numValuesScanned = columnReader->readCompressedValuesToPage(transaction,
-        state.metadata, state.numValuesPerPage, columnChunk->getData(), 0, startOffset, endOffset,
-        readToPageFunc, [](offset_t, offset_t) { return true; });
+    const uint64_t numValuesScanned =
+        columnReader->readCompressedValuesToPage(transaction, state, columnChunk->getData(), 0,
+            startOffset, endOffset, readToPageFunc, [](offset_t, offset_t) { return true; });
 
     columnChunk->setNumValues(numValuesScanned);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, uint8_t* result) {
-    columnReader->readCompressedValuesToPage(transaction, state.metadata, state.numValuesPerPage,
-        result, 0, startOffsetInGroup, endOffsetInGroup, readToPageFunc,
+    columnReader->readCompressedValuesToPage(transaction, state, result, 0, startOffsetInGroup,
+        endOffsetInGroup, readToPageFunc,
         [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
 }
 
@@ -244,9 +244,8 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
     ValueVector* resultVector) {
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
-        columnReader->readCompressedValuesToVector(transaction, state.metadata,
-            state.numValuesPerPage, resultVector, 0, startOffsetInChunk,
-            startOffsetInChunk + numValuesToScan, readToVectorFunc,
+        columnReader->readCompressedValuesToVector(transaction, state, resultVector, 0,
+            startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc,
             [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
     } else {
         struct Filterer {
@@ -265,9 +264,8 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
             offset_t posInSelVector;
         };
 
-        columnReader->readCompressedValuesToVector(transaction, state.metadata,
-            state.numValuesPerPage, resultVector, 0, startOffsetInChunk,
-            startOffsetInChunk + numValuesToScan, readToVectorFunc,
+        columnReader->readCompressedValuesToVector(transaction, state, resultVector, 0,
+            startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc,
             Filterer{nodeIDVector->state->getSelVector()});
     }
 }
@@ -286,8 +284,8 @@ void Column::lookupValue(Transaction* transaction, const ChunkState& state, offs
 
 void Column::lookupInternal(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
-    columnReader->readCompressedValueToVector(transaction, state.metadata, state.numValuesPerPage,
-        nodeOffset, resultVector, posInVector, readToVectorFunc);
+    columnReader->readCompressedValueToVector(transaction, state, nodeOffset, resultVector,
+        posInVector, readToVectorFunc);
 }
 
 static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
@@ -347,8 +345,8 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
 
 void Column::writeValues(ColumnChunkData&, ChunkState& state, offset_t dstOffset,
     const uint8_t* data, const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) {
-    columnReader->writeValuesToPageFromBuffer(state.metadata, state.numValuesPerPage, dstOffset,
-        data, nullChunkData, srcOffset, numValues, writeFunc);
+    columnReader->writeValuesToPageFromBuffer(state, dstOffset, data, nullChunkData, srcOffset,
+        numValues, writeFunc);
 }
 
 // Apend to the end of the chunk.
@@ -452,11 +450,32 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
     return true;
 }
 
+void Column::initializeScanState(ChunkState& state) {
+    // TODO: Not a good way to initialize column for chunkState here.
+    state.column = this;
+
+    Transaction transaction{TransactionType::WRITE};
+    // TODO: update
+    if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
+        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(
+            columnReader.get(), &transaction, state);
+    } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
+        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(
+            columnReader.get(), &transaction, state);
+    }
+}
+
 void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     ChunkState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState);
+    initializeScanState(chunkState);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
         checkpointColumnChunkInPlace(chunkState, checkpointState);
+        if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
+            chunkState.getExceptionChunk<double>()->flushToDisk(columnReader.get(), chunkState);
+        } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
+            chunkState.getExceptionChunk<float>()->flushToDisk(columnReader.get(), chunkState);
+        }
     } else {
         checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
     }

@@ -112,8 +112,7 @@ void NodeGroup::initializeScanState(Transaction*, TableScanState& state) {
             }
             auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
             chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-            // TODO: Not a good way to initialize column for chunkState here.
-            nodeGroupScanState.chunkStates[i].column = state.columns[i];
+            state.columns[i]->initializeScanState(nodeGroupScanState.chunkStates[i]);
         }
     }
 }
@@ -134,8 +133,7 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableSca
             }
             auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
             chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-            // TODO: Not a good way to initialize column for chunkState here.
-            nodeGroupScanState.chunkStates[i].column = state.columns[i];
+            state.columns[i]->initializeScanState(nodeGroupScanState.chunkStates[i]);
         }
     }
 }

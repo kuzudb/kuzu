@@ -272,9 +272,8 @@ offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& read
     offset_t offsetInNodeGroup) const {
     offset_t ret;
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
-    columnReader->readCompressedValueToPage(transaction, offsetState.metadata,
-        offsetState.numValuesPerPage, offsetInNodeGroup, reinterpret_cast<uint8_t*>(&ret), 0,
-        offsetColumn->readToPageFunc);
+    columnReader->readCompressedValueToPage(transaction, offsetState, offsetInNodeGroup,
+        reinterpret_cast<uint8_t*>(&ret), 0, offsetColumn->readToPageFunc);
     return ret;
 }
 
@@ -282,9 +281,8 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
     offset_t offsetInNodeGroup) const {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
     offset_t value;
-    columnReader->readCompressedValueToPage(transaction, sizeState.metadata,
-        sizeState.numValuesPerPage, offsetInNodeGroup, reinterpret_cast<uint8_t*>(&value), 0,
-        offsetColumn->readToPageFunc);
+    columnReader->readCompressedValueToPage(transaction, sizeState, offsetInNodeGroup,
+        reinterpret_cast<uint8_t*>(&value), 0, offsetColumn->readToPageFunc);
     return value;
 }
 
@@ -301,6 +299,13 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
         sizeColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
     auto numValuesScan = offsetColumnChunk->getNumValues();
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
+}
+
+void ListColumn::initializeScanState(ChunkState& state) {
+    Column::initializeScanState(state);
+    offsetColumn->initializeScanState(state.getChildState(OFFSET_COLUMN_CHILD_READ_STATE_IDX));
+    sizeColumn->initializeScanState(state.getChildState(SIZE_COLUMN_CHILD_READ_STATE_IDX));
+    dataColumn->initializeScanState(state.getChildState(DATA_COLUMN_CHILD_READ_STATE_IDX));
 }
 
 void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
