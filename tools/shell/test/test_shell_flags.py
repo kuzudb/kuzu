@@ -48,7 +48,8 @@ def test_help(temp_db, flag) -> None:
     "flag",
     [
         "-d",
-        "--defaultBPSize",
+        "--defaultbpsize",
+        "--default_bp_size"
     ],
 )
 def test_default_bp_size(temp_db, flag) -> None:
@@ -72,12 +73,18 @@ def test_default_bp_size(temp_db, flag) -> None:
     result = test.run()
     result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
 
-
-def test_no_compression(temp_db) -> None:
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "--nocompression",
+        "--no_compression"
+    ],
+)
+def test_no_compression(temp_db, flag) -> None:
     # fails without db path
-    check_fails_without_db("--nocompression")
+    check_fails_without_db(flag)
     
-    test = ShellTest().add_argument(temp_db).add_argument("--nocompression")
+    test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
     result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
 
@@ -86,7 +93,8 @@ def test_no_compression(temp_db) -> None:
     "flag",
     [
         "-r",
-        "--readOnly",
+        "--readonly",
+        "--read_only"
     ],
 )
 def test_read_only(temp_db, flag) -> None:
