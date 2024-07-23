@@ -1,4 +1,10 @@
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 #include "graph_test/base_graph_test.h"
+#include "test_runner/test_group.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_context.h"
 
@@ -32,6 +38,32 @@ class EmptyDBTest : public PrivateGraphTest {
     std::string getInputDir() override { KU_UNREACHABLE; }
 };
 
+// ConcurrentTestExecutor is not thread safe
+class ConcurrentTestExecutor {
+public:
+    ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection,
+        std::string databasePath)
+        : connectionPaused{connectionsPaused}, connection{connection}, databasePath{databasePath} {}
+
+    void execute() { connThread = std::thread(&ConcurrentTestExecutor::runStatements, this); }
+    void join() {
+        if (connThread.joinable()) {
+            connThread.join();
+        }
+    }
+    void reset() { statements.clear(); }
+    void addStatement(TestStatement* statement) { statements.emplace_back(statement); }
+
+private:
+    void runStatements();
+
+    bool& connectionPaused;
+    main::Connection& connection;
+    std::string databasePath;
+    std::thread connThread;
+    std::vector<TestStatement*> statements;
+};
+
 // This class starts database in on-disk mode.
 class DBTest : public PrivateGraphTest {
 public:
@@ -46,6 +78,10 @@ public:
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
         uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
+        for (const auto& connName : connNames) {
+            concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName],
+                databasePath);
+        }
         for (auto& statement : statements) {
             // special for testing import and export test cases
             if (statement->removeFileFlag) {
@@ -66,21 +102,43 @@ public:
                 createConns(connNames);
                 continue;
             }
+            if (statement->connectionsStatusFlag == ConcurrentStatusFlag::BEGIN) {
+                for (auto& concurrentTest : concurrentTests) {
+                    concurrentTest.second.reset();
+                }
+                isConcurrent = true;
+                connectionsPaused = true;
+                continue;
+            }
+            if (statement->connectionsStatusFlag == ConcurrentStatusFlag::END) {
+                for (auto& concurrentTest : concurrentTests) {
+                    concurrentTest.second.execute();
+                }
+                isConcurrent = false;
+                connectionsPaused = false;
+                for (auto& concurrentTest : concurrentTests) {
+                    concurrentTest.second.join();
+                }
+                continue;
+            }
             if (conn) {
                 TestRunner::runTest(statement.get(), *conn, databasePath);
             } else {
                 auto connName = *statement->connName;
-                CheckConn(connName);
-                TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
+                if (isConcurrent) {
+                    concurrentTests.at(connName).addStatement(statement.get());
+                } else {
+                    TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
+                }
             }
         }
     }
 
-    inline void CheckConn(std::string connName) {
-        if (connMap[connName] == nullptr) {
-            connMap[connName] = std::make_unique<main::Connection>(database.get());
-        }
-    }
+protected:
+    bool isConcurrent = false;
+    bool connectionsPaused = false;
+    std::unordered_map<std::string, ConcurrentTestExecutor> concurrentTests;
 };
+
 } // namespace testing
 } // namespace kuzu

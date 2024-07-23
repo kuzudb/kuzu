@@ -187,16 +187,16 @@ public:
     // Currently, these functions are specifically used only for WAL files.
     void removeFilePagesFromFrames(BMFileHandle& fileHandle);
     void flushAllDirtyPagesInFrames(BMFileHandle& fileHandle);
-    void updateFrameIfPageIsInFrameWithoutLock(BMFileHandle& fileHandle, uint8_t* newPage,
+    void updateFrameIfPageIsInFrameWithoutLock(common::file_idx_t fileIdx, const uint8_t* newPage,
         common::page_idx_t pageIdx);
     void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // For files that are managed by BM, their FileHandles should be created through this function.
     BMFileHandle* getBMFileHandle(const std::string& filePath, uint8_t flags,
-        BMFileHandle::FileVersionedType fileVersionedType, common::VirtualFileSystem* vfs,
-        main::ClientContext* context, common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
+        common::VirtualFileSystem* vfs, main::ClientContext* context,
+        common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
         fileHandles.emplace_back(std::unique_ptr<BMFileHandle>(new BMFileHandle(filePath, flags,
-            this, fileHandles.size(), pageSizeClass, fileVersionedType, vfs, context)));
+            this, fileHandles.size(), pageSizeClass, vfs, context)));
         return fileHandles.back().get();
     }
 

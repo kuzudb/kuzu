@@ -5,6 +5,8 @@
 #include <utility>
 
 #include "common/assert.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 
 namespace kuzu {
 namespace common {
@@ -215,6 +217,33 @@ std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t 
         }
     }
     return std::make_pair(min, max);
+}
+
+void NullMask::serialize(Serializer& ser) const {
+    ser.writeDebuggingInfo("may_contain_nulls");
+    ser.write<bool>(mayContainNulls);
+    ser.writeDebuggingInfo("num_null_entries");
+    ser.write<uint64_t>(data.size());
+    ser.writeDebuggingInfo("null_mask_data");
+    ser.write(reinterpret_cast<uint8_t*>(data.data()), data.size() * sizeof(uint64_t));
+}
+
+NullMask NullMask::deserialize(Deserializer& deSer) {
+    std::string key;
+    bool mayContainNulls;
+    uint64_t numNullEntries = 0;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "may_contain_nulls");
+    deSer.deserializeValue<bool>(mayContainNulls);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "num_null_entries");
+    deSer.deserializeValue<uint64_t>(numNullEntries);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "null_mask_data");
+    NullMask nullMask(numNullEntries * NUM_BITS_PER_NULL_ENTRY);
+    nullMask.mayContainNulls = mayContainNulls;
+    deSer.read(reinterpret_cast<uint8_t*>(nullMask.data.data()), numNullEntries * sizeof(uint64_t));
+    return nullMask;
 }
 
 } // namespace common

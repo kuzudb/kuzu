@@ -79,6 +79,11 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         } else {
             // do insert and on create
             for (auto& executor : nodeInsertExecutors) {
+                KU_ASSERT(executor.getNodeIDVector()->state->getSelVector().getSelSize() == 1);
+                // Note: The node ID is set to NULL after the left join. We need to set the node ID
+                // vector to non-null before inserting.
+                executor.getNodeIDVector()->setNull(
+                    executor.getNodeIDVector()->state->getSelVector()[0], false);
                 executor.insert(context->clientContext->getTx());
             }
             for (auto& executor : relInsertExecutors) {

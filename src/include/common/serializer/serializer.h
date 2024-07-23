@@ -16,6 +16,8 @@ class Serializer {
 public:
     explicit Serializer(std::shared_ptr<Writer> writer) : writer(std::move(writer)) {}
 
+    Writer& getWriter() const { return *writer; }
+
     template<typename T>
         requires std::is_trivially_destructible<T>::value || std::is_same<std::string, T>::value
     void serializeValue(const T& value) {
@@ -27,6 +29,8 @@ public:
     void write(const T& value) {
         serializeValue(value);
     }
+
+    void writeDebuggingInfo(const std::string& value);
 
     void write(const uint8_t* value, uint64_t len) { writer->write(value, len); }
 
@@ -52,6 +56,17 @@ public:
     void serializeVector(const std::vector<T>& values) {
         uint64_t vectorSize = values.size();
         serializeValue<uint64_t>(vectorSize);
+        for (auto& value : values) {
+            if constexpr (requires(Serializer& ser) { value.serialize(ser); }) {
+                value.serialize(*this);
+            } else {
+                serializeValue<T>(value);
+            }
+        }
+    }
+
+    template<typename T, uint64_t ARRAY_SIZE>
+    void serializeArray(const std::array<T, ARRAY_SIZE>& values) {
         for (auto& value : values) {
             if constexpr (requires(Serializer& ser) { value.serialize(ser); }) {
                 value.serialize(*this);

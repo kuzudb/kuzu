@@ -15,15 +15,20 @@
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+};
+namespace storage {
+class NodeTable;
+};
 namespace processor {
 
 const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
 class IndexBuilderGlobalQueues {
 public:
-    explicit IndexBuilderGlobalQueues(storage::PrimaryKeyIndex* pkIndex);
-
-    void flushToDisk() const;
+    explicit IndexBuilderGlobalQueues(transaction::Transaction* transaction,
+        storage::NodeTable* nodeTable);
 
     template<typename T>
     void insert(size_t index, storage::IndexBuffer<T> elem) {
@@ -37,13 +42,13 @@ public:
 
     void consume();
 
-    common::PhysicalTypeID pkTypeID() const { return pkIndex->keyTypeID(); }
+    common::PhysicalTypeID pkTypeID() const;
 
 private:
     void maybeConsumeIndex(size_t index);
 
     std::array<std::mutex, storage::NUM_HASH_INDEXES> mutexes;
-    storage::PrimaryKeyIndex* pkIndex;
+    storage::NodeTable* nodeTable;
 
     template<typename T>
     struct Queue {
@@ -57,6 +62,7 @@ private:
         Queue<uint64_t>, Queue<uint32_t>, Queue<uint16_t>, Queue<uint8_t>, Queue<common::int128_t>,
         Queue<float>, Queue<double>>
         queues;
+    transaction::Transaction* transaction;
 };
 
 class IndexBuilderLocalBuffers {
@@ -104,9 +110,10 @@ class IndexBuilderSharedState {
     friend class IndexBuilder;
 
 public:
-    explicit IndexBuilderSharedState(storage::PrimaryKeyIndex* pkIndex) : globalQueues{pkIndex} {}
+    explicit IndexBuilderSharedState(transaction::Transaction* transaction,
+        storage::NodeTable* nodeTable)
+        : globalQueues{transaction, nodeTable} {}
     inline void consume() { globalQueues.consume(); }
-    inline void flush() { globalQueues.flushToDisk(); }
 
     inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
     void quitProducer();

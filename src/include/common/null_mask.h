@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 
 #include <span>
 
@@ -9,6 +8,8 @@ namespace kuzu {
 namespace common {
 
 class ArrowNullMaskTree;
+class Serializer;
+class Deserializer;
 
 constexpr uint64_t NULL_BITMASKS_WITH_SINGLE_ONE[64] = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
     0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000,
@@ -160,6 +161,9 @@ public:
     // Fast calculation of the minimum and maximum null values
     // (essentially just three states, all null, all non-null and some null)
     static std::pair<bool, bool> getMinMax(const uint64_t* nullEntries, uint64_t numValues);
+
+    void serialize(Serializer& ser) const;
+    static NullMask deserialize(Deserializer& deSer);
 
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/constants.h"
 #include "common/types/types.h"
 
@@ -10,6 +12,10 @@ class CatalogSet;
 class SequenceCatalogEntry;
 struct SequenceData;
 } // namespace catalog
+namespace transaction {
+class Transaction;
+}
+
 namespace main {
 class ClientContext;
 }
@@ -56,41 +62,65 @@ private:
     const UndoBuffer& undoBuffer;
 };
 
+class UpdateInfo;
+class VersionInfo;
+struct VectorUpdateInfo;
+struct VectorVersionInfo;
+class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
     friend class UndoBufferIterator;
 
 public:
     enum class UndoRecordType : uint16_t {
-        CATALOG_ENTRY,
-        SEQUENCE_ENTRY,
+        CATALOG_ENTRY = 0,
+        SEQUENCE_ENTRY = 1,
+        UPDATE_INFO = 6,
+        INSERT_INFO = 7,
+        DELETE_INFO = 8,
     };
 
-    explicit UndoBuffer(main::ClientContext& clientContext);
+    explicit UndoBuffer(transaction::Transaction* transaction);
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceData& data, int64_t prevVal);
+    void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
+        common::row_idx_t startRowInVector, common::row_idx_t numRows);
+    void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
+        common::row_idx_t startRowInVector, common::row_idx_t numRows);
+    void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
+        VectorUpdateInfo* vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS) const;
     void rollback();
 
-    UndoBufferIterator getIterator() const;
-
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void commitRecord(UndoRecordType recordType, uint8_t const* entry,
-        common::transaction_t commitTS) const;
-    void rollbackEntry(UndoRecordType recordType, uint8_t const* entry);
+    void createVectorVersionInfo(UndoRecordType recordType, VersionInfo* versionInfo,
+        common::idx_t vectorIdx, common::row_idx_t startRowInVector, common::row_idx_t numRows);
 
-    void commitCatalogEntry(uint8_t const* entry, common::transaction_t commitTS) const;
+    void commitRecord(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
+    void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
+
+    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackCatalogEntryRecord(const uint8_t* record);
+
     void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS) const;
-    void rollbackCatalogEntry(uint8_t const* entry);
     void rollbackSequenceEntry(uint8_t const* entry);
 
+    void commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS) const;
+    void rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record);
+
+    void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
+    void rollbackVectorUpdateInfo(const uint8_t* record) const;
+
 private:
-    main::ClientContext& clientContext;
+    std::mutex mtx;
+    transaction::Transaction* transaction;
     std::vector<UndoMemoryBuffer> memoryBuffers;
 };
 

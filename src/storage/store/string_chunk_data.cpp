@@ -1,6 +1,11 @@
 #include "storage/store/string_chunk_data.h"
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 
 using namespace kuzu::common;
@@ -9,15 +14,24 @@ namespace kuzu {
 namespace storage {
 
 StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    bool inMemory)
-    : ColumnChunkData{std::move(dataType), capacity, enableCompression},
-      dictionaryChunk{
-          std::make_unique<DictionaryChunk>(inMemory ? 0 : capacity, enableCompression)},
-      needFinalize{false} {
+    ResidencyState residencyState)
+    : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
+          true /*hasNullData*/},
+      indexColumnChunk{ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
+          enableCompression, capacity, residencyState)},
+      dictionaryChunk{std::make_unique<DictionaryChunk>(
+          residencyState == ResidencyState::IN_MEMORY ? 0 : capacity, enableCompression,
+          residencyState)},
+      needFinalize{false} {}
 
+StringChunkData::StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+    : ColumnChunkData{LogicalType::STRING(), enableCompression, metadata, true /*hasNullData*/},
+      dictionaryChunk{
+          std::make_unique<DictionaryChunk>(0, enableCompression, ResidencyState::IN_MEMORY)},
+      needFinalize{false} {
     // create index chunk
     indexColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
-        enableCompression, capacity, inMemory, false /*hasNull*/);
+        enableCompression, capacity, ResidencyState::ON_DISK);
 }
 
 ColumnChunkData* StringChunkData::getIndexColumnChunk() {
@@ -31,6 +45,12 @@ const ColumnChunkData* StringChunkData::getIndexColumnChunk() const {
 void StringChunkData::updateNumValues(size_t newValue) {
     numValues = newValue;
     indexColumnChunk->setNumValues(newValue);
+}
+
+void StringChunkData::setToInMemory() {
+    ColumnChunkData::setToInMemory();
+    indexColumnChunk->setToInMemory();
+    dictionaryChunk->setToInMemory();
 }
 
 void StringChunkData::resize(uint64_t newCapacity) {
@@ -50,7 +70,7 @@ void StringChunkData::append(ValueVector* vector, const SelectionVector& selVect
         auto pos = selVector[i];
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         // index is stored in main chunk, data is stored in the data chunk
-        nullChunk->setNull(numValues, vector->isNull(pos));
+        nullData->setNull(numValues, vector->isNull(pos));
         auto dstPos = numValues;
         updateNumValues(numValues + 1);
         if (vector->isNull(pos)) {
@@ -64,7 +84,7 @@ void StringChunkData::append(ValueVector* vector, const SelectionVector& selVect
 void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     auto& otherChunk = other->cast<StringChunkData>();
-    nullChunk->append(otherChunk.getNullChunk(), startPosInOtherChunk, numValuesToAppend);
+    nullData->append(otherChunk.getNullData(), startPosInOtherChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
@@ -76,23 +96,53 @@ void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     }
 }
 
+void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length,
+    sel_t posInOutputVector) const {
+    KU_ASSERT(offset + length <= numValues && nullData);
+    nullData->scan(output, offset, length, posInOutputVector);
+    if (nullData->mayHaveNull()) {
+        for (auto i = 0u; i < length; i++) {
+            if (!nullData->isNull(offset + i)) {
+                output.setValue<std::string_view>(posInOutputVector + i,
+                    getValue<std::string_view>(offset + i));
+            }
+        }
+    } else {
+        for (auto i = 0u; i < length; i++) {
+            output.setValue<std::string_view>(posInOutputVector + i,
+                getValue<std::string_view>(offset + i));
+        }
+    }
+}
+
 void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < numValues);
-    output.setNull(posInOutputVector, nullChunk->isNull(offsetInChunk));
-    if (nullChunk->isNull(offsetInChunk)) {
+    output.setNull(posInOutputVector, nullData->isNull(offsetInChunk));
+    if (nullData->isNull(offsetInChunk)) {
         return;
     }
     auto str = getValue<std::string_view>(offsetInChunk);
     output.setValue<std::string_view>(posInOutputVector, str);
 }
 
-void StringChunkData::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+void StringChunkData::initializeScanState(ChunkState& state) const {
+    ColumnChunkData::initializeScanState(state);
+    state.childrenStates.resize(CHILD_COLUMN_COUNT);
+    indexColumnChunk->initializeScanState(state.childrenStates[INDEX_COLUMN_CHILD_READ_STATE_IDX]);
+    dictionaryChunk->getOffsetChunk()->initializeScanState(
+        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+    dictionaryChunk->getStringDataChunk()->initializeScanState(
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+}
+
+void StringChunkData::write(const ValueVector* vector, offset_t offsetInVector,
+    offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (!needFinalize && offsetInChunk < numValues) [[unlikely]] {
         needFinalize = true;
     }
-    nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+    nullData->setNull(offsetInChunk, vector->isNull(offsetInVector));
     if (offsetInChunk >= numValues) {
         updateNumValues(offsetInChunk + 1);
     }
@@ -112,8 +162,8 @@ void StringChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         if (!needFinalize && offsetInChunk < numValues) [[unlikely]] {
             needFinalize = true;
         }
-        bool isNull = chunk->getNullChunk()->isNull(i);
-        nullChunk->setNull(offsetInChunk, isNull);
+        bool isNull = chunk->getNullData()->isNull(i);
+        nullData->setNull(offsetInChunk, isNull);
         if (offsetInChunk >= numValues) {
             updateNumValues(offsetInChunk + 1);
         }
@@ -133,8 +183,8 @@ void StringChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
     for (auto i = 0u; i < numValuesToCopy; i++) {
         auto srcPos = srcOffsetInChunk + i;
         auto dstPos = dstOffsetInChunk + i;
-        bool isNull = srcChunk->getNullChunk()->isNull(srcPos);
-        nullChunk->setNull(dstPos, isNull);
+        bool isNull = srcChunk->getNullData()->isNull(srcPos);
+        nullData->setNull(dstPos, isNull);
         if (isNull) {
             continue;
         }
@@ -148,7 +198,7 @@ void StringChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     KU_ASSERT(dstOffsetInChunk >= numValues);
     while (numValues < dstOffsetInChunk) {
         indexColumnChunk->setValue<DictionaryChunk::string_index_t>(0, numValues);
-        nullChunk->setNull(numValues, true);
+        nullData->setNull(numValues, true);
         updateNumValues(numValues + 1);
     }
     auto& srcStringChunk = srcChunk->cast<StringChunkData>();
@@ -161,7 +211,7 @@ void StringChunkData::appendStringColumnChunk(StringChunkData* other, offset_t s
         auto posInChunk = numValues;
         auto posInOtherChunk = i + startPosInOtherChunk;
         updateNumValues(numValues + 1);
-        if (nullChunk->isNull(posInChunk)) {
+        if (nullData->isNull(posInChunk)) {
             indexColumnChunk->setValue<DictionaryChunk::string_index_t>(0, posInChunk);
             continue;
         }
@@ -174,6 +224,12 @@ void StringChunkData::setValueFromString(std::string_view value, uint64_t pos) {
     indexColumnChunk->setValue<DictionaryChunk::string_index_t>(index, pos);
 }
 
+void StringChunkData::resetNumValuesFromMetadata() {
+    ColumnChunkData::resetNumValuesFromMetadata();
+    indexColumnChunk->resetNumValuesFromMetadata();
+    dictionaryChunk->resetNumValuesFromMetadata();
+}
+
 void StringChunkData::finalize() {
     if (!needFinalize) {
         return;
@@ -182,10 +238,11 @@ void StringChunkData::finalize() {
     // We already de-duplicate as we go, but when out of place updates occur new values will be
     // appended to the end and the original values may be able to be pruned before flushing them to
     // disk
-    auto newDictionaryChunk = std::make_unique<DictionaryChunk>(numValues, enableCompression);
+    auto newDictionaryChunk =
+        std::make_unique<DictionaryChunk>(numValues, enableCompression, residencyState);
     // Each index is replaced by a new one for the de-duplicated data in the new dictionary.
     for (auto i = 0u; i < numValues; i++) {
-        if (nullChunk->isNull(i)) {
+        if (nullData->isNull(i)) {
             continue;
         }
         auto stringData = getValue<std::string_view>(i);
@@ -193,6 +250,34 @@ void StringChunkData::finalize() {
         indexColumnChunk->setValue<DictionaryChunk::string_index_t>(index, i);
     }
     dictionaryChunk = std::move(newDictionaryChunk);
+}
+
+void StringChunkData::flush(BMFileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
+    indexColumnChunk->flush(dataFH);
+    dictionaryChunk->flush(dataFH);
+}
+
+uint64_t StringChunkData::getEstimatedMemoryUsage() const {
+    return ColumnChunkData::getEstimatedMemoryUsage() + dictionaryChunk->getEstimatedMemoryUsage();
+}
+
+void StringChunkData::serialize(Serializer& serializer) const {
+    ColumnChunkData::serialize(serializer);
+    serializer.writeDebuggingInfo("index_column_chunk");
+    indexColumnChunk->serialize(serializer);
+    serializer.writeDebuggingInfo("dictionary_chunk");
+    dictionaryChunk->serialize(serializer);
+}
+
+void StringChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "index_column_chunk");
+    chunkData.cast<StringChunkData>().indexColumnChunk = ColumnChunkData::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "dictionary_chunk");
+    chunkData.cast<StringChunkData>().dictionaryChunk = DictionaryChunk::deserialize(deSer);
 }
 
 template<>
@@ -204,7 +289,7 @@ ku_string_t StringChunkData::getValue<ku_string_t>(offset_t) const {
 template<>
 std::string_view StringChunkData::getValue<std::string_view>(offset_t pos) const {
     KU_ASSERT(pos < numValues);
-    KU_ASSERT(!nullChunk->isNull(pos));
+    KU_ASSERT(!nullData->isNull(pos));
     auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
     return dictionaryChunk->getString(index);
 }

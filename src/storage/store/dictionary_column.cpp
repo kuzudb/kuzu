@@ -3,6 +3,7 @@
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/store/string_column.h"
 #include <bit>
+#include <storage/store/string_chunk_data.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -13,39 +14,18 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-DictionaryColumn::DictionaryColumn(const std::string& name, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-    Transaction* transaction, bool enableCompression) {
+DictionaryColumn::DictionaryColumn(const std::string& name, BMFileHandle* dataFH,
+    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(),
-        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataDAC, bufferManager, wal, transaction,
-        false /*enableCompression*/, false /*requireNullColumn*/);
+    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(), dataFH, bufferManager,
+        shadowFile, false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(),
-        *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataDAC, bufferManager, wal, transaction,
-        enableCompression, false /*requireNullColumn*/);
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH,
+        bufferManager, shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
-void DictionaryColumn::initChunkState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    Column::ChunkState& readState) {
-    // We put states for data and offset columns into childrenStates.
-    KU_ASSERT(readState.childrenStates.size() >= 2);
-    dataColumn->initChunkState(transaction, nodeGroupIdx,
-        StringColumn::getChildState(readState, StringColumn::ChildStateIndex::DATA));
-    offsetColumn->initChunkState(transaction, nodeGroupIdx,
-        StringColumn::getChildState(readState, StringColumn::ChildStateIndex::OFFSET));
-}
-
-void DictionaryColumn::append(Column::ChunkState& state, const DictionaryChunk& dictChunk) {
-    KU_ASSERT(dictChunk.sanityCheck());
-    dataColumn->append(dictChunk.getStringDataChunk(),
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA));
-    offsetColumn->append(dictChunk.getOffsetChunk(),
-        StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET));
-}
-
-void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& state,
-    DictionaryChunk& dictChunk) {
+void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,
+    DictionaryChunk& dictChunk) const {
     auto& dataMetadata =
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata;
     // Make sure that the chunk is large enough
@@ -67,10 +47,9 @@ void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& 
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), offsetChunk);
 }
 
-void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& offsetState,
-    const Column::ChunkState& dataState,
-    std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan, ValueVector* resultVector,
-    const ColumnChunkMetadata& indexMeta) {
+void DictionaryColumn::scan(Transaction* transaction, const ChunkState& offsetState,
+    const ChunkState& dataState, std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
+    ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) {
     string_index_t firstOffsetToScan, lastOffsetToScan;
     auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
     auto duplicationFactor = (double)offsetState.metadata.numValues / indexMeta.numValues;
@@ -115,31 +94,17 @@ void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& 
     }
 }
 
-string_index_t DictionaryColumn::append(Column::ChunkState& state, std::string_view val) {
-    auto startOffset = dataColumn->appendValues(
+string_index_t DictionaryColumn::append(DictionaryChunk& dictChunk, ChunkState& state,
+    std::string_view val) {
+    const auto startOffset = dataColumn->appendValues(*dictChunk.getStringDataChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
         reinterpret_cast<const uint8_t*>(val.data()), nullptr /*nullChunkData*/, val.size());
-    return offsetColumn->appendValues(
+    return offsetColumn->appendValues(*dictChunk.getOffsetChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET),
         reinterpret_cast<const uint8_t*>(&startOffset), nullptr /*nullChunkData*/, 1 /*numValues*/);
 }
 
-void DictionaryColumn::prepareCommit() {
-    dataColumn->prepareCommit();
-    offsetColumn->prepareCommit();
-}
-
-void DictionaryColumn::checkpointInMemory() {
-    dataColumn->checkpointInMemory();
-    offsetColumn->checkpointInMemory();
-}
-
-void DictionaryColumn::rollbackInMemory() {
-    dataColumn->rollbackInMemory();
-    offsetColumn->rollbackInMemory();
-}
-
-void DictionaryColumn::scanOffsets(Transaction* transaction, const Column::ChunkState& state,
+void DictionaryColumn::scanOffsets(Transaction* transaction, const ChunkState& state,
     DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
     uint64_t dataSize) {
     // We either need to read the next value, or store the maximum string offset at the end.
@@ -152,9 +117,8 @@ void DictionaryColumn::scanOffsets(Transaction* transaction, const Column::Chunk
     }
 }
 
-void DictionaryColumn::scanValueToVector(Transaction* transaction,
-    const Column::ChunkState& dataState, uint64_t startOffset, uint64_t endOffset,
-    ValueVector* resultVector, uint64_t offsetInVector) {
+void DictionaryColumn::scanValueToVector(Transaction* transaction, const ChunkState& dataState,
+    uint64_t startOffset, uint64_t endOffset, ValueVector* resultVector, uint64_t offsetInVector) {
     KU_ASSERT(endOffset >= startOffset);
     // Add string to vector first and read directly into the vector
     auto& kuString =
@@ -166,7 +130,7 @@ void DictionaryColumn::scanValueToVector(Transaction* transaction,
     }
 }
 
-bool DictionaryColumn::canCommitInPlace(const Column::ChunkState& state, uint64_t numNewStrings,
+bool DictionaryColumn::canCommitInPlace(const ChunkState& state, uint64_t numNewStrings,
     uint64_t totalStringLengthToAdd) {
     if (!canDataCommitInPlace(
             StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
@@ -182,7 +146,7 @@ bool DictionaryColumn::canCommitInPlace(const Column::ChunkState& state, uint64_
     return true;
 }
 
-bool DictionaryColumn::canDataCommitInPlace(const Column::ChunkState& dataState,
+bool DictionaryColumn::canDataCommitInPlace(const ChunkState& dataState,
     uint64_t totalStringLengthToAdd) {
     // Make sure there is sufficient space in the data chunk (not currently compressed)
     auto totalStringDataAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
@@ -194,8 +158,8 @@ bool DictionaryColumn::canDataCommitInPlace(const Column::ChunkState& dataState,
     return true;
 }
 
-bool DictionaryColumn::canOffsetCommitInPlace(const Column::ChunkState& offsetState,
-    const Column::ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) {
+bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
+    const ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) {
     auto totalStringOffsetsAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity = offsetState.metadata.compMeta.numValues(
                               BufferPoolConstants::PAGE_4KB_SIZE, dataColumn->getDataType()) *

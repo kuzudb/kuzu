@@ -1,268 +1,229 @@
 #include "storage/local_storage/local_rel_table.h"
 
-#include "storage/storage_utils.h"
+#include "common/enums/rel_direction.h"
+#include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "storage/store/rel_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
 
-LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, std::vector<LogicalType> dataTypes)
-    : LocalNodeGroup{nodeGroupStartOffset, std::move(dataTypes)} {}
-
-row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOffset,
-    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
-    KU_ASSERT(columnIDs.size() == outputVectors.size());
-    std::vector<row_idx_t> rowIdxesToRead;
-    rowIdxesToRead.reserve(DEFAULT_VECTOR_CAPACITY);
-    auto& insertedRelOffsets = insertChunks.getRelOffsetsFromSrcOffset(srcOffsetInChunk);
-    for (auto i = posToReadForOffset; i < insertedRelOffsets.size(); i++) {
-        if (rowIdxesToRead.size() == DEFAULT_VECTOR_CAPACITY) {
-            break;
-        }
-        rowIdxesToRead.push_back(insertChunks.getRowIdxFromOffset(insertedRelOffsets[i]));
+std::vector<LogicalType> LocalRelTable::getTypesForLocalRelTable(const RelTable& table) {
+    std::vector<LogicalType> types;
+    types.reserve(table.getNumColumns() + 1);
+    // Src node ID.
+    types.push_back(LogicalType::INTERNAL_ID());
+    for (auto i = 0u; i < table.getNumColumns(); i++) {
+        types.push_back(table.getColumn(i, RelDataDirection::FWD)->getDataType().copy());
     }
-    for (auto i = 0u; i < columnIDs.size(); i++) {
-        uint64_t posInOutputVector = 0;
-        for (auto rowIdx : rowIdxesToRead) {
-            insertChunks.readValueAtRowIdx(rowIdx, columnIDs[i], outputVectors[i],
-                posInOutputVector++);
-        }
-    }
-    auto numRelsRead = rowIdxesToRead.size();
-    outputVectors[0]->state->getSelVectorUnsafe().setToUnfiltered(numRelsRead);
-    return numRelsRead;
-}
-
-void LocalRelNG::applyLocalChangesToScannedVectors(offset_t srcOffset,
-    const std::vector<column_id_t>& columnIDs, ValueVector* relIDVector,
-    const std::vector<ValueVector*>& outputVectors) {
-    KU_ASSERT(columnIDs.size() == outputVectors.size());
-    // Apply updates first, as applying deletions might change selected state.
-    for (auto i = 0u; i < columnIDs.size(); ++i) {
-        applyCSRUpdates(columnIDs[i], relIDVector, outputVectors[i]);
-    }
-    // Apply deletions and update selVector if necessary.
-    applyCSRDeletions(srcOffset, relIDVector);
-}
-
-void LocalRelNG::applyCSRUpdates(column_id_t columnID, ValueVector* relIDVector,
-    ValueVector* outputVector) {
-    auto& updateChunk = updateChunks[columnID];
-    for (auto i = 0u; i < relIDVector->state->getSelVector().getSelSize(); i++) {
-        auto pos = relIDVector->state->getSelVector()[i];
-        auto relOffset = relIDVector->getValue<relID_t>(pos).offset;
-        if (updateChunk.hasOffset(relOffset)) {
-            updateChunk.read(relOffset, 0, outputVector, pos);
-        }
-    }
-}
-
-void LocalRelNG::applyCSRDeletions(offset_t srcOffset, ValueVector* relIDVector) {
-    if (deleteInfo.isEmpty(srcOffset)) {
-        return;
-    }
-    auto selectPos = 0u;
-    auto selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-    selVector->setToFiltered();
-    for (auto i = 0u; i < relIDVector->state->getSelVector().getSelSize(); i++) {
-        auto relIDPos = relIDVector->state->getSelVector()[i];
-        auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
-        if (deleteInfo.containsOffset(relOffset)) {
-            continue;
-        }
-        selVector->operator[](selectPos++) = relIDPos;
-    }
-    if (selectPos != relIDVector->state->getSelVector().getSelSize()) {
-        relIDVector->state->getSelVectorUnsafe().setToFiltered();
-        memcpy(relIDVector->state->getSelVector().getSelectedPositions().data(),
-            selVector->getSelectedPositions().data(), selectPos * sizeof(sel_t));
-        relIDVector->state->getSelVectorUnsafe().setSelSize(selectPos);
-    }
-}
-
-// nodeIDVectors: srcNodeIDVector, dstNodeIDVector.
-bool LocalRelNG::insert(std::vector<ValueVector*> nodeIDVectors,
-    std::vector<ValueVector*> propertyVectors) {
-    KU_ASSERT(nodeIDVectors.size() == 2);
-    auto srcNodeIDVector = nodeIDVectors[0];
-    auto dstNodeIDVector = nodeIDVectors[1];
-    KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1 &&
-              dstNodeIDVector->state->getSelVector().getSelSize() == 1);
-    auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
-    auto dstNodeIDPos = dstNodeIDVector->state->getSelVector()[0];
-    if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
-        return false;
-    }
-    auto srcNodeOffset =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDPos).offset - nodeGroupStartOffset;
-    KU_ASSERT(srcNodeOffset < StorageConstants::NODE_GROUP_SIZE);
-    std::vector<ValueVector*> vectorsToInsert;
-    vectorsToInsert.push_back(dstNodeIDVector);
-    for (auto i = 0u; i < propertyVectors.size(); i++) {
-        vectorsToInsert.push_back(propertyVectors[i]);
-    }
-    auto relIDPos = vectorsToInsert[LOCAL_REL_ID_COLUMN_ID]->state->getSelVector()[0];
-    auto relOffset = vectorsToInsert[LOCAL_REL_ID_COLUMN_ID]->getValue<relID_t>(relIDPos).offset;
-    insertChunks.append(srcNodeOffset, relOffset, vectorsToInsert);
-    return true;
-}
-
-// IDVectors: srcNodeIDVector, relIDVector.
-bool LocalRelNG::update(std::vector<ValueVector*> IDVectors, column_id_t columnID,
-    ValueVector* propertyVector) {
-    KU_ASSERT(IDVectors.size() == 2);
-    auto srcNodeIDVector = IDVectors[0];
-    auto relIDVector = IDVectors[1];
-    KU_ASSERT(srcNodeIDVector->state->getSelVector().getSelSize() == 1 &&
-              relIDVector->state->getSelVector().getSelSize() == 1);
-    auto srcNodeIDPos = srcNodeIDVector->state->getSelVector()[0];
-    auto relIDPos = relIDVector->state->getSelVector()[0];
-    if (srcNodeIDVector->isNull(srcNodeIDPos) || relIDVector->isNull(relIDPos)) {
-        return false;
-    }
-    auto srcNodeOffset =
-        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDPos).offset - nodeGroupStartOffset;
-    KU_ASSERT(srcNodeOffset < StorageConstants::NODE_GROUP_SIZE && columnID < updateChunks.size());
-    auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
-    // Check if the rel is newly inserted or in persistent storage.
-    if (insertChunks.hasOffset(relOffset)) {
-        insertChunks.update(relOffset, columnID, propertyVector);
-    } else {
-        updateChunks[columnID].append(srcNodeOffset, relOffset, {propertyVector});
-    }
-    return true;
-}
-
-bool LocalRelNG::delete_(ValueVector* srcNodeVector, ValueVector* relIDVector) {
-    KU_ASSERT(srcNodeVector->state->getSelVector().getSelSize() == 1 &&
-              relIDVector->state->getSelVector().getSelSize() == 1);
-    auto srcNodePos = srcNodeVector->state->getSelVector()[0];
-    auto relIDPos = relIDVector->state->getSelVector()[0];
-    if (srcNodeVector->isNull(srcNodePos) || relIDVector->isNull(relIDPos)) {
-        return false;
-    }
-    auto srcNodeOffset =
-        srcNodeVector->getValue<nodeID_t>(srcNodePos).offset - nodeGroupStartOffset;
-    auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
-    // If the rel is newly inserted, remove the rel from insertChunks.
-    if (insertChunks.hasOffset(relOffset)) {
-        insertChunks.remove(srcNodeOffset, relOffset);
-        return true;
-    }
-    // If the rel is updated, remove the rel from updateChunks if exists.
-    for (auto i = 0u; i < updateChunks.size(); i++) {
-        if (updateChunks[i].hasOffset(relOffset)) {
-            updateChunks[i].remove(srcNodeOffset, relOffset);
-        }
-    }
-    if (!deleteInfo.deleteOffset(relOffset)) {
-        return false;
-    }
-    deleteInfo.deleteRelAux(srcNodeOffset, relOffset);
-    return true;
-}
-
-offset_t LocalRelNG::getNumInsertedRels(offset_t srcOffset) const {
-    if (!insertChunks.hasRelOffsetsFromSrcOffset(srcOffset)) {
-        return 0;
-    }
-    return insertChunks.getNumRelsFromSrcOffset(srcOffset);
-}
-
-void LocalRelNG::getChangesPerCSRSegment(std::vector<int64_t>& sizeChangesPerSegment,
-    std::vector<bool>& hasChangesPerSegment) {
-    auto numSegments = StorageConstants::NODE_GROUP_SIZE / StorageConstants::CSR_SEGMENT_SIZE;
-    sizeChangesPerSegment.resize(numSegments, 0 /*initValue*/);
-    hasChangesPerSegment.resize(numSegments, false /*initValue*/);
-    for (auto& [srcOffset, insertions] : insertChunks.getSrcNodeOffsetToRelOffsets()) {
-        auto segmentIdx = getSegmentIdx(srcOffset);
-        sizeChangesPerSegment[segmentIdx] += insertions.size();
-        hasChangesPerSegment[segmentIdx] = true;
-    }
-    for (auto& [srcOffset, deletions] : deleteInfo.getSrcNodeOffsetToRelOffsetVec()) {
-        auto segmentIdx = getSegmentIdx(srcOffset);
-        sizeChangesPerSegment[segmentIdx] -= deletions.size();
-        hasChangesPerSegment[segmentIdx] = true;
-    }
-    for (auto& updateChunk : updateChunks) {
-        for (auto& [srcOffset, _] : updateChunk.getSrcNodeOffsetToRelOffsets()) {
-            auto segmentIdx = getSegmentIdx(srcOffset);
-            hasChangesPerSegment[segmentIdx] = true;
-        }
-    }
-}
-
-LocalNodeGroup* LocalRelTableData::getOrCreateLocalNodeGroup(ValueVector* nodeIDVector) {
-    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    if (!nodeGroups.contains(nodeGroupIdx)) {
-        auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        nodeGroups[nodeGroupIdx] = std::make_unique<LocalRelNG>(nodeGroupStartOffset,
-            common::LogicalType::copy(dataTypes));
-    }
-    return nodeGroups.at(nodeGroupIdx).get();
+    return types;
 }
 
 LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
-    auto& relTable = ku_dynamic_cast<Table&, RelTable&>(table);
-    std::vector<LogicalType> types;
-    types.reserve(relTable.getNumColumns());
-    for (auto i = 0u; i < relTable.getNumColumns(); i++) {
-        types.push_back(relTable.getColumn(i, RelDataDirection::FWD)->getDataType().copy());
+    localNodeGroup = std::make_unique<NodeGroup>(0, false,
+        getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
+    auto& relTable = table.cast<RelTable>();
+    nodeOffsetColumns[LOCAL_BOUND_NODE_ID_COLUMN_ID] = relTable.getFromNodeTableID();
+    nodeOffsetColumns[LOCAL_NBR_NODE_ID_COLUMN_ID] = relTable.getToNodeTableID();
+    auto numColumns = relTable.getNumColumns();
+    // skip NBR_ID and REL_ID, this assumes all INTERNAL_ID are node references
+    for (auto i = 2u; i < numColumns; i++) {
+        auto column = relTable.getColumn(i, RelDataDirection::FWD);
+        if (column->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
+            nodeOffsetColumns[i + 1] = column->cast<InternalIDColumn>().getCommonTableID();
+        }
     }
-    // FWD and BWD local rel table data.
-    auto tableID = relTable.getTableID();
-    localTableDataCollection.push_back(
-        std::make_unique<LocalRelTableData>(tableID, LogicalType::copy(types)));
-    localTableDataCollection.push_back(
-        std::make_unique<LocalRelTableData>(tableID, std::move(types)));
 }
 
-bool LocalRelTable::insert(TableInsertState& state) {
-    auto& insertState = ku_dynamic_cast<TableInsertState&, RelTableInsertState&>(state);
-    auto fwdIDVectors =
-        std::vector<ValueVector*>{const_cast<ValueVector*>(&insertState.srcNodeIDVector),
-            const_cast<ValueVector*>(&insertState.dstNodeIDVector)};
-    auto bwdIDVectors =
-        std::vector<ValueVector*>{const_cast<ValueVector*>(&insertState.dstNodeIDVector),
-            const_cast<ValueVector*>(&insertState.srcNodeIDVector)};
-    auto fwdInserted =
-        getTableData(RelDataDirection::FWD)->insert(fwdIDVectors, insertState.propertyVectors);
-    auto bwdInserted =
-        getTableData(RelDataDirection::BWD)->insert(bwdIDVectors, insertState.propertyVectors);
-    KU_ASSERT(fwdInserted == bwdInserted);
-    return fwdInserted && bwdInserted;
+bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
+    KU_ASSERT(transaction->isDummy());
+    const auto& insertState = state.cast<RelTableInsertState>();
+    KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
+              insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
+    const auto srcNodePos = insertState.srcNodeIDVector.state->getSelVector()[0];
+    const auto dstNodePos = insertState.dstNodeIDVector.state->getSelVector()[0];
+    if (insertState.srcNodeIDVector.isNull(srcNodePos) ||
+        insertState.dstNodeIDVector.isNull(dstNodePos)) {
+        return false;
+    }
+    const auto numRowsInLocalTable = localNodeGroup->getNumRows();
+    const auto relOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
+    const auto relIDVector = insertState.propertyVectors[0];
+    KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+    const auto relIDPos = relIDVector->state->getSelVector()[0];
+    relIDVector->setValue<internalID_t>(relIDPos, internalID_t{relOffset, table.getTableID()});
+    relIDVector->setNull(relIDPos, false);
+    std::vector<ValueVector*> insertVectors;
+    insertVectors.push_back(&insertState.srcNodeIDVector);
+    insertVectors.push_back(&insertState.dstNodeIDVector);
+    for (auto i = 0u; i < insertState.propertyVectors.size(); i++) {
+        insertVectors.push_back(insertState.propertyVectors[i]);
+    }
+    const auto numRowsToAppend = insertState.srcNodeIDVector.state->getSelVector().getSelSize();
+    localNodeGroup->append(transaction, insertVectors, 0, numRowsToAppend);
+    const auto srcNodeOffset = insertState.srcNodeIDVector.readNodeOffset(srcNodePos);
+    const auto dstNodeOffset = insertState.dstNodeIDVector.readNodeOffset(dstNodePos);
+    fwdIndex[srcNodeOffset].push_back(numRowsInLocalTable);
+    bwdIndex[dstNodeOffset].push_back(numRowsInLocalTable);
+    return true;
 }
 
-bool LocalRelTable::update(TableUpdateState& updateState) {
-    auto& state = ku_dynamic_cast<TableUpdateState&, RelTableUpdateState&>(updateState);
-    auto fwdIDVectors = std::vector<ValueVector*>{const_cast<ValueVector*>(&state.srcNodeIDVector),
-        const_cast<ValueVector*>(&state.relIDVector)};
-    auto bwdIDVectors = std::vector<ValueVector*>{const_cast<ValueVector*>(&state.dstNodeIDVector),
-        const_cast<ValueVector*>(&state.relIDVector)};
-    auto fwdUpdated =
-        getTableData(RelDataDirection::FWD)
-            ->update(fwdIDVectors, state.columnID, const_cast<ValueVector*>(&state.propertyVector));
-    auto bwdUpdated =
-        getTableData(RelDataDirection::BWD)
-            ->update(bwdIDVectors, state.columnID, const_cast<ValueVector*>(&state.propertyVector));
-    KU_ASSERT(fwdUpdated == bwdUpdated);
-    return fwdUpdated && bwdUpdated;
+bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
+    KU_ASSERT(transaction->isDummy());
+    const auto& updateState = state.cast<RelTableUpdateState>();
+    const auto srcNodePos = updateState.srcNodeIDVector.state->getSelVector()[0];
+    const auto dstNodePos = updateState.dstNodeIDVector.state->getSelVector()[0];
+    const auto relIDPos = updateState.relIDVector.state->getSelVector()[0];
+    if (updateState.srcNodeIDVector.isNull(srcNodePos) ||
+        updateState.relIDVector.isNull(relIDPos) || updateState.relIDVector.isNull(relIDPos)) {
+        return false;
+    }
+    const auto srcNodeOffset = updateState.srcNodeIDVector.readNodeOffset(srcNodePos);
+    const auto dstNodeOffset = updateState.dstNodeIDVector.readNodeOffset(dstNodePos);
+    const auto relOffset = updateState.relIDVector.readNodeOffset(relIDPos);
+    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
+    if (matchedRow == INVALID_ROW_IDX) {
+        return false;
+    }
+    KU_ASSERT(updateState.columnID != NBR_ID_COLUMN_ID);
+    localNodeGroup->update(transaction, matchedRow,
+        rewriteLocalColumnID(RelDataDirection::FWD /* This is a dummy direction */,
+            updateState.columnID),
+        updateState.propertyVector);
+    return true;
 }
 
-bool LocalRelTable::delete_(TableDeleteState& deleteState) {
-    auto& state = ku_dynamic_cast<TableDeleteState&, RelTableDeleteState&>(deleteState);
-    auto fwdDeleted = getTableData(RelDataDirection::FWD)
-                          ->delete_(const_cast<ValueVector*>(&state.srcNodeIDVector),
-                              const_cast<ValueVector*>(&state.relIDVector));
-    auto bwdDeleted = getTableData(RelDataDirection::BWD)
-                          ->delete_(const_cast<ValueVector*>(&state.dstNodeIDVector),
-                              const_cast<ValueVector*>(&state.relIDVector));
-    KU_ASSERT(fwdDeleted == bwdDeleted);
-    return fwdDeleted && bwdDeleted;
+bool LocalRelTable::delete_(Transaction*, TableDeleteState& state) {
+    const auto& deleteState = state.cast<RelTableDeleteState>();
+    const auto srcNodePos = deleteState.srcNodeIDVector.state->getSelVector()[0];
+    const auto dstNodePos = deleteState.dstNodeIDVector.state->getSelVector()[0];
+    const auto relIDPos = deleteState.relIDVector.state->getSelVector()[0];
+    if (deleteState.srcNodeIDVector.isNull(srcNodePos) ||
+        deleteState.relIDVector.isNull(relIDPos) || deleteState.relIDVector.isNull(relIDPos)) {
+        return false;
+    }
+    const auto srcNodeOffset = deleteState.srcNodeIDVector.readNodeOffset(srcNodePos);
+    const auto dstNodeOffset = deleteState.dstNodeIDVector.readNodeOffset(dstNodePos);
+    const auto relOffset = deleteState.relIDVector.readNodeOffset(relIDPos);
+    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
+    if (matchedRow == INVALID_ROW_IDX) {
+        return false;
+    }
+    std::erase(fwdIndex[srcNodeOffset], matchedRow);
+    std::erase(bwdIndex[dstNodeOffset], matchedRow);
+    return true;
+}
+
+bool LocalRelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    localNodeGroup->addColumn(transaction, addColumnState, nullptr /* BMFileHandle */);
+    return true;
+}
+
+void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
+    KU_ASSERT(srcNodeIDVector->state->isFlat());
+    const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    if (fwdIndex.contains(nodeOffset) && !fwdIndex.at(nodeOffset).empty()) {
+        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+            table.getTableName(), std::to_string(nodeOffset),
+            RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD)));
+    }
+    if (bwdIndex.contains(nodeOffset) && !bwdIndex.at(nodeOffset).empty()) {
+        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+            table.getTableName(), std::to_string(nodeOffset),
+            RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD)));
+    }
+}
+
+void LocalRelTable::initializeScan(TableScanState& state) {
+    auto& relScanState = state.cast<LocalRelTableScanState>();
+    KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
+    relScanState.nodeGroup = localNodeGroup.get();
+    auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
+    if (index.contains(relScanState.boundNodeOffset)) {
+        relScanState.rowIndices = index[relScanState.boundNodeOffset];
+        KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
+    } else {
+        relScanState.rowIndices.clear();
+    }
+}
+
+std::vector<column_id_t> LocalRelTable::rewriteLocalColumnIDs(RelDataDirection direction,
+    const std::vector<column_id_t>& columnIDs) {
+    std::vector<column_id_t> localColumnIDs;
+    localColumnIDs.reserve(columnIDs.size());
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        const auto columnID = columnIDs[i];
+        localColumnIDs.push_back(rewriteLocalColumnID(direction, columnID));
+    }
+    return localColumnIDs;
+}
+
+column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, column_id_t columnID) {
+    return columnID == NBR_ID_COLUMN_ID ? direction == RelDataDirection::FWD ?
+                                          LOCAL_NBR_NODE_ID_COLUMN_ID :
+                                          LOCAL_BOUND_NODE_ID_COLUMN_ID :
+                                          columnID + 1;
+}
+
+bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
+    const auto& relScanState = state.cast<RelTableScanState>();
+    KU_ASSERT(relScanState.localTableScanState);
+    auto& localScanState = *relScanState.localTableScanState;
+    KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
+    const auto numToScan = std::min(localScanState.rowIndices.size() - localScanState.nextRowToScan,
+        DEFAULT_VECTOR_CAPACITY);
+    if (numToScan == 0) {
+        return false;
+    }
+    for (auto i = 0u; i < numToScan; i++) {
+        localScanState.rowIdxVector->setValue<row_idx_t>(i,
+            localScanState.rowIndices[localScanState.nextRowToScan + i]);
+    }
+    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
+    localNodeGroup->lookup(transaction, localScanState);
+    localScanState.nextRowToScan += numToScan;
+    return true;
+}
+
+row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNodeOffset,
+    offset_t relOffset) {
+    auto& fwdRows = fwdIndex[srcNodeOffset];
+    std::sort(fwdRows.begin(), fwdRows.end());
+    auto& bwdRows = bwdIndex[dstNodeOffset];
+    std::sort(bwdRows.begin(), bwdRows.end());
+    std::vector<row_idx_t> intersectRows;
+    std::set_intersection(fwdRows.begin(), fwdRows.end(), bwdRows.begin(), bwdRows.end(),
+        std::back_inserter(intersectRows));
+    // Loop over relID column chunks to find the relID.
+    DataChunk scanChunk(1);
+    scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
+    std::vector<column_id_t> columnIDs;
+    columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
+    const auto scanState = std::make_unique<RelTableScanState>(columnIDs);
+    scanState->IDVector = scanChunk.getValueVector(0).get();
+    scanState->rowIdxVector->state = scanChunk.state;
+    scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
+    scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
+    // TODO(Guodong): We assume intersectRows is smaller than 2048 here. Should handle edge case.
+    for (auto i = 0u; i < intersectRows.size(); i++) {
+        scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
+    }
+    localNodeGroup->lookup(&DUMMY_TRANSACTION, *scanState);
+    const auto scannedRelIDVector = scanState->outputVectors[0];
+    KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());
+    row_idx_t matchedRow = INVALID_ROW_IDX;
+    for (auto i = 0u; i < intersectRows.size(); i++) {
+        if (scannedRelIDVector->getValue<internalID_t>(i).offset == relOffset) {
+            matchedRow = intersectRows[i];
+            break;
+        }
+    }
+    return matchedRow;
 }
 
 } // namespace storage

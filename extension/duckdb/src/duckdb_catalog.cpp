@@ -83,7 +83,7 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
         tableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
             propertyInfo.defaultValue->copy());
     }
-    tables->createEntry(&transaction::DUMMY_WRITE_TRANSACTION, std::move(tableEntry));
+    tables->createEntry(&transaction::DUMMY_TRANSACTION, std::move(tableEntry));
 }
 
 static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,

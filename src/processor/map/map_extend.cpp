@@ -16,10 +16,13 @@ namespace kuzu {
 namespace processor {
 
 static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalogEntry,
-    RelDataDirection direction, RelTable* relTable, const expression_vector& properties,
-    const std::vector<storage::ColumnPredicateSet>& columnPredicates) {
+    RelDataDirection direction, DataPos boundNodeIDPos, RelTable* relTable,
+    const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates) {
     auto relTableID = tableCatalogEntry.getTableID();
     std::vector<column_id_t> columnIDs;
+    // We alawys should scan nbrID from relTable. This is not a property in the schema label, so
+    // cannot be bound to a column in the front-end.
+    columnIDs.push_back(NBR_ID_COLUMN_ID);
     for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
         if (property.hasPropertyID(relTableID)) {
@@ -29,13 +32,13 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
             columnIDs.push_back(INVALID_COLUMN_ID);
         }
     }
-    return ScanRelTableInfo(relTable, direction, std::move(columnIDs),
+    return ScanRelTableInfo(relTable, direction, boundNodeIDPos, std::move(columnIDs),
         copyVector(columnPredicates));
 }
 
 static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t boundNodeTableID,
-    const RelExpression& rel, ExtendDirection extendDirection, const expression_vector& properties,
-    const std::vector<storage::ColumnPredicateSet>& columnPredicates,
+    const RelExpression& rel, DataPos boundNodeIDPos, ExtendDirection extendDirection,
+    const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates,
     const main::ClientContext& clientContext) {
     std::vector<ScanRelTableInfo> scanInfos;
     auto catalog = clientContext.getCatalog();
@@ -48,23 +51,23 @@ static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t bo
         case ExtendDirection::FWD: {
             if (relTableEntry.getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
                 scanInfos.push_back(getRelTableScanInfo(relTableEntry, RelDataDirection::FWD,
-                    relTable, properties, columnPredicates));
+                    boundNodeIDPos, relTable, properties, columnPredicates));
             }
         } break;
         case ExtendDirection::BWD: {
             if (relTableEntry.getBoundTableID(RelDataDirection::BWD) == boundNodeTableID) {
                 scanInfos.push_back(getRelTableScanInfo(relTableEntry, RelDataDirection::BWD,
-                    relTable, properties, columnPredicates));
+                    boundNodeIDPos, relTable, properties, columnPredicates));
             }
         } break;
         case ExtendDirection::BOTH: {
             if (relTableEntry.getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
                 scanInfos.push_back(getRelTableScanInfo(relTableEntry, RelDataDirection::FWD,
-                    relTable, properties, columnPredicates));
+                    boundNodeIDPos, relTable, properties, columnPredicates));
             }
             if (relTableEntry.getBoundTableID(RelDataDirection::BWD) == boundNodeTableID) {
                 scanInfos.push_back(getRelTableScanInfo(relTableEntry, RelDataDirection::BWD,
-                    relTable, properties, columnPredicates));
+                    boundNodeIDPos, relTable, properties, columnPredicates));
             }
         } break;
         default:
@@ -91,12 +94,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto inNodeIDPos = getDataPos(*boundNode->getInternalID(), *inFSchema);
     auto outNodeIDPos = getDataPos(*nbrNode->getInternalID(), *outFSchema);
+    auto relIDPos = getDataPos(*rel->getInternalIDProperty(), *outFSchema);
     std::vector<DataPos> outVectorsPos;
     outVectorsPos.push_back(outNodeIDPos);
     for (auto& expression : extend->getProperties()) {
         outVectorsPos.push_back(getDataPos(*expression, *outFSchema));
     }
-    auto scanInfo = ScanTableInfo(inNodeIDPos, outVectorsPos);
+    auto scanInfo = ScanTableInfo(relIDPos, outVectorsPos);
     auto printInfo = std::make_unique<OPPrintInfo>(extend->getExpressionsForPrinting());
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
         auto relTableID = rel->getSingleTableID();
@@ -105,7 +109,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
         auto relTable =
             clientContext->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
-        auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, relTable,
+        auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, inNodeIDPos, relTable,
             extend->getProperties(), extend->getPropertyPredicates());
         return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
             std::move(prevOperator), getOperatorID(), printInfo->copy());
@@ -116,10 +120,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     if (rel->hasDirectionExpr()) {
         directionInfo.directionPos = getDataPos(*rel->getDirectionExpr(), *outFSchema);
     }
-    common::table_id_map_t<RelTableCollectionScanner> scanners;
+    table_id_map_t<RelTableCollectionScanner> scanners;
     for (auto boundNodeTableID : boundNode->getTableIDs()) {
-        auto scanner = populateRelTableCollectionScanner(boundNodeTableID, *rel, extendDirection,
-            extend->getProperties(), extend->getPropertyPredicates(), *clientContext);
+        auto scanner =
+            populateRelTableCollectionScanner(boundNodeTableID, *rel, inNodeIDPos, extendDirection,
+                extend->getProperties(), extend->getPropertyPredicates(), *clientContext);
         if (!scanner.empty()) {
             scanners.insert({boundNodeTableID, std::move(scanner)});
         }

@@ -84,14 +84,13 @@
 {_ID: 0:0, _LABEL: test, id: 2, name: Alice}
 
 -CASE SetWithSerialPK
--SKIP
 -STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {name:'Alice'})
 ---- ok
 -STATEMENT MATCH (t:test) SET t.id=NULL
 ---- error
-Bind exception: Cannot set SERIAL column 'id' to a different value
+Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE SetLongStringPK
 -STATEMENT create node table person0 (ID STRING, PRIMARY KEY (ID));

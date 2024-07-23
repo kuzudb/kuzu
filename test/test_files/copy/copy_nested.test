@@ -1,0 +1,89 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE NodePropertyIntColumnWithList
+-STATEMENT MATCH (p:person) RETURN p.workedHours
+---- 8
+[1,9]
+[10,11,12,3,4,5,6,7]
+[10,5]
+[12,8]
+[1]
+[2]
+[3,4,5,6,7]
+[4,5]
+
+-CASE NodePropertyStringColumnWithList
+-STATEMENT MATCH (p:person) RETURN p.usedNames
+---- 8
+[Ad,De,Hi,Kye,Orlan]
+[Aida]
+[Bobby]
+[Carmen,Fred]
+[Ein]
+[Fesdwe]
+[Grad]
+[Wolfeschlegelstein,Daniel]
+
+-CASE RelPropertyColumnWithList
+-STATEMENT MATCH ()-[s:studyAt]-() RETURN s.places
+---- 6
+[anew,jsdnwusklklklwewsd]
+[anew,jsdnwusklklklwewsd]
+[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+[wwAewsdndweusd,wek]
+[wwAewsdndweusd,wek]
+
+-CASE NodePropertyIntColumnWithList
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.workedHours
+---- 8
+[1,9]
+[10,11,12,3,4,5,6,7]
+[10,5]
+[12,8]
+[1]
+[2]
+[3,4,5,6,7]
+[4,5]
+
+-CASE NodePropertyStringColumnWithList
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.usedNames
+---- 8
+[Ad,De,Hi,Kye,Orlan]
+[Aida]
+[Bobby]
+[Carmen,Fred]
+[Ein]
+[Fesdwe]
+[Grad]
+[Wolfeschlegelstein,Daniel]
+
+-CASE RelPropertyColumnWithList
+-RELOADDB
+-STATEMENT MATCH ()-[s:studyAt]-() RETURN s.places
+---- 6
+[anew,jsdnwusklklklwewsd]
+[anew,jsdnwusklklklwewsd]
+[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+[wwAewsdndweusd,wek]
+[wwAewsdndweusd,wek]
+
+-CASE NodeStruct
+-STATEMENT MATCH (o:organisation) RETURN o.state;
+---- 3
+{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}
+
+-CASE NodeStruct
+-RELOADDB
+-STATEMENT MATCH (o:organisation) RETURN o.state;
+---- 3
+{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}

@@ -16,7 +16,6 @@
 #include "processor/processor.h"
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
-#include "storage/wal_replayer.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::catalog;
@@ -28,8 +27,9 @@ namespace kuzu {
 namespace main {
 
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
-    bool readOnly, uint64_t maxDBSize)
-    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly(readOnly) {
+    bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold)
+    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
+      autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold} {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
@@ -37,17 +37,18 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
         GlobalMemoryStatusEx(&status);
         auto systemMemSize = (std::uint64_t)status.ullTotalPhys;
 #else
-        auto systemMemSize =
-            (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);
+        auto systemMemSize = static_cast<std::uint64_t>(sysconf(_SC_PHYS_PAGES)) *
+                             static_cast<std::uint64_t>(sysconf(_SC_PAGESIZE));
 #endif
-        bufferPoolSize_ = (uint64_t)(BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM *
-                                     (double)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+        bufferPoolSize_ = static_cast<uint64_t>(
+            BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM *
+            static_cast<double>(std::min(systemMemSize, static_cast<uint64_t>(UINTPTR_MAX))));
         // On 32-bit systems or systems with extremely large memory, the buffer pool size may
         // exceed the maximum size of a VMRegion. In this case, we set the buffer pool size to
         // 80% of the maximum size of a VMRegion.
-        bufferPoolSize_ = (uint64_t)std::min((double)bufferPoolSize_,
+        bufferPoolSize_ = static_cast<uint64_t>(std::min(static_cast<double>(bufferPoolSize_),
             BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE *
-                BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM);
+                BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM));
     }
     bufferPoolSize = bufferPoolSize_;
     if (maxNumThreads == 0) {
@@ -73,7 +74,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);
-    auto dbPathStr = std::string(databasePath);
+    const auto dbPathStr = std::string(databasePath);
     this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
     bufferManager =
         std::make_unique<BufferManager>(this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize);
@@ -81,15 +82,17 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->dbConfig.maxNumThreads);
     initAndLockDBDir();
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
-    StorageManager::recover(clientContext);
     storageManager = std::make_unique<StorageManager>(this->databasePath, systemConfig.readOnly,
         *catalog, *memoryManager, systemConfig.enableCompression, vfs.get(), &clientContext);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
+    StorageManager::recover(clientContext);
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
 }
 
-Database::~Database() {}
+Database::~Database() {
+    // TODO(Guodong): We should consider forcing checkpoint when closing the database.
+}
 
 void Database::addTableFunction(std::string name, function::function_set functionSet) {
     catalog->addBuiltInFunction(CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),

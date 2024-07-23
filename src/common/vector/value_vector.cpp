@@ -3,6 +3,8 @@
 #include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/types/blob.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
@@ -209,6 +211,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             structFields[i]->copyFromValue(pos, *NestedVal::getChildVal(&value, i));
         }
     } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        memcpy(dstValue, &value.val.internalIDVal, numBytesPerValue);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
@@ -275,9 +280,6 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
         value->childrenSize = children.size();
         value->children = std::move(children);
     } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        value->val.internalIDVal = getValue<internalID_t>(pos);
-    } break;
     case PhysicalTypeID::STRUCT: {
         auto& fieldVectors = StructVector::getFieldVectors(this);
         std::vector<std::unique_ptr<Value>> children;
@@ -287,6 +289,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
         }
         value->childrenSize = children.size();
         value->children = std::move(children);
+    } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        value->val.internalIDVal = getValue<internalID_t>(pos);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -348,6 +353,46 @@ void ValueVector::initializeValueBuffer() {
         // valueVector.
         StructVector::initializeEntries(this);
     }
+}
+
+void ValueVector::serialize(Serializer& ser) const {
+    // dataType, num_values, data, nullMask, aux
+    ser.writeDebuggingInfo("data_type");
+    dataType.serialize(ser);
+    ser.writeDebuggingInfo("num_values");
+    auto selSize = state->getSelVector().getSelSize();
+    ser.write<sel_t>(selSize);
+    ser.writeDebuggingInfo("null_mask");
+    nullMask.serialize(ser);
+    ser.writeDebuggingInfo("values");
+    for (auto i = 0u; i < selSize; i++) {
+        getAsValue(state->getSelVector()[i])->serialize(ser);
+    }
+}
+
+std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
+    storage::MemoryManager* mm, std::shared_ptr<DataChunkState> dataChunkState) {
+    std::string key;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "data_type");
+    auto dataType = LogicalType::deserialize(deSer);
+    auto result = std::make_unique<ValueVector>(std::move(dataType), mm);
+    result->state = dataChunkState;
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "num_values");
+    sel_t numValues;
+    deSer.deserializeValue<sel_t>(numValues);
+    result->state->getSelVectorUnsafe().setSelSize(numValues);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "null_mask");
+    result->nullMask = NullMask::deserialize(deSer);
+    deSer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "values");
+    for (auto i = 0u; i < numValues; i++) {
+        auto val = Value::deserialize(deSer);
+        result->copyFromValue(result->state->getSelVector()[i], *val);
+    }
+    return result;
 }
 
 template KUZU_API void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);

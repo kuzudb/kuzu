@@ -39,20 +39,21 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(std::string name, page_idx_t metaDAHIdx, BMFileHandle* dataFH,
-    DiskArrayCollection& metadataDAC, BufferManager* bufferManager, WAL* wal,
-    Transaction* transaction, bool enableCompression)
-    : Column{name, LogicalType::BOOL(), MetadataDAHInfo{metaDAHIdx}, dataFH, metadataDAC,
-          bufferManager, wal, transaction, enableCompression, false /*requireNullColumn*/} {
+NullColumn::NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager,
+    ShadowFile* shadowFile, bool enableCompression)
+    : Column{name, LogicalType::BOOL(), dataFH, bufferManager, shadowFile, enableCompression,
+          false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
     writeFromVectorFunc = NullColumnFunc::writeValueToPageFromVector;
     // Should never be used
     batchLookupFunc = nullptr;
 }
 
-void NullColumn::scan(Transaction* transaction, const ChunkState& state, idx_t vectorIdx,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
+void NullColumn::scan(Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
+    ValueVector* resultVector) {
+    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
+        resultVector);
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,
@@ -67,19 +68,6 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
 }
 
-void NullColumn::lookup(Transaction* transaction, ChunkState& readState,
-    const ValueVector* nodeIDVector, ValueVector* resultVector) {
-    lookupInternal(transaction, readState, nodeIDVector, resultVector);
-}
-
-void NullColumn::append(ColumnChunkData* columnChunk, ChunkState& state) {
-    auto preScanMetadata = columnChunk->getMetadataToFlush();
-    auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
-    state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-    metadataDA->resize(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx + 1);
-    metadataDA->update(&DUMMY_WRITE_TRANSACTION, state.nodeGroupIdx, state.metadata);
-}
-
 bool NullColumn::isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk) {
     uint64_t result = false;
     if (offsetInChunk >= state.metadata.numValues) {
@@ -91,25 +79,19 @@ bool NullColumn::isNull(Transaction* transaction, const ChunkState& state, offse
     return result;
 }
 
-void NullColumn::setNull(ChunkState& state, offset_t offsetInChunk, uint64_t value) {
+void NullColumn::setNull(ColumnChunkData& persistentChunk, ChunkState& state,
+    offset_t offsetInChunk, uint64_t value) {
     // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
+    writeValues(persistentChunk, state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
         nullptr /*nullChunkData=*/);
-    updateStatistics(state.metadata, offsetInChunk, StorageValue((bool)value),
+    updateStatistics(persistentChunk.getMetadata(), offsetInChunk, StorageValue((bool)value),
         StorageValue((bool)value));
 }
 
-void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ValueVector* vectorToWriteFrom,
-    uint32_t posInVectorToWriteFrom) {
-    writeValue(state, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
-    auto value = StorageValue(vectorToWriteFrom->isNull(posInVectorToWriteFrom));
-    updateStatistics(state.metadata, offsetInChunk, value, value);
-}
-
-void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkData* data,
-    offset_t dataOffset, length_t numValues) {
-    writeValues(state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/, dataOffset,
-        numValues);
+void NullColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t offsetInChunk,
+    ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
+    writeValues(persistentChunk, state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/,
+        dataOffset, numValues);
     auto& nullChunk = data->cast<NullChunkData>();
     KU_ASSERT(numValues > 0);
     bool min = nullChunk.isNull(dataOffset);
@@ -121,36 +103,8 @@ void NullColumn::write(ChunkState& state, offset_t offsetInChunk, ColumnChunkDat
             min = false;
         }
     }
-    updateStatistics(state.metadata, offsetInChunk + numValues - 1, StorageValue(min),
-        StorageValue(max));
-}
-
-void NullColumn::commitLocalChunkInPlace(ChunkState& state,
-    const ChunkCollection& localInsertChunks, const offset_to_row_idx_t& insertInfo,
-    const ChunkCollection& localUpdateChunks, const offset_to_row_idx_t& updateInfo,
-    const offset_set_t& deleteInfo) {
-    for (auto& [offsetInChunk, rowIdx] : updateInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localChunk = localUpdateChunks[chunkIdx];
-        KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-                  !localChunk->getNullChunk());
-        write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
-    }
-    for (auto& [offsetInChunk, rowIdx] : insertInfo) {
-        auto [chunkIdx, offsetInLocalChunk] =
-            LocalChunkedGroupCollection::getChunkIdxAndOffsetInChunk(rowIdx);
-        auto localChunk = localInsertChunks[chunkIdx];
-        KU_ASSERT(localChunk->getDataType().getPhysicalType() == PhysicalTypeID::BOOL &&
-                  !localChunk->getNullChunk());
-        write(state, offsetInChunk, localChunk, offsetInLocalChunk, 1 /*numValues*/);
-    }
-    // Set nulls based on deleteInfo. Note that this code path actually only gets executed when
-    // the column is a regular format one. This is not a good design, should be unified with csr
-    // one in the future.
-    for (auto offsetInChunk : deleteInfo) {
-        setNull(state, offsetInChunk);
-    }
+    updateStatistics(persistentChunk.getMetadata(), offsetInChunk + numValues - 1,
+        StorageValue(min), StorageValue(max));
 }
 
 } // namespace storage

@@ -15,8 +15,8 @@ void LogicalPartitioner::computeFlatSchema() {
 
 std::string LogicalPartitioner::getExpressionsForPrinting() const {
     binder::expression_vector expressions;
-    for (auto& info : infos) {
-        expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);
+    for (auto& partitioningInfo : info.partitioningInfos) {
+        expressions.push_back(copyFromInfo.columnExprs[partitioningInfo.keyIdx]);
     }
     return binder::ExpressionUtil::toString(expressions);
 }

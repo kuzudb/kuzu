@@ -19,7 +19,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
@@ -31,11 +31,15 @@
 
 
 -CASE deleteRelsFromUpdateStoreCommitRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
--STATEMENT COMMIT_SKIP_CHECKPOINT
----- ok 
+-STATEMENT COMMIT
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -52,7 +56,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
@@ -62,11 +66,15 @@
 
 
 -CASE deleteRelsFromUpdateStoreRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
----- ok 
+-STATEMENT ROLLBACK
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

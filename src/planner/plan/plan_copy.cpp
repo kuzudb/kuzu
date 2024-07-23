@@ -24,17 +24,18 @@ static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& pla
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
-    std::vector<LogicalPartitionerInfo> infos;
-    auto& relTableEntry = copyFromInfo.tableEntry->constCast<RelTableCatalogEntry>();
+    LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
+    const auto relTableEntry =
+        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
     // Partitioner for FWD direction rel data.
-    infos.push_back(LogicalPartitionerInfo(RelKeyIdx::FWD /* keyIdx */,
-        relTableEntry.isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                    ColumnDataFormat::CSR));
+    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::FWD /* keyIdx */,
+        relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
+                                                                     ColumnDataFormat::CSR));
     // Partitioner for BWD direction rel data.
-    infos.push_back(LogicalPartitionerInfo(RelKeyIdx::BWD /* keyIdx */,
-        relTableEntry.isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                    ColumnDataFormat::CSR));
-    auto partitioner = std::make_shared<LogicalPartitioner>(std::move(infos), copyFromInfo.copy(),
+    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::BWD /* keyIdx */,
+        relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
+                                                                     ColumnDataFormat::CSR));
+    auto partitioner = std::make_shared<LogicalPartitioner>(std::move(info), copyFromInfo.copy(),
         plan.getLastOperator());
     partitioner->computeFactorizedSchema();
     plan.setLastOperator(std::move(partitioner));
@@ -69,7 +70,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* info,
-    binder::expression_vector results) {
+    expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     switch (info->source->type) {
     case ScanSourceType::FILE:
@@ -91,7 +92,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(const BoundCopyFromInfo* info,
-    binder::expression_vector results) {
+    expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     KU_ASSERT(info->source->type == ScanSourceType::FILE);
     auto& scanSource = info->source->constCast<BoundTableScanSource>();
@@ -102,7 +103,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(const BoundCopyFromIn
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* info,
-    binder::expression_vector results) {
+    expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();
     switch (info->source->type) {
     case ScanSourceType::FILE:

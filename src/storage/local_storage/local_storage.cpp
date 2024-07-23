@@ -39,17 +39,25 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
     return tables.at(tableID).get();
 }
 
-void LocalStorage::prepareCommit() {
+void LocalStorage::commit() {
     for (auto& [tableID, localTable] : tables) {
-        auto table = clientContext.getStorageManager()->getTable(tableID);
-        table->prepareCommit(clientContext.getTx(), localTable.get());
+        if (localTable->getTableType() == TableType::NODE) {
+            const auto table = clientContext.getStorageManager()->getTable(tableID);
+            table->commit(clientContext.getTx(), localTable.get());
+        }
+    }
+    for (auto& [tableID, localTable] : tables) {
+        if (localTable->getTableType() == TableType::REL) {
+            const auto table = clientContext.getStorageManager()->getTable(tableID);
+            table->commit(clientContext.getTx(), localTable.get());
+        }
     }
 }
 
-void LocalStorage::prepareRollback() {
+void LocalStorage::rollback() {
     for (auto& [tableID, localTable] : tables) {
-        auto table = clientContext.getStorageManager()->getTable(tableID);
-        table->prepareRollback(localTable.get());
+        const auto table = clientContext.getStorageManager()->getTable(tableID);
+        table->rollback(localTable.get());
     }
 }
 

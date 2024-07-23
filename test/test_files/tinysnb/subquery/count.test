@@ -3,7 +3,6 @@
 --
 
 -CASE CountSubquery
-
 -LOG CountSubqueryTest1
 -STATEMENT MATCH (a:person) RETURN a.fName, COUNT { MATCH (a)-[:knows]->(b:person) }
 ---- 8

@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "common/enums/alter_type.h"
 #include "storage/storage_manager.h"
+#include "storage/store/table.h"
 
 namespace kuzu {
 namespace processor {
@@ -56,8 +57,8 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         auto addedPropID = schema->getPropertyID(boundAddPropInfo.propertyName);
         auto addedProp = schema->getProperty(addedPropID);
         auto storageManager = context->clientContext->getStorageManager();
-        storageManager->getTable(info.tableID)
-            ->addColumn(context->clientContext->getTx(), *addedProp, *defaultValueEvaluator);
+        storage::TableAddColumnState state{*addedProp, *defaultValueEvaluator};
+        storageManager->getTable(info.tableID)->addColumn(context->clientContext->getTx(), state);
     }
 }
 

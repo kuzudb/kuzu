@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/assert.h"
 #include "common/serializer/reader.h"
 
 namespace kuzu {
@@ -15,13 +16,17 @@ class Deserializer {
 public:
     explicit Deserializer(std::unique_ptr<Reader> reader) : reader(std::move(reader)) {}
 
-    bool finished() { return reader->finished(); }
+    bool finished() const { return reader->finished(); }
 
     template<typename T>
-        requires std::is_trivially_destructible<T>::value || std::is_same<std::string, T>::value
+        requires std::is_trivially_destructible_v<T> || std::is_same_v<std::string, T>
     void deserializeValue(T& value) {
-        reader->read((uint8_t*)&value, sizeof(T));
+        reader->read(reinterpret_cast<uint8_t*>(&value), sizeof(T));
     }
+
+    void read(uint8_t* data, uint64_t size) { reader->read(data, size); }
+
+    void deserializeDebuggingInfo(std::string& value);
 
     template<typename T>
     void deserializeOptionalValue(std::unique_ptr<T>& value) {
@@ -59,13 +64,25 @@ public:
         }
     }
 
+    template<typename T, uint64_t ARRAY_SIZE>
+    void deserializeArray(std::array<T, ARRAY_SIZE>& values) {
+        KU_ASSERT(values.size() == ARRAY_SIZE);
+        for (auto& value : values) {
+            if constexpr (requires(Deserializer& deser) { T::deserialize(deser); }) {
+                value = T::deserialize(*this);
+            } else {
+                deserializeValue(value);
+            }
+        }
+    }
+
     template<typename T>
     void deserializeVectorOfPtrs(std::vector<std::unique_ptr<T>>& values) {
         uint64_t vectorSize;
         deserializeValue(vectorSize);
-        values.reserve(vectorSize);
+        values.resize(vectorSize);
         for (auto i = 0u; i < vectorSize; i++) {
-            values.push_back(T::deserialize(*this));
+            values[i] = T::deserialize(*this);
         }
     }
 

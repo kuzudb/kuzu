@@ -16,7 +16,7 @@ TransactionContext::TransactionContext(main::ClientContext& clientContext)
 TransactionContext::~TransactionContext() {
     if (activeTransaction) {
         clientContext.getDatabase()->transactionManager->rollback(clientContext,
-            activeTransaction.get(), false /*skipCheckPointing*/);
+            activeTransaction.get());
     }
 }
 
@@ -40,7 +40,13 @@ void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }
 
-void TransactionContext::validateManualTransaction(bool readOnlyStatement) {
+void TransactionContext::beginRecoveryTransaction() {
+    std::unique_lock<std::mutex> lck{mtx};
+    mode = TransactionMode::MANUAL;
+    beginTransactionInternal(TransactionType::RECOVERY);
+}
+
+void TransactionContext::validateManualTransaction(bool readOnlyStatement) const {
     KU_ASSERT(hasActiveTransaction());
     if (activeTransaction->isReadOnly() && !readOnlyStatement) {
         throw TransactionManagerException(
@@ -49,41 +55,25 @@ void TransactionContext::validateManualTransaction(bool readOnlyStatement) {
 }
 
 void TransactionContext::commit() {
-    commitInternal(false /* skipCheckPointing */);
+    if (!hasActiveTransaction()) {
+        return;
+    }
+    clientContext.getDatabase()->transactionManager->commit(clientContext);
+    clearTransaction();
 }
 
 void TransactionContext::rollback() {
-    rollbackInternal(false /* skipCheckPointing */);
-}
-
-void TransactionContext::commitSkipCheckPointing() {
-    commitInternal(true /* skipCheckPointing */);
-}
-
-void TransactionContext::rollbackSkipCheckPointing() {
-    rollbackInternal(true /* skipCheckPointing */);
+    if (!hasActiveTransaction()) {
+        return;
+    }
+    clientContext.getDatabase()->transactionManager->rollback(clientContext,
+        activeTransaction.get());
+    clearTransaction();
 }
 
 void TransactionContext::clearTransaction() {
     activeTransaction = nullptr;
     mode = TransactionMode::AUTO;
-}
-
-void TransactionContext::commitInternal(bool skipCheckPointing) {
-    if (!hasActiveTransaction()) {
-        return;
-    }
-    clientContext.getDatabase()->transactionManager->commit(clientContext, skipCheckPointing);
-    clearTransaction();
-}
-
-void TransactionContext::rollbackInternal(bool skipCheckPointing) {
-    if (!hasActiveTransaction()) {
-        return;
-    }
-    clientContext.getDatabase()->transactionManager->rollback(clientContext,
-        activeTransaction.get(), skipCheckPointing);
-    clearTransaction();
 }
 
 void TransactionContext::beginTransactionInternal(TransactionType transactionType) {

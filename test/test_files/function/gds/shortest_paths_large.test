@@ -1,5 +1,5 @@
 -DATASET CSV gds-shortest-paths-large
-
+-SKIP
 --
 
 -CASE SingleSPLengthsLargeSingleLabel

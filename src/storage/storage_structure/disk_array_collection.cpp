@@ -5,7 +5,6 @@
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_structure/db_file_utils.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 
@@ -13,9 +12,11 @@ namespace kuzu {
 namespace storage {
 
 DiskArrayCollection::DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID,
-    BufferManager* bufferManager, WAL* wal, common::page_idx_t firstHeaderPage, bool bypassWAL)
-    : fileHandle{fileHandle}, dbFileID{dbFileID}, bufferManager{*bufferManager}, wal{*wal},
-      bypassWAL{bypassWAL}, headerPageIndices{firstHeaderPage}, numHeaders{0} {
+    BufferManager* bufferManager, ShadowFile& shadowFile, common::page_idx_t firstHeaderPage,
+    bool bypassShadowing)
+    : fileHandle{fileHandle}, dbFileID{dbFileID}, bufferManager{*bufferManager},
+      shadowFile{shadowFile}, bypassShadowing{bypassShadowing}, headerPageIndices{firstHeaderPage},
+      numHeaders{0} {
     if (fileHandle.getNumPages() > firstHeaderPage) {
         // Read headers from disk
         common::page_idx_t headerPageIdx = firstHeaderPage;
@@ -42,7 +43,7 @@ DiskArrayCollection::DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFi
     }
 }
 
-void DiskArrayCollection::prepareCommit() {
+void DiskArrayCollection::checkpoint() {
     // Write headers to disk
     size_t indexInMemory = 0;
     auto headerPageIdx = headerPageIndices.begin();
@@ -54,7 +55,7 @@ void DiskArrayCollection::prepareCommit() {
         if (indexInMemory >= headerPagesOnDisk ||
             *headersForWriteTrx[indexInMemory] != *headersForReadTrx[indexInMemory]) {
             DBFileUtils::updatePage(fileHandle, dbFileID, *headerPageIdx,
-                true /*writing full page*/, bufferManager, wal, [&](auto* frame) {
+                true /*writing full page*/, bufferManager, shadowFile, [&](auto* frame) {
                     memcpy(frame, headersForWriteTrx[indexInMemory].get(), sizeof(HeaderPage));
                     if constexpr (sizeof(HeaderPage) < common::BufferPoolConstants::PAGE_4KB_SIZE) {
                         // Zero remaining data in the page

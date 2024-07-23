@@ -13,12 +13,17 @@ BufferedFileWriter::~BufferedFileWriter() {
     flush();
 }
 
-BufferedFileWriter::BufferedFileWriter(std::unique_ptr<FileInfo> fileInfo)
+BufferedFileWriter::BufferedFileWriter(FileInfo& fileInfo)
     : buffer(std::make_unique<uint8_t[]>(BUFFER_SIZE)), fileOffset(0), bufferOffset(0),
-      fileInfo(std::move(fileInfo)) {}
+      fileInfo(fileInfo) {}
 
-// TODO: write assumes size is always less than BUFFER_SIZE here. should change this when needed.
 void BufferedFileWriter::write(const uint8_t* data, uint64_t size) {
+    if (size > BUFFER_SIZE) {
+        flush();
+        fileInfo.writeFile(data, size, fileOffset);
+        fileOffset += size;
+        return;
+    }
     KU_ASSERT(size <= BUFFER_SIZE);
     if (bufferOffset + size <= BUFFER_SIZE) {
         memcpy(&buffer[bufferOffset], data, size);
@@ -38,14 +43,14 @@ void BufferedFileWriter::flush() {
     if (bufferOffset == 0) {
         return;
     }
-    fileInfo->writeFile(buffer.get(), bufferOffset, fileOffset);
+    fileInfo.writeFile(buffer.get(), bufferOffset, fileOffset);
     fileOffset += bufferOffset;
     bufferOffset = 0;
     memset(buffer.get(), 0, BUFFER_SIZE);
 }
 
 uint64_t BufferedFileWriter::getFileSize() const {
-    return fileInfo->getFileSize() + bufferOffset;
+    return fileInfo.getFileSize() + bufferOffset;
 }
 
 BufferedFileReader::BufferedFileReader(std::unique_ptr<FileInfo> fileInfo)
@@ -56,7 +61,11 @@ BufferedFileReader::BufferedFileReader(std::unique_ptr<FileInfo> fileInfo)
 }
 
 void BufferedFileReader::read(uint8_t* data, uint64_t size) {
-    if (bufferOffset + size <= BUFFER_SIZE) {
+    if (size > BUFFER_SIZE) {
+        fileInfo->readFromFile(data, size, fileOffset);
+        fileOffset += size;
+        bufferOffset = 0;
+    } else if (bufferOffset + size <= BUFFER_SIZE) {
         memcpy(data, &buffer[bufferOffset], size);
         bufferOffset += size;
     } else {
