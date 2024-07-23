@@ -52,7 +52,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executi
         }
         // We put the memory fence here to make sure that updates to pathLengths in this
         // iteration is visible in the next round to all threads.
-        std::atomic_thread_fence(std::memory_order_seq_cst);
+//        std::atomic_thread_fence(std::memory_order_seq_cst);
     }
 }
 
@@ -71,9 +71,9 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executi
                 relTableIDInfo.relTableID);
             GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
         }
-        // We put the memory fence here to make sure that updates to pathLengths in this
-        // iteration is visible in the next round to all threads.
-        std::atomic_thread_fence(std::memory_order_seq_cst);
+//        // We put the memory fence here to make sure that updates to pathLengths in this
+//        // iteration is visible in the next round to all threads.
+//        std::atomic_thread_fence(std::memory_order_seq_cst);
     }
 }
 

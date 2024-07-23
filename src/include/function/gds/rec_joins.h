@@ -174,28 +174,25 @@ public:
 
     uint8_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
         KU_ASSERT(curFrontierFixedMask != nullptr);
-        //        return curFrontierFixedMask.load()->getMaskValue(nodeOffset);
-        return curFrontierFixedMask[nodeOffset].load();
+        return curFrontierFixedMask[nodeOffset];
     }
 
     uint8_t getMaskValueFromNextFrontierFixedMask(common::offset_t nodeOffset) {
         KU_ASSERT(nextFrontierFixedMask != nullptr);
-        //        return nextFrontierFixedMask.load()->getMaskValue(nodeOffset);
-        return nextFrontierFixedMask[nodeOffset].load();
+        return nextFrontierFixedMask[nodeOffset];
     }
 
     inline bool isActive(nodeID_t nodeID) override {
         KU_ASSERT(curFrontierFixedMask != nullptr);
-        //        return curFrontierFixedMask.load()->getMaskValue(nodeID.offset) == curIter;
-        return curFrontierFixedMask[nodeID.offset].load() == curIter;
+        return curFrontierFixedMask[nodeID.offset] == curIter;
     }
 
     inline void setActive(nodeID_t nodeID) override {
         KU_ASSERT(nextFrontierFixedMask != nullptr);
-        if (nextFrontierFixedMask.load()[nodeID.offset].load() == UNVISITED) {
+        if (nextFrontierFixedMask[nodeID.offset] == UNVISITED) {
             // Note that if curIter = 255, this will set the mask value to 0. Therefore when
             // the next (and first) iteration of the algorithm starts, the node will be "active".
-            nextFrontierFixedMask.load()[nodeID.offset].store(curIter + 1);
+            nextFrontierFixedMask[nodeID.offset] = curIter + 1;
         }
     }
 
@@ -206,19 +203,17 @@ public:
     void fixNextFrontierNodeTable(common::table_id_t tableID);
 
     uint64_t getNumNodesInCurFrontierFixedNodeTable() {
-        KU_ASSERT(curFrontierFixedMask.load() != nullptr);
-        return nodeTableIDAndNumNodesMap[curTableID.load()];
+        KU_ASSERT(curFrontierFixedMask != nullptr);
+        return nodeTableIDAndNumNodesMap[curTableID];
     }
 
 private:
     std::atomic<uint8_t> curIter = 255;
     std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
-    std::atomic<table_id_t> curTableID;
-    std::atomic<table_id_t> nextTableID;
+    table_id_t curTableID;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
-    //    common::table_id_map_t<std::unique_ptr<processor::MaskData>> masks;
-    std::atomic<std::atomic<uint8_t>*> curFrontierFixedMask;
-    std::atomic<std::atomic<uint8_t>*> nextFrontierFixedMask;
+    uint8_t* curFrontierFixedMask;
+    uint8_t* nextFrontierFixedMask;
 };
 
 class PathLengthsFrontiers : public Frontiers {
@@ -226,12 +221,16 @@ class PathLengthsFrontiers : public Frontiers {
     friend struct AllSPPathsFrontierCompute;
     friend struct SingleSPLengthsFrontierCompute;
     friend struct SingleSPPathsFrontierCompute;
-    static constexpr uint64_t FRONTIER_MORSEL_SIZE = 64;
+    static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
+    // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
+    // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
+    // frontierSize computation for details.
+    static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
-    explicit PathLengthsFrontiers(PathLengths* pathLengths)
+    explicit PathLengthsFrontiers(PathLengths* pathLengths, uint64_t maxThreadsForExec)
         : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              1 /* initial num active nodes */),
+              1 /* initial num active nodes */, maxThreadsForExec),
           pathLengths{pathLengths} {}
 
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override;
@@ -250,6 +249,13 @@ public:
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
+        // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
+        // the number of maximum threads that could be working on this frontier. However if
+        // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
+        auto maxNodesInFrontier = pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+        auto idealFrontierSize = maxNodesInFrontier/(std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
+                                                          maxThreadsForExec*maxThreadsForExec));
+        frontierSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealFrontierSize);
     }
 
     void beginNewIterationInternalNoLock() override {
@@ -260,6 +266,7 @@ public:
 private:
     PathLengths* pathLengths;
     std::atomic<offset_t> nextOffset;
+    uint64_t frontierSize;
 };
 
 }

@@ -9,6 +9,8 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 using namespace kuzu::binder;
 using namespace kuzu::common;
 
@@ -108,11 +110,11 @@ PathLengths::PathLengths(
     std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm) {
     for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
         nodeTableIDAndNumNodesMap[tableID] = numNodes;
-        auto memBuffer = mm->allocateBuffer(false, numNodes * (sizeof(std::atomic<uint8_t>)));
-        std::atomic<uint8_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint8_t>*>(memBuffer.get()->buffer.data());
+        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(uint8_t));
+        uint8_t* memBufferPtr =
+            reinterpret_cast<uint8_t*>(memBuffer.get()->buffer.data());
         for (uint64_t i = 0; i < numNodes; ++i) {
-            memBufferPtr[i].store(UNVISITED);
+            memBufferPtr[i] = UNVISITED;
         }
         masks.insert({tableID, move(memBuffer)});
     }
@@ -121,30 +123,25 @@ PathLengths::PathLengths(
 
 void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
-    curTableID.store(tableID);
-    curFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()));
+    curTableID = tableID;
+    curFrontierFixedMask = reinterpret_cast<uint8_t*>(masks.at(tableID).get()->buffer.data());
 }
 
 void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
-    nextTableID.store(tableID);
-    nextFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()));
+    nextFrontierFixedMask = reinterpret_cast<uint8_t*>(masks.at(tableID).get()->buffer.data());
 }
 
-
 bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) {
-    if (nextOffset.load() >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {
-        return false;
-    }
     auto numNodes = pathLengths->getNumNodesInCurFrontierFixedNodeTable();
-    auto beginOffset = nextOffset.fetch_add(FRONTIER_MORSEL_SIZE);
+    auto beginOffset = nextOffset.fetch_add(frontierSize, std::memory_order_acq_rel);
     if (beginOffset >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {
         return false;
     }
-    auto endOffset = beginOffset + FRONTIER_MORSEL_SIZE > numNodes ?
+    auto endOffset = beginOffset + frontierSize > numNodes ?
                          numNodes :
-                         beginOffset + FRONTIER_MORSEL_SIZE;
-    frontierMorsel.initMorsel(pathLengths->curTableID.load(), beginOffset, endOffset);
+                         beginOffset + frontierSize;
+    frontierMorsel.initMorsel(pathLengths->curTableID, beginOffset, endOffset);
     return true;
 }
 

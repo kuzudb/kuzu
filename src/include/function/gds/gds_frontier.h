@@ -94,8 +94,8 @@ class Frontiers {
     friend class GDSTask;
 public:
     explicit Frontiers(GDSFrontier* curFrontier, GDSFrontier* nextFrontier,
-        uint64_t initialActiveNodes)
-        : curFrontier{curFrontier}, nextFrontier{nextFrontier} {
+        uint64_t initialActiveNodes,  uint64_t maxThreadsForExec)
+        : curFrontier{curFrontier}, nextFrontier{nextFrontier}, maxThreadsForExec{maxThreadsForExec} {
         numApproxActiveNodesForNextIter.store(initialActiveNodes);
         curIter.store(INVALID_IDX);
     }
@@ -136,6 +136,7 @@ protected:
     std::atomic<uint64_t> numApproxActiveNodesForNextIter;
     GDSFrontier* curFrontier;
     GDSFrontier* nextFrontier;
+    uint64_t maxThreadsForExec;
 };
 
 } // namespace function

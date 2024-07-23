@@ -23,44 +23,38 @@ public:
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
         MemoryManager* mm) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            // Warning: Here we depend on the fact that both table_id_t and offset_t are of type uint64_t.
-            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * 2 * (sizeof(std::atomic<offset_t>)))});
+            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * (sizeof(nodeID_t)))});
         }
     }
 
     nodeID_t getParent(nodeID_t nodeID) {
-        offset_t nodeIDPos = nodeID.offset << 1;
-        offset_t tableIDPos = nodeIDPos + 1;
-        auto lastEdgesPtr = reinterpret_cast<std::atomic<offset_t>*>(
-            lastEdges.at(nodeID.tableID).get()->buffer.data());
-        return nodeID_t{lastEdgesPtr[nodeIDPos].load(), lastEdgesPtr[tableIDPos].load()};
+        return reinterpret_cast<nodeID_t*>(
+            lastEdges.at(nodeID.tableID).get()->buffer.data())[nodeID.offset];
     }
 
     void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
         KU_ASSERT(currentFixedLastEdges != nullptr);
-        // Note: We are changing 2 atomics non-atomically without any locking. This should be fine
-        // because we assume that all extensions that are being done in a particular iteration
-        // happen from the same relationship table, so if there are multiple writes to update
-        // the lastEdge for nodeID, say lastEdge1 and lastEdge2, they will have the same tableID.
-        // Further they can write different offsets but that's fine because we are keeping track
-        // of only 1 singlePath so regardless of which one writes first is fine.
+        // Note: We are changing 2 values non-atomically without any locking or atomics. This
+        // should be fine because we assume that all extensions that are being done in a
+        // particular iteration happen from the same relationship table, so if there are multiple
+        // writes to update the lastEdge for nodeID, say lastEdge1 and lastEdge2, they will have
+        // the same tableID. Further they can write different offsets but that's fine because
+        // we are keeping track of only 1 singlePath so regardless of which one writes first
+        // is fine.
         // Warning: However, this logic has to change when we write both a relID and the offset of
         // the parent. That is because then we need to ensure that both relID and nodeOffset is
         // written atomically.
-        offset_t nodeIDPos = nodeID.offset << 1;
-        offset_t tableIDPos = nodeIDPos + 1;
-        currentFixedLastEdges.load()[nodeIDPos].store(lastEdge.offset);
-        currentFixedLastEdges.load()[tableIDPos].store(lastEdge.tableID);
+        currentFixedLastEdges[nodeID.offset] = lastEdge;
     }
 
     void fixNodeTable(common::table_id_t tableID) {
         KU_ASSERT(lastEdges.contains(tableID));
-        currentFixedLastEdges.store(reinterpret_cast<std::atomic<offset_t>*>(lastEdges.at(tableID).get()->buffer.data()));
+        currentFixedLastEdges = reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
     }
 
 private:
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
-    std::atomic<std::atomic<offset_t>*> currentFixedLastEdges;
+    nodeID_t* currentFixedLastEdges;
 };
 
 struct SingleSPOutputs : public RJOutputs {
@@ -105,7 +99,7 @@ public:
         for (auto tableID : graph->getNodeTableIDs()) {
             spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
             for (offset_t nodeOffset = 0; nodeOffset < 5;
-//                 nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+                  // nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
                  ++nodeOffset) {
                 auto length =
                     spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(nodeOffset);
@@ -202,7 +196,7 @@ protected:
         auto spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
             outputType, executionContext->clientContext->getMemoryManager());
         auto pathLengthsFrontiers =
-            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths.get());
+            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths.get(), executionContext->clientContext->getMaxNumThreadForExec());
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
         case RJOutputType::LENGTHS: {
