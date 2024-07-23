@@ -353,7 +353,6 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 Catalog exception: after does not exist in catalog.
 
 -CASE SequenceTestRollbackRecovery
--SKIP
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CREATE SEQUENCE before;

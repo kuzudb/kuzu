@@ -10,7 +10,7 @@ namespace catalog {
 class CatalogEntry;
 class CatalogSet;
 class SequenceCatalogEntry;
-struct SequenceData;
+struct SequenceRollbackData;
 } // namespace catalog
 namespace main {
 class ClientContext;
@@ -93,8 +93,8 @@ public:
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry) const;
-    void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry,
-        const catalog::SequenceData& data, int64_t prevVal) const;
+    void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
+        const catalog::SequenceRollbackData& data) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
         common::row_idx_t startRowInVector, common::row_idx_t numRows) const;
     void pushVectorDeleteInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,

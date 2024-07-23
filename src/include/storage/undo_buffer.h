@@ -10,7 +10,7 @@ namespace catalog {
 class CatalogEntry;
 class CatalogSet;
 class SequenceCatalogEntry;
-struct SequenceData;
+struct SequenceRollbackData;
 } // namespace catalog
 namespace transaction {
 class Transaction;
@@ -84,7 +84,7 @@ public:
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
-        const catalog::SequenceData& data, int64_t prevVal);
+        const catalog::SequenceRollbackData& data);
     void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
         common::row_idx_t startRowInVector, common::row_idx_t numRows);
     void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,

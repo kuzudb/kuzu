@@ -67,23 +67,18 @@ void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const
         }
         resultVector.setValue(i, tmp);
     }
-    auto prevVal = sequenceData.currVal;
+    SequenceRollbackData rollbackData{sequenceData.usageCount, sequenceData.currVal, sequenceData.nextVal};
     sequenceData.currVal = tmp;
     sequenceData.usageCount += count;
-    transaction->pushSequenceChange(this, sequenceData, prevVal);
+    transaction->pushSequenceChange(this, count, rollbackData);
 }
 
-void SequenceCatalogEntry::replayVal(const uint64_t& usageCount, const int64_t& currVal,
+void SequenceCatalogEntry::rollbackVal(const uint64_t& usageCount, const int64_t& currVal,
     const int64_t& nextVal) {
     std::lock_guard<std::mutex> lck(mtx);
-    // for wal replay: only apply replays to newer usage than current
-    if (usageCount > sequenceData.usageCount ||
-        // for undo buffer rollback: only rollback if no one else made changes
-        usageCount == sequenceData.usageCount - 1) {
-        sequenceData.usageCount = usageCount;
-        sequenceData.currVal = currVal;
-        sequenceData.nextVal = nextVal;
-    }
+    sequenceData.usageCount = usageCount;
+    sequenceData.currVal = currVal;
+    sequenceData.nextVal = nextVal;
 }
 
 void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {

@@ -18,7 +18,7 @@ class Transaction;
 
 namespace catalog {
 
-struct SequenceChangeData {
+struct SequenceRollbackData {
     uint64_t usageCount;
     int64_t currVal;
     int64_t nextVal;
@@ -65,7 +65,7 @@ public:
     int64_t currVal();
     void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
         common::ValueVector& resultVector);
-    void replayVal(const uint64_t& usageCount, const int64_t& currVal, const int64_t& nextVal);
+    void rollbackVal(const uint64_t& usageCount, const int64_t& currVal, const int64_t& nextVal);
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

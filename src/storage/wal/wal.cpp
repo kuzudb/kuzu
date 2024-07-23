@@ -121,9 +121,9 @@ void WAL::logCopyTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, SequenceChangeData data) {
+void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, uint64_t kCount) {
     lock_t lck{mtx};
-    UpdateSequenceRecord walRecord(sequenceID, std::move(data));
+    UpdateSequenceRecord walRecord(sequenceID, kCount);
     addNewWALRecordNoLock(walRecord);
 }
 
