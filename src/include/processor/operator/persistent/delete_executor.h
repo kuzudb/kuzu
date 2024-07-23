@@ -60,7 +60,7 @@ private:
 
 class NodeDeleteExecutor {
 public:
-    explicit NodeDeleteExecutor(NodeDeleteInfo info) : info{std::move(info)}{}
+    explicit NodeDeleteExecutor(NodeDeleteInfo info) : info{std::move(info)} {}
     NodeDeleteExecutor(const NodeDeleteExecutor& other) : info{other.info.copy()} {}
     virtual ~NodeDeleteExecutor() = default;
 
@@ -84,7 +84,7 @@ public:
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other), tableInfo{other.tableInfo.copy()} {}
 
-    void init(ResultSet *resultSet, ExecutionContext*) override;
+    void init(ResultSet* resultSet, ExecutionContext*) override;
     void delete_(ExecutionContext* context) override;
 
     std::unique_ptr<NodeDeleteExecutor> copy() const override {
@@ -103,7 +103,7 @@ public:
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other), tableInfos{copyMap(other.tableInfos)} {}
 
-    void init(ResultSet *resultSet, ExecutionContext*) override;
+    void init(ResultSet* resultSet, ExecutionContext*) override;
     void delete_(ExecutionContext* context) override;
 
     std::unique_ptr<NodeDeleteExecutor> copy() const override {
@@ -131,7 +131,8 @@ struct RelDeleteInfo {
 
 private:
     RelDeleteInfo(const RelDeleteInfo& other)
-        : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos}, relIDPos{other.relIDPos} {}
+        : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
+          relIDPos{other.relIDPos} {}
 };
 
 class RelDeleteExecutor {

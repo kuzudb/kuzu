@@ -39,7 +39,7 @@ NodeInsertExecutor PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* bo
     auto table = storageManager->getTable(nodeTableID)->ptrCast<NodeTable>();
     evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&inSchema);
-    for (auto& expr :  boundInfo->columnDataExprs) {
+    for (auto& expr : boundInfo->columnDataExprs) {
         evaluators.push_back(exprMapper.getEvaluator(expr));
     }
     auto tableInfo = NodeTableInsertInfo(table, std::move(evaluators));
@@ -92,8 +92,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logical
             expressions.push_back(expr);
         }
     }
-    auto printInfo = std::make_unique<InsertPrintInfo>(expressions,
-        logicalInsert.getInfos()[0].conflictAction);
+    auto printInfo =
+        std::make_unique<InsertPrintInfo>(expressions, logicalInsert.getInfos()[0].conflictAction);
     return std::make_unique<Insert>(std::move(nodeExecutors), std::move(relExecutors),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }

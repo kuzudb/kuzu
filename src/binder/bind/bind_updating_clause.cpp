@@ -311,8 +311,8 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* colum
         }
         if (updatePk) {
             if (nodeOrRel.isMultiLabeled()) {
-                throw BinderException(
-                    stringFormat("Cannot update primary key for multi-labeled node {}", nodeOrRel.toString()));
+                throw BinderException(stringFormat(
+                    "Cannot update primary key for multi-labeled node {}", nodeOrRel.toString()));
             }
             expression_vector columnDataExprs;
             for (auto& propertyExpr : nodeOrRel.getPropertyExprs()) {
@@ -322,17 +322,19 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* colum
                     columnDataExprs.push_back(propertyExpr);
                 }
             }
-            info.pkInfo =  std::make_unique<BoundSetPkInfo>(columnDataExprs);
+            info.pkInfo = std::make_unique<BoundSetPkInfo>(columnDataExprs);
         }
         return info;
     }
     return BoundSetPropertyInfo(TableType::REL, expr, boundColumn, boundColumnData);
 }
 
-expression_pair Binder::bindSetItem(parser::ParsedExpression* column, parser::ParsedExpression* columnData) {
+expression_pair Binder::bindSetItem(parser::ParsedExpression* column,
+    parser::ParsedExpression* columnData) {
     auto boundColumn = expressionBinder.bindExpression(*column);
     auto boundColumnData = expressionBinder.bindExpression(*columnData);
-    boundColumnData = expressionBinder.implicitCastIfNecessary(boundColumnData, boundColumn->dataType);
+    boundColumnData =
+        expressionBinder.implicitCastIfNecessary(boundColumnData, boundColumn->dataType);
     return make_pair(std::move(boundColumn), std::move(boundColumnData));
 }
 

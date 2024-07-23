@@ -226,7 +226,8 @@ public:
 
     BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* column,
         parser::ParsedExpression* columnData);
-    expression_pair bindSetItem(parser::ParsedExpression* column, parser::ParsedExpression* columnData);
+    expression_pair bindSetItem(parser::ParsedExpression* column,
+        parser::ParsedExpression* columnData);
 
     /*** bind projection clause ***/
     BoundWithClause bindWithClause(const parser::WithClause& withClause);

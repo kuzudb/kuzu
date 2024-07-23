@@ -1,12 +1,12 @@
 #pragma once
 
+#include "delete_executor.h"
 #include "expression_evaluator/expression_evaluator.h"
+#include "insert_executor.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
-#include "delete_executor.h"
-#include "insert_executor.h"
 
 namespace kuzu {
 namespace processor {
@@ -21,7 +21,8 @@ struct NodeSetInfo {
     common::ValueVector* columnVector = nullptr;
     common::ValueVector* columnDataVector = nullptr;
 
-    NodeSetInfo(DataPos nodeIDPos, DataPos columnVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
+    NodeSetInfo(DataPos nodeIDPos, DataPos columnVectorPos,
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos}, evaluator{std::move(evaluator)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeSetInfo);
 
@@ -82,13 +83,14 @@ private:
 class SingleLabelNodeSetPKExecutor : public NodeSetExecutor {
 public:
     SingleLabelNodeSetPKExecutor(NodeSetInfo info, NodeTableDeleteInfo deleteInfo,
-        NodeTableInsertInfo insertInfo) : NodeSetExecutor{std::move(info)},
-          deleteInfo{std::move(deleteInfo)}, insertInfo{std::move(insertInfo)} {}
+        NodeTableInsertInfo insertInfo)
+        : NodeSetExecutor{std::move(info)}, deleteInfo{std::move(deleteInfo)},
+          insertInfo{std::move(insertInfo)} {}
     SingleLabelNodeSetPKExecutor(const SingleLabelNodeSetPKExecutor& other)
         : NodeSetExecutor{other}, deleteInfo{other.deleteInfo.copy()},
           insertInfo{other.insertInfo.copy()} {}
 
-    void init(ResultSet *resultSet, ExecutionContext *context) override;
+    void init(ResultSet* resultSet, ExecutionContext* context) override;
     void set(ExecutionContext* context) override;
 
     std::unique_ptr<NodeSetExecutor> copy() const override {
@@ -139,9 +141,10 @@ struct RelSetInfo {
     void init(const ResultSet& resultSet, main::ClientContext* context);
 
 private:
-    RelSetInfo(const RelSetInfo& other) : srcNodeIDPos{other.srcNodeIDPos},
-          dstNodeIDPos{other.dstNodeIDPos}, relIDPos{other.relIDPos},
-          columnVectorPos{other.columnVectorPos}, evaluator{other.evaluator->clone()} {}
+    RelSetInfo(const RelSetInfo& other)
+        : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
+          relIDPos{other.relIDPos}, columnVectorPos{other.columnVectorPos},
+          evaluator{other.evaluator->clone()} {}
 };
 
 struct RelTableSetInfo {
@@ -153,8 +156,7 @@ struct RelTableSetInfo {
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableSetInfo);
 
 private:
-    RelTableSetInfo(const RelTableSetInfo& other)
-        : table{other.table}, columnID{other.columnID} {}
+    RelTableSetInfo(const RelTableSetInfo& other) : table{other.table}, columnID{other.columnID} {}
 };
 
 class RelSetExecutor {
@@ -178,7 +180,7 @@ public:
     SingleLabelRelSetExecutor(RelSetInfo info, RelTableSetInfo tableInfo)
         : RelSetExecutor{std::move(info)}, tableInfo{std::move(tableInfo)} {}
     SingleLabelRelSetExecutor(const SingleLabelRelSetExecutor& other)
-        : RelSetExecutor{other}, tableInfo{other.tableInfo.copy()}{}
+        : RelSetExecutor{other}, tableInfo{other.tableInfo.copy()} {}
 
     void set(ExecutionContext* context) override;
 

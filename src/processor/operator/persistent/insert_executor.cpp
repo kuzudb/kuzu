@@ -38,14 +38,14 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 }
 
 static void writeColumnVector(ValueVector* columnVector, ValueVector* dataVector) {
-//<<<<<<< HEAD
-//    KU_ASSERT(columnVector->state->getSelVector().getSelSize() == 1 &&
-//              dataVector->state->getSelVector().getSelSize() == 1);
-//    auto lhsPos = columnVector->state->getSelVector()[0];
-//    auto rhsPos = dataVector->state->getSelVector()[0];
-//    if (dataVector->isNull(rhsPos)) {
-//        columnVector->setNull(lhsPos, true);
-//=======
+    //<<<<<<< HEAD
+    //    KU_ASSERT(columnVector->state->getSelVector().getSelSize() == 1 &&
+    //              dataVector->state->getSelVector().getSelSize() == 1);
+    //    auto lhsPos = columnVector->state->getSelVector()[0];
+    //    auto rhsPos = dataVector->state->getSelVector()[0];
+    //    if (dataVector->isNull(rhsPos)) {
+    //        columnVector->setNull(lhsPos, true);
+    //=======
     auto& columnSelVector = columnVector->state->getSelVector();
     auto& dataSelVector = dataVector->state->getSelVector();
     KU_ASSERT(columnSelVector.getSelSize() == 1 && dataSelVector.getSelSize() == 1);
@@ -65,7 +65,7 @@ static void writeColumnVectors(const std::vector<ValueVector*>& columnVectors,
     KU_ASSERT(columnVectors.size() == dataVectors.size());
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         if (columnVectors[i] == nullptr) { // No need to project
-            continue ;
+            continue;
         }
         writeColumnVector(columnVectors[i], dataVectors[i]);
     }
@@ -75,7 +75,7 @@ static void writeColumnVectorsToNull(const std::vector<ValueVector*>& columnVect
     for (auto i = 0u; i < columnVectors.size(); ++i) {
         auto columnVector = columnVectors[i];
         if (columnVector == nullptr) { // No need to project
-            continue ;
+            continue;
         }
         auto& columnSelVector = columnVector->state->getSelVector();
         KU_ASSERT(columnSelVector.getSelSize() == 1);
@@ -88,8 +88,8 @@ void NodeInsertExecutor::insert(Transaction* transaction) {
         evaluator->evaluate();
     }
     if (info.conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
-        auto offset = tableInfo.table->validateUniquenessConstraint(transaction,
-            tableInfo.columnDataVectors);
+        auto offset =
+            tableInfo.table->validateUniquenessConstraint(transaction, tableInfo.columnDataVectors);
         if (offset != INVALID_OFFSET) {
             // Conflict. Skip insertion.
             info.updateNodeID({offset, tableInfo.table->getTableID()});
@@ -105,7 +105,6 @@ void NodeInsertExecutor::insert(Transaction* transaction) {
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
 }
 
-
 void NodeInsertExecutor::skipInsert() const {
     for (auto& evaluator : tableInfo.columnDataEvaluators) {
         evaluator->evaluate();
@@ -116,7 +115,8 @@ void NodeInsertExecutor::skipInsert() const {
 
 bool NodeInsertExecutor::checkConflict(Transaction* transaction) const {
     if (info.conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
-        auto offset = tableInfo.table->validateUniquenessConstraint(transaction, tableInfo.columnDataVectors);
+        auto offset =
+            tableInfo.table->validateUniquenessConstraint(transaction, tableInfo.columnDataVectors);
         if (offset != INVALID_OFFSET) {
             // Conflict. Skip insertion.
             info.updateNodeID({offset, tableInfo.table->getTableID()});

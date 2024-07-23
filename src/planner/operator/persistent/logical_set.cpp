@@ -44,7 +44,8 @@ f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
 }
 
 std::string LogicalSetProperty::getExpressionsForPrinting() const {
-    std::string result = ExpressionUtil::toString(std::make_pair(infos[0].column, infos[0].columnData));
+    std::string result =
+        ExpressionUtil::toString(std::make_pair(infos[0].column, infos[0].columnData));
     for (auto i = 1u; i < infos.size(); ++i) {
         result += ExpressionUtil::toString(std::make_pair(infos[i].column, infos[i].columnData));
     }

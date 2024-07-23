@@ -77,8 +77,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
         getOperatorID(), std::move(printInfo));
 }
 
-std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundDeleteInfo& boundInfo,
-    const Schema& schema) const {
+std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
+    const BoundDeleteInfo& boundInfo, const Schema& schema) const {
     auto storageManager = clientContext->getStorageManager();
     auto& rel = boundInfo.pattern->constCast<RelExpression>();
     auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);

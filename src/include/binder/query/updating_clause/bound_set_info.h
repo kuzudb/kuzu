@@ -35,7 +35,7 @@ private:
         : tableType{other.tableType}, pattern{other.pattern}, column{other.column},
           columnData{other.columnData} {
         if (other.pkInfo != nullptr) {
-            pkInfo =  other.pkInfo->copy();
+            pkInfo = other.pkInfo->copy();
         }
     }
 };
