@@ -45,7 +45,7 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceInfo(const RdfReaderConfig& config,
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     return BoundCopyFromInfo(rEntry, std::move(scanSource), rowOffset, std::move(columns),
-        std::vector<bool>{false}, nullptr /* extraInfo */);
+        {ColumnEvaluateType::REFERENCE}, nullptr /* extraInfo */);
 }
 
 BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
@@ -75,7 +75,8 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     return BoundCopyFromInfo(lEntry, std::move(scanSource), rowOffset, lCopyColumns,
-        std::vector<bool>{true, false, false}, nullptr /* extraInfo */);
+        {ColumnEvaluateType::DEFAULT, ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE},
+        nullptr /* extraInfo */);
 }
 
 BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& config,
@@ -116,7 +117,9 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     expression_vector rrrCopyColumns{sOffset, oOffset, rowOffset, pOffset};
-    std::vector<bool> rrrDefaults{false, false, false, false};
+    std::vector<ColumnEvaluateType> rrrDefaults{ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE};
     return BoundCopyFromInfo(rrrEntry, std::move(scanSource), rowOffset, rrrCopyColumns,
         rrrDefaults, std::move(extraInfo));
 }
@@ -157,7 +160,9 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralTriplesInfo(const RdfReaderConfig& c
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     expression_vector rrlCopyColumns{sOffset, oOffset, rowOffset, pOffset};
-    std::vector<bool> rrlDefaults{false, false, false, false};
+    std::vector<ColumnEvaluateType> rrlDefaults{ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE, ColumnEvaluateType::REFERENCE,
+        ColumnEvaluateType::REFERENCE};
     return BoundCopyFromInfo(rrlEntry, std::move(scanSource), rowOffset, rrlCopyColumns,
         rrlDefaults, std::move(extraInfo));
 }

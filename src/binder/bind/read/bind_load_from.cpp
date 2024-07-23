@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
+#include "binder/expression/expression_util.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -56,6 +57,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     } break;
     default:
         throw BinderException(stringFormat("LOAD FROM subquery is not supported."));
+    }
+    if (!columnTypes.empty()) {
+        auto info = boundLoadFrom->getInfo();
+        for (auto i = 0u; i < columnTypes.size(); ++i) {
+            ExpressionUtil::validateDataType(*info->columns[i], columnTypes[i]);
+        }
     }
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = bindWhereExpression(*loadFrom.getWherePredicate());

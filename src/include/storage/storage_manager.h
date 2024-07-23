@@ -1,10 +1,10 @@
 #pragma once
 
+#include <mutex>
+
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
-#include "storage/stats/nodes_store_statistics.h"
-#include "storage/stats/rels_store_statistics.h"
-#include "storage/store/rel_table.h"
+#include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {
@@ -28,37 +28,29 @@ public:
         main::ClientContext* context);
     void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
 
-    void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
-    void prepareRollback();
-    void checkpointInMemory();
-    void rollbackInMemory();
+    void checkpoint(main::ClientContext& clientContext);
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
-    Table* getTable(common::table_id_t tableID) const {
+    Table* getTable(common::table_id_t tableID) {
+        std::lock_guard lck{mtx};
         KU_ASSERT(tables.contains(tableID));
         return tables.at(tableID).get();
     }
 
     WAL& getWAL();
+    ShadowFile& getShadowFile();
     BMFileHandle* getDataFH() const { return dataFH; }
     BMFileHandle* getMetadataFH() const { return metadataFH; }
-    DiskArrayCollection* getMetadataDAC() const { return metadataDAC.get(); }
-    void initStatistics() {
-        nodesStatisticsAndDeletedIDs->initTableStatisticsForWriteTrx();
-        relsStatistics->initTableStatisticsForWriteTrx();
-    }
-    NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
-        return nodesStatisticsAndDeletedIDs.get();
-    }
-    RelsStoreStats* getRelsStatistics() { return relsStatistics.get(); }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
 
+    uint64_t getEstimatedMemoryUsage();
+
 private:
     BMFileHandle* initFileHandle(const std::string& filename, common::VirtualFileSystem* vfs,
-        main::ClientContext* context);
+        main::ClientContext* context) const;
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
@@ -72,16 +64,15 @@ private:
         catalog::Catalog* catalog, main::ClientContext* context);
 
 private:
+    std::mutex mtx;
     std::string databasePath;
     bool readOnly;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
-    std::unique_ptr<DiskArrayCollection> metadataDAC;
-    std::unique_ptr<NodesStoreStatsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
-    std::unique_ptr<RelsStoreStats> relsStatistics;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
+    std::unique_ptr<ShadowFile> shadowFile;
     bool enableCompression;
 };
 

@@ -27,11 +27,11 @@ public:
         : localDeletions{}, localInsertions{handle} {}
     using OwnedKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
     using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
-    HashIndexLocalLookupState lookup(Key key, common::offset_t& result) {
+    HashIndexLocalLookupState lookup(Key key, common::offset_t& result, visible_func isVisible) {
         if (localDeletions.contains(key)) {
             return HashIndexLocalLookupState::KEY_DELETED;
         }
-        if (localInsertions.lookup(key, result)) {
+        if (localInsertions.lookup(key, result, isVisible)) {
             return HashIndexLocalLookupState::KEY_FOUND;
         }
         return HashIndexLocalLookupState::KEY_NOT_EXIST;
@@ -43,16 +43,16 @@ public:
         }
     }
 
-    bool insert(Key key, common::offset_t value) {
+    bool insert(Key key, common::offset_t value, visible_func isVisible) {
         auto iter = localDeletions.find(key);
         if (iter != localDeletions.end()) {
             localDeletions.erase(iter);
         }
-        return localInsertions.append(key, value);
+        return localInsertions.append(key, value, isVisible);
     }
 
-    size_t append(const IndexBuffer<OwnedKeyType>& buffer) {
-        return localInsertions.append(buffer);
+    size_t append(const IndexBuffer<OwnedKeyType>& buffer, visible_func isVisible) {
+        return localInsertions.append(buffer, isVisible);
     }
 
     bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }
@@ -103,29 +103,56 @@ public:
             [&](auto) { KU_UNREACHABLE; });
     }
 
-    bool insert(const common::ValueVector& keyVector, common::offset_t startNodeOffset) {
+    common::offset_t lookup(const common::ValueVector& keyVector, visible_func isVisible) {
+        KU_ASSERT(keyVector.state->getSelVector().getSelSize() == 1);
+        common::offset_t result = common::INVALID_OFFSET;
+        common::TypeUtils::visit(
+            keyDataTypeID,
+            [&]<common::IndexHashable T>(T) {
+                const auto pos = keyVector.state->getSelVector().getSelectedPositions()[0];
+                result = lookup(keyVector.getValue<T>(pos), isVisible);
+            },
+            [](auto) { KU_UNREACHABLE; });
+        return result;
+    }
+
+    common::offset_t lookup(const common::ku_string_t key, visible_func isVisible) {
+        return lookup(key.getAsStringView(), isVisible);
+    }
+    template<common::IndexHashable T>
+    common::offset_t lookup(T key, visible_func isVisible) {
+        common::offset_t result = common::INVALID_OFFSET;
+        common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
+            HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
+            ->lookup(key, result, isVisible);
+        return result;
+    }
+
+    bool insert(const common::ValueVector& keyVector, common::offset_t startNodeOffset,
+        visible_func isVisible) {
         common::length_t numInserted = 0;
         common::TypeUtils::visit(
             keyDataTypeID,
             [&]<common::IndexHashable T>(T) {
                 for (auto i = 0u; i < keyVector.state->getSelVector().getSelSize(); i++) {
                     const auto pos = keyVector.state->getSelVector().getSelectedPositions()[i];
-                    numInserted += insert(keyVector.getValue<T>(pos), startNodeOffset + i);
+                    numInserted +=
+                        insert(keyVector.getValue<T>(pos), startNodeOffset + i, isVisible);
                 }
             },
             [](auto) { KU_UNREACHABLE; });
         return numInserted == keyVector.state->getSelVector().getSelSize();
     }
 
-    bool insert(const common::ku_string_t key, common::offset_t value) {
-        return insert(key.getAsStringView(), value);
+    bool insert(const common::ku_string_t key, common::offset_t value, visible_func isVisible) {
+        return insert(key.getAsStringView(), value, isVisible);
     }
     template<common::IndexHashable T>
-    bool insert(T key, common::offset_t value) {
+    bool insert(T key, common::offset_t value, visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
             HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
-            ->insert(key, value);
+            ->insert(key, value, isVisible);
     }
 
     void delete_(const common::ValueVector& keyVector) {

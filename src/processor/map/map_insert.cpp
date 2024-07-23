@@ -64,8 +64,8 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     for (auto& expr : info->columnDataExprs) {
         evaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    return std::make_unique<RelInsertExecutor>(storageManager->getRelsStatistics(), table,
-        srcNodePos, dstNodePos, std::move(returnVectorsPos), std::move(evaluators));
+    return std::make_unique<RelInsertExecutor>(table, srcNodePos, dstNodePos,
+        std::move(returnVectorsPos), std::move(evaluators));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {

@@ -1,0 +1,456 @@
+-DATASET CSV empty
+--
+
+-DEFINE_STATEMENT_BLOCK COPY_TINYSNB_PERSON [
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
+---- ok
+ ]
+
+-DEFINE_STATEMENT_BLOCK COPY_TINYSNB_KNOWS [
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv";
+---- ok
+ ]
+
+-DEFINE_STATEMENT_BLOCK INSERT_TINYSNB_PERSON [
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',')
+            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
+---- ok
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (deLim=',')
+            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
+---- ok
+ ]
+
+-DEFINE_STATEMENT_BLOCK INSERT_TINYSNB_KNOWS [
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
+            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
+            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
+---- ok
+-STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"
+            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
+            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
+---- ok
+ ]
+
+-CASE WWConflictNodeCopyUpdate
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Apple' RETURN p.*;
+---- ok
+-STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Alphabet' RETURN p.*;
+---- error
+Runtime exception: Write-write conflict of updating the same row.
+
+-CASE WWConflictNodeCopyDelete
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 DELETE p RETURN p.*;
+---- ok
+-STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 DELETE p RETURN p.*;
+---- error
+Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
+
+-CASE WWConflictRelCopyUpdate
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_KNOWS
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 SET k.date = Date('2026-01-01');
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 SET k.date = Date('2026-01-01');
+---- error
+Runtime exception: Write-write conflict of updating the same row.
+
+-CASE WWConflictRelCopyDelete
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_KNOWS
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 DELETE k;
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 DELETE k;
+---- error
+Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
+
+-CASE WWConflictNodeInsertUpdate
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Apple' RETURN p.*;
+---- ok
+-STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Alphabet' RETURN p.*;
+---- error
+Runtime exception: Write-write conflict of updating the same row.
+
+-CASE WWConflictNodeInsertDelete
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 DELETE p RETURN p.*;
+---- ok
+-STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 DELETE p RETURN p.*;
+---- error
+Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
+
+-CASE WWConflictRelInsertUpdate
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
+-INSERT_STATEMENT_BLOCK INSERT_TINYSNB_KNOWS
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 SET k.date = Date('2026-01-01');
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 SET k.date = Date('2026-01-01');
+---- error
+Runtime exception: Write-write conflict of updating the same row.
+
+-CASE WWConflictRelInsertDelete
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
+-INSERT_STATEMENT_BLOCK INSERT_TINYSNB_KNOWS
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 DELETE k;
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 2 DELETE k;
+---- error
+Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
+
+-CASE MultiTransactionNodeInsert
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',')
+            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
+---- ok
+-STATEMENT [conn2] LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (deLim=',')
+            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 5
+0
+2
+3
+5
+7
+-STATEMENT [conn2] MATCH (p:person) RETURN p.ID;
+---- 3
+8
+9
+10
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT [conn2] MATCH (p:person) RETURN p.ID;
+---- 3
+8
+9
+10
+-STATEMENT [conn2] COMMIT;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 8
+0
+2
+3
+5
+7
+8
+9
+10
+
+-CASE MultiTransactionRelInsert
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
+            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
+            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
+---- ok
+-STATEMENT [conn2] LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"
+            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
+            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 6
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 8
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 8
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+-STATEMENT [conn2] COMMIT;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 14
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+
+-CASE MultiTransactionNodeCopy
+-SKIP
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+---- ok
+-STATEMENT [conn2] COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 5
+0
+2
+3
+5
+7
+-STATEMENT [conn2] MATCH (p:person) RETURN p.ID;
+---- 3
+8
+9
+10
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT [conn2] MATCH (p:person) RETURN p.ID;
+---- 3
+8
+9
+10
+-STATEMENT [conn2] COMMIT;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 8
+0
+2
+3
+5
+7
+8
+9
+10
+
+-CASE MultiTransactionRelCopy
+-SKIP
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+-STATEMENT [conn2] COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv";
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 6
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 8
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 8
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+-STATEMENT [conn2] COMMIT;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 14
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+
+-CASE MixedMultiTransactionRelCopyInsert
+-SKIP
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 6
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+-STATEMENT [conn2] MATCH (p1:person), (p2:person) WHERE p1.ID = 3 AND p2.ID = 5 CREATE (p1)-[:knows{date:Date('2026-01-01')}]->(p2);
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 1
+3|5
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT [conn2] MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 1
+3|5
+-STATEMENT [conn2] COMMIT;
+---- ok
+-STATEMENT MATCH (p1:person)-[k:knows]->(p2:person) RETURN p1.ID,p2.ID;
+---- 7
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|5

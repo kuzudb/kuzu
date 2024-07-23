@@ -91,16 +91,14 @@ foobar|
 ---- ok
 -STATEMENT COPY A FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv' (HEADER=true, DELIM='|');
 ---- ok
--STATEMENT CALL STORAGE_INFO('A') WHERE column_name='s' RETURN num_values;
----- 2
-131072
-19971
+-STATEMENT MATCH (a:A) RETURN COUNT(*);
+---- 1
+151043
 -STATEMENT CREATE (a:A);
 ---- ok
--STATEMENT CALL STORAGE_INFO('A') WHERE column_name='s' RETURN num_values;
----- 2
-131072
-19972
+-STATEMENT MATCH (a:A) RETURN COUNT(*);
+---- 1
+151044
 
 -CASE CreateWithLargeStringPK
 -STATEMENT CREATE NODE TABLE test(id STRING, PRIMARY KEY(id));
@@ -442,3 +440,14 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
 -STATEMENT MATCH (t:test) WHERE t.age IS NOT NULL RETURN COUNT(*);
 ---- 1
 0
+
+-CASE CreateDuplicatedNodesWithinSameTransaction
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- error
+Runtime exception: Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.

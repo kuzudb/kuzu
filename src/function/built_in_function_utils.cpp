@@ -83,7 +83,7 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
 
 AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::string& name,
     const std::vector<common::LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
-    auto& functionSet = catalogSet->getEntry(&transaction::DUMMY_WRITE_TRANSACTION, name)
+    auto& functionSet = catalogSet->getEntry(&transaction::DUMMY_TRANSACTION, name)
                             ->ptrCast<FunctionCatalogEntry>()
                             ->getFunctionSet();
     std::vector<AggregateFunction*> candidateFunctions;

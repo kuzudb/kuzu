@@ -1,5 +1,6 @@
 add_library(kuzu_storage_wal
         OBJECT
+        shadow_file.cpp
         wal.cpp
         wal_record.cpp)
 

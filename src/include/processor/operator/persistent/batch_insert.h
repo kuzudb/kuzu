@@ -16,7 +16,12 @@ struct BatchInsertInfo {
 
     BatchInsertInfo(const BatchInsertInfo& other) = delete;
 
-    inline virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
+    virtual std::unique_ptr<BatchInsertInfo> copy() const = 0;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<BatchInsertInfo*, TARGET*>(this);
+    }
 };
 
 struct BatchInsertSharedState {
@@ -39,19 +44,21 @@ struct BatchInsertSharedState {
         return result;
     }
 
-    inline void incrementNumRows(common::row_idx_t numRowsToIncrement) {
+    void incrementNumRows(common::row_idx_t numRowsToIncrement) {
         numRows.fetch_add(numRowsToIncrement);
     }
-    inline common::row_idx_t getNumRows() { return numRows.load(); }
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    inline void logBatchInsertWALRecord() { wal->logCopyTableRecord(table->getTableID()); }
-    inline void updateNumTuplesForTable() { table->updateNumTuplesByValue(getNumRows()); }
+    common::row_idx_t getNumRows() const { return numRows.load(); }
 };
 
 struct BatchInsertLocalState {
-    std::unique_ptr<storage::ChunkedNodeGroup> nodeGroup;
+    std::unique_ptr<storage::ChunkedNodeGroup> chunkedGroup;
 
     virtual ~BatchInsertLocalState() = default;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<BatchInsertLocalState*, TARGET*>(this);
+    }
 };
 
 class BatchInsert : public Sink {
@@ -69,7 +76,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
-    inline std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
+    std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 
 protected:
     std::unique_ptr<BatchInsertInfo> info;

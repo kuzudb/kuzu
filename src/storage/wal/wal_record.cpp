@@ -2,8 +2,10 @@
 
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -12,14 +14,25 @@ namespace kuzu {
 namespace storage {
 
 void WALRecord::serialize(Serializer& serializer) const {
+    serializer.writeDebuggingInfo("type");
     serializer.write(type);
 }
 
-std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
+std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
     WALRecordType type;
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "type");
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
     switch (type) {
+    case WALRecordType::BEGIN_TRANSACTION_RECORD: {
+        walRecord = BeginTransactionRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::COMMIT_RECORD: {
+        walRecord = CommitRecord::deserialize(deserializer);
+    } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         walRecord = CreateCatalogEntryRecord::deserialize(deserializer);
     } break;
@@ -29,20 +42,29 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
         walRecord = AlterTableEntryRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::CATALOG_RECORD: {
-        walRecord = CatalogRecord::deserialize(deserializer);
+    case WALRecordType::TABLE_INSERTION_RECORD: {
+        walRecord = TableInsertionRecord::deserialize(deserializer, clientContext);
     } break;
-    case WALRecordType::TABLE_STATISTICS_RECORD: {
-        walRecord = TableStatisticsRecord::deserialize(deserializer);
+    case WALRecordType::NODE_DELETION_RECORD: {
+        walRecord = NodeDeletionRecord::deserialize(deserializer, clientContext);
+    } break;
+    case WALRecordType::NODE_UDPATE_RECORD: {
+        walRecord = NodeUpdateRecord::deserialize(deserializer, clientContext);
+    } break;
+    case WALRecordType::REL_DELETION_RECORD: {
+        walRecord = RelDeletionRecord::deserialize(deserializer, clientContext);
+    } break;
+    case WALRecordType::REL_DETACH_DELETE_RECORD: {
+        walRecord = RelDetachDeleteRecord::deserialize(deserializer, clientContext);
+    } break;
+    case WALRecordType::REL_UPDATE_RECORD: {
+        walRecord = RelUpdateRecord::deserialize(deserializer, clientContext);
     } break;
     case WALRecordType::COPY_TABLE_RECORD: {
         walRecord = CopyTableRecord::deserialize(deserializer);
     } break;
-    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
-        walRecord = PageUpdateOrInsertRecord::deserialize(deserializer);
-    } break;
-    case WALRecordType::COMMIT_RECORD: {
-        walRecord = CommitRecord::deserialize(deserializer);
+    case WALRecordType::CHECKPOINT_RECORD: {
+        walRecord = CheckpointRecord::deserialize(deserializer);
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         walRecord = UpdateSequenceRecord::deserialize(deserializer);
@@ -58,22 +80,12 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer) {
     return walRecord;
 }
 
-void PageUpdateOrInsertRecord::serialize(Serializer& serializer) const {
+void BeginTransactionRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
-    serializer.write(dbFileID);
-    serializer.write(pageIdxInOriginalFile);
-    serializer.write(pageIdxInWAL);
-    serializer.write(isInsert);
 }
 
-std::unique_ptr<PageUpdateOrInsertRecord> PageUpdateOrInsertRecord::deserialize(
-    Deserializer& deserializer) {
-    auto retVal = std::make_unique<PageUpdateOrInsertRecord>();
-    deserializer.deserializeValue(retVal->dbFileID);
-    deserializer.deserializeValue(retVal->pageIdxInOriginalFile);
-    deserializer.deserializeValue(retVal->pageIdxInWAL);
-    deserializer.deserializeValue(retVal->isInsert);
-    return retVal;
+std::unique_ptr<BeginTransactionRecord> BeginTransactionRecord::deserialize(Deserializer&) {
+    return std::make_unique<BeginTransactionRecord>();
 }
 
 void CommitRecord::serialize(Serializer& serializer) const {
@@ -87,10 +99,13 @@ std::unique_ptr<CommitRecord> CommitRecord::deserialize(Deserializer& deserializ
     return retVal;
 }
 
-CreateCatalogEntryRecord::CreateCatalogEntryRecord() = default;
+void CheckpointRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+}
 
-CreateCatalogEntryRecord::CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry)
-    : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{catalogEntry} {}
+std::unique_ptr<CheckpointRecord> CheckpointRecord::deserialize(Deserializer&) {
+    return std::make_unique<CheckpointRecord>();
+}
 
 void CreateCatalogEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
@@ -113,26 +128,6 @@ void CopyTableRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<CopyTableRecord> CopyTableRecord::deserialize(Deserializer& deserializer) {
     auto retVal = std::make_unique<CopyTableRecord>();
     deserializer.deserializeValue(retVal->tableID);
-    return retVal;
-}
-
-void CatalogRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-}
-
-std::unique_ptr<CatalogRecord> CatalogRecord::deserialize(Deserializer&) {
-    return std::make_unique<CatalogRecord>();
-}
-
-void TableStatisticsRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializer.write(tableType);
-}
-
-std::unique_ptr<TableStatisticsRecord> TableStatisticsRecord::deserialize(
-    Deserializer& deserializer) {
-    auto retVal = std::make_unique<TableStatisticsRecord>();
-    deserializer.deserializeValue(retVal->tableType);
     return retVal;
 }
 
@@ -254,18 +249,232 @@ std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
     return retVal;
 }
 
-DBFileID DBFileID::newDataFileID() {
-    return DBFileID{DBFileType::DATA};
+void TableInsertionRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("table_type");
+    serializer.write<TableType>(tableType);
+    serializer.writeDebuggingInfo("num_rows");
+    serializer.write<row_idx_t>(numRows);
+    serializer.writeDebuggingInfo("num_vectors");
+    serializer.write<idx_t>(vectors.size());
+    for (auto& vector : vectors) {
+        vector->serialize(serializer);
+    }
 }
 
-DBFileID DBFileID::newMetadataFileID() {
-    return DBFileID{DBFileType::METADATA};
+std::unique_ptr<TableInsertionRecord> TableInsertionRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    TableType tableType;
+    row_idx_t numRows;
+    idx_t numVectors;
+    std::vector<std::unique_ptr<ValueVector>> valueVectors;
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_type");
+    deserializer.deserializeValue<TableType>(tableType);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "num_rows");
+    deserializer.deserializeValue<row_idx_t>(numRows);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "num_vectors");
+    deserializer.deserializeValue(numVectors);
+    auto resultChunkState = std::make_shared<DataChunkState>();
+    valueVectors.reserve(numVectors);
+    for (auto i = 0u; i < numVectors; i++) {
+        valueVectors.push_back(ValueVector::deSerialize(deserializer,
+            clientContext.getMemoryManager(), resultChunkState));
+    }
+    return std::make_unique<TableInsertionRecord>(tableID, tableType, numRows,
+        std::move(valueVectors));
 }
 
-DBFileID DBFileID::newPKIndexFileID(table_id_t tableID) {
-    DBFileID retVal{DBFileType::NODE_INDEX};
-    retVal.nodeIndexID = NodeIndexID(tableID);
-    return retVal;
+void NodeDeletionRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("node_offset");
+    serializer.write<offset_t>(nodeOffset);
+    serializer.writeDebuggingInfo("pk_vector");
+    pkVector->serialize(serializer);
+}
+
+std::unique_ptr<NodeDeletionRecord> NodeDeletionRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    offset_t nodeOffset;
+
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "node_offset");
+    deserializer.deserializeValue<offset_t>(nodeOffset);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "pk_vector");
+    auto resultChunkState = std::make_shared<DataChunkState>();
+    auto ownedVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    return std::make_unique<NodeDeletionRecord>(tableID, nodeOffset, std::move(ownedVector));
+}
+
+void NodeUpdateRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("column_id");
+    serializer.write<column_id_t>(columnID);
+    serializer.writeDebuggingInfo("node_offset");
+    serializer.write<offset_t>(nodeOffset);
+    serializer.writeDebuggingInfo("property_vector");
+    propertyVector->serialize(serializer);
+}
+
+std::unique_ptr<NodeUpdateRecord> NodeUpdateRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    column_id_t columnID;
+    offset_t nodeOffset;
+
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "column_id");
+    deserializer.deserializeValue<column_id_t>(columnID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "node_offset");
+    deserializer.deserializeValue<offset_t>(nodeOffset);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "property_vector");
+    auto resultChunkState = std::make_shared<DataChunkState>();
+    auto ownedVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    return std::make_unique<NodeUpdateRecord>(tableID, columnID, nodeOffset,
+        std::move(ownedVector));
+}
+
+void RelDeletionRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("src_node_vector");
+    srcNodeIDVector->serialize(serializer);
+    serializer.writeDebuggingInfo("dst_node_vector");
+    dstNodeIDVector->serialize(serializer);
+    serializer.writeDebuggingInfo("rel_id_vector");
+    relIDVector->serialize(serializer);
+}
+
+std::unique_ptr<RelDeletionRecord> RelDeletionRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    auto resultChunkState = std::make_shared<DataChunkState>();
+    KU_ASSERT(key == "src_node_vector");
+    auto srcNodeIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "dst_node_vector");
+    auto dstNodeIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "rel_id_vector");
+    auto relIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    return std::make_unique<RelDeletionRecord>(tableID, std::move(srcNodeIDVector),
+        std::move(dstNodeIDVector), std::move(relIDVector));
+}
+
+void RelDetachDeleteRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("direction");
+    serializer.write<RelDataDirection>(direction);
+    serializer.writeDebuggingInfo("src_node_vector");
+    srcNodeIDVector->serialize(serializer);
+}
+
+std::unique_ptr<RelDetachDeleteRecord> RelDetachDeleteRecord::deserialize(
+    Deserializer& deserializer, main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    RelDataDirection direction;
+
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "direction");
+    deserializer.deserializeValue<RelDataDirection>(direction);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "src_node_vector");
+    auto resultChunkState = std::make_shared<DataChunkState>();
+    auto srcNodeIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    return std::make_unique<RelDetachDeleteRecord>(tableID, direction, std::move(srcNodeIDVector));
+}
+
+void RelUpdateRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializer.writeDebuggingInfo("table_id");
+    serializer.write<table_id_t>(tableID);
+    serializer.writeDebuggingInfo("column_id");
+    serializer.write<column_id_t>(columnID);
+    serializer.writeDebuggingInfo("src_node_vector");
+    srcNodeIDVector->serialize(serializer);
+    serializer.writeDebuggingInfo("dst_node_vector");
+    dstNodeIDVector->serialize(serializer);
+    serializer.writeDebuggingInfo("rel_id_vector");
+    relIDVector->serialize(serializer);
+    serializer.writeDebuggingInfo("property_vector");
+    propertyVector->serialize(serializer);
+}
+
+std::unique_ptr<RelUpdateRecord> RelUpdateRecord::deserialize(Deserializer& deserializer,
+    main::ClientContext& clientContext) {
+    std::string key;
+    table_id_t tableID;
+    column_id_t columnID;
+
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "table_id");
+    deserializer.deserializeValue<table_id_t>(tableID);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "column_id");
+    deserializer.deserializeValue<column_id_t>(columnID);
+    deserializer.deserializeDebuggingInfo(key);
+    auto resultChunkState = std::make_shared<DataChunkState>();
+    KU_ASSERT(key == "src_node_vector");
+    auto srcNodeIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "dst_node_vector");
+    auto dstNodeIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "rel_id_vector");
+    auto relIDVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    deserializer.deserializeDebuggingInfo(key);
+    KU_ASSERT(key == "property_vector");
+    auto propertyVector =
+        ValueVector::deSerialize(deserializer, clientContext.getMemoryManager(), resultChunkState);
+    return std::make_unique<RelUpdateRecord>(tableID, columnID, std::move(srcNodeIDVector),
+        std::move(dstNodeIDVector), std::move(relIDVector), std::move(propertyVector));
 }
 
 } // namespace storage

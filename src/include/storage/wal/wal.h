@@ -2,6 +2,8 @@
 
 #include <unordered_set>
 
+#include "common/enums/rel_direction.h"
+#include "common/serializer/buffered_file.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
 
@@ -12,6 +14,7 @@ struct BoundAlterInfo;
 namespace common {
 class BufferedFileWriter;
 class VirtualFileSystem;
+class ValueVector;
 } // namespace common
 
 namespace catalog {
@@ -31,53 +34,55 @@ public:
     WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    // Destructing WAL flushes any unwritten header page but not the other pages. The caller
-    // which possibly has access to the buffer manager needs to ensure any unwritten pages
-    // are also flushed to disk.
     ~WAL();
-
-    common::page_idx_t logPageUpdateRecord(DBFileID dbFileID,
-        common::page_idx_t pageIdxInOriginalFile);
-
-    common::page_idx_t logPageInsertRecord(DBFileID dbFileID,
-        common::page_idx_t pageIdxInOriginalFile);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
-    void logAlterTableEntryRecord(binder::BoundAlterInfo* alterInfo);
-
-    void logCopyTableRecord(common::table_id_t tableID);
-
+    void logAlterTableEntryRecord(const binder::BoundAlterInfo* alterInfo);
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
         catalog::SequenceChangeData data);
 
-    void logCatalogRecord();
-    void logTableStatisticsRecord(common::TableType tableType);
-    void logCommit(uint64_t transactionID);
+    void logTableInsertion(common::table_id_t tableID, common::TableType tableType,
+        common::row_idx_t numRows, const std::vector<common::ValueVector*>& vectors);
+    void logNodeDeletion(common::table_id_t tableID, common::offset_t nodeOffset,
+        common::ValueVector* pkVector);
+    void logNodeUpdate(common::table_id_t tableID, common::column_id_t columnID,
+        common::offset_t nodeOffset, common::ValueVector* propertyVector);
+    void logRelDelete(common::table_id_t tableID, common::ValueVector* srcNodeVector,
+        common::ValueVector* dstNodeVector, common::ValueVector* relIDVector);
+    void logRelDetachDelete(common::table_id_t tableID, common::RelDataDirection direction,
+        common::ValueVector* srcNodeVector);
+    void logRelUpdate(common::table_id_t tableID, common::column_id_t columnID,
+        common::ValueVector* srcNodeVector, common::ValueVector* dstNodeVector,
+        common::ValueVector* relIDVector, common::ValueVector* propertyVector);
+    void logCopyTableRecord(common::table_id_t tableID);
+
+    void logBeginTransaction();
+    void logAndFlushCommit(uint64_t transactionID);
+    void logAndFlushCheckpoint();
 
     // Removes the contents of WAL file.
     void clearWAL();
 
     void flushAllPages();
 
-    bool isEmptyWAL() const;
-
-    inline void addToUpdatedTables(common::table_id_t nodeTableID) {
+    void addToUpdatedTables(const common::table_id_t nodeTableID) {
         updatedTables.insert(nodeTableID);
     }
-    inline std::unordered_set<common::table_id_t>& getUpdatedTables() { return updatedTables; }
-    BMFileHandle& getShadowingFH() { return *shadowingFH; }
+    std::unordered_set<common::table_id_t>& getUpdatedTables() { return updatedTables; }
+
+    uint64_t getFileSize() const { return bufferedWriter->getFileSize(); }
 
 private:
-    void addNewWALRecordNoLock(WALRecord& walRecord);
+    void addNewWALRecordNoLock(const WALRecord& walRecord);
 
 private:
-    // Node/Rel tables that might have changes to their in-memory data structures that need to be
-    // committed/rolled back accordingly during the wal replaying.
-    // Tables need in memory checkpointing or rolling back.
+    // Keep track of tables that has updates since last checkpoint. Ideally this is used to
+    // determine whether the table needs to be checkpointed or not. NOT fully done yet, will rework
+    // this later when working on logging and recovery.
     std::unordered_set<common::table_id_t> updatedTables;
+    std::unique_ptr<common::FileInfo> fileInfo;
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;
-    BMFileHandle* shadowingFH;
     std::string directory;
     std::mutex mtx;
     BufferManager& bufferManager;

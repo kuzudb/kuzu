@@ -4,8 +4,8 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_table_info.h"
+#include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/property.h"
-#include "catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "function/table_functions.h"
 

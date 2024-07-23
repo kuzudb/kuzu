@@ -23,11 +23,15 @@
 
 
 -CASE deleteMultipleRelsCommitRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
@@ -111,11 +115,15 @@
 
 
 -CASE deleteMultipleRelsRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION

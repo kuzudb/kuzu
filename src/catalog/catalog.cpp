@@ -15,6 +15,7 @@
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/catalog.h"
+#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
@@ -365,7 +366,7 @@ void Catalog::dropFunction(Transaction* tx, const std::string& name) {
 
 void Catalog::addBuiltInFunction(CatalogEntryType entryType, std::string name,
     function::function_set functionSet) {
-    addFunction(&DUMMY_WRITE_TRANSACTION, entryType, std::move(name), std::move(functionSet));
+    addFunction(&DUMMY_TRANSACTION, entryType, std::move(name), std::move(functionSet));
 }
 
 CatalogSet* Catalog::getFunctions(Transaction*) const {
@@ -416,9 +417,8 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const 
     return macroNames;
 }
 
-void Catalog::prepareCheckpoint(const std::string& databasePath, WAL* wal, VirtualFileSystem* fs) {
+void Catalog::checkpoint(const std::string& databasePath, VirtualFileSystem* fs) const {
     saveToFile(databasePath, fs, FileVersionType::WAL_VERSION);
-    wal->logCatalogRecord();
 }
 
 static void validateStorageVersion(storage_version_t savedStorageVersion) {
@@ -453,10 +453,10 @@ static void writeMagicBytes(Serializer& serializer) {
 }
 
 void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
-    FileVersionType versionType) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
-    Serializer serializer(
-        std::make_unique<BufferedFileWriter>(fs->openFile(catalogPath, O_WRONLY | O_CREAT)));
+    FileVersionType versionType) const {
+    const auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
+    const auto catalogFile = fs->openFile(catalogPath, O_WRONLY | O_CREAT);
+    Serializer serializer(std::make_unique<BufferedFileWriter>(*catalogFile));
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     tables->serialize(serializer);
@@ -467,7 +467,7 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
 
 void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     FileVersionType versionType, main::ClientContext* context) {
-    auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
+    const auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
     Deserializer deserializer(
         std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY, context)));
     validateMagicBytes(deserializer);
@@ -481,15 +481,15 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
 }
 
 void Catalog::registerBuiltInFunctions() {
-    function::BuiltInFunctionsUtils::createFunctions(&DUMMY_WRITE_TRANSACTION, functions.get());
+    function::BuiltInFunctionsUtils::createFunctions(&DUMMY_TRANSACTION, functions.get());
 }
 
 bool Catalog::containMacro(const std::string& macroName) const {
-    return functions->containsEntry(&DUMMY_READ_TRANSACTION, macroName);
+    return functions->containsEntry(&DUMMY_TRANSACTION, macroName);
 }
 
 void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* tableEntry,
-    const binder::BoundAlterInfo& info) const {
+    const BoundAlterInfo& info) const {
     auto rdfGraphEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(tableEntry);
     auto& renameTableInfo =
         ku_dynamic_cast<const BoundExtraAlterInfo&, const BoundExtraRenameTableInfo&>(

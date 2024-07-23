@@ -13,11 +13,13 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE DropRelTablePropertyCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
@@ -36,44 +38,118 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE DropRelTablePropertyRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
+-CASE AddNodeTablePropertyCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:person {ID: 11});
+---- ok
+-STATEMENT ALTER TABLE person Add test INT64 DEFAULT 1
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.* ORDER BY p.ID LIMIT 1
+---- 1
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|1
+-STATEMENT MATCH (p:person) RETURN sum(p.test);
+---- 1
+9
+
+-CASE AddNodeTablePropertyCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:person {ID: 11});
+---- ok
+-STATEMENT ALTER TABLE person Add test INT64 DEFAULT 1
+---- ok
+-STATEMENT COMMIT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.* ORDER BY p.ID LIMIT 1
+---- 1
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|1
+-STATEMENT MATCH (p:person) RETURN sum(p.test);
+---- 1
+9
+
+-CASE AddNodeTablePropertyRollbackCommit
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE person Add test INT64 DEFAULT 1
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.* ORDER BY p.ID LIMIT 1
+---- 1
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+-CASE AddNodeTablePropertyRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE person Add test INT64 DEFAULT 1
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.* ORDER BY p.ID LIMIT 1
+---- 1
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
 -CASE AddRelTablePropertyCommit
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+-STATEMENT MATCH (p:person), (o:organisation) WHERE p.ID = 5 AND o.ID = 6 CREATE (p)-[:studyAt {year: 2000, places: [], length: 4, level: 4, code: 9223372036854775807, temperature: 32799, ulength: 33767, ulevel: 249, hugedata: 1844674407370955161811111110}]->(o);
+---- ok
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 1
 ---- ok
 -STATEMENT COMMIT
 ---- ok
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
-(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111, test: 40}->(1:0)
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111, test: 1}->(1:0)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN sum(s.test);
+---- 1
+4
 
 -CASE AddRelTablePropertyCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+-STATEMENT MATCH (p:person), (o:organisation) WHERE p.ID = 5 AND o.ID = 6 CREATE (p)-[:studyAt {year: 2000, places: [], length: 4, level: 4, code: 9223372036854775807, temperature: 32799, ulength: 33767, ulevel: 249, hugedata: 1844674407370955161811111110}]->(o);
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 1
+---- ok
+-STATEMENT COMMIT
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
 ---- 1
-(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111, test: 40}->(1:0)
+(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111, test: 1}->(1:0)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN sum(s.test);
+---- 1
+4
 
 -CASE AddRelTablePropertyRollbackCommit
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 1
 ---- ok
 -STATEMENT ROLLBACK
 ---- ok
@@ -82,11 +158,13 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE AddRelTablePropertyRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 40
+-STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 1
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
@@ -105,11 +183,13 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, location: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE RenameRelTablePropertyCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt RENAME places TO location;
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
@@ -128,11 +208,13 @@
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
 -CASE RenameRelTablePropertyRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt RENAME places TO location;
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1
@@ -151,11 +233,13 @@
 Study at information
 
 -CASE CommentRelTableCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() WHERE name = 'studyAt' RETURN comment;
@@ -174,11 +258,13 @@ Study at information
 
 
 -CASE CommentRelTableRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() WHERE name = 'studyAt' RETURN comment;
@@ -220,6 +306,8 @@ Can not execute a write query inside a read-only transaction.
 1
 
 -CASE SequenceTestCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -232,7 +320,7 @@ Can not execute a write query inside a read-only transaction.
 -STATEMENT RETURN nextval('after');
 ---- 1
 1
--STATEMENT Commit_skip_checkpoint;
+-STATEMENT Commit;
 ---- ok
 -RELOADDB
 -STATEMENT RETURN currval('before');
@@ -265,6 +353,9 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 Catalog exception: after does not exist in catalog.
 
 -CASE SequenceTestRollbackRecovery
+-SKIP
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -277,7 +368,7 @@ Catalog exception: after does not exist in catalog.
 -STATEMENT RETURN nextval('after');
 ---- 1
 1
--STATEMENT Rollback_skip_checkpoint;
+-STATEMENT Rollback;
 ---- ok
 -RELOADDB
 -STATEMENT RETURN currval('before');

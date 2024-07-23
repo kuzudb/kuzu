@@ -6,7 +6,6 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/storage_manager.h"
-#include "storage/wal_replayer.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -20,61 +19,82 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
     lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
-    if (type == TransactionType::WRITE) {
+    std::unique_ptr<Transaction> transaction;
+    switch (type) {
+    case TransactionType::READ_ONLY: {
+        transaction =
+            std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
+        activeReadOnlyTransactions.insert(transaction->getID());
+    } break;
+    case TransactionType::RECOVERY:
+    case TransactionType::WRITE: {
         if (!clientContext.getDBConfig()->enableMultiWrites && hasActiveWriteTransactionNoLock()) {
             throw TransactionManagerException(
                 "Cannot start a new write transaction in the system. "
                 "Only one write transaction at a time is allowed in the system.");
         }
+        transaction =
+            std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
+        activeWriteTransactions.insert(transaction->getID());
+        KU_ASSERT(clientContext.getStorageManager());
+        if (transaction->isWriteTransaction()) {
+            clientContext.getStorageManager()->getWAL().logBeginTransaction();
+        }
+    } break;
+    default: {
+        throw TransactionManagerException("Invalid transaction type to begin transaction.");
     }
-    auto transaction =
-        std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
-    type == TransactionType::WRITE ? activeWriteTransactionID.insert(transaction->getID()) :
-                                     activeReadOnlyTransactionIDs.insert(transaction->getID());
+    }
     return transaction;
 }
 
-void TransactionManager::commit(main::ClientContext& clientContext, bool skipCheckPointing) {
+void TransactionManager::commit(main::ClientContext& clientContext) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
-    auto transaction = clientContext.getTx();
-    if (transaction->isReadOnly()) {
-        activeReadOnlyTransactionIDs.erase(transaction->getID());
-        return;
+    const auto transaction = clientContext.getTx();
+    switch (transaction->getType()) {
+    case TransactionType::READ_ONLY: {
+        activeReadOnlyTransactions.erase(transaction->getID());
+    } break;
+    case TransactionType::RECOVERY:
+    case TransactionType::WRITE: {
+        lastTimestamp++;
+        transaction->commitTS = lastTimestamp;
+        transaction->commit(&wal);
+        if (transaction->isWriteTransaction()) {
+            // For recovery, we skip logging to WAL.
+            wal.flushAllPages();
+        }
+        activeWriteTransactions.erase(transaction->getID());
+        if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
+            checkpointNoLock(clientContext);
+        }
+    } break;
+    default: {
+        throw TransactionManagerException("Invalid transaction type to commit.");
     }
-    lastTimestamp++;
-    transaction->commitTS = lastTimestamp;
-    transaction->commit(&wal);
-    clientContext.getStorageManager()->prepareCommit(transaction, clientContext.getVFSUnsafe());
-    wal.flushAllPages();
-    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    if (!skipCheckPointing) {
-        checkpointNoLock(clientContext);
     }
 }
 
 // Note: We take in additional `transaction` here is due to that `transactionContext` might be
 // destructed when a transaction throws exception, while we need to rollback the active transaction
 // still.
-void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction,
-    bool skipCheckPointing) {
+void TransactionManager::rollback(main::ClientContext& clientContext,
+    const Transaction* transaction) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
-    if (transaction->isReadOnly()) {
-        activeReadOnlyTransactionIDs.erase(transaction->getID());
-        return;
+    switch (transaction->getType()) {
+    case TransactionType::READ_ONLY: {
+        activeReadOnlyTransactions.erase(transaction->getID());
+    } break;
+    case TransactionType::RECOVERY:
+    case TransactionType::WRITE: {
+        transaction->rollback();
+        activeWriteTransactions.erase(transaction->getID());
+    } break;
+    default: {
+        throw TransactionManagerException("Invalid transaction type to rollback.");
     }
-    clientContext.getStorageManager()->prepareRollback();
-    transaction->rollback();
-    clearActiveWriteTransactionIfWriteTransactionNoLock(transaction);
-    wal.flushAllPages();
-    if (!skipCheckPointing) {
-        auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-            WALReplayMode::ROLLBACK);
-        walReplayer->replay();
-        // We next perform an in-memory rolling back of node/relTables.
-        clientContext.getStorageManager()->rollbackInMemory();
-        wal.clearWAL();
     }
 }
 
@@ -109,8 +129,21 @@ void TransactionManager::allowReceivingNewTransactions() {
     mtxForStartingNewTransactions.unlock();
 }
 
-bool TransactionManager::canCheckpointNoLock() {
-    return activeWriteTransactionID.empty() && activeReadOnlyTransactionIDs.empty();
+bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
+    if (!clientContext.getDBConfig()->autoCheckpoint) {
+        return false;
+    }
+    if (clientContext.getTx()->isRecovery()) {
+        // Recovery transactions are not allowed to trigger auto checkpoint.
+        return false;
+    }
+    const auto expectedSize =
+        clientContext.getStorageManager()->getEstimatedMemoryUsage() + wal.getFileSize();
+    return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
+}
+
+bool TransactionManager::canCheckpointNoLock() const {
+    return activeWriteTransactions.empty() && activeReadOnlyTransactions.empty();
 }
 
 void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
@@ -122,32 +155,30 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    KU_ASSERT(canCheckpointNoLock());
-    clientContext.getCatalog()->prepareCheckpoint(clientContext.getDatabasePath(), &wal,
+    // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
+    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
         clientContext.getVFSUnsafe());
-    wal.flushAllPages();
-    // Replay the WAL to commit page updates/inserts, and table statistics.
-    auto walReplayer = std::make_unique<WALReplayer>(clientContext, wal.getShadowingFH(),
-        WALReplayMode::COMMIT_CHECKPOINT);
-    walReplayer->replay();
-    // We next perform an in-memory checkpointing of node/relTables.
-    clientContext.getStorageManager()->checkpointInMemory();
+    // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
+    // disk.
+    clientContext.getStorageManager()->checkpoint(clientContext);
+    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and files(
+    // snapshots of catalog and metadata) have been written to disk. The part is not done is replace
+    // them with the original pages or catalog and metadata files.
+    // If the system crashes before this point, the WAL can still be used to recover the system to a
+    // state where the checkpoint can be redo.
+    wal.logAndFlushCheckpoint();
+    // Replace the original pages and catalog and metadata files with the updated/newly-created
+    // ones.
+    StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
+    clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
+    // Clear the wal, and also shadowing files.
+    wal.clearWAL();
+    clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
+    StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
     // Resume receiving new transactions.
     allowReceivingNewTransactions();
-    // Clear the wal.
-    wal.clearWAL();
-}
-
-void TransactionManager::clearActiveWriteTransactionIfWriteTransactionNoLock(
-    Transaction* transaction) {
-    if (transaction->isWriteTransaction()) {
-        for (auto& id : activeWriteTransactionID) {
-            if (id == transaction->getID()) {
-                activeWriteTransactionID.erase(id);
-                return;
-            }
-        }
-    }
 }
 
 } // namespace transaction

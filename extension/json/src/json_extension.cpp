@@ -24,8 +24,8 @@ void JsonExtension::load(main::ClientContext* context) {
     ADD_FUNC(MinifyJsonFunction);
     ADD_FUNC(JsonExportFunction);
     extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
-    if (!db.getCatalog()->containsType(&transaction::DUMMY_READ_TRANSACTION, "json")) {
-        db.getCatalog()->createType(&transaction::DUMMY_WRITE_TRANSACTION, "json",
+    if (!db.getCatalog()->containsType(&transaction::DUMMY_TRANSACTION, "json")) {
+        db.getCatalog()->createType(&transaction::DUMMY_TRANSACTION, "json",
             common::LogicalType::STRING());
     }
 }

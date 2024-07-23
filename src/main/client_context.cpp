@@ -189,6 +189,11 @@ storage::MemoryManager* ClientContext::getMemoryManager() {
     return localDatabase->memoryManager.get();
 }
 
+storage::WAL* ClientContext::getWAL() const {
+    KU_ASSERT(localDatabase && localDatabase->storageManager);
+    return &localDatabase->storageManager->getWAL();
+}
+
 Catalog* ClientContext::getCatalog() const {
     if (remoteDatabase == nullptr) {
         return localDatabase->catalog.get();
@@ -344,13 +349,6 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             } else {
                 transactionContext->validateManualTransaction(preparedStatement->readOnly);
             }
-            if (!this->getTx()->isReadOnly()) {
-                if (this->remoteDatabase == nullptr) {
-                    localDatabase->storageManager->initStatistics();
-                } else {
-                    remoteDatabase->getStorageManager()->initStatistics();
-                }
-            }
         }
         // binding
         auto binder = Binder(this);
@@ -465,13 +463,6 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     if (preparedStatement->parsedStatement->requireTx() && requiredNexTx && getTx() == nullptr) {
         this->transactionContext->beginAutoTransaction(preparedStatement->isReadOnly());
-        if (!preparedStatement->readOnly) {
-            if (remoteDatabase == nullptr) {
-                localDatabase->storageManager->initStatistics();
-            } else {
-                remoteDatabase->getStorageManager()->initStatistics();
-            }
-        }
     }
     this->resetActiveQuery();
     this->startTimer();
@@ -502,13 +493,11 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
             resultFT =
                 localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
         } else {
+            getTx()->checkForceCheckpoint(preparedStatement->getStatementType());
+            resultFT =
+                localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (this->transactionContext->isAutoTransaction()) {
-                resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
-                    executionContext.get());
                 this->transactionContext->commit();
-            } else {
-                resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
-                    executionContext.get());
             }
         }
     } catch (std::exception& e) {

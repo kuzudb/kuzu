@@ -21,13 +21,6 @@ std::string FTableScanFunctionCallPrintInfo::toString() const {
     return result;
 }
 
-common::row_idx_t TableFunctionCallSharedState::getAndIncreaseRowIdx(uint64_t numRows) {
-    std::lock_guard lock{mtx};
-    auto curRowIdx = nextRowIdx;
-    nextRowIdx += numRows;
-    return curRowIdx;
-}
-
 void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     // Init local state.
     localState = TableFunctionCallLocalState();
@@ -51,9 +44,6 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     default:
         KU_UNREACHABLE;
     }
-    if (info.rowOffsetPos.isValid()) {
-        localState.rowOffsetVector = resultSet->getValueVector(info.rowOffsetPos).get();
-    }
     // Init table function input.
     function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
@@ -75,12 +65,6 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
     }
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(numTuplesScanned);
-    if (localState.rowOffsetVector != nullptr) {
-        auto rowIdx = sharedState->getAndIncreaseRowIdx(numTuplesScanned);
-        for (auto i = 0u; i < numTuplesScanned; i++) {
-            localState.rowOffsetVector->setValue(i, rowIdx + i);
-        }
-    }
     return numTuplesScanned != 0;
 }
 

@@ -1,3 +1,4 @@
+#include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "function/array/functions/array_cosine_similarity.h"
 #include "function/array/functions/array_cross_product.h"
@@ -11,10 +12,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+static LogicalType interpretLogicalType(binder::Expression* expr) {
+    if (expr->expressionType == ExpressionType::LITERAL &&
+        expr->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
+        auto numChildren =
+            expr->constPtrCast<binder::LiteralExpression>()->getValue().getChildrenSize();
+        return LogicalType::ARRAY(ListType::getChildType(expr->dataType).copy(), numChildren);
+    }
+    return expr->dataType.copy();
+}
+
 std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
     const binder::expression_vector& arguments, Function* function) {
-    const auto& leftType = arguments[0]->dataType;
-    const auto& rightType = arguments[1]->dataType;
+    auto leftType = interpretLogicalType(arguments[0].get());
+    auto rightType = interpretLogicalType(arguments[1].get());
     if (leftType != rightType) {
         throw BinderException(
             stringFormat("{} requires both arrays to have the same element type and size of 3",
@@ -139,8 +150,8 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
 template<typename OPERATION>
 std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName,
     const binder::expression_vector& arguments, Function* function) {
-    const auto& leftType = arguments[0]->dataType;
-    const auto& rightType = arguments[1]->dataType;
+    auto leftType = interpretLogicalType(arguments[0].get());
+    auto rightType = interpretLogicalType(arguments[1].get());
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
     function->ptrCast<ScalarFunction>()->execFunc =
         std::move(getScalarExecFunc<OPERATION>(paramType.copy()));

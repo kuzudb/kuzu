@@ -18,11 +18,15 @@
 
 
 -CASE smallListBecomesLargeListAfterInsertionCommitRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
@@ -51,11 +55,15 @@
 
 
 -CASE smallListBecomesLargeListAfterInsertionRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION

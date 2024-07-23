@@ -28,6 +28,7 @@ protected:
 
 private:
     common::Value value;
+    std::shared_ptr<common::DataChunkState> flatState;
     std::shared_ptr<common::DataChunkState> unflatState;
 };
 

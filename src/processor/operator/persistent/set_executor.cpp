@@ -40,7 +40,7 @@ static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* pr
 }
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
-    if (extraInfo.columnID == common::INVALID_COLUMN_ID) {
+    if (extraInfo.columnID == INVALID_COLUMN_ID) {
         if (lhsVector != nullptr) {
             for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
                 auto lhsPos = nodeIDVector->state->getSelVector()[i];

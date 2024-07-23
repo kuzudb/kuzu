@@ -1,5 +1,7 @@
 #include "test_runner/test_parser.h"
 
+#include "test_runner/test_group.h"
+
 #if defined(_WIN32)
 #include <io.h>
 #else
@@ -223,6 +225,14 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
         break;
     }
+    case TokenType::BEGIN_CONCURRENT_EXECUTION: {
+        statement->connectionsStatusFlag = ConcurrentStatusFlag::BEGIN;
+        return statement;
+    }
+    case TokenType::END_CONCURRENT_EXECUTION: {
+        statement->connectionsStatusFlag = ConcurrentStatusFlag::END;
+        return statement;
+    }
     case TokenType::RELOADDB: {
         statement->reloadDBFlag = true;
         return statement;
@@ -415,6 +425,7 @@ void TestParser::parseBody() {
         default: {
             // if its not a special case, then it has to be a statement
             TestStatement* statement = addNewStatement(testCaseName);
+            testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
             extractStatement(statement, testCaseName);
         }
         }

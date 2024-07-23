@@ -28,6 +28,7 @@ public:
         systemConfig = std::make_unique<main::SystemConfig>(
             common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
             2 /*numThreadsForExec*/);
+        systemConfig->autoCheckpoint = false;
         setDatabasePath();
         removeDir(databasePath);
 
@@ -42,7 +43,7 @@ public:
 
     // multiple conns test
     void createDB();
-    void createConns(const std::set<std::string>& connNames);
+    virtual void createConns(const std::set<std::string>& connNames);
 
     void initGraph() { initGraph(getInputDir()); }
     void initGraph(std::string datasetDir);

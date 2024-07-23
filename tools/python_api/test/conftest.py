@@ -145,7 +145,8 @@ def init_db(path: Path) -> Path:
     init_tensor(conn)
     init_long_str(conn)
     init_movie_serial(conn)
-    init_rdf(conn)
+    # TODO: Uncomment this line when the RDF dataset is ready.
+    # init_rdf(conn)
     return path
 
 

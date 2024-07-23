@@ -244,6 +244,8 @@ public:
 
     uint64_t computeHash() const;
 
+    KUZU_API uint32_t getChildrenSize() const { return childrenSize; }
+
 private:
     Value();
     explicit Value(const LogicalType& dataType);

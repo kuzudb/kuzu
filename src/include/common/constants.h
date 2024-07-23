@@ -9,7 +9,8 @@ namespace common {
 extern const char* KUZU_VERSION;
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
-constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
+constexpr uint64_t DEFAULT_VECTOR_CAPACITY = static_cast<uint64_t>(1)
+                                             << DEFAULT_VECTOR_CAPACITY_LOG_2;
 
 constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
@@ -58,11 +59,11 @@ enum PageSizeClass : uint8_t {
 // lists.
 struct BufferPoolConstants {
     static constexpr uint64_t PAGE_4KB_SIZE_LOG2 = 12;
-    static constexpr uint64_t PAGE_4KB_SIZE = (std::uint64_t)1 << PAGE_4KB_SIZE_LOG2;
+    static constexpr uint64_t PAGE_4KB_SIZE = static_cast<uint64_t>(1) << PAGE_4KB_SIZE_LOG2;
     // Page size for files with large pages, e.g., temporary files that are used by operators that
     // may require large amounts of memory.
     static constexpr uint64_t PAGE_256KB_SIZE_LOG2 = 18;
-    static constexpr uint64_t PAGE_256KB_SIZE = (std::uint64_t)1 << PAGE_256KB_SIZE_LOG2;
+    static constexpr uint64_t PAGE_256KB_SIZE = static_cast<uint64_t>(1) << PAGE_256KB_SIZE_LOG2;
     // If a user does not specify a max size for BM, we by default set the max size of BM to
     // maxPhyMemSize * DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM.
     static constexpr double DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM = 0.8;
@@ -74,7 +75,7 @@ struct BufferPoolConstants {
 #ifdef __32BIT__
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 30; // (1GB)
 #else
-    static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 43; // (8TB)
+    static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = static_cast<uint64_t>(1) << 43; // (8TB)
 #endif
 
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
@@ -85,34 +86,33 @@ struct StorageConstants {
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char SHADOWING_SUFFIX[] = ".shadow";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
-    static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
-        "nodes.statistics_and_deleted.ids";
-    static constexpr char NODES_STATISTICS_FILE_NAME_FOR_WAL[] =
-        "nodes.statistics_and_deleted.ids.wal";
-    static constexpr char RELS_METADATA_FILE_NAME[] = "rels.statistics";
-    static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
     static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
+    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.shadow";
     static constexpr char DATA_FILE_NAME[] = "data.kz";
     static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
+    static constexpr char METADATA_FILE_NAME_FOR_WAL[] = "metadata.shadow";
     static constexpr char LOCK_FILE_NAME[] = ".lock";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
-    static constexpr uint64_t PAGE_GROUP_SIZE = (uint64_t)1 << PAGE_GROUP_SIZE_LOG2;
-    static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK = ((uint64_t)1 << PAGE_GROUP_SIZE_LOG2) - 1;
+    static constexpr uint64_t PAGE_GROUP_SIZE = static_cast<uint64_t>(1) << PAGE_GROUP_SIZE_LOG2;
+    static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK =
+        (static_cast<uint64_t>(1) << PAGE_GROUP_SIZE_LOG2) - 1;
 
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
-    static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
+    static constexpr uint64_t NODE_GROUP_SIZE = static_cast<uint64_t>(1) << NODE_GROUP_SIZE_LOG2;
     static constexpr uint64_t NUM_VECTORS_PER_NODE_GROUP =
         NODE_GROUP_SIZE / DEFAULT_VECTOR_CAPACITY;
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
-    // The number of CSR lists in a segment.
-    static constexpr uint64_t CSR_SEGMENT_SIZE_LOG2 = 10;
-    static constexpr uint64_t CSR_SEGMENT_SIZE = (uint64_t)1 << CSR_SEGMENT_SIZE_LOG2;
+    // The number of CSR lists in a leaf region.
+    static constexpr uint64_t CSR_LEAF_REGION_SIZE_LOG2 = 10;
+    static constexpr uint64_t CSR_LEAF_REGION_SIZE = static_cast<uint64_t>(1)
+                                                     << CSR_LEAF_REGION_SIZE_LOG2;
+
+    static constexpr uint64_t MAX_NUM_ROWS_IN_TABLE = static_cast<uint64_t>(1) << 62;
 };
 
 // Hash Index Configurations
@@ -127,7 +127,7 @@ struct CopyConstants {
     // This means that we will usually read the entirety of the contents of the file we need for a
     // block in one read request. It is also very small, which means we can parallelize small files
     // efficiently.
-    static const uint64_t PARALLEL_BLOCK_SIZE = INITIAL_BUFFER_SIZE / 2;
+    static constexpr uint64_t PARALLEL_BLOCK_SIZE = INITIAL_BUFFER_SIZE / 2;
 
     static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL"};
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
@@ -149,8 +149,8 @@ struct CopyConstants {
 };
 
 struct RdfConstants {
-    static constexpr const char IN_MEMORY_OPTION[] = "IN_MEMORY";
-    static constexpr const char STRICT_OPTION[] = "STRICT";
+    static constexpr char IN_MEMORY_OPTION[] = "IN_MEMORY";
+    static constexpr char STRICT_OPTION[] = "STRICT";
 };
 
 struct PlannerKnobs {
@@ -188,8 +188,8 @@ struct ParquetConstants {
 struct ExportCSVConstants {
     static constexpr const char* DEFAULT_CSV_NEWLINE = "\n";
     static constexpr const char* DEFAULT_NULL_STR = "";
-    static constexpr const bool DEFAULT_FORCE_QUOTE = false;
-    static constexpr const uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
+    static constexpr bool DEFAULT_FORCE_QUOTE = false;
+    static constexpr uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
 };
 
 struct ImportDBConstants {

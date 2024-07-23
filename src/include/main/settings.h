@@ -160,5 +160,29 @@ struct EnableMVCCSetting {
     }
 };
 
+struct CheckpointThresholdSetting {
+    static constexpr const char* name = "checkpoint_threshold";
+    static constexpr common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getDBConfigUnsafe()->checkpointThreshold = parameter.getValue<int64_t>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getDBConfig()->checkpointThreshold);
+    }
+};
+
+struct AutoCheckpointSetting {
+    static constexpr const char* name = "auto_checkpoint";
+    static constexpr common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getDBConfigUnsafe()->autoCheckpoint = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getDBConfig()->autoCheckpoint);
+    }
+};
+
 } // namespace main
 } // namespace kuzu

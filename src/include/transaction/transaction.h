@@ -1,7 +1,6 @@
 #pragma once
 
-#include <memory>
-
+#include "common/enums/statement_type.h"
 #include "common/types/timestamp_t.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/undo_buffer.h"
@@ -24,50 +23,84 @@ class WAL;
 namespace transaction {
 class TransactionManager;
 
-enum class TransactionType : uint8_t { READ_ONLY, WRITE };
-constexpr uint64_t INVALID_TRANSACTION_ID = UINT64_MAX;
+enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
 class Transaction {
     friend class TransactionManager;
 
 public:
-    static constexpr common::transaction_t START_TRANSACTION_ID = (common::transaction_t)1 << 63;
+    static constexpr common::transaction_t DUMMY_TRANSACTION_ID = 0;
+    static constexpr common::transaction_t DUMMY_START_TIMESTAMP = 0;
+    static constexpr common::transaction_t START_TRANSACTION_ID =
+        static_cast<common::transaction_t>(1) << 63;
 
     Transaction(main::ClientContext& clientContext, TransactionType transactionType,
-        common::transaction_t transactionID, common::transaction_t startTS)
-        : type{transactionType}, ID{transactionID}, startTS{startTS} {
-        localStorage = std::make_unique<storage::LocalStorage>(clientContext);
-        undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext);
+        common::transaction_t transactionID, common::transaction_t startTS);
+
+    explicit Transaction(TransactionType transactionType) noexcept
+        : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
+          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr},
+          forceCheckpoint{false} {
+        currentTS = common::Timestamp::getCurrentTimestamp().value;
+    }
+    explicit Transaction(TransactionType transactionType, common::transaction_t ID,
+        common::transaction_t startTS) noexcept
+        : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
+          clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false} {
         currentTS = common::Timestamp::getCurrentTimestamp().value;
     }
 
-    constexpr explicit Transaction(TransactionType transactionType) noexcept
-        : type{transactionType}, ID{0}, startTS{0} {}
-
-public:
     TransactionType getType() const { return type; }
     bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
     bool isWriteTransaction() const { return TransactionType::WRITE == type; }
+    bool isDummy() const { return TransactionType::DUMMY == type; }
+    bool isRecovery() const { return TransactionType::RECOVERY == type; }
     common::transaction_t getID() const { return ID; }
     common::transaction_t getStartTS() const { return startTS; }
     common::transaction_t getCommitTS() const { return commitTS; }
     int64_t getCurrentTS() const { return currentTS; }
+    main::ClientContext* getClientContext() const { return clientContext; }
 
-    void commit(storage::WAL* wal);
-    void rollback();
-
-    storage::LocalStorage* getLocalStorage() { return localStorage.get(); }
-
-    void addCatalogEntry(catalog::CatalogSet* catalogSet, catalog::CatalogEntry* catalogEntry);
-    void addSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry,
-        const catalog::SequenceData& data, int64_t prevVal);
-
-    static std::unique_ptr<Transaction> getDummyWriteTrx() {
-        return std::make_unique<Transaction>(TransactionType::WRITE);
+    void checkForceCheckpoint(common::StatementType statementType) {
+        // Note: We always force checkpoint for COPY_FROM statement.
+        if (statementType == common::StatementType::COPY_FROM) {
+            forceCheckpoint = true;
+        }
     }
-    static std::unique_ptr<Transaction> getDummyReadOnlyTrx() {
-        return std::make_unique<Transaction>(TransactionType::READ_ONLY);
+    bool shouldAppendToUndoBuffer() const {
+        return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
     }
+    bool shouldLogToWAL() const {
+        // When we are in recovery mode, we don't log to WAL.
+        return !isRecovery();
+    }
+    bool shouldForceCheckpoint() const { return forceCheckpoint; }
+
+    void commit(storage::WAL* wal) const;
+    void rollback() const;
+
+    storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
+    bool hasNewlyInsertedNodes(common::table_id_t tableID) const {
+        return maxCommittedNodeOffsets.contains(tableID);
+    }
+    void setMaxCommittedNodeOffset(common::table_id_t tableID, common::offset_t offset) {
+        maxCommittedNodeOffsets[tableID] = offset;
+    }
+    common::offset_t getMaxNodeOffsetBeforeCommit(common::table_id_t tableID) const {
+        KU_ASSERT(maxCommittedNodeOffsets.contains(tableID));
+        return maxCommittedNodeOffsets.at(tableID);
+    }
+
+    void pushCatalogEntry(catalog::CatalogSet& catalogSet,
+        catalog::CatalogEntry& catalogEntry) const;
+    void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry,
+        const catalog::SequenceData& data, int64_t prevVal) const;
+    void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
+        common::row_idx_t startRowInVector, common::row_idx_t numRows) const;
+    void pushVectorDeleteInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,
+        common::row_idx_t startRowInVector, common::row_idx_t numRows) const;
+    void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
+        storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
 private:
     TransactionType type;
@@ -75,12 +108,17 @@ private:
     common::transaction_t startTS;
     common::transaction_t commitTS;
     int64_t currentTS;
+    main::ClientContext* clientContext;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
+    bool forceCheckpoint;
+
+    std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
-static Transaction DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
-static Transaction DUMMY_WRITE_TRANSACTION = Transaction(TransactionType::WRITE);
+static auto DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
+static auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
+    Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
 
 } // namespace transaction
 } // namespace kuzu

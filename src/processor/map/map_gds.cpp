@@ -37,8 +37,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         for (auto tableID : node.getTableIDs()) {
             auto nodeTable =
                 clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
-            masks.insert({tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
-                                       nodeTable->getMaxNodeOffset(clientContext->getTx()))});
+            masks.insert({tableID,
+                std::make_unique<NodeOffsetLevelSemiMask>(tableID, nodeTable->getNumRows())});
         }
     }
     auto sharedState =

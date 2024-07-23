@@ -3,7 +3,6 @@
 --
 
 -CASE CorrelatedSubquery
-
 -LOG CorrelatedSubqueryTest1
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE a.fName='Alice' } RETURN a.*;
 ---- 1

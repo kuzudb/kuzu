@@ -1,8 +1,8 @@
 #include "storage/storage_structure/db_file_utils.h"
 
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/wal/wal.h"
-#include "storage/wal/wal_record.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/wal/shadow_file.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -10,104 +10,95 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WALPageIdxAndFrame DBFileUtils::createWALVersionIfNecessaryAndPinPage(page_idx_t originalPageIdx,
+ShadowPageAndFrame DBFileUtils::createShadowVersionIfNecessaryAndPinPage(page_idx_t originalPage,
     bool insertingNewPage, BMFileHandle& fileHandle, DBFileID dbFileID,
-    BufferManager& bufferManager, WAL& wal) {
-    fileHandle.addWALPageIdxGroupIfNecessary(originalPageIdx);
-    page_idx_t pageIdxInWAL;
-    uint8_t* walFrame;
-    fileHandle.acquireWALPageIdxLock(originalPageIdx);
+    BufferManager& bufferManager, ShadowFile& shadowFile) {
+    const auto hasShadowPage = shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPage);
+    auto shadowPage =
+        shadowFile.getOrCreateShadowPage(dbFileID, fileHandle.getFileIndex(), originalPage);
+    uint8_t* shadowFrame;
     try {
-        if (fileHandle.hasWALPageVersionNoWALPageIdxLock(originalPageIdx)) {
-            pageIdxInWAL = fileHandle.getWALPageIdxNoWALPageIdxLock(originalPageIdx);
-            walFrame = bufferManager.pin(wal.getShadowingFH(), pageIdxInWAL,
+        if (hasShadowPage) {
+            shadowFrame = bufferManager.pin(shadowFile.getShadowingFH(), shadowPage,
                 BufferManager::PageReadPolicy::READ_PAGE);
         } else {
-            pageIdxInWAL =
-                wal.logPageUpdateRecord(dbFileID, originalPageIdx /* pageIdxInOriginalFile */);
-            walFrame = bufferManager.pin(wal.getShadowingFH(), pageIdxInWAL,
+            shadowFrame = bufferManager.pin(shadowFile.getShadowingFH(), shadowPage,
                 BufferManager::PageReadPolicy::DONT_READ_PAGE);
             if (!insertingNewPage) {
-                bufferManager.optimisticRead(fileHandle, originalPageIdx,
-                    [&](uint8_t* frame) -> void {
-                        memcpy(walFrame, frame, BufferPoolConstants::PAGE_4KB_SIZE);
+                bufferManager.optimisticRead(fileHandle, originalPage,
+                    [&](const uint8_t* frame) -> void {
+                        memcpy(shadowFrame, frame, BufferPoolConstants::PAGE_4KB_SIZE);
                     });
             }
-            fileHandle.setWALPageIdxNoLock(originalPageIdx /* pageIdxInOriginalFile */,
-                pageIdxInWAL);
         }
-        // The wal page existing already does not mean that it's already dirty
+        // The shadow page existing already does not mean that it's already dirty
         // It may have been flushed to disk to free memory and then read again
-        wal.getShadowingFH().setLockedPageDirty(pageIdxInWAL);
-    } catch (Exception& e) {
-        fileHandle.releaseWALPageIdxLock(originalPageIdx);
+        shadowFile.getShadowingFH().setLockedPageDirty(shadowPage);
+    } catch (Exception&) {
         throw;
     }
-    return {originalPageIdx, pageIdxInWAL, walFrame};
-}
-
-void unpinPageIdxInWALAndReleaseOriginalPageLock(page_idx_t pageIdxInWAL,
-    page_idx_t originalPageIdx, BMFileHandle& fileHandle, BufferManager& bufferManager, WAL& wal) {
-    if (originalPageIdx != INVALID_PAGE_IDX) {
-        bufferManager.unpin(wal.getShadowingFH(), pageIdxInWAL);
-        fileHandle.releaseWALPageIdxLock(originalPageIdx);
-    }
-}
-
-void unpinWALPageAndReleaseOriginalPageLock(WALPageIdxAndFrame& walPageIdxAndFrame,
-    BMFileHandle& fileHandle, BufferManager& bufferManager, WAL& wal) {
-    unpinPageIdxInWALAndReleaseOriginalPageLock(walPageIdxAndFrame.pageIdxInWAL,
-        walPageIdxAndFrame.originalPageIdx, fileHandle, bufferManager, wal);
+    return {originalPage, shadowPage, shadowFrame};
 }
 
 std::pair<BMFileHandle*, page_idx_t> DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-    BMFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
+    BMFileHandle& fileHandle, page_idx_t pageIdx, const ShadowFile& shadowFile,
     transaction::TransactionType trxType) {
-    if (trxType == transaction::TransactionType::READ_ONLY ||
-        !fileHandle.hasWALPageVersionNoWALPageIdxLock(physicalPageIdx)) {
-        return std::make_pair(&fileHandle, physicalPageIdx);
-    } else {
-        return std::make_pair(&wal.getShadowingFH(),
-            fileHandle.getWALPageIdxNoWALPageIdxLock(physicalPageIdx));
+    if (trxType == transaction::TransactionType::CHECKPOINT &&
+        shadowFile.hasShadowPage(fileHandle.getFileIndex(), pageIdx)) {
+        return std::make_pair(&shadowFile.getShadowingFH(),
+            shadowFile.getShadowPage(fileHandle.getFileIndex(), pageIdx));
     }
+    return std::make_pair(&fileHandle, pageIdx);
 }
 
-common::page_idx_t DBFileUtils::insertNewPage(BMFileHandle& fileHandle, DBFileID dbFileID,
-    BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& insertOp) {
-    auto newOriginalPage = fileHandle.addNewPage();
-    auto newWALPage = wal.logPageInsertRecord(dbFileID, newOriginalPage);
-    auto walFrame = bufferManager.pin(wal.getShadowingFH(), newWALPage,
+page_idx_t DBFileUtils::insertNewPage(BMFileHandle& fileHandle, DBFileID dbFileID,
+    BufferManager& bufferManager, ShadowFile& shadowFile,
+    const std::function<void(uint8_t*)>& insertOp) {
+    const auto newOriginalPage = fileHandle.addNewPage();
+    KU_ASSERT(!shadowFile.hasShadowPage(fileHandle.getFileIndex(), newOriginalPage));
+    const auto shadowPage =
+        shadowFile.getOrCreateShadowPage(dbFileID, fileHandle.getFileIndex(), newOriginalPage);
+    const auto shadowFrame = bufferManager.pin(shadowFile.getShadowingFH(), shadowPage,
         BufferManager::PageReadPolicy::DONT_READ_PAGE);
-    fileHandle.addWALPageIdxGroupIfNecessary(newOriginalPage);
-    fileHandle.setWALPageIdx(newOriginalPage, newWALPage);
-    insertOp(walFrame);
-    wal.getShadowingFH().setLockedPageDirty(newWALPage);
-    bufferManager.unpin(wal.getShadowingFH(), newWALPage);
+    insertOp(shadowFrame);
+    shadowFile.getShadowingFH().setLockedPageDirty(shadowPage);
+    bufferManager.unpin(shadowFile.getShadowingFH(), shadowPage);
     return newOriginalPage;
 }
 
-void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
-    page_idx_t originalPageIdx, bool isInsertingNewPage, BufferManager& bufferManager, WAL& wal,
-    const std::function<void(uint8_t*)>& updateOp) {
-    auto walPageIdxAndFrame = createWALVersionIfNecessaryAndPinPage(originalPageIdx,
-        isInsertingNewPage, fileHandle, dbFileID, bufferManager, wal);
-    try {
-        updateOp(walPageIdxAndFrame.frame);
-    } catch (Exception& e) {
-        unpinWALPageAndReleaseOriginalPageLock(walPageIdxAndFrame, fileHandle, bufferManager, wal);
-        throw;
+void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
+    BufferManager& bufferManager, const ShadowFile& shadowFile) {
+    if (originalPageIdx != INVALID_PAGE_IDX) {
+        bufferManager.unpin(shadowFile.getShadowingFH(), shadowPageIdx);
     }
-    unpinWALPageAndReleaseOriginalPageLock(walPageIdxAndFrame, fileHandle, bufferManager, wal);
 }
 
-void DBFileUtils::readWALVersionOfPage(BMFileHandle& fileHandle, page_idx_t originalPageIdx,
-    BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& readOp) {
-    page_idx_t pageIdxInWAL = fileHandle.getWALPageIdxNoWALPageIdxLock(originalPageIdx);
-    auto frame = bufferManager.pin(wal.getShadowingFH(), pageIdxInWAL,
+void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
+    page_idx_t originalPageIdx, bool isInsertingNewPage, BufferManager& bufferManager,
+    ShadowFile& shadowFile, const std::function<void(uint8_t*)>& updateOp) {
+    const auto shadowPageIdxAndFrame = createShadowVersionIfNecessaryAndPinPage(originalPageIdx,
+        isInsertingNewPage, fileHandle, dbFileID, bufferManager, shadowFile);
+    try {
+        updateOp(shadowPageIdxAndFrame.frame);
+    } catch (Exception&) {
+        unpinShadowPage(shadowPageIdxAndFrame.originalPage, shadowPageIdxAndFrame.shadowPage,
+            bufferManager, shadowFile);
+        throw;
+    }
+    unpinShadowPage(shadowPageIdxAndFrame.originalPage, shadowPageIdxAndFrame.shadowPage,
+        bufferManager, shadowFile);
+}
+
+void DBFileUtils::readShadowVersionOfPage(const BMFileHandle& fileHandle,
+    page_idx_t originalPageIdx, BufferManager& bufferManager, const ShadowFile& shadowFile,
+    const std::function<void(uint8_t*)>& readOp) {
+    KU_ASSERT(shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPageIdx));
+    const page_idx_t shadowPageIdx =
+        shadowFile.getShadowPage(fileHandle.getFileIndex(), originalPageIdx);
+    const auto frame = bufferManager.pin(shadowFile.getShadowingFH(), shadowPageIdx,
         BufferManager::PageReadPolicy::READ_PAGE);
     readOp(frame);
-    unpinPageIdxInWALAndReleaseOriginalPageLock(pageIdxInWAL, originalPageIdx, fileHandle,
-        bufferManager, wal);
+    unpinShadowPage(shadowPageIdx, originalPageIdx, bufferManager, shadowFile);
 }
 
 } // namespace storage

@@ -8,7 +8,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/serializer.h"
-#include "storage/storage_utils.h"
+#include "common/vector/value_vector.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -20,56 +20,38 @@ namespace storage {
 WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : directory{directory}, bufferManager{bufferManager}, vfs{vfs} {
-    auto fileInfo =
+    fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
             readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);
-    bufferedWriter = std::make_shared<BufferedFileWriter>(std::move(fileInfo));
-    shadowingFH = bufferManager.getBMFileHandle(
-        vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
-        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, vfs, context);
+    bufferedWriter = std::make_shared<BufferedFileWriter>(*fileInfo);
+    // WAL should always be APPEND only. We don't want to overwrite the file as it may still contain
+    // records not replayed. This can happen if checkpoint is not triggered before the Database is
+    // closed last time.
+    bufferedWriter->setFileOffset(fileInfo->getFileSize());
 }
 
 WAL::~WAL() {}
 
-page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
+void WAL::logBeginTransaction() {
     lock_t lck{mtx};
-    auto pageIdxInWAL = shadowingFH->addNewPage();
-    PageUpdateOrInsertRecord walRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
-        false /*isInsert*/);
+    BeginTransactionRecord walRecord;
     addNewWALRecordNoLock(walRecord);
-    return pageIdxInWAL;
 }
 
-page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
-    lock_t lck{mtx};
-    auto pageIdxInWAL = shadowingFH->addNewPage();
-    PageUpdateOrInsertRecord walRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL,
-        true /*isInsert*/);
-    addNewWALRecordNoLock(walRecord);
-    return pageIdxInWAL;
-}
-
-void WAL::logCommit(uint64_t transactionID) {
+void WAL::logAndFlushCommit(uint64_t transactionID) {
     lock_t lck{mtx};
     // Flush all pages before committing to make sure that commits only show up in the file when
     // their data is also written.
-    flushAllPages();
     CommitRecord walRecord(transactionID);
     addNewWALRecordNoLock(walRecord);
+    flushAllPages();
 }
 
-void WAL::logCatalogRecord() {
+void WAL::logAndFlushCheckpoint() {
     lock_t lck{mtx};
-    CatalogRecord walRecord;
+    CheckpointRecord walRecord;
     addNewWALRecordNoLock(walRecord);
-}
-
-void WAL::logTableStatisticsRecord(TableType tableType) {
-    lock_t lck{mtx};
-    TableStatisticsRecord walRecord(tableType);
-    addNewWALRecordNoLock(walRecord);
+    flushAllPages();
 }
 
 void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
@@ -78,19 +60,57 @@ void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type) {
-    KU_ASSERT(
-        type == CatalogEntryType::NODE_TABLE_ENTRY || type == CatalogEntryType::REL_TABLE_ENTRY ||
-        type == CatalogEntryType::REL_GROUP_ENTRY || type == CatalogEntryType::RDF_GRAPH_ENTRY ||
-        type == CatalogEntryType::SEQUENCE_ENTRY);
+void WAL::logDropCatalogEntryRecord(table_id_t tableID, CatalogEntryType type) {
     lock_t lck{mtx};
     DropCatalogEntryRecord walRecord(tableID, type);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logAlterTableEntryRecord(BoundAlterInfo* alterInfo) {
+void WAL::logAlterTableEntryRecord(const BoundAlterInfo* alterInfo) {
     lock_t lck{mtx};
     AlterTableEntryRecord walRecord(alterInfo);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logTableInsertion(table_id_t tableID, TableType tableType, row_idx_t numRows,
+    const std::vector<ValueVector*>& vectors) {
+    lock_t lck{mtx};
+    TableInsertionRecord walRecord(tableID, tableType, numRows, vectors);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logNodeDeletion(table_id_t tableID, offset_t nodeOffset, ValueVector* pkVector) {
+    lock_t lck{mtx};
+    NodeDeletionRecord walRecord(tableID, nodeOffset, pkVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logNodeUpdate(table_id_t tableID, column_id_t columnID, offset_t nodeOffset,
+    ValueVector* propertyVector) {
+    lock_t lck{mtx};
+    NodeUpdateRecord walRecord(tableID, columnID, nodeOffset, propertyVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logRelDelete(table_id_t tableID, ValueVector* srcNodeVector, ValueVector* dstNodeVector,
+    ValueVector* relIDVector) {
+    lock_t lck{mtx};
+    RelDeletionRecord walRecord(tableID, srcNodeVector, dstNodeVector, relIDVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logRelDetachDelete(table_id_t tableID, RelDataDirection direction,
+    ValueVector* srcNodeVector) {
+    lock_t lck{mtx};
+    RelDetachDeleteRecord walRecord(tableID, direction, srcNodeVector);
+    addNewWALRecordNoLock(walRecord);
+}
+
+void WAL::logRelUpdate(table_id_t tableID, column_id_t columnID, ValueVector* srcNodeVector,
+    ValueVector* dstNodeVector, ValueVector* relIDVector, ValueVector* propertyVector) {
+    lock_t lck{mtx};
+    RelUpdateRecord walRecord(tableID, columnID, srcNodeVector, dstNodeVector, relIDVector,
+        propertyVector);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -108,21 +128,17 @@ void WAL::logUpdateSequenceRecord(sequence_id_t sequenceID, SequenceChangeData d
 }
 
 void WAL::clearWAL() {
-    bufferManager.removeFilePagesFromFrames(*shadowingFH);
-    shadowingFH->resetToZeroPagesAndPageCapacity();
     bufferedWriter->getFileInfo().truncate(0);
     bufferedWriter->resetOffsets();
-    StorageUtils::removeCatalogAndStatsWALFiles(directory, vfs);
     updatedTables.clear();
 }
 
 void WAL::flushAllPages() {
     bufferedWriter->flush();
-    bufferManager.flushAllDirtyPagesInFrames(*shadowingFH);
     bufferedWriter->getFileInfo().syncFile();
 }
 
-void WAL::addNewWALRecordNoLock(WALRecord& walRecord) {
+void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     Serializer serializer(bufferedWriter);
     walRecord.serialize(serializer);
