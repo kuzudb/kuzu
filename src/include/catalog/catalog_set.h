@@ -50,8 +50,8 @@ public:
 private:
     bool containsEntryNoLock(transaction::Transaction* transaction, const std::string& name) const;
     CatalogEntry* getEntryNoLock(transaction::Transaction* transaction, const std::string& name);
-    void createEntryNoLock(transaction::Transaction* transaction,
-        std::unique_ptr<CatalogEntry> entry);
+    void createEntryNoLock(transaction::Transaction* transaction, std::unique_ptr<CatalogEntry> entry,
+        std::unique_lock<std::mutex>& lck);
     void dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
 
     void validateExistNoLock(transaction::Transaction* transaction, const std::string& name) const;

@@ -77,7 +77,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
-        if (newCatalogEntry->hasParent()) {
+        if (catalogEntry.hasParent()) {
             return;
         }
         switch (catalogEntry.getType()) {

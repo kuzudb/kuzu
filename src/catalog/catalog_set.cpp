@@ -1,4 +1,6 @@
 #include "catalog/catalog_set.h"
+#include <memory>
+#include <mutex>
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
@@ -51,11 +53,12 @@ CatalogEntry* CatalogSet::getEntryNoLock(Transaction* transaction, const std::st
 }
 
 void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
-    std::lock_guard lck{mtx};
-    createEntryNoLock(transaction, std::move(entry));
+    std::unique_lock lck{mtx};
+    createEntryNoLock(transaction, std::move(entry), lck);
 }
 
-void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
+void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry,
+    std::unique_lock<std::mutex>&lck) {
     // LCOV_EXCL_START
     validateNotExistNoLock(transaction, entry->getName());
     // LCOV_EXCL_STOP
@@ -75,6 +78,7 @@ void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<Cat
     entries.emplace(entry->getName(), std::move(dummyEntry));
     auto entryPtr = entry.get();
     emplaceNoLock(std::move(entry));
+    lck.unlock();
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
         transaction->pushCatalogEntry(*this, *entryPtr->getPrev());
@@ -142,7 +146,7 @@ void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& na
 }
 
 void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
-    std::lock_guard lck{mtx};
+    std::unique_lock lck{mtx};
     // LCOV_EXCL_START
     validateExistNoLock(transaction, alterInfo.tableName);
     // LCOV_EXCL_STOP
@@ -157,7 +161,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     if (alterInfo.alterType == AlterType::RENAME_TABLE) {
         // We treat rename table as drop and create.
         dropEntryNoLock(transaction, alterInfo.tableName);
-        createEntryNoLock(transaction, std::move(newEntry));
+        createEntryNoLock(transaction, std::move(newEntry), lck);
         return;
     }
     tableEntry->setAlterInfo(alterInfo);
@@ -169,6 +173,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {
     CatalogEntrySet result;
+    std::lock_guard lck{mtx};
     for (auto& [name, entry] : entries) {
         auto currentEntry = traverseVersionChainsForTransactionNoLock(transaction, entry.get());
         if (currentEntry->isDeleted()) {
