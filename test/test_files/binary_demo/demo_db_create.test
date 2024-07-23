@@ -1,5 +1,4 @@
 -DATASET KUZU binary-demo
--SKIP_32BIT
 --
 
 -CASE CreateNodeFromFile

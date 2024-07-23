@@ -1,0 +1,18 @@
+-DATASET CSV empty
+-BUFFER_POOL_SIZE 2147483648
+--
+
+-CASE LoadData
+-STATEMENT CREATE NODE TABLE Forum(ID INT64, title STRING, creationDate TIMESTAMP, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Post(ID INT64, imageFile STRING, creationDate TIMESTAMP, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE containerOf(FROM Forum TO Post, ONE_MANY);
+---- ok
+-STATEMENT COPY Forum FROM '/Users/guodong/Downloads/ldbc/ldbc-1/csv/forum_0_0.csv' (DELIM="|", HEADER=true);
+---- ok
+-STATEMENT COPY Post FROM '/Users/guodong/Downloads/ldbc/ldbc-1/csv/post_0_0.csv' (DELIM="|", HEADER=true);
+---- ok
+-RELOADDB
+-STATEMENT COPY containerOf FROM '/Users/guodong/Downloads/ldbc/ldbc-1/csv/forum_containerOf_post_0_0.csv' (DELIM="|", HEADER=true);
+---- ok
