@@ -8,8 +8,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction, NodeTable* table,
-    std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {
+void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction,
+    NodeTable* table, std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {
     this->table = table;
     this->currentCommittedGroupIdx = 0;
     this->currentUnCommittedGroupIdx = 0;
