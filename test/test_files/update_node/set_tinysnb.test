@@ -21,6 +21,17 @@
 ---- 1
 70
 
+-CASE SetNodeInt64MultipleTestManualCheckpoint
+-STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 SET a.age=20 + a.ID
+---- ok
+-STATEMENT CALL CHECKPOINT() RETURN *
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 RETURN a.age
+---- 3
+23
+25
+27
+
 -CASE SetNodeInt32PropTest
 -STATEMENT MATCH (a:movies) WHERE a.name='Roma' SET a.length=2.2
 ---- ok
