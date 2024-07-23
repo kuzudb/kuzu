@@ -28,7 +28,6 @@ public:
 
     virtual f_group_pos_set getGroupsPosToFlatten() = 0;
 
-
 protected:
     // Start node of extension.
     std::shared_ptr<binder::NodeExpression> boundNode;

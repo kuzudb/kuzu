@@ -13,7 +13,6 @@ public:
 
     std::string getDBName() const { return dbName; }
 
-
 protected:
     std::string dbName;
 };

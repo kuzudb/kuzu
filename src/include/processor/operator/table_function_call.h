@@ -17,6 +17,7 @@ struct TableFunctionCallPrintInfo final : OPPrintInfo {
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<TableFunctionCallPrintInfo>(new TableFunctionCallPrintInfo(*this));
     }
+
 private:
     TableFunctionCallPrintInfo(const TableFunctionCallPrintInfo& other)
         : OPPrintInfo(other), funcName(other.funcName) {}

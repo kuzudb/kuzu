@@ -112,7 +112,6 @@ void LogicalHashJoin::computeFlatSchema() {
     }
 }
 
-
 binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
     switch (joinType) {
     case JoinType::INNER:

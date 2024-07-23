@@ -5,7 +5,6 @@
 namespace kuzu {
 namespace planner {
 
-
 void LogicalPrimaryKeyLookup::computeFactorizedSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {

@@ -42,7 +42,6 @@ void LogicalInsert::computeFlatSchema() {
     }
 }
 
-
 f_group_pos_set LogicalInsert::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
     return FlattenAll::getGroupsPosToFlatten(childSchema->getGroupsPosInScope(), *childSchema);
