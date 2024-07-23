@@ -24,7 +24,7 @@ public:
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
-    common::row_idx_t getNumRows() const;
+    common::row_idx_t getNumRows();
     common::node_group_idx_t getNumNodeGroups() {
         const auto lock = nodeGroups.lock();
         return nodeGroups.getNumGroups(lock);
@@ -73,7 +73,7 @@ public:
 
 private:
     bool enableCompression;
-    std::atomic<common::row_idx_t> numRows;
+    common::row_idx_t numRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
     BMFileHandle* dataFH;

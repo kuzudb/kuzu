@@ -65,7 +65,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
     bool directFlushWhenAppend;
     {
         const auto lock = nodeGroups.lock();
-        startOffset = numRows.load();
+        startOffset = numRows;
         if (nodeGroups.isEmpty(lock)) {
             nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
                                              enableCompression, LogicalType::copy(types)));
@@ -88,6 +88,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
             // start appending into the node group and pass in as param.
             lastNodeGroup->append(transaction, chunkedGroup, numToAppend);
         }
+        numRows += numToAppend;
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
@@ -95,12 +96,12 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
-    numRows += numToAppend;
     return {startOffset, numToAppend};
 }
 
-row_idx_t NodeGroupCollection::getNumRows() const {
-    return numRows.load();
+row_idx_t NodeGroupCollection::getNumRows() {
+    const auto lock = nodeGroups.lock();
+    return numRows;
 }
 
 void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
