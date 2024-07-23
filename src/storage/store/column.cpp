@@ -288,7 +288,8 @@ void Column::lookupInternal(Transaction* transaction, const ChunkState& state, o
         posInVector, readToVectorFunc);
 }
 
-static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
+[[maybe_unused]] static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata,
+    const LogicalType& dataType) {
     if (metadata.compMeta.compression == CompressionType::FLOAT) {
         if (metadata.compMeta.children.size() == 0) {
             return false;

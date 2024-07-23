@@ -12,7 +12,7 @@ namespace kuzu::storage {
 using namespace common;
 using namespace transaction;
 namespace {
-bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
+[[maybe_unused]] bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
     return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
@@ -437,10 +437,10 @@ void InMemoryExceptionChunk<T>::flushToDisk(ColumnReader* columnReader, ChunkSta
     KU_ASSERT(actualExceptionCount <= state.metadata.compMeta.alpMetadata.exceptionCapacity);
     state.metadata.compMeta.alpMetadata.exceptionCount = actualExceptionCount;
 
-    using exceptionWord = std::array<std::byte, EncodeException<T>::sizeBytes()>;
-    exceptionWord* exceptionWordBuffer = reinterpret_cast<exceptionWord*>(exceptionBuffer.get());
+    using ExceptionWord = std::array<std::byte, EncodeException<T>::sizeBytes()>;
+    ExceptionWord* exceptionWordBuffer = reinterpret_cast<ExceptionWord*>(exceptionBuffer.get());
     std::sort(exceptionWordBuffer, exceptionWordBuffer + actualExceptionCount,
-        [](exceptionWord& a, exceptionWord& b) {
+        [](ExceptionWord& a, ExceptionWord& b) {
             return ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&a)} <
                    ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&b)};
         });
