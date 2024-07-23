@@ -48,7 +48,7 @@ struct PartitionerSharedState {
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
-    void initialize(PartitionerDataInfo& dataInfo);
+    void initialize(const PartitionerDataInfo& dataInfo);
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
@@ -133,12 +133,11 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override;
 
-    static void initializePartitioningStates(PartitionerDataInfo& dataInfo,
+    static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
         const std::vector<common::partition_idx_t>& numPartitions);
 
 private:
-    void evaluateData(const common::sel_t& numTuples) const;
     common::DataChunk constructDataChunk(
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
