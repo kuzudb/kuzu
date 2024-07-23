@@ -92,8 +92,8 @@ struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
     }
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateTableInfo> 
-        deserialize(common::Deserializer& deserializer, common::TableType type);
+    static std::unique_ptr<BoundExtraCreateTableInfo> deserialize(
+        common::Deserializer& deserializer, common::TableType type);
 };
 
 struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
@@ -111,8 +111,8 @@ struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
     }
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateNodeTableInfo> 
-        deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<BoundExtraCreateNodeTableInfo> deserialize(
+        common::Deserializer& deserializer);
 };
 
 struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
@@ -140,8 +140,8 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     }
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateRelTableInfo> 
-        deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<BoundExtraCreateRelTableInfo> deserialize(
+        common::Deserializer& deserializer);
 };
 
 struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogEntryInfo {
@@ -157,8 +157,8 @@ struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogE
     }
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateRelTableGroupInfo> 
-        deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<BoundExtraCreateRelTableGroupInfo> deserialize(
+        common::Deserializer& deserializer);
 };
 
 struct BoundExtraCreateRdfGraphInfo final : public BoundExtraCreateCatalogEntryInfo {
@@ -183,8 +183,8 @@ struct BoundExtraCreateRdfGraphInfo final : public BoundExtraCreateCatalogEntryI
     }
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateRdfGraphInfo> 
-        deserialize(common::Deserializer& deserializer);
+    static std::unique_ptr<BoundExtraCreateRdfGraphInfo> deserialize(
+        common::Deserializer& deserializer);
 };
 
 } // namespace binder

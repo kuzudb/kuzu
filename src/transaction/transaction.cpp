@@ -56,7 +56,8 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             if (tableEntry.hasParent()) {
                 return;
             }
-            wal->logCreateTableEntryRecord(tableEntry.getBoundCreateTableInfo(clientContext->getTx()));
+            wal->logCreateTableEntryRecord(
+                tableEntry.getBoundCreateTableInfo(clientContext->getTx()));
         } else {
             // Must be alter.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());

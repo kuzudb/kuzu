@@ -1,10 +1,12 @@
-#include "binder/binder.h"
 #include "binder/ddl/bound_create_table_info.h"
+
 #include <memory>
 #include <utility>
+
+#include "binder/binder.h"
 #include "catalog/catalog.h"
-#include "common/serializer/serializer.h"
 #include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "parser/expression/parsed_expression.h"
 
 using namespace kuzu::parser;
@@ -99,7 +101,8 @@ std::unique_ptr<BoundExtraCreateNodeTableInfo> BoundExtraCreateNodeTableInfo::de
     Deserializer& deserializer) {
     common::property_id_t primaryKeyIdx;
     deserializer.deserializeValue(primaryKeyIdx);
-    return std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx, std::vector<PropertyInfo>());
+    return std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx,
+        std::vector<PropertyInfo>());
 }
 
 void BoundExtraCreateRelTableInfo::serialize(Serializer& serializer) const {
@@ -148,7 +151,7 @@ std::unique_ptr<BoundExtraCreateRdfGraphInfo> BoundExtraCreateRdfGraphInfo::dese
     auto literalInfo = BoundCreateTableInfo::deserialize(deserializer);
     auto resourceTripleInfo = BoundCreateTableInfo::deserialize(deserializer);
     auto literalTripleInfo = BoundCreateTableInfo::deserialize(deserializer);
-    return std::make_unique<BoundExtraCreateRdfGraphInfo>(std::move(resourceInfo), 
+    return std::make_unique<BoundExtraCreateRdfGraphInfo>(std::move(resourceInfo),
         std::move(literalInfo), std::move(resourceTripleInfo), std::move(literalTripleInfo));
 }
 

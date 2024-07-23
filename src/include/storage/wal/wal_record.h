@@ -87,12 +87,11 @@ struct CreateTableEntryRecord final : public WALRecord {
     binder::BoundCreateTableInfo boundCreateTableInfo;
 
     explicit CreateTableEntryRecord(binder::BoundCreateTableInfo boundCreateTableInfo)
-        : WALRecord{WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD}, 
+        : WALRecord{WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD},
           boundCreateTableInfo{std::move(boundCreateTableInfo)} {}
 
     void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<CreateTableEntryRecord> deserialize(
-        common::Deserializer& deserializer);
+    static std::unique_ptr<CreateTableEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
 struct CreateCatalogEntryRecord final : public WALRecord {
