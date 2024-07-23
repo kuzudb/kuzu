@@ -11,6 +11,7 @@
 namespace kuzu {
 namespace binder {
 struct BoundAlterInfo;
+struct BoundCreateTableInfo;
 } // namespace binder
 namespace common {
 class BufferedFileWriter;
@@ -37,6 +38,7 @@ public:
 
     ~WAL();
 
+    void logCreateTableEntryRecord(binder::BoundCreateTableInfo tableInfo);
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
     void logAlterTableEntryRecord(const binder::BoundAlterInfo* alterInfo);

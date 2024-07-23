@@ -54,12 +54,14 @@ public:
     void deserializeVector(std::vector<T>& values) {
         uint64_t vectorSize;
         deserializeValue(vectorSize);
-        values.resize(vectorSize);
-        for (auto& value : values) {
+        values.reserve(vectorSize);
+        for (auto i = 0u; i < vectorSize; i++) {
             if constexpr (requires(Deserializer& deser) { T::deserialize(deser); }) {
-                value = T::deserialize(*this);
+                values.emplace_back(T::deserialize(*this));
             } else {
+                T value;
                 deserializeValue(value);
+                values.emplace_back(value);
             }
         }
     }

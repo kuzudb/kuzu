@@ -52,7 +52,11 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry.isDeleted());
-            wal->logCreateCatalogEntryRecord(newCatalogEntry);
+            auto& tableEntry = newCatalogEntry->constCast<TableCatalogEntry>();
+            if (tableEntry.hasParent()) {
+                return;
+            }
+            wal->logCreateTableEntryRecord(tableEntry.getBoundCreateTableInfo(clientContext->getTx()));
         } else {
             // Must be alter.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
@@ -65,10 +69,16 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     case CatalogEntryType::TYPE_ENTRY: {
         KU_ASSERT(
             catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
+        if (newCatalogEntry->hasParent()) {
+            return;
+        }
         wal->logCreateCatalogEntryRecord(newCatalogEntry);
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
+        if (newCatalogEntry->hasParent()) {
+            return;
+        }
         switch (catalogEntry.getType()) {
         // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:

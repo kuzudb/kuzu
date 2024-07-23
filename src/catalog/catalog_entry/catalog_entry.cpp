@@ -49,6 +49,7 @@ void CatalogEntry::copyFrom(const CatalogEntry& other) {
     name = other.name;
     timestamp = other.timestamp;
     deleted = other.deleted;
+    hasParent_ = other.hasParent_;
 }
 
 } // namespace catalog

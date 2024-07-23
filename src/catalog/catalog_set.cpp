@@ -169,7 +169,6 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {
     CatalogEntrySet result;
-    std::lock_guard lck{mtx};
     for (auto& [name, entry] : entries) {
         auto currentEntry = traverseVersionChainsForTransactionNoLock(transaction, entry.get());
         if (currentEntry->isDeleted()) {

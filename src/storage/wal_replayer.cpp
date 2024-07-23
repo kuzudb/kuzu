@@ -74,6 +74,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
     case WALRecordType::COMMIT_RECORD: {
         clientContext.getTransactionContext()->commit();
     } break;
+    case WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD: {
+        replayCreateTableEntryRecord(walRecord);
+    } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
     } break;
@@ -117,21 +120,19 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
     }
 }
 
+void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
+    auto& createTableEntryRecord = walRecord.constCast<CreateTableEntryRecord>();
+    KU_ASSERT(clientContext.getCatalog());
+    auto tableID = clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
+        createTableEntryRecord.boundCreateTableInfo);
+    KU_ASSERT(clientContext.getStorageManager());
+    clientContext.getStorageManager()->createTable(tableID, clientContext.getCatalog(),
+        &clientContext);
+}
+
 void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
     auto& createEntryRecord = walRecord.constCast<CreateCatalogEntryRecord>();
     switch (createEntryRecord.ownedCatalogEntry->getType()) {
-    case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY:
-    case CatalogEntryType::REL_GROUP_ENTRY:
-    case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        auto& tableEntry = createEntryRecord.ownedCatalogEntry->constCast<TableCatalogEntry>();
-        KU_ASSERT(clientContext.getCatalog());
-        clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
-            tableEntry.getBoundCreateTableInfo(clientContext.getTx()));
-        KU_ASSERT(clientContext.getStorageManager());
-        clientContext.getStorageManager()->createTable(tableEntry.getTableID(),
-            clientContext.getCatalog(), &clientContext);
-    } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         auto& macroEntry =
             createEntryRecord.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
@@ -166,7 +167,6 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
         KU_ASSERT(clientContext.getCatalog());
         clientContext.getCatalog()->dropTableEntry(clientContext.getTx(), entryID);
         KU_ASSERT(clientContext.getStorageManager());
-        clientContext.getStorageManager()->dropTable(entryID, clientContext.getVFSUnsafe());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         clientContext.getCatalog()->dropSequence(clientContext.getTx(), entryID);
