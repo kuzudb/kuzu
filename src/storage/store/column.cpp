@@ -473,9 +473,11 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     if (canCheckpointInPlace(chunkState, checkpointState)) {
         checkpointColumnChunkInPlace(chunkState, checkpointState);
         if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
-            chunkState.getExceptionChunk<double>()->flushToDisk(columnReader.get(), chunkState);
+            chunkState.getExceptionChunk<double>()->finalizeAndFlushToDisk(columnReader.get(),
+                chunkState);
         } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
-            chunkState.getExceptionChunk<float>()->flushToDisk(columnReader.get(), chunkState);
+            chunkState.getExceptionChunk<float>()->finalizeAndFlushToDisk(columnReader.get(),
+                chunkState);
         }
     } else {
         checkpointColumnChunkOutOfPlace(chunkState, checkpointState);

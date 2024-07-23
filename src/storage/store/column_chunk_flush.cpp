@@ -1,7 +1,5 @@
 #include "storage/store/column_chunk_flush.h"
 
-#include <limits>
-
 #include "common/utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/store/column_chunk_data.h"
@@ -115,10 +113,10 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
 
     // set unused exception buffer entries to posInChunk = INVALID_POS
     for (size_t i = totalExceptionCount; i < metadata.compMeta.alpMetadata.exceptionCapacity; ++i) {
-        EncodeException<T> invalidEntry{.value = 0, .posInPage = EncodeException<T>::INVALID_POS};
+        EncodeException<T> invalidEntry{.value = 0, .posInChunk = EncodeException<T>::INVALID_POS};
         std::memcpy(exceptionBuffer.get() + i * EncodeException<T>::sizeBytes() +
                         sizeof(invalidEntry.value),
-            &invalidEntry.posInPage, sizeof(invalidEntry.posInPage));
+            &invalidEntry.posInChunk, sizeof(invalidEntry.posInChunk));
     }
 
     // check for underflow

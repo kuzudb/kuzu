@@ -3,9 +3,7 @@
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/compression_float.h"
-#include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
-#include "transaction/transaction.h"
 
 namespace kuzu::storage {
 class CompressedFlushBuffer {

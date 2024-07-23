@@ -231,12 +231,12 @@ private:
         for (; curExceptionIdx < exceptionChunk->getExceptionCount(); ++curExceptionIdx) {
             // TODO: potential optimization: read exceptions one page at a time
             const auto curException = exceptionChunk->getExceptionAt(curExceptionIdx);
-            KU_ASSERT(curException.posInPage >= curExceptionIdx);
-            if (curException.posInPage >= startOffsetInChunk + numValuesToScan) {
+            KU_ASSERT(curException.posInChunk >= curExceptionIdx);
+            if (curException.posInChunk >= startOffsetInChunk + numValuesToScan) {
                 break;
             }
             const offset_t offsetInResult =
-                startOffsetInResult + curException.posInPage - startOffsetInChunk;
+                startOffsetInResult + curException.posInChunk - startOffsetInChunk;
             if (filterFunc(offsetInResult, offsetInResult + 1)) {
                 if constexpr (std::is_same_v<uint8_t*, OutputType>) {
                     reinterpret_cast<T*>(result)[offsetInResult] = curException.value;
@@ -269,7 +269,7 @@ private:
             }
 
             const auto searchedException = exceptionChunk->getExceptionAt(firstExceptionIdx);
-            if (searchedException.posInPage != offsetInChunk) {
+            if (searchedException.posInChunk != offsetInChunk) {
                 break;
             }
 
@@ -317,7 +317,6 @@ private:
 
         auto* exceptionChunk = state.getExceptionChunk<T>();
 
-        size_t startExceptionIdxToSort = exceptionChunk->getExceptionCount();
         for (size_t i = 0; i < numValues; ++i) {
 
             const size_t writeOffset = offsetInChunk + i;
@@ -338,9 +337,8 @@ private:
 
             if (curExceptionIdx < exceptionChunk->getExceptionCount()) {
                 const auto curException = exceptionChunk->getExceptionAt(curExceptionIdx);
-                if (curException.posInPage == writeOffset) {
+                if (curException.posInChunk == writeOffset) {
                     exceptionChunk->removeExceptionAt(curExceptionIdx);
-                    startExceptionIdxToSort = std::min(startExceptionIdxToSort, curExceptionIdx);
                 }
             }
 
@@ -356,31 +354,6 @@ private:
     }
 
     std::unique_ptr<DefaultColumnReader> defaultReader;
-};
-
-template<std::floating_point T>
-struct ExceptionBufferElementView {
-    using type = EncodeException<T>;
-
-    explicit ExceptionBufferElementView(std::byte* val) { bytes = val; }
-    explicit ExceptionBufferElementView(T* val) { bytes = reinterpret_cast<std::byte*>(val); }
-    explicit ExceptionBufferElementView(T& val) { bytes = reinterpret_cast<std::byte*>(&val); }
-
-    EncodeException<T> getValue() const {
-        EncodeException<T> ret;
-        std::memcpy(&ret.value, bytes, sizeof(ret.value));
-        std::memcpy(&ret.posInPage, bytes + sizeof(ret.value), sizeof(ret.posInPage));
-        return ret;
-    }
-    void setValue(EncodeException<T> exception) {
-        std::memcpy(bytes, &exception.value, sizeof(exception.value));
-        std::memcpy(bytes + sizeof(exception.value), &exception.posInPage,
-            sizeof(exception.posInPage));
-    }
-    bool operator<(const ExceptionBufferElementView<T>& o) {
-        return getValue().posInPage < o.getValue().posInPage;
-    }
-    std::byte* bytes;
 };
 
 } // namespace
@@ -421,7 +394,8 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReader* columnReader,
 }
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::flushToDisk(ColumnReader* columnReader, ChunkState& state) {
+void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReader* columnReader,
+    ChunkState& state) {
     // removes holes + sorts exception chunk
     size_t actualExceptionCount = 0;
     for (size_t i = 0; i < exceptionCount; ++i) {
@@ -441,8 +415,8 @@ void InMemoryExceptionChunk<T>::flushToDisk(ColumnReader* columnReader, ChunkSta
     ExceptionWord* exceptionWordBuffer = reinterpret_cast<ExceptionWord*>(exceptionBuffer.get());
     std::sort(exceptionWordBuffer, exceptionWordBuffer + actualExceptionCount,
         [](ExceptionWord& a, ExceptionWord& b) {
-            return ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&a)} <
-                   ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&b)};
+            return ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&a)}.getValue() <
+                   ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&b)}.getValue();
         });
     std::memset(exceptionBuffer.get() + actualExceptionCount * EncodeException<T>::sizeBytes(), 0,
         (exceptionCount - actualExceptionCount) * EncodeException<T>::sizeBytes());
@@ -492,12 +466,9 @@ void InMemoryExceptionChunk<T>::removeExceptionAt(size_t exceptionIdx) {
 template<std::floating_point T>
 EncodeException<T> InMemoryExceptionChunk<T>::getExceptionAt(size_t exceptionIdx) const {
     KU_ASSERT(exceptionIdx < exceptionCount);
-    EncodeException<T> ret;
     auto* exceptionBufferEntry =
         exceptionBuffer.get() + exceptionIdx * EncodeException<T>::sizeBytes();
-    std::memcpy(&ret.value, exceptionBufferEntry, sizeof(ret.value));
-    std::memcpy(&ret.posInPage, exceptionBufferEntry + sizeof(ret.value), sizeof(ret.posInPage));
-    return ret;
+    return ExceptionBufferElementView<T>{exceptionBufferEntry}.getValue();
 }
 
 template<std::floating_point T>
@@ -506,9 +477,7 @@ void InMemoryExceptionChunk<T>::writeException(EncodeException<T> exception, siz
     // use memcpy instead of direct assign as we don't want to copy struct padding
     auto* exceptionBufferEntry =
         exceptionBuffer.get() + exceptionIdx * EncodeException<T>::sizeBytes();
-    std::memcpy(exceptionBufferEntry, &exception.value, sizeof(exception.value));
-    std::memcpy(exceptionBufferEntry + sizeof(exception.value), &exception.posInPage,
-        sizeof(exception.posInPage));
+    ExceptionBufferElementView<T>{exceptionBufferEntry}.setValue(exception);
 }
 
 // TODO: can return a pair [idx, exception] so we don't need to duplicate read
@@ -522,7 +491,7 @@ offset_t InMemoryExceptionChunk<T>::findFirstExceptionAtOrPastOffset(offset_t of
         const size_t curExceptionIdx = (lo + hi) / 2;
         EncodeException<T> lastException = getExceptionAt(curExceptionIdx);
 
-        if (lastException.posInPage < offsetInChunk) {
+        if (lastException.posInChunk < offsetInChunk) {
             lo = curExceptionIdx + 1;
         } else {
             hi = curExceptionIdx;

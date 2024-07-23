@@ -32,6 +32,7 @@ public:
 
     static uint64_t numValues(uint64_t dataSize, const CompressionMetadata& metadata);
 
+    // this is included to satisfy the CompressionAlg interface but we don't actually use it
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
         const struct CompressionMetadata& metadata) const final;
@@ -62,12 +63,12 @@ private:
 template<std::floating_point T>
 struct EncodeException {
     T value;
-    uint32_t posInPage;
+    uint32_t posInChunk;
 
-    static constexpr auto INVALID_POS = std::numeric_limits<decltype(posInPage)>::max();
+    static constexpr auto INVALID_POS = std::numeric_limits<decltype(posInChunk)>::max();
 
     static constexpr size_t sizeBytes() {
-        constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInPage);
+        constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInChunk);
 
         // best we can do to ensure that all fields are accounted for due to struct padding
         static_assert(exceptionSizeBytes + (8 - exceptionSizeBytes % 8) >= sizeof(EncodeException));
@@ -76,9 +77,20 @@ struct EncodeException {
     }
 
     bool operator<(const EncodeException<T>& o) const {
-        KU_ASSERT(posInPage != o.posInPage);
-        return posInPage < o.posInPage;
+        KU_ASSERT(posInChunk != o.posInChunk);
+        return posInChunk < o.posInChunk;
     }
+};
+
+template<std::floating_point T>
+struct ExceptionBufferElementView {
+    using type = EncodeException<T>;
+
+    explicit ExceptionBufferElementView(std::byte* val) { bytes = val; }
+
+    EncodeException<T> getValue() const;
+    void setValue(EncodeException<T> exception);
+    std::byte* bytes;
 };
 
 } // namespace storage

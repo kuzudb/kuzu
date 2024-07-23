@@ -1,16 +1,28 @@
 #include "storage/compression/compression_float.h"
 
 #include "alp/encode.hpp"
-#include "common/utils.h"
-#include <ranges>
 
 namespace kuzu {
 namespace storage {
 
 template<std::floating_point T>
-uint64_t FloatCompression<T>::compressNextPage(const uint8_t*& srcBuffer,
-    uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
-    const struct CompressionMetadata& metadata) const {
+EncodeException<T> ExceptionBufferElementView<T>::getValue() const {
+    EncodeException<T> ret;
+    std::memcpy(&ret.value, bytes, sizeof(ret.value));
+    std::memcpy(&ret.posInChunk, bytes + sizeof(ret.value), sizeof(ret.posInChunk));
+    return ret;
+}
+
+template<std::floating_point T>
+void ExceptionBufferElementView<T>::setValue(EncodeException<T> exception) {
+    std::memcpy(bytes, &exception.value, sizeof(exception.value));
+    std::memcpy(bytes + sizeof(exception.value), &exception.posInChunk,
+        sizeof(exception.posInChunk));
+}
+
+template<std::floating_point T>
+uint64_t FloatCompression<T>::compressNextPage(const uint8_t*&, uint64_t, uint8_t*, uint64_t,
+    const struct CompressionMetadata&) const {
     KU_UNREACHABLE;
 }
 
@@ -40,13 +52,11 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
 
         if (floatValue != decodedValue) {
-            EncodeException<T> exception{.value = floatValue,
-                .posInPage = (uint32_t)(srcOffset + posInPage)};
-            std::memcpy(exceptionBuffer + exceptionCount * EncodeException<T>::sizeBytes(),
-                &exception.value, sizeof(exception.value));
-            std::memcpy(exceptionBuffer + exceptionCount * EncodeException<T>::sizeBytes() +
-                            sizeof(exception.value),
-                &exception.posInPage, sizeof(exception.posInPage));
+            auto* exceptionBufferEntry = reinterpret_cast<std::byte*>(
+                exceptionBuffer + exceptionCount * EncodeException<T>::sizeBytes());
+            KU_ASSERT(srcOffset + posInPage == static_cast<uint32_t>(srcOffset + posInPage));
+            ExceptionBufferElementView<T>{exceptionBufferEntry}.setValue(
+                {.value = floatValue, .posInChunk = static_cast<uint32_t>(srcOffset + posInPage)});
 
             // We don't need to replace with 1st successful encode as the integer bitpacking
             // metadata is already populated
@@ -162,6 +172,12 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
 
 template class FloatCompression<double>;
 template class FloatCompression<float>;
+
+template struct EncodeException<double>;
+template struct EncodeException<float>;
+
+template struct ExceptionBufferElementView<double>;
+template struct ExceptionBufferElementView<float>;
 
 } // namespace storage
 } // namespace kuzu

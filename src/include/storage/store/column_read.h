@@ -51,7 +51,7 @@ public:
     explicit InMemoryExceptionChunk(ColumnReader* columnReader,
         transaction::Transaction* transaction, const ChunkState& state);
 
-    void flushToDisk(ColumnReader* columnReader, ChunkState& state);
+    void finalizeAndFlushToDisk(ColumnReader* columnReader, ChunkState& state);
 
     void addException(EncodeException<T> exception);
 
