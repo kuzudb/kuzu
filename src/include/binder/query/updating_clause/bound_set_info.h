@@ -9,18 +9,20 @@ namespace binder {
 struct BoundSetPropertyInfo {
     common::TableType tableType;
     std::shared_ptr<Expression> pattern;
-    expression_pair setItem;
-    std::shared_ptr<Expression> pkExpr = nullptr;
+    std::shared_ptr<Expression> column;
+    std::shared_ptr<Expression> columnData;
+    bool updatePk = false;
 
     BoundSetPropertyInfo(common::TableType tableType, std::shared_ptr<Expression> pattern,
-        expression_pair setItem)
-        : tableType{tableType}, pattern{std::move(pattern)}, setItem{std::move(setItem)} {}
+        std::shared_ptr<Expression> column, std::shared_ptr<Expression> columnData)
+        : tableType{tableType}, pattern{std::move(pattern)}, column{std::move(column)},
+          columnData{std::move(columnData)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundSetPropertyInfo);
 
 private:
     BoundSetPropertyInfo(const BoundSetPropertyInfo& other)
-        : tableType{other.tableType}, pattern{other.pattern}, setItem{other.setItem},
-          pkExpr{other.pkExpr} {}
+        : tableType{other.tableType}, pattern{other.pattern}, column{other.column},
+          columnData{other.columnData}, updatePk{other.updatePk} {}
 };
 
 } // namespace binder

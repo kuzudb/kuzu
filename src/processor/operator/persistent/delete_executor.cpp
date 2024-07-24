@@ -8,123 +8,142 @@
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
 
-void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
-    nodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
+void NodeDeleteInfo::init(const ResultSet& resultSet) {
+    nodeIDVector = resultSet.getValueVector(nodeIDPos).get();
+}
+
+void NodeTableDeleteInfo::init(const ResultSet& resultSet) {
+    pkVector = resultSet.getValueVector(pkPos).get();
+}
+
+void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,
+    ValueVector* nodeIDVector) const {
+    for (auto& relTable : fwdRelTables) {
+        relTable->checkIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector);
+    }
+    for (auto& relTable : bwdRelTables) {
+        relTable->checkIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector);
+    }
+}
+
+void NodeTableDeleteInfo::detachDeleteFromRelTable(Transaction* transaction,
+    RelTableDeleteState* detachDeleteState) const {
+    for (auto& relTable : fwdRelTables) {
+        relTable->detachDelete(transaction, RelDataDirection::FWD, detachDeleteState);
+    }
+    for (auto& relTable : bwdRelTables) {
+        // TODO(Guodong): For detach delete, there can possibly be a case where the same relTable is
+        // in both fwd and bwd rel tables set. the rels can be deleted twice. This is a temporary
+        // hack.
+        //        if (fwdRelTables.contains(relTable)) {
+        //            continue;
+        //        }
+        relTable->detachDelete(transaction, RelDataDirection::BWD, detachDeleteState);
+    }
+}
+
+void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*) {
+    info.init(*resultSet);
     if (info.deleteType == DeleteNodeType::DETACH_DELETE) {
         const auto tempSharedState = std::make_shared<DataChunkState>();
         dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
         relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
         dstNodeIDVector->setState(tempSharedState);
         relIDVector->setState(tempSharedState);
-        detachDeleteState =
-            std::make_unique<RelTableDeleteState>(*nodeIDVector, *dstNodeIDVector, *relIDVector);
+        detachDeleteState = std::make_unique<RelTableDeleteState>(*info.nodeIDVector,
+            *dstNodeIDVector, *relIDVector);
     }
 }
 
 void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     NodeDeleteExecutor::init(resultSet, context);
-    extraInfo.pkVector = resultSet->getValueVector(extraInfo.pkPos).get();
-}
-
-static void deleteFromRelTable(ExecutionContext* context, DeleteNodeType deleteType,
-    RelDataDirection direction, RelTable* relTable, ValueVector* nodeIDVector,
-    RelTableDeleteState* detachDeleteState) {
-    switch (deleteType) {
-    case DeleteNodeType::DETACH_DELETE: {
-        KU_ASSERT(detachDeleteState);
-        relTable->detachDelete(context->clientContext->getTx(), direction, detachDeleteState);
-    } break;
-    case DeleteNodeType::DELETE: {
-        relTable->checkIfNodeHasRels(context->clientContext->getTx(), direction, nodeIDVector);
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+    tableInfo.init(*resultSet);
 }
 
 void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1 &&
-              extraInfo.pkVector->state == nodeIDVector->state);
-    auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-    if (nodeIDVector->isNull(nodeIDPos)) {
+    KU_ASSERT(tableInfo.pkVector->state == info.nodeIDVector->state);
+    auto deleteState =
+        std::make_unique<storage::NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
+    if (!tableInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
         return;
     }
-    auto deleteState = std::make_unique<NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
-    if (!extraInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
-        return;
-    }
-    for (auto& relTable : extraInfo.fwdRelTables) {
-        deleteFromRelTable(context, info.deleteType, RelDataDirection::FWD, relTable, nodeIDVector,
-            detachDeleteState.get());
-    }
-    for (auto& relTable : extraInfo.bwdRelTables) {
-        deleteFromRelTable(context, info.deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
-            detachDeleteState.get());
+    auto transaction = context->clientContext->getTx();
+    switch (info.deleteType) {
+    case DeleteNodeType::DELETE: {
+        tableInfo.deleteFromRelTable(transaction, info.nodeIDVector);
+    } break;
+    case DeleteNodeType::DETACH_DELETE: {
+        tableInfo.detachDeleteFromRelTable(transaction, detachDeleteState.get());
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
 }
 
 void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     NodeDeleteExecutor::init(resultSet, context);
-    for (auto& [tableID, extraInfo] : extraInfos) {
-        extraInfo.pkVector = resultSet->getValueVector(extraInfo.pkPos).get();
+    for (auto& [_, tableInfo] : tableInfos) {
+        tableInfo.init(*resultSet);
     }
 }
 
 void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
-    auto pos = nodeIDVector->state->getSelVector()[0];
-    if (nodeIDVector->isNull(pos)) {
+    auto& nodeIDSelVector = info.nodeIDVector->state->getSelVector();
+    KU_ASSERT(nodeIDSelVector.getSelSize() == 1);
+    auto pos = nodeIDSelVector[0];
+    if (info.nodeIDVector->isNull(pos)) {
         return;
     }
-    auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
-    auto& extraInfo = extraInfos.at(nodeID.tableID);
-    auto deleteState = std::make_unique<NodeTableDeleteState>(*nodeIDVector, *extraInfo.pkVector);
-    if (!extraInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
+    auto nodeID = info.nodeIDVector->getValue<internalID_t>(pos);
+    auto& tableInfo = tableInfos.at(nodeID.tableID);
+    auto deleteState =
+        std::make_unique<NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
+    if (!tableInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
         return;
     }
-    KU_ASSERT(extraInfos.contains(nodeID.tableID));
-    for (auto& relTable : extraInfo.fwdRelTables) {
-        deleteFromRelTable(context, info.deleteType, RelDataDirection::FWD, relTable, nodeIDVector,
-            detachDeleteState.get());
-    }
-    for (auto& relTable : extraInfo.bwdRelTables) {
-        // TODO(Guodong): For detach delete, there can possibly be a case where the same relTable is
-        // in both fwd and bwd rel tables set. the rels can be deleted twice. This is a temporary
-        // hack.
-        if (info.deleteType == DeleteNodeType::DETACH_DELETE &&
-            extraInfo.fwdRelTables.contains(relTable)) {
-            continue;
-        }
-        deleteFromRelTable(context, info.deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
-            detachDeleteState.get());
+    auto transaction = context->clientContext->getTx();
+    switch (info.deleteType) {
+    case DeleteNodeType::DELETE: {
+        tableInfo.deleteFromRelTable(transaction, info.nodeIDVector);
+    } break;
+    case DeleteNodeType::DETACH_DELETE: {
+        tableInfo.detachDeleteFromRelTable(transaction, detachDeleteState.get());
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
 }
 
-void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
-    srcNodeIDVector = resultSet->getValueVector(srcNodeIDPos).get();
-    dstNodeIDVector = resultSet->getValueVector(dstNodeIDPos).get();
-    relIDVector = resultSet->getValueVector(relIDPos).get();
+void RelDeleteInfo::init(const ResultSet& resultSet) {
+    srcNodeIDVector = resultSet.getValueVector(srcNodeIDPos).get();
+    dstNodeIDVector = resultSet.getValueVector(dstNodeIDPos).get();
+    relIDVector = resultSet.getValueVector(relIDPos).get();
+}
+
+void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*) {
+    info.init(*resultSet);
 }
 
 void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
-    auto deleteState =
-        std::make_unique<RelTableDeleteState>(*srcNodeIDVector, *dstNodeIDVector, *relIDVector);
+    auto deleteState = std::make_unique<RelTableDeleteState>(*info.srcNodeIDVector,
+        *info.dstNodeIDVector, *info.relIDVector);
     table->delete_(context->clientContext->getTx(), *deleteState);
 }
 
 void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
-    KU_ASSERT(relIDVector->state->isFlat());
-    auto pos = relIDVector->state->getSelVector()[0];
-    auto relID = relIDVector->getValue<internalID_t>(pos);
+    auto& idSelVector = info.relIDVector->state->getSelVector();
+    KU_ASSERT(idSelVector.getSelSize() == 1);
+    auto pos = idSelVector[0];
+    auto relID = info.relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto table = tableIDToTableMap.at(relID.tableID);
-    auto deleteState =
-        std::make_unique<RelTableDeleteState>(*srcNodeIDVector, *dstNodeIDVector, *relIDVector);
+    auto deleteState = std::make_unique<RelTableDeleteState>(*info.srcNodeIDVector,
+        *info.dstNodeIDVector, *info.relIDVector);
     table->delete_(context->clientContext->getTx(), *deleteState);
 }
 

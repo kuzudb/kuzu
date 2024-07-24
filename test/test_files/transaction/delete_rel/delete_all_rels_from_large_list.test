@@ -80,6 +80,6 @@
 ---- ok
 -STATEMENT MATCH (p:person) WHERE p.ID = 0 RETURN p;
 ---- 0
--STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
+-STATEMENT MATCH (p:person)-[e:knows]->(b:person) HINT (p JOIN e) JOIN b RETURN COUNT(*);
 ---- 1
 50

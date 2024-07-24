@@ -287,67 +287,10 @@ static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonPa
                                      py::str(key.get_type()).cast<std::string>());
         }
         auto name = key.cast<std::string>();
-        auto val = std::make_unique<Value>(PyConnection::transformPythonValue(value));
+        auto val = std::make_unique<Value>(PyConnection::transformPythonValueFromParameter(value));
         result.insert({name, std::move(val)});
     }
     return result;
-}
-
-static LogicalType pyLogicalType(const py::handle& val);
-
-static bool validateMapFields(py::dict& dict) {
-    for (auto& field : dict) {
-        auto keyType = pyLogicalType(field.first).getLogicalTypeID();
-        if (keyType != LogicalTypeID::STRING) {
-            return false;
-        }
-        auto valType = pyLogicalType(field.second).getLogicalTypeID();
-        if (valType != LogicalTypeID::LIST) {
-            return false;
-        }
-    }
-    std::string keyName = py::str(dict.begin()->first);
-    if (keyName != "key") {
-        return false;
-    }
-    std::string valueName = py::str((++dict.begin())->first);
-    if (valueName != "value") {
-        return false;
-    }
-    return true;
-}
-
-// If we want to interpret a python dict as MAP, it has to satisfy the following two conditions:
-// 1. The dictionary has only two fields.
-// 2. The first field name is "key", while the second field name is "value".
-// 3. Values of both first and second fields are list of values with the same type.
-// Sample:
-// my_map_dict = {
-//    "key": [
-//        1, 2, 3
-//    ],
-//    "value": [
-//        "one", "two", "three"
-//    ]
-//  }
-static bool tryCastToMap(py::dict& dict, LogicalType& result) {
-    if (dict.size() != 2) {
-        return false;
-    }
-    if (!validateMapFields(dict)) {
-        return false;
-    }
-    auto keyList = dict.begin()->second;
-    auto valList = (++dict.begin())->second;
-    if (py::reinterpret_borrow<py::list>(keyList).size() !=
-        py::reinterpret_borrow<py::list>(valList).size()) {
-        return false;
-    }
-    auto keyListType = pyLogicalType(keyList);
-    auto valListType = pyLogicalType(valList);
-    result = LogicalType::MAP(ListType::getChildType(keyListType).copy(),
-        ListType::getChildType(valListType).copy());
-    return true;
 }
 
 static LogicalType pyLogicalType(const py::handle& val) {
@@ -404,6 +347,28 @@ static LogicalType pyLogicalType(const py::handle& val) {
         return LogicalType::INTERVAL();
     } else if (py::isinstance(val, uuid)) {
         return LogicalType::UUID();
+    } else if (py::isinstance<py::dict>(val)) {
+        py::dict dict = py::reinterpret_borrow<py::dict>(val);
+        auto childKeyType = LogicalType::ANY(), childValueType = LogicalType::ANY();
+        for (auto child : dict) {
+            auto curChildKeyType = pyLogicalType(child.first),
+                 curChildValueType = pyLogicalType(child.second);
+            LogicalType resultKey, resultValue;
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(childKeyType, curChildKeyType, resultKey)) {
+                throw RuntimeException(stringFormat(
+                    "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                    childKeyType.toString(), curChildKeyType.toString()));
+            }
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(childValueType, curChildValueType,
+                    resultValue)) {
+                throw RuntimeException(stringFormat(
+                    "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                    childValueType.toString(), curChildValueType.toString()));
+            }
+            childKeyType = std::move(resultKey);
+            childValueType = std::move(resultValue);
+        }
+        return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
     } else if (py::isinstance<py::list>(val)) {
         py::list lst = py::reinterpret_borrow<py::list>(val);
         auto childType = LogicalType::ANY();
@@ -418,7 +383,73 @@ static LogicalType pyLogicalType(const py::handle& val) {
             childType = std::move(result);
         }
         return LogicalType::LIST(std::move(childType));
-    } else if (py::isinstance<py::dict>(val)) {
+    } else {
+        // LCOV_EXCL_START
+        throw common::RuntimeException(
+            "Unknown parameter type " + py::str(val.get_type()).cast<std::string>());
+        // LCOV_EXCL_STOP
+    }
+}
+
+static bool validateMapFields(py::dict& dict) {
+    for (auto& field : dict) {
+        auto keyType = pyLogicalType(field.first).getLogicalTypeID();
+        if (keyType != LogicalTypeID::STRING) {
+            return false;
+        }
+        auto valType = pyLogicalType(field.second).getLogicalTypeID();
+        if (valType != LogicalTypeID::LIST) {
+            return false;
+        }
+    }
+    std::string keyName = py::str(dict.begin()->first);
+    if (keyName != "key") {
+        return false;
+    }
+    std::string valueName = py::str((++dict.begin())->first);
+    if (valueName != "value") {
+        return false;
+    }
+    return true;
+}
+
+static LogicalType pyLogicalTypeFromParameter(const py::handle& val);
+
+// If we want to interpret a python dict as MAP, it has to satisfy the following two conditions:
+// 1. The dictionary has only two fields.
+// 2. The first field name is "key", while the second field name is "value".
+// 3. Values of both first and second fields are list of values with the same type.
+// Sample:
+// my_map_dict = {
+//    "key": [
+//        1, 2, 3
+//    ],
+//    "value": [
+//        "one", "two", "three"
+//    ]
+//  }
+static bool tryCastToMap(py::dict& dict, LogicalType& result) {
+    if (dict.size() != 2) {
+        return false;
+    }
+    if (!validateMapFields(dict)) {
+        return false;
+    }
+    auto keyList = dict.begin()->second;
+    auto valList = (++dict.begin())->second;
+    if (py::reinterpret_borrow<py::list>(keyList).size() !=
+        py::reinterpret_borrow<py::list>(valList).size()) {
+        return false;
+    }
+    auto keyListType = pyLogicalTypeFromParameter(keyList);
+    auto valListType = pyLogicalTypeFromParameter(valList);
+    result = LogicalType::MAP(ListType::getChildType(keyListType).copy(),
+        ListType::getChildType(valListType).copy());
+    return true;
+}
+
+static LogicalType pyLogicalTypeFromParameter(const py::handle& val) {
+    if (py::isinstance<py::dict>(val)) {
         auto dict = py::reinterpret_borrow<py::dict>(val);
         LogicalType resultType;
         if (tryCastToMap(dict, resultType)) {
@@ -426,17 +457,27 @@ static LogicalType pyLogicalType(const py::handle& val) {
         }
         auto structFields = std::vector<StructField>{};
         for (auto child : dict) {
-            KU_ASSERT(py::isinstance<py::str>(child.first));
-            auto keyName = child.first.cast<std::string>();
-            auto keyType = pyLogicalType(child.second);
+            auto keyName = py::cast<std::string>(py::str(child.first));
+            auto keyType = pyLogicalTypeFromParameter(child.second);
             structFields.emplace_back(std::move(keyName), std::move(keyType));
         }
         return LogicalType::STRUCT(std::move(structFields));
+    } else if (py::isinstance<py::list>(val)) {
+        py::list lst = py::reinterpret_borrow<py::list>(val);
+        auto childType = LogicalType::ANY();
+        for (auto child : lst) {
+            auto curChildType = pyLogicalTypeFromParameter(child);
+            LogicalType result;
+            if (!LogicalTypeUtils::tryGetMaxLogicalType(childType, curChildType, result)) {
+                throw RuntimeException(stringFormat(
+                    "Cannot convert Python object to Kuzu value : {}  is incompatible with {}",
+                    childType.toString(), curChildType.toString()));
+            }
+            childType = std::move(result);
+        }
+        return LogicalType::LIST(std::move(childType));
     } else {
-        // LCOV_EXCL_START
-        throw common::RuntimeException(
-            "Unknown parameter type " + py::str(val.get_type()).cast<std::string>());
-        // LCOV_EXCL_STOP
+        return pyLogicalType(val);
     }
 }
 
@@ -549,18 +590,22 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         return Value(type.copy(), std::move(children));
     }
     case LogicalTypeID::MAP: {
-        auto dict = py::reinterpret_borrow<py::dict>(val);
+        py::dict dict = py::reinterpret_borrow<py::dict>(val);
         std::vector<std::unique_ptr<Value>> children;
-        auto keys = transformPythonValue(py::reinterpret_borrow<py::list>(dict.begin()->second));
-        auto vals =
-            transformPythonValue(py::reinterpret_borrow<py::list>((++dict.begin())->second));
-        auto numKeys = NestedVal::getChildrenSize(&keys);
-        KU_ASSERT(NestedVal::getChildrenSize(&keys) == NestedVal::getChildrenSize(&vals));
-        for (auto i = 0u; i < numKeys; i++) {
+        const auto& childKeyType = MapType::getKeyType(type);
+        const auto& childValueType = MapType::getValueType(type);
+        for (auto child : dict) {
+            // type construction is inefficient, we have to create duplicates because it asks for
+            // a unique ptr
+            std::vector<StructField> fields;
+            fields.emplace_back(InternalKeyword::MAP_KEY, childKeyType.copy());
+            fields.emplace_back(InternalKeyword::MAP_VALUE, childValueType.copy());
             std::vector<std::unique_ptr<Value>> structValues;
-            structValues.push_back(NestedVal::getChildVal(&keys, i)->copy());
-            structValues.push_back(NestedVal::getChildVal(&vals, i)->copy());
-            children.push_back(std::make_unique<Value>(ListType::getChildType(type).copy(),
+            structValues.push_back(
+                std::make_unique<Value>(transformPythonValueAs(child.first, childKeyType)));
+            structValues.push_back(
+                std::make_unique<Value>(transformPythonValueAs(child.second, childValueType)));
+            children.push_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(fields)),
                 std::move(structValues)));
         }
         return Value(type.copy(), std::move(children));
@@ -583,9 +628,64 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
     }
 }
 
+Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val,
+    const LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::LIST: {
+        py::list lst = py::reinterpret_borrow<py::list>(val);
+        std::vector<std::unique_ptr<Value>> children;
+        for (auto child : lst) {
+            children.push_back(std::make_unique<Value>(
+                transformPythonValueFromParameterAs(child, ListType::getChildType(type))));
+        }
+        return Value(type.copy(), std::move(children));
+    }
+    case LogicalTypeID::MAP: {
+        auto dict = py::reinterpret_borrow<py::dict>(val);
+        std::vector<std::unique_ptr<Value>> children;
+        auto keys = transformPythonValueFromParameter(
+            py::reinterpret_borrow<py::list>(dict.begin()->second));
+        auto vals = transformPythonValueFromParameter(
+            py::reinterpret_borrow<py::list>((++dict.begin())->second));
+        auto numKeys = NestedVal::getChildrenSize(&keys);
+        // LCOV_EXCL_START
+        if (NestedVal::getChildrenSize(&keys) != NestedVal::getChildrenSize(&vals)) {
+            throw RuntimeException("Map Key and Value lengths do not match!");
+        }
+        // LCOV_EXCL_STOP
+        for (auto i = 0u; i < numKeys; i++) {
+            std::vector<std::unique_ptr<Value>> structValues;
+            structValues.push_back(NestedVal::getChildVal(&keys, i)->copy());
+            structValues.push_back(NestedVal::getChildVal(&vals, i)->copy());
+            children.push_back(std::make_unique<Value>(ListType::getChildType(type).copy(),
+                std::move(structValues)));
+        }
+        return Value(type.copy(), std::move(children));
+    }
+    case LogicalTypeID::STRUCT: {
+        auto dict = py::reinterpret_borrow<py::dict>(val);
+        std::vector<std::unique_ptr<Value>> children;
+        auto fieldIdx = 0u;
+        for (auto field : dict) {
+            auto fieldType = StructType::getFieldType(type, fieldIdx++).copy();
+            children.push_back(std::make_unique<Value>(
+                transformPythonValueFromParameterAs(field.second, std::move(fieldType))));
+        }
+        return Value(type.copy(), std::move(children));
+    }
+    default:
+        return transformPythonValueAs(val, type);
+    }
+}
+
 Value PyConnection::transformPythonValue(const py::handle& val) {
     auto type = pyLogicalType(val);
     return transformPythonValueAs(val, std::move(type));
+}
+
+Value PyConnection::transformPythonValueFromParameter(const py::handle& val) {
+    auto type = pyLogicalTypeFromParameter(val);
+    return transformPythonValueFromParameterAs(val, std::move(type));
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(

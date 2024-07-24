@@ -82,6 +82,21 @@
 -STATEMENT MATCH (t:test) RETURN t
 ---- 1
 {_ID: 0:0, _LABEL: test, id: 2, name: Alice}
+-STATEMENT CREATE NODE TABLE test2(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test2 {id:1, name:'Bob'})
+---- ok
+-STATEMENT MATCH (t) SET t.id=3
+---- ok
+-STATEMENT MATCH (t) RETURN t
+---- 2
+{_ID: 0:0, _LABEL: test, id: 3, name: Alice}
+{_ID: 1:0, _LABEL: test2, id: 3, name: Bob}
+-STATEMENT CREATE NODE TABLE test3(id2 INT64, id INT64, name STRING, PRIMARY KEY(id2));
+---- ok
+-STATEMENT MATCH (t) SET t.id=4
+---- error
+Binder exception: Update primary key column t.id for multiple tables is not supported.
 
 -CASE SetWithSerialPK
 -STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));

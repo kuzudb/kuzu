@@ -37,11 +37,11 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
     const row_idx_t numRows, sel_t startOutputPos) const {
     auto numSelected = selVector.getSelSize();
     if (deletionStatus == DeletionStatus::NO_DELETED &&
-        insertionStatus == InsertionStatus::NO_INSERTED) {
+        insertionStatus == InsertionStatus::ALWAYS_INSERTED) {
         for (auto i = 0u; i < numRows; i++) {
             selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
         }
-    } else {
+    } else if (insertionStatus != InsertionStatus::NO_INSERTED) {
         for (auto i = 0u; i < numRows; i++) {
             if (const auto rowIdx = startRow + i; isInserted(startTS, transactionID, rowIdx) &&
                                                   !isDeleted(startTS, transactionID, rowIdx)) {
@@ -111,6 +111,7 @@ void VectorVersionInfo::serialize(Serializer& serializer) const {
                   deleted < transaction::Transaction::START_TRANSACTION_ID);
         KU_UNUSED(deleted);
     }
+    // TODO(Guodong): We should just serialize isDeleted or not to save space instead of versions.
     serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
 }
 
@@ -307,19 +308,16 @@ void VersionInfo::serialize(Serializer& serializer) const {
 std::unique_ptr<VersionInfo> VersionInfo::deserialize(Deserializer& deSer) {
     std::string key;
     uint64_t vectorSize;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "vectors_info_size");
+    deSer.validateDebuggingInfo(key, "vectors_info_size");
     deSer.deserializeValue<uint64_t>(vectorSize);
     auto versionInfo = std::make_unique<VersionInfo>();
     for (auto i = 0u; i < vectorSize; i++) {
         bool hasDeletion;
-        deSer.deserializeDebuggingInfo(key);
-        KU_ASSERT(key == "has_deletion");
+        deSer.validateDebuggingInfo(key, "has_deletion");
         deSer.deserializeValue<bool>(hasDeletion);
         if (hasDeletion) {
             auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
-            deSer.deserializeDebuggingInfo(key);
-            KU_ASSERT(key == "vector_info");
+            deSer.validateDebuggingInfo(key, "vector_info");
             deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
                 vectorVersionInfo->deletedVersions);
             versionInfo->vectorsInfo.push_back(std::move(vectorVersionInfo));

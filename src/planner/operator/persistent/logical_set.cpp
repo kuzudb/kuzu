@@ -36,7 +36,7 @@ f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
         KU_UNREACHABLE;
     }
     auto analyzer = GroupDependencyAnalyzer(false, *childSchema);
-    analyzer.visit(info.setItem.second);
+    analyzer.visit(info.columnData);
     for (auto& groupPos : analyzer.getDependentGroups()) {
         result.insert(groupPos);
     }
@@ -44,9 +44,10 @@ f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
 }
 
 std::string LogicalSetProperty::getExpressionsForPrinting() const {
-    std::string result = ExpressionUtil::toString(infos[0].setItem);
+    std::string result =
+        ExpressionUtil::toString(std::make_pair(infos[0].column, infos[0].columnData));
     for (auto i = 1u; i < infos.size(); ++i) {
-        result += ExpressionUtil::toString(infos[i].setItem);
+        result += ExpressionUtil::toString(std::make_pair(infos[i].column, infos[i].columnData));
     }
     return result;
 }

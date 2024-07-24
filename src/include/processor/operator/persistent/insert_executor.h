@@ -9,60 +9,121 @@
 namespace kuzu {
 namespace processor {
 
+// Operator level info
+struct NodeInsertInfo {
+    DataPos nodeIDPos;
+    // Column vector pos is invalid if it doesn't need to be projected.
+    std::vector<DataPos> columnsPos;
+    common::ConflictAction conflictAction;
+
+    common::ValueVector* nodeIDVector = nullptr;
+    std::vector<common::ValueVector*> columnVectors;
+
+    NodeInsertInfo(DataPos nodeIDPos, std::vector<DataPos> columnsPos,
+        common::ConflictAction conflictAction)
+        : nodeIDPos{nodeIDPos}, columnsPos{std::move(columnsPos)}, conflictAction{conflictAction} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertInfo);
+
+    void init(const ResultSet& resultSet);
+
+    void updateNodeID(common::nodeID_t nodeID) const;
+
+private:
+    NodeInsertInfo(const NodeInsertInfo& other)
+        : nodeIDPos{other.nodeIDPos}, columnsPos{other.columnsPos},
+          conflictAction{other.conflictAction} {}
+};
+
+// Table level info
+struct NodeTableInsertInfo {
+    storage::NodeTable* table;
+    evaluator::evaluator_vector_t columnDataEvaluators;
+
+    common::ValueVector* pkVector;
+    std::vector<common::ValueVector*> columnDataVectors;
+
+    NodeTableInsertInfo(storage::NodeTable* table,
+        evaluator::evaluator_vector_t columnDataEvaluators)
+        : table{table}, columnDataEvaluators{std::move(columnDataEvaluators)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(NodeTableInsertInfo);
+
+    void init(const ResultSet& resultSet, main::ClientContext* context);
+
+private:
+    NodeTableInsertInfo(const NodeTableInsertInfo& other)
+        : table{other.table}, columnDataEvaluators{cloneVector(other.columnDataEvaluators)} {}
+};
+
 class NodeInsertExecutor {
 public:
-    NodeInsertExecutor(storage::NodeTable* table, const DataPos& nodeIDVectorPos,
-        std::vector<DataPos> columnVectorsPos,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators,
-        common::ConflictAction conflictAction)
-        : table{table}, nodeIDVectorPos{nodeIDVectorPos},
-          columnVectorsPos{std::move(columnVectorsPos)},
-          columnDataEvaluators{std::move(columnDataEvaluators)}, conflictAction{conflictAction},
-          nodeIDVector{nullptr} {}
+    NodeInsertExecutor(NodeInsertInfo info, NodeTableInsertInfo tableInfo)
+        : info{std::move(info)}, tableInfo{std::move(tableInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertExecutor);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
     void insert(transaction::Transaction* transaction);
 
-    common::ValueVector* getNodeIDVector() const { return nodeIDVector; }
+    common::ValueVector* getNodeIDVector() const { return info.nodeIDVector; }
 
     // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
     // the output vector for later usage.
     void skipInsert() const;
 
 private:
-    NodeInsertExecutor(const NodeInsertExecutor& other);
+    NodeInsertExecutor(const NodeInsertExecutor& other)
+        : info{other.info.copy()}, tableInfo{other.tableInfo.copy()} {}
 
     bool checkConflict(transaction::Transaction* transaction) const;
 
-    void writeResult() const;
+private:
+    NodeInsertInfo info;
+    NodeTableInsertInfo tableInfo;
+};
+
+struct RelInsertInfo {
+    DataPos srcNodeIDPos;
+    DataPos dstNodeIDPos;
+    std::vector<DataPos> columnsPos;
+
+    common::ValueVector* srcNodeIDVector;
+    common::ValueVector* dstNodeIDVector;
+    std::vector<common::ValueVector*> columnVectors;
+
+    RelInsertInfo(DataPos srcNodeIDPos, DataPos dstNodeIDPos, std::vector<DataPos> columnsPos)
+        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos},
+          columnsPos{std::move(columnsPos)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(RelInsertInfo);
+
+    void init(const ResultSet& resultSet);
 
 private:
-    // Node table to insert.
-    storage::NodeTable* table;
+    RelInsertInfo(const RelInsertInfo& other)
+        : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
+          columnsPos{other.columnsPos} {}
+};
 
-    DataPos nodeIDVectorPos;
-    // Column vector pos is invalid if it doesn't need to be projected.
-    std::vector<DataPos> columnVectorsPos;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators;
+struct RelTableInsertInfo {
+    storage::RelTable* table;
+    evaluator::evaluator_vector_t columnDataEvaluators;
 
-    common::ConflictAction conflictAction;
-
-    common::ValueVector* nodeIDVector;
-    std::vector<common::ValueVector*> columnVectors;
     std::vector<common::ValueVector*> columnDataVectors;
+
+    RelTableInsertInfo(storage::RelTable* table, evaluator::evaluator_vector_t evaluators)
+        : table{table}, columnDataEvaluators{std::move(evaluators)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(RelTableInsertInfo);
+
+    void init(const ResultSet& resultSet, main::ClientContext* context);
+
+private:
+    RelTableInsertInfo(const RelTableInsertInfo& other)
+        : table{other.table}, columnDataEvaluators(cloneVector(other.columnDataEvaluators)) {}
 };
 
 class RelInsertExecutor {
 public:
-    RelInsertExecutor(storage::RelTable* table, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, std::vector<DataPos> columnVectorsPos,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators)
-        : table{table}, srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
-          columnVectorsPos{std::move(columnVectorsPos)},
-          columnDataEvaluators{std::move(columnDataEvaluators)}, srcNodeIDVector{nullptr},
-          dstNodeIDVector{nullptr} {}
+    RelInsertExecutor(RelInsertInfo info, RelTableInsertInfo tableInfo)
+        : info{std::move(info)}, tableInfo{std::move(tableInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelInsertExecutor);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -73,21 +134,12 @@ public:
     void skipInsert() const;
 
 private:
-    RelInsertExecutor(const RelInsertExecutor& other);
-
-    void writeResult() const;
+    RelInsertExecutor(const RelInsertExecutor& other)
+        : info{other.info.copy()}, tableInfo{other.tableInfo.copy()} {}
 
 private:
-    storage::RelTable* table;
-    DataPos srcNodePos;
-    DataPos dstNodePos;
-    std::vector<DataPos> columnVectorsPos;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnDataEvaluators;
-
-    common::ValueVector* srcNodeIDVector;
-    common::ValueVector* dstNodeIDVector;
-    std::vector<common::ValueVector*> columnVectors;
-    std::vector<common::ValueVector*> columnDataVectors;
+    RelInsertInfo info;
+    RelTableInsertInfo tableInfo;
 };
 
 } // namespace processor

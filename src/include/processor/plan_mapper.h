@@ -32,7 +32,9 @@ class NodeSetExecutor;
 class RelSetExecutor;
 class NodeDeleteExecutor;
 class RelDeleteExecutor;
-struct ExtraNodeDeleteInfo;
+struct NodeTableDeleteInfo;
+struct NodeTableSetInfo;
+struct RelTableSetInfo;
 
 struct BatchInsertSharedState;
 struct PartitionerSharedState;
@@ -177,10 +179,9 @@ private:
         std::shared_ptr<binder::Expression> mark, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator);
 
-    std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(
-        const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
-        const planner::Schema& outSchema) const;
-    std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(const planner::LogicalInsertInfo* info,
+    NodeInsertExecutor getNodeInsertExecutor(const planner::LogicalInsertInfo* info,
+        const planner::Schema& inSchema, const planner::Schema& outSchema) const;
+    RelInsertExecutor getRelInsertExecutor(const planner::LogicalInsertInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(const binder::BoundSetPropertyInfo& info,
         const planner::Schema& schema) const;
@@ -190,8 +191,11 @@ private:
         const planner::Schema& schema) const;
     std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,
         const planner::Schema& schema) const;
-    ExtraNodeDeleteInfo getExtraNodeDeleteInfo(common::table_id_t tableID, DataPos pkPos) const;
-
+    NodeTableDeleteInfo getNodeTableDeleteInfo(common::table_id_t tableID, DataPos pkPos) const;
+    NodeTableSetInfo getNodeTableSetInfo(common::table_id_t tableID,
+        const binder::Expression& expr) const;
+    RelTableSetInfo getRelTableSetInfo(common::table_id_t tableID,
+        const binder::Expression& expr) const;
     uint32_t getOperatorID() { return physicalOperatorID++; }
 
     static void mapSIPJoin(PhysicalOperator* probe);

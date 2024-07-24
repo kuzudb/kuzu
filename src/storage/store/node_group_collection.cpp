@@ -15,8 +15,7 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
       dataFH{dataFH} {
     if (deSer) {
         std::string key;
-        deSer->deserializeDebuggingInfo(key);
-        KU_ASSERT(key == "node_groups");
+        deSer->validateDebuggingInfo(key, "node_groups");
         KU_ASSERT(dataFH);
         nodeGroups.loadGroups(*deSer);
     }

@@ -422,14 +422,11 @@ void ListChunkData::serialize(Serializer& serializer) const {
 
 void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
     std::string key;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "size_column_chunk");
+    deSer.validateDebuggingInfo(key, "size_column_chunk");
     chunkData.cast<ListChunkData>().sizeColumnChunk = ColumnChunkData::deserialize(deSer);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "data_column_chunk");
+    deSer.validateDebuggingInfo(key, "data_column_chunk");
     chunkData.cast<ListChunkData>().dataColumnChunk = ColumnChunkData::deserialize(deSer);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "offset_column_chunk");
+    deSer.validateDebuggingInfo(key, "offset_column_chunk");
     chunkData.cast<ListChunkData>().offsetColumnChunk = ColumnChunkData::deserialize(deSer);
 }
 

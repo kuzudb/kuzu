@@ -17,19 +17,50 @@ struct NodeDeleteInfo {
     common::DeleteNodeType deleteType;
     DataPos nodeIDPos;
 
+    common::ValueVector* nodeIDVector = nullptr;
+
     NodeDeleteInfo(common::DeleteNodeType deleteType, const DataPos& nodeIDPos)
         : deleteType{deleteType}, nodeIDPos{nodeIDPos} {};
     EXPLICIT_COPY_DEFAULT_MOVE(NodeDeleteInfo);
+
+    void init(const ResultSet& resultSet);
 
 private:
     NodeDeleteInfo(const NodeDeleteInfo& other)
         : deleteType{other.deleteType}, nodeIDPos{other.nodeIDPos} {}
 };
 
+struct NodeTableDeleteInfo {
+    storage::NodeTable* table;
+    std::unordered_set<storage::RelTable*> fwdRelTables;
+    std::unordered_set<storage::RelTable*> bwdRelTables;
+    DataPos pkPos;
+
+    common::ValueVector* pkVector;
+
+    NodeTableDeleteInfo(storage::NodeTable* table,
+        std::unordered_set<storage::RelTable*> fwdRelTables,
+        std::unordered_set<storage::RelTable*> bwdRelTables, const DataPos& pkPos)
+        : table{table}, fwdRelTables{std::move(fwdRelTables)},
+          bwdRelTables{std::move(bwdRelTables)}, pkPos{pkPos} {};
+    EXPLICIT_COPY_DEFAULT_MOVE(NodeTableDeleteInfo);
+
+    void init(const ResultSet& resultSet);
+
+    void deleteFromRelTable(transaction::Transaction* transaction,
+        common::ValueVector* nodeIDVector) const;
+    void detachDeleteFromRelTable(transaction::Transaction* transaction,
+        storage::RelTableDeleteState* detachDeleteState) const;
+
+private:
+    NodeTableDeleteInfo(const NodeTableDeleteInfo& other)
+        : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
+          pkPos{other.pkPos} {}
+};
+
 class NodeDeleteExecutor {
 public:
-    explicit NodeDeleteExecutor(NodeDeleteInfo info)
-        : info{std::move(info)}, nodeIDVector(nullptr) {}
+    explicit NodeDeleteExecutor(NodeDeleteInfo info) : info{std::move(info)} {}
     NodeDeleteExecutor(const NodeDeleteExecutor& other) : info{other.info.copy()} {}
     virtual ~NodeDeleteExecutor() = default;
 
@@ -41,41 +72,19 @@ public:
 
 protected:
     NodeDeleteInfo info;
-
-    common::ValueVector* nodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
     std::unique_ptr<storage::RelTableDeleteState> detachDeleteState;
 };
 
-struct ExtraNodeDeleteInfo {
-    storage::NodeTable* table;
-    std::unordered_set<storage::RelTable*> fwdRelTables;
-    std::unordered_set<storage::RelTable*> bwdRelTables;
-    DataPos pkPos;
-    common::ValueVector* pkVector;
-
-    ExtraNodeDeleteInfo(storage::NodeTable* table,
-        std::unordered_set<storage::RelTable*> fwdRelTables,
-        std::unordered_set<storage::RelTable*> bwdRelTables, DataPos pkPos)
-        : table{table}, fwdRelTables{std::move(fwdRelTables)},
-          bwdRelTables{std::move(bwdRelTables)}, pkPos{std::move(pkPos)} {};
-    EXPLICIT_COPY_DEFAULT_MOVE(ExtraNodeDeleteInfo);
-
-private:
-    ExtraNodeDeleteInfo(const ExtraNodeDeleteInfo& other)
-        : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
-          pkPos{other.pkPos} {}
-};
-
 class SingleLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
-    SingleLabelNodeDeleteExecutor(NodeDeleteInfo info, ExtraNodeDeleteInfo extraInfo)
-        : NodeDeleteExecutor(std::move(info)), extraInfo{std::move(extraInfo)} {}
+    SingleLabelNodeDeleteExecutor(NodeDeleteInfo info, NodeTableDeleteInfo tableInfo)
+        : NodeDeleteExecutor(std::move(info)), tableInfo{std::move(tableInfo)} {}
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other), extraInfo{other.extraInfo.copy()} {}
+        : NodeDeleteExecutor(other), tableInfo{other.tableInfo.copy()} {}
 
-    void init(ResultSet* resultSet, ExecutionContext* context) override;
+    void init(ResultSet* resultSet, ExecutionContext*) override;
     void delete_(ExecutionContext* context) override;
 
     std::unique_ptr<NodeDeleteExecutor> copy() const override {
@@ -83,18 +92,18 @@ public:
     }
 
 private:
-    ExtraNodeDeleteInfo extraInfo;
+    NodeTableDeleteInfo tableInfo;
 };
 
 class MultiLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
     MultiLabelNodeDeleteExecutor(NodeDeleteInfo info,
-        common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos)
-        : NodeDeleteExecutor(std::move(info)), extraInfos{std::move(extraInfos)} {}
+        common::table_id_map_t<NodeTableDeleteInfo> tableInfos)
+        : NodeDeleteExecutor(std::move(info)), tableInfos{std::move(tableInfos)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other), extraInfos{copyMap(other.extraInfos)} {}
+        : NodeDeleteExecutor(other), tableInfos{copyMap(other.tableInfos)} {}
 
-    void init(ResultSet* resultSet, ExecutionContext* context) override;
+    void init(ResultSet* resultSet, ExecutionContext*) override;
     void delete_(ExecutionContext* context) override;
 
     std::unique_ptr<NodeDeleteExecutor> copy() const override {
@@ -102,15 +111,34 @@ public:
     }
 
 private:
-    common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos;
+    common::table_id_map_t<NodeTableDeleteInfo> tableInfos;
+};
+
+struct RelDeleteInfo {
+    DataPos srcNodeIDPos;
+    DataPos dstNodeIDPos;
+    DataPos relIDPos;
+
+    common::ValueVector* srcNodeIDVector = nullptr;
+    common::ValueVector* dstNodeIDVector = nullptr;
+    common::ValueVector* relIDVector = nullptr;
+
+    RelDeleteInfo(DataPos srcNodeIDPos, DataPos dstNodeIDPos, DataPos relIDPos)
+        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(RelDeleteInfo);
+
+    void init(const ResultSet& resultSet);
+
+private:
+    RelDeleteInfo(const RelDeleteInfo& other)
+        : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
+          relIDPos{other.relIDPos} {}
 };
 
 class RelDeleteExecutor {
 public:
-    RelDeleteExecutor(const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos,
-        const DataPos& relIDPos)
-        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos},
-          srcNodeIDVector(nullptr), dstNodeIDVector(nullptr), relIDVector(nullptr) {}
+    explicit RelDeleteExecutor(RelDeleteInfo info) : info{std::move(info)} {}
+    RelDeleteExecutor(const RelDeleteExecutor& other) : info{other.info.copy()} {}
     virtual ~RelDeleteExecutor() = default;
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -120,25 +148,19 @@ public:
     virtual std::unique_ptr<RelDeleteExecutor> copy() const = 0;
 
 protected:
-    DataPos srcNodeIDPos;
-    DataPos dstNodeIDPos;
-    DataPos relIDPos;
-
-    common::ValueVector* srcNodeIDVector;
-    common::ValueVector* dstNodeIDVector;
-    common::ValueVector* relIDVector;
+    RelDeleteInfo info;
 };
 
 class SingleLabelRelDeleteExecutor final : public RelDeleteExecutor {
 public:
-    SingleLabelRelDeleteExecutor(storage::RelTable* table, const DataPos& srcNodeIDPos,
-        const DataPos& dstNodeIDPos, const DataPos& relIDPos)
-        : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos), table{table} {}
-    SingleLabelRelDeleteExecutor(const SingleLabelRelDeleteExecutor& other) = default;
+    SingleLabelRelDeleteExecutor(storage::RelTable* table, RelDeleteInfo info)
+        : RelDeleteExecutor(std::move(info)), table{table} {}
+    SingleLabelRelDeleteExecutor(const SingleLabelRelDeleteExecutor& other)
+        : RelDeleteExecutor{other}, table{other.table} {}
 
     void delete_(ExecutionContext* context) override;
 
-    inline std::unique_ptr<RelDeleteExecutor> copy() const override {
+    std::unique_ptr<RelDeleteExecutor> copy() const override {
         return std::make_unique<SingleLabelRelDeleteExecutor>(*this);
     }
 
@@ -147,18 +169,16 @@ private:
 };
 
 class MultiLabelRelDeleteExecutor final : public RelDeleteExecutor {
-
 public:
-    MultiLabelRelDeleteExecutor(
-        std::unordered_map<common::table_id_t, storage::RelTable*> tableIDToTableMap,
-        const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
-        : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos),
-          tableIDToTableMap{std::move(tableIDToTableMap)} {}
-    MultiLabelRelDeleteExecutor(const MultiLabelRelDeleteExecutor& other) = default;
+    MultiLabelRelDeleteExecutor(common::table_id_map_t<storage::RelTable*> tableIDToTableMap,
+        RelDeleteInfo info)
+        : RelDeleteExecutor(std::move(info)), tableIDToTableMap{std::move(tableIDToTableMap)} {}
+    MultiLabelRelDeleteExecutor(const MultiLabelRelDeleteExecutor& other)
+        : RelDeleteExecutor{other}, tableIDToTableMap{other.tableIDToTableMap} {}
 
     void delete_(ExecutionContext* context) override;
 
-    inline std::unique_ptr<RelDeleteExecutor> copy() const override {
+    std::unique_ptr<RelDeleteExecutor> copy() const override {
         return std::make_unique<MultiLabelRelDeleteExecutor>(*this);
     }
 

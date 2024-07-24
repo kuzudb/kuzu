@@ -115,7 +115,6 @@ public:
         const std::vector<common::ValueVector*>& propertyVectors) const;
 
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
-    void replayInsert(TableInsertState& insertState);
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
@@ -176,6 +175,8 @@ public:
 private:
     void insertPK(const transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector) const;
+    void validatePkNotExists(const transaction::Transaction* transaction,
+        common::ValueVector* pkVector);
 
     void serialize(common::Serializer& serializer) const override;
 

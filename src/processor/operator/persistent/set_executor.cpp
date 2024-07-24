@@ -5,151 +5,128 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+void NodeSetInfo::init(const ResultSet& resultSet, main::ClientContext* context) {
+    nodeIDVector = resultSet.getValueVector(nodeIDPos).get();
+    if (columnVectorPos.isValid()) {
+        columnVector = resultSet.getValueVector(columnVectorPos).get();
+    }
+    if (pkVectorPos.isValid()) {
+        pkVector = resultSet.getValueVector(pkVectorPos).get();
+    }
+    evaluator->init(resultSet, context);
+    columnDataVector = evaluator->resultVector.get();
+}
+
 void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
-    nodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
-    if (info.lhsPos.isValid()) {
-        lhsVector = resultSet->getValueVector(info.lhsPos).get();
-    }
-    evaluator->init(*resultSet, context->clientContext);
-    rhsVector = evaluator->resultVector.get();
-    if (info.pkPos.isValid()) {
-        pkVector = resultSet->getValueVector(info.pkPos).get();
-    }
+    info.init(*resultSet, context->clientContext);
 }
 
-std::vector<std::unique_ptr<NodeSetExecutor>> NodeSetExecutor::copy(
-    const std::vector<std::unique_ptr<NodeSetExecutor>>& others) {
-    std::vector<std::unique_ptr<NodeSetExecutor>> result;
-    for (auto& other : others) {
-        result.push_back(other->copy());
-    }
-    return result;
-}
-
-static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* propertyVector,
-    uint32_t propertyVectorPos, ValueVector* rhsVector, uint32_t rhsVectorPos) {
-    if (internalIDVector->isNull(propertyVectorPos)) { // No update happened.
+static void writeColumnUpdateResult(ValueVector* idVector, ValueVector* columnVector,
+    ValueVector* dataVector) {
+    auto& idSelVector = idVector->state->getSelVector();
+    auto& columnSelVector = columnVector->state->getSelVector();
+    auto& dataSelVector = dataVector->state->getSelVector();
+    KU_ASSERT(idSelVector.getSelSize() == 1);
+    if (idVector->isNull(idSelVector[0])) { // No update happened.
         return;
     }
-    if (rhsVector->isNull(rhsVectorPos)) { // Update to NULL
-        propertyVector->setNull(propertyVectorPos, true);
+    KU_ASSERT(dataSelVector.getSelSize() == 1);
+    if (dataVector->isNull(dataSelVector[0])) { // Update to NULL
+        columnVector->setNull(dataSelVector[0], true);
         return;
     }
-    propertyVector->setNull(propertyVectorPos, false);
-    propertyVector->copyFromVectorData(propertyVectorPos, rhsVector, rhsVectorPos);
+    columnVector->setNull(columnSelVector[0], false);
+    columnVector->copyFromVectorData(columnSelVector[0], dataVector, dataSelVector[0]);
 }
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
-    if (extraInfo.columnID == INVALID_COLUMN_ID) {
-        if (lhsVector != nullptr) {
-            for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
-                auto lhsPos = nodeIDVector->state->getSelVector()[i];
-                lhsVector->setNull(lhsPos, true);
-            }
+    if (tableInfo.columnID == common::INVALID_COLUMN_ID) {
+        // Not a valid column. Set projected column to null.
+        if (info.columnVectorPos.isValid()) {
+            info.columnVector->setNull(info.columnDataVector->state->getSelVector()[0], true);
         }
         return;
     }
-    evaluator->evaluate();
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
-    auto lhsPos = nodeIDVector->state->getSelVector()[0];
-    auto rhsPos = rhsVector->state->getSelVector()[0];
-    auto updateState = std::make_unique<storage::NodeTableUpdateState>(extraInfo.columnID,
-        *nodeIDVector, *rhsVector);
-    updateState->pkVector = pkVector;
-    extraInfo.table->update(context->clientContext->getTx(), *updateState);
-    if (lhsVector != nullptr) {
-        writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
+    info.evaluator->evaluate();
+    auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
+        *info.nodeIDVector, *info.columnDataVector);
+    updateState->pkVector = info.pkVector;
+    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    if (info.columnVectorPos.isValid()) {
+        writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
     }
 }
 
 void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
-    evaluator->evaluate();
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1 &&
-              rhsVector->state->getSelVector().getSelSize() == 1);
-    auto lhsPos = nodeIDVector->state->getSelVector()[0];
-    auto& nodeID = nodeIDVector->getValue<internalID_t>(lhsPos);
-    if (!extraInfos.contains(nodeID.tableID)) {
-        if (lhsVector != nullptr) {
-            lhsVector->setNull(lhsPos, true);
+    info.evaluator->evaluate();
+    auto& nodeIDSelVector = info.nodeIDVector->state->getSelVector();
+    KU_ASSERT(nodeIDSelVector.getSelSize() == 1);
+    auto nodeIDPos = nodeIDSelVector[0];
+    auto& nodeID = info.nodeIDVector->getValue<internalID_t>(nodeIDPos);
+    if (!tableInfos.contains(nodeID.tableID)) {
+        if (info.columnVectorPos.isValid()) {
+            info.columnVector->setNull(info.columnDataVector->state->getSelVector()[0], true);
         }
         return;
     }
-    auto rhsPos = rhsVector->state->getSelVector()[0];
-    auto& extraInfo = extraInfos.at(nodeID.tableID);
-    auto updateState = std::make_unique<storage::NodeTableUpdateState>(extraInfo.columnID,
-        *nodeIDVector, *rhsVector);
-    extraInfo.table->update(context->clientContext->getTx(), *updateState);
-    if (lhsVector != nullptr) {
-        KU_ASSERT(lhsVector->state->getSelVector().getSelSize() == 1);
-        writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
+    auto& tableInfo = tableInfos.at(nodeID.tableID);
+    auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
+        *info.nodeIDVector, *info.columnDataVector);
+    updateState->pkVector = info.pkVector;
+    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    if (info.columnVectorPos.isValid()) {
+        writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
     }
+}
+
+void RelSetInfo::init(const ResultSet& resultSet, main::ClientContext* context) {
+    srcNodeIDVector = resultSet.getValueVector(srcNodeIDPos).get();
+    dstNodeIDVector = resultSet.getValueVector(dstNodeIDPos).get();
+    relIDVector = resultSet.getValueVector(relIDPos).get();
+    if (columnVectorPos.isValid()) {
+        columnVector = resultSet.getValueVector(columnVectorPos).get();
+    }
+    evaluator->init(resultSet, context);
+    columnDataVector = evaluator->resultVector.get();
 }
 
 void RelSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
-    srcNodeIDVector = resultSet->getValueVector(srcNodeIDPos).get();
-    dstNodeIDVector = resultSet->getValueVector(dstNodeIDPos).get();
-    relIDVector = resultSet->getValueVector(relIDPos).get();
-    if (lhsVectorPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
-        lhsVector = resultSet->getValueVector(lhsVectorPos).get();
-    }
-    evaluator->init(*resultSet, context->clientContext);
-    rhsVector = evaluator->resultVector.get();
-}
-
-std::vector<std::unique_ptr<RelSetExecutor>> RelSetExecutor::copy(
-    const std::vector<std::unique_ptr<RelSetExecutor>>& executors) {
-    std::vector<std::unique_ptr<RelSetExecutor>> executorsCopy;
-    executorsCopy.reserve(executors.size());
-    for (auto& executor : executors) {
-        executorsCopy.push_back(executor->copy());
-    }
-    return executorsCopy;
-}
-
-// Assume both input vectors are flat. Should be removed eventually.
-static void writeToPropertyVector(ValueVector* relIDVector, ValueVector* propertyVector,
-    ValueVector* rhsVector) {
-    KU_ASSERT(propertyVector->state->getSelVector().getSelSize() == 1);
-    auto propertyVectorPos = propertyVector->state->getSelVector()[0];
-    KU_ASSERT(rhsVector->state->getSelVector().getSelSize() == 1);
-    auto rhsVectorPos = rhsVector->state->getSelVector()[0];
-    writeToPropertyVector(relIDVector, propertyVector, propertyVectorPos, rhsVector, rhsVectorPos);
+    info.init(*resultSet, context->clientContext);
 }
 
 void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
-    if (columnID == INVALID_COLUMN_ID) {
-        if (lhsVector != nullptr) {
-            auto pos = relIDVector->state->getSelVector()[0];
-            lhsVector->setNull(pos, true);
+    if (tableInfo.columnID == INVALID_COLUMN_ID) {
+        if (info.columnVectorPos.isValid()) {
+            info.columnVector->setNull(info.columnDataVector->state->getSelVector()[0], true);
         }
         return;
     }
-    evaluator->evaluate();
-    auto updateState = std::make_unique<storage::RelTableUpdateState>(columnID, *srcNodeIDVector,
-        *dstNodeIDVector, *relIDVector, *rhsVector);
-    table->update(context->clientContext->getTx(), *updateState);
-    if (lhsVector != nullptr) {
-        writeToPropertyVector(relIDVector, lhsVector, rhsVector);
+    info.evaluator->evaluate();
+    auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
+        *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
+    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    if (info.columnVectorPos.isValid()) {
+        writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
     }
 }
 
 void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
-    evaluator->evaluate();
-    KU_ASSERT(relIDVector->state->isFlat());
-    auto pos = relIDVector->state->getSelVector()[0];
-    auto relID = relIDVector->getValue<internalID_t>(pos);
-    if (!tableIDToTableAndColumnID.contains(relID.tableID)) {
-        if (lhsVector != nullptr) {
-            lhsVector->setNull(pos, true);
+    info.evaluator->evaluate();
+    auto& idSelVector = info.relIDVector->state->getSelVector();
+    KU_ASSERT(idSelVector.getSelSize() == 1);
+    auto relID = info.relIDVector->getValue<internalID_t>(idSelVector[0]);
+    if (!tableInfos.contains(relID.tableID)) {
+        if (info.columnVectorPos.isValid()) {
+            info.columnVector->setNull(info.columnDataVector->state->getSelVector()[0], true);
         }
         return;
     }
-    auto [table, columnID] = tableIDToTableAndColumnID.at(relID.tableID);
-    auto updateState = std::make_unique<storage::RelTableUpdateState>(columnID, *srcNodeIDVector,
-        *dstNodeIDVector, *relIDVector, *rhsVector);
-    table->update(context->clientContext->getTx(), *updateState);
-    if (lhsVector != nullptr) {
-        writeToPropertyVector(relIDVector, lhsVector, rhsVector);
+    auto& tableInfo = tableInfos.at(relID.tableID);
+    auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
+        *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
+    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    if (info.columnVectorPos.isValid()) {
+        writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
     }
 }
 

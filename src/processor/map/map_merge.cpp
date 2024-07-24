@@ -19,11 +19,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     }
     std::vector<NodeInsertExecutor> nodeInsertExecutors;
     for (auto& info : logicalMerge.getInsertNodeInfos()) {
-        nodeInsertExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema)->copy());
+        nodeInsertExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema));
     }
     std::vector<RelInsertExecutor> relInsertExecutors;
     for (auto& info : logicalMerge.getInsertRelInfos()) {
-        relInsertExecutors.push_back(getRelInsertExecutor(&info, *inSchema, *outSchema)->copy());
+        relInsertExecutors.push_back(getRelInsertExecutor(&info, *inSchema, *outSchema));
     }
     std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors;
     for (auto& info : logicalMerge.getOnCreateSetNodeInfos()) {
@@ -54,17 +54,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     }
     std::vector<binder::expression_pair> onCreateOperation;
     for (auto& info : logicalMerge.getOnCreateSetRelInfos()) {
-        onCreateOperation.push_back(info.setItem);
+        onCreateOperation.emplace_back(info.column, info.columnData);
     }
     for (auto& info : logicalMerge.getOnCreateSetNodeInfos()) {
-        onCreateOperation.push_back(info.setItem);
+        onCreateOperation.emplace_back(info.column, info.columnData);
     }
     std::vector<binder::expression_pair> onMatchOperation;
     for (auto& info : logicalMerge.getOnMatchSetRelInfos()) {
-        onMatchOperation.push_back(info.setItem);
+        onMatchOperation.emplace_back(info.column, info.columnData);
     }
     for (auto& info : logicalMerge.getOnMatchSetNodeInfos()) {
-        onMatchOperation.push_back(info.setItem);
+        onMatchOperation.emplace_back(info.column, info.columnData);
     }
     auto printInfo =
         std::make_unique<MergePrintInfo>(expressions, onCreateOperation, onMatchOperation);

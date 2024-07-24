@@ -356,23 +356,18 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
     bool enableCompression;
     NodeGroupDataFormat format;
     bool hasCheckpointedData;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "node_group_idx");
+    deSer.validateDebuggingInfo(key, "node_group_idx");
     deSer.deserializeValue<node_group_idx_t>(nodeGroupIdx);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "enable_compression");
+    deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "format");
+    deSer.validateDebuggingInfo(key, "format");
     deSer.deserializeValue<NodeGroupDataFormat>(format);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "has_checkpointed_data");
+    deSer.validateDebuggingInfo(key, "has_checkpointed_data");
     deSer.deserializeValue<bool>(hasCheckpointedData);
     if (!hasCheckpointedData) {
         return nullptr;
     }
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "checkpointed_data");
+    deSer.validateDebuggingInfo(key, "checkpointed_data");
     std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup;
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {

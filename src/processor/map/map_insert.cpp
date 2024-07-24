@@ -1,5 +1,4 @@
 #include "binder/expression/rel_expression.h"
-#include "common/cast.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
@@ -15,7 +14,7 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace processor {
 
-static std::vector<DataPos> populateReturnVectorsPos(const LogicalInsertInfo& info,
+static std::vector<DataPos> populateReturnColumnsPos(const LogicalInsertInfo& info,
     const Schema& schema) {
     std::vector<DataPos> result;
     for (auto i = 0u; i < info.columnDataExprs.size(); ++i) {
@@ -28,44 +27,43 @@ static std::vector<DataPos> populateReturnVectorsPos(const LogicalInsertInfo& in
     return result;
 }
 
-std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* info,
+NodeInsertExecutor PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* boundInfo,
     const Schema& inSchema, const Schema& outSchema) const {
+    auto& node = boundInfo->pattern->constCast<NodeExpression>();
+    auto nodeIDPos = getDataPos(*node.getInternalID(), outSchema);
+    auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
+    auto info = NodeInsertInfo(nodeIDPos, columnsPos, boundInfo->conflictAction);
     auto storageManager = clientContext->getStorageManager();
-    auto& node = info->pattern->constCast<NodeExpression>();
     auto nodeTableID = node.getSingleTableID();
     auto table = storageManager->getTable(nodeTableID)->ptrCast<NodeTable>();
-    auto nodeIDPos = getDataPos(*node.getInternalID(), outSchema);
-    auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
-    std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
-    evaluators.reserve(info->columnDataExprs.size());
+    evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&inSchema);
-    for (auto& expr : info->columnDataExprs) {
+    for (auto& expr : boundInfo->columnDataExprs) {
         evaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    return std::make_unique<NodeInsertExecutor>(table, nodeIDPos, std::move(returnVectorsPos),
-        std::move(evaluators), info->conflictAction);
+    auto tableInfo = NodeTableInsertInfo(table, std::move(evaluators));
+    return NodeInsertExecutor(std::move(info), std::move(tableInfo));
 }
 
-std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
-    const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
-    const planner::Schema& outSchema) const {
+RelInsertExecutor PlanMapper::getRelInsertExecutor(const LogicalInsertInfo* boundInfo,
+    const Schema& inSchema, const Schema& outSchema) const {
+    auto& rel = boundInfo->pattern->constCast<RelExpression>();
+    auto srcNode = rel.getSrcNode();
+    auto dstNode = rel.getDstNode();
+    auto srcNodeIDPos = getDataPos(*srcNode->getInternalID(), inSchema);
+    auto dstNodeIDPos = getDataPos(*dstNode->getInternalID(), inSchema);
+    auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
+    auto info = RelInsertInfo(srcNodeIDPos, dstNodeIDPos, std::move(columnsPos));
     auto storageManager = clientContext->getStorageManager();
-    auto rel = ku_dynamic_cast<Expression*, RelExpression*>(info->pattern.get());
-    auto relTableID = rel->getSingleTableID();
-    auto table = ku_dynamic_cast<Table*, RelTable*>(storageManager->getTable(relTableID));
-    auto srcNode = rel->getSrcNode();
-    auto dstNode = rel->getDstNode();
-    auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalID()));
-    auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalID()));
-    auto returnVectorsPos = populateReturnVectorsPos(*info, outSchema);
-    std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
-    evaluators.reserve(info->columnDataExprs.size());
+    auto relTableID = rel.getSingleTableID();
+    auto table = storageManager->getTable(relTableID)->ptrCast<RelTable>();
+    evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&outSchema);
-    for (auto& expr : info->columnDataExprs) {
+    for (auto& expr : boundInfo->columnDataExprs) {
         evaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    return std::make_unique<RelInsertExecutor>(table, srcNodePos, dstNodePos,
-        std::move(returnVectorsPos), std::move(evaluators));
+    auto tableInfo = RelTableInsertInfo(table, std::move(evaluators));
+    return RelInsertExecutor(std::move(info), std::move(tableInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {
@@ -75,26 +73,26 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logical
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<NodeInsertExecutor> nodeExecutors;
     std::vector<RelInsertExecutor> relExecutors;
-    for (auto& info : logicalInsert.getInfosRef()) {
+    for (auto& info : logicalInsert.getInfos()) {
         switch (info.tableType) {
         case TableType::NODE: {
-            nodeExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema)->copy());
+            nodeExecutors.push_back(getNodeInsertExecutor(&info, *inSchema, *outSchema));
         } break;
         case TableType::REL: {
-            relExecutors.push_back(getRelInsertExecutor(&info, *inSchema, *outSchema)->copy());
+            relExecutors.push_back(getRelInsertExecutor(&info, *inSchema, *outSchema));
         } break;
         default:
             KU_UNREACHABLE;
         }
     }
     binder::expression_vector expressions;
-    for (auto& info : logicalInsert.getInfosRef()) {
+    for (auto& info : logicalInsert.getInfos()) {
         for (auto& expr : info.columnExprs) {
             expressions.push_back(expr);
         }
     }
-    auto printInfo = std::make_unique<InsertPrintInfo>(expressions,
-        logicalInsert.getInfosRef()[0].conflictAction);
+    auto printInfo =
+        std::make_unique<InsertPrintInfo>(expressions, logicalInsert.getInfos()[0].conflictAction);
     return std::make_unique<Insert>(std::move(nodeExecutors), std::move(relExecutors),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }
