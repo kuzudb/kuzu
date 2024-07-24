@@ -56,12 +56,12 @@ void SequenceCatalogEntry::nextVal() {
         bool minError = overflow ? sequenceData.increment < 0 : next < sequenceData.minValue;
         bool maxError = overflow ? sequenceData.increment > 0 : next > sequenceData.maxValue;
         if (minError) {
-            throw CatalogException("nextval: reached minimum value of sequence \"" + name +
-                                    "\" " + std::to_string(sequenceData.minValue));
+            throw CatalogException("nextval: reached minimum value of sequence \"" + name + "\" " +
+                                   std::to_string(sequenceData.minValue));
         }
         if (maxError) {
-            throw CatalogException("nextval: reached maximum value of sequence \"" + name +
-                                    "\" " + std::to_string(sequenceData.maxValue));
+            throw CatalogException("nextval: reached maximum value of sequence \"" + name + "\" " +
+                                   std::to_string(sequenceData.maxValue));
         }
     }
     sequenceData.currVal = next;

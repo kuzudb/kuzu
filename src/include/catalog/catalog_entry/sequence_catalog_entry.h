@@ -26,9 +26,9 @@ struct SequenceRollbackData {
 struct SequenceData {
     SequenceData() = default;
     explicit SequenceData(const binder::BoundCreateSequenceInfo& info)
-        : usageCount{0}, currVal{info.startWith}, increment{info.increment}, 
-          startValue{info.startWith}, minValue{info.minValue},
-          maxValue{info.maxValue}, cycle{info.cycle} {}
+        : usageCount{0}, currVal{info.startWith}, increment{info.increment},
+          startValue{info.startWith}, minValue{info.minValue}, maxValue{info.maxValue},
+          cycle{info.cycle} {}
 
     uint64_t usageCount;
     int64_t currVal;
