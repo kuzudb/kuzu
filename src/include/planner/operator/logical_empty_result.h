@@ -21,8 +21,6 @@ public:
         }
     }
 
-    std::string getExpressionsForPrinting() const override { return std::string{}; }
-
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalEmptyResult>(*originalSchema);
     }

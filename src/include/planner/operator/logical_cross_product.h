@@ -18,8 +18,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string(); }
-
     inline common::AccumulateType getAccumulateType() const { return accumulateType; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
