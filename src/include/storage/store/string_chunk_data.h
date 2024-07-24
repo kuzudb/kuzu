@@ -3,6 +3,7 @@
 #include "common/assert.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 
 namespace kuzu {
@@ -10,8 +11,14 @@ namespace storage {
 
 class StringChunkData final : public ColumnChunkData {
 public:
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 1;
+    static constexpr common::idx_t INDEX_COLUMN_CHILD_READ_STATE_IDX = 2;
+    static constexpr common::idx_t CHILD_COLUMN_COUNT = 3;
+
     StringChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
+    StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata);
 
     void resetToEmpty() override;
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
@@ -20,10 +27,13 @@ public:
     ColumnChunkData* getIndexColumnChunk();
     const ColumnChunkData* getIndexColumnChunk() const;
 
+    void initializeScanState(ChunkState& state) const override;
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
+        common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
@@ -38,16 +48,28 @@ public:
     }
 
     uint64_t getStringLength(common::offset_t pos) const {
-        auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
+        const auto index = indexColumnChunk->getValue<DictionaryChunk::string_index_t>(pos);
         return dictionaryChunk->getStringLength(index);
     }
 
+    void setIndexChunk(std::unique_ptr<ColumnChunkData> indexChunk) {
+        indexColumnChunk = std::move(indexChunk);
+    }
     DictionaryChunk& getDictionaryChunk() { return *dictionaryChunk; }
     const DictionaryChunk& getDictionaryChunk() const { return *dictionaryChunk; }
 
     void finalize() override;
 
+    void flush(BMFileHandle& dataFH) override;
+
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
+    void resetNumValuesFromMetadata() override;
+    void setToInMemory() override;
     void resize(uint64_t newCapacity) override;
+    uint64_t getEstimatedMemoryUsage() const override;
+
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
 private:
     void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,

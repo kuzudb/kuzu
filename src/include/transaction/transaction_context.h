@@ -39,20 +39,17 @@ public:
     void beginReadTransaction();
     void beginWriteTransaction();
     void beginAutoTransaction(bool readOnlyStatement);
-    void validateManualTransaction(bool readOnlyStatement);
+    void beginRecoveryTransaction();
+    void validateManualTransaction(bool readOnlyStatement) const;
 
     void commit();
     void rollback();
-    void commitSkipCheckPointing();
-    void rollbackSkipCheckPointing();
 
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }
     Transaction* getActiveTransaction() const { return activeTransaction.get(); }
 
 private:
-    void commitInternal(bool skipCheckPointing);
-    void rollbackInternal(bool skipCheckPointing);
     void clearTransaction();
 
 private:

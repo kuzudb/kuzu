@@ -1,22 +1,41 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/types/types.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
 
 class ListChunkData final : public ColumnChunkData {
-
 public:
+    static constexpr common::idx_t SIZE_COLUMN_CHILD_READ_STATE_IDX = 0;
+    static constexpr common::idx_t DATA_COLUMN_CHILD_READ_STATE_IDX = 1;
+    static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 2;
+    static constexpr size_t CHILD_COLUMN_COUNT = 3;
+
     ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        bool inMemory);
+        ResidencyState residencyState);
+    ListChunkData(common::LogicalType dataType, bool enableCompression,
+        const ColumnChunkMetadata& metadata);
 
     ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }
 
     ColumnChunkData* getDataColumnChunk() const { return dataColumnChunk.get(); }
+    std::unique_ptr<ColumnChunkData> moveDataColumnChunk() { return std::move(dataColumnChunk); }
 
     ColumnChunkData* getSizeColumnChunk() const { return sizeColumnChunk.get(); }
+    std::unique_ptr<ColumnChunkData> moveSizeColumnChunk() { return std::move(sizeColumnChunk); }
+
+    void setOffsetColumnChunk(std::unique_ptr<ColumnChunkData> offsetColumnChunk_) {
+        offsetColumnChunk = std::move(offsetColumnChunk_);
+    }
+    void setDataColumnChunk(std::unique_ptr<ColumnChunkData> dataColumnChunk_) {
+        dataColumnChunk = std::move(dataColumnChunk_);
+    }
+    void setSizeColumnChunk(std::unique_ptr<ColumnChunkData> sizeColumnChunk_) {
+        sizeColumnChunk = std::move(sizeColumnChunk_);
+    }
 
     void resetToEmpty() override;
 
@@ -25,14 +44,20 @@ public:
         sizeColumnChunk->setNumValues(numValues_);
         offsetColumnChunk->setNumValues(numValues_);
     }
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
 
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) final;
+    void resetNumValuesFromMetadata() override;
 
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+
+    void initializeScanState(ChunkState& state) const override;
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
+        common::sel_t posInOutputVector) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
     // Note: `write` assumes that no `append` will be called afterward.
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
@@ -41,8 +66,14 @@ public:
     void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
-    void resizeDataColumnChunk(uint64_t numValues) { dataColumnChunk->resize(numValues); }
+    void resizeDataColumnChunk(uint64_t numValues) const { dataColumnChunk->resize(numValues); }
 
+    void setToInMemory() override {
+        ColumnChunkData::setToInMemory();
+        sizeColumnChunk->setToInMemory();
+        offsetColumnChunk->setToInMemory();
+        dataColumnChunk->setToInMemory();
+    }
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);
@@ -59,7 +90,14 @@ public:
     void resetFromOtherChunk(ListChunkData* other);
     void finalize() override;
     bool isOffsetsConsecutiveAndSortedAscending(uint64_t startPos, uint64_t endPos) const;
-    bool sanityCheck() override;
+    bool sanityCheck() const override;
+
+    uint64_t getEstimatedMemoryUsage() const override;
+
+    void serialize(common::Serializer& serializer) const override;
+    static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
+
+    void flush(BMFileHandle& dataFH) override;
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

@@ -1,0 +1,114 @@
+-DATASET CSV empty
+--
+
+-CASE CreateNodeRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+
+-CASE CreateNodeWithNestedType
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE person(ID INT64, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY(ID));
+---- ok
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (deLim=',', header=true)
+            CREATE (:person{ID:ID, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.*
+---- 5
+0|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+2|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:person) RETURN a.*
+---- 5
+0|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+2|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+3|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+5|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+7|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+
+-CASE DeleteNodeRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:test {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 2
+0|True|2019-01-01
+1|False|2020-01-01
+-STATEMENT MATCH (a:test {id:1}) DELETE a
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 1
+0|True|2019-01-01
+
+-CASE DeleteNodeWithNestedType
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE organisation(ID INT64, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING),PRIMARY KEY (ID));
+---- ok
+-STATEMENT LOAD WITH HEADERS (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING))
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv" (escape='\\')
+            CREATE (:organisation{ID:ID, state:state, info:info});
+---- ok
+-STATEMENT MATCH (o:organisation) RETURN o.*
+---- 3
+1|{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|3.120000
+4|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|abcd
+6|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}|2023-12-15
+
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (o:organisation) RETURN o.*
+---- 3
+1|{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|3.120000
+4|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|abcd
+6|{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}|2023-12-15
+
+-CASE UpdateNodeRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:test {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT MATCH (a:test {id:1}) SET a.isTrue = True
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 2
+0|True|2019-01-01
+1|True|2020-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:test) RETURN a.id, a.isTrue, a.birthday
+---- 2
+0|True|2019-01-01
+1|True|2020-01-01

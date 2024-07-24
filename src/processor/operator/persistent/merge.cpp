@@ -79,6 +79,11 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
         } else {
             // do insert and on create
             for (auto& executor : nodeInsertExecutors) {
+                KU_ASSERT(executor.getNodeIDVector()->state->getSelVector().getSelSize() == 1);
+                // Note: The node ID is set to NULL after the left join. We need to set the node ID
+                // vector to non-null before inserting.
+                executor.getNodeIDVector()->setNull(
+                    executor.getNodeIDVector()->state->getSelVector()[0], false);
                 executor.insert(context->clientContext->getTx());
             }
             for (auto& executor : relInsertExecutors) {
@@ -97,10 +102,9 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> Merge::clone() {
     return std::make_unique<Merge>(existenceMark, distinctMark, copyVector(nodeInsertExecutors),
-        copyVector(relInsertExecutors), NodeSetExecutor::copy(onCreateNodeSetExecutors),
-        RelSetExecutor::copy(onCreateRelSetExecutors),
-        NodeSetExecutor::copy(onMatchNodeSetExecutors),
-        RelSetExecutor::copy(onMatchRelSetExecutors), children[0]->clone(), id, printInfo->copy());
+        copyVector(relInsertExecutors), copyVector(onCreateNodeSetExecutors),
+        copyVector(onCreateRelSetExecutors), copyVector(onMatchNodeSetExecutors),
+        copyVector(onMatchRelSetExecutors), children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor

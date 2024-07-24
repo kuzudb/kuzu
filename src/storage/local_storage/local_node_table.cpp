@@ -1,162 +1,119 @@
 #include "storage/local_storage/local_node_table.h"
 
 #include "common/cast.h"
-#include "storage/storage_utils.h"
+#include "common/types/internal_id_t.h"
+#include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
+#include <common/exception/message.h>
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
 
-void LocalNodeNG::initializeScanState(TableScanState& scanState) const {
-    auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    dataScanState.vectorIdx = INVALID_IDX;
-    dataScanState.numRowsInNodeGroup = insertChunks.getOffsetToRowIdx().size();
+LocalNodeTable::LocalNodeTable(Table& table)
+    : LocalTable{table}, nodeGroups{NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
+                             false /*enableCompression*/} {
+    initLocalHashIndex();
 }
 
-void LocalNodeNG::scan(TableScanState& scanState) {
-    const auto& dataScanState =
-        ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
-    const auto startIdx = dataScanState.vectorIdx * DEFAULT_VECTOR_CAPACITY;
-    auto itr = insertChunks.getOffsetToRowIdx().begin();
-    for (auto i = 0u; i < startIdx; i++) {
-        ++itr;
-    }
-    for (auto i = 0u; i < dataScanState.numRowsToScan; i++) {
-        KU_ASSERT(itr != insertChunks.getOffsetToRowIdx().end());
-        const auto offset = itr->first;
-        scanState.nodeIDVector->setValue<internalID_t>(i, {offset + nodeGroupStartOffset, tableID});
-        KU_ASSERT(!deleteInfo.containsOffset(offset));
-        insertChunks.read(offset, scanState.columnIDs, scanState.outputVectors, i);
-        ++itr;
-    }
-    scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(
-        dataScanState.numRowsToScan);
+void LocalNodeTable::initLocalHashIndex() {
+    auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
+    DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
+    overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
+    overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, overflowCursor);
+    hashIndex = std::make_unique<LocalHashIndex>(
+        nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
+        overflowFileHandle.get());
 }
 
-void LocalNodeNG::lookup(const ValueVector& nodeIDVector, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors) {
-    for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
-        const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
-        const auto nodeOffset = nodeIDVector.getValue<nodeID_t>(nodeIDPos).offset;
-        if (deleteInfo.containsOffset(nodeOffset)) {
-            // Node has been deleted.
-            return;
-        }
-        for (auto columnIdx = 0u; columnIdx < columnIDs.size(); columnIdx++) {
-            const auto posInOutputVector = outputVectors[columnIdx]->state->getSelVector()[i];
-            if (columnIDs[columnIdx] == INVALID_COLUMN_ID) {
-                outputVectors[columnIdx]->setNull(posInOutputVector, true);
-                continue;
-            }
-            getUpdateChunks(columnIDs[columnIdx])
-                .read(nodeOffset, 0 /*columnID*/, outputVectors[columnIdx], posInOutputVector);
-        }
-    }
-}
-
-bool LocalNodeNG::insert(std::vector<ValueVector*> nodeIDVectors,
-    std::vector<ValueVector*> propertyVectors) {
-    KU_ASSERT(nodeIDVectors.size() == 1);
-    const auto nodeIDVector = nodeIDVectors[0];
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
-    const auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-    if (nodeIDVector->isNull(nodeIDPos)) {
+bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) {
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    auto* nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
+    if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
         return false;
     }
-    // The nodeOffset here should be the offset within the node group.
-    const auto nodeOffset =
-        nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
-    KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
-    if (deleteInfo.containsOffset(nodeOffset)) {
-        deleteInfo.clearNodeOffset(nodeOffset);
+    return nodeGroup->isInserted(transaction, offsetInGroup);
+}
+
+offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transaction,
+    const ValueVector& pkVector) {
+    KU_ASSERT(pkVector.state->getSelVector().getSelSize() == 1);
+    return hashIndex->lookup(pkVector,
+        [&](offset_t offset_) { return isVisible(transaction, offset_); });
+}
+
+bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    KU_ASSERT(transaction->isDummy());
+    auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
+    const auto numRowsInLocalTable = nodeGroups.getNumRows();
+    const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
+    KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
+    if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset,
+            [&](offset_t offset) { return isVisible(transaction, offset); })) {
+        const auto val =
+            nodeInsertState.pkVector.getAsValue(nodeInsertState.pkVector.state->getSelVector()[0]);
+        throw RuntimeException(ExceptionMessage::duplicatePKException(val->toString()));
     }
-    insertChunks.append(nodeOffset, propertyVectors);
+    const auto nodeIDPos =
+        nodeInsertState.nodeIDVector.state->getSelVector().getSelectedPositions()[0];
+    nodeInsertState.nodeIDVector.setValue(nodeIDPos, internalID_t{nodeOffset, table.getTableID()});
+    nodeGroups.append(transaction, insertState.propertyVectors);
     return true;
 }
 
-bool LocalNodeNG::update(std::vector<ValueVector*> nodeIDVectors, column_id_t columnID,
-    ValueVector* propertyVector) {
-    KU_ASSERT(nodeIDVectors.size() == 1);
-    const auto nodeIDVector = nodeIDVectors[0];
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
-    const auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-    if (nodeIDVector->isNull(nodeIDPos)) {
-        return false;
+bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
+    KU_ASSERT(transaction->isDummy());
+    const auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
+    KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];
+    const auto offset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
+    if (nodeUpdateState.columnID == table.cast<NodeTable>().getPKColumnID()) {
+        KU_ASSERT(nodeUpdateState.pkVector);
+        hashIndex->delete_(*nodeUpdateState.pkVector);
+        hashIndex->insert(*nodeUpdateState.pkVector, offset,
+            [&](offset_t offset_) { return isVisible(transaction, offset_); });
     }
-    const auto nodeOffset =
-        nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
-    KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE && columnID < updateChunks.size());
-    // Check if the node is newly inserted or in persistent storage.
-    if (insertChunks.hasOffset(nodeOffset)) {
-        insertChunks.update(nodeOffset, columnID, propertyVector);
-    } else {
-        updateChunks[columnID].append(nodeOffset, {propertyVector});
-    }
+    const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
+        offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
+    const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
+    nodeGroup->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
+        nodeUpdateState.propertyVector);
     return true;
 }
 
-bool LocalNodeNG::delete_(ValueVector* nodeIDVector, ValueVector*) {
-    KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
-    const auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-    if (nodeIDVector->isNull(nodeIDPos)) {
-        return false;
-    }
-    const auto nodeOffset =
-        nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
-    KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
-    // Check if the node is newly inserted or in persistent storage.
-    if (insertChunks.hasOffset(nodeOffset)) {
-        insertChunks.remove(nodeOffset);
-        return true;
-    } else {
-        for (auto i = 0u; i < updateChunks.size(); i++) {
-            updateChunks[i].remove(nodeOffset);
-        }
-        return deleteInfo.deleteOffset(nodeOffset);
-    }
+bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+    KU_ASSERT(transaction->isDummy());
+    const auto& nodeDeleteState = deleteState.cast<NodeTableDeleteState>();
+    KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
+    const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
+    const auto offset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
+    hashIndex->delete_(nodeDeleteState.pkVector);
+    const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
+        offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
+    const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
+    return nodeGroup->delete_(transaction, rowIdxInGroup);
 }
 
-LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(ValueVector* nodeIDVector) {
-    const auto nodeIDPos = nodeIDVector->state->getSelVector()[0];
-    const auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    if (!nodeGroups.contains(nodeGroupIdx)) {
-        auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        nodeGroups[nodeGroupIdx] =
-            std::make_unique<LocalNodeNG>(tableID, nodeGroupStartOffset, dataTypes);
-    }
-    return nodeGroups.at(nodeGroupIdx).get();
+bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
+    nodeGroups.addColumn(transaction, addColumnState);
+    return true;
 }
 
-LocalNodeTable::LocalNodeTable(Table& table) : LocalTable{table} {
-    const auto& nodeTable = ku_dynamic_cast<Table&, NodeTable&>(table);
-    std::vector<LogicalType> types;
-    for (auto i = 0u; i < nodeTable.getNumColumns(); i++) {
-        types.push_back(nodeTable.getColumn(i)->getDataType().copy());
-    }
-    localTableDataCollection.push_back(
-        std::make_unique<LocalNodeTableData>(nodeTable.getTableID(), std::move(types)));
+void LocalNodeTable::clear() {
+    auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
+    hashIndex = std::make_unique<LocalHashIndex>(
+        nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
+        overflowFileHandle.get());
+    nodeGroups.clear();
 }
 
-bool LocalNodeTable::insert(TableInsertState& state) {
-    const auto& insertState = ku_dynamic_cast<TableInsertState&, NodeTableInsertState&>(state);
-    return localTableDataCollection[0]->insert({&insertState.nodeIDVector},
-        insertState.propertyVectors);
-}
-
-bool LocalNodeTable::update(TableUpdateState& state) {
-    const auto& updateState = ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(state);
-    return localTableDataCollection[0]->update({&updateState.nodeIDVector}, updateState.columnID,
-        const_cast<ValueVector*>(&updateState.propertyVector));
-}
-
-bool LocalNodeTable::delete_(TableDeleteState& deleteState) {
-    const auto& deleteState_ =
-        ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
-    return localTableDataCollection[0]->delete_(&deleteState_.nodeIDVector, nullptr);
+bool LocalNodeTable::lookupPK(const Transaction* transaction, const ValueVector* keyVector,
+    offset_t& result) {
+    result = hashIndex->lookup(*keyVector,
+        [&](offset_t offset) { return isVisible(transaction, offset); });
+    return result != INVALID_OFFSET;
 }
 
 } // namespace storage

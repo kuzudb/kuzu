@@ -58,15 +58,22 @@ struct KUZU_API SystemConfig {
      * environment. This will be removed once we implemente a better solution later. The value is
      * default to 1 << 43 (8TB) under 64-bit environment and 1GB under 32-bit one (see
      * `DEFAULT_VM_REGION_MAX_SIZE`).
+     * @param autoCheckpoint If true, the database will automatically checkpoint when the size of
+     * the WAL file exceeds the checkpoint threshold.
+     * @param checkpointThreshold The threshold of the WAL file size in bytes. When the size of the
+     * WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
-        bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u);
+        bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u,
+        bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
     bool enableCompression;
     bool readOnly;
     uint64_t maxDBSize;
+    bool autoCheckpoint;
+    uint64_t checkpointThreshold;
 };
 
 /**
@@ -77,8 +84,8 @@ class Database {
     friend class ClientContext;
     friend class Connection;
     friend class StorageDriver;
-    friend class kuzu::testing::BaseGraphTest;
-    friend class kuzu::testing::PrivateGraphTest;
+    friend class testing::BaseGraphTest;
+    friend class testing::PrivateGraphTest;
     friend class transaction::TransactionContext;
     friend struct extension::ExtensionUtils;
 

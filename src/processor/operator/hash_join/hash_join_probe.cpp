@@ -1,9 +1,17 @@
 #include "processor/operator/hash_join/hash_join_probe.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+
+std::string HashJoinProbePrintInfo::toString() const {
+    std::string result = "Keys: ";
+    result += binder::ExpressionUtil::toString(keys);
+    return result;
+}
 
 void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     probeState = std::make_unique<ProbeState>();

@@ -15,6 +15,8 @@
 namespace kuzu {
 namespace storage {
 
+using visible_func = std::function<bool(common::offset_t)>;
+
 constexpr size_t BUFFER_SIZE = 1024;
 template<typename T>
 using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
@@ -68,8 +70,6 @@ class InMemHashIndex final {
 public:
     explicit InMemHashIndex(OverflowFileHandle* overflowFileHandle);
 
-    static void createEmptyIndexFiles(uint64_t indexPos, FileHandle& fileHandle);
-
     // Reserves space for at least the specified number of elements.
     // This reserves space for numEntries in total, regardless of existing entries in the builder
     void reserve(uint32_t numEntries);
@@ -81,7 +81,7 @@ public:
     using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
-    size_t append(const IndexBuffer<BufferKeyType>& buffer) {
+    size_t append(const IndexBuffer<BufferKeyType>& buffer, visible_func isVisible) {
         reserve(indexHeader.numEntries + buffer.size());
         // Do both searches after splitting. Returning early if the key already exists isn't a
         // particular concern and doing both after splitting allows the slotID to be reused
@@ -91,18 +91,18 @@ public:
         }
         for (size_t i = 0; i < buffer.size(); i++) {
             auto& [key, value] = buffer[i];
-            if (!appendInternal(key, value, hashes[i])) {
+            if (!appendInternal(key, value, hashes[i], isVisible)) {
                 return i;
             }
         }
         return buffer.size();
     }
 
-    inline bool append(Key key, common::offset_t value) {
+    bool append(Key key, common::offset_t value, visible_func isVisible) {
         reserve(indexHeader.numEntries + 1);
-        return appendInternal(key, value, HashIndexUtils::hash(key));
+        return appendInternal(key, value, HashIndexUtils::hash(key), isVisible);
     }
-    bool lookup(Key key, common::offset_t& result) {
+    bool lookup(Key key, common::offset_t& result, visible_func isVisible) {
         // This needs to be fast if the builder is empty since this function is always tried
         // when looking up in the persistent hash index
         if (this->indexHeader.numEntries == 0) {
@@ -112,7 +112,7 @@ public:
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
         auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
         SlotIterator iter(slotId, this);
-        auto entryPos = findEntry(iter, key, fingerprint);
+        auto entryPos = findEntry(iter, key, fingerprint, isVisible);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             result = iter.slot->entries[entryPos].value;
             return true;
@@ -126,14 +126,14 @@ public:
     void clear();
 
     struct SlotIterator {
-        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex<T>* builder)
+        explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex* builder)
             : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
         Slot<T>* slot;
     };
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
-    inline bool nextChainedSlot(SlotIterator& iter) const {
+    bool nextChainedSlot(SlotIterator& iter) const {
         iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
         iter.slotInfo.slotType = SlotType::OVF;
         if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
@@ -143,10 +143,10 @@ public:
         return false;
     }
 
-    inline uint64_t numPrimarySlots() const { return pSlots->size(); }
-    inline uint64_t numOverflowSlots() const { return oSlots->size(); }
+    uint64_t numPrimarySlots() const { return pSlots->size(); }
+    uint64_t numOverflowSlots() const { return oSlots->size(); }
 
-    inline const HashIndexHeader& getIndexHeader() const { return indexHeader; }
+    const HashIndexHeader& getIndexHeader() const { return indexHeader; }
 
     // Deletes key, maintaining gapless structure by replacing it with the last entry in the
     // slot
@@ -193,13 +193,14 @@ public:
 
 private:
     // Assumes that space has already been allocated for the entry
-    bool appendInternal(Key key, common::offset_t value, common::hash_t hash) {
+    bool appendInternal(Key key, common::offset_t value, common::hash_t hash,
+        visible_func isVisible) {
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
         auto slotID = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hash);
         SlotIterator iter(slotID, this);
         // The builder never keeps holes and doesn't support deletions
         // Check the valid entries, then insert at the end if we don't find one which matches
-        auto entryPos = findEntry(iter, key, fingerprint);
+        auto entryPos = findEntry(iter, key, fingerprint, isVisible);
         auto numEntries = iter.slot->header.numEntries();
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             // The key already exists
@@ -229,7 +230,7 @@ private:
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
 
-    inline bool equals(Key keyToLookup, const T& keyInEntry) const {
+    bool equals(Key keyToLookup, const T& keyInEntry) const {
         if constexpr (std::same_as<T, common::ku_string_t>) {
             // Checks if prefix and len matches first.
             if (!HashIndexUtils::areStringPrefixAndLenEqual(keyToLookup, keyInEntry)) {
@@ -252,7 +253,7 @@ private:
         }
     }
 
-    inline void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
+    void insert(Key key, Slot<T>* slot, uint8_t entryPos, common::offset_t value,
         uint8_t fingerprint) {
         KU_ASSERT(HashIndexUtils::getFingerprintForHash(HashIndexUtils::hash(key)) == fingerprint);
         auto& entry = slot->entries[entryPos];
@@ -264,7 +265,6 @@ private:
             slot->header.setEntryValid(entryPos, fingerprint);
         }
     }
-    void copy(const SlotEntry<T>& oldEntry, slot_id_t newSlotId, uint8_t fingerprint);
 
     void insertToNewOvfSlot(Key key, Slot<T>* previousSlot, common::offset_t offset,
         uint8_t fingerprint) {
@@ -280,13 +280,15 @@ private:
 
     // Finds the entry matching the given key. The iterator will be advanced and will either point
     // to the slot containing the matching entry, or the last slot available
-    entry_pos_t findEntry(SlotIterator& iter, Key key, uint8_t fingerprint) {
+    entry_pos_t findEntry(SlotIterator& iter, Key key, uint8_t fingerprint,
+        visible_func isVisible) {
         do {
             auto numEntries = iter.slot->header.numEntries();
             KU_ASSERT(numEntries == std::countr_one(iter.slot->header.validityMask));
             for (auto entryPos = 0u; entryPos < numEntries; entryPos++) {
                 if (iter.slot->header.fingerprints[entryPos] == fingerprint &&
-                    equals(key, iter.slot->entries[entryPos].key)) [[unlikely]] {
+                    equals(key, iter.slot->entries[entryPos].key) &&
+                    isVisible(iter.slot->entries[entryPos].value)) [[unlikely]] {
                     // Value already exists
                     return entryPos;
                 }

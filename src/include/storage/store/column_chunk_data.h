@@ -7,18 +7,25 @@
 #include "common/enums/rel_multiplicity.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "common/vector/value_vector.h"
 #include "storage/compression/compression.h"
+#include "storage/enums/residency_state.h"
 
 namespace kuzu {
 namespace evaluator {
 class ExpressionEvaluator;
 } // namespace evaluator
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
+
 namespace storage {
 
+class Column;
 class NullChunkData;
-class BMFileHandle;
-
+// TODO(Guodong): Ideally ColumnChunkMetadata should implement its own ser/deSer functions so it can
+// save a bit of space on disk. But the size is small now, I'm not motivated for the change, just
+// note here still.
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;
@@ -34,26 +41,68 @@ struct ColumnChunkMetadata {
         : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
 };
 
+// TODO(bmwinger): Hide access to variables.
+struct ChunkState {
+    Column* column;
+    ColumnChunkMetadata metadata;
+    uint64_t numValuesPerPage = UINT64_MAX;
+    std::unique_ptr<ChunkState> nullState;
+    // Used for struct/list/string columns.
+    std::vector<ChunkState> childrenStates;
+
+    explicit ChunkState(bool hasNull = true) : column{nullptr} {
+        if (hasNull) {
+            nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+        }
+    }
+    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+        : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
+        nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+    }
+
+    ChunkState& getChildState(common::idx_t childIdx) {
+        KU_ASSERT(childIdx < childrenStates.size());
+        return childrenStates[childIdx];
+    }
+    const ChunkState& getChildState(common::idx_t childIdx) const {
+        KU_ASSERT(childIdx < childrenStates.size());
+        return childrenStates[childIdx];
+    }
+
+    void resetState() {
+        numValuesPerPage = UINT64_MAX;
+        if (nullState) {
+            nullState->resetState();
+        }
+        for (auto& childState : childrenStates) {
+            childState.resetState();
+        }
+    }
+};
+
+class BMFileHandle;
 // Base data segment covers all fixed-sized data types.
 class ColumnChunkData {
 public:
     friend struct ColumnChunkFactory;
+    friend struct ListDataColumnChunk;
 
-    // ColumnChunks must be initialized after construction, so this constructor should only be used
-    // through the ColumnChunkFactory
-    ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
-        bool hasNull = true);
-
+    ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
+        ResidencyState residencyState, bool hasNullData);
+    ColumnChunkData(common::LogicalType dataType, bool enableCompression,
+        const ColumnChunkMetadata& metadata, bool hasNullData);
     virtual ~ColumnChunkData() = default;
 
     template<typename T>
     T getValue(common::offset_t pos) const {
         KU_ASSERT(pos < numValues);
+        KU_ASSERT(residencyState != ResidencyState::ON_DISK);
         return reinterpret_cast<T*>(buffer.get())[pos];
     }
     template<typename T>
     void setValue(T val, common::offset_t pos) {
         KU_ASSERT(pos < capacity);
+        KU_ASSERT(residencyState != ResidencyState::ON_DISK);
         reinterpret_cast<T*>(buffer.get())[pos] = val;
         if (pos >= numValues) {
             numValues = pos + 1;
@@ -61,12 +110,31 @@ public:
     }
 
     bool isNull(common::offset_t pos) const;
-    NullChunkData* getNullChunk() { return nullChunk.get(); }
-    const NullChunkData& getNullChunk() const { return *nullChunk; }
+    void setNullData(std::unique_ptr<NullChunkData> nullData_) { nullData = std::move(nullData_); }
+    bool hasNullData() const { return nullData != nullptr; }
+    NullChunkData* getNullData() { return nullData.get(); }
+    const NullChunkData& getNullData() const { return *nullData; }
     std::optional<common::NullMask> getNullMask() const;
+    std::unique_ptr<NullChunkData> moveNullData() { return std::move(nullData); }
+
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
+    ResidencyState getResidencyState() const { return residencyState; }
+    bool isCompressionEnabled() const { return enableCompression; }
+    ColumnChunkMetadata& getMetadata() {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        return metadata;
+    }
+    const ColumnChunkMetadata& getMetadata() const {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        return metadata;
+    }
+    void setMetadata(const ColumnChunkMetadata& metadata_) {
+        KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+        metadata = metadata_;
+    }
 
+    // Only have side effects on in-memory or temporary chunks.
     virtual void resetToAllNull();
     virtual void resetToEmpty();
 
@@ -76,6 +144,8 @@ public:
     virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
+
+    virtual void flush(BMFileHandle& dataFH);
 
     ColumnChunkMetadata flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
         const ColumnChunkMetadata& metadata) const;
@@ -88,12 +158,15 @@ public:
     uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     uint8_t* getData() const { return buffer.get(); }
 
+    virtual void initializeScanState(ChunkState& state) const;
+    virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
+        common::sel_t posInOutputVector = 0) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
 
     // TODO(Guodong): In general, this is not a good interface. Instead of passing in
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
-    virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    virtual void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
     virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
         common::RelMultiplicity multiplicity);
@@ -103,22 +176,31 @@ public:
     virtual void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
+    virtual void setToInMemory();
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
     virtual void resize(uint64_t newCapacity);
 
     void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
         uint64_t& numValues_);
-    virtual void finalize() { // DO NOTHING.
+    virtual void finalize() {
+        KU_ASSERT(residencyState != ResidencyState::ON_DISK);
+        // DO NOTHING.
     }
 
     uint64_t getCapacity() const { return capacity; }
-    uint64_t getNumValues() const { return numValues; }
+    virtual uint64_t getNumValues() const { return numValues; }
+    // TODO(Guodong): Alternatively, we can let `getNumValues` read from metadata when ON_DISK.
+    virtual void resetNumValuesFromMetadata();
     virtual void setNumValues(uint64_t numValues_);
     virtual bool numValuesSanityCheck() const;
-    bool isCompressionEnabled() const { return enableCompression; }
 
-    virtual bool sanityCheck();
+    virtual bool sanityCheck() const;
+
+    virtual uint64_t getEstimatedMemoryUsage() const;
+
+    virtual void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<ColumnChunkData> deserialize(common::Deserializer& deSer);
 
     template<typename TARGET>
     TARGET& cast() {
@@ -133,7 +215,10 @@ protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.
     void initializeBuffer();
-    void initializeFunction();
+    void initializeFunction(bool enableCompression);
+
+    // Note: This function is not setting child/null chunk data recursively.
+    void setToOnDisk(const ColumnChunkMetadata& metadata);
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector);
@@ -146,17 +231,23 @@ protected:
         BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
     using get_metadata_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
         uint64_t, uint64_t, StorageValue, StorageValue)>;
+    using get_min_max_func_t =
+        std::function<std::pair<StorageValue, StorageValue>(const uint8_t*, uint64_t)>;
 
+    ResidencyState residencyState;
     common::LogicalType dataType;
+    bool enableCompression;
     uint32_t numBytesPerValue;
     uint64_t bufferSize;
     uint64_t capacity;
     std::unique_ptr<uint8_t[]> buffer;
-    std::unique_ptr<NullChunkData> nullChunk;
+    std::unique_ptr<NullChunkData> nullData;
     uint64_t numValues;
     flush_buffer_func_t flushBufferFunction;
     get_metadata_func_t getMetadataFunction;
-    bool enableCompression;
+
+    // On-disk metadata for column chunk.
+    ColumnChunkMetadata metadata;
 };
 
 template<>
@@ -174,19 +265,23 @@ inline bool ColumnChunkData::getValue(common::offset_t pos) const {
 // Stored as bitpacked booleans in-memory and on-disk
 class BoolChunkData : public ColumnChunkData {
 public:
-    explicit BoolChunkData(uint64_t capacity, bool enableCompression, bool hasNullChunk = true)
+    BoolChunkData(uint64_t capacity, bool enableCompression, ResidencyState type, bool hasNullChunk)
         : ColumnChunkData(common::LogicalType::BOOL(), capacity,
               // Booleans are always bitpacked, but this can also enable constant compression
-              enableCompression, hasNullChunk) {}
+              enableCompression, type, hasNullChunk) {}
+    BoolChunkData(bool enableCompression, const ColumnChunkMetadata& metadata, bool hasNullData)
+        : ColumnChunkData{common::LogicalType::BOOL(), enableCompression, metadata, hasNullData} {}
 
     void append(common::ValueVector* vector, const common::SelectionVector& sel) final;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
+        common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) final;
@@ -196,9 +291,13 @@ public:
 
 class NullChunkData final : public BoolChunkData {
 public:
-    explicit NullChunkData(uint64_t capacity, bool enableCompression)
-        : BoolChunkData(capacity, enableCompression, false /*hasNullChunk*/),
+    NullChunkData(uint64_t capacity, bool enableCompression, ResidencyState type)
+        : BoolChunkData(capacity, enableCompression, type, false /*hasNullData*/),
           mayHaveNullValue{false} {}
+    NullChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+        : BoolChunkData{enableCompression, metadata, false /*hasNullData*/},
+          mayHaveNullValue{false} {}
+
     // Maybe this should be combined with BoolChunkData if the only difference is these functions?
     bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
@@ -226,16 +325,23 @@ public:
         }
     }
 
+    // NullChunkData::scan updates the null mask of output vector
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
+        common::sel_t posInOutputVector = 0) const override;
+
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
-    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<NullChunkData> deserialize(common::Deserializer& deSer);
+
     common::NullMask getNullMask() const {
-        return common::NullMask(std::span(reinterpret_cast<uint64_t*>(getData()), capacity / 64),
+        return common::NullMask(std::span(reinterpret_cast<uint64_t*>(buffer.get()), capacity / 64),
             mayHaveNullValue);
     }
 
@@ -243,16 +349,62 @@ protected:
     bool mayHaveNullValue;
 };
 
+class InternalIDChunkData final : public ColumnChunkData {
+public:
+    // TODO(Guodong): Should make InternalIDChunkData has no NULL.
+    // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,
+    InternalIDChunkData(uint64_t capacity, bool enableCompression, ResidencyState residencyState)
+        : ColumnChunkData(common::LogicalType::INTERNAL_ID(), capacity, enableCompression,
+              residencyState, true /*hasNullData*/),
+          commonTableID{common::INVALID_TABLE_ID} {}
+    InternalIDChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
+        : ColumnChunkData{common::LogicalType::INTERNAL_ID(), enableCompression, metadata,
+              true /*hasNullData*/},
+          commonTableID{common::INVALID_TABLE_ID} {}
+
+    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+
+    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
+        const common::SelectionVector& selVector) override;
+
+    void copyInt64VectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
+        const common::SelectionVector& selVector) const;
+
+    void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
+        common::sel_t posInOutputVector = 0) const override;
+    void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
+        common::sel_t posInOutputVector) const override;
+
+    void write(const common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) override;
+
+    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+        uint32_t numValuesToAppend) override;
+
+    void setTableID(common::table_id_t tableID) { commonTableID = tableID; }
+    common::table_id_t getTableID() const { return commonTableID; }
+
+    common::offset_t operator[](common::offset_t pos) const {
+        return getValue<common::offset_t>(pos);
+    }
+    common::offset_t& operator[](common::offset_t pos) {
+        return reinterpret_cast<common::offset_t*>(buffer.get())[pos];
+    }
+
+private:
+    common::table_id_t commonTableID;
+};
+
 struct ColumnChunkFactory {
-    // inMemory starts string column chunk dictionaries at zero instead of reserving space for
-    // values to grow
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
-        bool inMemory = false, bool hasNull = true);
+        bool enableCompression, uint64_t capacity, ResidencyState residencyState,
+        bool hasNullData = true);
+    static std::unique_ptr<ColumnChunkData> createColumnChunkData(common::LogicalType dataType,
+        bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData);
 
     static std::unique_ptr<ColumnChunkData> createNullChunkData(bool enableCompression,
-        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
-        return std::make_unique<NullChunkData>(capacity, enableCompression);
+        uint64_t capacity, ResidencyState type) {
+        return std::make_unique<NullChunkData>(capacity, enableCompression, type);
     }
 };
 

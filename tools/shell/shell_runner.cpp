@@ -14,18 +14,35 @@ int main(int argc, char* argv[]) {
     args::Positional<std::string> inputDirFlag(parser, "databasePath", "Database path.");
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
-        "Size of buffer pool for default and large page sizes in megabytes", {'d', "defaultBPSize"},
-        -1u);
-    args::Flag disableCompression(parser, "nocompression", "Disable compression",
-        {"nocompression"});
-    args::Flag readOnlyMode(parser, "readOnly", "Open database at read-only mode.",
-        {'r', "readOnly"});
+        "Size of buffer pool for default and large page sizes in megabytes",
+        {'d', "default_bp_size", "defaultbpsize"}, -1u);
+    args::Flag disableCompression(parser, "no_compression", "Disable compression",
+        {"no_compression", "nocompression"});
+    args::Flag readOnlyMode(parser, "read_only", "Open database at read-only mode.",
+        {'r', "read_only", "readonly"});
     args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history",
-        {'p'});
+        {'p', "path_history"});
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
 
+    std::vector<std::string> lCaseArgsStrings;
+    for (auto i = 0; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg.size() > 1 && arg[0] == '-') {
+            std::string lArg = arg;
+            std::transform(lArg.begin(), lArg.end(), lArg.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+            lCaseArgsStrings.push_back(lArg);
+        } else {
+            lCaseArgsStrings.push_back(argv[i]);
+        }
+    }
+    std::vector<char*> lCaseArgs;
+    for (auto& arg : lCaseArgsStrings) {
+        lCaseArgs.push_back(const_cast<char*>(arg.c_str()));
+    }
+
     try {
-        parser.ParseCLI(argc, argv);
+        parser.ParseCLI(lCaseArgs.size(), lCaseArgs.data());
     } catch (const args::Help&) {
         std::cout << parser;
         return 0;

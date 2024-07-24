@@ -9,6 +9,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+std::string IntersectPrintInfo::toString() const {
+    std::string result = "Key: ";
+    result += key->toString();
+    return result;
+}
+
 void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outKeyVector = resultSet->getValueVector(outputDataPos);
     for (auto& dataInfo : intersectDataInfos) {

@@ -18,11 +18,15 @@
 
 
 -CASE deleteRelsFromLargeListCommitRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>delete_rels_from_large_list.cypher
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
@@ -51,11 +55,15 @@
 
 
 -CASE deleteRelsFromLargeListRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -BATCH_STATEMENTS <FILE:>delete_rels_from_large_list.cypher
 ---- ok
--STATEMENT ROLLBACK_SKIP_CHECKPOINT
+-STATEMENT ROLLBACK
 ---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION

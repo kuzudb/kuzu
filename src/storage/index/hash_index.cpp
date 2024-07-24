@@ -31,10 +31,10 @@ namespace storage {
 template<typename T>
 HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
     OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
-    BufferManager& bufferManager, WAL* wal, const HashIndexHeader& headerForReadTrx,
+    BufferManager& bufferManager, ShadowFile* shadowFile, const HashIndexHeader& headerForReadTrx,
     HashIndexHeader& headerForWriteTrx)
-    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal}, fileHandle(fileHandle),
-      overflowFileHandle(overflowFileHandle),
+    : dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, shadowFile{shadowFile},
+      fileHandle(fileHandle), overflowFileHandle(overflowFileHandle),
       localStorage{std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle)},
       indexHeaderForReadTrx{headerForReadTrx}, indexHeaderForWriteTrx{headerForWriteTrx} {
     pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
@@ -71,31 +71,29 @@ inline common::hash_t HashIndex<ku_string_t>::hashStored(const Transaction* tran
 }
 
 template<typename T>
-bool HashIndex<T>::prepareCommit() {
+bool HashIndex<T>::checkpoint() {
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
+        auto transaction = &DUMMY_CHECKPOINT_TRANSACTION;
         auto netInserts = localStorage->getNetInserts();
         if (netInserts > 0) {
-            reserve(&DUMMY_WRITE_TRANSACTION, netInserts);
+            reserve(transaction, netInserts);
         }
         localStorage->applyLocalChanges(
-            [&](Key key) { deleteFromPersistentIndex(&DUMMY_WRITE_TRANSACTION, key); },
-            [&](const auto& insertions) {
-                mergeBulkInserts(&DUMMY_WRITE_TRANSACTION, insertions);
-            });
-        pSlots->prepareCommit();
-        oSlots->prepareCommit();
+            [&](Key key) { deleteFromPersistentIndex(transaction, key); },
+            [&](const auto& insertions) { mergeBulkInserts(transaction, insertions); });
+        pSlots->checkpoint();
+        oSlots->checkpoint();
         return true;
     }
-    pSlots->prepareCommit();
-    oSlots->prepareCommit();
+    pSlots->checkpoint();
+    oSlots->checkpoint();
     return false;
 }
 
 template<typename T>
 void HashIndex<T>::prepareRollback() {
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
+        // TODO(Guodong): This function should be removed.
     }
 }
 
@@ -420,14 +418,13 @@ template class HashIndex<int128_t>;
 template class HashIndex<ku_string_t>;
 
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-    common::PhysicalTypeID keyDataType, BufferManager& bufferManager, WAL* wal,
+    PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
     VirtualFileSystem* vfs, main::ClientContext* context)
-    : hasRunPrepareCommit{false}, keyDataTypeID(keyDataType),
-      fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
-          readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                     FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-          BMFileHandle::FileVersionedType::VERSIONED_FILE, vfs, context)},
-      bufferManager{bufferManager}, dbFileIDAndName{dbFileIDAndName}, wal{*wal} {
+    : keyDataTypeID(keyDataType), fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
+                                      readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                                 FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                                      vfs, context)},
+      bufferManager{bufferManager}, dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
     bool newIndex = fileHandle->getNumPages() == 0;
 
     if (newIndex) {
@@ -450,12 +447,13 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             hashIndexHeadersForReadTrx.end());
         KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
     }
-    hashIndexDiskArrays = std::make_unique<DiskArrayCollection>(*fileHandle,
-        dbFileIDAndName.dbFileID, &bufferManager, wal,
-        INDEX_HEADER_PAGES /*firstHeaderPage follows the index header pages*/, true /*bypassWAL*/);
+    hashIndexDiskArrays =
+        std::make_unique<DiskArrayCollection>(*fileHandle, dbFileIDAndName.dbFileID, &bufferManager,
+            *shadowFile, INDEX_HEADER_PAGES /*firstHeaderPage follows the index header pages*/,
+            true /*bypassShadowing*/);
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
-        overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, wal,
+        overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, shadowFile,
             readOnly, vfs, context);
     }
     if (newIndex) {
@@ -472,13 +470,13 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(dbFileIDAndName,
                     fileHandle, overflowFile->addHandle(), *hashIndexDiskArrays, i, bufferManager,
-                    wal, hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
+                    shadowFile, hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
             }
         },
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
                 hashIndices.push_back(std::make_unique<HashIndex<T>>(dbFileIDAndName, fileHandle,
-                    nullptr, *hashIndexDiskArrays, i, bufferManager, wal,
+                    nullptr, *hashIndexDiskArrays, i, bufferManager, shadowFile,
                     hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
             }
         },
@@ -486,26 +484,26 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
 }
 
 bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t& result) {
+    uint64_t vectorPos, common::offset_t& result, visible_func isVisible) {
     bool retVal = false;
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
-            retVal = lookup(trx, key, result);
+            retVal = lookup(trx, key, result, isVisible);
         },
         [](auto) { KU_UNREACHABLE; });
     return retVal;
 }
 
 bool PrimaryKeyIndex::insert(const Transaction* transaction, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t value) {
+    uint64_t vectorPos, common::offset_t value, visible_func isVisible) {
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,
         [&]<IndexHashable T>(T) {
             T key = keyVector->getValue<T>(vectorPos);
-            result = insert(transaction, key, value);
+            result = insert(transaction, key, value, isVisible);
         },
         [](auto) { KU_UNREACHABLE; });
     return result;
@@ -543,7 +541,6 @@ void PrimaryKeyIndex::checkpointInMemory() {
     if (overflowFile) {
         overflowFile->checkpointInMemory();
     }
-    hasRunPrepareCommit = false;
 }
 
 void PrimaryKeyIndex::rollbackInMemory() {
@@ -562,15 +559,14 @@ void PrimaryKeyIndex::rollbackInMemory() {
     if (overflowFile) {
         overflowFile->rollbackInMemory();
     }
-    hasRunPrepareCommit = false;
 }
 
 void PrimaryKeyIndex::writeHeaders() {
     size_t headerIdx = 0;
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
         DBFileUtils::updatePage(*fileHandle, dbFileIDAndName.dbFileID, headerPageIdx,
-            true /*writing all the data to the page; no need to read original*/, bufferManager, wal,
-            [&](auto* frame) {
+            true /*writing all the data to the page; no need to read original*/, bufferManager,
+            shadowFile, [&](auto* frame) {
                 auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
                      i++) {
@@ -581,30 +577,28 @@ void PrimaryKeyIndex::writeHeaders() {
     KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
 }
 
-void PrimaryKeyIndex::prepareCommit() {
-    if (!hasRunPrepareCommit) {
-        bool indexChanged = false;
-        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-            if (hashIndices[i]->prepareCommit()) {
-                indexChanged = true;
-            }
+void PrimaryKeyIndex::checkpoint() {
+    bool indexChanged = false;
+    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+        if (hashIndices[i]->checkpoint()) {
+            indexChanged = true;
         }
-        if (indexChanged) {
-            writeHeaders();
-            hashIndexDiskArrays->prepareCommit();
-        }
-        if (overflowFile) {
-            overflowFile->prepareCommit();
-        }
-        // Make sure that changes which bypassed the WAL are written.
-        // There is no other mechanism for enforcing that they are flushed
-        // and they will be dropped when the file handle is destroyed.
-        // TODO: Should eventually be moved into the disk array when the disk array can
-        // generally handle bypassing the WAL, but should only be run once per file, not once per
-        // disk array
-        bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
-        hasRunPrepareCommit = true;
     }
+    if (indexChanged) {
+        writeHeaders();
+        hashIndexDiskArrays->checkpoint();
+    }
+    if (overflowFile) {
+        overflowFile->checkpoint();
+    }
+    // Make sure that changes which bypassed the WAL are written.
+    // There is no other mechanism for enforcing that they are flushed
+    // and they will be dropped when the file handle is destroyed.
+    // TODO: Should eventually be moved into the disk array when the disk array can
+    // generally handle bypassing the WAL, but should only be run once per file, not once per
+    // disk array
+    bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
+    checkpointInMemory();
 }
 
 void PrimaryKeyIndex::prepareRollback() {

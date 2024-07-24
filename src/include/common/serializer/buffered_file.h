@@ -13,26 +13,32 @@ struct FileInfo;
 
 class BufferedFileWriter final : public Writer {
 public:
-    explicit BufferedFileWriter(std::unique_ptr<FileInfo> fileInfo);
+    explicit BufferedFileWriter(FileInfo& fileInfo);
     ~BufferedFileWriter() override;
 
     void write(const uint8_t* data, uint64_t size) override;
 
     void flush();
 
+    // Note: this function is reseting next file offset to be written. Make sure buffer is empty.
+    void setFileOffset(uint64_t fileOffset) {
+        // KU_ASSERT(bufferOffset == 0);
+        this->fileOffset = fileOffset;
+    }
+    uint64_t getFileOffset() const { return fileOffset; }
     void resetOffsets() {
         fileOffset = 0;
         bufferOffset = 0;
     }
 
     uint64_t getFileSize() const;
-    FileInfo& getFileInfo() { return *fileInfo; }
+    FileInfo& getFileInfo() const { return fileInfo; }
 
 protected:
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
-    std::unique_ptr<FileInfo> fileInfo;
-    static const uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
+    FileInfo& fileInfo;
+    static constexpr uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
 };
 
 class BufferedFileReader final : public Reader {

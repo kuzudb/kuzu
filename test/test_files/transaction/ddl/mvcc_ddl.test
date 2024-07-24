@@ -1,13 +1,6 @@
 -DATASET CSV empty
 --
 
-# There are four case to test:
-# - commit transactions. checkpoint. continue with the same db. expect to see committed changes.
-# - rollback transactions. checkpoint. continue with the same db. expect to ingore uncommitted changes.
-# - commit transactions. skip checkpoint. recovery with a new db. expect to replay committed changes.
-# - rollback transactions. skip checkpoint. recovery with a new db. expect to ingore uncommitted changes.
-
-# Test CALL ENABLE_MULTI_WRITES=true
 -CASE MultiWritesException
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -24,6 +17,7 @@ Cannot start a new write transaction in the system. Only one write transaction a
 0|a|INT32|True
 1|b|INT32|False
 
+# Test CALL ENABLE_MULTI_WRITES=true
 -CASE EnableMultiWrites
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
@@ -36,7 +30,7 @@ Cannot start a new write transaction in the system. Only one write transaction a
 -CREATE_CONNECTION conn2
 -STATEMENT [conn2] BEGIN TRANSACTION;
 ---- ok
--STATEMENT [conn2] COMMIT_SKIP_CHECKPOINT;
+-STATEMENT [conn2] COMMIT;
 ---- ok
 
 
@@ -268,7 +262,7 @@ Catalog exception: t does not exist in catalog.
 ---- 2
 0|a|INT32|True
 1|b|INT32|False
--STATEMENT COMMIT_SKIP_CHECKPOINT;
+-STATEMENT COMMIT;
 ---- ok
 -STATEMENT [conn2] COMMIT;
 ---- ok
@@ -276,4 +270,3 @@ Catalog exception: t does not exist in catalog.
 ---- 2
 0|a|INT32|True
 1|c|INT32|False
-#

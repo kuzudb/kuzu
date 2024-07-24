@@ -28,7 +28,7 @@
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT;
+-STATEMENT COMMIT;
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (p:person) return count(p);
@@ -78,7 +78,7 @@
 ---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
 ---- ok
--STATEMENT COMMIT_SKIP_CHECKPOINT
+-STATEMENT COMMIT
 ---- ok
 -RELOADDB
 -STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(e);
@@ -92,3 +92,13 @@
 2021-06-30
 1950-05-14
 1950-05-14
+
+-CASE CopyRollbackDueToError
+-STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" (HEADER=true)
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+0

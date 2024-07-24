@@ -12,6 +12,20 @@ struct IntersectDataInfo {
     std::vector<DataPos> payloadsDataPos;
 };
 
+struct IntersectPrintInfo final : OPPrintInfo {
+    std::shared_ptr<binder::Expression> key;
+
+    explicit IntersectPrintInfo(std::shared_ptr<binder::Expression> key) : key{std::move(key)} {}
+
+    std::string toString() const override;
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<IntersectPrintInfo>(new IntersectPrintInfo(*this));
+    }
+
+private:
+    IntersectPrintInfo(const IntersectPrintInfo& other) : OPPrintInfo{other}, key{other.key} {}
+};
+
 class Intersect : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INTERSECT;
 

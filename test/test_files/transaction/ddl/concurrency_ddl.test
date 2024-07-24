@@ -1,0 +1,111 @@
+-DATASET CSV tinysnb
+-SKIP
+--
+
+#TODO: FIX-ME. Run this test on macOS can run into hang issue.
+
+-CASE ConcurrentScan
+-CREATE_CONNECTION conn2
+-CREATE_CONNECTION conn3
+-CREATE_CONNECTION conn4
+-STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));
+---- ok
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT MATCH (:person) return count(*);
+---- 1
+8
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- 1
+8
+-STATEMENT [conn3] MATCH (:person) return count(*);
+---- 1
+8
+-STATEMENT [conn4] MATCH (:person) return count(*);
+---- 1
+8
+-END_CONCURRENT_EXECUTION
+
+-CASE ConcurrentSingleWriteAlter
+-CREATE_CONNECTION conn2
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT ALTER TABLE person ADD propA INT64;
+---- ok
+-STATEMENT [conn2] MATCH (:person) return count(*);
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT CALL table_info('person') return *;
+---- 17
+0|ID|INT64|True
+1|fName|STRING|False
+2|gender|INT64|False
+3|isStudent|BOOL|False
+4|isWorker|BOOL|False
+5|age|INT64|False
+6|eyeSight|DOUBLE|False
+7|birthdate|DATE|False
+8|registerTime|TIMESTAMP|False
+9|lastJobDuration|INTERVAL|False
+10|workedHours|INT64[]|False
+11|usedNames|STRING[]|False
+12|courseScoresPerTerm|INT64[][]|False
+13|grades|INT64[4]|False
+14|height|FLOAT|False
+15|u|UUID|False
+16|propA|INT64|False
+
+-CASE ConcurrentMultiWriteCreateTable
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-CREATE_CONNECTION conn2
+-CREATE_CONNECTION conn3
+-CREATE_CONNECTION conn4
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT CREATE NODE TABLE a(id INT, PRIMARY KEY(id));
+---- ok
+-STATEMENT [conn2] CREATE NODE TABLE b(id INT, PRIMARY KEY(id));
+---- ok
+-STATEMENT [conn3] CREATE NODE TABLE c(id INT, PRIMARY KEY(id));
+---- ok
+-STATEMENT [conn4] CREATE NODE TABLE d(id INT, PRIMARY KEY(id));
+---- ok
+-END_CONCURRENT_EXECUTION
+
+#TODO(Sam/Guodong): FIX-ME.
+-CASE ConcurrentMultiWriteAlter
+-SKIP
+-STATEMENT CALL ENABLE_MULTI_WRITES=true;
+---- ok
+-CREATE_CONNECTION conn2
+-CREATE_CONNECTION conn3
+-CREATE_CONNECTION conn4
+-BEGIN_CONCURRENT_EXECUTION
+-STATEMENT ALTER TABLE person ADD propA INT64;
+---- ok
+-STATEMENT [conn2] ALTER TABLE person DROP gender;
+---- ok
+-STATEMENT [conn3] ALTER TABLE person RENAME fName TO pName;
+---- ok
+-STATEMENT [conn4] COMMENT ON TABLE person IS 'person information';
+---- ok
+-END_CONCURRENT_EXECUTION
+-STATEMENT CALL table_info('person') return *;
+---- 16
+0|ID|INT64|True
+1|pName|STRING|False
+3|isStudent|BOOL|False
+4|isWorker|BOOL|False
+5|age|INT64|False
+6|eyeSight|DOUBLE|False
+7|birthdate|DATE|False
+8|registerTime|TIMESTAMP|False
+9|lastJobDuration|INTERVAL|False
+10|workedHours|INT64[]|False
+11|usedNames|STRING[]|False
+12|courseScoresPerTerm|INT64[][]|False
+13|grades|INT64[4]|False
+14|height|FLOAT|False
+15|u|UUID|False
+16|propA|INT64|False
+-STATEMENT CALL show_tables() where name='person' return *;
+---- 1
+person|NODE|local(kuzu)|person information

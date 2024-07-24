@@ -117,6 +117,9 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     std::string actualError;
     switch (testAnswer.type) {
     case ResultType::OK: {
+        if (!result->isSuccess()) {
+            spdlog::info("EXPECT OK BUT GOT ERROR: {}", result->getErrorMessage());
+        }
         return result->isSuccess();
     }
     case ResultType::ERROR_MSG: {

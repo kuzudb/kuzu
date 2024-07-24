@@ -7,6 +7,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index.h"
+#include "storage/store/node_table.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -73,8 +74,9 @@ void stringPKFillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, offset_t* offsets) {
     auto numKeys = keyVector->state->getSelVector().getSelSize();
     for (auto i = 0u; i < numKeys; i++) {
-        auto key = keyVector->getValue<ku_string_t>(keyVector->state->getSelVector()[i]);
-        if (!info.index->lookup(transaction, key.getAsStringView(), offsets[i])) {
+        if (!info.nodeTable->lookupPK(transaction, keyVector, keyVector->state->getSelVector()[i],
+                offsets[i])) {
+            auto key = keyVector->getValue<ku_string_t>(keyVector->state->getSelVector()[i]);
             throw RuntimeException(ExceptionMessage::nonExistentPKException(key.getAsString()));
         }
     }
@@ -86,8 +88,8 @@ void primitivePKFillOffsetArraysFromVector(transaction::Transaction* transaction
     auto numKeys = keyVector->state->getSelVector().getSelSize();
     for (auto i = 0u; i < numKeys; i++) {
         auto pos = keyVector->state->getSelVector()[i];
-        auto key = keyVector->getValue<T>(pos);
-        if (!info.index->lookup(transaction, key, offsets[i])) {
+        if (!info.nodeTable->lookupPK(transaction, keyVector, pos, offsets[i])) {
+            auto key = keyVector->getValue<T>(pos);
             throw RuntimeException(
                 ExceptionMessage::nonExistentPKException(TypeUtils::toString(key)));
         }

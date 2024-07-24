@@ -3,12 +3,14 @@
 #include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
-#include "storage/store/chunked_node_group_collection.h"
+#include "storage/store/in_mem_chunked_node_group_collection.h"
 
 namespace kuzu {
 namespace storage {
 class NodeTable;
-}
+class RelTable;
+} // namespace storage
+
 namespace processor {
 
 using partitioner_func_t =
@@ -22,9 +24,9 @@ struct PartitionerFunctions {
 // partitioning methods. For example, copy of rel tables require partitioning on both FWD and BWD
 // direction. Each partitioning method corresponds to a PartitioningState.
 struct PartitioningBuffer {
-    std::vector<storage::ChunkedNodeGroupCollection> partitions;
+    std::vector<std::unique_ptr<storage::InMemChunkedNodeGroupCollection>> partitions;
 
-    void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates);
+    void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates) const;
 };
 
 // NOTE: Currently, Partitioner is tightly coupled with RelBatchInsert. We should generalize it
@@ -36,6 +38,7 @@ struct PartitionerSharedState {
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
+    storage::RelTable* relTable;
 
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
@@ -45,23 +48,24 @@ struct PartitionerSharedState {
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
-    void initialize(PartitionerDataInfo& dataInfo);
+    void initialize(const PartitionerDataInfo& dataInfo);
+
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    inline const storage::ChunkedNodeGroupCollection& getPartitionBuffer(
-        common::idx_t partitioningIdx, common::partition_idx_t partitionIdx) const {
+    storage::InMemChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
+        common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
-        return partitioningBuffers[partitioningIdx]->partitions[partitionIdx];
+        return *partitioningBuffers[partitioningIdx]->partitions[partitionIdx];
     }
 };
 
 struct PartitionerLocalState {
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
 
-    PartitioningBuffer* getPartitioningBuffer(common::partition_idx_t partitioningIdx) {
+    PartitioningBuffer* getPartitioningBuffer(common::partition_idx_t partitioningIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         return partitioningBuffers[partitioningIdx].get();
     }
@@ -99,38 +103,68 @@ private:
           evaluateTypes{other.evaluateTypes} {}
 };
 
-class Partitioner : public Sink {
-    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PARTITIONER;
+struct PartitionerInfo {
+    DataPos relOffsetDataPos;
+    std::vector<PartitioningInfo> infos;
 
+    PartitionerInfo() {}
+    PartitionerInfo(const PartitionerInfo& other) : relOffsetDataPos{other.relOffsetDataPos} {
+        infos.reserve(other.infos.size());
+        for (auto& otherInfo : other.infos) {
+            infos.push_back(otherInfo.copy());
+        }
+    }
+
+    EXPLICIT_COPY_METHOD(PartitionerInfo);
+};
+
+struct PartitionerPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+
+    explicit PartitionerPrintInfo(binder::expression_vector expressions)
+        : expressions{std::move(expressions)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<PartitionerPrintInfo>(new PartitionerPrintInfo(*this));
+    }
+
+private:
+    PartitionerPrintInfo(const PartitionerPrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions} {}
+};
+
+class Partitioner final : public Sink {
 public:
-    Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::vector<PartitioningInfo> infos, PartitionerDataInfo dataInfo,
-        std::shared_ptr<PartitionerSharedState> sharedState,
+    Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, PartitionerInfo info,
+        PartitionerDataInfo dataInfo, std::shared_ptr<PartitionerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo);
 
-    void initGlobalStateInternal(ExecutionContext* context) final;
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
-    void executeInternal(ExecutionContext* context) final;
+    void initGlobalStateInternal(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> clone() override;
 
-    static void initializePartitioningStates(PartitionerDataInfo& dataInfo,
+    static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-        std::vector<common::partition_idx_t> numPartitions);
+        const std::vector<common::partition_idx_t>& numPartitions);
 
 private:
-    common::DataChunk constructDataChunk(const std::shared_ptr<common::DataChunkState>& state);
+    common::DataChunk constructDataChunk(
+        const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
     void copyDataToPartitions(common::partition_idx_t partitioningIdx,
-        common::DataChunk chunkToCopyFrom);
+        common::DataChunk chunkToCopyFrom) const;
 
 private:
-    std::vector<PartitioningInfo> infos;
     PartitionerDataInfo dataInfo;
+    PartitionerInfo info;
     std::shared_ptr<PartitionerSharedState> sharedState;
     std::unique_ptr<PartitionerLocalState> localState;
 

@@ -11,6 +11,7 @@ class ClientContext;
 } // namespace main
 namespace storage {
 
+class WAL;
 // Data structures in LocalStorage are not thread-safe.
 // For now, we only support single thread insertions and updates. Once we optimize them with
 // multiple threads, LocalStorage and its related data structures should be reworked to be
@@ -25,8 +26,8 @@ public:
     LocalTable* getLocalTable(common::table_id_t tableID,
         NotExistAction action = NotExistAction::RETURN_NULL);
 
-    void prepareCommit();
-    void prepareRollback();
+    void commit();
+    void rollback();
 
 private:
     main::ClientContext& clientContext;

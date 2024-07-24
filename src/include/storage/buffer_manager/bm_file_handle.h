@@ -32,7 +32,7 @@ public:
 
     PageState() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
 
-    inline uint64_t getState() { return getState(stateAndVersion.load()); }
+    inline uint64_t getState() const { return getState(stateAndVersion.load()); }
     inline static uint64_t getState(uint64_t stateAndVersion) {
         return (stateAndVersion & STATE_MASK) >> NUM_BITS_TO_SHIFT_FOR_STATE;
     }
@@ -96,90 +96,36 @@ private:
     std::atomic<uint64_t> stateAndVersion;
 };
 
-// This class is used to keep the WAL page idxes of a page group in the original file handle.
-// For each original page in the page group, it has a corresponding WAL page idx. The WAL page idx
-// is initialized as INVALID_PAGE_IDX to indicate that the page does not have any updates in WAL
-// file. To synchronize accesses to the WAL version page idxes, we use a lock for each WAL page idx.
-class WALPageIdxGroup {
-public:
-    WALPageIdxGroup();
-
-    // `originalPageIdxInGroup` is the page idx of the original page within the page group.
-    // For example, given a page idx `x` in a file, its page group id is `x / PAGE_GROUP_SIZE`, and
-    // the pageIdxInGroup is `x % PAGE_GROUP_SIZE`.
-    inline void acquireWALPageIdxLock(common::page_idx_t originalPageIdxInGroup) {
-        walPageIdxLocks[originalPageIdxInGroup]->lock();
-    }
-    inline void releaseWALPageIdxLock(common::page_idx_t originalPageIdxInGroup) {
-        walPageIdxLocks[originalPageIdxInGroup]->unlock();
-    }
-    inline common::page_idx_t getWALVersionPageIdxNoLock(common::page_idx_t pageIdxInGroup) const {
-        return walPageIdxes[pageIdxInGroup];
-    }
-    inline void setWALVersionPageIdxNoLock(common::page_idx_t pageIdxInGroup,
-        common::page_idx_t walVersionPageIdx) {
-        walPageIdxes[pageIdxInGroup] = walVersionPageIdx;
-    }
-
-private:
-    std::vector<common::page_idx_t> walPageIdxes;
-    std::vector<std::unique_ptr<std::mutex>> walPageIdxLocks;
-};
-
-// BMFileHandle is a file handle that is backed by BufferManager. It holds the state of
-// each page in the file. File Handle is the bridge between a Column/Lists/Index and the Buffer
-// Manager that abstracts the file in which that Column/Lists/Index is stored.
-// BMFileHandle supports two types of files: versioned and non-versioned. Versioned files
-// contains mapping from pages that have updates to the versioned pages in the wal file.
-// Currently, only MemoryManager and WAL files are non-versioned.
-class BMFileHandle : public FileHandle {
+// TODO(Guodong): Unify this class with FileHandle. We don't need to differentiate between the BM
+// one and non-BM one anymore. BMFileHandle is a file handle that is backed by BufferManager. It
+// holds the state of each page in the file. File Handle is the bridge between a data structure and
+// the Buffer Manager that abstracts the file in which that data structure is stored.
+class BMFileHandle final : public FileHandle {
     friend class BufferManager;
 
 public:
-    enum class FileVersionedType : uint8_t {
-        VERSIONED_FILE = 0,    // The file is backed by versioned pages in wal file.
-        NON_VERSIONED_FILE = 1 // The file does not have any versioned pages in wal file.
-    };
-
     // This function assumes the page is already LOCKED.
     inline void setLockedPageDirty(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < numPages);
         pageStates[pageIdx].setDirty();
     }
 
-    common::page_group_idx_t addWALPageIdxGroupIfNecessary(common::page_idx_t originalPageIdx);
     // This function is intended to be used after a fileInfo is created and we want the file
     // to have no pages and page locks. Should be called after ensuring that the buffer manager
     // does not hold any of the pages of the file.
     void resetToZeroPagesAndPageCapacity();
     void removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdx);
 
-    void acquireWALPageIdxLock(common::page_idx_t originalPageIdx);
-    void releaseWALPageIdxLock(common::page_idx_t originalPageIdx);
-
-    // Return true if the original page's page group has a WAL page group.
-    bool hasWALPageGroup(common::page_group_idx_t originalPageIdx);
-
-    // This function assumes that the caller has already acquired the wal page idx lock.
-    // Return true if the page has a WAL page idx, whose value is not equal to INVALID_PAGE_IDX.
-    bool hasWALPageVersionNoWALPageIdxLock(common::page_idx_t originalPageIdx);
-
-    void clearWALPageIdxIfNecessary(common::page_idx_t originalPageIdx);
-    common::page_idx_t getWALPageIdxNoWALPageIdxLock(common::page_idx_t originalPageIdx);
-    void setWALPageIdx(common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL);
-    // This function assumes that the caller has already acquired the wal page idx lock.
-    void setWALPageIdxNoLock(common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL);
-
-    uint32_t getFileIndex() const { return fileIndex; }
+    common::file_idx_t getFileIndex() const { return fileIndex; }
 
 private:
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm, uint32_t fileIndex,
-        common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+        common::PageSizeClass pageSizeClass, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
     // File handles are registered with the buffer manager and must not be moved or copied
     DELETE_COPY_AND_MOVE(BMFileHandle);
     inline PageState* getPageState(common::page_idx_t pageIdx) {
-        KU_ASSERT(pageIdx < numPages);
+        KU_ASSERT(verifyPageIdx(pageIdx));
         return &pageStates[pageIdx];
     }
     inline common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
@@ -192,12 +138,16 @@ private:
 
     common::page_idx_t addNewPageWithoutLock() override;
     void addNewPageGroupWithoutLock();
-    inline common::page_group_idx_t getNumPageGroups() {
-        return ceil((double)numPages / common::StorageConstants::PAGE_GROUP_SIZE);
+    inline common::page_group_idx_t getNumPageGroups() const {
+        return ceil(static_cast<double>(numPages) / common::StorageConstants::PAGE_GROUP_SIZE);
+    }
+
+    bool verifyPageIdx(common::page_idx_t pageIdx) {
+        std::unique_lock xLck{fhSharedMutex};
+        return pageIdx < numPages;
     }
 
 private:
-    FileVersionedType fileVersionedType;
     BufferManager* bm;
     common::PageSizeClass pageSizeClass;
     // With a page group size of 2^10 and an 256KB index size, the access cost increases
@@ -210,11 +160,7 @@ private:
     // and left at the default which won't increase access cost for the frame groups until 16TB of
     // data has been written
     common::ConcurrentVector<common::page_group_idx_t> frameGroupIdxes;
-    // For each page group, if it has any WAL page version, we keep a `WALPageIdxGroup` in this map.
-    // `WALPageIdxGroup` records the WAL page idx for each page in the page group.
-    // Accesses to this map is synchronized by `fhSharedMutex`.
-    std::unordered_map<common::page_group_idx_t, std::unique_ptr<WALPageIdxGroup>> walPageIdxGroups;
-    uint32_t fileIndex;
+    common::file_idx_t fileIndex;
 };
 } // namespace storage
 } // namespace kuzu

@@ -2,7 +2,6 @@
 
 #include "binder/bound_explain.h"
 #include "main/client_context.h"
-#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -47,9 +46,7 @@ void PropertyExprCollection::clear() {
 }
 
 Planner::Planner(main::ClientContext* clientContext) : clientContext{clientContext} {
-    auto nStats = clientContext->getStorageManager()->getNodesStatisticsAndDeletedIDs();
-    auto rStats = clientContext->getStorageManager()->getRelsStatistics();
-    cardinalityEstimator = CardinalityEstimator(clientContext, nStats, rStats);
+    cardinalityEstimator = CardinalityEstimator(clientContext);
     context = JoinOrderEnumeratorContext();
 }
 

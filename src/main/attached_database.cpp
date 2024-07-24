@@ -1,5 +1,6 @@
 #include "main/attached_database.h"
 
+#include "common/exception/runtime.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "main/db_config.h"

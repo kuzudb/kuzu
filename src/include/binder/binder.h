@@ -224,9 +224,10 @@ public:
         const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
         const std::vector<catalog::Property>& properties);
 
-    BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* lhs,
-        parser::ParsedExpression* rhs);
-    expression_pair bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
+    BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* column,
+        parser::ParsedExpression* columnData);
+    expression_pair bindSetItem(parser::ParsedExpression* column,
+        parser::ParsedExpression* columnData);
 
     /*** bind projection clause ***/
     BoundWithClause bindWithClause(const parser::WithClause& withClause);

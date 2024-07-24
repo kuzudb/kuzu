@@ -108,6 +108,8 @@ public:
 
     bool isSelfLoop() const { return *srcNode == *dstNode; }
 
+    std::string detailsToString() const;
+
 private:
     // Start node if a directed arrow is given. Left node otherwise.
     std::shared_ptr<NodeExpression> srcNode;

@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
 #include "main/client_context.h"

@@ -25,11 +25,9 @@ public:
         inMemOverflowBuffer = std::make_unique<InMemOverflowBuffer>(memoryManager);
     }
 
-    inline InMemOverflowBuffer* getOverflowBuffer() const { return inMemOverflowBuffer.get(); }
-    inline uint8_t* allocateOverflow(uint64_t size) {
-        return inMemOverflowBuffer->allocateSpace(size);
-    }
-    inline void resetOverflowBuffer() const { inMemOverflowBuffer->resetBuffer(); }
+    InMemOverflowBuffer* getOverflowBuffer() const { return inMemOverflowBuffer.get(); }
+    uint8_t* allocateOverflow(uint64_t size) { return inMemOverflowBuffer->allocateSpace(size); }
+    void resetOverflowBuffer() const { inMemOverflowBuffer->resetBuffer(); }
 
 private:
     std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
@@ -39,10 +37,10 @@ class StructAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     StructAuxiliaryBuffer(const LogicalType& type, storage::MemoryManager* memoryManager);
 
-    inline void referenceChildVector(idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
+    void referenceChildVector(idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
         childrenVectors[idx] = std::move(vectorToReference);
     }
-    inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
+    const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
         return childrenVectors;
     }
 
@@ -90,6 +88,7 @@ private:
 private:
     uint64_t capacity;
     uint64_t size;
+
     std::shared_ptr<ValueVector> dataVector;
 };
 

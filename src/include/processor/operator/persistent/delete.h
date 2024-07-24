@@ -6,6 +6,24 @@
 namespace kuzu {
 namespace processor {
 
+struct DeleteNodePrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+    common::DeleteNodeType deleteType;
+
+    DeleteNodePrintInfo(binder::expression_vector expressions, common::DeleteNodeType deleteType)
+        : expressions{std::move(expressions)}, deleteType{std::move(deleteType)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<DeleteNodePrintInfo>(new DeleteNodePrintInfo(*this));
+    }
+
+private:
+    DeleteNodePrintInfo(const DeleteNodePrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions}, deleteType{other.deleteType} {}
+};
+
 class DeleteNode : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DELETE_;
 
@@ -26,6 +44,23 @@ public:
 
 private:
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
+};
+
+struct DeleteRelPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+
+    explicit DeleteRelPrintInfo(binder::expression_vector expressions)
+        : expressions{std::move(expressions)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<DeleteRelPrintInfo>(new DeleteRelPrintInfo(*this));
+    }
+
+private:
+    DeleteRelPrintInfo(const DeleteRelPrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions} {}
 };
 
 class DeleteRel : public PhysicalOperator {

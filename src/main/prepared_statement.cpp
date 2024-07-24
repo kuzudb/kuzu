@@ -29,6 +29,10 @@ bool PreparedStatement::isProfile() {
     return logicalPlans[0]->isProfile();
 }
 
+StatementType PreparedStatement::getStatementType() {
+    return parsedStatement->getStatementType();
+}
+
 PreparedStatement::~PreparedStatement() = default;
 
 } // namespace main

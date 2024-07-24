@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "common/exception/binder.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
@@ -16,50 +17,69 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static ExtraNodeSetInfo getExtraNodeSetInfo(main::ClientContext* context,
-    common::table_id_t tableID, const PropertyExpression& propertyExpr) {
-    auto storageManager = context->getStorageManager();
-    auto catalog = context->getCatalog();
-    auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
+static column_id_t getColumnID(const catalog::TableCatalogEntry& entry,
+    const PropertyExpression& propertyExpr) {
     auto columnID = INVALID_COLUMN_ID;
-    if (propertyExpr.hasPropertyID(tableID)) {
-        auto propertyID = propertyExpr.getPropertyID(tableID);
-        auto entry = catalog->getTableCatalogEntry(context->getTx(), tableID);
-        columnID = entry->getColumnID(propertyID);
+    if (propertyExpr.hasPropertyID(entry.getTableID())) {
+        auto propertyID = propertyExpr.getPropertyID(entry.getTableID());
+        columnID = entry.getColumnID(propertyID);
     }
-    return ExtraNodeSetInfo(table, columnID);
+    return columnID;
 }
 
-std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(const BoundSetPropertyInfo& info,
-    const Schema& schema) const {
-    auto& node = info.pattern->constCast<NodeExpression>();
+NodeTableSetInfo PlanMapper::getNodeTableSetInfo(table_id_t tableID, const Expression& expr) const {
+    auto storageManager = clientContext->getStorageManager();
+    auto catalog = clientContext->getCatalog();
+    auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
+    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto columnID = getColumnID(*entry, expr.constCast<PropertyExpression>());
+    return NodeTableSetInfo(table, columnID);
+}
+
+RelTableSetInfo PlanMapper::getRelTableSetInfo(table_id_t tableID, const Expression& expr) const {
+    auto storageManager = clientContext->getStorageManager();
+    auto catalog = clientContext->getCatalog();
+    auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
+    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto columnID = getColumnID(*entry, expr.constCast<PropertyExpression>());
+    return RelTableSetInfo(table, columnID);
+}
+
+std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
+    const BoundSetPropertyInfo& boundInfo, const Schema& schema) const {
+    auto& node = boundInfo.pattern->constCast<NodeExpression>();
     auto nodeIDPos = getDataPos(*node.getInternalID(), schema);
-    auto& property = info.setItem.first->constCast<PropertyExpression>();
-    auto propertyPos = DataPos::getInvalidPos();
+    auto& property = boundInfo.column->constCast<PropertyExpression>();
+    auto columnVectorPos = DataPos::getInvalidPos();
     if (schema.isExpressionInScope(property)) {
-        propertyPos = getDataPos(property, schema);
+        columnVectorPos = getDataPos(property, schema);
     }
-    auto setInfo = NodeSetInfo(nodeIDPos, propertyPos);
-    if (info.pkExpr != nullptr) {
-        setInfo.pkPos = getDataPos(*info.pkExpr, schema);
+    auto pkVectorPos = DataPos::getInvalidPos();
+    if (boundInfo.updatePk) {
+        pkVectorPos = getDataPos(*boundInfo.column, schema);
     }
     auto exprMapper = ExpressionMapper(&schema);
-    auto evaluator = exprMapper.getEvaluator(info.setItem.second);
+    auto evaluator = exprMapper.getEvaluator(boundInfo.columnData);
+    auto setInfo = NodeSetInfo(nodeIDPos, columnVectorPos, pkVectorPos, std::move(evaluator));
     if (node.isMultiLabeled()) {
-        common::table_id_map_t<ExtraNodeSetInfo> extraInfos;
+        common::table_id_map_t<NodeTableSetInfo> tableInfos;
         for (auto tableID : node.getTableIDs()) {
-            auto extraInfo = getExtraNodeSetInfo(clientContext, tableID, property);
-            if (extraInfo.columnID == INVALID_COLUMN_ID) {
+            if (boundInfo.updatePk && !property.isPrimaryKey(tableID)) {
+                throw BinderException(stringFormat(
+                    "Update primary key column {} for multiple tables is not supported.",
+                    property.toString()));
+            }
+            auto tableInfo = getNodeTableSetInfo(tableID, property);
+            if (tableInfo.columnID == INVALID_COLUMN_ID) {
                 continue;
             }
-            extraInfos.insert({tableID, std::move(extraInfo)});
+            tableInfos.insert({tableID, std::move(tableInfo)});
         }
-        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo), std::move(evaluator),
-            std::move(extraInfos));
+        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo),
+            std::move(tableInfos));
     }
-    auto extraInfo = getExtraNodeSetInfo(clientContext, node.getSingleTableID(), property);
-    return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(evaluator),
-        std::move(extraInfo));
+    auto tableInfo = getNodeTableSetInfo(node.getSingleTableID(), property);
+    return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(tableInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapSetProperty(
@@ -87,53 +107,41 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     }
     std::vector<binder::expression_pair> expressions;
     for (auto& info : set->getInfos()) {
-        expressions.push_back(info.setItem);
+        expressions.emplace_back(info.column, info.columnData);
     }
     auto printInfo = std::make_unique<SetPropertyPrintInfo>(expressions);
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
 
-std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetPropertyInfo& info,
+std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetPropertyInfo& boundInfo,
     const Schema& schema) const {
-    auto storageManager = clientContext->getStorageManager();
-    auto catalog = clientContext->getCatalog();
-    auto& rel = info.pattern->constCast<RelExpression>();
-    auto srcNodePos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
-    auto dstNodePos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
+    auto& rel = boundInfo.pattern->constCast<RelExpression>();
+    auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
+    auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
     auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
-    auto& property = info.setItem.first->constCast<PropertyExpression>();
-    auto propertyPos = DataPos::getInvalidPos();
+    auto& property = boundInfo.column->constCast<PropertyExpression>();
+    auto columnVectorPos = DataPos::getInvalidPos();
     if (schema.isExpressionInScope(property)) {
-        propertyPos = getDataPos(property, schema);
+        columnVectorPos = getDataPos(property, schema);
     }
     auto exprMapper = ExpressionMapper(&schema);
-    auto evaluator = exprMapper.getEvaluator(info.setItem.second);
+    auto evaluator = exprMapper.getEvaluator(boundInfo.columnData);
+    auto info =
+        RelSetInfo(srcNodeIDPos, dstNodeIDPos, relIDPos, columnVectorPos, std::move(evaluator));
     if (rel.isMultiLabeled()) {
-        std::unordered_map<table_id_t, std::pair<RelTable*, column_id_t>> tableIDToTableAndColumnID;
+        common::table_id_map_t<RelTableSetInfo> tableInfos;
         for (auto tableID : rel.getTableIDs()) {
-            if (!property.hasPropertyID(tableID)) {
+            auto tableInfo = getRelTableSetInfo(tableID, property);
+            if (tableInfo.columnID == INVALID_COLUMN_ID) {
                 continue;
             }
-            auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
-            auto propertyID = property.getPropertyID(tableID);
-            auto columnID = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)
-                                ->getColumnID(propertyID);
-            tableIDToTableAndColumnID.insert({tableID, std::make_pair(table, columnID)});
+            tableInfos.insert({tableID, std::move(tableInfo)});
         }
-        return std::make_unique<MultiLabelRelSetExecutor>(std::move(tableIDToTableAndColumnID),
-            srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
+        return std::make_unique<MultiLabelRelSetExecutor>(std::move(info), std::move(tableInfos));
     }
-    auto tableID = rel.getSingleTableID();
-    auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
-    auto columnID = common::INVALID_COLUMN_ID;
-    if (property.hasPropertyID(tableID)) {
-        auto propertyID = property.getPropertyID(tableID);
-        columnID =
-            catalog->getTableCatalogEntry(clientContext->getTx(), tableID)->getColumnID(propertyID);
-    }
-    return std::make_unique<SingleLabelRelSetExecutor>(table, columnID, srcNodePos, dstNodePos,
-        relIDPos, propertyPos, std::move(evaluator));
+    auto tableInfo = getRelTableSetInfo(rel.getSingleTableID(), property);
+    return std::make_unique<SingleLabelRelSetExecutor>(std::move(info), std::move(tableInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator* logicalOperator) {
@@ -146,7 +154,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     }
     std::vector<binder::expression_pair> expressions;
     for (auto& info : set->getInfos()) {
-        expressions.push_back(info.setItem);
+        expressions.emplace_back(info.column, info.columnData);
     }
     auto printInfo = std::make_unique<SetPropertyPrintInfo>(expressions);
     return std::make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),

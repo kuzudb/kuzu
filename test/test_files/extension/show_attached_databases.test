@@ -1,7 +1,6 @@
 -DATASET CSV empty
 
 --
-
 -CASE ShowDatabasesTest
 -SKIP_MUSL
 -LOG InstallExtension

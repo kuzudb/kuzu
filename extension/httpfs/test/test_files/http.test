@@ -46,9 +46,7 @@ Waterloo|150000
 Kitchener|200000
 Guelph|75000
 
-# TODO(Ziyi): Find a better way to auto update S3 datasets.
 -CASE AttachHTTPDatabase
--SKIP
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
 -LOG validateTableNotExists

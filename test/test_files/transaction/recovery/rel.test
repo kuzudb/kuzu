@@ -1,0 +1,108 @@
+-DATASET CSV empty
+--
+
+-CASE CreateRelRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:person {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:person {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM person TO person, since DATE);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 0 AND b.id = 1 CREATE (a)-[r:knows {since:Date('2019-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 1
+0|1|2019-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 1
+0|1|2019-01-01
+
+-CASE UpdateRelRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:person {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:person {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM person TO person, since DATE);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 1 AND b.id = 1 CREATE (a)-[r:knows {since:Date('2010-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 0 AND b.id = 1 CREATE (a)-[r:knows {since:Date('2019-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.id = 0 AND b.id = 1 SET e.since = Date('2022-01-01');
+---- ok
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 2
+1|1|2010-01-01
+0|1|2022-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 2
+1|1|2010-01-01
+0|1|2022-01-01
+
+-CASE DeleteRelRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:person {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:person {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM person TO person, since DATE);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 1 AND b.id = 1 CREATE (a)-[r:knows {since:Date('2010-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 0 AND b.id = 1 CREATE (a)-[r:knows {since:Date('2019-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.id = 0 AND b.id = 1 DELETE e;
+---- ok
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 1
+1|1|2010-01-01
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 1
+1|1|2010-01-01
+
+-CASE DetachDeleteRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:person {id:0, isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT CREATE (a:person {id:1, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT CREATE (a:person {id:2, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT CREATE (a:person {id:3, isTrue:False, birthday:Date('2020-01-01')})
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM person TO person, since DATE);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 0 AND b.id = 1 CREATE (a)-[r:knows {since:Date('2010-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 0 AND b.id = 2 CREATE (a)-[r:knows {since:Date('2019-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.id = 0 AND b.id = 3 CREATE (a)-[r:knows {since:Date('2019-01-01')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.id=0 DETACH DELETE a;
+---- ok
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 0
+# skipped checkpoint here
+-RELOADDB
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN a.id, b.id, r.since
+---- 0

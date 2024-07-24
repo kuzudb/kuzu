@@ -14,11 +14,12 @@
 namespace kuzu {
 namespace transaction {
 class Transaction;
-};
+} // namespace transaction
+
 namespace processor {
 struct ExecutionContext;
 
-struct NodeBatchInsertInfo final : public BatchInsertInfo {
+struct NodeBatchInsertInfo final : BatchInsertInfo {
     std::vector<common::LogicalType> columnTypes;
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
@@ -36,44 +37,34 @@ struct NodeBatchInsertInfo final : public BatchInsertInfo {
           columnEvaluators{cloneVector(other.columnEvaluators)},
           evaluateTypes{other.evaluateTypes} {}
 
-    inline std::unique_ptr<BatchInsertInfo> copy() const override {
+    std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
     }
 };
 
-struct NodeBatchInsertSharedState final : public BatchInsertSharedState {
+struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     // Primary key info
-    storage::PrimaryKeyIndex* pkIndex;
-    common::idx_t pkColumnIdx;
+    common::column_id_t pkColumnID;
     common::LogicalType pkType;
     std::optional<IndexBuilder> globalIndexBuilder = std::nullopt;
 
     TableFunctionCallSharedState* readerSharedState;
     HashAggregateSharedState* distinctSharedState;
 
-    uint64_t currentNodeGroupIdx;
     // The sharedNodeGroup is to accumulate left data within local node groups in NodeBatchInsert
     // ops.
     std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
-    NodeBatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
-        storage::WAL* wal)
-        : BatchInsertSharedState{table, fTable, wal}, readerSharedState{nullptr},
-          distinctSharedState{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {
-        pkIndex = table->ptrCast<storage::NodeTable>()->getPKIndex();
-    }
+    NodeBatchInsertSharedState(storage::Table* table, common::column_id_t pkColumnID,
+        common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal)
+        : BatchInsertSharedState{table, std::move(fTable), wal}, pkColumnID{pkColumnID},
+          pkType{std::move(pkType)}, readerSharedState{nullptr}, distinctSharedState{nullptr},
+          sharedNodeGroup{nullptr} {}
 
-    void initPKIndex(ExecutionContext* context);
-
-    inline common::offset_t getNextNodeGroupIdx() {
-        std::unique_lock lck{mtx};
-        return getNextNodeGroupIdxWithoutLock();
-    }
-
-    inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
+    void initPKIndex(const ExecutionContext* context);
 };
 
-struct NodeBatchInsertLocalState final : public BatchInsertLocalState {
+struct NodeBatchInsertLocalState final : BatchInsertLocalState {
     std::optional<IndexBuilder> localIndexBuilder;
 
     std::shared_ptr<common::DataChunkState> columnState;
@@ -100,37 +91,25 @@ public:
 
     void finalize(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<NodeBatchInsert>(info->copy(), sharedState,
             resultSetDescriptor->copy(), children[0]->clone(), id, printInfo->copy());
     }
 
-    static void writeAndResetNewNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
-        common::column_id_t pkColumnID, storage::NodeTable* table,
-        storage::ChunkedNodeGroup* nodeGroup);
-
     // The node group will be reset so that the only values remaining are the ones which were not
     // written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
+        std::optional<IndexBuilder>& indexBuilder) const;
 
 private:
-    // Returns the number of nodes written from the group
-    uint64_t writeToExistingNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, std::optional<IndexBuilder>& indexBuilder,
-        common::column_id_t pkColumnID, storage::NodeTable* table,
-        storage::ChunkedNodeGroup* nodeGroup);
-
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
+        std::optional<IndexBuilder>& indexBuilder) const;
     void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        common::offset_t startIndexInGroup);
+        common::offset_t startIndexInGroup) const;
 
-    void copyToNodeGroup(transaction::Transaction* transaction);
+    void copyToNodeGroup(transaction::Transaction* transaction) const;
 };
 
 } // namespace processor
