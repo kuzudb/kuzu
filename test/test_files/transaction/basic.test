@@ -5,6 +5,14 @@
 -STATEMENT COMMIT;
 ---- error
 No active transaction for COMMIT.
+-CASE CommitAfterCheckPoint
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT COMMIT;
+---- error
+No active transaction for COMMIT.
 -STATEMENT rollback;
 ---- error
 No active transaction for ROLLBACK.
