@@ -164,7 +164,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     // TODO: consolidate
     const auto exceptionCapacity =
         std::bit_ceil(exceptionsPrefixSum.back() * sizeof(T)) / sizeof(T);
-    const auto numPagesForExceptions = ceilDiv(exceptionCapacity,
+    const auto numPagesForExceptions = ceilDiv(static_cast<uint64_t>(exceptionCapacity),
         (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes()));
     return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,
         numValues, compMeta);

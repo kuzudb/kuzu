@@ -74,7 +74,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
     const uint8_t* bufferStart = buffer;
     const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
     const size_t exceptionBufferSize =
-        ceilDiv((size_t)metadata.compMeta.alpMetadata.exceptionCapacity,
+        ceilDiv(static_cast<uint64_t>(metadata.compMeta.alpMetadata.exceptionCapacity),
             (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes())) *
         BufferPoolConstants::PAGE_4KB_SIZE;
     const auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
@@ -86,7 +86,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
     size_t remainingExceptionBufferSize = exceptionBufferSize;
     size_t totalExceptionCount = 0;
     while (valuesRemaining > 0) {
-        size_t pageExceptionCount = 0;
+        uint64_t pageExceptionCount = 0;
         (void)alg->compressNextPageWithExceptions(bufferStart, metadata.numValues - valuesRemaining,
             valuesRemaining, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE,
             exceptionBufferCursor, remainingExceptionBufferSize, pageExceptionCount,
