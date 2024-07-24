@@ -162,26 +162,25 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     }
     auto catalog = clientContext->getCatalog();
     auto tableID = node->getSingleTableID();
-    auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
-    KU_ASSERT(tableSchema->getTableType() == TableType::NODE);
+    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
+    KU_ASSERT(entry->getTableType() == TableType::NODE);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
-    for (auto& entry : catalog->getRdfGraphEntries(clientContext->getTx())) {
-        auto rdfEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(entry);
+    for (auto& e : catalog->getRdfGraphEntries(clientContext->getTx())) {
+        auto rdfEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(e);
         if (rdfEntry->isParent(tableID)) {
             insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
         }
     }
     for (auto& expr : node->getPropertyExprs()) {
-        auto propertyExpr = ku_dynamic_cast<Expression*, PropertyExpression*>(expr.get());
+        auto propertyExpr = expr->constPtrCast<PropertyExpression>();
         if (propertyExpr->hasPropertyID(tableID)) {
             insertInfo.columnExprs.push_back(expr);
         }
     }
     insertInfo.columnDataExprs =
-        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), tableSchema->getPropertiesRef());
-    validatePrimaryKeyExistence(
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableSchema), *node,
-        insertInfo.columnDataExprs);
+        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), entry->getPropertiesRef());
+    auto nodeEntry = entry->ptrCast<NodeTableCatalogEntry>();
+    validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
     infos.push_back(std::move(insertInfo));
 }
 
@@ -265,7 +264,7 @@ expression_vector Binder::bindInsertColumnDataExprs(
 }
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& updatingClause) {
-    auto& setClause = (SetClause&)updatingClause;
+    auto& setClause = updatingClause.constCast<SetClause>();
     auto boundSetClause = std::make_unique<BoundSetClause>();
     for (auto& setItem : setClause.getSetItemsRef()) {
         boundSetClause->addInfo(bindSetPropertyInfo(setItem.first.get(), setItem.second.get()));
@@ -273,9 +272,9 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
     return boundSetClause;
 }
 
-BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
-    parser::ParsedExpression* rhs) {
-    auto expr = expressionBinder.bindExpression(*lhs->getChild(0));
+BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* column,
+    parser::ParsedExpression* columnData) {
+    auto expr = expressionBinder.bindExpression(*column->getChild(0));
     auto isNode = ExpressionUtil::isNodePattern(*expr);
     auto isRel = ExpressionUtil::isRelPattern(*expr);
     if (!isNode && !isRel) {
@@ -283,13 +282,16 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
             stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
                 expr->toString(), ExpressionTypeUtil::toString(expr->expressionType)));
     }
-    auto& patternExpr = expr->constCast<NodeOrRelExpression>();
-    auto boundSetItem = bindSetItem(lhs, rhs);
+    auto& nodeOrRel = expr->constCast<NodeOrRelExpression>();
+    auto boundSetItem = bindSetItem(column, columnData);
+    auto boundColumn = boundSetItem.first;
+    auto boundColumnData = boundSetItem.second;
     // Validate not updating tables belong to RDFGraph.
     auto catalog = clientContext->getCatalog();
-    for (auto tableID : patternExpr.getTableIDs()) {
-        auto tableName = catalog->getTableCatalogEntry(clientContext->getTx(), tableID)->getName();
-        for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
+    auto transaction = clientContext->getTx();
+    for (auto tableID : nodeOrRel.getTableIDs()) {
+        auto tableName = catalog->getTableCatalogEntry(transaction, tableID)->getName();
+        for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(transaction)) {
             if (rdfGraphEntry->isParent(tableID)) {
                 throw BinderException(
                     stringFormat("Cannot set properties of RDFGraph tables. Set {} requires "
@@ -299,23 +301,25 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* lhs,
         }
     }
     if (isNode) {
-        auto info = BoundSetPropertyInfo(TableType::NODE, expr, boundSetItem);
+        auto info = BoundSetPropertyInfo(TableType::NODE, expr, boundColumn, boundColumnData);
         auto& property = boundSetItem.first->constCast<PropertyExpression>();
-        for (auto id : patternExpr.getTableIDs()) {
+        for (auto id : nodeOrRel.getTableIDs()) {
             if (property.isPrimaryKey(id)) {
-                info.pkExpr = boundSetItem.first;
+                info.updatePk = true;
             }
         }
         return info;
     }
-    return BoundSetPropertyInfo(TableType::REL, expr, std::move(boundSetItem));
+    return BoundSetPropertyInfo(TableType::REL, expr, boundColumn, boundColumnData);
 }
 
-expression_pair Binder::bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
-    auto boundLhs = expressionBinder.bindExpression(*lhs);
-    auto boundRhs = expressionBinder.bindExpression(*rhs);
-    boundRhs = expressionBinder.implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-    return make_pair(std::move(boundLhs), std::move(boundRhs));
+expression_pair Binder::bindSetItem(parser::ParsedExpression* column,
+    parser::ParsedExpression* columnData) {
+    auto boundColumn = expressionBinder.bindExpression(*column);
+    auto boundColumnData = expressionBinder.bindExpression(*columnData);
+    boundColumnData =
+        expressionBinder.implicitCastIfNecessary(boundColumnData, boundColumn->dataType);
+    return make_pair(std::move(boundColumn), std::move(boundColumnData));
 }
 
 static void validateRdfResourceDeletion(Expression* pattern, main::ClientContext* context) {
@@ -345,10 +349,12 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             auto deleteNodeInfo = BoundDeleteInfo(deleteType, TableType::NODE, pattern);
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
         } else if (ExpressionUtil::isRelPattern(*pattern)) {
+            // LCOV_EXCL_START
             if (deleteClause.getDeleteClauseType() == DeleteNodeType::DETACH_DELETE) {
                 // TODO(Xiyang): Dummy check here. Make sure this is the correct semantic.
                 throw BinderException("Detach delete on rel tables is not supported.");
             }
+            // LCOV_EXCL_STOP
             auto rel = pattern->constPtrCast<RelExpression>();
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");

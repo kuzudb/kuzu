@@ -14,7 +14,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-ExtraNodeDeleteInfo PlanMapper::getExtraNodeDeleteInfo(table_id_t tableID, DataPos pkPos) const {
+NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(table_id_t tableID, DataPos pkPos) const {
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
@@ -27,7 +27,7 @@ ExtraNodeDeleteInfo PlanMapper::getExtraNodeDeleteInfo(table_id_t tableID, DataP
     for (auto id : catalog->getBwdRelTableIDs(transaction, tableID)) {
         bwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
     }
-    return ExtraNodeDeleteInfo(table, std::move(fwdRelTables), std::move(bwdRelTables), pkPos);
+    return NodeTableDeleteInfo(table, std::move(fwdRelTables), std::move(bwdRelTables), pkPos);
 }
 
 std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
@@ -37,16 +37,16 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
     auto nodeIDPos = getDataPos(*node.getInternalID(), schema);
     auto info = NodeDeleteInfo(boundInfo.deleteType, nodeIDPos);
     if (node.isMultiLabeled()) {
-        common::table_id_map_t<ExtraNodeDeleteInfo> extraInfos;
+        common::table_id_map_t<NodeTableDeleteInfo> tableInfos;
         for (auto id : node.getTableIDs()) {
             auto pkPos = getDataPos(*node.getPrimaryKey(id), schema);
-            extraInfos.insert({id, getExtraNodeDeleteInfo(id, pkPos)});
+            tableInfos.insert({id, getNodeTableDeleteInfo(id, pkPos)});
         }
         return std::make_unique<MultiLabelNodeDeleteExecutor>(std::move(info),
-            std::move(extraInfos));
+            std::move(tableInfos));
     }
     auto pkPos = getDataPos(*node.getPrimaryKey(node.getSingleTableID()), schema);
-    auto extraInfo = getExtraNodeDeleteInfo(node.getSingleTableID(), pkPos);
+    auto extraInfo = getNodeTableDeleteInfo(node.getSingleTableID(), pkPos);
     return std::make_unique<SingleLabelNodeDeleteExecutor>(std::move(info), std::move(extraInfo));
 }
 
@@ -77,13 +77,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
         getOperatorID(), std::move(printInfo));
 }
 
-std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundDeleteInfo& info,
-    const Schema& schema) const {
+std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
+    const BoundDeleteInfo& boundInfo, const Schema& schema) const {
     auto storageManager = clientContext->getStorageManager();
-    auto& rel = info.pattern->constCast<RelExpression>();
-    auto srcNodePos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
-    auto dstNodePos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
+    auto& rel = boundInfo.pattern->constCast<RelExpression>();
+    auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
+    auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
     auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
+    auto info = RelDeleteInfo(srcNodeIDPos, dstNodeIDPos, relIDPos);
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
@@ -91,10 +92,10 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(const BoundD
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelRelDeleteExecutor>(std::move(tableIDToTableMap),
-            srcNodePos, dstNodePos, relIDPos);
+            std::move(info));
     }
     auto table = storageManager->getTable(rel.getSingleTableID())->ptrCast<RelTable>();
-    return std::make_unique<SingleLabelRelDeleteExecutor>(table, srcNodePos, dstNodePos, relIDPos);
+    return std::make_unique<SingleLabelRelDeleteExecutor>(table, std::move(info));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logicalOperator) {
