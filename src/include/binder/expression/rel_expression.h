@@ -108,25 +108,7 @@ public:
 
     bool isSelfLoop() const { return *srcNode == *dstNode; }
 
-    std::string expressionToString() const {
-        std::string result = toString();
-        switch (relType) {
-        case common::QueryRelType::SHORTEST: {
-            result += "SHORTEST";
-        } break;
-        case common::QueryRelType::ALL_SHORTEST: {
-            result += "ALL SHORTEST";
-        } break;
-        default:
-            break;
-        }
-        if (common::QueryRelTypeUtils::isRecursive(relType)) {
-            result += std::to_string(getLowerBound());
-            result += "..";
-            result += std::to_string(getUpperBound());
-        }
-        return result;
-    }
+    std::string detailsToString() const;
 
 private:
     // Start node if a directed arrow is given. Left node otherwise.

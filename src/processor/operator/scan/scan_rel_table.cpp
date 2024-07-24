@@ -23,17 +23,17 @@ std::string ScanRelTablePrintInfo::toString() const {
     switch (direction) {
     case ExtendDirection::FWD: {
         result += "-[";
-        result += rel->expressionToString();
+        result += rel->detailsToString();
         result += "]->";
     } break;
     case ExtendDirection::BWD: {
         result += "<-[";
-        result += rel->expressionToString();
+        result += rel->detailsToString();
         result += "]-";
     } break;
     case ExtendDirection::BOTH: {
         result += "<-[";
-        result += rel->expressionToString();
+        result += rel->detailsToString();
         result += "]->";
     } break;
     default:
