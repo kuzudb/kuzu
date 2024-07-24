@@ -443,18 +443,18 @@ void EmbeddedShell::printHelp() {
 }
 
 const struct BoxDrawingCharacters {
-    static inline const std::string DownAndRight = "\u250C";          // ?
-    static inline const std::string Horizontal = "\u2500";            // ?
-    static inline const std::string DownAndHorizontal = "\u252C";     // ?
-    static inline const std::string DownAndLeft = "\u2510";           // ?
-    static inline const std::string Vertical = "\u2502";              // ?
-    static inline const std::string VerticalAndRight = "\u251C";      // ?
-    static inline const std::string VerticalAndHorizontal = "\u253C"; // ?
-    static inline const std::string VerticalAndLeft = "\u2524";       // ?
-    static inline const std::string UpAndRight = "\u2514";            // ?
-    static inline const std::string UpAndHorizontal = "\u2534";       // ?
-    static inline const std::string UpAndLeft = "\u2518";             // ?
-    static inline const std::string MiddleDot = "\u00B7";             // ·
+    static inline const std::string DownAndRight = "\u250C";
+    static inline const std::string Horizontal = "\u2500";
+    static inline const std::string DownAndHorizontal = "\u252C";
+    static inline const std::string DownAndLeft = "\u2510";
+    static inline const std::string Vertical = "\u2502";
+    static inline const std::string VerticalAndRight = "\u251C";
+    static inline const std::string VerticalAndHorizontal = "\u253C";
+    static inline const std::string VerticalAndLeft = "\u2524";
+    static inline const std::string UpAndRight = "\u2514";
+    static inline const std::string UpAndHorizontal = "\u2534";
+    static inline const std::string UpAndLeft = "\u2518";
+    static inline const std::string MiddleDot = "\u00B7";
 };
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
