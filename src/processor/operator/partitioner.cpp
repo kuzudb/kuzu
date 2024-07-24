@@ -7,7 +7,6 @@
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
