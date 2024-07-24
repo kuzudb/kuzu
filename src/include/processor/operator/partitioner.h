@@ -3,7 +3,7 @@
 #include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
-#include "storage/store/chunked_node_group_collection.h"
+#include "storage/store/in_mem_chunked_node_group_collection.h"
 
 namespace kuzu {
 namespace storage {
@@ -24,7 +24,7 @@ struct PartitionerFunctions {
 // partitioning methods. For example, copy of rel tables require partitioning on both FWD and BWD
 // direction. Each partitioning method corresponds to a PartitioningState.
 struct PartitioningBuffer {
-    std::vector<std::unique_ptr<storage::ChunkedNodeGroupCollection>> partitions;
+    std::vector<std::unique_ptr<storage::InMemChunkedNodeGroupCollection>> partitions;
 
     void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates) const;
 };
@@ -48,13 +48,13 @@ struct PartitionerSharedState {
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
-    void initialize(PartitionerDataInfo& dataInfo);
+    void initialize(const PartitionerDataInfo& dataInfo);
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    storage::ChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
+    storage::InMemChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
         common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());
@@ -133,12 +133,11 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override;
 
-    static void initializePartitioningStates(PartitionerDataInfo& dataInfo,
+    static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
         const std::vector<common::partition_idx_t>& numPartitions);
 
 private:
-    void evaluateData(const common::sel_t& numTuples) const;
     common::DataChunk constructDataChunk(
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
