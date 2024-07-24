@@ -73,7 +73,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             return;
         }
         wal->logCreateCatalogEntryRecord(newCatalogEntry);
-    }
+    } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
     case CatalogEntryType::TYPE_ENTRY: {
         KU_ASSERT(
