@@ -101,7 +101,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         outVectorsPos.push_back(getDataPos(*expression, *outFSchema));
     }
     auto scanInfo = ScanTableInfo(relIDPos, outVectorsPos);
-    auto printInfo = std::make_unique<OPPrintInfo>(extend->getExpressionsForPrinting());
+    std::vector<std::string> tableNames;
+    for (auto relTableID : rel->getTableIDs()) {
+        auto relTable =
+            clientContext->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
+        tableNames.push_back(relTable->getTableName());
+    }
+    auto printInfo = std::make_unique<ScanRelTablePrintInfo>(tableNames, extend->getProperties(),
+        boundNode, rel, nbrNode, extendDirection);
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
         auto relTableID = rel->getSingleTableID();
         auto entry =

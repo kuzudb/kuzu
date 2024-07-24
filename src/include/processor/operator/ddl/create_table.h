@@ -6,6 +6,27 @@
 namespace kuzu {
 namespace processor {
 
+struct CreateTablePrintInfo final : OPPrintInfo {
+    common::TableType tableType;
+    std::string tableName;
+    binder::BoundExtraCreateCatalogEntryInfo* info;
+
+    CreateTablePrintInfo(common::TableType tableType, std::string tableName,
+        binder::BoundExtraCreateCatalogEntryInfo* info)
+        : tableType{std::move(tableType)}, tableName{std::move(tableName)}, info{info} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<CreateTablePrintInfo>(new CreateTablePrintInfo(*this));
+    }
+
+private:
+    CreateTablePrintInfo(const CreateTablePrintInfo& other)
+        : OPPrintInfo{other}, tableType{other.tableType}, tableName{other.tableName},
+          info{other.info} {}
+};
+
 class CreateTable : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TABLE;
 

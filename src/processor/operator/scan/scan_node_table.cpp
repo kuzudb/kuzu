@@ -1,5 +1,6 @@
 #include "processor/operator/scan/scan_node_table.h"
 
+#include "binder/expression/expression_util.h"
 #include "storage/local_storage/local_node_table.h"
 
 using namespace kuzu::common;
@@ -7,6 +8,21 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string ScanNodeTablePrintInfo::toString() const {
+    std::string result = "Tables: ";
+    for (auto& tableName : tableNames) {
+        result += tableName;
+        if (tableName != tableNames.back()) {
+            result += ", ";
+        }
+    }
+    if (!properties.empty()) {
+        result += ",Properties: ";
+        result += binder::ExpressionUtil::toString(properties);
+    }
+    return result;
+}
 
 void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction,
     NodeTable* table, std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {

@@ -27,6 +27,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
     auto scanInfo = ScanTableInfo(nodeIDPos, outVectorsPos);
     const auto tableIDs = scan.getTableIDs();
     std::vector<ScanNodeTableInfo> tableInfos;
+    std::vector<std::string> tableNames;
     for (const auto& tableID : tableIDs) {
         std::vector<column_id_t> columnIDs;
         for (auto& expression : scan.getProperties()) {
@@ -42,6 +43,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
         tableInfos.emplace_back(table, std::move(columnIDs),
             copyVector(scan.getPropertyPredicates()));
+        tableNames.push_back(table->getTableName());
     }
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     for (auto& tableID : tableIDs) {
@@ -52,7 +54,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
 
     switch (scan.getScanType()) {
     case LogicalScanNodeTableType::SCAN: {
-        auto printInfo = std::make_unique<OPPrintInfo>();
+        auto printInfo = std::make_unique<ScanNodeTablePrintInfo>(tableNames, scan.getProperties());
         auto progressSharedState = std::make_shared<ScanNodeTableProgressSharedState>();
         return std::make_unique<ScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
             std::move(sharedStates), getOperatorID(), std::move(printInfo), progressSharedState);

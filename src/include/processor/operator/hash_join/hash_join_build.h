@@ -9,6 +9,24 @@
 namespace kuzu {
 namespace processor {
 
+struct HashJoinBuildPrintInfo final : OPPrintInfo {
+    binder::expression_vector keys;
+    binder::expression_vector payloads;
+
+    HashJoinBuildPrintInfo(binder::expression_vector keys, binder::expression_vector payloads)
+        : keys{std::move(keys)}, payloads(std::move(payloads)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<HashJoinBuildPrintInfo>(new HashJoinBuildPrintInfo(*this));
+    }
+
+private:
+    HashJoinBuildPrintInfo(const HashJoinBuildPrintInfo& other)
+        : OPPrintInfo{other}, keys{other.keys}, payloads{other.payloads} {}
+};
+
 class HashJoinBuild;
 
 // This is a shared state between HashJoinBuild and HashJoinProbe operators.

@@ -10,7 +10,8 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapFlatten(LogicalOperator* logicalOperator) {
     auto& flatten = logicalOperator->constCast<LogicalFlatten>();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto printInfo = std::make_unique<OPPrintInfo>(flatten.getExpressionsForPrinting());
+    // todo (Xiyang): add print info for flatten
+    auto printInfo = std::make_unique<OPPrintInfo>();
     return make_unique<Flatten>(flatten.getGroupPos(), std::move(prevOperator), getOperatorID(),
         std::move(printInfo));
 }

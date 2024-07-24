@@ -1,5 +1,7 @@
 #pragma once
 
+#include "binder/expression/rel_expression.h"
+#include "common/enums/extend_direction.h"
 #include "processor/operator/scan/scan_table.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/rel_table.h"
@@ -29,6 +31,35 @@ private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
         : table{other.table}, direction{other.direction}, boundNodeIDPos{other.boundNodeIDPos},
           columnIDs{other.columnIDs}, columnPredicates{copyVector(other.columnPredicates)} {}
+};
+
+struct ScanRelTablePrintInfo final : OPPrintInfo {
+    std::vector<std::string> tableNames;
+    binder::expression_vector properties;
+    std::shared_ptr<binder::NodeExpression> boundNode;
+    std::shared_ptr<binder::RelExpression> rel;
+    std::shared_ptr<binder::NodeExpression> nbrNode;
+    common::ExtendDirection direction;
+
+    ScanRelTablePrintInfo(std::vector<std::string> tableNames, binder::expression_vector properties,
+        std::shared_ptr<binder::NodeExpression> boundNode,
+        std::shared_ptr<binder::RelExpression> rel, std::shared_ptr<binder::NodeExpression> nbrNode,
+        common::ExtendDirection direction)
+        : tableNames{std::move(tableNames)}, properties{std::move(properties)},
+          boundNode{std::move(boundNode)}, rel{std::move(rel)}, nbrNode{std::move(nbrNode)},
+          direction{std::move(direction)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<ScanRelTablePrintInfo>(new ScanRelTablePrintInfo(*this));
+    }
+
+private:
+    ScanRelTablePrintInfo(const ScanRelTablePrintInfo& other)
+        : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties},
+          boundNode{other.boundNode}, rel{other.rel}, nbrNode{other.nbrNode},
+          direction{other.direction} {}
 };
 
 class ScanRelTable final : public ScanTable {
