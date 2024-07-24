@@ -28,8 +28,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     for (auto tableID : tableIDs) {
         masksPerTable.insert({tableID, std::vector<mask_with_idx>{}});
     }
+    std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getOperators()) {
         const auto physicalOp = logicalOpToPhysicalOpMap.at(op);
+        operatorNames.push_back(
+            PhysicalOperatorUtils::operatorTypeToString(physicalOp->getOperatorType()));
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
             auto scan = physicalOp->ptrCast<ScanNodeTable>();
@@ -51,7 +54,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     }
     auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker.getKey()));
     auto info = std::make_unique<SemiMaskerInfo>(keyPos, std::move(masksPerTable));
-    auto printInfo = std::make_unique<OPPrintInfo>(semiMasker.getExpressionsForPrinting());
+    auto printInfo = std::make_unique<SemiMaskerPrintInfo>(operatorNames);
     switch (semiMasker.getType()) {
     case planner::SemiMaskConstructionType::NODE: {
         if (tableIDs.size() > 1) {

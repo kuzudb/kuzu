@@ -72,7 +72,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
     for (auto& info : delete_->getInfos()) {
         executors.push_back(getNodeDeleteExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(delete_->getExpressionsForPrinting());
+    expression_vector patterns;
+    for (auto& info : delete_->getInfos()) {
+        patterns.push_back(info.pattern);
+    }
+    auto printInfo =
+        std::make_unique<DeleteNodePrintInfo>(patterns, delete_->getInfos()[0].deleteType);
     return std::make_unique<DeleteNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
@@ -106,7 +111,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logi
     for (auto& info : delete_->getInfos()) {
         executors.push_back(getRelDeleteExecutor(info, *inSchema));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>(delete_->getExpressionsForPrinting());
+    expression_vector patterns;
+    for (auto& info : delete_->getInfos()) {
+        patterns.push_back(info.pattern);
+    }
+    auto printInfo = std::make_unique<DeleteRelPrintInfo>(patterns);
     return std::make_unique<DeleteRel>(std::move(executors), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }

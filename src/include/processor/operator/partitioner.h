@@ -118,6 +118,23 @@ struct PartitionerInfo {
     EXPLICIT_COPY_METHOD(PartitionerInfo);
 };
 
+struct PartitionerPrintInfo final : OPPrintInfo {
+    binder::expression_vector expressions;
+
+    explicit PartitionerPrintInfo(binder::expression_vector expressions)
+        : expressions{std::move(expressions)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<PartitionerPrintInfo>(new PartitionerPrintInfo(*this));
+    }
+
+private:
+    PartitionerPrintInfo(const PartitionerPrintInfo& other)
+        : OPPrintInfo{other}, expressions{other.expressions} {}
+};
+
 class Partitioner final : public Sink {
 public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, PartitionerInfo info,

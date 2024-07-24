@@ -51,6 +51,25 @@ private:
           columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
+struct ScanNodeTablePrintInfo final : OPPrintInfo {
+    std::vector<std::string> tableNames;
+    binder::expression_vector properties;
+
+    ScanNodeTablePrintInfo(std::vector<std::string> tableNames,
+        binder::expression_vector properties)
+        : tableNames{std::move(tableNames)}, properties{std::move(properties)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<ScanNodeTablePrintInfo>(new ScanNodeTablePrintInfo(*this));
+    }
+
+private:
+    ScanNodeTablePrintInfo(const ScanNodeTablePrintInfo& other)
+        : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties} {}
+};
+
 class ScanNodeTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_NODE_TABLE;
 

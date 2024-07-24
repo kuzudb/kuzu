@@ -6,12 +6,19 @@
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
+#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string PartitionerPrintInfo::toString() const {
+    std::string result = "Indexes: ";
+    result += binder::ExpressionUtil::toString(expressions);
+    return result;
+}
 
 void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* partitionIdxes) {
     KU_ASSERT(key->state == partitionIdxes->state &&

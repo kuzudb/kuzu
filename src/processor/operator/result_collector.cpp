@@ -1,5 +1,7 @@
 #include "processor/operator/result_collector.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
@@ -9,15 +11,10 @@ namespace processor {
 std::string ResultCollectorPrintInfo::toString() const {
     std::string result = "";
     if (accumulateType == AccumulateType::OPTIONAL_) {
-        result += "Type: " + AccumulateTypeUtil::toString(accumulateType) + ".\n";
+        result += "Type: " + AccumulateTypeUtil::toString(accumulateType);
     }
-    result += "Expressions: ";
-    for (auto& expr : expressions) {
-        result += expr->toString();
-        if (&expr != &expressions.back()) {
-            result += ", ";
-        }
-    }
+    result += ",Expressions: ";
+    result += binder::ExpressionUtil::toString(expressions);
     return result;
 }
 
