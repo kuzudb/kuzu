@@ -125,7 +125,8 @@ bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState
         rowIdxInGroup = nodeOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE -
                         StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
     } else {
-        rowIdxInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+        rowIdxInGroup =
+            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
     }
     scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
     return scanState.nodeGroup->lookup(transaction, scanState);
