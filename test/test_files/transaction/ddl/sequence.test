@@ -108,9 +108,7 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 Catalog exception: after does not exist in catalog.
 
 -CASE SequenceImplicitCommit
--STATEMENT CREATE SEQUENCE next;
----- ok
--STATEMENT CREATE NODE TABLE test(id INT64 default nextval('next'), primary key(id));
+-STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -118,16 +116,14 @@ Catalog exception: after does not exist in catalog.
 ---- ok
 -STATEMENT Commit;
 ---- ok
--STATEMENT RETURN currval('next');
+-STATEMENT RETURN currval('test_id_serial');
 ---- 1
 1
 
 -CASE SequenceImplicitCommitRecovery
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
--STATEMENT CREATE SEQUENCE next;
----- ok
--STATEMENT CREATE NODE TABLE test(id INT64 default nextval('next'), primary key(id));
+-STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -136,14 +132,12 @@ Catalog exception: after does not exist in catalog.
 -STATEMENT Commit;
 ---- ok
 -RELOADDB
--STATEMENT RETURN currval('next');
+-STATEMENT RETURN currval('test_id_serial');
 ---- 1
 1
 
 -CASE SequenceImplicitRollback
--STATEMENT CREATE SEQUENCE next;
----- ok
--STATEMENT CREATE NODE TABLE test(id INT64 default nextval('next'), primary key(id));
+-STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -151,16 +145,14 @@ Catalog exception: after does not exist in catalog.
 ---- ok
 -STATEMENT Rollback;
 ---- ok
--STATEMENT RETURN currval('next');
+-STATEMENT RETURN currval('test_id_serial');
 ---- error
 Catalog exception: currval: sequence "next" is not yet defined. To define the sequence, call nextval first.
 
 -CASE SequenceImplicitRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
--STATEMENT CREATE SEQUENCE next;
----- ok
--STATEMENT CREATE NODE TABLE test(id INT64 default nextval('next'), primary key(id));
+-STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -169,6 +161,6 @@ Catalog exception: currval: sequence "next" is not yet defined. To define the se
 -STATEMENT Rollback;
 ---- ok
 -RELOADDB
--STATEMENT RETURN currval('next');
+-STATEMENT RETURN currval('test_id_serial');
 ---- error
 Catalog exception: currval: sequence "next" is not yet defined. To define the sequence, call nextval first.
