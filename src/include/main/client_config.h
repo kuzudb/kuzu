@@ -38,7 +38,7 @@ struct ClientConfigDefault {
     static constexpr uint64_t TIMEOUT_IN_MS = 0;
     static constexpr uint32_t VAR_LENGTH_MAX_DEPTH = 30;
     static constexpr bool ENABLE_SEMI_MASK = true;
-    static constexpr bool ENABLE_ZONE_MAP = true;
+    static constexpr bool ENABLE_ZONE_MAP = false;
     static constexpr bool ENABLE_PROGRESS_BAR = false;
     static constexpr uint64_t SHOW_PROGRESS_AFTER = 1000;
     static constexpr common::PathSemantic RECURSIVE_PATTERN_SEMANTIC = common::PathSemantic::WALK;
