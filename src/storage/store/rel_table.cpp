@@ -34,14 +34,11 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     table_id_t tableID;
     std::string tableName;
     offset_t nextRelOffset;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "table_id");
+    deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "table_name");
+    deSer.validateDebuggingInfo(key, "table_name");
     deSer.deserializeValue<std::string>(tableName);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "next_rel_offset");
+    deSer.validateDebuggingInfo(key, "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);
     auto catalogEntry =
         catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<RelTableCatalogEntry>();

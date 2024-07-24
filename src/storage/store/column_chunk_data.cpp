@@ -589,23 +589,18 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(Deserializer& deSe
     ColumnChunkMetadata metadata;
     bool enableCompression = false;
     bool hasNull = false;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "data_type");
+    deSer.validateDebuggingInfo(key, "data_type");
     const auto dataType = LogicalType::deserialize(deSer);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "metadata");
+    deSer.validateDebuggingInfo(key, "metadata");
     deSer.deserializeValue<ColumnChunkMetadata>(metadata);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "enable_compression");
+    deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "has_null");
+    deSer.validateDebuggingInfo(key, "has_null");
     deSer.deserializeValue<bool>(hasNull);
     auto chunkData = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression,
         metadata, hasNull);
     if (hasNull) {
-        deSer.deserializeDebuggingInfo(key);
-        KU_ASSERT(key == "null_data");
+        deSer.validateDebuggingInfo(key, "null_data");
         chunkData->nullData = NullChunkData::deserialize(deSer);
     }
 
@@ -760,8 +755,7 @@ void NullChunkData::serialize(Serializer& serializer) const {
 std::unique_ptr<NullChunkData> NullChunkData::deserialize(Deserializer& deSer) {
     std::string key;
     ColumnChunkMetadata metadata;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "null_chunk_metadata");
+    deSer.validateDebuggingInfo(key, "null_chunk_metadata");
     deSer.deserializeValue<ColumnChunkMetadata>(metadata);
     // TODO: FIX-ME. enableCompression.
     return std::make_unique<NullChunkData>(true, metadata);

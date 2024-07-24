@@ -26,7 +26,7 @@ public:
 
     void read(uint8_t* data, uint64_t size) { reader->read(data, size); }
 
-    void deserializeDebuggingInfo(std::string& value);
+    void validateDebuggingInfo(std::string& value, std::string expectedVal);
 
     template<typename T>
     void deserializeOptionalValue(std::unique_ptr<T>& value) {

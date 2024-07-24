@@ -232,14 +232,11 @@ NullMask NullMask::deserialize(Deserializer& deSer) {
     std::string key;
     bool mayContainNulls;
     uint64_t numNullEntries = 0;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "may_contain_nulls");
+    deSer.validateDebuggingInfo(key, "may_contain_nulls");
     deSer.deserializeValue<bool>(mayContainNulls);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "num_null_entries");
+    deSer.validateDebuggingInfo(key, "num_null_entries");
     deSer.deserializeValue<uint64_t>(numNullEntries);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "null_mask_data");
+    deSer.validateDebuggingInfo(key, "null_mask_data");
     NullMask nullMask(numNullEntries * NUM_BITS_PER_NULL_ENTRY);
     nullMask.mayContainNulls = mayContainNulls;
     deSer.read(reinterpret_cast<uint8_t*>(nullMask.data.data()), numNullEntries * sizeof(uint64_t));

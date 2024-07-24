@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types/ku_string.h"
-#include "function/string/functions/find_function.h"
 
 namespace kuzu {
 namespace function {
@@ -9,9 +8,20 @@ namespace function {
 struct EndsWith {
     static inline void operation(common::ku_string_t& left, common::ku_string_t& right,
         uint8_t& result) {
-        int64_t pos = 0;
-        Find::operation(left, right, pos);
-        result = (pos == left.len - right.len + 1);
+        if (right.len > left.len) {
+            result = 0;
+            return;
+        }
+        auto lenDiff = left.len - right.len;
+        auto lData = left.getData();
+        auto rData = right.getData();
+        for (auto i = 0u; i < right.len; i++) {
+            if (rData[i] != lData[lenDiff + i]) {
+                result = 0;
+                return;
+            }
+        }
+        result = 1;
     }
 };
 

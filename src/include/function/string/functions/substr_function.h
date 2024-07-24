@@ -17,7 +17,7 @@ public:
         bool isAscii = true;
         int64_t startPos = start - 1;
         int64_t endPos = std::min(srcStr.size(), (size_t)(startPos + len));
-        if (startPos >= endPos) {
+        if (startPos >= endPos || startPos < 0 || startPos >= (int64_t)srcStr.size()) {
             result.len = 0;
             return;
         }

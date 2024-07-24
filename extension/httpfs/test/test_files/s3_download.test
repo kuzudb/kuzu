@@ -67,7 +67,6 @@ Zhang|Noura|2022
 ]
 
 -CASE ScanFromDifferentAWSS3File
--SKIP
 -INSERT_STATEMENT_BLOCK AWS_S3_SETUP
 -STATEMENT CALL s3_url_style='path'
 ---- ok

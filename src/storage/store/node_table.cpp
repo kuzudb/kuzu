@@ -5,7 +5,6 @@
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
@@ -51,11 +50,9 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     std::string key;
     table_id_t tableID;
     std::string tableName;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "table_id");
+    deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "table_name");
+    deSer.validateDebuggingInfo(key, "table_name");
     deSer.deserializeValue<std::string>(tableName);
     auto catalogEntry =
         catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<NodeTableCatalogEntry>();
@@ -147,16 +144,31 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     return INVALID_OFFSET;
 }
 
+void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector* pkVector) {
+    common::offset_t dummyOffset;
+    auto& selVector = pkVector->state->getSelVector();
+    KU_ASSERT(selVector.getSelSize() == 1);
+    if (pkVector->isNull(selVector[0])) {
+        throw RuntimeException(ExceptionMessage::nullPKException());
+    }
+    if (pkIndex->lookup(transaction, pkVector, selVector[0], dummyOffset,
+            [&](offset_t offset) { return isVisible(transaction, offset); })) {
+        throw RuntimeException(
+            ExceptionMessage::duplicatePKException(pkVector->getAsValue(selVector[0])->toString()));
+    }
+}
+
 void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     const auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
+    auto& nodeIDSelVector = nodeInsertState.nodeIDVector.state->getSelVector();
     KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
-    KU_ASSERT(nodeInsertState.nodeIDVector.state->getSelVector().getSelSize() == 1);
-    if (nodeInsertState.nodeIDVector.isNull(
-            nodeInsertState.nodeIDVector.state->getSelVector()[0])) {
+    KU_ASSERT(nodeIDSelVector.getSelSize() == 1);
+    if (nodeInsertState.nodeIDVector.isNull(nodeIDSelVector[0])) {
         return;
     }
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
+    validatePkNotExists(transaction, (ValueVector*)&nodeInsertState.pkVector);
     localTable->insert(&DUMMY_TRANSACTION, insertState);
     if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
@@ -180,7 +192,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         return;
     }
     if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
-        insertPK(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
+        validatePkNotExists(transaction, &nodeUpdateState.propertyVector);
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
@@ -189,6 +201,9 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         KU_ASSERT(localTable);
         localTable->update(&DUMMY_TRANSACTION, updateState);
     } else {
+        if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
+            insertPK(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
+        }
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -313,13 +328,8 @@ void NodeTable::insertPK(const Transaction* transaction, const ValueVector& node
         }
         if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset,
                 [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
-            std::string pkStr;
-            TypeUtils::visit(
-                pkVector.dataType.getPhysicalType(),
-                [&](ku_string_t) { pkStr = pkVector.getValue<ku_string_t>(pkPos).getAsString(); },
-                [&pkStr, &pkVector, &pkPos]<typename T>(
-                    T) { pkStr = TypeUtils::toString(pkVector.getValue<T>(pkPos)); });
-            throw RuntimeException(ExceptionMessage::duplicatePKException(pkStr));
+            throw RuntimeException(
+                ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
         }
     }
 }
