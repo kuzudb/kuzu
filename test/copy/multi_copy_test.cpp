@@ -19,8 +19,12 @@ public:
         createDBAndConn();
         auto result = conn->query("CREATE NODE TABLE Test(id int32, primary key(id))");
         ASSERT_TRUE(result->isSuccess()) << result->toString();
+        result =
+            conn->query("CREATE NODE TABLE TestSerial(id serial, prop int32, primary key(id))");
+        ASSERT_TRUE(result->isSuccess()) << result->toString();
     }
-    void copy(size_t values) {
+
+    std::string generateFile(size_t values) {
         auto tempDir = TestHelper::getTempDir(getTestGroupAndName());
         auto filePath = common::LocalFileSystem::joinPath(tempDir, "tmp.csv");
 #if defined(_WIN32)
@@ -32,13 +36,30 @@ public:
             file << (totalTuples + i) << std::endl;
         }
         file.close();
-        auto result = conn->query(common::stringFormat("COPY Test FROM '{}'", filePath));
-        ASSERT_TRUE(result->isSuccess()) << result->toString();
         totalTuples += values;
+        return filePath;
     }
 
-    void validate() {
-        auto countResult = conn->query("MATCH (t:Test) RETURN COUNT(*)");
+    void copy(size_t values) {
+        auto filePath = generateFile(values);
+        auto result = conn->query(common::stringFormat("COPY Test FROM '{}'", filePath));
+        ASSERT_TRUE(result->isSuccess()) << result->toString();
+    }
+
+    void copySerial(size_t values) {
+        auto filePath = generateFile(values);
+        auto result =
+            conn->query(common::stringFormat("COPY TestSerial FROM '{}' (HEADER=false)", filePath));
+        ASSERT_TRUE(result->isSuccess()) << result->toString();
+    }
+
+    void validate(bool isSerial = false) const {
+        std::unique_ptr<main::QueryResult> countResult;
+        if (isSerial) {
+            countResult = conn->query("MATCH (t:TestSerial) RETURN COUNT(*)");
+        } else {
+            countResult = conn->query("MATCH (t:Test) RETURN COUNT(*)");
+        }
         ASSERT_TRUE(countResult->isSuccess()) << countResult->toString();
         ASSERT_EQ(countResult->getNumTuples(), 1);
         ASSERT_EQ(countResult->getNext()->getValue(0)->getValue<int64_t>(), totalTuples);
@@ -47,19 +68,34 @@ public:
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist(0, totalTuples - 1);
         // Sample and check up to 1000 random elements in the range
-        for (size_t i = 0; i < std::min(static_cast<size_t>(1000), totalTuples); i++) {
-            auto index = dist(rng);
-            auto result = conn->query(
-                common::stringFormat("MATCH (t:Test) WHERE t.id = {} RETURN t.id", index));
-            ASSERT_TRUE(result->isSuccess()) << result->toString();
-            ASSERT_EQ(result->getNumTuples(), 1) << "ID " << index << " is missing";
-            ASSERT_EQ(result->getNext()->getValue(0)->getValue<int32_t>(), index);
+        if (isSerial) {
+            for (size_t i = 0; i < std::min(static_cast<size_t>(1000), totalTuples); i++) {
+                auto index = dist(rng);
+                auto result = conn->query(common::stringFormat(
+                    "MATCH (t:TestSerial) WHERE t.id = {} RETURN t.id", index));
+                ASSERT_TRUE(result->isSuccess()) << result->toString();
+                ASSERT_EQ(result->getNumTuples(), 1) << "ID " << index << " is missing";
+            }
+        } else {
+            for (size_t i = 0; i < std::min(static_cast<size_t>(1000), totalTuples); i++) {
+                auto index = dist(rng);
+                auto result = conn->query(
+                    common::stringFormat("MATCH (t:Test) WHERE t.id = {} RETURN t.id", index));
+                ASSERT_TRUE(result->isSuccess()) << result->toString();
+                ASSERT_EQ(result->getNumTuples(), 1) << "ID " << index << " is missing";
+                ASSERT_EQ(result->getNext()->getValue(0)->getValue<int32_t>(), index);
+            }
         }
     }
 
 private:
     size_t totalTuples = 0;
 };
+
+TEST_F(MultiCopyTest, SingleSerialCopy) {
+    copySerial(common::StorageConstants::NODE_GROUP_SIZE * 10.5);
+    validate(true /* isSerial */);
+}
 
 // Tests that multiple copies that only add to the existing node group succeed
 // This is also covered by the tinysnb dataset

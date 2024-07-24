@@ -118,16 +118,13 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) con
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     const auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
-        const auto numAppendedTuplesInNodeGroup =
-            nodeLocalState->chunkedGroup->append(&transaction::DUMMY_TRANSACTION,
-                nodeLocalState->columnVectors, 0, numTuplesToAppend - numAppendedTuples);
+        const auto numAppendedTuplesInNodeGroup = nodeLocalState->chunkedGroup->append(
+            &transaction::DUMMY_TRANSACTION, nodeLocalState->columnVectors, numAppendedTuples,
+            numTuplesToAppend - numAppendedTuples);
         numAppendedTuples += numAppendedTuplesInNodeGroup;
         if (nodeLocalState->chunkedGroup->isFullOrOnDisk()) {
             writeAndResetNodeGroup(transaction, nodeLocalState->chunkedGroup,
                 nodeLocalState->localIndexBuilder);
-        }
-        if (numAppendedTuples < numTuplesToAppend) {
-            nodeLocalState->columnState->slice(numAppendedTuplesInNodeGroup);
         }
     }
     sharedState->incrementNumRows(numAppendedTuples);
