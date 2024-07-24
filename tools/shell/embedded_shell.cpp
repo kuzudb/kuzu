@@ -442,7 +442,7 @@ void EmbeddedShell::printHelp() {
     printf("%s%s  See: \x1B]8;;%s\x1B\\%s\x1B]8;;\x1B\\\n", TAB, TAB, url, url);
 }
 
-const struct BoxDrawingCharacters {
+struct BoxDrawingCharacters {
     static inline const std::string DownAndRight = "\u250C";
     static inline const std::string Horizontal = "\u2500";
     static inline const std::string DownAndHorizontal = "\u252C";
