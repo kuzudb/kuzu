@@ -111,7 +111,7 @@ std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {
         printInfo->copy(), progressSharedState);
 }
 
-double ScanNodeTable::getProgress(ExecutionContext* context) const {
+double ScanNodeTable::getProgress(ExecutionContext* /*context*/) const {
     if (currentTableIdx >= nodeInfos.size()) {
         return 1.0;
     }
