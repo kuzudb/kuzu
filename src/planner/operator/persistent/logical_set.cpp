@@ -43,15 +43,6 @@ f_group_pos_set LogicalSetProperty::getGroupsPosToFlatten(uint32_t idx) const {
     return FlattenAll::getGroupsPosToFlatten(result, *childSchema);
 }
 
-std::string LogicalSetProperty::getExpressionsForPrinting() const {
-    std::string result =
-        ExpressionUtil::toString(std::make_pair(infos[0].column, infos[0].columnData));
-    for (auto i = 1u; i < infos.size(); ++i) {
-        result += ExpressionUtil::toString(std::make_pair(infos[i].column, infos[i].columnData));
-    }
-    return result;
-}
-
 common::TableType LogicalSetProperty::getTableType() const {
     KU_ASSERT(!infos.empty());
     return infos[0].tableType;

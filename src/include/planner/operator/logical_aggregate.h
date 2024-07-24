@@ -22,8 +22,6 @@ public:
     f_group_pos_set getGroupsPosToFlattenForGroupBy();
     f_group_pos_set getGroupsPosToFlattenForAggregate();
 
-    std::string getExpressionsForPrinting() const override;
-
     bool hasKeys() const { return !keys.empty(); }
     binder::expression_vector getKeys() const { return keys; }
     void setKeys(binder::expression_vector expressions) { keys = std::move(expressions); }

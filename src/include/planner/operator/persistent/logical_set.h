@@ -19,8 +19,6 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten(uint32_t idx) const;
 
-    std::string getExpressionsForPrinting() const override;
-
     common::TableType getTableType() const;
     const std::vector<binder::BoundSetPropertyInfo>& getInfos() const { return infos; }
     const binder::BoundSetPropertyInfo& getInfo(uint32_t idx) const { return infos[idx]; }

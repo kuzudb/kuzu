@@ -15,8 +15,6 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    std::string getExpressionsForPrinting() const override { return std::string{}; }
-
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 

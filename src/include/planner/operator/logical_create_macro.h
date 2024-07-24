@@ -25,8 +25,6 @@ public:
 
     inline std::unique_ptr<function::ScalarMacroFunction> getMacro() const { return macro->copy(); }
 
-    inline std::string getExpressionsForPrinting() const override { return macroName; }
-
     inline std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalCreateMacro>(outputExpression, macroName, macro->copy());
     }

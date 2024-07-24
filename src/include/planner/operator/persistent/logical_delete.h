@@ -23,8 +23,6 @@ public:
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }
 
-    std::string getExpressionsForPrinting() const override;
-
     f_group_pos_set getGroupsPosToFlatten() const;
 
     std::unique_ptr<LogicalOperator> copy() override {

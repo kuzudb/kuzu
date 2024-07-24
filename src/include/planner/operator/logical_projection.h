@@ -17,10 +17,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override {
-        return binder::ExpressionUtil::toString(expressions);
-    }
-
     inline binder::expression_vector getExpressionsToProject() const { return expressions; }
 
     std::unordered_set<uint32_t> getDiscardedGroupsPos() const;

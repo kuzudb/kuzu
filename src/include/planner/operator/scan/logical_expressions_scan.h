@@ -16,10 +16,6 @@ public:
     inline void computeFactorizedSchema() final { computeSchema(); }
     inline void computeFlatSchema() final { computeSchema(); }
 
-    inline std::string getExpressionsForPrinting() const final {
-        return binder::ExpressionUtil::toString(expressions);
-    }
-
     inline binder::expression_vector getExpressions() const { return expressions; }
     inline void setOuterAccumulate(LogicalOperator* op) { outerAccumulate = op; }
     inline LogicalOperator* getOuterAccumulate() const { return outerAccumulate; }
