@@ -307,11 +307,7 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
             }
         }
         if (!hasAnyInsertions) {
-            if (vectorInfo->deletionStatus == VectorVersionInfo::DeletionStatus::NO_DELETED) {
-                undoRecord.versionInfo->clearVectorInfo(undoRecord.vectorIdx);
-            } else {
-                vectorInfo->insertionStatus = VectorVersionInfo::InsertionStatus::NO_INSERTED;
-            }
+            vectorInfo->insertionStatus = VectorVersionInfo::InsertionStatus::NO_INSERTED;
         }
     } break;
     case UndoRecordType::DELETE_INFO: {

@@ -37,11 +37,11 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
     const row_idx_t numRows, sel_t startOutputPos) const {
     auto numSelected = selVector.getSelSize();
     if (deletionStatus == DeletionStatus::NO_DELETED &&
-        insertionStatus == InsertionStatus::NO_INSERTED) {
+        insertionStatus == InsertionStatus::ALWAYS_INSERTED) {
         for (auto i = 0u; i < numRows; i++) {
             selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
         }
-    } else {
+    } else if (insertionStatus != InsertionStatus::NO_INSERTED) {
         for (auto i = 0u; i < numRows; i++) {
             if (const auto rowIdx = startRow + i; isInserted(startTS, transactionID, rowIdx) &&
                                                   !isDeleted(startTS, transactionID, rowIdx)) {
@@ -111,6 +111,7 @@ void VectorVersionInfo::serialize(Serializer& serializer) const {
                   deleted < transaction::Transaction::START_TRANSACTION_ID);
         KU_UNUSED(deleted);
     }
+    // TODO(Guodong): We should just serialize isDeleted or not to save space instead of versions.
     serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
 }
 
