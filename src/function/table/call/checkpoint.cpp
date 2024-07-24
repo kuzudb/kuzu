@@ -27,8 +27,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    checkpointBindData->clientContext->getTransactionManagerUnsafe()->commit(
-        *checkpointBindData->clientContext);
+    KU_ASSERT(checkpointBindData->clientContext->getTransactionContext()->hasActiveTransaction());
+    checkpointBindData->clientContext->getTransactionContext()->commit();
     checkpointBindData->clientContext->getTransactionManagerUnsafe()->checkpoint(
         *checkpointBindData->clientContext);
     return 0;
