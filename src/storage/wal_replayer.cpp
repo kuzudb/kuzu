@@ -362,9 +362,7 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     const auto sequenceID = sequenceEntryRecord.sequenceID;
     const auto entry =
         clientContext.getCatalog()->getSequenceCatalogEntry(clientContext.getTx(), sequenceID);
-    // TODO(Sam): remove unnecessary valuevector allocation
-    auto res = ValueVector(LogicalTypeID::INT64, clientContext.getMemoryManager());
-    entry->nextKVal(clientContext.getTx(), sequenceEntryRecord.kCount, res);
+    entry->nextKVal(clientContext.getTx(), sequenceEntryRecord.kCount);
 }
 
 } // namespace storage

@@ -281,7 +281,7 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     const auto& sequenceRecord = *reinterpret_cast<SequenceEntryRecord const*>(entry);
     const auto sequenceEntry = sequenceRecord.sequenceEntry;
     const auto& data = sequenceRecord.sequenceRollbackData;
-    sequenceEntry->rollbackVal(data.usageCount, data.currVal, data.currVal);
+    sequenceEntry->rollbackVal(data.usageCount, data.currVal);
 }
 
 void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record) {
