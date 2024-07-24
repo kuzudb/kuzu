@@ -18,7 +18,6 @@ std::string HashJoinBuildPrintInfo::toString() const {
     return result;
 }
 
-
 void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
     std::unique_lock lck(mtx);
     hashTable->merge(localHashTable);

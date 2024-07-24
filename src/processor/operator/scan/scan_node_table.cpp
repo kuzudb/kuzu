@@ -1,7 +1,7 @@
 #include "processor/operator/scan/scan_node_table.h"
 
-#include "storage/local_storage/local_node_table.h"
 #include "binder/expression/expression_util.h"
+#include "storage/local_storage/local_node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

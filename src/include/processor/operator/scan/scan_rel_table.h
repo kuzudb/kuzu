@@ -1,10 +1,10 @@
 #pragma once
 
+#include "binder/expression/rel_expression.h"
+#include "common/enums/extend_direction.h"
 #include "processor/operator/scan/scan_table.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/rel_table.h"
-#include "binder/expression/rel_expression.h"
-#include "common/enums/extend_direction.h"
 
 namespace kuzu {
 namespace processor {

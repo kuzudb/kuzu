@@ -1,12 +1,12 @@
 #include "processor/operator/partitioner.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
