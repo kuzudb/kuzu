@@ -37,12 +37,6 @@ void NodeTableDeleteInfo::detachDeleteFromRelTable(Transaction* transaction,
         relTable->detachDelete(transaction, RelDataDirection::FWD, detachDeleteState);
     }
     for (auto& relTable : bwdRelTables) {
-        // TODO(Guodong): For detach delete, there can possibly be a case where the same relTable is
-        // in both fwd and bwd rel tables set. the rels can be deleted twice. This is a temporary
-        // hack.
-        //        if (fwdRelTables.contains(relTable)) {
-        //            continue;
-        //        }
         relTable->detachDelete(transaction, RelDataDirection::BWD, detachDeleteState);
     }
 }
