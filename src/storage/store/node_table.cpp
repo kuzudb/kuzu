@@ -5,7 +5,6 @@
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
