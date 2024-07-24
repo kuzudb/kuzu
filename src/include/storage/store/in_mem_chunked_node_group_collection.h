@@ -1,7 +1,6 @@
 #pragma once
 
 #include "storage/store/chunked_node_group.h"
-#include "storage/store/group_collection.h"
 
 namespace kuzu {
 namespace transaction {
