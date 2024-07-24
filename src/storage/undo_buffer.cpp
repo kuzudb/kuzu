@@ -28,8 +28,7 @@ struct CatalogEntryRecord {
 
 struct SequenceEntryRecord {
     SequenceCatalogEntry* sequenceEntry;
-    SequenceChangeData sequenceChangeData;
-    int64_t prevVal;
+    SequenceRollbackData sequenceRollbackData;
 };
 
 struct NodeBatchInsertRecord {
@@ -99,15 +98,14 @@ void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalo
     *reinterpret_cast<CatalogEntryRecord*>(buffer) = catalogEntryRecord;
 }
 
-void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry, const SequenceData& data,
-    int64_t prevVal) {
+void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
+    const SequenceRollbackData& data) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(SequenceEntryRecord));
     const UndoRecordHeader recordHeader{UndoRecordType::SEQUENCE_ENTRY,
         sizeof(SequenceEntryRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    const SequenceEntryRecord sequenceEntryRecord{&sequenceEntry,
-        {data.usageCount, data.currVal, data.nextVal}, prevVal};
+    const SequenceEntryRecord sequenceEntryRecord{&sequenceEntry, data};
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
@@ -282,8 +280,8 @@ void UndoBuffer::commitSequenceEntry(const uint8_t*, transaction_t) const {
 void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     const auto& sequenceRecord = *reinterpret_cast<SequenceEntryRecord const*>(entry);
     const auto sequenceEntry = sequenceRecord.sequenceEntry;
-    sequenceEntry->replayVal(sequenceRecord.sequenceChangeData.usageCount - 1,
-        sequenceRecord.prevVal, sequenceRecord.sequenceChangeData.currVal);
+    const auto& data = sequenceRecord.sequenceRollbackData;
+    sequenceEntry->rollbackVal(data.usageCount, data.currVal);
 }
 
 void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record) {

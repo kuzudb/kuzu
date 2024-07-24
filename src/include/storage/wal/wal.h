@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <unordered_set>
 
 #include "common/enums/rel_direction.h"
@@ -19,7 +20,7 @@ class ValueVector;
 
 namespace catalog {
 class CatalogEntry;
-struct SequenceChangeData;
+struct SequenceRollbackData;
 } // namespace catalog
 
 namespace storage {
@@ -39,8 +40,7 @@ public:
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
     void logAlterTableEntryRecord(const binder::BoundAlterInfo* alterInfo);
-    void logUpdateSequenceRecord(common::sequence_id_t sequenceID,
-        catalog::SequenceChangeData data);
+    void logUpdateSequenceRecord(common::sequence_id_t sequenceID, uint64_t kCount);
 
     void logTableInsertion(common::table_id_t tableID, common::TableType tableType,
         common::row_idx_t numRows, const std::vector<common::ValueVector*>& vectors);

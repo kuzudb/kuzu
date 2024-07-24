@@ -106,11 +106,10 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     }
 }
 
-void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, const SequenceData& data,
-    int64_t prevVal) const {
-    undoBuffer->createSequenceChange(*sequenceEntry, data, prevVal);
-    clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(),
-        {data.usageCount, data.currVal, data.nextVal});
+void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,
+    const SequenceRollbackData& data) const {
+    undoBuffer->createSequenceChange(*sequenceEntry, data);
+    clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(), kCount);
 }
 
 void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,

@@ -362,8 +362,7 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     const auto sequenceID = sequenceEntryRecord.sequenceID;
     const auto entry =
         clientContext.getCatalog()->getSequenceCatalogEntry(clientContext.getTx(), sequenceID);
-    entry->replayVal(sequenceEntryRecord.data.usageCount, sequenceEntryRecord.data.currVal,
-        sequenceEntryRecord.data.nextVal);
+    entry->nextKVal(clientContext.getTx(), sequenceEntryRecord.kCount);
 }
 
 } // namespace storage

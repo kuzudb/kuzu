@@ -31,66 +31,82 @@ int64_t SequenceCatalogEntry::currVal() {
     return result;
 }
 
+void SequenceCatalogEntry::nextValNoLock() {
+    if (sequenceData.usageCount == 0) {
+        // initialization of sequence
+        sequenceData.usageCount++;
+        return;
+    }
+    bool overflow = false;
+    auto next = sequenceData.currVal;
+    try {
+        function::Add::operation(next, sequenceData.increment, next);
+    } catch (const OverflowException& e) {
+        overflow = true;
+    }
+    if (sequenceData.cycle) {
+        if (overflow) {
+            next = sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
+        } else if (next < sequenceData.minValue) {
+            next = sequenceData.maxValue;
+        } else if (next > sequenceData.maxValue) {
+            next = sequenceData.minValue;
+        }
+    } else {
+        bool minError = overflow ? sequenceData.increment < 0 : next < sequenceData.minValue;
+        bool maxError = overflow ? sequenceData.increment > 0 : next > sequenceData.maxValue;
+        if (minError) {
+            throw CatalogException("nextval: reached minimum value of sequence \"" + name + "\" " +
+                                   std::to_string(sequenceData.minValue));
+        }
+        if (maxError) {
+            throw CatalogException("nextval: reached maximum value of sequence \"" + name + "\" " +
+                                   std::to_string(sequenceData.maxValue));
+        }
+    }
+    sequenceData.currVal = next;
+    sequenceData.usageCount++;
+}
+
 // referenced from DuckDB
+void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count) {
+    KU_ASSERT(count > 0);
+    SequenceRollbackData rollbackData;
+    {
+        std::lock_guard<std::mutex> lck(mtx);
+        rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
+        for (auto i = 0ul; i < count; i++) {
+            nextValNoLock();
+        }
+    }
+    transaction->pushSequenceChange(this, count, rollbackData);
+}
+
 void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count,
     common::ValueVector& resultVector) {
     KU_ASSERT(count > 0);
-    std::lock_guard<std::mutex> lck(mtx);
-    int64_t tmp;
-    for (auto i = 0ul; i < count; i++) {
-        bool overflow = false;
-        tmp = sequenceData.nextVal;
-        try {
-            function::Add::operation(sequenceData.nextVal, sequenceData.increment,
-                sequenceData.nextVal);
-        } catch (const OverflowException& e) {
-            overflow = true;
+    SequenceRollbackData rollbackData;
+    {
+        std::lock_guard<std::mutex> lck(mtx);
+        rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
+        for (auto i = 0ul; i < count; i++) {
+            nextValNoLock();
+            resultVector.setValue(i, sequenceData.currVal);
         }
-        if (sequenceData.cycle) {
-            if (overflow) {
-                sequenceData.nextVal =
-                    sequenceData.increment < 0 ? sequenceData.maxValue : sequenceData.minValue;
-            } else if (sequenceData.nextVal < sequenceData.minValue) {
-                sequenceData.nextVal = sequenceData.maxValue;
-            } else if (sequenceData.nextVal > sequenceData.maxValue) {
-                sequenceData.nextVal = sequenceData.minValue;
-            }
-        } else {
-            if (tmp < sequenceData.minValue || (overflow && sequenceData.increment < 0)) {
-                throw CatalogException("nextval: reached minimum value of sequence \"" + name +
-                                       "\" " + std::to_string(sequenceData.minValue));
-            }
-            if (tmp > sequenceData.maxValue || overflow) {
-                throw CatalogException("nextval: reached maximum value of sequence \"" + name +
-                                       "\" " + std::to_string(sequenceData.maxValue));
-            }
-        }
-        resultVector.setValue(i, tmp);
     }
-    auto prevVal = sequenceData.currVal;
-    sequenceData.currVal = tmp;
-    sequenceData.usageCount += count;
-    transaction->pushSequenceChange(this, sequenceData, prevVal);
+    transaction->pushSequenceChange(this, count, rollbackData);
 }
 
-void SequenceCatalogEntry::replayVal(const uint64_t& usageCount, const int64_t& currVal,
-    const int64_t& nextVal) {
+void SequenceCatalogEntry::rollbackVal(const uint64_t& usageCount, const int64_t& currVal) {
     std::lock_guard<std::mutex> lck(mtx);
-    // for wal replay: only apply replays to newer usage than current
-    if (usageCount > sequenceData.usageCount ||
-        // for undo buffer rollback: only rollback if no one else made changes
-        usageCount == sequenceData.usageCount - 1) {
-        sequenceData.usageCount = usageCount;
-        sequenceData.currVal = currVal;
-        sequenceData.nextVal = nextVal;
-    }
+    sequenceData.usageCount = usageCount;
+    sequenceData.currVal = currVal;
 }
 
 void SequenceCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(sequenceID);
     serializer.write(sequenceData.usageCount);
-    serializer.write(sequenceData.nextVal);
     serializer.write(sequenceData.currVal);
     serializer.write(sequenceData.increment);
     serializer.write(sequenceData.startValue);
@@ -103,7 +119,6 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
     common::sequence_id_t sequenceID;
     uint64_t usageCount;
-    int64_t nextVal;
     int64_t currVal;
     int64_t increment;
     int64_t startValue;
@@ -112,7 +127,6 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
     bool cycle;
     deserializer.deserializeValue(sequenceID);
     deserializer.deserializeValue(usageCount);
-    deserializer.deserializeValue(nextVal);
     deserializer.deserializeValue(currVal);
     deserializer.deserializeValue(increment);
     deserializer.deserializeValue(startValue);
@@ -122,7 +136,6 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
     auto result = std::make_unique<SequenceCatalogEntry>();
     result->sequenceID = sequenceID;
     result->sequenceData.usageCount = usageCount;
-    result->sequenceData.nextVal = nextVal;
     result->sequenceData.currVal = currVal;
     result->sequenceData.increment = increment;
     result->sequenceData.startValue = startValue;

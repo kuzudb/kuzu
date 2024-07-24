@@ -233,18 +233,14 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
 void UpdateSequenceRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(sequenceID);
-    serializer.write(data.usageCount);
-    serializer.write(data.currVal);
-    serializer.write(data.nextVal);
+    serializer.write(kCount);
 }
 
 std::unique_ptr<UpdateSequenceRecord> UpdateSequenceRecord::deserialize(
     Deserializer& deserializer) {
     auto retVal = std::make_unique<UpdateSequenceRecord>();
     deserializer.deserializeValue(retVal->sequenceID);
-    deserializer.deserializeValue(retVal->data.usageCount);
-    deserializer.deserializeValue(retVal->data.currVal);
-    deserializer.deserializeValue(retVal->data.nextVal);
+    deserializer.deserializeValue(retVal->kCount);
     return retVal;
 }
 
