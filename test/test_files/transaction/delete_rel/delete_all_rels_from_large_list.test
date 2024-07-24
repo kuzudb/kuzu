@@ -72,7 +72,7 @@
 -STATEMENT COMMIT;
 ---- ok
 
--CASE detachDeleteNodeWithLageList
+-CASE detachDeleteNodeWithLargeList
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
 ---- 1
 2351
@@ -83,3 +83,20 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(b:person) HINT (p JOIN e) JOIN b RETURN COUNT(*);
 ---- 1
 50
+
+-CASE detachDeleteMultiLabelNodeWithLargeList
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
+---- 1
+2351
+-STATEMENT MATCH (p) WHERE p.ID = 0 OR p.ID = 1 DETACH DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 RETURN p;
+---- 0
+-STATEMENT MATCH (a:animal) WHERE a.ID = 0 RETURN a;
+---- 0
+-STATEMENT MATCH (p:person)-[e:knows]->(b:person) HINT (p JOIN e) JOIN b RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (a:animal)-[e:hasOwner]->(b:person) HINT (a JOIN e) JOIN b RETURN COUNT(*);
+---- 1
+9
