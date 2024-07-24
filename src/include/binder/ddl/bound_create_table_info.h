@@ -80,7 +80,7 @@ private:
         : name{other.name}, type{other.type.copy()}, defaultValue{other.defaultValue->copy()} {}
 };
 
-struct BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
+struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
     std::vector<PropertyInfo> propertyInfos;
 
     explicit BoundExtraCreateTableInfo(std::vector<PropertyInfo> propertyInfos)
