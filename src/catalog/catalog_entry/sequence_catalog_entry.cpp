@@ -31,7 +31,7 @@ int64_t SequenceCatalogEntry::currVal() {
     return result;
 }
 
-void SequenceCatalogEntry::nextVal() {
+void SequenceCatalogEntry::nextValNoLock() {
     if (sequenceData.usageCount == 0) {
         // initialization of sequence
         sequenceData.usageCount++;
@@ -71,10 +71,13 @@ void SequenceCatalogEntry::nextVal() {
 // referenced from DuckDB
 void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count) {
     KU_ASSERT(count > 0);
-    std::lock_guard<std::mutex> lck(mtx);
-    SequenceRollbackData rollbackData{sequenceData.usageCount, sequenceData.currVal};
-    for (auto i = 0ul; i < count; i++) {
-        nextVal();
+    SequenceRollbackData rollbackData;
+    {
+        std::lock_guard<std::mutex> lck(mtx);
+        rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
+        for (auto i = 0ul; i < count; i++) {
+            nextValNoLock();
+        }
     }
     transaction->pushSequenceChange(this, count, rollbackData);
 }
@@ -82,11 +85,14 @@ void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const
 void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count,
     common::ValueVector& resultVector) {
     KU_ASSERT(count > 0);
-    std::lock_guard<std::mutex> lck(mtx);
-    SequenceRollbackData rollbackData{sequenceData.usageCount, sequenceData.currVal};
-    for (auto i = 0ul; i < count; i++) {
-        nextVal();
-        resultVector.setValue(i, sequenceData.currVal);
+    SequenceRollbackData rollbackData;
+    {
+        std::lock_guard<std::mutex> lck(mtx);
+        rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
+        for (auto i = 0ul; i < count; i++) {
+            nextValNoLock();
+            resultVector.setValue(i, sequenceData.currVal);
+        }
     }
     transaction->pushSequenceChange(this, count, rollbackData);
 }

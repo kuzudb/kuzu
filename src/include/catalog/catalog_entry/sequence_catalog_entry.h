@@ -77,7 +77,7 @@ public:
 
 private:
     void copyFrom(const CatalogEntry& other) override;
-    void nextVal();
+    void nextValNoLock();
 
 private:
     CatalogSet* set;
