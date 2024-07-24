@@ -70,8 +70,8 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             std::string key;
             uint64_t numTables;
             deSer.deserializeDebuggingInfo(key);
-            deSer.deserializeValue<uint64_t>(numTables);
             KU_ASSERT(key == "num_tables");
+            deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
                 auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
                 tables[table->getTableID()] = std::move(table);
