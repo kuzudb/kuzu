@@ -13,6 +13,5 @@ void LogicalPartitioner::computeFlatSchema() {
     copyChildSchema(0);
 }
 
-
 } // namespace planner
 } // namespace kuzu
