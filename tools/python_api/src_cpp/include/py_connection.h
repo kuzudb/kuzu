@@ -49,6 +49,9 @@ public:
 
     static Value transformPythonValue(const py::handle& val);
     static Value transformPythonValueAs(const py::handle& val, const LogicalType& type);
+    static Value transformPythonValueFromParameter(const py::handle& val);
+    static Value transformPythonValueFromParameterAs(const py::handle& val,
+        const LogicalType& type);
 
 private:
     std::unique_ptr<StorageDriver> storageDriver;
