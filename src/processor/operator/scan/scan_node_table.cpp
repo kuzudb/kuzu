@@ -29,7 +29,7 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
     std::unique_lock lck{mtx};
     if (currentCommittedGroupIdx < numCommittedNodeGroups) {
         scanState.nodeGroupIdx = currentCommittedGroupIdx++;
-        progressSharedState->numGroups++;
+        progressSharedState->numGroupsScanned++;
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
