@@ -458,7 +458,7 @@ const struct BoxDrawingCharacters {
 };
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
-     auto querySummary = queryResult.getQuerySummary();
+    auto querySummary = queryResult.getQuerySummary();
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
@@ -628,7 +628,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 printString += BoxDrawingCharacters::Horizontal;
                 printString += BoxDrawingCharacters::Horizontal;
                 printString += BoxDrawingCharacters::DownAndHorizontal;
-
             }
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
