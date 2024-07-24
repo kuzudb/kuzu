@@ -5,7 +5,6 @@
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
@@ -51,11 +50,9 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     std::string key;
     table_id_t tableID;
     std::string tableName;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "table_id");
+    deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "table_name");
+    deSer.validateDebuggingInfo(key, "table_name");
     deSer.deserializeValue<std::string>(tableName);
     auto catalogEntry =
         catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<NodeTableCatalogEntry>();

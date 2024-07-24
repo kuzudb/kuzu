@@ -373,21 +373,17 @@ void ValueVector::serialize(Serializer& ser) const {
 std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
     storage::MemoryManager* mm, std::shared_ptr<DataChunkState> dataChunkState) {
     std::string key;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "data_type");
+    deSer.validateDebuggingInfo(key, "data_type");
     auto dataType = LogicalType::deserialize(deSer);
     auto result = std::make_unique<ValueVector>(std::move(dataType), mm);
     result->state = dataChunkState;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "num_values");
+    deSer.validateDebuggingInfo(key, "num_values");
     sel_t numValues;
     deSer.deserializeValue<sel_t>(numValues);
     result->state->getSelVectorUnsafe().setSelSize(numValues);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "null_mask");
+    deSer.validateDebuggingInfo(key, "null_mask");
     result->nullMask = NullMask::deserialize(deSer);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "values");
+    deSer.validateDebuggingInfo(key, "values");
     for (auto i = 0u; i < numValues; i++) {
         auto val = Value::deserialize(deSer);
         result->copyFromValue(result->state->getSelVector()[i], *val);

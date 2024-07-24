@@ -112,11 +112,9 @@ void DictionaryChunk::serialize(Serializer& serializer) const {
 std::unique_ptr<DictionaryChunk> DictionaryChunk::deserialize(Deserializer& deSer) {
     auto chunk = std::make_unique<DictionaryChunk>(0, true, ResidencyState::ON_DISK);
     std::string key;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "offset_chunk");
+    deSer.validateDebuggingInfo(key, "offset_chunk");
     chunk->offsetChunk = ColumnChunkData::deserialize(deSer);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "string_data_chunk");
+    deSer.validateDebuggingInfo(key, "string_data_chunk");
     chunk->stringDataChunk = ColumnChunkData::deserialize(deSer);
     return chunk;
 }

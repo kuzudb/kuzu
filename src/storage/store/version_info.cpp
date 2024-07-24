@@ -308,19 +308,16 @@ void VersionInfo::serialize(Serializer& serializer) const {
 std::unique_ptr<VersionInfo> VersionInfo::deserialize(Deserializer& deSer) {
     std::string key;
     uint64_t vectorSize;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "vectors_info_size");
+    deSer.validateDebuggingInfo(key, "vectors_info_size");
     deSer.deserializeValue<uint64_t>(vectorSize);
     auto versionInfo = std::make_unique<VersionInfo>();
     for (auto i = 0u; i < vectorSize; i++) {
         bool hasDeletion;
-        deSer.deserializeDebuggingInfo(key);
-        KU_ASSERT(key == "has_deletion");
+        deSer.validateDebuggingInfo(key, "has_deletion");
         deSer.deserializeValue<bool>(hasDeletion);
         if (hasDeletion) {
             auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
-            deSer.deserializeDebuggingInfo(key);
-            KU_ASSERT(key == "vector_info");
+            deSer.validateDebuggingInfo(key, "vector_info");
             deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
                 vectorVersionInfo->deletedVersions);
             versionInfo->vectorsInfo.push_back(std::move(vectorVersionInfo));

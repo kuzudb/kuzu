@@ -63,16 +63,13 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
     const auto metaFilePath =
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL);
-    if (vfs->fileOrPathExists(metaFilePath)) {
-        auto metadataFileInfo = vfs->openFile(
-            StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), O_RDONLY,
-            context);
+    if (vfs->fileOrPathExists(metaFilePath, context)) {
+        auto metadataFileInfo = vfs->openFile(metaFilePath, O_RDONLY, context);
         if (metadataFileInfo->getFileSize() > 0) {
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
             uint64_t numTables;
-            deSer.deserializeDebuggingInfo(key);
-            KU_ASSERT(key == "num_tables");
+            deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
                 auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);

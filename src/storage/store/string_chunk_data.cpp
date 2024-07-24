@@ -272,11 +272,9 @@ void StringChunkData::serialize(Serializer& serializer) const {
 
 void StringChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
     std::string key;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "index_column_chunk");
+    deSer.validateDebuggingInfo(key, "index_column_chunk");
     chunkData.cast<StringChunkData>().indexColumnChunk = ColumnChunkData::deserialize(deSer);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "dictionary_chunk");
+    deSer.validateDebuggingInfo(key, "dictionary_chunk");
     chunkData.cast<StringChunkData>().dictionaryChunk = DictionaryChunk::deserialize(deSer);
 }
 
