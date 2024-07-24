@@ -21,7 +21,6 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-
 NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry* nodeTableEntry,
     MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context,
     Deserializer* deSer)
@@ -155,9 +154,10 @@ void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector*
     if (pkVector->isNull(selVector[0])) {
         throw RuntimeException(ExceptionMessage::nullPKException());
     }
-    if (pkIndex->lookup(transaction, pkVector, selVector[0],  dummyOffset,
-        [&](offset_t offset) { return isVisible(transaction, offset); })) {
-        throw RuntimeException(ExceptionMessage::duplicatePKException(pkVector->getAsValue(selVector[0])->toString()));
+    if (pkIndex->lookup(transaction, pkVector, selVector[0], dummyOffset,
+            [&](offset_t offset) { return isVisible(transaction, offset); })) {
+        throw RuntimeException(
+            ExceptionMessage::duplicatePKException(pkVector->getAsValue(selVector[0])->toString()));
     }
 }
 
@@ -331,7 +331,8 @@ void NodeTable::insertPK(const Transaction* transaction, const ValueVector& node
         }
         if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset,
                 [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
-            throw RuntimeException(ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
+            throw RuntimeException(
+                ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
         }
     }
 }
