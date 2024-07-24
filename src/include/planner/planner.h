@@ -271,8 +271,8 @@ public:
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
 
-    void appendCrossProduct(const LogicalPlan& probePlan,
-        const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
+        LogicalPlan& resultPlan);
     void appendOptionalCrossProduct(std::shared_ptr<binder::Expression> mark,
         const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendCrossProduct(common::AccumulateType accumulateType,

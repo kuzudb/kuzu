@@ -9,7 +9,8 @@ namespace planner {
 
 void Planner::appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
     LogicalPlan& resultPlan) {
-    appendCrossProduct(AccumulateType::REGULAR, nullptr /* mark */, probePlan, buildPlan, resultPlan);
+    appendCrossProduct(AccumulateType::REGULAR, nullptr /* mark */, probePlan, buildPlan,
+        resultPlan);
 }
 
 void Planner::appendOptionalCrossProduct(std::shared_ptr<Expression> mark,

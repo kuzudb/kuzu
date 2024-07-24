@@ -10,8 +10,9 @@ class LogicalCrossProduct : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CROSS_PRODUCT;
 
 public:
-    LogicalCrossProduct(common::AccumulateType accumulateType, std::shared_ptr<binder::Expression> mark,
-        std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> buildChild)
+    LogicalCrossProduct(common::AccumulateType accumulateType,
+        std::shared_ptr<binder::Expression> mark, std::shared_ptr<LogicalOperator> probeChild,
+        std::shared_ptr<LogicalOperator> buildChild)
         : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
           accumulateType{accumulateType}, mark{std::move(mark)} {}
 
@@ -21,9 +22,7 @@ public:
     std::string getExpressionsForPrinting() const override { return std::string(); }
 
     common::AccumulateType getAccumulateType() const { return accumulateType; }
-    bool hasMark() const {
-        return mark != nullptr;
-    }
+    bool hasMark() const { return mark != nullptr; }
     std::shared_ptr<binder::Expression> getMark() const { return mark; }
 
     std::unique_ptr<LogicalOperator> copy() override {

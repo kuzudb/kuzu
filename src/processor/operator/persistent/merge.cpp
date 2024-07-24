@@ -134,8 +134,8 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
 std::unique_ptr<PhysicalOperator> Merge::clone() {
     return std::make_unique<Merge>(copyVector(nodeInsertExecutors), copyVector(relInsertExecutors),
         copyVector(onCreateNodeSetExecutors), copyVector(onCreateRelSetExecutors),
-        copyVector(onMatchNodeSetExecutors), copyVector(onMatchRelSetExecutors), info.copy(), children[0]->clone(), id,
-        printInfo->copy());
+        copyVector(onMatchNodeSetExecutors), copyVector(onMatchRelSetExecutors), info.copy(),
+        children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor
