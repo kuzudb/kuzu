@@ -52,7 +52,7 @@ private:
     CatalogEntry* getEntryNoLock(transaction::Transaction* transaction, const std::string& name);
     CatalogEntry* createEntryNoLock(transaction::Transaction* transaction,
         std::unique_ptr<CatalogEntry> entry);
-    void dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
+    CatalogEntry* dropEntryNoLock(transaction::Transaction* transaction, const std::string& name);
 
     void validateExistNoLock(transaction::Transaction* transaction, const std::string& name) const;
     void validateNotExistNoLock(transaction::Transaction* transaction,

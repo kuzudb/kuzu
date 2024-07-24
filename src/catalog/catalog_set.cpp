@@ -50,7 +50,7 @@ CatalogEntry* CatalogSet::getEntryNoLock(Transaction* transaction, const std::st
     return entry;
 }
 
-static void LogEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry) {
+static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry) {
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
         transaction->pushCatalogEntry(set, entry);
@@ -63,7 +63,7 @@ void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEn
         std::lock_guard lck{mtx};
         entryPtr = createEntryNoLock(transaction, std::move(entry));
     }
-    LogEntryForTrx(transaction, *this, *entryPtr);
+    logEntryForTrx(transaction, *this, *entryPtr);
 }
 
 CatalogEntry* CatalogSet::createEntryNoLock(Transaction* transaction,
@@ -133,11 +133,15 @@ CatalogEntry* CatalogSet::getCommittedEntryNoLock(CatalogEntry* entry) const {
 }
 
 void CatalogSet::dropEntry(Transaction* transaction, const std::string& name) {
-    std::lock_guard lck{mtx};
-    dropEntryNoLock(transaction, name);
+    CatalogEntry* entryPtr;
+    {
+        std::lock_guard lck{mtx};
+        entryPtr = dropEntryNoLock(transaction, name);
+    }
+    logEntryForTrx(transaction, *this, *entryPtr);
 }
 
-void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& name) {
+CatalogEntry* CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& name) {
     // LCOV_EXCL_START
     validateExistNoLock(transaction, name);
     // LCOV_EXCL_STOP
@@ -145,9 +149,7 @@ void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& na
     tombstone->setTimestamp(transaction->getID());
     auto tombstonePtr = tombstone.get();
     emplaceNoLock(std::move(tombstone));
-    if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(*this, *tombstonePtr->getPrev());
-    }
+    return tombstonePtr->getPrev();
 }
 
 void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
@@ -174,7 +176,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
             emplaceNoLock(std::move(newEntry));
         }
     }
-    LogEntryForTrx(transaction, *this, *entry);
+    logEntryForTrx(transaction, *this, *entry);
 }
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {
