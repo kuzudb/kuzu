@@ -1,8 +1,5 @@
 #include "catalog/catalog_set.h"
 
-#include <memory>
-#include <mutex>
-
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
@@ -53,13 +50,23 @@ CatalogEntry* CatalogSet::getEntryNoLock(Transaction* transaction, const std::st
     return entry;
 }
 
-void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
-    std::unique_lock lck{mtx};
-    createEntryNoLock(transaction, std::move(entry), lck);
+static void LogEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry) {
+    KU_ASSERT(transaction);
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushCatalogEntry(set, entry);
+    }
 }
 
-void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry,
-    std::unique_lock<std::mutex>& lck) {
+void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
+    CatalogEntry* entryPtr;
+    {
+        std::lock_guard lck{mtx};
+        entryPtr = createEntryNoLock(transaction, std::move(entry));
+    }
+    LogEntryForTrx(transaction, *this, *entryPtr);
+}
+
+CatalogEntry* CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
     // LCOV_EXCL_START
     validateNotExistNoLock(transaction, entry->getName());
     // LCOV_EXCL_STOP
@@ -79,11 +86,7 @@ void CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<Cat
     entries.emplace(entry->getName(), std::move(dummyEntry));
     auto entryPtr = entry.get();
     emplaceNoLock(std::move(entry));
-    lck.unlock();
-    KU_ASSERT(transaction);
-    if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(*this, *entryPtr->getPrev());
-    }
+    return entryPtr->getPrev();
 }
 
 void CatalogSet::emplaceNoLock(std::unique_ptr<CatalogEntry> entry) {
@@ -147,29 +150,30 @@ void CatalogSet::dropEntryNoLock(Transaction* transaction, const std::string& na
 }
 
 void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
-    std::unique_lock lck{mtx};
-    // LCOV_EXCL_START
-    validateExistNoLock(transaction, alterInfo.tableName);
-    // LCOV_EXCL_STOP
-    auto entry = getEntryNoLock(transaction, alterInfo.tableName);
-    KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
-              entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
-              entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
-              entry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY);
-    auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
-    auto newEntry = tableEntry->alter(alterInfo);
-    newEntry->setTimestamp(transaction->getID());
-    if (alterInfo.alterType == AlterType::RENAME_TABLE) {
-        // We treat rename table as drop and create.
-        dropEntryNoLock(transaction, alterInfo.tableName);
-        createEntryNoLock(transaction, std::move(newEntry), lck);
-        return;
+    CatalogEntry* entry;
+    {
+        std::lock_guard lck{mtx};
+        // LCOV_EXCL_START
+        validateExistNoLock(transaction, alterInfo.tableName);
+        // LCOV_EXCL_STOP
+        entry = getEntryNoLock(transaction, alterInfo.tableName);
+        KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
+                entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
+                entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
+                entry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY);
+        auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        auto newEntry = tableEntry->alter(alterInfo);
+        newEntry->setTimestamp(transaction->getID());
+        if (alterInfo.alterType == AlterType::RENAME_TABLE) {
+            // We treat rename table as drop and create.
+            dropEntryNoLock(transaction, alterInfo.tableName);
+            entry = createEntryNoLock(transaction, std::move(newEntry));
+        } else {
+            tableEntry->setAlterInfo(alterInfo);
+            emplaceNoLock(std::move(newEntry));
+        }
     }
-    tableEntry->setAlterInfo(alterInfo);
-    emplaceNoLock(std::move(newEntry));
-    if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(*this, *entry);
-    }
+    LogEntryForTrx(transaction, *this, *entry);
 }
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {

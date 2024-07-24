@@ -39,6 +39,7 @@ struct BoundCreateTableInfo {
     bool hasParent = false;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 
+    BoundCreateTableInfo() = default;
     BoundCreateTableInfo(common::TableType type, std::string tableName,
         common::ConflictAction onConflict,
         std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
@@ -60,6 +61,7 @@ struct PropertyInfo {
     common::LogicalType type;
     std::unique_ptr<parser::ParsedExpression> defaultValue;
 
+    PropertyInfo() : PropertyInfo{"", common::LogicalType::ANY()} {}
     PropertyInfo(std::string name, common::LogicalType type)
         : PropertyInfo{name, std::move(type),
               std::make_unique<parser::ParsedLiteralExpression>(common::Value::createNullValue(),

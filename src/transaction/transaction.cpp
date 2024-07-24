@@ -65,14 +65,19 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             wal->logAlterTableEntryRecord(tableEntry.getAlterInfo());
         }
     } break;
-    case CatalogEntryType::SCALAR_MACRO_ENTRY:
-    case CatalogEntryType::SEQUENCE_ENTRY:
-    case CatalogEntryType::TYPE_ENTRY: {
+    case CatalogEntryType::SEQUENCE_ENTRY: {
         KU_ASSERT(
             catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
         if (newCatalogEntry->hasParent()) {
+            // We don't log SERIAL catalog entry creation as it is implicit
             return;
         }
+        wal->logCreateCatalogEntryRecord(newCatalogEntry);
+    }
+    case CatalogEntryType::SCALAR_MACRO_ENTRY:
+    case CatalogEntryType::TYPE_ENTRY: {
+        KU_ASSERT(
+            catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
         wal->logCreateCatalogEntryRecord(newCatalogEntry);
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {

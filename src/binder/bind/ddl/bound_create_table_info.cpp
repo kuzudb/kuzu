@@ -1,13 +1,8 @@
 #include "binder/ddl/bound_create_table_info.h"
 
-#include <memory>
-#include <utility>
-
 #include "binder/binder.h"
-#include "catalog/catalog.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "parser/expression/parsed_expression.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;
