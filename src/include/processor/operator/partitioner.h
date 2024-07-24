@@ -3,7 +3,7 @@
 #include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/sink.h"
-#include "storage/store/chunked_node_group_collection.h"
+#include "storage/store/in_mem_chunked_node_group_collection.h"
 
 namespace kuzu {
 namespace storage {
@@ -24,7 +24,7 @@ struct PartitionerFunctions {
 // partitioning methods. For example, copy of rel tables require partitioning on both FWD and BWD
 // direction. Each partitioning method corresponds to a PartitioningState.
 struct PartitioningBuffer {
-    std::vector<std::unique_ptr<storage::ChunkedNodeGroupCollection>> partitions;
+    std::vector<std::unique_ptr<storage::InMemChunkedNodeGroupCollection>> partitions;
 
     void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates) const;
 };
@@ -54,7 +54,7 @@ struct PartitionerSharedState {
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
-    storage::ChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
+    storage::InMemChunkedNodeGroupCollection& getPartitionBuffer(common::idx_t partitioningIdx,
         common::partition_idx_t partitionIdx) const {
         KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         KU_ASSERT(partitionIdx < partitioningBuffers[partitioningIdx]->partitions.size());

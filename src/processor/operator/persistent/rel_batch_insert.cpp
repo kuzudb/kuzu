@@ -93,7 +93,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     localState.chunkedGroup->resetToEmpty();
 }
 
-void RelBatchInsert::populateCSROffsets(ChunkedNodeGroupCollection& partition,
+void RelBatchInsert::populateCSROffsets(InMemChunkedNodeGroupCollection& partition,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
     const RelBatchInsertLocalState& localState, offset_t numNodes, bool leaveGaps) {
     auto& csrNodeGroup = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>();
@@ -122,7 +122,7 @@ void RelBatchInsert::populateCSROffsets(ChunkedNodeGroupCollection& partition,
 }
 
 void RelBatchInsert::populateCSRLengths(ChunkedCSRHeader& csrHeader, offset_t numNodes,
-    ChunkedNodeGroupCollection& partition, column_id_t boundNodeOffsetColumn) {
+    InMemChunkedNodeGroupCollection& partition, column_id_t boundNodeOffsetColumn) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
     const auto lengthData = reinterpret_cast<length_t*>(csrHeader.length->getData().getData());

@@ -1,7 +1,6 @@
 add_library(kuzu_storage_store
         OBJECT
         chunked_node_group.cpp
-        chunked_node_group_collection.cpp
         column.cpp
         column_chunk.cpp
         column_chunk_data.cpp
@@ -9,6 +8,7 @@ add_library(kuzu_storage_store
         csr_node_group.cpp
         dictionary_chunk.cpp
         dictionary_column.cpp
+        in_mem_chunked_node_group_collection.cpp
         list_chunk_data.cpp
         list_column.cpp
         node_group.cpp

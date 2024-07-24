@@ -112,7 +112,7 @@ void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataIn
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
-            partitioningBuffer->partitions.push_back(std::make_unique<ChunkedNodeGroupCollection>(
+            partitioningBuffer->partitions.push_back(std::make_unique<InMemChunkedNodeGroupCollection>(
                 LogicalType::copy(dataInfo.columnTypes)));
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);

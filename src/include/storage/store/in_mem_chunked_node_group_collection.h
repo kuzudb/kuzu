@@ -10,9 +10,9 @@ class Transaction;
 
 namespace storage {
 
-class ChunkedNodeGroupCollection {
+class InMemChunkedNodeGroupCollection {
 public:
-    explicit ChunkedNodeGroupCollection(std::vector<common::LogicalType> types)
+    explicit InMemChunkedNodeGroupCollection(std::vector<common::LogicalType> types)
         : types{std::move(types)} {}
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
@@ -36,7 +36,7 @@ public:
 
     // `merge` are directly moving the chunkedGroup to the collection.
     void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
-    void merge(ChunkedNodeGroupCollection& other);
+    void merge(InMemChunkedNodeGroupCollection& other);
 
     uint64_t getNumChunkedGroups() const { return chunkedGroups.size(); }
     void clear() { chunkedGroups.clear(); }
