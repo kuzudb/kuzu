@@ -23,15 +23,16 @@ struct NodeSetInfo {
 
     NodeSetInfo(DataPos nodeIDPos, DataPos columnVectorPos, DataPos pkVectorPos,
         std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos}, pkVectorPos{pkVectorPos}, evaluator{std::move(evaluator)} {}
+        : nodeIDPos{nodeIDPos}, columnVectorPos{columnVectorPos}, pkVectorPos{pkVectorPos},
+          evaluator{std::move(evaluator)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeSetInfo);
 
     void init(const ResultSet& resultSet, main::ClientContext* context);
 
 private:
     NodeSetInfo(const NodeSetInfo& other)
-        : nodeIDPos{other.nodeIDPos}, columnVectorPos{other.columnVectorPos}, pkVectorPos{other.pkVectorPos},
-          evaluator{other.evaluator->clone()} {}
+        : nodeIDPos{other.nodeIDPos}, columnVectorPos{other.columnVectorPos},
+          pkVectorPos{other.pkVectorPos}, evaluator{other.evaluator->clone()} {}
 };
 
 struct NodeTableSetInfo {
@@ -119,9 +120,10 @@ struct RelSetInfo {
     void init(const ResultSet& resultSet, main::ClientContext* context);
 
 private:
-    RelSetInfo(const RelSetInfo& other) : srcNodeIDPos{other.srcNodeIDPos},
-          dstNodeIDPos{other.dstNodeIDPos}, relIDPos{other.relIDPos},
-          columnVectorPos{other.columnVectorPos}, evaluator{other.evaluator->clone()} {}
+    RelSetInfo(const RelSetInfo& other)
+        : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
+          relIDPos{other.relIDPos}, columnVectorPos{other.columnVectorPos},
+          evaluator{other.evaluator->clone()} {}
 };
 
 struct RelTableSetInfo {
@@ -133,8 +135,7 @@ struct RelTableSetInfo {
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableSetInfo);
 
 private:
-    RelTableSetInfo(const RelTableSetInfo& other)
-        : table{other.table}, columnID{other.columnID} {}
+    RelTableSetInfo(const RelTableSetInfo& other) : table{other.table}, columnID{other.columnID} {}
 };
 
 class RelSetExecutor {
@@ -158,7 +159,7 @@ public:
     SingleLabelRelSetExecutor(RelSetInfo info, RelTableSetInfo tableInfo)
         : RelSetExecutor{std::move(info)}, tableInfo{std::move(tableInfo)} {}
     SingleLabelRelSetExecutor(const SingleLabelRelSetExecutor& other)
-        : RelSetExecutor{other}, tableInfo{other.tableInfo.copy()}{}
+        : RelSetExecutor{other}, tableInfo{other.tableInfo.copy()} {}
 
     void set(ExecutionContext* context) override;
 

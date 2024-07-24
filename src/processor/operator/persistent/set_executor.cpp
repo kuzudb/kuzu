@@ -102,8 +102,8 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
         return;
     }
     info.evaluator->evaluate();
-    auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID, *info.srcNodeIDVector,
-        *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
+    auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
+        *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
     tableInfo.table->update(context->clientContext->getTx(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
@@ -122,8 +122,8 @@ void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
         return;
     }
     auto& tableInfo = tableInfos.at(relID.tableID);
-    auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID, *info.srcNodeIDVector,
-        *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
+    auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
+        *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
     tableInfo.table->update(context->clientContext->getTx(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);

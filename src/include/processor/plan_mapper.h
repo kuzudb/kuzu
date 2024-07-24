@@ -179,9 +179,8 @@ private:
         std::shared_ptr<binder::Expression> mark, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator);
 
-    NodeInsertExecutor getNodeInsertExecutor(
-        const planner::LogicalInsertInfo* info, const planner::Schema& inSchema,
-        const planner::Schema& outSchema) const;
+    NodeInsertExecutor getNodeInsertExecutor(const planner::LogicalInsertInfo* info,
+        const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     RelInsertExecutor getRelInsertExecutor(const planner::LogicalInsertInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(const binder::BoundSetPropertyInfo& info,
@@ -193,8 +192,10 @@ private:
     std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,
         const planner::Schema& schema) const;
     NodeTableDeleteInfo getNodeTableDeleteInfo(common::table_id_t tableID, DataPos pkPos) const;
-    NodeTableSetInfo getNodeTableSetInfo(common::table_id_t tableID, const binder::Expression& expr) const;
-    RelTableSetInfo getRelTableSetInfo(common::table_id_t tableID, const binder::Expression& expr) const;
+    NodeTableSetInfo getNodeTableSetInfo(common::table_id_t tableID,
+        const binder::Expression& expr) const;
+    RelTableSetInfo getRelTableSetInfo(common::table_id_t tableID,
+        const binder::Expression& expr) const;
     uint32_t getOperatorID() { return physicalOperatorID++; }
 
     static void mapSIPJoin(PhysicalOperator* probe);

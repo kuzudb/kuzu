@@ -19,7 +19,8 @@ struct NodeInsertInfo {
     common::ValueVector* nodeIDVector = nullptr;
     std::vector<common::ValueVector*> columnVectors;
 
-    NodeInsertInfo(DataPos nodeIDPos, std::vector<DataPos> columnsPos, common::ConflictAction conflictAction)
+    NodeInsertInfo(DataPos nodeIDPos, std::vector<DataPos> columnsPos,
+        common::ConflictAction conflictAction)
         : nodeIDPos{nodeIDPos}, columnsPos{std::move(columnsPos)}, conflictAction{conflictAction} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertInfo);
 
@@ -41,7 +42,8 @@ struct NodeTableInsertInfo {
     common::ValueVector* pkVector;
     std::vector<common::ValueVector*> columnDataVectors;
 
-    NodeTableInsertInfo(storage::NodeTable* table, evaluator::evaluator_vector_t columnDataEvaluators)
+    NodeTableInsertInfo(storage::NodeTable* table,
+        evaluator::evaluator_vector_t columnDataEvaluators)
         : table{table}, columnDataEvaluators{std::move(columnDataEvaluators)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeTableInsertInfo);
 
@@ -89,7 +91,8 @@ struct RelInsertInfo {
     std::vector<common::ValueVector*> columnVectors;
 
     RelInsertInfo(DataPos srcNodeIDPos, DataPos dstNodeIDPos, std::vector<DataPos> columnsPos)
-        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, columnsPos{std::move(columnsPos)} {}
+        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos},
+          columnsPos{std::move(columnsPos)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelInsertInfo);
 
     void init(const ResultSet& resultSet);
@@ -106,16 +109,15 @@ struct RelTableInsertInfo {
 
     std::vector<common::ValueVector*> columnDataVectors;
 
-    RelTableInsertInfo(storage::RelTable* table, evaluator::evaluator_vector_t evaluators) :
-          table{table}, columnDataEvaluators{std::move(evaluators)}  {}
+    RelTableInsertInfo(storage::RelTable* table, evaluator::evaluator_vector_t evaluators)
+        : table{table}, columnDataEvaluators{std::move(evaluators)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableInsertInfo);
 
     void init(const ResultSet& resultSet, main::ClientContext* context);
 
 private:
     RelTableInsertInfo(const RelTableInsertInfo& other)
-        :  table{other.table},
-          columnDataEvaluators(cloneVector(other.columnDataEvaluators)) {}
+        : table{other.table}, columnDataEvaluators(cloneVector(other.columnDataEvaluators)) {}
 };
 
 class RelInsertExecutor {

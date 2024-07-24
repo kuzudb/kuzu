@@ -22,8 +22,7 @@ struct BoundSetPropertyInfo {
 private:
     BoundSetPropertyInfo(const BoundSetPropertyInfo& other)
         : tableType{other.tableType}, pattern{other.pattern}, column{other.column},
-          columnData{other.columnData}, updatePk{other.updatePk} {
-    }
+          columnData{other.columnData}, updatePk{other.updatePk} {}
 };
 
 } // namespace binder

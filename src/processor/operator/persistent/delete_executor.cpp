@@ -21,7 +21,8 @@ void NodeTableDeleteInfo::init(const ResultSet& resultSet) {
     pkVector = resultSet.getValueVector(pkPos).get();
 }
 
-void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction, ValueVector* nodeIDVector) const {
+void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,
+    ValueVector* nodeIDVector) const {
     for (auto& relTable : fwdRelTables) {
         relTable->checkIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector);
     }
@@ -54,8 +55,8 @@ void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*) {
         relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
         dstNodeIDVector->setState(tempSharedState);
         relIDVector->setState(tempSharedState);
-        detachDeleteState =
-            std::make_unique<RelTableDeleteState>(*info.nodeIDVector, *dstNodeIDVector, *relIDVector);
+        detachDeleteState = std::make_unique<RelTableDeleteState>(*info.nodeIDVector,
+            *dstNodeIDVector, *relIDVector);
     }
 }
 
@@ -75,10 +76,10 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     switch (info.deleteType) {
     case DeleteNodeType::DELETE: {
         tableInfo.deleteFromRelTable(transaction, info.nodeIDVector);
-    } break ;
+    } break;
     case DeleteNodeType::DETACH_DELETE: {
         tableInfo.detachDeleteFromRelTable(transaction, detachDeleteState.get());
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -86,7 +87,7 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
 
 void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     NodeDeleteExecutor::init(resultSet, context);
-    for(auto& [_, tableInfo] : tableInfos) {
+    for (auto& [_, tableInfo] : tableInfos) {
         tableInfo.init(*resultSet);
     }
 }
@@ -109,10 +110,10 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     switch (info.deleteType) {
     case DeleteNodeType::DELETE: {
         tableInfo.deleteFromRelTable(transaction, info.nodeIDVector);
-    } break ;
+    } break;
     case DeleteNodeType::DETACH_DELETE: {
         tableInfo.detachDeleteFromRelTable(transaction, detachDeleteState.get());
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }

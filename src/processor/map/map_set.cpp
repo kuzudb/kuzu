@@ -1,11 +1,11 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "common/exception/binder.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
-#include "common/exception/binder.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -17,7 +17,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static column_id_t getColumnID(const catalog::TableCatalogEntry& entry, const PropertyExpression& propertyExpr) {
+static column_id_t getColumnID(const catalog::TableCatalogEntry& entry,
+    const PropertyExpression& propertyExpr) {
     auto columnID = INVALID_COLUMN_ID;
     if (propertyExpr.hasPropertyID(entry.getTableID())) {
         auto propertyID = propertyExpr.getPropertyID(entry.getTableID());
@@ -44,8 +45,8 @@ RelTableSetInfo PlanMapper::getRelTableSetInfo(table_id_t tableID, const Express
     return RelTableSetInfo(table, columnID);
 }
 
-std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(const BoundSetPropertyInfo& boundInfo,
-    const Schema& schema) const {
+std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
+    const BoundSetPropertyInfo& boundInfo, const Schema& schema) const {
     auto& node = boundInfo.pattern->constCast<NodeExpression>();
     auto nodeIDPos = getDataPos(*node.getInternalID(), schema);
     auto& property = boundInfo.column->constCast<PropertyExpression>();
@@ -64,7 +65,9 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(const BoundSetPr
         common::table_id_map_t<NodeTableSetInfo> tableInfos;
         for (auto tableID : node.getTableIDs()) {
             if (boundInfo.updatePk && !property.isPrimaryKey(tableID)) {
-                throw BinderException(stringFormat("Update primary key column {} for multiple tables is not supported.", property.toString()));
+                throw BinderException(stringFormat(
+                    "Update primary key column {} for multiple tables is not supported.",
+                    property.toString()));
             }
             auto tableInfo = getNodeTableSetInfo(tableID, property);
             if (tableInfo.columnID == INVALID_COLUMN_ID) {
@@ -72,7 +75,8 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(const BoundSetPr
             }
             tableInfos.insert({tableID, std::move(tableInfo)});
         }
-        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo), std::move(tableInfos));
+        return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo),
+            std::move(tableInfos));
     }
     auto tableInfo = getNodeTableSetInfo(node.getSingleTableID(), property);
     return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(tableInfo));
@@ -110,7 +114,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
         getOperatorID(), std::move(printInfo));
 }
 
-
 std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetPropertyInfo& boundInfo,
     const Schema& schema) const {
     auto& rel = boundInfo.pattern->constCast<RelExpression>();
@@ -124,7 +127,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
     }
     auto exprMapper = ExpressionMapper(&schema);
     auto evaluator = exprMapper.getEvaluator(boundInfo.columnData);
-    auto info = RelSetInfo(srcNodeIDPos, dstNodeIDPos, relIDPos, columnVectorPos, std::move(evaluator));
+    auto info =
+        RelSetInfo(srcNodeIDPos, dstNodeIDPos, relIDPos, columnVectorPos, std::move(evaluator));
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<RelTableSetInfo> tableInfos;
         for (auto tableID : rel.getTableIDs()) {

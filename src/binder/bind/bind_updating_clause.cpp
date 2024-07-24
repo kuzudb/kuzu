@@ -313,10 +313,12 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* colum
     return BoundSetPropertyInfo(TableType::REL, expr, boundColumn, boundColumnData);
 }
 
-expression_pair Binder::bindSetItem(parser::ParsedExpression* column, parser::ParsedExpression* columnData) {
+expression_pair Binder::bindSetItem(parser::ParsedExpression* column,
+    parser::ParsedExpression* columnData) {
     auto boundColumn = expressionBinder.bindExpression(*column);
     auto boundColumnData = expressionBinder.bindExpression(*columnData);
-    boundColumnData = expressionBinder.implicitCastIfNecessary(boundColumnData, boundColumn->dataType);
+    boundColumnData =
+        expressionBinder.implicitCastIfNecessary(boundColumnData, boundColumn->dataType);
     return make_pair(std::move(boundColumn), std::move(boundColumnData));
 }
 
