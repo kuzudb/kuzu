@@ -69,8 +69,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
             uint64_t numTables;
-            deSer.deserializeDebuggingInfo(key);
-            KU_ASSERT(key == "num_tables");
+            deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
                 auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);

@@ -382,16 +382,13 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(Deserializer& de
     std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     bool hasVersions;
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "chunks");
+    deSer.validateDebuggingInfo(key, "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
     auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startRowIdx*/);
-    deSer.deserializeDebuggingInfo(key);
-    KU_ASSERT(key == "has_version_info");
+    deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {
-        deSer.deserializeDebuggingInfo(key);
-        KU_ASSERT(key == "version_info");
+        deSer.validateDebuggingInfo(key, "version_info");
         chunkedGroup->versionInfo = VersionInfo::deserialize(deSer);
     }
     return chunkedGroup;
