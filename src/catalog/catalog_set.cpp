@@ -66,7 +66,8 @@ void CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEn
     LogEntryForTrx(transaction, *this, *entryPtr);
 }
 
-CatalogEntry* CatalogSet::createEntryNoLock(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
+CatalogEntry* CatalogSet::createEntryNoLock(Transaction* transaction,
+    std::unique_ptr<CatalogEntry> entry) {
     // LCOV_EXCL_START
     validateNotExistNoLock(transaction, entry->getName());
     // LCOV_EXCL_STOP
@@ -158,9 +159,9 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         // LCOV_EXCL_STOP
         entry = getEntryNoLock(transaction, alterInfo.tableName);
         KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
-                entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
-                entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
-                entry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY);
+                  entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
+                  entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
+                  entry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY);
         auto tableEntry = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
         auto newEntry = tableEntry->alter(alterInfo);
         newEntry->setTimestamp(transaction->getID());
