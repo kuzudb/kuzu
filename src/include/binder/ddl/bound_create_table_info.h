@@ -61,7 +61,7 @@ struct PropertyInfo {
     common::LogicalType type;
     std::unique_ptr<parser::ParsedExpression> defaultValue;
 
-    PropertyInfo() : PropertyInfo{"", common::LogicalType::ANY()} {}
+    PropertyInfo() = default;
     PropertyInfo(std::string name, common::LogicalType type)
         : PropertyInfo{name, std::move(type),
               std::make_unique<parser::ParsedLiteralExpression>(common::Value::createNullValue(),
