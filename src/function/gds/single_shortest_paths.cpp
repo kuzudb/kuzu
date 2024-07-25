@@ -23,17 +23,21 @@ public:
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
         MemoryManager* mm) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * (sizeof(nodeID_t)))});
+            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * (2*sizeof(std::atomic<uint64_t>)))});
         }
     }
 
     nodeID_t getParent(nodeID_t nodeID) {
-        return reinterpret_cast<nodeID_t*>(
-            lastEdges.at(nodeID.tableID).get()->buffer.data())[nodeID.offset];
+        auto offsetPos = nodeID.offset << 1;
+        auto tableIDPos = offsetPos + 1;
+        auto bufPtr = reinterpret_cast<std::atomic<uint64_t>*>(
+            lastEdges.at(nodeID.tableID).get()->buffer.data());
+        return nodeID_t(bufPtr[offsetPos].load(std::memory_order_relaxed),
+            bufPtr[tableIDPos].load(std::memory_order_relaxed));
     }
 
     void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
-        KU_ASSERT(currentFixedLastEdges != nullptr);
+        KU_ASSERT(currentFixedLastEdges.load(std::memory_order_relaxed) != nullptr);
         // Note: We are changing 2 values non-atomically without any locking or atomics. This
         // should be fine because we assume that all extensions that are being done in a
         // particular iteration happen from the same relationship table, so if there are multiple
@@ -44,18 +48,24 @@ public:
         // Warning: However, this logic has to change when we write both a relID and the offset of
         // the parent. That is because then we need to ensure that both relID and nodeOffset is
         // written atomically.
-        currentFixedLastEdges[nodeID.offset] = lastEdge;
+        auto offsetPos = nodeID.offset << 1;
+        auto tableIDPos = offsetPos + 1;
+        auto bufPtr = currentFixedLastEdges.load(std::memory_order_relaxed);
+        bufPtr[offsetPos].store(lastEdge.offset, std::memory_order_relaxed);
+        bufPtr[tableIDPos].store(lastEdge.tableID, std::memory_order_relaxed);
     }
 
     void fixNodeTable(common::table_id_t tableID) {
         KU_ASSERT(lastEdges.contains(tableID));
-        currentFixedLastEdges = reinterpret_cast<nodeID_t*>(lastEdges.at(tableID).get()->buffer.data());
+        currentFixedLastEdges.store(
+            reinterpret_cast<std::atomic<uint64_t>*>(lastEdges.at(tableID).get()->buffer.data()),
+            std::memory_order_relaxed);
     }
 
 private:
-    // TODO(Semih): Rename parentPtrs to parentEdges.
+    // TODO(Semih): Rename lastEdges to parentEdges.
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
-    nodeID_t* currentFixedLastEdges;
+    std::atomic<std::atomic<uint64_t>*> currentFixedLastEdges;
 };
 
 struct SingleSPOutputs : public RJOutputs {
