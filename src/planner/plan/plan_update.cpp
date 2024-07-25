@@ -2,7 +2,6 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "common/exception/runtime.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/planner.h"
 
@@ -43,71 +42,63 @@ void Planner::planUpdatingClause(const BoundUpdatingClause* updatingClause, Logi
 }
 
 void Planner::planInsertClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
-    auto insertClause =
-        ku_dynamic_cast<const BoundUpdatingClause*, const BoundInsertClause*>(updatingClause);
+    auto& insertClause = updatingClause->constCast<BoundInsertClause>();
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
         appendDummyScan(plan);
     } else {
         appendAccumulate(plan);
     }
-    if (insertClause->hasNodeInfo()) {
-        appendInsertNode(insertClause->getNodeInfos(), plan);
+    if (insertClause.hasNodeInfo()) {
+        appendInsertNode(insertClause.getNodeInfos(), plan);
     }
-    if (insertClause->hasRelInfo()) {
-        appendInsertRel(insertClause->getRelInfos(), plan);
+    if (insertClause.hasRelInfo()) {
+        appendInsertRel(insertClause.getRelInfos(), plan);
     }
 }
 
 void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, LogicalPlan& plan) {
-    auto mergeClause =
-        ku_dynamic_cast<const BoundUpdatingClause*, const BoundMergeClause*>(updatingClause);
+    auto& mergeClause = updatingClause->constCast<BoundMergeClause>();
     binder::expression_vector predicates;
-    if (mergeClause->hasPredicate()) {
-        predicates = mergeClause->getPredicate()->splitOnAND();
+    if (mergeClause.hasPredicate()) {
+        predicates = mergeClause.getPredicate()->splitOnAND();
     }
-    std::shared_ptr<Expression> distinctMark = nullptr;
     expression_vector corrExprs;
     if (!plan.isEmpty()) {
-        distinctMark = mergeClause->getDistinctMark();
-        corrExprs = getCorrelatedExprs(*mergeClause->getQueryGraphCollection(), predicates,
+        corrExprs = getCorrelatedExprs(*mergeClause.getQueryGraphCollection(), predicates,
             plan.getSchema());
-        if (corrExprs.size() == 0) {
-            throw RuntimeException{"Empty key in merge clause is not supported yet."};
-        }
-        appendMarkAccumulate(corrExprs, distinctMark, plan);
     }
-    auto existenceMark = mergeClause->getExistenceMark();
-    planOptionalMatch(*mergeClause->getQueryGraphCollection(), predicates, corrExprs, existenceMark,
+    auto existenceMark = mergeClause.getExistenceMark();
+    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, corrExprs, existenceMark,
         plan);
     auto merge =
-        std::make_shared<LogicalMerge>(existenceMark, distinctMark, plan.getLastOperator());
-    if (mergeClause->hasInsertNodeInfo()) {
-        for (auto& info : mergeClause->getInsertNodeInfos()) {
+        std::make_shared<LogicalMerge>(existenceMark, std::move(corrExprs), plan.getLastOperator());
+    if (mergeClause.hasInsertNodeInfo()) {
+        for (auto& info : mergeClause.getInsertNodeInfos()) {
             merge->addInsertNodeInfo(createLogicalInsertInfo(info)->copy());
         }
     }
-    if (mergeClause->hasInsertRelInfo()) {
-        for (auto& info : mergeClause->getInsertRelInfos()) {
+    if (mergeClause.hasInsertRelInfo()) {
+        for (auto& info : mergeClause.getInsertRelInfos()) {
             merge->addInsertRelInfo(createLogicalInsertInfo(info)->copy());
         }
     }
-    if (mergeClause->hasOnCreateSetNodeInfo()) {
-        for (auto& info : mergeClause->getOnCreateSetNodeInfos()) {
+    if (mergeClause.hasOnCreateSetNodeInfo()) {
+        for (auto& info : mergeClause.getOnCreateSetNodeInfos()) {
             merge->addOnCreateSetNodeInfo(info.copy());
         }
     }
-    if (mergeClause->hasOnCreateSetRelInfo()) {
-        for (auto& info : mergeClause->getOnCreateSetRelInfos()) {
+    if (mergeClause.hasOnCreateSetRelInfo()) {
+        for (auto& info : mergeClause.getOnCreateSetRelInfos()) {
             merge->addOnCreateSetRelInfo(info.copy());
         }
     }
-    if (mergeClause->hasOnMatchSetNodeInfo()) {
-        for (auto& info : mergeClause->getOnMatchSetNodeInfos()) {
+    if (mergeClause.hasOnMatchSetNodeInfo()) {
+        for (auto& info : mergeClause.getOnMatchSetNodeInfos()) {
             merge->addOnMatchSetNodeInfo(info.copy());
         }
     }
-    if (mergeClause->hasOnMatchSetRelInfo()) {
-        for (auto& info : mergeClause->getOnMatchSetRelInfos()) {
+    if (mergeClause.hasOnMatchSetRelInfo()) {
+        for (auto& info : mergeClause.getOnMatchSetRelInfos()) {
             merge->addOnMatchSetRelInfo(info.copy());
         }
     }

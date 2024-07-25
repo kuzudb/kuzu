@@ -83,8 +83,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     auto inSchema = child->getSchema();
     auto prevOperator = mapOperator(child);
     if (agg.hasKeys()) {
-        return createHashAggregate(agg.getKeys(), agg.getDependentKeys(), aggregates,
-            nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
+        return createHashAggregate(agg.getKeys(), agg.getDependentKeys(), aggregates, inSchema,
+            outSchema, std::move(prevOperator));
     }
     auto aggFunctions = getAggFunctions(aggregates);
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
@@ -100,8 +100,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
 
 static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& flatKeys,
     const expression_vector& unFlatKeys, const expression_vector& payloads,
-    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
-    std::shared_ptr<Expression> markExpression) {
+    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions) {
     auto isUnFlat = false;
     auto groupID = 0u;
     auto tableSchema = FactorizedTableSchema();
@@ -121,10 +120,6 @@ static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& f
         tableSchema.appendColumn(
             ColumnSchema(isUnFlat, groupID, aggregateFunc->getAggregateStateSize()));
     }
-    if (markExpression != nullptr) {
-        tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID,
-            LogicalTypeUtils::getRowLayoutSize(markExpression->dataType)));
-    }
     tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, sizeof(hash_t)));
     return tableSchema;
 }
@@ -132,24 +127,15 @@ static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& f
 std::unique_ptr<PhysicalOperator> PlanMapper::createDistinctHashAggregate(
     const expression_vector& keys, const expression_vector& payloads, Schema* inSchema,
     Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator) {
-    return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
-        nullptr /* mark */, inSchema, outSchema, std::move(prevOperator));
-}
-
-std::unique_ptr<PhysicalOperator> PlanMapper::createMarkDistinctHashAggregate(
-    const expression_vector& keys, const expression_vector& payloads,
-    std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator) {
-    return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */,
-        std::move(mark), inSchema, outSchema, std::move(prevOperator));
+    return createHashAggregate(keys, payloads, expression_vector{} /* aggregates */, inSchema,
+        outSchema, std::move(prevOperator));
 }
 
 // Payloads are also group by keys except that they are functional dependent on keys so we don't
 // need to hash or compare payloads.
 std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expression_vector& keys,
-    const expression_vector& payloads, const expression_vector& aggregates,
-    std::shared_ptr<binder::Expression> mark, Schema* inSchema, Schema* outSchema,
-    std::unique_ptr<PhysicalOperator> prevOperator) {
+    const expression_vector& payloads, const expression_vector& aggregates, Schema* inSchema,
+    Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator) {
     // Create hash aggregate
     auto aggFunctions = getAggFunctions(aggregates);
     expression_vector allKeys;
@@ -159,12 +145,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     auto sharedState = std::make_shared<HashAggregateSharedState>(aggFunctions);
     auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
     auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
-    auto tableSchema = getFactorizedTableSchema(flatKeys, unFlatKeys, payloads, aggFunctions, mark);
-    auto hashTableType =
-        mark == nullptr ? HashTableType::AGGREGATE_HASH_TABLE : HashTableType::MARK_HASH_TABLE;
+    auto tableSchema = getFactorizedTableSchema(flatKeys, unFlatKeys, payloads, aggFunctions);
     HashAggregateInfo aggregateInfo{getDataPos(flatKeys, *inSchema),
-        getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema),
-        hashTableType};
+        getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema)};
     auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
     auto aggregate =
         make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema), sharedState,
@@ -175,9 +158,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());
     outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
     outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
-    if (mark != nullptr) {
-        outputExpressions.emplace_back(mark);
-    }
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
     return std::make_unique<HashAggregateScan>(sharedState,
         getDataPos(outputExpressions, *outSchema), std::move(aggOutputPos), std::move(aggregate),

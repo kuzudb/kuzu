@@ -11,10 +11,10 @@ class LogicalMerge final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::MERGE;
 
 public:
-    LogicalMerge(std::shared_ptr<binder::Expression> existenceMark,
-        std::shared_ptr<binder::Expression> distinctMark, std::shared_ptr<LogicalOperator> child)
+    LogicalMerge(std::shared_ptr<binder::Expression> existenceMark, binder::expression_vector keys,
+        std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child)}, existenceMark{std::move(existenceMark)},
-          distinctMark{std::move(distinctMark)} {}
+          keys{std::move(keys)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -24,8 +24,6 @@ public:
     f_group_pos_set getGroupsPosToFlatten();
 
     std::shared_ptr<binder::Expression> getExistenceMark() const { return existenceMark; }
-    bool hasDistinctMark() const { return distinctMark != nullptr; }
-    std::shared_ptr<binder::Expression> getDistinctMark() const { return distinctMark; }
 
     void addInsertNodeInfo(LogicalInsertInfo info) { insertNodeInfos.push_back(std::move(info)); }
     const std::vector<LogicalInsertInfo>& getInsertNodeInfos() const { return insertNodeInfos; }
@@ -60,12 +58,12 @@ public:
     const std::vector<binder::BoundSetPropertyInfo>& getOnMatchSetRelInfos() const {
         return onMatchSetRelInfos;
     }
+    const binder::expression_vector& getKeys() const { return keys; }
 
     std::unique_ptr<LogicalOperator> copy() override;
 
 private:
     std::shared_ptr<binder::Expression> existenceMark;
-    std::shared_ptr<binder::Expression> distinctMark;
     // Create infos
     std::vector<LogicalInsertInfo> insertNodeInfos;
     std::vector<LogicalInsertInfo> insertRelInfos;
@@ -75,6 +73,7 @@ private:
     // On Match infos
     std::vector<binder::BoundSetPropertyInfo> onMatchSetNodeInfos;
     std::vector<binder::BoundSetPropertyInfo> onMatchSetRelInfos;
+    binder::expression_vector keys;
 };
 
 } // namespace planner

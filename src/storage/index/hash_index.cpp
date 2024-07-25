@@ -267,7 +267,7 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     // TODO: one pass would also reduce locking when frames are unpinned,
     // which is useful if this can be parallelized
     reserve(transaction, insertLocalStorage.size());
-    RUNTIME_CHECK(auto originalNumEntries = this->indexHeaderForWriteTrx.numEntries);
+    // RUNTIME_CHECK(auto originalNumEntries = this->indexHeaderForWriteTrx.numEntries);
 
     // Storing as many slots in-memory as on-disk shouldn't be necessary (for one it makes memory
     // usage an issue as we may need significantly more memory to store the slots that we would
@@ -331,8 +331,10 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
             }
         }
     }
-    KU_ASSERT(originalNumEntries + insertLocalStorage.getIndexHeader().numEntries ==
-              indexHeaderForWriteTrx.numEntries);
+    // TODO(Guodong): Fix this assertion statement which doesn't count the entries in
+    // deleteLocalStorage.
+    //     KU_ASSERT(originalNumEntries + insertLocalStorage.getIndexHeader().numEntries ==
+    //               indexHeaderForWriteTrx.numEntries);
 }
 
 template<typename T>

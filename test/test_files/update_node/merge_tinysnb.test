@@ -60,9 +60,30 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 ---- 1
 11
 
-# TODO(Xiyang/Ziyi): FIX-ME.
+-CASE Merge4
+-STATEMENT MATCH (a:person) with a.ID as id MERGE (u:Person {ID: 100}) RETURN u.ID, id
+---- 8
+100|0
+100|10
+100|2
+100|3
+100|5
+100|7
+100|8
+100|9
+-STATEMENT MATCH (a:person) RETURN a.ID;
+---- 9
+0
+10
+100
+2
+3
+5
+7
+8
+9
+
 -CASE MergeDuplicatedKey
--SKIP
 -STATEMENT CREATE NODE TABLE user (ID int64, primary key(ID))
 ---- ok
 -STATEMENT MATCH (a:person) with a.ID % 4 as result, a.age as age MERGE (u:user {ID: result}) RETURN u.ID, age
@@ -81,9 +102,6 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 1
 2
 3
--STATEMENT MATCH (a:person) with a.ID as id MERGE (u:user {ID: 10}) RETURN u.ID, id
----- error
-Runtime exception: Empty key in merge clause is not supported yet.
 -STATEMENT CREATE NODE TABLE user1 (ID int64, name string, primary key(ID))
 ---- ok
 -STATEMENT MATCH (a:person) with a.ID % 7 as result, a.fName as name MERGE (u:user1 {ID: result}) ON MATCH SET u.name = 'match: ' + name ON CREATE SET u.name = 'create: ' + name RETURN u.ID, u.name
@@ -112,3 +130,99 @@ h
 -STATEMENT MATCH (a:person)-[:knows2]->(b:person) RETURN COUNT(*);
 ---- 1
 3
+
+-CASE MergeNodeWithOnMatch
+-STATEMENT CREATE (p:person {ID: 13})
+---- ok
+-STATEMENT UNWIND [14,24,24,14,54,54,17] as x merge (a:person {ID: x}) on match set a.ID = x+20
+---- ok
+-STATEMENT MATCH (p:person) return p.ID;
+---- 13
+0
+2
+3
+5
+7
+8
+9
+10
+13
+34
+44
+74
+17
+-STATEMENT CREATE NODE TABLE person1 (id int64, primary key(id))
+---- ok
+-STATEMENT UNWIND [11,20,20,11,32,41,32] as x merge (a:person {ID: x}), (b:person1 {id: x}) on match set b.id = x + 20, a.ID = x+100;
+---- error
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 17
+0
+2
+3
+5
+7
+8
+9
+10
+13
+34
+44
+74
+17
+111
+120
+132
+41
+-STATEMENT MATCH (p:person1) RETURN p.id;
+---- 4
+31
+40
+52
+41
+
+-CASE MergeRelWithOnMatch
+-STATEMENT CREATE REL TABLE likes (from person to person, id int64)
+---- ok
+-STATEMENT MATCH (p:person {ID: 0}), (p1:person {ID: 3}) CREATE (p)-[e:likes {id: 200}]->(p1)
+---- ok
+-STATEMENT UNWIND [11,20,20,11,32,41,32] as x MATCH (p:person {ID: 0}), (p1:person {ID: 3}) MERGE (p)-[e:likes {id: x}]->(p1) ON MATCH SET e.id = x + 7
+---- ok
+-STATEMENT MATCH (p:person)-[e:likes]->(p1:person) RETURN p.ID, p1.ID,e.id
+---- 5
+0|3|200
+0|3|18
+0|3|27
+0|3|39
+0|3|41
+-STATEMENT CREATE REL TABLE study (from person to person, length string)
+---- ok
+-STATEMENT UNWIND [25, 27, 27, 28, 25, 28, 30] as x MATCH (p:person {ID: 0}), (p1:person {ID: 3}) MERGE (p)-[e:likes {id: x}]->(p1), (p)-[e1:study {length: cast(x as string)}]->(p1) ON MATCH SET e1.length = cast(x as string) + "padding", e.id = x + 100
+---- ok
+-STATEMENT MATCH (p:person)-[e:likes]->(p1:person) RETURN p.ID, p1.ID,e.id
+---- 9
+0|3|200
+0|3|18
+0|3|27
+0|3|39
+0|3|41
+0|3|125
+0|3|127
+0|3|128
+0|3|30
+
+-CASE MergeNodeWithOnMatchAndOnCreate
+-STATEMENT CREATE NODE TABLE school(name string, id int64, primary key(name))
+---- ok
+-STATEMENT UNWIND [1, 5, 5, 1, 3] as x merge (a:school{name: cast(x as string), id: x}) on match set a.id = x+20 on create set a.id = x + 10 RETURN a.id
+---- 5
+11
+15
+25
+21
+13
+-STATEMENT MATCH (p:school) return p.id;
+---- 3
+21
+25
+13

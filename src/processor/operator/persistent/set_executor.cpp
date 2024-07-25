@@ -21,6 +21,10 @@ void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     info.init(*resultSet, context->clientContext);
 }
 
+void NodeSetExecutor::setNodeID(common::nodeID_t nodeID) const {
+    info.nodeIDVector->setValue(info.nodeIDVector->state->getSelVector()[0], nodeID);
+}
+
 static void writeColumnUpdateResult(ValueVector* idVector, ValueVector* columnVector,
     ValueVector* dataVector) {
     auto& idSelVector = idVector->state->getSelVector();
@@ -92,6 +96,10 @@ void RelSetInfo::init(const ResultSet& resultSet, main::ClientContext* context) 
 
 void RelSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     info.init(*resultSet, context->clientContext);
+}
+
+void RelSetExecutor::setRelID(common::nodeID_t relID) const {
+    info.relIDVector->setValue(info.relIDVector->state->getSelVector()[0], relID);
 }
 
 void SingleLabelRelSetExecutor::set(ExecutionContext* context) {

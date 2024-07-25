@@ -271,7 +271,12 @@ public:
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
 
-    void appendCrossProduct(common::AccumulateType accumulateType, const LogicalPlan& probePlan,
+    void appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
+        LogicalPlan& resultPlan);
+    void appendOptionalCrossProduct(std::shared_ptr<binder::Expression> mark,
+        const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendCrossProduct(common::AccumulateType accumulateType,
+        std::shared_ptr<binder::Expression> mark, const LogicalPlan& probePlan,
         const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
 
     /* Append accumulate */
@@ -286,8 +291,6 @@ public:
     // Additionally, scan table with row offset.
     void appendAccumulate(common::AccumulateType accumulateType,
         const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> offset,
-        std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
-    void appendMarkAccumulate(const binder::expression_vector& keys,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
