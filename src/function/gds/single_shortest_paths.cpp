@@ -99,8 +99,8 @@ public:
         srcNodeIDVector->setValue<nodeID_t>(0, spOutputs->sourceNodeID);
         for (auto tableID : graph->getNodeTableIDs()) {
             spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
-            for (offset_t nodeOffset = 0; // nodeOffset < 5; TODO(Semih): Remove
-                   nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+            for (offset_t nodeOffset = 0;  nodeOffset < 5; // TODO(Semih): Remove
+                   // nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
                  ++nodeOffset) {
                 auto length =
                     spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(nodeOffset);

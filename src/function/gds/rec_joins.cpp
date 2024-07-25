@@ -106,11 +106,11 @@ PathLengths::PathLengths(
     std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm) {
     for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
         nodeTableIDAndNumNodesMap[tableID] = numNodes;
-        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(uint8_t));
-        uint8_t* memBufferPtr =
-            reinterpret_cast<uint8_t*>(memBuffer.get()->buffer.data());
+        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint8_t>));
+        std::atomic<uint8_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint8_t>*>(memBuffer.get()->buffer.data());
         for (uint64_t i = 0; i < numNodes; ++i) {
-            memBufferPtr[i] = UNVISITED;
+            memBufferPtr[i].store(UNVISITED, std::memory_order_relaxed);
         }
         masks.insert({tableID, move(memBuffer)});
     }
@@ -119,13 +119,18 @@ PathLengths::PathLengths(
 
 void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
-    curTableID = tableID;
-    curFrontierFixedMask = reinterpret_cast<uint8_t*>(masks.at(tableID).get()->buffer.data());
+    curTableID.store(tableID, std::memory_order_relaxed);
+    curFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
+        std::memory_order_relaxed);
+    maxNodesInCurFrontierFixedMask.store(
+        nodeTableIDAndNumNodesMap[curTableID.load(std::memory_order_relaxed)],
+        std::memory_order_relaxed);
 }
 
 void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
-    nextFrontierFixedMask = reinterpret_cast<uint8_t*>(masks.at(tableID).get()->buffer.data());
+    nextFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
+        std::memory_order_relaxed);
 }
 
 bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) {

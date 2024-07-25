@@ -17,7 +17,7 @@ class Graph;
 namespace storage {
 class MemoryBuffer;
 class MemoryManager;
-}
+} // namespace storage
 namespace function {
 class Frontiers;
 class FrontierCompute;
@@ -53,8 +53,10 @@ enum class RJOutputType : uint8_t {
 struct RJOutputs {
     // Refactor sourceNodeID and pathLengths into RJOutputs.
     nodeID_t sourceNodeID;
+
 public:
-    RJOutputs(nodeID_t sourceNodeID, RJOutputType outputType) : sourceNodeID{sourceNodeID}, outputType{outputType} {}
+    RJOutputs(nodeID_t sourceNodeID, RJOutputType outputType)
+        : sourceNodeID{sourceNodeID}, outputType{outputType} {}
     virtual ~RJOutputs() = default;
 
     virtual void initRJFromSource(nodeID_t source) {}
@@ -64,6 +66,7 @@ public:
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<RJOutputs*, TARGET*>(this);
     }
+
 protected:
     RJOutputType outputType;
 };
@@ -95,7 +98,8 @@ struct RJCompState {
     std::unique_ptr<function::FrontierCompute> frontierCompute;
 
     explicit RJCompState(std::unique_ptr<RJOutputs> outputs,
-        std::unique_ptr<function::Frontiers> frontiers, std::unique_ptr<function::FrontierCompute> frontierCompute);
+        std::unique_ptr<function::Frontiers> frontiers,
+        std::unique_ptr<function::FrontierCompute> frontierCompute);
 
     void initRJFromSource(nodeID_t sourceNodeID) {
         frontiers->initRJFromSource(sourceNodeID);
@@ -124,8 +128,7 @@ class RJAlgorithm : public function::GDSAlgorithm {
 
 public:
     explicit RJAlgorithm(RJOutputType outputType) : outputType{outputType} {};
-    RJAlgorithm(const RJAlgorithm& other)
-        : GDSAlgorithm{other}, outputType{other.outputType} {}
+    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, outputType{other.outputType} {}
     // TODO(Reviewer): Do I have to do this? We should make sure we're being safe here.
     virtual ~RJAlgorithm() = default;
     /*
@@ -137,7 +140,8 @@ public:
      * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE, common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
+        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
+            common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
     }
 
     /*
@@ -146,11 +150,12 @@ public:
      */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override;
 
-    void bind(const binder::expression_vector& params, binder::Binder* binder, graph::GraphEntry& graphEntry) override;
+    void bind(const binder::expression_vector& params, binder::Binder* binder,
+        graph::GraphEntry& graphEntry) override;
 
     void exec(processor::ExecutionContext* executionContext) override;
-    virtual std::unique_ptr<RJCompState> getFrontiersAndFrontiersCompute(processor::ExecutionContext* executionContext,
-        common::nodeID_t sourceNodeID) = 0;
+    virtual std::unique_ptr<RJCompState> getFrontiersAndFrontiersCompute(
+        processor::ExecutionContext* executionContext, common::nodeID_t sourceNodeID) = 0;
 
 protected:
     RJOutputType outputType;
@@ -173,52 +178,66 @@ class PathLengths : public GDSFrontier {
 
 public:
     static constexpr uint8_t UNVISITED = 255;
-    uint8_t curIter = 255;
+    std::atomic<uint8_t> curIter = 255;
 
     explicit PathLengths(
-        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm);
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        storage::MemoryManager* mm);
 
     uint8_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
-        KU_ASSERT(curFrontierFixedMask != nullptr);
-        return curFrontierFixedMask[nodeOffset];
+        return getCurFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
     }
 
     uint8_t getMaskValueFromNextFrontierFixedMask(common::offset_t nodeOffset) {
-        KU_ASSERT(nextFrontierFixedMask != nullptr);
-        return nextFrontierFixedMask[nodeOffset];
+        return getNextFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
     }
 
     inline bool isActive(nodeID_t nodeID) override {
-        KU_ASSERT(curFrontierFixedMask != nullptr);
-        return curFrontierFixedMask[nodeID.offset] == curIter;
+        auto curFrontierMask = getCurFrontierFixedMask();
+        return curFrontierMask[nodeID.offset] == curIter.load(std::memory_order_relaxed);
     }
 
     inline void setActive(nodeID_t nodeID) override {
-        KU_ASSERT(nextFrontierFixedMask != nullptr);
-        if (nextFrontierFixedMask[nodeID.offset] == UNVISITED) {
+        auto nextFrontierMask = getNextFrontierFixedMask();
+        if (nextFrontierMask[nodeID.offset].load(std::memory_order_relaxed) == UNVISITED) {
             // Note that if curIter = 255, this will set the mask value to 0. Therefore when
             // the next (and first) iteration of the algorithm starts, the node will be "active".
-            nextFrontierFixedMask[nodeID.offset] = curIter + 1;
+            nextFrontierMask[nodeID.offset].store(curIter.load(std::memory_order_relaxed) + 1,
+                std::memory_order_relaxed);
         }
     }
 
-    void incrementCurIter() { curIter++; }
+    void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
 
     void fixCurFrontierNodeTable(common::table_id_t tableID);
 
     void fixNextFrontierNodeTable(common::table_id_t tableID);
 
     uint64_t getNumNodesInCurFrontierFixedNodeTable() {
-        KU_ASSERT(curFrontierFixedMask != nullptr);
-        return nodeTableIDAndNumNodesMap[curTableID];
+        KU_ASSERT(curFrontierFixedMask.load(std::memory_order_relaxed) != nullptr);
+        return maxNodesInCurFrontierFixedMask.load(std::memory_order_relaxed);
     }
-
 private:
+    std::atomic<uint8_t>* getCurFrontierFixedMask() {
+        auto retVal = curFrontierFixedMask.load(std::memory_order_relaxed);
+        KU_ASSERT(retVal != nullptr);
+        return retVal;
+    }
+    std::atomic<uint8_t>* getNextFrontierFixedMask() {
+        auto retVal = nextFrontierFixedMask.load(std::memory_order_relaxed);
+        KU_ASSERT(retVal != nullptr);
+        return retVal;
+    }
+private:
+    // We do not need to make nodeTableIDAndNumNodesMap and masks atomic because they should only
+    // be accessed by functions that are called by the "master GDS thread" (so not accessed inside
+    // the parallel functions in GDSUtils.
     std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
-    table_id_t curTableID;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
-    uint8_t* curFrontierFixedMask;
-    uint8_t* nextFrontierFixedMask;
+    std::atomic<table_id_t> curTableID;
+    std::atomic<uint64_t> maxNodesInCurFrontierFixedMask;
+    std::atomic<std::atomic<uint8_t>*> curFrontierFixedMask;
+    std::atomic<std::atomic<uint8_t>*> nextFrontierFixedMask;
 };
 
 class PathLengthsFrontiers : public Frontiers {
@@ -249,8 +268,8 @@ public:
         pathLengths->setActive(source);
     }
 
-    void beginFrontierComputeBetweenTables(
-        table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+        table_id_t nextFrontierTableID) override {
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
         nextOffset.store(0u);
@@ -258,8 +277,8 @@ public:
         // the number of maximum threads that could be working on this frontier. However if
         // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
         auto maxNodesInFrontier = pathLengths->getNumNodesInCurFrontierFixedNodeTable();
-        auto idealFrontierSize = maxNodesInFrontier/(std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
-                                                          maxThreadsForExec*maxThreadsForExec));
+        auto idealFrontierSize = maxNodesInFrontier / (std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
+                                                          maxThreadsForExec * maxThreadsForExec));
         frontierSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealFrontierSize);
     }
 
@@ -274,5 +293,5 @@ private:
     uint64_t frontierSize;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu
