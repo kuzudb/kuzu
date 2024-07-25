@@ -3,6 +3,7 @@
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
+#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -272,9 +273,11 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
             chunkCheckpointStates.push_back(ChunkCheckpointState{
                 updateChunk->getColumnChunk(0).moveData(), 0, updateChunk->getNumRows()});
         }
-        chunkCheckpointStates.push_back(
-            ChunkCheckpointState{insertChunkedGroup->getColumnChunk(columnID).moveData(),
-                numPersistentRows, numInsertedRows});
+        if (numInsertedRows > 0) {
+            chunkCheckpointStates.push_back(
+                ChunkCheckpointState{insertChunkedGroup->getColumnChunk(columnID).moveData(),
+                    numPersistentRows, numInsertedRows});
+        }
         ColumnCheckpointState columnCheckpointState(firstGroup->getColumnChunk(columnID).getData(),
             std::move(chunkCheckpointStates));
         state.columns[i]->checkpointColumnChunk(columnCheckpointState);
@@ -419,7 +422,11 @@ template<ResidencyState RESIDENCY_STATE>
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(const UniqLock& lock,
     const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns) {
     auto numRows = getNumResidentRows<RESIDENCY_STATE>(lock);
-    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+    const auto columnTypes = columns | std::views::transform([](const auto* column) {
+        return column->getDataType().copy();
+    });
+    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(
+        std::vector<LogicalType>{columnTypes.begin(), columnTypes.end()}, enableCompression,
         numRows, 0, ResidencyState::IN_MEMORY);
     TableScanState scanState(columnIDs, columns);
     scanState.nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
@@ -428,8 +435,10 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanCommitted(const UniqLock& lock,
         chunkedGroup->scanCommitted<RESIDENCY_STATE>(&DUMMY_CHECKPOINT_TRANSACTION, scanState,
             *scanState.nodeGroupScanState, *mergedInMemGroup);
     }
-    for (auto i = 1u; i < mergedInMemGroup->getNumColumns(); i++) {
-        KU_ASSERT(numRows == mergedInMemGroup->getColumnChunk(i).getNumValues());
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        if (columnIDs[i] != 0) {
+            KU_ASSERT(numRows == mergedInMemGroup->getColumnChunk(i).getNumValues());
+        }
     }
     mergedInMemGroup->setNumRows(numRows);
     return mergedInMemGroup;

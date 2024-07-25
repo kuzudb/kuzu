@@ -84,7 +84,8 @@ std::unique_ptr<TableCatalogEntry> RDFGraphCatalogEntry::copy() const {
 }
 
 static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTable(
-    transaction::Transaction* transaction, CatalogEntrySet entries, common::table_id_t tableID) {
+    transaction::Transaction* transaction, const CatalogEntrySet& entries,
+    common::table_id_t tableID) {
     for (auto& [name, entry] : entries) {
         auto current = common::ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
         if (current->getTableID() == tableID) {
@@ -97,17 +98,18 @@ static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTab
 
 std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
 RDFGraphCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction* transaction) const {
+    auto entries = set->getEntries(transaction);
     auto resourceTableBoundInfo =
-        getBoundCreateTableInfoForTable(transaction, set->getEntries(transaction), resourceTableID);
+        getBoundCreateTableInfoForTable(transaction, entries, resourceTableID);
     KU_ASSERT(resourceTableBoundInfo.has_value());
     auto literalTableBoundInfo =
-        getBoundCreateTableInfoForTable(transaction, set->getEntries(transaction), literalTableID);
+        getBoundCreateTableInfoForTable(transaction, entries, literalTableID);
     KU_ASSERT(literalTableBoundInfo.has_value());
-    auto resourceTripleTableBoundInfo = getBoundCreateTableInfoForTable(transaction,
-        set->getEntries(transaction), resourceTripleTableID);
+    auto resourceTripleTableBoundInfo =
+        getBoundCreateTableInfoForTable(transaction, entries, resourceTripleTableID);
     KU_ASSERT(resourceTripleTableBoundInfo.has_value());
-    auto literalTripleTableBoundInfo = getBoundCreateTableInfoForTable(transaction,
-        set->getEntries(transaction), literalTripleTableID);
+    auto literalTripleTableBoundInfo =
+        getBoundCreateTableInfoForTable(transaction, entries, literalTripleTableID);
     KU_ASSERT(literalTripleTableBoundInfo.has_value());
     return std::make_unique<binder::BoundExtraCreateRdfGraphInfo>(
         std::move(resourceTableBoundInfo.value()), std::move(literalTableBoundInfo.value()),

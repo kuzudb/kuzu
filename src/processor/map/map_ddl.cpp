@@ -25,7 +25,8 @@ static DataPos getOutputPos(const LogicalDDL& logicalDDL) {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* logicalOperator) {
     auto& createTable = logicalOperator->constCast<LogicalCreateTable>();
-    auto printInfo = std::make_unique<OPPrintInfo>(createTable.getExpressionsForPrinting());
+    auto printInfo = std::make_unique<CreateTablePrintInfo>(createTable.getInfo()->type,
+        createTable.getInfo()->tableName, createTable.getInfo()->extraInfo.get());
     return std::make_unique<CreateTable>(createTable.getInfo()->copy(), getOutputPos(createTable),
         getOperatorID(), std::move(printInfo));
 }

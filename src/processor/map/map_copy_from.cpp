@@ -122,7 +122,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.columnEvaluateTypes);
     auto sharedState = std::make_shared<PartitionerSharedState>();
-    auto printInfo = std::make_unique<OPPrintInfo>(logicalPartitioner.getExpressionsForPrinting());
+    binder::expression_vector expressions;
+    for (auto& info : partitionerInfo.infos) {
+        expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);
+    }
+    auto printInfo = std::make_unique<PartitionerPrintInfo>(expressions);
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),
         std::move(partitionerInfo), std::move(dataInfo), std::move(sharedState),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));

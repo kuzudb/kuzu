@@ -1,10 +1,22 @@
 #include "processor/operator/hash_join/hash_join_build.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string HashJoinBuildPrintInfo::toString() const {
+    std::string result = "Keys: ";
+    result += binder::ExpressionUtil::toString(keys);
+    if (!payloads.empty()) {
+        result += ", Payloads: ";
+        result += binder::ExpressionUtil::toString(payloads);
+    }
+    return result;
+}
 
 void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
     std::unique_lock lck(mtx);

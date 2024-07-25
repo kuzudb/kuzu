@@ -39,7 +39,6 @@ enum class LogicalOperatorType : uint8_t {
     INTERSECT,
     INSERT,
     LIMIT,
-    MARK_ACCUMULATE,
     MERGE,
     MULTIPLICITY_REDUCER,
     NODE_LABEL_FILTER,

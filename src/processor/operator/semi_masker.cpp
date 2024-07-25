@@ -6,6 +6,17 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+std::string SemiMaskerPrintInfo::toString() const {
+    std::string result = "Operators: ";
+    for (const auto& op : operatorNames) {
+        result += op;
+        if (&op != &operatorNames.back()) {
+            result += ", ";
+        }
+    }
+    return result;
+}
+
 void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* /*context*/) {
     for (auto& [table, masks] : info->masksPerTable) {
         for (auto& maskWithIdx : masks) {
@@ -34,9 +45,6 @@ bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
-        if (nodeID.offset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) [[unlikely]] {
-            continue;
-        }
         for (auto& [mask, maskerIdx] : info->getSingleTableMasks()) {
             mask->incrementMaskValue(nodeID.offset, maskerIdx);
         }

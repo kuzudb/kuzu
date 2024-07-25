@@ -45,6 +45,22 @@ public:
     DataPos markDataPos;
 };
 
+struct HashJoinProbePrintInfo final : OPPrintInfo {
+    binder::expression_vector keys;
+
+    explicit HashJoinProbePrintInfo(binder::expression_vector keys) : keys{std::move(keys)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<HashJoinProbePrintInfo>(new HashJoinProbePrintInfo(*this));
+    }
+
+private:
+    HashJoinProbePrintInfo(const HashJoinProbePrintInfo& other)
+        : OPPrintInfo{other}, keys{other.keys} {}
+};
+
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
 class HashJoinProbe : public PhysicalOperator, public SelVectorOverWriter {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::HASH_JOIN_PROBE;

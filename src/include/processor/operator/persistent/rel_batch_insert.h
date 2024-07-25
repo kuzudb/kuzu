@@ -68,12 +68,13 @@ private:
         RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
         const PartitionerSharedState& partitionerSharedState);
 
-    static void populateCSROffsets(storage::ChunkedNodeGroupCollection& partition,
+    static void populateCSROffsets(storage::InMemChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
 
     static void populateCSRLengths(storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        storage::ChunkedNodeGroupCollection& partition, common::column_id_t boundNodeOffsetColumn);
+        storage::InMemChunkedNodeGroupCollection& partition,
+        common::column_id_t boundNodeOffsetColumn);
 
     static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,
         common::offset_t startOffset);

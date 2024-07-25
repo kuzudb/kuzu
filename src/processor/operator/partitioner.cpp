@@ -1,5 +1,6 @@
 #include "processor/operator/partitioner.h"
 
+#include "binder/expression/expression_util.h"
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
@@ -12,6 +13,12 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+std::string PartitionerPrintInfo::toString() const {
+    std::string result = "Indexes: ";
+    result += binder::ExpressionUtil::toString(expressions);
+    return result;
+}
 
 void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* partitionIdxes) {
     KU_ASSERT(key->state == partitionIdxes->state &&
@@ -28,7 +35,7 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
     return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
 }
 
-void PartitionerSharedState::initialize(PartitionerDataInfo& dataInfo) {
+void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
     maxNodeOffsets.resize(2);
     maxNodeOffsets[0] = srcNodeTable->getNumRows();
     maxNodeOffsets[1] = dstNodeTable->getNumRows();
@@ -66,7 +73,7 @@ void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitio
     for (auto partitionIdx = 0u; partitionIdx < partitions.size(); partitionIdx++) {
         auto& sharedPartition = partitions[partitionIdx];
         auto& localPartition = localPartitioningState->partitions[partitionIdx];
-        sharedPartition->merge(std::move(localPartition));
+        sharedPartition->merge(*localPartition);
     }
 }
 
@@ -93,13 +100,6 @@ void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     }
 }
 
-void Partitioner::evaluateData(const sel_t& numTuples) const {
-    for (auto& evaluator : dataInfo.columnEvaluators) {
-        evaluator->getLocalStateUnsafe().count = numTuples;
-        evaluator->evaluate();
-    }
-}
-
 DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>& state) const {
     const auto numColumns = dataInfo.columnEvaluators.size();
     DataChunk dataChunk(numColumns, state);
@@ -110,7 +110,7 @@ DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>&
     return dataChunk;
 }
 
-void Partitioner::initializePartitioningStates(PartitionerDataInfo& dataInfo,
+void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataInfo,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
     const std::vector<partition_idx_t>& numPartitions) {
     partitioningBuffers.resize(numPartitions.size());
@@ -119,8 +119,9 @@ void Partitioner::initializePartitioningStates(PartitionerDataInfo& dataInfo,
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
-            partitioningBuffer->partitions.push_back(std::make_unique<ChunkedNodeGroupCollection>(
-                ResidencyState::IN_MEMORY, LogicalType::copy(dataInfo.columnTypes)));
+            partitioningBuffer->partitions.push_back(
+                std::make_unique<InMemChunkedNodeGroupCollection>(
+                    LogicalType::copy(dataInfo.columnTypes)));
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }

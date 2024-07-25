@@ -1,14 +1,26 @@
 #include "planner/operator/logical_cross_product.h"
 #include "planner/planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
-void Planner::appendCrossProduct(AccumulateType accumulateType, const LogicalPlan& probePlan,
-    const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
-    auto crossProduct = make_shared<LogicalCrossProduct>(accumulateType,
+void Planner::appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
+    appendCrossProduct(AccumulateType::REGULAR, nullptr /* mark */, probePlan, buildPlan,
+        resultPlan);
+}
+
+void Planner::appendOptionalCrossProduct(std::shared_ptr<Expression> mark,
+    const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);
+}
+
+void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<Expression> mark,
+    const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    auto crossProduct = make_shared<LogicalCrossProduct>(accumulateType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     crossProduct->computeFactorizedSchema();
     // update cost

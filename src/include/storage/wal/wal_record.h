@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 #include "binder/ddl/bound_alter_info.h"
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/rel_direction.h"
@@ -23,6 +26,7 @@ enum class WALRecordType : uint8_t {
     COMMIT_RECORD = 2,
     COPY_TABLE_RECORD = 3,
     CREATE_CATALOG_ENTRY_RECORD = 4,
+    CREATE_TABLE_CATALOG_ENTRY_RECORD = 5,
     DROP_CATALOG_ENTRY_RECORD = 10,
     ALTER_TABLE_ENTRY_RECORD = 11,
     UPDATE_SEQUENCE_RECORD = 12,
@@ -77,6 +81,17 @@ struct CheckpointRecord final : public WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CheckpointRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct CreateTableEntryRecord final : public WALRecord {
+    binder::BoundCreateTableInfo boundCreateTableInfo;
+
+    explicit CreateTableEntryRecord(binder::BoundCreateTableInfo boundCreateTableInfo)
+        : WALRecord{WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD},
+          boundCreateTableInfo{std::move(boundCreateTableInfo)} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<CreateTableEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
 struct CreateCatalogEntryRecord final : public WALRecord {
@@ -135,13 +150,13 @@ struct AlterTableEntryRecord final : public WALRecord {
 
 struct UpdateSequenceRecord final : public WALRecord {
     common::sequence_id_t sequenceID;
-    catalog::SequenceChangeData data;
+    uint64_t kCount;
 
     UpdateSequenceRecord()
-        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{0}, data{} {}
-    UpdateSequenceRecord(common::sequence_id_t sequenceID, catalog::SequenceChangeData data)
-        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{sequenceID},
-          data{std::move(data)} {}
+        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{0}, kCount{0} {}
+    UpdateSequenceRecord(common::sequence_id_t sequenceID, uint64_t kCount)
+        : WALRecord{WALRecordType::UPDATE_SEQUENCE_RECORD}, sequenceID{sequenceID}, kCount{kCount} {
+    }
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<UpdateSequenceRecord> deserialize(common::Deserializer& deserializer);

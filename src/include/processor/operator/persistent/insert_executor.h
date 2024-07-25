@@ -27,6 +27,7 @@ struct NodeInsertInfo {
     void init(const ResultSet& resultSet);
 
     void updateNodeID(common::nodeID_t nodeID) const;
+    common::nodeID_t getNodeID() const;
 
 private:
     NodeInsertInfo(const NodeInsertInfo& other)
@@ -62,9 +63,8 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void insert(transaction::Transaction* transaction);
-
-    common::ValueVector* getNodeIDVector() const { return info.nodeIDVector; }
+    void setNodeIDVectorToNonNull() const;
+    common::nodeID_t insert(transaction::Transaction* transaction);
 
     // For MERGE, we might need to skip the insert for duplicate input. But still, we need to write
     // the output vector for later usage.
@@ -114,6 +114,7 @@ struct RelTableInsertInfo {
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableInsertInfo);
 
     void init(const ResultSet& resultSet, main::ClientContext* context);
+    common::internalID_t getRelID() const;
 
 private:
     RelTableInsertInfo(const RelTableInsertInfo& other)
@@ -128,7 +129,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void insert(transaction::Transaction* transaction);
+    common::internalID_t insert(transaction::Transaction* transaction);
 
     // See comment in NodeInsertExecutor.
     void skipInsert() const;

@@ -22,6 +22,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
     auto probeSidePrevOperator = mapOperator(logicalCrossProduct.getChild(0).get());
     std::vector<DataPos> outVecPos;
     std::vector<uint32_t> colIndicesToScan;
+    if (logicalCrossProduct.hasMark()) {
+        expressions.push_back(logicalCrossProduct.getMark());
+    }
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         outVecPos.emplace_back(outSchema->getExpressionPos(*expression));

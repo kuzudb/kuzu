@@ -18,21 +18,19 @@ class Transaction;
 
 namespace catalog {
 
-struct SequenceChangeData {
+struct SequenceRollbackData {
     uint64_t usageCount;
     int64_t currVal;
-    int64_t nextVal;
 };
 
 struct SequenceData {
     SequenceData() = default;
     explicit SequenceData(const binder::BoundCreateSequenceInfo& info)
-        : usageCount{0}, nextVal{info.startWith}, currVal{info.startWith},
-          increment{info.increment}, startValue{info.startWith}, minValue{info.minValue},
-          maxValue{info.maxValue}, cycle{info.cycle} {}
+        : usageCount{0}, currVal{info.startWith}, increment{info.increment},
+          startValue{info.startWith}, minValue{info.minValue}, maxValue{info.maxValue},
+          cycle{info.cycle} {}
 
     uint64_t usageCount;
-    int64_t nextVal;
     int64_t currVal;
     int64_t increment;
     int64_t startValue;
@@ -63,9 +61,10 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
+    void nextKVal(transaction::Transaction* transaction, const uint64_t& count);
     void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
         common::ValueVector& resultVector);
-    void replayVal(const uint64_t& usageCount, const int64_t& currVal, const int64_t& nextVal);
+    void rollbackVal(const uint64_t& usageCount, const int64_t& currVal);
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -76,14 +75,13 @@ public:
 
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
 
-protected:
+private:
     void copyFrom(const CatalogEntry& other) override;
-
-protected:
-    CatalogSet* set;
-    common::sequence_id_t sequenceID;
+    void nextValNoLock();
 
 private:
+    CatalogSet* set;
+    common::sequence_id_t sequenceID;
     std::mutex mtx;
     SequenceData sequenceData;
 };

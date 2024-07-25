@@ -7,6 +7,13 @@
 namespace kuzu {
 namespace processor {
 
+struct ScanNodeTableProgressSharedState {
+    common::node_group_idx_t numGroupsScanned;
+    common::node_group_idx_t numGroups;
+
+    ScanNodeTableProgressSharedState() : numGroupsScanned{0}, numGroups{0} {};
+};
+
 class ScanNodeTableSharedState {
 public:
     explicit ScanNodeTableSharedState(std::unique_ptr<NodeVectorLevelSemiMask> semiMask)
@@ -14,9 +21,11 @@ public:
           currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
           numUnCommittedNodeGroups{0}, semiMask{std::move(semiMask)} {};
 
-    void initialize(const transaction::Transaction* transaction, storage::NodeTable* table);
+    void initialize(const transaction::Transaction* transaction, storage::NodeTable* table,
+        std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState);
 
-    void nextMorsel(storage::NodeTableScanState& scanState);
+    void nextMorsel(storage::NodeTableScanState& scanState,
+        std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState);
 
     NodeSemiMask* getSemiMask() const { return semiMask.get(); }
 
@@ -51,15 +60,36 @@ private:
           columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
+struct ScanNodeTablePrintInfo final : OPPrintInfo {
+    std::vector<std::string> tableNames;
+    binder::expression_vector properties;
+
+    ScanNodeTablePrintInfo(std::vector<std::string> tableNames,
+        binder::expression_vector properties)
+        : tableNames{std::move(tableNames)}, properties{std::move(properties)} {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<ScanNodeTablePrintInfo>(new ScanNodeTablePrintInfo(*this));
+    }
+
+private:
+    ScanNodeTablePrintInfo(const ScanNodeTablePrintInfo& other)
+        : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties} {}
+};
+
 class ScanNodeTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_NODE_TABLE;
 
 public:
     ScanNodeTable(ScanTableInfo info, std::vector<ScanNodeTableInfo> nodeInfos,
         std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<OPPrintInfo> printInfo,
+        std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState)
         : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
-          nodeInfos{std::move(nodeInfos)}, sharedStates{std::move(sharedStates)} {
+          nodeInfos{std::move(nodeInfos)}, sharedStates{std::move(sharedStates)},
+          progressSharedState{std::move(progressSharedState)} {
         KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }
 
@@ -78,6 +108,8 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override;
 
+    double getProgress(ExecutionContext* context) const override;
+
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
 
@@ -85,6 +117,7 @@ private:
     common::idx_t currentTableIdx;
     std::vector<ScanNodeTableInfo> nodeInfos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
+    std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState;
 };
 
 } // namespace processor

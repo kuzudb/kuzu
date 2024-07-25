@@ -195,7 +195,7 @@ void Planner::planReadOp(std::shared_ptr<LogicalOperator> op, const expression_v
         if (!predicates.empty()) {
             appendFilters(predicates, tmpPlan);
         }
-        appendCrossProduct(AccumulateType::REGULAR, plan, tmpPlan, plan);
+        appendCrossProduct(plan, tmpPlan, plan);
     } else {
         plan.setLastOperator(std::move(op));
         if (!predicates.empty()) {

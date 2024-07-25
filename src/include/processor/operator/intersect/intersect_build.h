@@ -1,9 +1,36 @@
 #pragma once
 
+#include "binder/expression/expression_util.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 
 namespace kuzu {
 namespace processor {
+
+struct IntersectBuildPrintInfo final : OPPrintInfo {
+    binder::expression_vector keys;
+    binder::expression_vector payloads;
+
+    IntersectBuildPrintInfo(binder::expression_vector keys, binder::expression_vector payloads)
+        : keys{std::move(keys)}, payloads(std::move(payloads)) {}
+
+    std::string toString() const override {
+        std::string result = "Keys: ";
+        result += binder::ExpressionUtil::toString(keys);
+        if (!payloads.empty()) {
+            result += ", Payloads: ";
+            result += binder::ExpressionUtil::toString(payloads);
+        }
+        return result;
+    }
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<IntersectBuildPrintInfo>(new IntersectBuildPrintInfo(*this));
+    }
+
+private:
+    IntersectBuildPrintInfo(const IntersectBuildPrintInfo& other)
+        : OPPrintInfo{other}, keys{other.keys}, payloads{other.payloads} {}
+};
 
 class IntersectBuild : public HashJoinBuild {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INTERSECT_BUILD;

@@ -1,8 +1,9 @@
 #pragma once
 
+#include "common/uniq_lock.h"
 #include "storage/enums/residency_state.h"
-#include "storage/store/chunked_node_group_collection.h"
-#include "storage/store/version_info.h"
+#include "storage/store/chunked_node_group.h"
+#include "storage/store/group_collection.h"
 
 namespace kuzu {
 namespace transaction {

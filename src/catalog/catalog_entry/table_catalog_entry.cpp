@@ -156,6 +156,7 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
 void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
     CatalogEntry::copyFrom(other);
     auto& otherTable = ku_dynamic_cast<const CatalogEntry&, const TableCatalogEntry&>(other);
+    set = otherTable.set;
     tableID = otherTable.tableID;
     comment = otherTable.comment;
     nextPID = otherTable.nextPID;

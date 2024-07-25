@@ -120,8 +120,14 @@ bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState
         return false;
     }
     const auto nodeOffset = scanState.IDVector->readNodeOffset(nodeIDPos);
-    const auto rowIdxInGroup =
-        nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+    offset_t rowIdxInGroup = INVALID_OFFSET;
+    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+        rowIdxInGroup = nodeOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE -
+                        StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+    } else {
+        rowIdxInGroup =
+            nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
+    }
     scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
@@ -183,8 +189,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
     // NOTE: We assume all input all flatten now. This is to simplify the implementation.
     // We should optimize this to take unflat input later.
-    const auto& nodeUpdateState =
-        ku_dynamic_cast<TableUpdateState&, NodeTableUpdateState&>(updateState);
+    auto& nodeUpdateState = updateState.constCast<NodeTableUpdateState>();
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1 &&
               nodeUpdateState.propertyVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeUpdateState.nodeIDVector.state->getSelVector()[0];

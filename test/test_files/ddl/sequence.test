@@ -115,6 +115,12 @@ Catalog exception: currval: sequence "err" is not yet defined. To define the seq
 -STATEMENT CREATE SEQUENCE edgeMin START -10 INCREMENT -1 MINVALUE -10;
 ---- ok
 -STATEMENT RETURN nextval('overflowMax');
+---- 1
+9223372036854775807
+-STATEMENT RETURN nextval('overflowMin');
+---- 1
+-9223372036854775808
+-STATEMENT RETURN nextval('overflowMax');
 ---- error
 Catalog exception: nextval: reached maximum value of sequence "overflowMax" 9223372036854775807
 -STATEMENT RETURN nextval('overflowMin');
