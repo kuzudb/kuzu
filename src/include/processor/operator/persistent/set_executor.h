@@ -56,7 +56,7 @@ public:
 
     virtual void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void setNodeID(common::nodeID_t nodeID);
+    void setNodeID(common::nodeID_t nodeID) const;
 
     virtual void set(ExecutionContext* context) = 0;
 
@@ -148,7 +148,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    void setRelID(common::nodeID_t relID);
+    void setRelID(common::nodeID_t relID) const;
 
     virtual void set(ExecutionContext* context) = 0;
 

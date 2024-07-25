@@ -15,7 +15,7 @@ struct PatternCreationInfo {
     }
 
     void updateID(common::executor_id_t executorID, common::executor_info executorInfo,
-        common::nodeID_t nodeID);
+        common::nodeID_t nodeID) const;
 };
 
 class PatternCreationInfoTable : public AggregateHashTable {

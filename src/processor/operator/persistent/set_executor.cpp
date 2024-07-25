@@ -21,7 +21,7 @@ void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     info.init(*resultSet, context->clientContext);
 }
 
-void NodeSetExecutor::setNodeID(common::nodeID_t nodeID) {
+void NodeSetExecutor::setNodeID(common::nodeID_t nodeID) const {
     info.nodeIDVector->setValue(info.nodeIDVector->state->getSelVector()[0], nodeID);
 }
 
@@ -98,7 +98,7 @@ void RelSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     info.init(*resultSet, context->clientContext);
 }
 
-void RelSetExecutor::setRelID(common::nodeID_t relID) {
+void RelSetExecutor::setRelID(common::nodeID_t relID) const {
     info.relIDVector->setValue(info.relIDVector->state->getSelVector()[0], relID);
 }
 

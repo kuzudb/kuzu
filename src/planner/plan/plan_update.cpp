@@ -2,7 +2,6 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "common/exception/runtime.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/planner.h"
 
@@ -11,6 +10,7 @@ using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
+
 
 void Planner::planUpdatingClause(const BoundUpdatingClause* updatingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {

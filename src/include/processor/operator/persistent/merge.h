@@ -1,7 +1,6 @@
 #pragma once
 
 #include "insert_executor.h"
-#include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/result/pattern_creation_info_table.h"
 #include "set_executor.h"

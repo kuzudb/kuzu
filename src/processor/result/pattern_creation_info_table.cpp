@@ -4,7 +4,7 @@ namespace kuzu {
 namespace processor {
 
 void PatternCreationInfo::updateID(common::executor_id_t executorID,
-    common::executor_info executorInfo, common::nodeID_t nodeID) {
+    common::executor_info executorInfo, common::nodeID_t nodeID) const {
     if (!executorInfo.contains(executorID)) {
         return;
     }
