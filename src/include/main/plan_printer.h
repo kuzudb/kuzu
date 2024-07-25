@@ -92,6 +92,9 @@ public:
     PlanPrinter(processor::PhysicalPlan* physicalPlan, common::Profiler* profiler)
         : physicalPlan{physicalPlan}, profiler{profiler} {};
 
+    PlanPrinter(planner::LogicalPlan* logicalPlan, common::Profiler* profiler)
+        : logicalPlan{logicalPlan}, profiler{profiler} {};
+
     nlohmann::json printPlanToJson();
 
     std::ostringstream printPlanToOstream();
@@ -106,6 +109,7 @@ private:
 
 private:
     processor::PhysicalPlan* physicalPlan;
+    planner::LogicalPlan* logicalPlan;
     common::Profiler* profiler;
 };
 

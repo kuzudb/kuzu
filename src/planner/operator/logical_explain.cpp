@@ -13,6 +13,9 @@ void LogicalExplain::computeSchema() {
     case ExplainType::PHYSICAL_PLAN:
         createEmptySchema();
         break;
+    case ExplainType::LOGICAL_PLAN:
+        createEmptySchema();
+        break;
     default:
         KU_UNREACHABLE;
     }

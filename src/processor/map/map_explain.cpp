@@ -25,7 +25,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
         auto printInfo = std::make_unique<OPPrintInfo>();
         return std::make_unique<Profile>(outputPosition, ProfileInfo{}, ProfileLocalState{},
             getOperatorID(), std::move(lastPhysicalOP), std::move(printInfo));
-    } else {
+    } else if (logicalExplain.getExplainType() == ExplainType::PHYSICAL_PLAN){
         auto physicalPlanToExplain = std::make_unique<PhysicalPlan>(std::move(lastPhysicalOP));
         auto profiler = std::make_unique<Profiler>();
         auto planPrinter =
@@ -35,6 +35,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
             clientContext->getMemoryManager());
         return createFTableScanAligned(expression_vector{outputExpression}, outSchema,
             factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
+    }
+    else {
+        auto logicalPlanToExplain = std::make_unique<LogicalPlan>(std::move(logicalOperator->getOperatorType()));
+        auto profiler = std::make_unique<Profiler>();
+        auto planPrinter = std::make_unique<main::PlanPrinter>(logicalPlanToExplain.get(), profiler.get());
+        auto explainStr = planPrinter->printPlanToOstream().str();
+        auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
+            clientContext->getMemoryManager());
+        return createFTableScanAligned(expression_vector{outputExpression}, outSchema,
+            factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
+
     }
 }
 
