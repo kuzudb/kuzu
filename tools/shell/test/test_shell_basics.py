@@ -8,7 +8,7 @@ from test_helper import deleteIfExists
 def test_basic(temp_db) -> None:
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a;')
     result = test.run()
-    result.check_stdout("databases rule")
+    result.check_stdout("\u2502 databases rule \u2502")
 
 
 def test_range(temp_db) -> None:
@@ -95,26 +95,26 @@ def test_row_truncation(temp_db, csv_path) -> None:
     test = ShellTest().add_argument(temp_db).statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN id;')
     result = test.run()
     result.check_stdout("(21 tuples, 20 shown)")
-    result.check_stdout(["|  . |", "|  . |", "|  . |"])
+    result.check_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
 
 
 def test_column_truncation(temp_db, csv_path) -> None:
     # width when running test is 80
     test = ShellTest().add_argument(temp_db).statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN *;')
     result = test.run()
-    result.check_stdout("-" * 80)
-    result.check_not_stdout("-" * 81)
-    result.check_stdout("| ... |")
+    result.check_stdout("id")
+    result.check_stdout("fname")
+    result.check_stdout("Gender")
+    result.check_stdout("\u2502 ... \u2502")
+    result.check_stdout("courseScoresPerTerm")
     result.check_stdout("(13 columns, 4 shown)")
 
     # test column name truncation
     long_name = "a" * 100
     test = ShellTest().add_argument(temp_db).statement(f'RETURN "databases rule" AS {long_name};')
     result = test.run()
-    result.check_stdout("-" * 80)
-    result.check_not_stdout("-" * 81)
-    result.check_stdout(f"| {long_name[:73]}... |")
-    result.check_stdout("| databases rule")
+    result.check_stdout(f"\u2502 {long_name[:73]}... \u2502")
+    result.check_stdout("\u2502 databases rule")
 
 
 def long_messages(temp_db) -> None:
@@ -134,7 +134,7 @@ def test_history_consecutive_repeats(temp_db, history_path) -> None:
         .statement('RETURN "databases rule" AS a;')
     )
     result = test.run()
-    result.check_stdout("| databases rule |")
+    result.check_stdout("\u2502 databases rule \u2502")
 
     with open(os.path.join(history_path, "history.txt")) as f:
         assert f.readline() == 'RETURN "databases rule" AS a;\n'
