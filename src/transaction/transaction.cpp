@@ -125,7 +125,9 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,
     const SequenceRollbackData& data) const {
     undoBuffer->createSequenceChange(*sequenceEntry, data);
-    clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(), kCount);
+    if (clientContext->getTx()->shouldLogToWAL()) {
+        clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(), kCount);
+    }
 }
 
 void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,
