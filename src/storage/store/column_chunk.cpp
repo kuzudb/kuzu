@@ -117,7 +117,8 @@ void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData
     if (!updateInfo) {
         return;
     }
-    const auto numVectors = getNumValues() / DEFAULT_VECTOR_CAPACITY;
+    const auto numVectors =
+        (getNumValues() + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY;
     for (auto vectorIdx = 0u; vectorIdx < numVectors; vectorIdx++) {
         if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
             for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {

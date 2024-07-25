@@ -134,9 +134,9 @@ void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType, Versio
 
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
     VectorUpdateInfo* vectorUpdateInfo) {
-    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorUpdateInfo));
-    const UndoRecordHeader recorHeader{UndoRecordType::UPDATE_INFO, sizeof(VectorUpdateInfo)};
-    *reinterpret_cast<UndoRecordHeader*>(buffer) = recorHeader;
+    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorUpdateRecord));
+    const UndoRecordHeader recordHeader{UndoRecordType::UPDATE_INFO, sizeof(VectorUpdateRecord)};
+    *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
     const VectorUpdateRecord vectorUpdateRecord{updateInfo, vectorIdx, vectorUpdateInfo};
     *reinterpret_cast<VectorUpdateRecord*>(buffer) = vectorUpdateRecord;
