@@ -118,7 +118,7 @@ Catalog exception: after does not exist in catalog.
 ---- ok
 -STATEMENT RETURN currval('test_id_serial');
 ---- 1
-1
+0
 
 -CASE SequenceImplicitCommitRecovery
 -STATEMENT CALL auto_checkpoint=false;
@@ -134,7 +134,7 @@ Catalog exception: after does not exist in catalog.
 -RELOADDB
 -STATEMENT RETURN currval('test_id_serial');
 ---- 1
-1
+0
 
 -CASE SequenceImplicitRollback
 -STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
@@ -147,7 +147,7 @@ Catalog exception: after does not exist in catalog.
 ---- ok
 -STATEMENT RETURN currval('test_id_serial');
 ---- error
-Catalog exception: currval: sequence "next" is not yet defined. To define the sequence, call nextval first.
+Catalog exception: currval: sequence "test_id_serial" is not yet defined. To define the sequence, call nextval first.
 
 -CASE SequenceImplicitRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false;
@@ -163,4 +163,4 @@ Catalog exception: currval: sequence "next" is not yet defined. To define the se
 -RELOADDB
 -STATEMENT RETURN currval('test_id_serial');
 ---- error
-Catalog exception: currval: sequence "next" is not yet defined. To define the sequence, call nextval first.
+Catalog exception: currval: sequence "test_id_serial" is not yet defined. To define the sequence, call nextval first.
