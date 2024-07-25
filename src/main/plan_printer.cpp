@@ -197,8 +197,11 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss
                         if (hasOpProfileBox(rowIdx + 1, j + 4) && !hasOpProfileBox(rowIdx, j + 1)) {
                             oss << "┬" << genHorizLine(opProfileBoxWidth - 1 - leftHorizLineSize);
                         } else {
-                            if ((hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j) &&
-                                !hasOpProfileBox(rowIdx, j + 1)) || (hasOpProfileBox(rowIdx+1, j + 2) && !hasOpProfileBox(rowIdx, j+1)) ) {
+                            if ((hasOpProfileBox(rowIdx + 1, j + 1) &&
+                                    !hasOpProfileBox(rowIdx, j) &&
+                                    !hasOpProfileBox(rowIdx, j + 1)) ||
+                                (hasOpProfileBox(rowIdx + 1, j + 2) &&
+                                    !hasOpProfileBox(rowIdx, j + 1))) {
                                 oss << "┬" << genHorizLine(opProfileBoxWidth / 2);
                             } else {
                                 oss << "┐"
@@ -214,9 +217,11 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss
                                 !hasOpProfileBox(rowIdx, j + 1)) ||
                                (hasOpProfileBox(rowIdx + 1, j + 3) &&
                                    !hasOpProfileBox(rowIdx, j + 3) &&
-                                   !hasOpProfileBox(rowIdx, j + 1) && !hasOpProfileBox(rowIdx, j + 2)) ||
+                                   !hasOpProfileBox(rowIdx, j + 1) &&
+                                   !hasOpProfileBox(rowIdx, j + 2)) ||
                                (hasOpProfileBox(rowIdx + 1, j - 2) &&
-                                   !hasOpProfileBox(rowIdx, j - 2) && hasOpProfileBox(rowIdx + 1, j + 3))) &&
+                                   !hasOpProfileBox(rowIdx, j - 2) &&
+                                   hasOpProfileBox(rowIdx + 1, j + 3))) &&
                            i == halfWayPoint && !hasOpProfileBox(rowIdx, j + 2)) {
                     oss << genHorizLine(opProfileBoxWidth + 1);
                     offset = offset == 0 ? 1 : 0;
