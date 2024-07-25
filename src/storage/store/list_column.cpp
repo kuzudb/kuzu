@@ -170,6 +170,8 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
         }
         listColumnChunk.resetOffset();
     }
+
+    listColumnChunk.sanityCheck();
 }
 
 void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
@@ -306,7 +308,7 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
 }
 
 void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
-    const auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
+    auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
     // First, check if we can checkpoint list data chunk in place.
     const auto persistentListDataSize = persistentDataChunk->getNumValues();
@@ -389,6 +391,13 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
         sizeColumn->checkpointColumnChunk(sizeCheckpointState);
         // Checkpoint null data.
         Column::checkpointNullData(checkpointState);
+
+        KU_ASSERT(persistentListChunk.getNullData()->getNumValues() ==
+                      persistentListChunk.getOffsetColumnChunk()->getNumValues() &&
+                  persistentListChunk.getNullData()->getNumValues() ==
+                      persistentListChunk.getSizeColumnChunk()->getNumValues());
+
+        persistentListChunk.syncNumValues();
     }
 }
 
