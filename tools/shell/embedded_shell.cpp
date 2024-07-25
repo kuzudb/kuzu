@@ -467,7 +467,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         uint64_t numTuples = queryResult.getNumTuples();
         std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
-            colsWidth[i] = std::max(queryResult.getColumnNames()[i].length(), queryResult.getColumnDataTypes()[i].toString().length()) + 2;
+            colsWidth[i] = std::max(queryResult.getColumnNames()[i].length(),
+                               queryResult.getColumnDataTypes()[i].toString().length()) +
+                           2;
         }
         uint64_t rowCount = 0;
         while (queryResult.hasNext()) {
