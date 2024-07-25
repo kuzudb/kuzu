@@ -78,6 +78,8 @@ struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryI
     BoundExtraCreateTableInfo(const BoundExtraCreateTableInfo& other)
         : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)} {}
 
+    BoundExtraCreateTableInfo& operator=(const BoundExtraCreateTableInfo&) = delete;
+
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateTableInfo>(*this);
     }
