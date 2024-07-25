@@ -92,7 +92,12 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::RDF_GRAPH_ENTRY: {
             const auto tableCatalogEntry = catalogEntry.constPtrCast<TableCatalogEntry>();
-            wal->logDropCatalogEntryRecord(tableCatalogEntry->getTableID(), catalogEntry.getType());
+            if (const auto alterInfo = tableCatalogEntry->getAlterInfo()) {
+                // Must be rename table
+                wal->logAlterTableEntryRecord(alterInfo);
+            } else {
+                wal->logDropCatalogEntryRecord(tableCatalogEntry->getTableID(), catalogEntry.getType());
+            }
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
             auto sequenceCatalogEntry = catalogEntry.constPtrCast<SequenceCatalogEntry>();

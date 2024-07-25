@@ -176,14 +176,18 @@ void AlterTableEntryRecord::serialize(Serializer& serializer) const {
         serializer.write(dropInfo->propertyName);
     } break;
     case AlterType::RENAME_PROPERTY: {
-        auto renameInfo = extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
-        serializer.write(renameInfo->propertyID);
-        serializer.write(renameInfo->newName);
-        serializer.write(renameInfo->oldName);
+        auto renamePropertyInfo = extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
+        serializer.write(renamePropertyInfo->propertyID);
+        serializer.write(renamePropertyInfo->newName);
+        serializer.write(renamePropertyInfo->oldName);
     } break;
     case AlterType::COMMENT: {
         auto commentInfo = extraInfo->constPtrCast<BoundExtraCommentInfo>();
         serializer.write(commentInfo->comment);
+    } break;
+    case AlterType::RENAME_TABLE: {
+        auto renameTableInfo = extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
+        serializer.write(renameTableInfo->newName);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -234,7 +238,11 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         deserializer.deserializeValue(comment);
         extraInfo = std::make_unique<BoundExtraCommentInfo>(std::move(comment));
     } break;
-    // We handle rename table as drop and create
+    case AlterType::RENAME_TABLE: {
+        std::string newName;
+        deserializer.deserializeValue(newName);
+        extraInfo = std::make_unique<BoundExtraRenameTableInfo>(std::move(newName));
+    } break;
     default: {
         KU_UNREACHABLE;
     }

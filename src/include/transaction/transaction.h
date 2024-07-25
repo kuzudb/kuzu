@@ -60,6 +60,7 @@ public:
     common::transaction_t getCommitTS() const { return commitTS; }
     int64_t getCurrentTS() const { return currentTS; }
     main::ClientContext* getClientContext() const { return clientContext; }
+    storage::UndoBuffer* getUndoBuffer() const { return undoBuffer.get(); }
 
     void checkForceCheckpoint(common::StatementType statementType) {
         // Note: We always force checkpoint for COPY_FROM statement.
