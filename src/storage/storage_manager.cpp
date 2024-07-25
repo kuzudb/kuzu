@@ -195,24 +195,6 @@ ShadowFile& StorageManager::getShadowFile() {
     return *shadowFile;
 }
 
-void StorageManager::dropTable(table_id_t tableID, VirtualFileSystem* vfs) {
-    std::lock_guard lck{mtx};
-    KU_ASSERT(tables.contains(tableID));
-    auto tableType = tables.at(tableID)->getTableType();
-    switch (tableType) {
-    case TableType::NODE: {
-        vfs->removeFileIfExists(
-            StorageUtils::getNodeIndexFName(vfs, databasePath, tableID, FileVersionType::ORIGINAL));
-    } break;
-    case TableType::REL: {
-    } break;
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-    tables.erase(tableID);
-}
-
 uint64_t StorageManager::getEstimatedMemoryUsage() {
     std::lock_guard lck{mtx};
     uint64_t totalMemoryUsage = 0;

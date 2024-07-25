@@ -214,6 +214,7 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
             auto seqName = genSerialName(tableEntry->getName(), property.getName());
             auto seqInfo = BoundCreateSequenceInfo(seqName, 0, 1, 0,
                 std::numeric_limits<int64_t>::max(), false, ConflictAction::ON_CONFLICT_THROW);
+            seqInfo.hasParent = true;
             createSequence(transaction, seqInfo);
         }
     }
@@ -305,6 +306,7 @@ sequence_id_t Catalog::createSequence(Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
     sequence_id_t sequenceID = sequences->assignNextOID();
     auto entry = std::make_unique<SequenceCatalogEntry>(sequences.get(), sequenceID, info);
+    entry->setHasParent(info.hasParent);
     sequences->createEntry(transaction, std::move(entry));
     return sequenceID;
 }
@@ -535,6 +537,7 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_
         nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
             propertyInfo.defaultValue->copy());
     }
+    nodeTableEntry->setHasParent(info.hasParent);
     return nodeTableEntry;
 }
 
@@ -548,6 +551,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*, table_i
         relTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
             propertyInfo.defaultValue->copy());
     }
+    relTableEntry->setHasParent(info.hasParent);
     return relTableEntry;
 }
 
@@ -559,6 +563,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* tra
     std::vector<table_id_t> relTableIDs;
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
+        childInfo.hasParent = true;
         relTableIDs.push_back(createTableSchema(transaction, childInfo));
     }
     return std::make_unique<RelGroupCatalogEntry>(tables.get(), info.tableName, tableID,
@@ -574,6 +579,10 @@ std::unique_ptr<CatalogEntry> Catalog::createRdfGraphEntry(Transaction* transact
     auto& literalInfo = extraInfo->literalInfo;
     auto& resourceTripleInfo = extraInfo->resourceTripleInfo;
     auto& literalTripleInfo = extraInfo->literalTripleInfo;
+    resourceInfo.hasParent = true;
+    literalInfo.hasParent = true;
+    resourceTripleInfo.hasParent = true;
+    literalTripleInfo.hasParent = true;
     auto resourceTripleExtraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableInfo*>(
             resourceTripleInfo.extraInfo.get());

@@ -12,13 +12,16 @@ namespace catalog {
 void CatalogEntry::serialize(common::Serializer& serializer) const {
     serializer.write(static_cast<uint8_t>(type));
     serializer.write(name);
+    serializer.write(hasParent_);
 }
 
 std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& deserializer) {
     CatalogEntryType type;
     std::string name;
+    bool hasParent_;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(name);
+    deserializer.deserializeValue(hasParent_);
     std::unique_ptr<CatalogEntry> entry;
     switch (type) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -41,6 +44,7 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     }
     entry->type = type;
     entry->name = std::move(name);
+    entry->hasParent_ = hasParent_;
     return entry;
 }
 
@@ -49,6 +53,7 @@ void CatalogEntry::copyFrom(const CatalogEntry& other) {
     name = other.name;
     timestamp = other.timestamp;
     deleted = other.deleted;
+    hasParent_ = other.hasParent_;
 }
 
 } // namespace catalog

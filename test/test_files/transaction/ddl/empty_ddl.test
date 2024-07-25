@@ -1,0 +1,112 @@
+-DATASET CSV empty
+--
+
+-CASE CreateDropNodeTableRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 1
+test|NODE|local(kuzu)|
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT DROP TABLE test;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 0
+
+-CASE CreateDropRelTableRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE base(id SERIAL, primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base TO base);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 2
+base|NODE|local(kuzu)|
+test|REL|local(kuzu)|
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT DROP TABLE test;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 1
+base|NODE|local(kuzu)|
+
+-CASE CreateDropRdfTableRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE RDFGraph test;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 5
+test_lt|REL|local(kuzu)|
+test_l|NODE|local(kuzu)|
+test_rt|REL|local(kuzu)|
+test_r|NODE|local(kuzu)|
+test|RDFGraph|local(kuzu)|
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT DROP TABLE test;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 0
+
+-CASE CreateDropRelGroupRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE base1(id SERIAL, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id SERIAL, primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE REL TABLE GROUP test(FROM base1 To base1, FROM base1 to base2);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 5
+base1|NODE|local(kuzu)|
+base2|NODE|local(kuzu)|
+test_base1_base1|REL|local(kuzu)|
+test_base1_base2|REL|local(kuzu)|
+test|REL_GROUP|local(kuzu)|
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT DROP TABLE test;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 2
+base1|NODE|local(kuzu)|
+base2|NODE|local(kuzu)|

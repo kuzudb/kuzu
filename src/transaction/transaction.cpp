@@ -52,7 +52,12 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry.isDeleted());
-            wal->logCreateCatalogEntryRecord(newCatalogEntry);
+            auto& tableEntry = newCatalogEntry->constCast<TableCatalogEntry>();
+            if (tableEntry.hasParent()) {
+                return;
+            }
+            wal->logCreateTableEntryRecord(
+                tableEntry.getBoundCreateTableInfo(clientContext->getTx()));
         } else {
             // Must be alter.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
@@ -60,8 +65,16 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             wal->logAlterTableEntryRecord(tableEntry.getAlterInfo());
         }
     } break;
+    case CatalogEntryType::SEQUENCE_ENTRY: {
+        KU_ASSERT(
+            catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
+        if (newCatalogEntry->hasParent()) {
+            // We don't log SERIAL catalog entry creation as it is implicit
+            return;
+        }
+        wal->logCreateCatalogEntryRecord(newCatalogEntry);
+    } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
-    case CatalogEntryType::SEQUENCE_ENTRY:
     case CatalogEntryType::TYPE_ENTRY: {
         KU_ASSERT(
             catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
@@ -69,6 +82,9 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());
+        if (catalogEntry.hasParent()) {
+            return;
+        }
         switch (catalogEntry.getType()) {
         // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -109,7 +125,9 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,
     const SequenceRollbackData& data) const {
     undoBuffer->createSequenceChange(*sequenceEntry, data);
-    clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(), kCount);
+    if (clientContext->getTx()->shouldLogToWAL()) {
+        clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(), kCount);
+    }
 }
 
 void Transaction::pushVectorInsertInfo(storage::VersionInfo& versionInfo,

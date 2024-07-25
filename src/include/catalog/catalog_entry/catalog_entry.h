@@ -36,6 +36,8 @@ public:
     void setTimestamp(common::transaction_t timestamp_) { this->timestamp = timestamp_; }
     bool isDeleted() const { return deleted; }
     void setDeleted(bool deleted_) { this->deleted = deleted_; }
+    bool hasParent() const { return hasParent_; }
+    void setHasParent(bool hasParent) { hasParent_ = hasParent; }
     CatalogEntry* getPrev() const {
         KU_ASSERT(prev);
         return prev.get();
@@ -84,6 +86,7 @@ protected:
     std::string name;
     common::transaction_t timestamp;
     bool deleted = false;
+    bool hasParent_ = false;
     // Older versions.
     std::unique_ptr<CatalogEntry> prev;
     // Newer versions.
