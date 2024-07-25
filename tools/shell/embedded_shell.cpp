@@ -619,7 +619,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
                     printString += BoxDrawingCharacters::Horizontal;
                 }
-                printString += BoxDrawingCharacters::DownAndHorizontal;
+                if (i != colsWidth.size() - 1) {
+                    printString += BoxDrawingCharacters::DownAndHorizontal;
+                }
             }
             if (j >= k) {
                 printString += BoxDrawingCharacters::Horizontal;
@@ -705,7 +707,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
                     printString += BoxDrawingCharacters::Horizontal;
                 }
-                printString += BoxDrawingCharacters::VerticalAndHorizontal;
+                if (i != colsWidth.size() - 1) {
+                    printString += BoxDrawingCharacters::VerticalAndHorizontal;
+                }
             }
             if (j >= k) {
                 printString += BoxDrawingCharacters::Horizontal;
@@ -812,7 +816,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
                     printString += BoxDrawingCharacters::Horizontal;
                 }
-                printString += BoxDrawingCharacters::UpAndHorizontal;
+                if (i != colsWidth.size() - 1) {
+                    printString += BoxDrawingCharacters::UpAndHorizontal;
+                }
             }
             if (j >= k) {
                 printString += BoxDrawingCharacters::Horizontal;
