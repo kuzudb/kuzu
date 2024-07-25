@@ -194,8 +194,6 @@ public:
 
     void checkpoint(NodeGroupCheckpointState& state) override;
 
-    void resetVersionAndUpdateInfo() override;
-
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
     ChunkedNodeGroup* getPersistentChunkedGroup() const { return persistentChunkGroup.get(); }

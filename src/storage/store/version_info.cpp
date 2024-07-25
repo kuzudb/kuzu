@@ -138,6 +138,46 @@ void VectorVersionInfo::rollbackDeletions(row_idx_t startRowInVector, row_idx_t 
     }
 }
 
+bool VectorVersionInfo::finalizeStatusFromVersions() {
+    if (insertionStatus == InsertionStatus::NO_INSERTED) {
+        KU_ASSERT(deletionStatus == VectorVersionInfo::DeletionStatus::NO_DELETED);
+        return true;
+    }
+    const auto hasAnyDeletions =
+        std::any_of(deletedVersions.begin(), deletedVersions.end(), [](auto version) {
+            KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
+            return version == 0;
+        });
+    if (!hasAnyDeletions) {
+        deletionStatus = DeletionStatus::NO_DELETED;
+    }
+    const auto allValidInsertions =
+        std::all_of(insertedVersions.begin(), insertedVersions.end(), [](auto version) {
+            KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
+            return version == 0;
+        });
+    if (allValidInsertions) {
+        insertionStatus = InsertionStatus::ALWAYS_INSERTED;
+    } else {
+        const auto hasAnyValidInsertions =
+            std::any_of(insertedVersions.begin(), insertedVersions.end(), [](auto version) {
+                KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
+                return version == 0;
+            });
+        if (!hasAnyValidInsertions) {
+            insertionStatus = InsertionStatus::NO_INSERTED;
+        } else {
+            insertionStatus = InsertionStatus::CHECK_VERSION;
+        }
+    }
+    if (insertionStatus == InsertionStatus::ALWAYS_INSERTED &&
+        deletionStatus == DeletionStatus::NO_DELETED) {
+        // No need to keep vector info as all tuples are valid and no deletions.
+        return false;
+    }
+    return true;
+}
+
 void VectorVersionInfo::serialize(Serializer& serializer) const {
     for (const auto inserted : insertedVersions) {
         // Versions should be either INVALID_TRANSACTION or committed timestamps.
@@ -408,6 +448,26 @@ row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transacti
         }
     }
     return numDeletions;
+}
+
+bool VersionInfo::finalizeStatusFromVersions() {
+    for (auto vectorIdx = 0u; vectorIdx < getNumVectors(); vectorIdx++) {
+        const auto vectorInfo = getVectorVersionInfo(vectorIdx);
+        if (!vectorInfo) {
+            continue;
+        }
+        if (!vectorInfo->finalizeStatusFromVersions()) {
+            clearVectorInfo(vectorIdx);
+        }
+    }
+    bool hasAnyVectorVersionInfo = false;
+    for (const auto& info : vectorsInfo) {
+        if (info) {
+            hasAnyVectorVersionInfo = true;
+            break;
+        }
+    }
+    return hasAnyVectorVersionInfo;
 }
 
 void VersionInfo::serialize(Serializer& serializer) const {

@@ -166,8 +166,6 @@ public:
         return chunkedGroups.getGroup(lock, groupIdx);
     }
 
-    virtual void resetVersionAndUpdateInfo();
-
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<NodeGroup&, TARGET&>(*this);
@@ -190,7 +188,7 @@ private:
         NodeGroupCheckpointState& state);
     std::unique_ptr<ChunkedNodeGroup> checkpointInMemAndOnDisk(const common::UniqLock& lock,
         NodeGroupCheckpointState& state);
-    std::unique_ptr<VersionInfo> getCheckpointVersionInfo(const common::UniqLock& lock,
+    std::unique_ptr<VersionInfo> checkpointVersionInfo(const common::UniqLock& lock,
         const transaction::Transaction* transaction);
 
     template<ResidencyState SCAN_RESIDENCY_STATE>

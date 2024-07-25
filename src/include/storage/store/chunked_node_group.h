@@ -124,6 +124,7 @@ public:
         common::row_idx_t startRow, common::length_t numRows) const;
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::length_t numRows) const;
+    bool hasVersionInfo() const { return versionInfo != nullptr; }
 
     void finalize() const;
 

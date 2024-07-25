@@ -260,7 +260,7 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     const auto firstGroup = chunkedGroups.getFirstGroup(lock);
     const auto hasPersistentData = firstGroup->getResidencyState() == ResidencyState::ON_DISK;
     // Re-populate version info here first.
-    auto checkpointedVersionInfo = getCheckpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
+    auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
     std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
     if (hasPersistentData) {
         checkpointedChunkedGroup = checkpointInMemAndOnDisk(lock, state);
@@ -306,7 +306,6 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
             std::move(chunkCheckpointStates));
         state.columns[i]->checkpointColumnChunk(columnCheckpointState);
     }
-    firstGroup->resetVersionAndUpdateInfo();
     // Clear all chunked groups except for the first one.
     auto persistentChunkedGroup = chunkedGroups.moveGroup(lock, 0);
     KU_ASSERT(persistentChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
@@ -323,52 +322,38 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(const UniqLock&
     return insertChunkedGroup;
 }
 
-std::unique_ptr<VersionInfo> NodeGroup::getCheckpointVersionInfo(const UniqLock& lock,
+std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lock,
     const Transaction* transaction) {
     auto checkpointVersionInfo = std::make_unique<VersionInfo>();
     row_idx_t numRows = 0;
     for (const auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         numRows += chunkedGroup->getNumRows();
     }
-    auto numVectors = StorageUtils::divideAndRoundUpTo(numRows, DEFAULT_VECTOR_CAPACITY);
+    const auto numVectors = StorageUtils::divideAndRoundUpTo(numRows, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numVectors; i++) {
         checkpointVersionInfo->getOrCreateVersionInfo(i);
     }
     row_idx_t currRow = 0;
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        for (auto i = 0u; i < chunkedGroup->getNumRows(); i++) {
-            if (chunkedGroup->isDeleted(transaction, i)) {
-                checkpointVersionInfo->delete_(transaction, currRow + i);
-            } else if (chunkedGroup->isInserted(transaction, i)) {
-                checkpointVersionInfo->append(transaction, currRow + i, 1);
+        if (chunkedGroup->hasVersionInfo()) {
+            for (auto i = 0u; i < chunkedGroup->getNumRows(); i++) {
+                if (chunkedGroup->isDeleted(transaction, i)) {
+                    checkpointVersionInfo->delete_(transaction, currRow + i);
+                } else if (chunkedGroup->isInserted(transaction, i)) {
+                    checkpointVersionInfo->append(transaction, currRow + i, 1);
+                }
             }
+        } else {
+            // No version info created on the chunked node group, so all tuples in the chunked node
+            // group are inserted.
+            checkpointVersionInfo->append(transaction, currRow, chunkedGroup->getNumRows());
         }
         currRow += chunkedGroup->getNumRows();
     }
-    // for (auto vectorIdx = 0u; vectorIdx < checkpointVersionInfo->getNumVectors(); vectorIdx++) {
-    //     auto vectorInfo = checkpointVersionInfo->getVectorVersionInfo(vectorIdx);
-    //     if (!vectorInfo) {
-    //         continue;
-    //     }
-    //     if (vectorInfo->insertionStatus != VectorVersionInfo::InsertionStatus::NO_INSERTED) {
-    //         const auto hasAnyDeletions = std::any_of(vectorInfo->deletedVersions.begin(),
-    //             vectorInfo->deletedVersions.end(), [](auto version) {
-    //                 KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
-    //                 return version == 0;
-    //             });
-    //         if (!hasAnyDeletions) {
-    //             vectorInfo->deletionStatus = VectorVersionInfo::DeletionStatus::NO_DELETED;
-    //         }
-    //     }
-    //     const auto hasAnyInsertions = std::any_of(vectorInfo->insertedVersions.begin(),
-    //         vectorInfo->insertedVersions.end(), [](auto version) {
-    //             KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
-    //             return version == 0;
-    //         });
-    //     if (!hasAnyInsertions) {
-    //         vectorInfo->insertionStatus = VectorVersionInfo::InsertionStatus::NO_INSERTED;
-    //     }
-    // }
+    // TODO(Guodong): When finalize, should consider numRows as well.
+    if (!checkpointVersionInfo->finalizeStatusFromVersions()) {
+        return nullptr;
+    }
     return checkpointVersionInfo;
 }
 
@@ -481,14 +466,6 @@ row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) {
         }
     }
     return numRows;
-}
-
-// TODO(Guodong): This function should be removed.
-void NodeGroup::resetVersionAndUpdateInfo() {
-    const auto lock = chunkedGroups.lock();
-    // for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-    // chunkedGroup->resetVersionAndUpdateInfo();
-    // }
 }
 
 template<ResidencyState RESIDENCY_STATE>

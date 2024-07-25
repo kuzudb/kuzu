@@ -67,6 +67,9 @@ struct VectorVersionInfo {
     common::row_idx_t getNumDeletions(common::transaction_t startTS,
         common::transaction_t transactionID, common::row_idx_t startRow,
         common::length_t numRows) const;
+
+    // Return true if this vectorInfo needs to be kept after finalize.
+    bool finalizeStatusFromVersions();
 };
 
 class VersionInfo {
@@ -100,6 +103,8 @@ public:
     }
     common::idx_t getNumVectors() const { return vectorsInfo.size(); }
     VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
+
+    bool finalizeStatusFromVersions();
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);

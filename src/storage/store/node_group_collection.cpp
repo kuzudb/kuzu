@@ -175,12 +175,5 @@ void NodeGroupCollection::serialize(Serializer& ser) {
     nodeGroups.serializeGroups(ser);
 }
 
-void NodeGroupCollection::resetVersionAndUpdateInfo() {
-    const auto lock = nodeGroups.lock();
-    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->resetVersionAndUpdateInfo();
-    }
-}
-
 } // namespace storage
 } // namespace kuzu

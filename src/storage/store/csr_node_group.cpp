@@ -363,8 +363,9 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     // Figure out regions we need to re-write.
     const auto mergedRegions = mergeRegionsToCheckpoint(csrState, leafRegions);
     if (mergedRegions.empty()) {
-        // persistentChunkGroup->resetVersionAndUpdateInfo();
-        // No csr regions need to be checkpointed.
+        // No csr regions need to be checkpointed, meaning nothing is updated or deleted.
+        // We should reset the version and update info of the persistent chunked group.
+        persistentChunkGroup->resetVersionAndUpdateInfo();
         return;
     }
     csrState.newHeader->populateCSROffsets();
@@ -726,11 +727,6 @@ bool CSRNodeGroup::isWithinDensityBound(const ChunkedCSRHeader& header,
                           header.getStartCSROffset(region.leftNodeOffset);
     const double ratio = static_cast<double>(newSize) / static_cast<double>(capacity);
     return ratio <= getHighDensity(region.level);
-}
-
-void CSRNodeGroup::resetVersionAndUpdateInfo() {
-    NodeGroup::resetVersionAndUpdateInfo();
-    persistentChunkGroup->resetVersionAndUpdateInfo();
 }
 
 } // namespace storage

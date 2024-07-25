@@ -376,7 +376,6 @@ void NodeTable::checkpoint(Serializer& ser) {
     nodeGroups->checkpoint(state);
     pkIndex->checkpoint();
     serialize(ser);
-    nodeGroups->resetVersionAndUpdateInfo();
 }
 
 void NodeTable::serialize(Serializer& serializer) const {
