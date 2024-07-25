@@ -311,16 +311,21 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     // First, check if we can checkpoint list data chunk in place.
     const auto persistentListDataSize = persistentDataChunk->getNumValues();
     row_idx_t newListDataSize = persistentListDataSize;
+
+    std::vector<const ChunkCheckpointState*> listDataNonEmptyChunkCheckpointStates;
     std::vector<ChunkCheckpointState> listDataChunkCheckpointStates;
     for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         KU_ASSERT(chunkCheckpointState.chunkData->getNumValues() == chunkCheckpointState.numRows);
         const auto chunkData =
             chunkCheckpointState.chunkData->cast<ListChunkData>().getDataColumnChunk();
         const row_idx_t listDataSizeToAppend = chunkData->getNumValues();
-        listDataChunkCheckpointStates.push_back(ChunkCheckpointState{
-            chunkCheckpointState.chunkData->cast<ListChunkData>().moveDataColumnChunk(),
-            newListDataSize, listDataSizeToAppend});
-        newListDataSize += listDataSizeToAppend;
+        if (listDataSizeToAppend > 0) {
+            listDataNonEmptyChunkCheckpointStates.push_back(&chunkCheckpointState);
+            listDataChunkCheckpointStates.push_back(ChunkCheckpointState{
+                chunkCheckpointState.chunkData->cast<ListChunkData>().moveDataColumnChunk(),
+                newListDataSize, listDataSizeToAppend});
+            newListDataSize += listDataSizeToAppend;
+        }
     }
 
     ChunkState chunkState;
@@ -334,9 +339,9 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
         // If we cannot checkpoint list data chunk in place, we need to checkpoint the whole chunk
         // out of place.
         // Move list data chunks back to the original chunk in checkpointState.
-        for (auto i = 0u; i < checkpointState.chunkCheckpointStates.size(); i++) {
-            const auto& chunkCheckpointState = checkpointState.chunkCheckpointStates[i];
-            chunkCheckpointState.chunkData->cast<ListChunkData>().setDataColumnChunk(
+        for (auto i = 0u; i < listDataNonEmptyChunkCheckpointStates.size(); i++) {
+            const auto* chunkCheckpointState = listDataNonEmptyChunkCheckpointStates[i];
+            chunkCheckpointState->chunkData->cast<ListChunkData>().setDataColumnChunk(
                 std::move(listDataCheckpointState.chunkCheckpointStates[i].chunkData));
         }
         checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
