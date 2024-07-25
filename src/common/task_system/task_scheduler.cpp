@@ -13,7 +13,7 @@ TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
 }
 
 TaskScheduler::~TaskScheduler() {
-    lock_t lck{mtx};
+    lock_t lck{taskSchedulerMtx};
     stopWorkerThreads = true;
     lck.unlock();
     cv.notify_all();
@@ -39,7 +39,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     }
     auto scheduledTask = pushTaskIntoQueue(task);
     cv.notify_all();
-    std::unique_lock<std::mutex> taskLck{task->mtx, std::defer_lock};
+    std::unique_lock<std::mutex> taskLck{task->taskMtx, std::defer_lock};
     while (true) {
         taskLck.lock();
         bool timedWait = false;
@@ -79,7 +79,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 }
 
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
-    lock_t lck{mtx};
+    lock_t lck{taskSchedulerMtx};
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
     taskQueue.push_back(scheduledTask);
     return scheduledTask;
@@ -112,7 +112,7 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
 }
 
 void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
-    lock_t lck{mtx};
+    lock_t lck{taskSchedulerMtx};
     for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
         if (scheduledTaskID == (*it)->ID) {
             taskQueue.erase(it);
@@ -122,7 +122,7 @@ void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
 }
 
 void TaskScheduler::runWorkerThread() {
-    std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
+    std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};
     while (true) {
         std::shared_ptr<ScheduledTask> scheduledTask = nullptr;
         lck.lock();
@@ -135,6 +135,14 @@ void TaskScheduler::runWorkerThread() {
             return;
         }
         TaskScheduler::runTask(scheduledTask->task.get());
+        // Warning: We do this additional lock acquisition to ensure that we put a memory fence
+        // after this thread (T1) has finished working on this task (Task1). This ensures that all
+        // the writes that T1 has done becomes visible to any other worker thread T2 that might
+        // start working on a task Task2 that depends on Task1. The reason this is ensured is that
+        // T2 will also grab the same lock in the above lck.lock() call (above the cv.wait).
+        // This safety measure was added after discussions with Trevor Brown.
+        lck.lock();
+        lck.unlock();
     }
 }
 

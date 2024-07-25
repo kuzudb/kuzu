@@ -53,16 +53,16 @@ public:
     }
 
 private:
+    // TODO(Semih): Rename parentPtrs to parentEdges.
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
     nodeID_t* currentFixedLastEdges;
 };
 
 struct SingleSPOutputs : public RJOutputs {
-    nodeID_t sourceNodeID;
     std::unique_ptr<PathLengths> pathLengths;
     std::unique_ptr<SinglePaths> singlePaths;
     explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType, MemoryManager* mm = nullptr)
-        : sourceNodeID{sourceNodeID}, outputType{outputType} {
+        : RJOutputs(sourceNodeID, outputType) {
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
         for (common::table_id_t tableID : graph->getNodeTableIDs()) {
             auto numNodes = graph->getNumNodes(tableID);
@@ -80,12 +80,13 @@ struct SingleSPOutputs : public RJOutputs {
 
     void beginFrontierComputeBetweenTables(table_id_t,
         table_id_t nextFrontierTableID) override {
+        // Note: We do not fix the node table for pathLengths, because Pathlengths is a
+        // frontiers implementation and RJCompState will call beginFrontierComputeBetweenTables
+        // on Frontiers (and RJOutputs).
         if (RJOutputType::PATHS == outputType) {
             singlePaths->fixNodeTable(nextFrontierTableID);
         }
     };
-private:
-    RJOutputType outputType;
 };
 
 class SingleSPOutputWriter : public RJOutputWriter {
@@ -98,8 +99,8 @@ public:
         srcNodeIDVector->setValue<nodeID_t>(0, spOutputs->sourceNodeID);
         for (auto tableID : graph->getNodeTableIDs()) {
             spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
-            for (offset_t nodeOffset = 0; nodeOffset < 5;
-                  // nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+            for (offset_t nodeOffset = 0; // nodeOffset < 5; TODO(Semih): Remove
+                   nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
                  ++nodeOffset) {
                 auto length =
                     spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(nodeOffset);
@@ -142,7 +143,6 @@ struct SingleSPLengthsFrontierCompute : public FrontierCompute {
                    nbrID.offset) == PathLengths::UNVISITED;
     }
 
-    // TODO(Semih): Also implement the init() function.
     std::unique_ptr<FrontierCompute> clone() override {
         return std::make_unique<SingleSPLengthsFrontierCompute>(this->pathLengthsFrontiers);
     }
@@ -164,7 +164,6 @@ struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
         return retVal;
     }
 
-    // TODO(Semih): Also implement the init() function
     std::unique_ptr<FrontierCompute> clone() override {
         return std::make_unique<SingleSPPathsFrontierCompute>(this->pathLengthsFrontiers, this->singlePaths);
     }
@@ -204,8 +203,6 @@ protected:
             return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));
         }
         case RJOutputType::PATHS: {
-//            auto singlePathsFrontiers = std::make_unique<SingleSPPathsFrontiers>(
-//                spOutputs->pathLengths.get(), spOutputs->singlePaths.get());
             auto frontierCompute =
                 std::make_unique<SingleSPPathsFrontierCompute>(pathLengthsFrontiers.get(), spOutputs->singlePaths.get());
             return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));

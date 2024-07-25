@@ -51,16 +51,21 @@ enum class RJOutputType : uint8_t {
 };
 
 struct RJOutputs {
+    // Refactor sourceNodeID and pathLengths into RJOutputs.
+    nodeID_t sourceNodeID;
 public:
+    RJOutputs(nodeID_t sourceNodeID, RJOutputType outputType) : sourceNodeID{sourceNodeID}, outputType{outputType} {}
     virtual ~RJOutputs() = default;
 
-    virtual void initSPFromSource(nodeID_t source) {}
+    virtual void initRJFromSource(nodeID_t source) {}
     virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<RJOutputs*, TARGET*>(this);
     }
+protected:
+    RJOutputType outputType;
 };
 
 // TODO(Semih): Turn this into a scanner if we can find a way to pipeline the outputs to the
@@ -93,8 +98,8 @@ struct RJCompState {
         std::unique_ptr<function::Frontiers> frontiers, std::unique_ptr<function::FrontierCompute> frontierCompute);
 
     void initRJFromSource(nodeID_t sourceNodeID) {
-        frontiers->initSPFromSource(sourceNodeID);
-        outputs->initSPFromSource(sourceNodeID);
+        frontiers->initRJFromSource(sourceNodeID);
+        outputs->initRJFromSource(sourceNodeID);
     }
     // When performing computations on multi-label graphs, it may be beneficial to fix a single
     // node table of nodes in the current frontier and a single node table of nodes for the next
@@ -168,6 +173,7 @@ class PathLengths : public GDSFrontier {
 
 public:
     static constexpr uint8_t UNVISITED = 255;
+    uint8_t curIter = 255;
 
     explicit PathLengths(
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm);
@@ -196,7 +202,7 @@ public:
         }
     }
 
-    void incrementCurIter() { curIter.fetch_add(1); }
+    void incrementCurIter() { curIter++; }
 
     void fixCurFrontierNodeTable(common::table_id_t tableID);
 
@@ -208,7 +214,6 @@ public:
     }
 
 private:
-    std::atomic<uint8_t> curIter = 255;
     std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
     table_id_t curTableID;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
@@ -236,7 +241,7 @@ public:
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override;
 
     // TODO(Semih): Rename initSP to initRJFromSource
-    void initSPFromSource(nodeID_t source) override {
+    void initRJFromSource(nodeID_t source) override {
         // Because PathLengths is a single data structure that represents both the current and next
         // frontier, and because setting active is an operation done on the next frontier, we first
         // fix the next frontier table before setting the source node as active.

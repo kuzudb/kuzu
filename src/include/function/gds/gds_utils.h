@@ -24,8 +24,9 @@ public:
         std::shared_ptr<FrontierTaskSharedState> sharedState);
     static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
         RJCompState& rjCompState, graph::Graph* graph, uint64_t maxIters);
-    static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
-        Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters);
+    // TODO(Semih): Remove
+    //    static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
+//        Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters);
 };
 
 } // namespace function

@@ -28,9 +28,6 @@ void GDSTask::run() {
             }
         }
     }
-    // TODO(Semih): I think the memory barrier should be put here to all working threads.
-    // But before that I would test if just using the strongest atomics would be enough.
-    // Test the performance on LJ.
     sharedState->frontiers.incrementApproxActiveNodesForNextIter(numApproxActiveNodesForNextIter);
 }
 } // namespace function

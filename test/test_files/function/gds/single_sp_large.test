@@ -1,4 +1,4 @@
--DATASET CSV gds-shortest-paths-large
+-DATASET CSV gds-single-sp-large
 
 --
 -CASE SingleSPDestinationsDoNotReturnLengths

@@ -6,7 +6,7 @@ namespace common {
 Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {}
 
 bool Task::registerThread() {
-    lock_t lck{mtx};
+    lock_t lck{taskMtx};
     if (!hasExceptionNoLock() && canRegisterNoLock()) {
         numThreadsRegistered++;
         return true;
@@ -15,7 +15,7 @@ bool Task::registerThread() {
 }
 
 void Task::deRegisterThreadAndFinalizeTask() {
-    lock_t lck{mtx};
+    lock_t lck{taskMtx};
     ++numThreadsFinished;
     if (!hasExceptionNoLock() && isCompletedNoLock()) {
         try {

@@ -63,7 +63,9 @@ private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
     std::vector<std::thread> workerThreads;
-    std::mutex mtx;
+    // This is a global lock that is acquired at the beginning and end of each task acquisition
+    // by worker threads.
+    std::mutex taskSchedulerMtx;
     std::condition_variable cv;
     uint64_t nextScheduledTaskID;
 };

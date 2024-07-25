@@ -13,7 +13,7 @@ public:
     }
 
     std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/gds-shortest-paths-large/");
+        return TestHelper::appendKuzuRootPath("dataset/gds-single-sp-large/");
     }
 };
 

@@ -112,7 +112,7 @@ public:
         numApproxActiveNodesForNextIter.store(0u);
         beginNewIterationInternalNoLock();
     }
-    virtual void initSPFromSource(nodeID_t source) = 0;
+    virtual void initRJFromSource(nodeID_t source) = 0;
     virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) = 0;
     idx_t getNextIter() {
