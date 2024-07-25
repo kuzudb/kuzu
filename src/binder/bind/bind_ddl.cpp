@@ -201,7 +201,11 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) {
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
-    auto type = LogicalType::fromString(createType->getDataType());
+    LogicalType type;
+    if (!LogicalType::tryConvertFromString(createType->getDataType(), type)) {
+        type =
+            clientContext->getCatalog()->getType(clientContext->getTx(), createType->getDataType());
+    }
     if (clientContext->getCatalog()->containsType(clientContext->getTx(), name)) {
         throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
     }
