@@ -26,7 +26,6 @@ public:
 
     void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
         main::ClientContext* context);
-    void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
 
     void checkpoint(main::ClientContext& clientContext);
 

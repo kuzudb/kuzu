@@ -513,28 +513,27 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
     }
 
 
-# TODO: Re-enable this test after fixing the issue with rdf
-# def test_get_rdf_variant(conn_db_readonly: ConnDB) -> None:
-#     conn, _ = conn_db_readonly
-#     res = conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id").get_as_df()
-#     assert res["a.val"].tolist() == [
-#         12,
-#         43,
-#         33,
-#         2,
-#         90,
-#         77,
-#         12,
-#         1,
-#         4.4,
-#         1.2000000476837158,
-#         True,
-#         "hhh",
-#         datetime.date(2024, 1, 1),
-#         datetime.datetime(2024, 1, 1, 11, 25, 30),
-#         datetime.timedelta(days=2),
-#         b"\xb2",
-#     ]
+def test_get_rdf_variant(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
+    res = conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id").get_as_df()
+    assert res["a.val"].tolist() == [
+        12,
+        43,
+        33,
+        2,
+        90,
+        77,
+        12,
+        1,
+        4.4,
+        1.2000000476837158,
+        True,
+        "hhh",
+        datetime.date(2024, 1, 1),
+        datetime.datetime(2024, 1, 1, 11, 25, 30),
+        datetime.timedelta(days=2),
+        b"\xb2",
+    ]
 
 
 def test_get_df_unicode(conn_db_readonly: ConnDB) -> None:
