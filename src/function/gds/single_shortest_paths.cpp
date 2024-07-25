@@ -23,6 +23,9 @@ public:
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
         MemoryManager* mm) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+            // Note: We should be storing nodeID_t atomically but that is not possible. Therefore we
+            // store two atomic<uint64_t> values per nodeID. First is the node offset and the second
+            // is the tableID.
             lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * (2*sizeof(std::atomic<uint64_t>)))});
         }
     }
