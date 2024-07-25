@@ -16,9 +16,10 @@ public:
     // and can't be modified easily. Moving would invalidate that pointer
     DictionaryChunk(DictionaryChunk&& other) = delete;
 
-    void setToInMemory() const {
+    void setToInMemory() {
         stringDataChunk->setToInMemory();
         offsetChunk->setToInMemory();
+        indexTable.clear();
     }
     void resetToEmpty();
 
