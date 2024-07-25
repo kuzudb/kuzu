@@ -142,6 +142,7 @@ public:
     static std::pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {
         return std::make_pair(i / divisor, i % divisor);
     }
+    static uint64_t getQuotient(uint64_t i, uint64_t divisor) { return i / divisor; }
 
     static void overwriteWALVersionFiles(const std::string& directory,
         common::VirtualFileSystem* vfs) {
