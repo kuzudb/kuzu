@@ -208,8 +208,8 @@ void RelTableData::checkpoint(Serializer& ser) const {
     CSRNodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, mm,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(state);
-    serialize(ser);
     nodeGroups->resetVersionAndUpdateInfo();
+    serialize(ser);
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

@@ -231,6 +231,57 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 ---- 1
 0
 
+-CASE CopyRollbackAndManualCheckpoint
+-STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" (HEADER=true)
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+0
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+0
+
+-CASE CopyRollbackAndManualCheckpointAndReloadDB
+-STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" (HEADER=true)
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+0
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+0
+-RELOADDB
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+0
+
+-CASE CopyRollbackAndManualCheckpoint2
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+---- error
+Copy exception: Found duplicated primary key value 0, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+5
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT MATCH (p:person) return count(*);
+---- 1
+5
+
 -CASE CopyNodeCommitNormalExecutionManualCheckpoint
 -STATEMENT CREATE NODE TABLE person
             (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN,

@@ -64,6 +64,9 @@ public:
     void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
     void resizeChunks(uint64_t newSize) const;
+    void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
+        this->versionInfo = std::move(versionInfo);
+    }
     void resetVersionAndUpdateInfo() {
         if (versionInfo) {
             versionInfo.reset();

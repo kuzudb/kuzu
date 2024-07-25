@@ -203,7 +203,10 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ChunkedNodeGroup::scanCommitted(Transaction* transaction, TableScanState& scanState,
     NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const {
-    for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
+    if (residencyState != SCAN_RESIDENCY_STATE) {
+        return;
+    }
+    for (auto i = 0u; i < chunks.size(); i++) {
         chunks[scanState.columnIDs[i]]->scanCommitted<SCAN_RESIDENCY_STATE>(transaction,
             nodeGroupScanState.chunkStates[i], output.getColumnChunk(i));
     }

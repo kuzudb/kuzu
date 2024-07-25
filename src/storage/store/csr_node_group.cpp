@@ -341,6 +341,8 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
         checkpointInMemOnly(lock, state);
         return;
     }
+    // TODO(Guodong): Should skip early here if no changes in the node group.
+    //                No insertions/deletions in persistent chunk and No in-mem chunk.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
     // Scan old csr header from disk and construct new csr header.
     persistentChunkGroup->cast<ChunkedCSRNodeGroup>().scanCSRHeader(csrState);
@@ -361,6 +363,7 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     // Figure out regions we need to re-write.
     const auto mergedRegions = mergeRegionsToCheckpoint(csrState, leafRegions);
     if (mergedRegions.empty()) {
+        // persistentChunkGroup->resetVersionAndUpdateInfo();
         // No csr regions need to be checkpointed.
         return;
     }
@@ -390,6 +393,7 @@ void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     csrState.csrLengthColumn->checkpointColumnChunk(csrLengthCheckpointState);
     // Clean up versions and in mem chunked groups.
     persistentChunkGroup->resetNumRowsFromChunks();
+    persistentChunkGroup->resetVersionAndUpdateInfo();
     chunkedGroups.clear(lock);
     // Set `numRows` back to 0 is to reflect that the in mem part of the node group is empty.
     numRows = 0;
@@ -631,6 +635,10 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     csrState.newHeader->length->getData().flush(csrState.dataFH);
     persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(*csrState.newHeader),
         std::move(dataChunksToFlush), 0);
+    chunkedGroups.clear(lock);
+    // Set `numRows` back to 0 is to reflect that the in mem part of the node group is empty.
+    numRows = 0;
+    csrIndex.reset();
 }
 
 static CSRNodeGroup::CSRRegion upgradeLevel(const std::vector<CSRNodeGroup::CSRRegion>& leafRegions,

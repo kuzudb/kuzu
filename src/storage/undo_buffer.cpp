@@ -298,44 +298,10 @@ void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint
     KU_ASSERT(vectorInfo);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        for (auto row = undoRecord.startRow; row < undoRecord.startRow + undoRecord.numRows;
-             row++) {
-            vectorInfo->insertedVersions[row] = INVALID_TRANSACTION;
-        }
-        // TODO(Guodong): We can choose to vaccum inserted key/values in this transaction from
-        // index.
-        // TODO(Guodong): Refactor. Move these into VersionInfo.
-        bool hasAnyInsertions = false;
-        for (const auto& version : vectorInfo->insertedVersions) {
-            if (version != INVALID_TRANSACTION) {
-                hasAnyInsertions = true;
-                break;
-            }
-        }
-        if (!hasAnyInsertions) {
-            vectorInfo->insertionStatus = VectorVersionInfo::InsertionStatus::NO_INSERTED;
-        }
+        vectorInfo->rollbackInsertions(undoRecord.startRow, undoRecord.numRows);
     } break;
     case UndoRecordType::DELETE_INFO: {
-        for (auto row = undoRecord.startRow; row < undoRecord.startRow + undoRecord.numRows;
-             row++) {
-            vectorInfo->deletedVersions[row] = INVALID_TRANSACTION;
-        }
-        // TODO(Guodong): Refactor. Move these into VersionInfo.
-        bool hasAnyDeletions = false;
-        for (const auto& version : vectorInfo->deletedVersions) {
-            if (version != INVALID_TRANSACTION) {
-                hasAnyDeletions = true;
-                break;
-            }
-        }
-        if (!hasAnyDeletions) {
-            if (vectorInfo->insertionStatus == VectorVersionInfo::InsertionStatus::NO_INSERTED) {
-                undoRecord.versionInfo->clearVectorInfo(undoRecord.vectorIdx);
-            } else {
-                vectorInfo->deletionStatus = VectorVersionInfo::DeletionStatus::NO_DELETED;
-            }
-        }
+        vectorInfo->rollbackDeletions(undoRecord.startRow, undoRecord.numRows);
     } break;
     default: {
         KU_UNREACHABLE;
