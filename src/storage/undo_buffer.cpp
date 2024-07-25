@@ -1,8 +1,8 @@
 #include "storage/undo_buffer.h"
 
 #include "catalog/catalog_entry/catalog_entry.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "storage/store/update_info.h"
 #include "storage/store/version_info.h"

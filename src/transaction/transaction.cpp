@@ -96,7 +96,8 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                 // Must be rename table
                 wal->logAlterTableEntryRecord(alterInfo);
             } else {
-                wal->logDropCatalogEntryRecord(tableCatalogEntry->getTableID(), catalogEntry.getType());
+                wal->logDropCatalogEntryRecord(tableCatalogEntry->getTableID(),
+                    catalogEntry.getType());
             }
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
