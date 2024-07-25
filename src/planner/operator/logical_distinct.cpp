@@ -27,10 +27,6 @@ f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
     return FlattenAll::getGroupsPosToFlatten(getKeysAndPayloads(), *childSchema);
 }
 
-std::string LogicalDistinct::getExpressionsForPrinting() const {
-    return binder::ExpressionUtil::toString(getKeysAndPayloads());
-}
-
 binder::expression_vector LogicalDistinct::getKeysAndPayloads() const {
     binder::expression_vector result;
     result.insert(result.end(), keys.begin(), keys.end());

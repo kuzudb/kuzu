@@ -20,8 +20,6 @@ public:
 
     virtual f_group_pos_set getGroupsPosToFlatten();
 
-    std::string getExpressionsForPrinting() const override;
-
     binder::expression_vector getKeys() const { return keys; }
     void setKeys(binder::expression_vector expressions) { keys = std::move(expressions); }
     binder::expression_vector getPayloads() const { return payloads; }

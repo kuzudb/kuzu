@@ -15,8 +15,6 @@ public:
     inline main::Option* getOption() const { return option; }
     inline std::shared_ptr<binder::Expression> getOptionValue() const { return optionValue; }
 
-    inline std::string getExpressionsForPrinting() const override { return option->name; }
-
     inline void computeFlatSchema() override { createEmptySchema(); }
 
     inline void computeFactorizedSchema() override { createEmptySchema(); }

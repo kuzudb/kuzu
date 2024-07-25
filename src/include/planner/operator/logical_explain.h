@@ -25,8 +25,6 @@ public:
         return outputExpression;
     }
 
-    inline std::string getExpressionsForPrinting() const override { return "Explain"; }
-
     inline common::ExplainType getExplainType() const { return explainType; }
 
     inline binder::expression_vector getOutputExpressionsToExplain() const {

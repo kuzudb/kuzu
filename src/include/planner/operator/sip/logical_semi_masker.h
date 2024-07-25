@@ -34,8 +34,6 @@ public:
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }
 
-    std::string getExpressionsForPrinting() const override { return key->toString(); }
-
     SemiMaskConstructionType getType() const { return type; }
     std::shared_ptr<binder::Expression> getKey() const { return key; }
     std::vector<common::table_id_t> getNodeTableIDs() const { return nodeTableIDs; }

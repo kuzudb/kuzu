@@ -95,8 +95,6 @@ public:
     virtual void computeFactorizedSchema() = 0;
     virtual void computeFlatSchema() = 0;
 
-    // Printing.
-    virtual std::string getExpressionsForPrinting() const = 0;
     // Print the sub-plan rooted at this operator.
     virtual std::string toString(uint64_t depth = 0) const;
 

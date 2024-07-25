@@ -17,8 +17,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override { return std::string{}; }
-
     binder::expression_vector getExpressionsToUnion() const { return expressionsToUnion; }
 
     Schema* getSchemaBeforeUnion(uint32_t idx) const { return children[idx]->getSchema(); }

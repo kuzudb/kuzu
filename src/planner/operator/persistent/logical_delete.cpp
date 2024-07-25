@@ -11,14 +11,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-std::string LogicalDelete::getExpressionsForPrinting() const {
-    expression_vector patterns;
-    for (auto& info : infos) {
-        patterns.push_back(info.pattern);
-    }
-    return ExpressionUtil::toString(patterns);
-}
-
 f_group_pos_set LogicalDelete::getGroupsPosToFlatten() const {
     KU_ASSERT(!infos.empty());
     auto childSchema = children[0]->getSchema();

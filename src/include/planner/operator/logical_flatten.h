@@ -13,8 +13,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
-
     inline f_group_pos getGroupPos() const { return groupPos; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {

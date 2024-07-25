@@ -51,8 +51,6 @@ public:
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
-
     std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
 
     void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }

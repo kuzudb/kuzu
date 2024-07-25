@@ -26,8 +26,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override { return intersectNodeID->toString(); }
-
     std::shared_ptr<binder::Expression> getIntersectNodeID() const { return intersectNodeID; }
     uint32_t getNumBuilds() const { return keyNodeIDs.size(); }
     binder::expression_vector getKeyNodeIDs() const { return keyNodeIDs; }

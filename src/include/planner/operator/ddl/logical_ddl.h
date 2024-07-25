@@ -21,8 +21,6 @@ public:
         return outputExpression;
     }
 
-    inline std::string getExpressionsForPrinting() const override { return tableName; }
-
 protected:
     std::string tableName;
     std::shared_ptr<binder::Expression> outputExpression;

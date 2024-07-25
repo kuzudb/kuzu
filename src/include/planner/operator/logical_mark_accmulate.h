@@ -17,7 +17,6 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten() const;
 
-    std::string getExpressionsForPrinting() const override { return {}; }
     binder::expression_vector getKeys() const { return keys; }
     binder::expression_vector getPayloads() const;
     std::shared_ptr<binder::Expression> getMark() const { return mark; }

@@ -39,8 +39,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const final;
-
     f_group_pos_set getGroupsPosToFlatten();
 
     const std::vector<LogicalInsertInfo>& getInfos() const { return infos; }

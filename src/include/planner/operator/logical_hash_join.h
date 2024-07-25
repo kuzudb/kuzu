@@ -27,8 +27,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override;
-
     binder::expression_vector getExpressionsToMaterialize() const;
 
     binder::expression_vector getJoinNodeIDs() const;

@@ -57,8 +57,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override;
-
     LogicalPartitionerInfo& getInfo() { return info; }
     const LogicalPartitionerInfo& getInfo() const { return info; }
 

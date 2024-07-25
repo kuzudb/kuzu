@@ -19,8 +19,6 @@ public:
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    std::string getExpressionsForPrinting() const final { return {}; }
-
     f_group_pos_set getGroupsPosToFlatten();
 
     std::shared_ptr<binder::Expression> getExistenceMark() const { return existenceMark; }

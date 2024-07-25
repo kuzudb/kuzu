@@ -20,8 +20,6 @@ public:
 
     f_group_pos_set getGroupPositionsToFlatten() const;
 
-    std::string getExpressionsForPrinting() const override { return {}; }
-
     common::AccumulateType getAccumulateType() const { return accumulateType; }
     binder::expression_vector getPayloads() const {
         return children[0]->getSchema()->getExpressionsInScope();

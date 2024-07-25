@@ -20,8 +20,6 @@ public:
         : LogicalOperator{type_, std::move(children)}, info{std::move(info)},
           outExprs{std::move(outExprs)} {}
 
-    std::string getExpressionsForPrinting() const override { return info.tableEntry->getName(); }
-
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 

@@ -18,8 +18,6 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline std::string getExpressionsForPrinting() const override { return expression->toString(); }
-
     inline std::shared_ptr<binder::Expression> getPredicate() const { return expression; }
 
     f_group_pos getGroupPosToSelect() const;

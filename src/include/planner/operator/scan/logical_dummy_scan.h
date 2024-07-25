@@ -12,8 +12,6 @@ public:
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string(); }
-
     static std::shared_ptr<binder::Expression> getDummyExpression();
 
     inline std::unique_ptr<LogicalOperator> copy() final {

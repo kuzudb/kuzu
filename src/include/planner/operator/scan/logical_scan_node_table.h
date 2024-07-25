@@ -61,10 +61,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override {
-        return nodeID->toString() + " " + binder::ExpressionUtil::toString(properties);
-    }
-
     LogicalScanNodeTableType getScanType() const { return scanType; }
     void setScanType(LogicalScanNodeTableType scanType_) { scanType = scanType_; }
 

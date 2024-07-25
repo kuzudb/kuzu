@@ -28,8 +28,6 @@ public:
 
     virtual f_group_pos_set getGroupsPosToFlatten() = 0;
 
-    std::string getExpressionsForPrinting() const override;
-
 protected:
     // Start node of extension.
     std::shared_ptr<binder::NodeExpression> boundNode;

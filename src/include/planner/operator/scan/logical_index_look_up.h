@@ -20,8 +20,6 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const override;
-
     uint32_t getNumInfos() const { return infos.size(); }
     const binder::IndexLookupInfo& getInfo(uint32_t idx) const { return infos[idx]; }
 
