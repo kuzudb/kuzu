@@ -43,8 +43,8 @@ public:
         ColumnChunkData::setNumValues(numValues_);
         sizeColumnChunk->setNumValues(numValues_);
         offsetColumnChunk->setNumValues(numValues_);
-        KU_ASSERT(offsetColumnChunk->getNumValues() == numValues);
     }
+
     uint64_t getNumValues() const override {
         KU_ASSERT(offsetColumnChunk->getNumValues() == numValues);
         return numValues;

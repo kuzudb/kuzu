@@ -1,0 +1,17 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE InsertMultipleRelsAutoCheckpoint
+-STATEMENT CALL checkpoint_threshold=0
+---- ok
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 CREATE (a)<-[:knows]-(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, b.ID, ID(e)
+---- 4
+7|8|3:12
+7|9|3:13
+8|7|3:14
+9|7|3:15
