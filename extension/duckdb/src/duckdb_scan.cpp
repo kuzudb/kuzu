@@ -1,6 +1,7 @@
 #include "duckdb_scan.h"
 
 #include "common/exception/runtime.h"
+#include "common/type_utils.h"
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
 
@@ -104,59 +105,8 @@ void convertDuckDBVectorToVector<ku_string_t>(duckdb::Vector& duckDBVector, Valu
 
 void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
     duckdb_conversion_func_t& conversion_func) {
-    switch (physicalTypeID) {
-    case PhysicalTypeID::BOOL: {
-        conversion_func = convertDuckDBVectorToVector<bool>;
-    } break;
-    case PhysicalTypeID::INT128: {
-        conversion_func = convertDuckDBVectorToVector<int128_t>;
-    } break;
-    case PhysicalTypeID::INT64: {
-        conversion_func = convertDuckDBVectorToVector<int64_t>;
-    } break;
-    case PhysicalTypeID::INT32: {
-        conversion_func = convertDuckDBVectorToVector<int32_t>;
-    } break;
-    case PhysicalTypeID::INT16: {
-        conversion_func = convertDuckDBVectorToVector<int16_t>;
-    } break;
-    case PhysicalTypeID::INT8: {
-        conversion_func = convertDuckDBVectorToVector<int8_t>;
-    } break;
-    case PhysicalTypeID::UINT64: {
-        conversion_func = convertDuckDBVectorToVector<uint64_t>;
-    } break;
-    case PhysicalTypeID::UINT32: {
-        conversion_func = convertDuckDBVectorToVector<uint32_t>;
-    } break;
-    case PhysicalTypeID::UINT16: {
-        conversion_func = convertDuckDBVectorToVector<uint16_t>;
-    } break;
-    case PhysicalTypeID::UINT8: {
-        conversion_func = convertDuckDBVectorToVector<uint8_t>;
-    } break;
-    case PhysicalTypeID::DOUBLE: {
-        conversion_func = convertDuckDBVectorToVector<double>;
-    } break;
-    case PhysicalTypeID::FLOAT: {
-        conversion_func = convertDuckDBVectorToVector<float>;
-    } break;
-    case PhysicalTypeID::STRING: {
-        conversion_func = convertDuckDBVectorToVector<ku_string_t>;
-    } break;
-    case PhysicalTypeID::INTERVAL: {
-        conversion_func = convertDuckDBVectorToVector<interval_t>;
-    } break;
-    case PhysicalTypeID::ARRAY:
-    case PhysicalTypeID::LIST: {
-        conversion_func = convertDuckDBVectorToVector<list_entry_t>;
-    } break;
-    case PhysicalTypeID::STRUCT: {
-        conversion_func = convertDuckDBVectorToVector<struct_entry_t>;
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
+    common::TypeUtils::visit(physicalTypeID,
+        [&conversion_func]<typename T>(T) { conversion_func = convertDuckDBVectorToVector<T>; });
 }
 
 template<>
@@ -225,6 +175,8 @@ common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
     auto duckdbScanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
     std::unique_ptr<duckdb::DataChunk> result;
     try {
+        // Duckdb queryResult.fetch() is not thread safe, we have to acquire a lock there.
+        std::lock_guard<std::mutex> lock{duckdbScanSharedState->lock};
         result = duckdbScanSharedState->queryResult->Fetch();
     } catch (std::exception& e) {
         return 0;
