@@ -11,7 +11,6 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-
 void Planner::planUpdatingClause(const BoundUpdatingClause* updatingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
