@@ -182,7 +182,9 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     }
     KU_ASSERT(entry);
     logEntryForTrx(transaction, *this, *entry);
-    logEntryForTrx(transaction, *this, *createdEntry, true /* skip logging to WAL */);
+    if (createdEntry) {
+        logEntryForTrx(transaction, *this, *createdEntry, true /* skip logging to WAL */);
+    }
 }
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {
