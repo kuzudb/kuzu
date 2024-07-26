@@ -60,7 +60,6 @@ public:
     common::transaction_t getCommitTS() const { return commitTS; }
     int64_t getCurrentTS() const { return currentTS; }
     main::ClientContext* getClientContext() const { return clientContext; }
-    storage::UndoBuffer* getUndoBuffer() const { return undoBuffer.get(); }
 
     void checkForceCheckpoint(common::StatementType statementType) {
         // Note: We always force checkpoint for COPY_FROM statement.
@@ -93,7 +92,7 @@ public:
     }
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet,
-        catalog::CatalogEntry& catalogEntry) const;
+        catalog::CatalogEntry& catalogEntry, bool skipLoggingToWAL = false) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,

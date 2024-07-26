@@ -50,10 +50,11 @@ CatalogEntry* CatalogSet::getEntryNoLock(Transaction* transaction, const std::st
     return entry;
 }
 
-static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry) {
+static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry, 
+    bool skipLoggingToWAL = false) {
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(set, entry);
+        transaction->pushCatalogEntry(set, entry, skipLoggingToWAL);
     }
 }
 
@@ -181,9 +182,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     }
     KU_ASSERT(entry);
     logEntryForTrx(transaction, *this, *entry);
-    if (createdEntry) {
-        transaction->getUndoBuffer()->createCatalogEntry(*this, *createdEntry);
-    }
+    logEntryForTrx(transaction, *this, *createdEntry, true /* skip logging to WAL */);
 }
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {

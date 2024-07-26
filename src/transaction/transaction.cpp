@@ -37,9 +37,10 @@ void Transaction::rollback() const {
     undoBuffer->rollback();
 }
 
-void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) const {
+void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry, 
+    bool skipLoggingToWAL) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
-    if (isRecovery()) {
+    if (!shouldLogToWAL() || skipLoggingToWAL) {
         return;
     }
     auto wal = clientContext->getWAL();
