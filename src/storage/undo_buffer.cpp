@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "storage/store/update_info.h"
 #include "storage/store/version_info.h"
@@ -258,6 +259,13 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto entryToRollback = catalogEntry->getNext();
     KU_ASSERT(entryToRollback);
+    auto entryType = entryToRollback->getType();
+    if (entryType == CatalogEntryType::NODE_TABLE_ENTRY ||
+        entryType == CatalogEntryType::REL_TABLE_ENTRY ||
+        entryType == CatalogEntryType::REL_GROUP_ENTRY ||
+        entryType == CatalogEntryType::RDF_GRAPH_ENTRY) {
+        entryToRollback->ptrCast<TableCatalogEntry>()->resetAlterInfo();
+    }
     if (entryToRollback->getNext()) {
         // If entryToRollback has a newer entry (next) in the version chain. Simple remove
         // entryToRollback from the chain.

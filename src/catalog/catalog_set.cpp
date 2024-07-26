@@ -50,10 +50,11 @@ CatalogEntry* CatalogSet::getEntryNoLock(Transaction* transaction, const std::st
     return entry;
 }
 
-static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry) {
+static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry,
+    bool skipLoggingToWAL = false) {
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(set, entry);
+        transaction->pushCatalogEntry(set, entry, skipLoggingToWAL);
     }
 }
 
@@ -155,7 +156,7 @@ CatalogEntry* CatalogSet::dropEntryNoLock(Transaction* transaction, const std::s
 }
 
 void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
-    CatalogEntry* droppedEntry = nullptr;
+    CatalogEntry* createdEntry = nullptr;
     CatalogEntry* entry;
     {
         std::lock_guard lck{mtx};
@@ -172,18 +173,18 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         newEntry->setTimestamp(transaction->getID());
         if (alterInfo.alterType == AlterType::RENAME_TABLE) {
             // We treat rename table as drop and create.
-            droppedEntry = dropEntryNoLock(transaction, alterInfo.tableName);
-            entry = createEntryNoLock(transaction, std::move(newEntry));
+            dropEntryNoLock(transaction, alterInfo.tableName);
+            createdEntry = createEntryNoLock(transaction, std::move(newEntry));
         } else {
-            tableEntry->setAlterInfo(alterInfo);
             emplaceNoLock(std::move(newEntry));
         }
-    }
-    if (droppedEntry) {
-        logEntryForTrx(transaction, *this, *droppedEntry);
+        tableEntry->setAlterInfo(alterInfo);
     }
     KU_ASSERT(entry);
     logEntryForTrx(transaction, *this, *entry);
+    if (createdEntry) {
+        logEntryForTrx(transaction, *this, *createdEntry, true /* skip logging to WAL */);
+    }
 }
 
 CatalogEntrySet CatalogSet::getEntries(Transaction* transaction) {
