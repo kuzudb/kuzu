@@ -675,6 +675,8 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
         if (yyjson_get_type(ptr) == YYJSON_TYPE_OBJ) {
             ptr = yyjson_obj_get(ptr, item.c_str());
         } else {
+            int32_t idx = -1;
+            if (!function::)
             auto idx = std::stoi(item);
             ptr = yyjson_arr_get(ptr, idx);
         }
