@@ -26,7 +26,7 @@
 ---- 1
 {_ID: 0:0, _LABEL: person, ID: 0, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
 
--CASE DropNodeTablePropertyRollbackCommit
+-CASE DropNodeTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE person DROP fName
@@ -76,7 +76,7 @@
 ---- 1
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
--CASE DropRelTablePropertyRollbackCommit
+-CASE DropRelTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt DROP places
@@ -136,7 +136,7 @@
 ---- 1
 9
 
--CASE AddNodeTablePropertyRollbackCommit
+-CASE AddNodeTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE person Add test INT64 DEFAULT 1
@@ -196,7 +196,7 @@
 ---- 1
 4
 
--CASE AddRelTablePropertyRollbackCommit
+-CASE AddRelTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt Add test INT64 DEFAULT 1
@@ -246,7 +246,7 @@
 ---- 1
 {_ID: 0:0, _LABEL: person, ID: 0, pName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
 
--CASE RenameNodeTablePropertyRollbackCommit
+-CASE RenameNodeTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE person RENAME fName TO pName;
@@ -296,7 +296,7 @@
 ---- 1
 (0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, location: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
--CASE RenameRelTablePropertyRollbackCommit
+-CASE RenameRelTablePropertyRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt RENAME places TO location;
@@ -346,7 +346,7 @@
 ---- 1
 {_ID: 0:0, _LABEL: vPerson, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}
 
--CASE RenameNodeTableRollbackCommit
+-CASE RenameNodeTableRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE person RENAME TO vPerson;
@@ -396,7 +396,7 @@
 ---- 1
 (0:0)-{_LABEL: eStudyAt, _ID: 4:0, year: 2021, places: [wwAewsdndweusd,wek], length: 5, level: 5, code: 9223372036854775808, temperature: 32800, ulength: 33768, ulevel: 250, hugedata: 1844674407370955161811111111}->(1:0)
 
--CASE RenameRelTableRollbackCommit
+-CASE RenameRelTableRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT ALTER TABLE studyAt RENAME TO eStudyAt;
@@ -468,7 +468,7 @@ http://kuzu.io/rdf-ex#Zhang|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|http
 http://kuzu.io/rdf-ex#faculty|http://www.w3.org/2000/01/rdf-schema#subClassOf|http://kuzu.io/rdf-ex#person
 http://kuzu.io/rdf-ex#student|http://www.w3.org/2000/01/rdf-schema#subClassOf|http://kuzu.io/rdf-ex#person
 
--CASE RenameRDFTableRollbackCommit
+-CASE RenameRDFTableRollback
 -STATEMENT CREATE RDFGraph UniKG;
 ---- ok
 -STATEMENT COPY UniKG FROM "${KUZU_ROOT_DIRECTORY}/dataset/rdf/doc/uni.ttl";
@@ -540,7 +540,7 @@ Study at information
 ---- 1
 Study at information
 
--CASE CommentRelTableRollbackCommit
+-CASE CommentRelTableRollback
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT COMMENT ON TABLE studyAt IS 'Study at information';
