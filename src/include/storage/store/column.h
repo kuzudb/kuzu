@@ -90,7 +90,7 @@ public:
     common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
-    virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
+    void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
 
     template<class TARGET>
     TARGET& cast() {
@@ -131,6 +131,10 @@ protected:
     void updateStatistics(ColumnChunkMetadata& metadata, common::offset_t maxIndex,
         const std::optional<StorageValue>& min, const std::optional<StorageValue>& max) const;
 
+    virtual void checkpointColumnChunkImpl(ColumnCheckpointState& checkpointState);
+
+    virtual bool requiresSyncAfterCheckpointColumnChunk() { return false; }
+
 protected:
     bool isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
         common::offset_t maxOffset) const;
@@ -149,6 +153,8 @@ protected:
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
+
+    void syncAfterCheckpointColumnChunk(ColumnCheckpointState& checkpointState);
 
 protected:
     std::string name;

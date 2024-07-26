@@ -53,6 +53,8 @@ private:
     bool canIndexCommitInPlace(const ChunkState& state, uint64_t numStrings,
         common::offset_t maxOffset) const;
 
+    bool requiresSyncAfterCheckpointColumnChunk() override { return true; }
+
 private:
     // Main column stores indices of values in the dictionary
     DictionaryColumn dictionary;

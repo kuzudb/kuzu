@@ -47,10 +47,7 @@ public:
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
 
-    void syncNumValues() {
-        numValues = offsetColumnChunk->getNumValues();
-        metadata.numValues = numValues;
-    }
+    void syncNumValues() override;
 
     void resetNumValuesFromMetadata() override;
 

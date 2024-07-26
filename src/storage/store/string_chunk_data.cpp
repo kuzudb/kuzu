@@ -297,5 +297,10 @@ std::string StringChunkData::getValue<std::string>(offset_t pos) const {
     return std::string(getValue<std::string_view>(pos));
 }
 
+void StringChunkData::syncNumValues() {
+    numValues = indexColumnChunk->getNumValues();
+    metadata.numValues = numValues;
+}
+
 } // namespace storage
 } // namespace kuzu

@@ -71,6 +71,8 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
+    void syncNumValues() override;
+
 private:
     void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);

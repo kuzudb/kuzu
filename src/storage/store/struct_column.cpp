@@ -94,7 +94,7 @@ void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
     }
 }
 
-void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+void StructColumn::checkpointColumnChunkImpl(ColumnCheckpointState& checkpointState) {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         std::vector<ChunkCheckpointState> childChunkCheckpointStates;
@@ -108,7 +108,6 @@ void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
             std::move(childChunkCheckpointStates));
         childColumns[i]->checkpointColumnChunk(childColumnCheckpointState);
     }
-    Column::checkpointNullData(checkpointState);
 }
 
 } // namespace storage

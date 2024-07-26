@@ -66,7 +66,7 @@ public:
     Column* getSizeColumn() const { return sizeColumn.get(); }
     Column* getDataColumn() const { return dataColumn.get(); }
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunkImpl(ColumnCheckpointState& checkpointState) override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -92,6 +92,8 @@ private:
     ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t startOffsetInNodeGroup,
         common::offset_t endOffsetInNodeGroup) const;
+
+    bool requiresSyncAfterCheckpointColumnChunk() override { return true; }
 
 private:
     std::unique_ptr<Column> offsetColumn;

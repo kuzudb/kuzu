@@ -211,6 +211,8 @@ public:
         return common::ku_dynamic_cast<const ColumnChunkData&, const TARGET&>(*this);
     }
 
+    virtual void syncNumValues() {}
+
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.

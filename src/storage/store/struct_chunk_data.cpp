@@ -233,5 +233,11 @@ bool StructChunkData::numValuesSanityCheck() const {
     return nullData->getNumValues() == numValues;
 }
 
+void StructChunkData::syncNumValues() {
+    KU_ASSERT(childChunks.size() >= 1);
+    numValues = childChunks[0]->getNumValues();
+    metadata.numValues = numValues;
+}
+
 } // namespace storage
 } // namespace kuzu

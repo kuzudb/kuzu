@@ -27,7 +27,7 @@ public:
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t offsetInChunk,
         ColumnChunkData* data, common::offset_t dataOffset, common::length_t numValues) override;
 
-    void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
+    void checkpointColumnChunkImpl(ColumnCheckpointState& checkpointState) override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
@@ -37,6 +37,8 @@ protected:
     void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) override;
+
+    bool requiresSyncAfterCheckpointColumnChunk() override { return true; }
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;

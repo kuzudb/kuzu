@@ -533,7 +533,19 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
     return true;
 }
 
+void Column::syncAfterCheckpointColumnChunk(ColumnCheckpointState& checkpointState) {
+    Column::checkpointNullData(checkpointState);
+    checkpointState.persistentData.syncNumValues();
+}
+
 void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+    checkpointColumnChunkImpl(checkpointState);
+    if (requiresSyncAfterCheckpointColumnChunk()) {
+        syncAfterCheckpointColumnChunk(checkpointState);
+    }
+}
+
+void Column::checkpointColumnChunkImpl(ColumnCheckpointState& checkpointState) {
     ChunkState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState);
     if (canCheckpointInPlace(chunkState, checkpointState)) {

@@ -81,6 +81,8 @@ protected:
         }
     }
 
+    void syncNumValues() override;
+
 private:
     std::vector<std::unique_ptr<ColumnChunkData>> childChunks;
 };

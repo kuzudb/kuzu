@@ -87,6 +87,11 @@ void ListChunkData::setOffsetChunkValue(offset_t val, offset_t pos) {
     numValues = offsetColumnChunk->getNumValues();
 }
 
+void ListChunkData::syncNumValues() {
+    numValues = offsetColumnChunk->getNumValues();
+    metadata.numValues = numValues;
+}
+
 void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     checkOffsetSortedAsc = true;
