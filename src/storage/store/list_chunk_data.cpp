@@ -428,7 +428,6 @@ void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData)
     chunkData.cast<ListChunkData>().dataColumnChunk = ColumnChunkData::deserialize(deSer);
     deSer.validateDebuggingInfo(key, "offset_column_chunk");
     chunkData.cast<ListChunkData>().offsetColumnChunk = ColumnChunkData::deserialize(deSer);
-    chunkData.cast<ListChunkData>().syncNumValues();
 }
 
 void ListChunkData::flush(BMFileHandle& dataFH) {

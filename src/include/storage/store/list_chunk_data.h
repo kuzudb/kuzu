@@ -45,10 +45,7 @@ public:
         offsetColumnChunk->setNumValues(numValues_);
     }
 
-    uint64_t getNumValues() const override {
-        KU_ASSERT(offsetColumnChunk->getNumValues() == numValues);
-        return numValues;
-    }
+    uint64_t getNumValues() const override { return nullData->getNumValues(); }
 
     void syncNumValues() {
         numValues = offsetColumnChunk->getNumValues();
