@@ -412,7 +412,8 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
         persistentChunk.initializeScanState(chunkState);
         persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
             chunkState, *oldChunkWithUpdates);
-        const auto numRowsInRegion = csrState.newHeader->getEndCSROffset(region.rightNodeOffset);
+        const auto numRowsInRegion =
+            csrState.newHeader->getEndCSROffset(region.rightNodeOffset) - leftCSROffset;
         auto newChunk = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(), numRowsInRegion,
             false, ResidencyState::IN_MEMORY);
         const auto dummyChunkForNulls = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(),

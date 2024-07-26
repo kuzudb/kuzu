@@ -1,0 +1,26 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE ListCreateAlwaysCheckpoint
+-STATEMENT CALL checkpoint_threshold=0
+---- ok
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT CREATE (:person {ID: 17, usedNames: ['Alice'], workedHours: [1,2,3], courseScoresPerTerm: [[1,2],[3,4]]})
+---- ok
+-STATEMENT CREATE (:person {ID: 25, usedNames: ['Carmen'], workedHours: [10, 5], courseScoresPerTerm: [[1,2],[3,4]]})
+---- ok
+-STATEMENT CREATE (:person {ID: 99, usedNames: ['Ein'], workedHours: [1], courseScoresPerTerm: [[7,20]]})
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.workedHours, count(*)
+---- 9
+[10,5]|2
+[12,8]|1
+[4,5]|1
+[1,9]|1
+[2]|1
+[3,4,5,6,7]|1
+[1]|2
+[10,11,12,3,4,5,6,7]|1
+[1,2,3]|1
