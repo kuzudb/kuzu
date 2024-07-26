@@ -1,0 +1,41 @@
+-DATASET CSV empty
+--
+
+-CASE RelDeleteCheckpoint
+-STATEMENT CREATE NODE TABLE person (ID INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE REL TABLE knows (FROM person TO person);
+---- ok
+-STATEMENT CREATE (p:person {ID: 10});
+---- ok
+-STATEMENT CREATE (p:person {ID: 20});
+---- ok
+-STATEMENT CREATE (p:person {ID: 30});
+---- ok
+-STATEMENT CREATE (p:person {ID: 40});
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+10
+20
+30
+40
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 10 AND p2.ID = 20 CREATE (p1)-[k:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 20 AND p2.ID = 30 CREATE (p1)-[k:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 30 AND p2.ID = 40 CREATE (p1)-[k:knows]->(p2);
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(e);
+---- 1
+3
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e;
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(e);
+---- 1
+0
+-STATEMENT CALL CHECKPOINT() RETURN *;
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(e);
+---- 1
+0
