@@ -437,17 +437,20 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
             // Copy old csr list with updates into the new chunk.
             newChunk->getData().append(&oldChunkWithUpdates->getData(), oldStartRow, oldCSRLength);
             // Merge in-memory insertions into the new chunk.
-            auto rows = csrIndex->indices[nodeOffset].getRows();
-            // TODO(Guodong): Optimize here. if no deletions and has sequential rows, scan in range.
-            for (const auto row : rows) {
-                auto [chunkIdx, rowInChunk] =
-                    StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
-                const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
-                if (chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk)) {
-                    continue;
+            if (csrIndex) {
+                auto rows = csrIndex->indices[nodeOffset].getRows();
+                // TODO(Guodong): Optimize here. if no deletions and has sequential rows, scan in
+                // range.
+                for (const auto row : rows) {
+                    auto [chunkIdx, rowInChunk] =
+                        StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
+                    const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
+                    if (chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk)) {
+                        continue;
+                    }
+                    chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
+                        &DUMMY_CHECKPOINT_TRANSACTION, chunkState, *newChunk, rowInChunk, 1);
                 }
-                chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
-                    &DUMMY_CHECKPOINT_TRANSACTION, chunkState, *newChunk, rowInChunk, 1);
             }
             // Fill gaps if any.
             const auto newCSRLength = csrState.newHeader->getCSRLength(nodeOffset);

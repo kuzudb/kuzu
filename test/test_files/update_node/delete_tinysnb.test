@@ -110,29 +110,30 @@
 #-STATEMENT MATCH (o:organisation {ID: 6}) DELETE o
 #---- error
 #Runtime exception: Node(nodeOffset: 2) has connected edges in table workAt in the bwd direction, which cannot be deleted. Please delete the edges first or try DETACH DELETE.
+
+-CASE MultiLabelDetachDeleteNode
+-STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*)
+---- 1
+30
+-STATEMENT MATCH (a) DETACH DELETE a;
+---- ok
+-STATEMENT MATCH (a) RETURN COUNT(*)
+---- 1
+0
+-STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*)
+---- 1
+0
+
+-CASE OptionalDetachDeleteNode
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 DETACH DELETE a;
+---- ok
+-STATEMENT MATCH (a:person) RETURN COUNT(*)
+---- 1
+8
+
+-CASE DeleteNodeWithSemiMaskBug
+-STATEMENT MATCH (a) WHERE a.ID = 0 OR a.ID = 3 OR a.ID= 5 DETACH DELETE a;
+---- ok
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.ID = 2 RETURN a.fName, b.fName;
+---- 0
 #
-#-CASE MultiLabelDetachDeleteNode
-#-STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*)
-#---- 1
-#30
-#-STATEMENT MATCH (a) DETACH DELETE a;
-#---- ok
-#-STATEMENT MATCH (a) RETURN COUNT(*)
-#---- 1
-#0
-#-STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*)
-#---- 1
-#0
-#
-#-CASE OptionalDetachDeleteNode
-#-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 DETACH DELETE a;
-#---- ok
-#-STATEMENT MATCH (a:person) RETURN COUNT(*)
-#---- 1
-#8
-#
-#-CASE DeleteNodeWithSemiMaskBug
-#-STATEMENT MATCH (a) WHERE a.ID = 0 OR a.ID = 3 OR a.ID= 5 DETACH DELETE a;
-#---- ok
-#-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.ID = 2 RETURN a.fName, b.fName;
-#---- 0

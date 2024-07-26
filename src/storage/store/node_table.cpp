@@ -249,7 +249,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
     }
-    if (transaction->shouldLogToWAL()) {
+    if (isDeleted && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();

@@ -62,7 +62,7 @@ void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*
 void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     KU_ASSERT(tableInfo.pkVector->state == info.nodeIDVector->state);
     auto deleteState =
-        std::make_unique<storage::NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
+        std::make_unique<NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
     if (!tableInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
         return;
     }

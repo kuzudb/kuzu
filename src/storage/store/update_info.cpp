@@ -87,6 +87,7 @@ bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
                 return true;
             }
         }
+        vectorIdx++;
     }
     return false;
 }
