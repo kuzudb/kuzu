@@ -642,10 +642,19 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
-    ku_string_t literal{text.c_str(), text.length()};
-    double result;
-    function::CastString::operation(literal, result);
-    return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
+    auto type = inferMinimalTypeFromString(text);
+    if (type.getLogicalTypeID() == LogicalTypeID::DECIMAL) {
+        int128_t val;
+        decimalCast(text.c_str(), text.length(), val, type);
+        decimal_t result(val, DecimalType::getPrecision(type),
+            DecimalType::getScale(type));
+        return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
+    } else {
+        ku_string_t literal{text.c_str(), text.length()};
+        double result;
+        function::CastString::operation(literal, result);
+        return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
+    }
 }
 
 } // namespace parser

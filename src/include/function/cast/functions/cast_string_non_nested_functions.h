@@ -18,7 +18,6 @@ namespace function {
 LogicalType inferMinimalTypeFromString(const std::string& str);
 // Infer the type that the string represents
 // Returns minimal type (eg. '123' returns uint8 and '1234' returns uint16)
-// Used for sniffing
 
 // cast string to numerical
 template<typename T>
