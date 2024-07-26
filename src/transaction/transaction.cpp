@@ -37,7 +37,7 @@ void Transaction::rollback() const {
     undoBuffer->rollback();
 }
 
-void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry, 
+void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
     bool skipLoggingToWAL) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
     if (!shouldLogToWAL() || skipLoggingToWAL) {
