@@ -12,9 +12,9 @@ struct KUZU_API decimal_t {
     uint32_t scale = 3;
 
     decimal_t() {}
-    decimal_t(int128_t val, uint32_t prec, uint32_t scale):
-        val(val), precision(prec), scale(scale) {}
+    decimal_t(int128_t val, uint32_t prec, uint32_t scale)
+        : val(val), precision(prec), scale(scale) {}
 };
 
-}
-}
+} // namespace common
+} // namespace kuzu
