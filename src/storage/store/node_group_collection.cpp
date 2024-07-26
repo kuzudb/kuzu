@@ -2,6 +2,7 @@
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include <storage/store/table.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -149,6 +150,7 @@ void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnStat
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         nodeGroup->addColumn(transaction, addColumnState, dataFH);
     }
+    types.push_back(addColumnState.property.getDataType().copy());
 }
 
 uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
