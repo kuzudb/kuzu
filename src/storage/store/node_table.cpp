@@ -273,22 +273,45 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
 
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
     ChunkedNodeGroup& chunkedGroup) const {
-    return nodeGroups->appendToLastNodeGroup(transaction, chunkedGroup);
+    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, chunkedGroup);
 }
 
 void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumRows();
     transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
-    std::vector<column_id_t> columnIDs;
-    for (auto i = 0u; i < columns.size(); i++) {
-        columnIDs.push_back(i);
+    // 1. Append all tuples from local storage to nodeGroups regardless deleted or not.
+    // Note: We cannot simply remove all deleted tuples in local node table, as they may have
+    // connected local rels. Directly removing them will cause shift of committed node offset,
+    // leading to inconsistent result with connected rels.
+    nodeGroups->append(transaction, localNodeTable.getNodeGroups());
+    // 2. Set deleted flag for tuples that are deleted in local storage.
+    row_idx_t numLocalRows = 0u;
+    for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
+         localNodeGroupIdx++) {
+        const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
+        if (localNodeGroup->getNumDeletedRows(transaction) > 0) {
+            // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
+            // grabbing a set of deleted rows.
+            for (auto row = 0u; row < localNodeGroup->getNumRows(); row++) {
+                if (localNodeGroup->isDeleted(transaction, row)) {
+                    const auto nodeOffset = numLocalRows + row;
+                    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+                    const auto rowIdxInGroup =
+                        nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+                    nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
+                }
+            }
+        }
+        numLocalRows += localNodeGroup->getNumRows();
     }
-    const auto types = getNodeTableColumnTypes(*this);
-    const auto dataChunk = constructDataChunk(types);
+    // 3. Scan pk column for newly inserted tuples that are not deleted and insert into pk index.
+    std::vector<column_id_t> columnIDs{getPKColumnID()};
+    std::vector<LogicalType> types;
+    types.push_back(columns[pkColumnID]->getDataType().copy());
+    const auto dataChunk = constructDataChunk({types});
     ValueVector nodeIDVector(LogicalType::INTERNAL_ID());
     nodeIDVector.setState(dataChunk->state);
-    node_group_idx_t nodeGroupToScan = 0u;
     const auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
     const auto scanState = std::make_unique<NodeTableScanState>(columnIDs);
     scanState->IDVector = &nodeIDVector;
@@ -296,6 +319,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
         scanState->outputVectors.push_back(vector.get());
     }
     scanState->source = TableScanSource::UNCOMMITTED;
+    node_group_idx_t nodeGroupToScan = 0u;
     while (nodeGroupToScan < numNodeGroupsToScan) {
         // We need to scan from local storage here because some tuples in local node groups might
         // have been deleted.
@@ -307,18 +331,15 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
             if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
                 break;
             }
-            for (auto i = 0u; i < scanState->IDVector->state->getSelVector().getSelSize(); i++) {
-                const auto pos =
-                    scanState->IDVector->state->getSelVector().getSelectedPositions()[i];
-                scanState->IDVector->setValue(pos, nodeID_t{startNodeOffset + i, tableID});
+            for (auto i = 0u; i < scanResult.numRows; i++) {
+                scanState->IDVector->setValue(i, nodeID_t{startNodeOffset + i, tableID});
             }
-            const auto pkVector = scanState->outputVectors[pkColumnID];
-            insertPK(transaction, nodeIDVector, *pkVector);
-            startNodeOffset += scanState->IDVector->state->getSelVector().getSelSize();
-            nodeGroups->append(transaction, scanState->outputVectors);
+            insertPK(transaction, *scanState->IDVector, *scanState->outputVectors[0]);
+            startNodeOffset += scanResult.numRows;
         }
         nodeGroupToScan++;
     }
+    // 4. Clear local table.
     localTable->clear();
 }
 

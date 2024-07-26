@@ -12,13 +12,13 @@ namespace kuzu {
 namespace storage {
 
 row_idx_t NodeGroup::append(const Transaction* transaction, ChunkedNodeGroup& chunkedGroup,
-    row_idx_t numRowsToAppend) {
+    row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
     KU_ASSERT(numRowsToAppend <= chunkedGroup.getNumRows());
     std::vector<ColumnChunk*> chunksToAppend(chunkedGroup.getNumColumns());
     for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
         chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
     }
-    return append(transaction, chunksToAppend, 0, numRowsToAppend);
+    return append(transaction, chunksToAppend, startRowIdx, numRowsToAppend);
 }
 
 row_idx_t NodeGroup::append(const Transaction* transaction,
@@ -209,6 +209,16 @@ bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup)
     }
     const auto rowIdxInChunkedGroup = rowIdxInGroup - groupToDelete->getStartRowIdx();
     return groupToDelete->delete_(transaction, rowIdxInChunkedGroup);
+}
+
+row_idx_t NodeGroup::getNumDeletedRows(const Transaction* transaction) {
+    const auto lock = chunkedGroups.lock();
+    row_idx_t numDeletedRows = 0;
+    for (auto i = 0u; i < chunkedGroups.getNumGroups(lock); i++) {
+        const auto chunkedGroup = chunkedGroups.getGroup(lock, i);
+        numDeletedRows += chunkedGroup->getNumDeletedRows(transaction);
+    }
+    return numDeletedRows;
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,

@@ -1,0 +1,79 @@
+-DATASET CSV empty
+--
+
+-CASE DeleteLocalNode
+-STATEMENT CREATE NODE TABLE person (oid INT64, fName STRING, PRIMARY KEY(oid));
+---- ok
+-STATEMENT CREATE REL TABLE knows (FROM person TO person);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {oid: 0, fName: 'Alice'});
+---- ok
+-STATEMENT CREATE (p:person {oid: 1, fName: 'Bob'});
+---- ok
+-STATEMENT CREATE (p:person {oid: 2, fName: 'Charlie'});
+---- ok
+-STATEMENT CREATE (p:person {oid: 3, fName: 'Dave'});
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.oid=0 AND p2.oid=2 CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.oid=0 AND p2.oid=3 CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.oid=1 DELETE p;
+---- ok
+-STATEMENT MATCH (p1:person)-[r:knows]->(p2:person) RETURN ID(p1), p1.fName, ID(p2), p2.fName;
+---- 2
+0:4611686018427387904|Alice|0:4611686018427387906|Charlie
+0:4611686018427387904|Alice|0:4611686018427387907|Dave
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (p:person) RETURN ID(p);
+---- 3
+0:0
+0:2
+0:3
+-STATEMENT MATCH (p:person) WHERE p.fName='Dave' RETURN ID(p), p.fName;
+---- 1
+0:3|Dave
+-STATEMENT MATCH (p1:person)-[r:knows]->(p2:person) RETURN ID(p1), p1.fName, ID(p2), p2.fName;
+---- 2
+0:0|Alice|0:2|Charlie
+0:0|Alice|0:3|Dave
+
+-CASE CreateUpdateAndDeleteLocalNode
+-STATEMENT CREATE NODE TABLE person (oid INT64, fName STRING, PRIMARY KEY(oid));
+---- ok
+-STATEMENT CREATE REL TABLE knows (FROM person TO person);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {oid: 0, fName: 'Alice'});
+---- ok
+-STATEMENT CREATE (p:person {oid: 1, fName: 'Bob'});
+---- ok
+-STATEMENT CREATE (p:person {oid: 2, fName: 'Charlie'});
+---- ok
+-STATEMENT CREATE (p:person {oid: 3, fName: 'Dave'});
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.oid=1 SET p.fName='Bob2';
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.oid=1 RETURN p.fName;
+---- 1
+Bob2
+-STATEMENT MATCH (p:person) WHERE p.oid=1 DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.oid=1 RETURN p.fName;
+---- 0
+-STATEMENT MATCH (p:person) WHERE p.oid=2 SET p.fName='Charlie2';
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (p:person) RETURN ID(p), p.fName;
+---- 3
+0:0|Alice
+0:2|Charlie2
+0:3|Dave
+-STATEMENT MATCH (p:person) WHERE p.fName='Dave' RETURN ID(p), p.fName;
+---- 1
+0:3|Dave
