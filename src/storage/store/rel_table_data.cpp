@@ -209,7 +209,6 @@ void RelTableData::checkpoint(Serializer& ser) const {
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(state);
     serialize(ser);
-    nodeGroups->resetVersionAndUpdateInfo();
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

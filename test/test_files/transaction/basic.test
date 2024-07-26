@@ -39,3 +39,23 @@ Connection already has an active transaction. Cannot start a transaction within 
 -STATEMENT MATCH (p:person) return p.id;
 ---- 1
 Alice
+
+-CASE CheckpointTimeoutErrorTest
+-CHECKPOINT_WAIT_TIMEOUT 10000
+-STATEMENT CREATE NODE TABLE person(ID INT64, age INT64, PRIMARY KEY(ID));
+---- ok
+-CREATE_CONNECTION conn1
+-STATEMENT [conn1] BEGIN TRANSACTION READ ONLY;
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-STATEMENT [conn2] MATCH (a:person) WHERE a.ID=0 set a.age=70;
+---- ok
+-STATEMENT [conn2] COMMIT
+---- ok
+-STATEMENT [conn2] CALL CHECKPOINT() RETURN *;
+---- error
+Timeout waiting for active transactions to leave the system before checkpointing. If you have an open transaction, please close it and try again.
+-STATEMENT [conn1] MATCH (a:person) WHERE a.ID=0 RETURN a.age;
+---- 0

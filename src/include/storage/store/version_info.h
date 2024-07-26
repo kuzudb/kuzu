@@ -49,7 +49,11 @@ struct VectorVersionInfo {
         common::SelectionVector& selVector, common::row_idx_t startRow, common::row_idx_t numRows,
         common::sel_t startOutputPos) const;
 
+    void rollbackInsertions(common::row_idx_t startRowInVector, common::row_idx_t numRows);
+    void rollbackDeletions(common::row_idx_t startRowInVector, common::row_idx_t numRows);
+
     void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<VectorVersionInfo> deSerialize(common::Deserializer& deSer);
 
     common::row_idx_t numCommittedDeletions(const transaction::Transaction* transaction) const;
 
@@ -63,6 +67,9 @@ struct VectorVersionInfo {
     common::row_idx_t getNumDeletions(common::transaction_t startTS,
         common::transaction_t transactionID, common::row_idx_t startRow,
         common::length_t numRows) const;
+
+    // Return true if this vectorInfo needs to be kept after finalize.
+    bool finalizeStatusFromVersions();
 };
 
 class VersionInfo {
@@ -94,12 +101,15 @@ public:
         KU_ASSERT(vectorsInfo[vectorIdx]);
         return vectorsInfo[vectorIdx].get();
     }
+    common::idx_t getNumVectors() const { return vectorsInfo.size(); }
+    VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
+
+    bool finalizeStatusFromVersions();
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);
 
 private:
-    VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
     const VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx) const;
 
 private:

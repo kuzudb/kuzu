@@ -166,8 +166,6 @@ public:
         return chunkedGroups.getGroup(lock, groupIdx);
     }
 
-    virtual void resetVersionAndUpdateInfo();
-
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<NodeGroup&, TARGET&>(*this);
@@ -186,12 +184,17 @@ private:
 
     common::row_idx_t getNumDeletedRows(const common::UniqLock& lock);
 
-    virtual void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+    std::unique_ptr<ChunkedNodeGroup> checkpointInMemOnly(const common::UniqLock& lock,
+        NodeGroupCheckpointState& state);
+    std::unique_ptr<ChunkedNodeGroup> checkpointInMemAndOnDisk(const common::UniqLock& lock,
+        NodeGroupCheckpointState& state);
+    std::unique_ptr<VersionInfo> checkpointVersionInfo(const common::UniqLock& lock,
+        const transaction::Transaction* transaction);
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     common::row_idx_t getNumResidentRows(const common::UniqLock& lock);
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    std::unique_ptr<ChunkedNodeGroup> scanCommitted(const common::UniqLock& lock,
+    std::unique_ptr<ChunkedNodeGroup> scanAllInsertedAndVersions(const common::UniqLock& lock,
         const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns);
 
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,

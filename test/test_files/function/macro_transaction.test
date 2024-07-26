@@ -17,7 +17,6 @@
 11
 
 -CASE MacroFuncTestCommitRecovery
--SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
@@ -47,7 +46,6 @@
 Catalog exception: function ADDWITHDEFAULT does not exist.
 
 -CASE MacroFuncTestRollbackRecovery
--SKIP
 -STATEMENT Begin transaction
 ---- ok
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
