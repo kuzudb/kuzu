@@ -264,6 +264,26 @@ Value::Value(double val_) : isNull_{false}, childrenSize{0} {
     val.doubleVal = val_;
 }
 
+Value::Value(decimal_t val_) : isNull_{false}, childrenSize{0} {
+    dataType = LogicalType::DECIMAL(val_.precision, val_.scale);
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT16:
+        val.int16Val = (int16_t)(val_.val);
+        break;
+    case PhysicalTypeID::INT32:
+        val.int32Val = (int32_t)(val_.val);
+        break;
+    case PhysicalTypeID::INT64:
+        val.int64Val = (int64_t)(val_.val);
+        break;
+    case PhysicalTypeID::INT128:
+        val.int128Val = val_.val;
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 Value::Value(date_t val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::DATE();
     val.int32Val = val_.days;

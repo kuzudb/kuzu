@@ -1,6 +1,7 @@
 #include "function/aggregate/count_star.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"

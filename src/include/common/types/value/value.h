@@ -4,6 +4,7 @@
 
 #include "common/api.h"
 #include "common/types/date_t.h"
+#include "common/types/decimal_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
@@ -99,6 +100,10 @@ public:
      * @param val_ the float value to set.
      */
     KUZU_API explicit Value(float val_);
+    /**
+     * @param val_ the decimal_t value to set
+     */
+    KUZU_API explicit Value(decimal_t val_);
     /**
      * @param val_ the date value to set.
      */
