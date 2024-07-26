@@ -48,7 +48,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         }
         const auto& lastNodeGroup = nodeGroups.getLastGroup(lock);
         const auto numToAppendInNodeGroup =
-            std::min(numRowsToAppend - numRowsAppended, StorageConstants::NODE_GROUP_SIZE);
+            std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
@@ -56,8 +56,49 @@ void NodeGroupCollection::append(const Transaction* transaction,
     numRows += numRowsAppended;
 }
 
-std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transaction* transaction,
-    ChunkedNodeGroup& chunkedGroup) {
+void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
+    const auto otherLock = other.nodeGroups.lock();
+    for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
+        appned(transaction, *nodeGroup);
+    }
+}
+
+void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& nodeGroup) {
+    const auto numRowsToAppend = nodeGroup.getNumRows();
+    KU_ASSERT(nodeGroup.getDataTypes().size() == types.size());
+    const auto lock = nodeGroups.lock();
+    if (nodeGroups.isEmpty(lock)) {
+        auto newGroup = std::make_unique<NodeGroup>(0, enableCompression, LogicalType::copy(types));
+        nodeGroups.appendGroup(lock, std::move(newGroup));
+    }
+    const auto numChunkedGroupsToAppend = nodeGroup.getNumChunkedGroups();
+    node_group_idx_t numChunkedGroupsAppended = 0;
+    while (numChunkedGroupsAppended < numChunkedGroupsToAppend) {
+        const auto chunkedGrouoToAppend = nodeGroup.getChunkedNodeGroup(numChunkedGroupsAppended);
+        const auto numRowsToAppendInChunkedGroup = chunkedGrouoToAppend->getNumRows();
+        row_idx_t numRowsAppendedInChunkedGroup = 0;
+        while (numRowsAppendedInChunkedGroup < numRowsToAppendInChunkedGroup) {
+            if (nodeGroups.getLastGroup(lock)->isFull()) {
+                auto newGroup = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
+                    enableCompression, LogicalType::copy(types));
+                nodeGroups.appendGroup(lock, std::move(newGroup));
+            }
+            const auto& lastNodeGroup = nodeGroups.getLastGroup(lock);
+            const auto numToAppendInBatch =
+                std::min(numRowsToAppendInChunkedGroup - numRowsAppendedInChunkedGroup,
+                    lastNodeGroup->getNumRowsLeftToAppend());
+            lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
+            lastNodeGroup->append(transaction, *chunkedGrouoToAppend, numRowsAppendedInChunkedGroup,
+                numToAppendInBatch);
+            numRowsAppendedInChunkedGroup += numToAppendInBatch;
+        }
+        numChunkedGroupsAppended++;
+    }
+    numRows += numRowsToAppend;
+}
+
+std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
+    Transaction* transaction, ChunkedNodeGroup& chunkedGroup) {
     NodeGroup* lastNodeGroup;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
@@ -85,7 +126,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroup(Transac
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
-            lastNodeGroup->append(transaction, chunkedGroup, numToAppend);
+            lastNodeGroup->append(transaction, chunkedGroup, 0, numToAppend);
         }
         numRows += numToAppend;
     }

@@ -15,13 +15,15 @@ public:
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
+    void append(const transaction::Transaction* transaction, NodeGroupCollection& other);
+    void appned(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
 
     // This function only tries to append data into the last node group, and if the last node group
     // is not enough to hold all the data, it will append partially and return the number of rows
     // appended.
     // The returned values are the startOffset and numValuesAppended.
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
-    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
+    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroupAndFlushWhenFull(
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     common::row_idx_t getNumRows();

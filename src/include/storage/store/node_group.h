@@ -118,7 +118,8 @@ public:
     const std::vector<common::LogicalType>& getDataTypes() const { return dataTypes; }
     NodeGroupDataFormat getFormat() const { return format; }
     common::row_idx_t append(const transaction::Transaction* transaction,
-        ChunkedNodeGroup& chunkedGroup, common::row_idx_t numRowsToAppend);
+        ChunkedNodeGroup& chunkedGroup, common::row_idx_t startRowIdx,
+        common::row_idx_t numRowsToAppend);
     common::row_idx_t append(const transaction::Transaction* transaction,
         const std::vector<ColumnChunk*>& chunkedGroup, common::row_idx_t startRowIdx,
         common::row_idx_t numRowsToAppend);
@@ -142,6 +143,7 @@ public:
         common::column_id_t columnID, const common::ValueVector& propertyVector);
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
+    common::row_idx_t getNumDeletedRows(const transaction::Transaction* transaction);
     virtual void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState, BMFileHandle* dataFH);
 
@@ -203,6 +205,7 @@ protected:
     // `nextRowToAppend` is a cursor to allow us to pre-reserve a set of rows to append before
     // acutally appending data. This is an optimization to reduce lock-contention when appending in
     // parallel.
+    // TODO(Guodong): Remove this field.
     common::row_idx_t nextRowToAppend;
     common::row_idx_t capacity;
     std::vector<common::LogicalType> dataTypes;
