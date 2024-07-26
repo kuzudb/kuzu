@@ -29,31 +29,30 @@ static scalar_func_exec_t getListSortExecFunction(const binder::expression_vecto
     return func;
 }
 
-static std::unique_ptr<FunctionBindData> ListSortBindFunc(
-    const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = function->ptrCast<ScalarFunction>();
-    if (arguments[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ANY) {
+static std::unique_ptr<FunctionBindData> ListSortBindFunc(ScalarBindFuncInput input) {
+    auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
+    if (input.arguments[0]->dataType.getLogicalTypeID() == common::LogicalTypeID::ANY) {
         throw BinderException(stringFormat("Cannot resolve recursive data type for expression {}",
-            arguments[0]->toString()));
+            input.arguments[0]->toString()));
     }
     common::TypeUtils::visit(
-        ListType::getChildType(arguments[0]->dataType).getPhysicalType(),
-        [&arguments, &scalarFunction]<ComparableTypes T>(
-            T) { scalarFunction->execFunc = getListSortExecFunction<ListSort<T>>(arguments); },
-        [](auto) { KU_UNREACHABLE; });
-    return FunctionBindData::getSimpleBindData(arguments, arguments[0]->getDataType());
-}
-
-static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(
-    const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = function->ptrCast<ScalarFunction>();
-    common::TypeUtils::visit(
-        ListType::getChildType(arguments[0]->dataType).getPhysicalType(),
-        [&arguments, &scalarFunction]<ComparableTypes T>(T) {
-            scalarFunction->execFunc = getListSortExecFunction<ListReverseSort<T>>(arguments);
+        ListType::getChildType(input.arguments[0]->dataType).getPhysicalType(),
+        [&input, &scalarFunction]<ComparableTypes T>(T) {
+            scalarFunction->execFunc = getListSortExecFunction<ListSort<T>>(input.arguments);
         },
         [](auto) { KU_UNREACHABLE; });
-    return FunctionBindData::getSimpleBindData(arguments, arguments[0]->getDataType());
+    return FunctionBindData::getSimpleBindData(input.arguments, input.arguments[0]->getDataType());
+}
+
+static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(ScalarBindFuncInput input) {
+    auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
+    common::TypeUtils::visit(
+        ListType::getChildType(input.arguments[0]->dataType).getPhysicalType(),
+        [&input, &scalarFunction]<ComparableTypes T>(T) {
+            scalarFunction->execFunc = getListSortExecFunction<ListReverseSort<T>>(input.arguments);
+        },
+        [](auto) { KU_UNREACHABLE; });
+    return FunctionBindData::getSimpleBindData(input.arguments, input.arguments[0]->getDataType());
 }
 
 function_set ListSortFunction::getFunctionSet() {

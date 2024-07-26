@@ -9,18 +9,17 @@ namespace function {
 
 using namespace kuzu::common;
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    if (arguments[1]->expressionType != ExpressionType::LAMBDA) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    if (input.arguments[1]->expressionType != ExpressionType::LAMBDA) {
         throw BinderException(stringFormat(
             "The second argument of LIST_REDUCE should be a lambda expression but got {}.",
-            ExpressionTypeUtil::toString(arguments[1]->expressionType)));
+            ExpressionTypeUtil::toString(input.arguments[1]->expressionType)));
     }
     std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(arguments[0]->getDataType().copy());
-    paramTypes.push_back(arguments[1]->getDataType().copy());
+    paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    paramTypes.push_back(input.arguments[1]->getDataType().copy());
     return std::make_unique<FunctionBindData>(std::move(paramTypes),
-        ListType::getChildType(arguments[0]->getDataType()).copy());
+        ListType::getChildType(input.arguments[0]->getDataType()).copy());
 }
 
 static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::ValueVector& result,

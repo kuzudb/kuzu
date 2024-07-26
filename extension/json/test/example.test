@@ -1,0 +1,63 @@
+-DATASET CSV empty
+
+--
+
+-CASE ExtractNotExistField
+-SKIP
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT create node table person (id INT64, description json, primary key(id));
+---- ok
+-STATEMENT CREATE (p:person {id: 5, description: 6})
+---- ok
+-STATEMENT CREATE (p:person {id: 8, description: {"family": "anatidae", "species": [ "duck", "goose", "swan", null]})
+---- ok
+#TODO(Maxwell): fix this
+-STATEMENT MATCH (p:person) return json_extract(p.description, '$.family');
+---- 2
+
+anatidae
+
+-CASE ExampleDoc
+-SKIP
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT create node table person (id INT64, description json, primary key(id));
+---- ok
+-STATEMENT CREATE (p:person {id: 20, description: {height: 52, age: 32, scores: [1,2,5]}});
+---- ok
+-STATEMENT CREATE (p:person {id: 40, description: {age: 55, scores: [1,32,5,null], name: 'dan'}});
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.*;
+---- 2
+20|{height: 52, age: 32, scores: [1,2,5]}
+40|{age: 55, scores: [1,32,5,], name: dan}
+-STATEMENT COPY (MATCH (p:person) RETURN p.*) To '/tmp/test.json'
+---- ok
+-STATEMENT DROP TABLE person;
+---- ok
+-STATEMENT create node table person (id INT64, description json, primary key(id));
+---- ok
+# TODO(MAXWELL): FAILURE
+-STATEMENT copy person from '/tmp/test.json'
+---- ok
+
+-CASE JsonFunctionsSample
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT return cast('alice' as json)
+---- 1
+alice
+#-LOG CompositeJsonStringCast
+# TODO(MAXWELL): FAILURE
+#-STATEMENT return cast(to_json({age: 50, names: ['Alice', 'Bob', 'Carol', 'Dan'], description: {height: 1.52}}) as struct(age int64, names string[], description struct(height int64)));
+#---- 2
+# Same query runs in duckdb:
+#  D select cast(to_json({age: 50, names: ['Alice', 'Bob', 'Carol', 'Dan'], description: {height: 1.52}}) as struct(age int64, names string[], description struct(height int64)));
+#   ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+#   │ CAST(to_json(main.struct_pack(age := 50, "names" := main.list_value('Alice', 'Bob', 'Carol', 'Dan'), description := main.struct_pack(height := 1.52))) AS STRUCT(age BIGINT, "names" VARCHAR[], d…  │
+#   │                                                              struct(age bigint, "names" varchar[], description struct(height bigint))                                                               │
+#   ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+#   │ {'age': 50, 'names': [Alice, Bob, Carol, Dan], 'description': {'height': 2}}                                                                                                                        │
+#   └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+

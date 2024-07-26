@@ -9,15 +9,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> ListPositionBindFunc(
-    const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = function->ptrCast<ScalarFunction>();
-    TypeUtils::visit(arguments[1]->getDataType().getPhysicalType(), [&scalarFunction]<typename T>(
-                                                                        T) {
-        scalarFunction->execFunc =
-            ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, int64_t, ListPosition>;
-    });
-    return FunctionBindData::getSimpleBindData(arguments, LogicalType::INT64());
+static std::unique_ptr<FunctionBindData> ListPositionBindFunc(ScalarBindFuncInput input) {
+    auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
+    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
+        [&scalarFunction]<typename T>(T) {
+            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
+                int64_t, ListPosition>;
+        });
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::INT64());
 }
 
 function_set ListPositionFunction::getFunctionSet() {

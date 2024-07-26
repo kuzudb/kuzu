@@ -24,6 +24,5 @@ struct StorageVersionInfo {
 
     static constexpr const char* MAGIC_BYTES = "KUZU";
 };
-
 } // namespace storage
 } // namespace kuzu

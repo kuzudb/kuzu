@@ -36,16 +36,15 @@ static void validateArgumentType(const binder::expression_vector& arguments) {
     }
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    validateArgumentType(arguments);
-    auto scalarFunction = function->ptrCast<ScalarFunction>();
-    TypeUtils::visit(arguments[1]->getDataType().getPhysicalType(), [&scalarFunction]<typename T>(
-                                                                        T) {
-        scalarFunction->execFunc =
-            ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, list_entry_t, ListAppend>;
-    });
-    return FunctionBindData::getSimpleBindData(arguments, arguments[0]->getDataType());
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    validateArgumentType(input.arguments);
+    auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
+    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
+        [&scalarFunction]<typename T>(T) {
+            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
+                list_entry_t, ListAppend>;
+        });
+    return FunctionBindData::getSimpleBindData(input.arguments, input.arguments[0]->getDataType());
 }
 
 function_set ListAppendFunction::getFunctionSet() {

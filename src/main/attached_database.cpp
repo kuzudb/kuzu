@@ -6,6 +6,7 @@
 #include "main/db_config.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/storage_version_info.h"
 #include "transaction/transaction_manager.h"
 
 namespace kuzu {

@@ -23,11 +23,10 @@ void ListToString::operation(list_entry_t& input, ku_string_t& delim, ku_string_
     StringVector::addString(&resultVector, result, resultStr);
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* function) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(arguments[0]->getDataType().copy());
-    paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));
+    paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));
     return std::make_unique<FunctionBindData>(std::move(paramTypes), LogicalType::STRING());
 }
 

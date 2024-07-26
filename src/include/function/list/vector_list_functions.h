@@ -48,8 +48,7 @@ struct ListConcatFunction {
     static constexpr const char* name = "LIST_CONCAT";
 
     static function_set getFunctionSet();
-    static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-        Function* function);
+    static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input);
 };
 
 struct ListCatFunction {

@@ -22,10 +22,9 @@ static LogicalType interpretLogicalType(binder::Expression* expr) {
     return expr->dataType.copy();
 }
 
-std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
-    const binder::expression_vector& arguments, Function* function) {
-    auto leftType = interpretLogicalType(arguments[0].get());
-    auto rightType = interpretLogicalType(arguments[1].get());
+std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(ScalarBindFuncInput input) {
+    auto leftType = interpretLogicalType(input.arguments[0].get());
+    auto rightType = interpretLogicalType(input.arguments[1].get());
     if (leftType != rightType) {
         throw BinderException(
             stringFormat("{} requires both arrays to have the same element type and size of 3",
@@ -66,10 +65,10 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(
             stringFormat("{} can only be applied on array of floating points or integers",
                 ArrayCrossProductFunction::name)};
     }
-    ku_dynamic_cast<Function*, ScalarFunction*>(function)->execFunc = execFunc;
+    input.definition->ptrCast<ScalarFunction>()->execFunc = execFunc;
     auto resultType = LogicalType::ARRAY(ArrayType::getChildType(leftType).copy(),
         ArrayType::getNumElements(leftType));
-    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
+    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
 }
 
 function_set ArrayCrossProductFunction::getFunctionSet() {
@@ -149,15 +148,15 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
 
 template<typename OPERATION>
 std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName,
-    const binder::expression_vector& arguments, Function* function) {
-    auto leftType = interpretLogicalType(arguments[0].get());
-    auto rightType = interpretLogicalType(arguments[1].get());
+    ScalarBindFuncInput input) {
+    auto leftType = interpretLogicalType(input.arguments[0].get());
+    auto rightType = interpretLogicalType(input.arguments[1].get());
     auto paramType = validateArrayFunctionParameters(leftType, rightType, functionName);
-    function->ptrCast<ScalarFunction>()->execFunc =
+    input.definition->ptrCast<ScalarFunction>()->execFunc =
         std::move(getScalarExecFunc<OPERATION>(paramType.copy()));
     auto bindData = std::make_unique<FunctionBindData>(ArrayType::getChildType(paramType).copy());
     std::vector<LogicalType> paramTypes;
-    for (auto& _ : arguments) {
+    for (auto& _ : input.arguments) {
         (void)_;
         bindData->paramTypes.push_back(paramType.copy());
     }
@@ -173,8 +172,7 @@ function_set templateGetFunctionSet(const std::string& functionName) {
             LogicalTypeID::ARRAY,
         },
         LogicalTypeID::ANY, nullptr, nullptr,
-        std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1,
-            std::placeholders::_2)));
+        std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1)));
     return result;
 }
 

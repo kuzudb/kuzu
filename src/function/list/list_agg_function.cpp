@@ -9,21 +9,20 @@ namespace kuzu {
 namespace function {
 
 template<typename OPERATION>
-static std::unique_ptr<FunctionBindData> bindFuncListAggr(
-    const binder::expression_vector& arguments, Function* function) {
-    auto scalarFunction = function->ptrCast<ScalarFunction>();
-    const auto& resultType = ListType::getChildType(arguments[0]->dataType);
+static std::unique_ptr<FunctionBindData> bindFuncListAggr(ScalarBindFuncInput input) {
+    auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
+    const auto& resultType = ListType::getChildType(input.arguments[0]->dataType);
     TypeUtils::visit(
         resultType,
         [&scalarFunction]<NumericTypes T>(T) {
             scalarFunction->execFunc =
                 ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, T, OPERATION>;
         },
-        [&function, &resultType](auto) {
+        [&input, &resultType](auto) {
             throw BinderException(stringFormat("Unsupported inner data type for {}: {}",
-                function->name, LogicalTypeUtils::toString(resultType.getLogicalTypeID())));
+                input.definition->name, LogicalTypeUtils::toString(resultType.getLogicalTypeID())));
         });
-    return FunctionBindData::getSimpleBindData(arguments, resultType);
+    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
 }
 
 struct ListSum {

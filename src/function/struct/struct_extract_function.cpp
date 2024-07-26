@@ -10,22 +10,22 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
-    const expression_vector& arguments, Function* function) {
-    const auto& structType = arguments[0]->getDataType();
-    if (arguments[1]->expressionType != ExpressionType::LITERAL) {
+std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(ScalarBindFuncInput input) {
+    const auto& structType = input.arguments[0]->getDataType();
+    if (input.arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException("Key name for struct/union extract must be STRING literal.");
     }
-    auto key = arguments[1]->constPtrCast<LiteralExpression>()->getValue().getValue<std::string>();
+    auto key =
+        input.arguments[1]->constPtrCast<LiteralExpression>()->getValue().getValue<std::string>();
     auto fieldIdx = StructType::getFieldIdx(structType, key);
     if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
         throw BinderException(stringFormat("Invalid struct field name: {}.", key));
     }
-    auto paramTypes = ExpressionUtil::getDataTypes(arguments);
+    auto paramTypes = ExpressionUtil::getDataTypes(input.arguments);
     auto resultType = StructType::getField(structType, fieldIdx).getType().copy();
     auto bindData = std::make_unique<StructExtractBindData>(std::move(resultType), fieldIdx);
-    bindData->paramTypes.push_back(arguments[0]->getDataType().copy());
-    bindData->paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));
+    bindData->paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    bindData->paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));
     return bindData;
 }
 

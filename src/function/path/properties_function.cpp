@@ -11,15 +11,14 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    if (arguments[1]->expressionType != ExpressionType::LITERAL) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    if (input.arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException(stringFormat(
             "Expected literal input as the second argument for {}().", PropertiesFunction::name));
     }
-    auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
+    auto literalExpr = input.arguments[1]->constPtrCast<LiteralExpression>();
     auto key = literalExpr->getValue().getValue<std::string>();
-    const auto& listType = arguments[0]->getDataType();
+    const auto& listType = input.arguments[0]->getDataType();
     const auto& childType = ListType::getChildType(listType);
     struct_field_idx_t fieldIdx;
     if (childType.getLogicalTypeID() == LogicalTypeID::NODE ||
@@ -35,8 +34,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vecto
     const auto& field = StructType::getField(childType, fieldIdx);
     auto returnType = LogicalType::LIST(field.getType().copy());
     auto bindData = std::make_unique<PropertiesBindData>(std::move(returnType), fieldIdx);
-    bindData->paramTypes.push_back(arguments[0]->getDataType().copy());
-    bindData->paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));
+    bindData->paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    bindData->paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));
     return bindData;
 }
 
@@ -44,9 +43,9 @@ static void compileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::LIST);
-    auto propertiesBindData = reinterpret_cast<PropertiesBindData*>(bindData);
+    auto& propertiesBindData = bindData->cast<PropertiesBindData>();
     auto fieldVector = StructVector::getFieldVector(ListVector::getDataVector(parameters[0].get()),
-        propertiesBindData->childIdx);
+        propertiesBindData.childIdx);
     ListVector::setDataVector(result.get(), fieldVector);
 }
 

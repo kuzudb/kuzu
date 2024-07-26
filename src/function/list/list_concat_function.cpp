@@ -28,13 +28,13 @@ void ListConcat::operation(common::list_entry_t& left, common::list_entry_t& rig
     }
 }
 
-std::unique_ptr<FunctionBindData> ListConcatFunction::bindFunc(
-    const binder::expression_vector& arguments, Function* /*function*/) {
-    if (arguments[0]->getDataType() != arguments[1]->getDataType()) {
+std::unique_ptr<FunctionBindData> ListConcatFunction::bindFunc(ScalarBindFuncInput input) {
+    if (input.arguments[0]->getDataType() != input.arguments[1]->getDataType()) {
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(name,
-            arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
+            input.arguments[0]->getDataType().toString(),
+            input.arguments[1]->getDataType().toString()));
     }
-    return FunctionBindData::getSimpleBindData(arguments, arguments[0]->getDataType());
+    return FunctionBindData::getSimpleBindData(input.arguments, input.arguments[0]->getDataType());
 }
 
 function_set ListConcatFunction::getFunctionSet() {
