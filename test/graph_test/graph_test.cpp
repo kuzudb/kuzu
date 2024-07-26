@@ -2,11 +2,9 @@
 
 #include "binder/binder.h"
 #include "graph_test/base_graph_test.h"
-#include "parser/parser.h"
-#include "planner/operator/logical_plan_util.h"
-#include "planner/planner.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
+#include "test_runner/test_runner.h"
 #include "transaction/transaction_manager.h"
 
 using ::testing::Test;
@@ -78,6 +76,16 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
             connectionsPaused = false;
             for (auto& concurrentTest : concurrentTests) {
                 concurrentTest.second.join();
+            }
+            continue;
+        }
+        if (statement->manualUseDataset == ManualUseDatasetFlag::SCHEMA) {
+            auto dataset = TestHelper::appendKuzuRootPath("dataset/" + statement->dataset);
+            if (conn) {
+                TestHelper::executeScript(dataset + "/" + TestHelper::SCHEMA_FILE_NAME, *conn);
+            } else {
+                TestHelper::executeScript(dataset + "/" + TestHelper::SCHEMA_FILE_NAME,
+                    *(connMap.begin()->second));
             }
             continue;
         }

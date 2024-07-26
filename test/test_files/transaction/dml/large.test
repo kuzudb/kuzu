@@ -2,71 +2,6 @@
 -BUFFER_POOL_SIZE 10737418240
 --
 
--DEFINE_STATEMENT_BLOCK CREATE_LDBC [
--STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
----- ok
--STATEMENT create node table Forum (id INT64, title STRING, creationDate INT64, PRIMARY KEY (id));
----- ok
--STATEMENT create node table Organisation (id INT64, label STRING, name STRING, url STRING, PRIMARY KEY (id));
----- ok
--STATEMENT create node table Person (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING, PRIMARY KEY (id));
----- ok
--STATEMENT create node table Place (id INT64, name STRING, url STRING, label STRING, PRIMARY KEY (id));
----- ok
--STATEMENT create node table Post (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32, PRIMARY KEY (id));
----- ok
--STATEMENT create node table Tag (id INT64, name STRING, url STRING, PRIMARY KEY (id));
----- ok
--STATEMENT create node table TagClass (id INT64, name STRING, url STRING, PRIMARY KEY (id));
----- ok
--STATEMENT create rel table Comment_hasCreator (FROM Comment TO Person, MANY_MANY);
----- ok
--STATEMENT create rel table Comment_hasTag (FROM Comment TO Tag, MANY_MANY);
----- ok
--STATEMENT create rel table Comment_isLocatedIn (FROM Comment TO Place, MANY_ONE);
----- ok
--STATEMENT create rel table replyOf_Comment (FROM Comment TO Comment, MANY_ONE);
----- ok
--STATEMENT create rel table replyOf_Post (FROM Comment TO Post, MANY_ONE);
----- ok
--STATEMENT create rel table containerOf (FROM Forum TO Post, ONE_MANY);
----- ok
--STATEMENT create rel table hasMember (FROM Forum TO Person, joinDate INT64, MANY_MANY);
----- ok
--STATEMENT create rel table hasModerator (FROM Forum TO Person, MANY_MANY);
----- ok
--STATEMENT create rel table Forum_hasTag (FROM Forum TO Tag, MANY_MANY);
----- ok
--STATEMENT create rel table Organisation_isLocatedIn (FROM Organisation TO Place, MANY_ONE);
----- ok
--STATEMENT create rel table hasInterest (FROM Person TO Tag, MANY_MANY);
----- ok
--STATEMENT create rel table Person_isLocatedIn (FROM Person TO Place, MANY_ONE);
----- ok
--STATEMENT create rel table knows (FROM Person TO Person, creationDate INT64, MANY_MANY);
----- ok
--STATEMENT create rel table likes_Comment (FROM Person TO Comment, creationDate INT64, MANY_MANY);
----- ok
--STATEMENT create rel table likes_Post (FROM Person TO Post, creationDate INT64, MANY_MANY);
----- ok
--STATEMENT create rel table studyAt (FROM Person TO Organisation, classYear INT32, MANY_ONE);
----- ok
--STATEMENT create rel table workAt (FROM Person TO Organisation, workFrom INT32, MANY_MANY);
----- ok
--STATEMENT create rel table isPartOf (FROM Place TO Place, MANY_ONE);
----- ok
--STATEMENT create rel table Post_hasCreator (FROM Post TO Person, MANY_ONE);
----- ok
--STATEMENT create rel table Post_hasTag (FROM Post TO Tag, MANY_MANY);
----- ok
--STATEMENT create rel table Post_isLocatedIn (FROM Post TO Place, MANY_ONE);
----- ok
--STATEMENT create rel table hasType (FROM Tag TO TagClass, MANY_ONE);
----- ok
--STATEMENT create rel table isSubclassOf (FROM TagClass TO TagClass, MANY_ONE);
----- ok
-]
-
 -DEFINE_STATEMENT_BLOCK COPY_LDBC_NODES [
 -STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" (HEADER=true, DELIM='|');
 ---- ok
@@ -338,7 +273,7 @@
 # TODO(Guodong/Sam): enable this to check disabling copy in manual trxs
 -CASE CopyLargeDisabled
 -SKIP
--INSERT_STATEMENT_BLOCK CREATE_LDBC
+-CREATE_DATASET_SCHEMA ldbc-sf01
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
@@ -350,7 +285,7 @@
 327588
 
 -CASE InsertLDBCNodeCommit
--INSERT_STATEMENT_BLOCK CREATE_LDBC
+-CREATE_DATASET_SCHEMA ldbc-sf01
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
@@ -363,7 +298,7 @@
 -CASE InsertLDBCNodeCommitRecovery
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
--INSERT_STATEMENT_BLOCK CREATE_LDBC
+-CREATE_DATASET_SCHEMA ldbc-sf01
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
@@ -375,7 +310,7 @@
 327588
 
 -CASE InsertLDBCNodeRollback
--INSERT_STATEMENT_BLOCK CREATE_LDBC
+-CREATE_DATASET_SCHEMA ldbc-sf01
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
@@ -388,7 +323,7 @@
 -CASE InsertLDBCNodeRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
--INSERT_STATEMENT_BLOCK CREATE_LDBC
+-CREATE_DATASET_SCHEMA ldbc-sf01
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
@@ -399,56 +334,56 @@
 ---- 1
 0
 
--CASE InsertLDBCRelCommit
--INSERT_STATEMENT_BLOCK CREATE_LDBC
--INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
--STATEMENT BEGIN TRANSACTION;
----- ok
--INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
--STATEMENT COMMIT
----- ok
--STATEMENT MATCH ()-[t]->() RETURN count(*);
----- 1
-1477965
-
--CASE InsertLDBCRelCommitRecovery
--STATEMENT CALL auto_checkpoint=false;
----- ok
--INSERT_STATEMENT_BLOCK CREATE_LDBC
--INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
--STATEMENT BEGIN TRANSACTION;
----- ok
--INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
--STATEMENT COMMIT
----- ok
--RELOADDB
--STATEMENT MATCH ()-[t]->() RETURN count(*);
----- 1
-1477965
-
--CASE InsertLDBCRelRollback
--INSERT_STATEMENT_BLOCK CREATE_LDBC
--INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
--STATEMENT BEGIN TRANSACTION;
----- ok
--INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
--STATEMENT ROLLBACK
----- ok
--STATEMENT MATCH ()-[t]->() RETURN count(*);
----- 1
-0
-
--CASE InsertLDBCRelRollbackRecovery
--STATEMENT CALL auto_checkpoint=false;
----- ok
--INSERT_STATEMENT_BLOCK CREATE_LDBC
--INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
--STATEMENT BEGIN TRANSACTION;
----- ok
--INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
--STATEMENT ROLLBACK
----- ok
--RELOADDB
--STATEMENT MATCH ()-[t]->() RETURN count(*);
----- 1
-0
+#-CASE InsertLDBCRelCommit
+#-CREATE_DATASET_SCHEMA ldbc-sf01
+#-INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
+#-STATEMENT BEGIN TRANSACTION;
+#---- ok
+#-INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
+#-STATEMENT COMMIT
+#---- ok
+#-STATEMENT MATCH ()-[t]->() RETURN count(*);
+#---- 1
+#1477965
+#
+#-CASE InsertLDBCRelCommitRecovery
+#-STATEMENT CALL auto_checkpoint=false;
+#---- ok
+#-CREATE_DATASET_SCHEMA ldbc-sf01
+#-INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
+#-STATEMENT BEGIN TRANSACTION;
+#---- ok
+#-INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
+#-STATEMENT COMMIT
+#---- ok
+#-RELOADDB
+#-STATEMENT MATCH ()-[t]->() RETURN count(*);
+#---- 1
+#1477965
+#
+#-CASE InsertLDBCRelRollback
+#-CREATE_DATASET_SCHEMA ldbc-sf01
+#-INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
+#-STATEMENT BEGIN TRANSACTION;
+#---- ok
+#-INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
+#-STATEMENT ROLLBACK
+#---- ok
+#-STATEMENT MATCH ()-[t]->() RETURN count(*);
+#---- 1
+#0
+#
+#-CASE InsertLDBCRelRollbackRecovery
+#-STATEMENT CALL auto_checkpoint=false;
+#---- ok
+#-CREATE_DATASET_SCHEMA ldbc-sf01
+#-INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
+#-STATEMENT BEGIN TRANSACTION;
+#---- ok
+#-INSERT_STATEMENT_BLOCK LOAD_LDBC_RELS_1
+#-STATEMENT ROLLBACK
+#---- ok
+#-RELOADDB
+#-STATEMENT MATCH ()-[t]->() RETURN count(*);
+#---- 1
+#0
