@@ -18,7 +18,28 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
 -STATEMENT COMMIT
----- ok 
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
+---- 4
+143||[long long string]
+752|waterloo|[good test]
+|very very special string|
+||
+-STATEMENT COMMIT;
+---- ok
+
+-CASE insertRelsToDifferentNodesCommitNormalExecutionAutoCheckpoint
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT CALL checkpoint() RETURN *;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT COMMIT
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag

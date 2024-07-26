@@ -70,11 +70,9 @@ bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, rowInEndVector] =
         StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
-    idx_t vectorIdx = startVector;
-    while (vectorIdx <= endVectorIdx) {
+    for (idx_t vectorIdx = startVector; vectorIdx <= endVectorIdx; ++vectorIdx) {
         const auto updateVector = getVectorInfo(transaction, vectorIdx);
         if (!updateVector || updateVector->numRowsUpdated == 0) {
-            vectorIdx++;
             continue;
         }
         const auto startRowInVector = (vectorIdx == startVector) ? rowInStartVector : 0;

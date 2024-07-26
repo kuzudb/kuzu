@@ -1,0 +1,16 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE SetRelAutoCheckpoint
+-STATEMENT CALL checkpoint_threshold=0
+---- ok
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99
+---- ok
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.length
+---- 3
+22
+55
+99
