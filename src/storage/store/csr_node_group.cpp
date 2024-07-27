@@ -416,6 +416,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     persistentChunk.initializeScanState(chunkState);
     persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
         chunkState, *oldChunkWithUpdates);
+    KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
     const auto numRowsInRegion =
         csrState.newHeader->getEndCSROffset(region.rightNodeOffset) - leftCSROffset;
     auto newChunk = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(), numRowsInRegion,
@@ -593,6 +594,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     csrState.newHeader = std::make_unique<ChunkedCSRHeader>(false /*enableCompression*/,
         StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     const auto numNodes = csrIndex->indices.size();
+    KU_ASSERT(numNodes == StorageConstants::NODE_GROUP_SIZE);
     csrState.newHeader->setNumValues(numNodes);
     for (auto offset = 0u; offset < numNodes; offset++) {
         auto rows = csrIndex->indices[offset].getRows();
@@ -607,38 +609,34 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
         KU_ASSERT(lengthAfterDelete <= length);
         csrState.newHeader->length->getData().setValue<length_t>(lengthAfterDelete, offset);
     }
-    const auto gaps = csrState.newHeader->populateStartCSROffsetsAndGaps(true);
-    csrState.newHeader->populateEndCSROffsets(gaps);
+    csrState.newHeader->populateCSROffsets();
 
     // Construct scan state for reading from in-mem column chunks.
-    const auto numColumns = dataTypes.size();
-    std::vector<column_id_t> columnIDs;
-    columnIDs.reserve(numColumns);
-    for (auto i = 0u; i < numColumns; i++) {
-        columnIDs.push_back(i);
-    }
+    auto numColumnsToCheckpoint = csrState.columnIDs.size();
     const auto scanChunkState = std::make_shared<DataChunkState>();
-    DataChunk scanChunk(numColumns, scanChunkState);
-    for (auto i = 0u; i < numColumns; i++) {
-        const auto valueVector = std::make_shared<ValueVector>(dataTypes[i].copy(), state.mm);
+    DataChunk scanChunk(csrState.columnIDs.size(), scanChunkState);
+    for (auto i = 0u; i < numColumnsToCheckpoint; i++) {
+        const auto columnID = csrState.columnIDs[i];
+        KU_ASSERT(columnID < dataTypes.size());
+        const auto valueVector =
+            std::make_shared<ValueVector>(dataTypes[columnID].copy(), state.mm);
         scanChunk.insert(i, valueVector);
     }
-    auto scanState = std::make_unique<TableScanState>(columnIDs);
+    auto scanState = std::make_unique<TableScanState>(csrState.columnIDs);
     scanState->rowIdxVector->setState(scanChunkState);
-    scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(numColumns);
-    for (auto i = 0u; i < numColumns; i++) {
+    scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(numColumnsToCheckpoint);
+    for (auto i = 0u; i < csrState.columnIDs.size(); i++) {
         scanState->outputVectors.push_back(scanChunk.valueVectors[i].get());
     }
 
     // Scan in-mem column chunks and append into new column chunks to be flushed.
-    auto numGaps = 0u;
-    for (const auto gap : gaps) {
-        numGaps += gap;
-    }
-    std::vector<std::unique_ptr<ColumnChunk>> dataChunksToFlush(numColumns);
-    for (auto i = 0u; i < numColumns; i++) {
-        dataChunksToFlush[i] = std::make_unique<ColumnChunk>(dataTypes[i], numRels + numGaps, false,
-            ResidencyState::IN_MEMORY);
+    auto chunkCapacity = csrState.newHeader->getEndCSROffset(numNodes - 1);
+    std::vector<std::unique_ptr<ColumnChunk>> dataChunksToFlush(numColumnsToCheckpoint);
+    for (auto i = 0u; i < numColumnsToCheckpoint; i++) {
+        const auto columnID = csrState.columnIDs[i];
+        KU_ASSERT(columnID < dataTypes.size());
+        dataChunksToFlush[i] = std::make_unique<ColumnChunk>(dataTypes[columnID], chunkCapacity,
+            enableCompression, ResidencyState::IN_MEMORY);
     }
     // TODO(Guodong): Should optimize this to 2048 rows at a time instead of per node.
     for (auto offset = 0u; offset < numNodes; offset++) {
@@ -654,23 +652,23 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
                     scanState->rowIdxVector->setValue<row_idx_t>(i, rows[numRowsAppended + i]);
                 }
                 NodeGroup::lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
-                for (auto columnID = 0u; columnID < numColumns; columnID++) {
-                    dataChunksToFlush[columnID]->getData().append(
-                        scanChunk.valueVectors[columnID].get(), scanChunkState->getSelVector());
+                for (auto idx = 0u; idx < numColumnsToCheckpoint; idx++) {
+                    dataChunksToFlush[idx]->getData().append(scanChunk.valueVectors[idx].get(),
+                        scanChunkState->getSelVector());
                 }
                 numRowsAppended += numRowsToAppend;
             }
         }
         auto numGapsAppended = 0u;
-        const auto gapSize = gaps[offset];
+        const auto gapSize = csrState.newHeader->getGapSize(offset);
         while (numGapsAppended < gapSize) {
             const auto numGapsToAppend =
                 std::min(gapSize - numGapsAppended, DEFAULT_VECTOR_CAPACITY);
-            for (auto columnID = 0u; columnID < numColumns; columnID++) {
+            for (auto columnID = 0u; columnID < numColumnsToCheckpoint; columnID++) {
                 scanChunk.valueVectors[columnID]->setAllNull();
             }
             scanChunkState->getSelVectorUnsafe().setSelSize(numGapsToAppend);
-            for (auto columnID = 0u; columnID < numColumns; columnID++) {
+            for (auto columnID = 0u; columnID < numColumnsToCheckpoint; columnID++) {
                 dataChunksToFlush[columnID]->getData().append(
                     scanChunk.valueVectors[columnID].get(), scanChunkState->getSelVector());
             }

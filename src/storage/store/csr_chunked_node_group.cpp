@@ -47,6 +47,10 @@ length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
     return length->getData().getValue<length_t>(nodeOffset);
 }
 
+length_t ChunkedCSRHeader::getGapSize(offset_t nodeOffset) const {
+    return getEndCSROffset(nodeOffset) - getStartCSROffset(nodeOffset) - getCSRLength(nodeOffset);
+}
+
 bool ChunkedCSRHeader::sanityCheck() const {
     if (offset->getNumValues() != length->getNumValues()) {
         return false;
@@ -96,10 +100,10 @@ void ChunkedCSRHeader::populateCSROffsets() const {
     const auto numNodes = length->getNumValues();
     const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
     const auto csrLengths = reinterpret_cast<length_t*>(length->getData().getData());
-    csrOffsets[0] = csrLengths[0] + getGapSize(csrLengths[0]);
+    csrOffsets[0] = csrLengths[0] + computeGapFromLength(csrLengths[0]);
     // Calculate starting offset of each node.
     for (auto i = 1u; i < numNodes; i++) {
-        const auto gap = getGapSize(csrLengths[i]);
+        const auto gap = computeGapFromLength(csrLengths[i]);
         csrOffsets[i] = csrOffsets[i - 1] + csrLengths[i] + gap;
     }
 }
@@ -114,7 +118,7 @@ std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsAndGaps(bool leav
     // Calculate gaps for each node.
     if (leaveGaps) {
         for (auto i = 0u; i < numNodes; i++) {
-            gaps[i] = getGapSize(csrLengths[i]);
+            gaps[i] = computeGapFromLength(csrLengths[i]);
         }
     }
     csrOffsets[0] = 0;
@@ -134,7 +138,7 @@ void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) 
     }
 }
 
-length_t ChunkedCSRHeader::getGapSize(length_t length) {
+length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
     return StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) - length;
 }
 

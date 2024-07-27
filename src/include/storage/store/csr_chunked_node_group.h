@@ -16,6 +16,7 @@ struct ChunkedCSRHeader {
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
     common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
     common::length_t getCSRLength(common::offset_t nodeOffset) const;
+    common::length_t getGapSize(common::length_t length) const;
 
     bool sanityCheck() const;
     void copyFrom(const ChunkedCSRHeader& other) const;
@@ -35,7 +36,7 @@ struct ChunkedCSRHeader {
     void populateEndCSROffsets(const std::vector<common::offset_t>& gaps) const;
 
 private:
-    static common::length_t getGapSize(common::length_t length);
+    static common::length_t computeGapFromLength(common::length_t length);
 };
 
 struct CSRNodeGroupCheckpointState;
