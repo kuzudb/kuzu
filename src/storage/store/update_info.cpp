@@ -132,6 +132,7 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transacti
                 info->rowsInVector[i] = info->prev->rowsInVector[i];
             }
             info->data->append(info->prev->data.get(), 0, info->prev->numRowsUpdated);
+            info->numRowsUpdated = info->prev->numRowsUpdated;
         }
     }
     return *info;
