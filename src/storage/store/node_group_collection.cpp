@@ -26,6 +26,25 @@ NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
     }
 }
 
+NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(const common::node_group_idx_t groupIdx,
+    NodeGroupDataFormat format) {
+    const auto lock = nodeGroups.lock();
+    const auto nodeGroup = nodeGroups.getGroup(lock, groupIdx);
+    if (!nodeGroup) {
+        while (groupIdx >= nodeGroups.getNumGroups(lock)) {
+            const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
+            nodeGroups.replaceGroup(lock, currentGroupIdx,
+                format == NodeGroupDataFormat::REGULAR ?
+                    std::make_unique<NodeGroup>(currentGroupIdx, enableCompression,
+                        common::LogicalType::copy(types)) :
+                    std::make_unique<CSRNodeGroup>(currentGroupIdx, enableCompression,
+                        common::LogicalType::copy(types)));
+        }
+        return nodeGroups.getGroup(lock, groupIdx);
+    }
+    return nodeGroup;
+}
+
 void NodeGroupCollection::append(const Transaction* transaction,
     const std::vector<ValueVector*>& vectors) {
     const auto numRowsToAppend = vectors[0]->state->getSelVector().getSelSize();
