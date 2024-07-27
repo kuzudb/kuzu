@@ -142,12 +142,13 @@ public:
         // Note: `sizeChange` equal to 0 is not enough to indicate the region has no insert or
         // delete. It might just be num of insertions are equal to num of deletions.
         bool hasInsertions = false;
-        bool hasDeletions = false;
+        bool hasInMemDeletions = false;
+        bool hasPersistentDeletions = false;
 
         CSRRegion(common::idx_t regionIdx, common::idx_t level);
 
         bool needCheckpoint() const {
-            return hasInsertions || hasDeletions ||
+            return hasInsertions || hasPersistentDeletions ||
                    std::any_of(hasUpdates.begin(), hasUpdates.end(),
                        [](bool hasUpdate) { return hasUpdate; });
         }
@@ -219,11 +220,18 @@ private:
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+    void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
         const CSRNodeGroupCheckpointState& csrState);
+    void collectInMemRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock,
+        CSRRegion& region, const CSRNodeGroupCheckpointState& csrState);
+    void collectOnDiskRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock,
+        CSRRegion& region, const CSRNodeGroupCheckpointState& csrState) const;
 
-    void findUpdatesInRegion(CSRRegion& region, common::offset_t leftCSROffset,
+    std::vector<CSRRegion> collectRegionsToCheckpoint(const common::UniqLock& lock,
+        const CSRNodeGroupCheckpointState& csrState);
+    void collectPersistentUpdatesInRegion(CSRRegion& region, common::offset_t leftCSROffset,
         common::offset_t rightCSROffset) const;
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
@@ -235,6 +243,11 @@ private:
 
     void checkpointColumn(const common::UniqLock& lock, common::column_id_t columnID,
         const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& regions);
+    ChunkCheckpointState checkpointColumnInRegion(const common::UniqLock& lock,
+        common::column_id_t columnID, const CSRNodeGroupCheckpointState& csrState,
+        const CSRRegion& region);
+    void checkpointCSRHeader(const CSRNodeGroupCheckpointState& csrState) const;
+    void finalizeCheckpoint(const common::UniqLock& lock);
 
 private:
     std::unique_ptr<ChunkedNodeGroup> persistentChunkGroup;

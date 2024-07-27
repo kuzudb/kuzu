@@ -385,8 +385,8 @@ bool VersionInfo::hasDeletions() const {
     return false;
 }
 
-bool VersionInfo::getNumDeletions(const transaction::Transaction* transaction, row_idx_t startRow,
-    length_t numRows) const {
+row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transaction,
+    row_idx_t startRow, length_t numRows) const {
     auto [startVector, startRowInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowInVector] =
@@ -396,7 +396,7 @@ bool VersionInfo::getNumDeletions(const transaction::Transaction* transaction, r
     while (vectorIdx <= endVectorIdx) {
         const auto rowInVector = vectorIdx == startVector ? startRowInVector : 0;
         const auto numRowsInVector =
-            vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY - rowInVector;
+            (vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY) - rowInVector;
         if (vectorsInfo[vectorIdx]) {
             numDeletions += vectorsInfo[vectorIdx]->getNumDeletions(transaction->getStartTS(),
                 transaction->getID(), rowInVector, numRowsInVector);

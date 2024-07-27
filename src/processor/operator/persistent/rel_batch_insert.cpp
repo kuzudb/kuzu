@@ -181,6 +181,7 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
             context->clientContext->getMemoryManager());
     }
     sharedState->numRows.store(0);
+    sharedState->table->cast<RelTable>().setHasChanges();
     partitionerSharedState->resetState();
     partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
 }

@@ -87,8 +87,8 @@ public:
     void clearVectorInfo(common::idx_t vectorIdx);
 
     bool hasDeletions() const;
-    bool getNumDeletions(const transaction::Transaction* transaction, common::row_idx_t startRow,
-        common::length_t numRows) const;
+    common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
+        common::row_idx_t startRow, common::length_t numRows) const;
     bool hasInsertions() const;
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
