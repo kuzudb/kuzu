@@ -1,6 +1,5 @@
 #pragma once
 
-#include "csr_node_group.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
 
