@@ -1,10 +1,5 @@
 name: CI
 
-env:
-  RUNTIME_CHECKS: 1
-  WERROR: 1
-  USE_EXISTING_BINARY_DATASET: 1
-
 on:
   pull_request:
     branches:
@@ -13,6 +8,46 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      auto_checkpoint:
+        description: 'Database config - auto checkpoint'
+        required: false
+        default: true
+        type: boolean
+    
+      buffer_pool_size:
+        description: 'Database config - buffer pool size'
+        required: false
+        default: 67108864
+        type: number
+      
+      max_num_threads:
+        description: 'Database config - max number of threads'
+        required: false
+        default: 2
+        type: number
+
+      enable_compression:
+        description: 'Database config - enable compression'
+        required: false
+        default: true
+        type: boolean
+      
+      checkpoint_threshold:
+        description: 'Database config - checkpoint threshold'
+        required: false
+        default: 16777216
+        type: number
+env:
+  RUNTIME_CHECKS: 1
+  WERROR: 1
+  USE_EXISTING_BINARY_DATASET: 1
+  AUTO_CHECKPOINT: ${{ github.event.inputs.auto_checkpoint }}
+  BUFFER_POOL_SIZE: ${{ github.event.inputs.buffer_pool_size }}
+  MAX_NUM_THREADS: ${{ github.event.inputs.max_num_threads }}
+  ENABLE_COMPRESSION: ${{ github.event.inputs.enable_compression }}
+  CHECKPOINT_THRESHOLD: ${{ github.event.inputs.checkpoint_threshold }}
+
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
 # We use the workflow name and then add the pull request number, or (if it's a push to master), we use the name of the branch.
