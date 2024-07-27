@@ -164,24 +164,25 @@ private:
         auto iter = getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue),
             transaction);
         do {
-            auto entryPos = findMatchedEntryInSlot(transaction, iter.slot, key, fingerprint);
+            auto entryPos =
+                findMatchedEntryInSlot(transaction, iter.slot, key, fingerprint, isVisible);
             if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
                 result = iter.slot.entries[entryPos].value;
-                if (isVisible(result)) {
-                    return true;
-                }
+                return true;
             }
         } while (nextChainedSlot(transaction, iter));
         return false;
     }
-    void deleteFromPersistentIndex(const transaction::Transaction* transaction, Key key);
+    void deleteFromPersistentIndex(const transaction::Transaction* transaction, Key key,
+        visible_func isVisible);
 
     entry_pos_t findMatchedEntryInSlot(const transaction::Transaction* transaction,
-        const Slot<T>& slot, Key key, uint8_t fingerprint) const {
+        const Slot<T>& slot, Key key, uint8_t fingerprint, const visible_func& isVisible) const {
         for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
             if (slot.header.isEntryValid(entryPos) &&
                 slot.header.fingerprints[entryPos] == fingerprint &&
-                equals(transaction, key, slot.entries[entryPos].key)) {
+                equals(transaction, key, slot.entries[entryPos].key) &&
+                isVisible(slot.entries[entryPos].value)) {
                 return entryPos;
             }
         }
