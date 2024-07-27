@@ -298,7 +298,8 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                     const auto nodeOffset = numLocalRows + row;
                     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
                     const auto rowIdxInGroup =
-                        nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+                        startNodeOffset + nodeOffset -
+                        StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
                     nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
                 }
             }
