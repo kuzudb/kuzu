@@ -54,13 +54,17 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
 
     relScanState.boundNodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
         relScanState.boundNodeIDVector->state->getSelVector()[0]);
-    // Check if the node group idx is same as previous scan.
-    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
-    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
-        // We need to re-initialize the node group scan state.
-        relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
-                                     fwdRelTableData->getNodeGroup(nodeGroupIdx) :
-                                     bwdRelTableData->getNodeGroup(nodeGroupIdx);
+    if (relScanState.boundNodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+        relScanState.nodeGroup = nullptr;
+    } else {
+        // Check if the node group idx is same as previous scan.
+        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
+        if (relScanState.nodeGroupIdx != nodeGroupIdx) {
+            // We need to re-initialize the node group scan state.
+            relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
+                                         fwdRelTableData->getNodeGroup(nodeGroupIdx) :
+                                         bwdRelTableData->getNodeGroup(nodeGroupIdx);
+        }
     }
     if (relScanState.nodeGroup) {
         relScanState.source = TableScanSource::COMMITTED;
