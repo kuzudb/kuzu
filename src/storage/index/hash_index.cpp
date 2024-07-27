@@ -42,7 +42,8 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fi
 }
 
 template<typename T>
-void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key key) {
+void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key key,
+    visible_func isVisible) {
     auto& header = this->indexHeaderForWriteTrx;
     if (header.numEntries == 0) {
         return;
@@ -52,7 +53,7 @@ void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key
     auto iter =
         getSlotIterator(HashIndexUtils::getPrimarySlotIdForHash(header, hashValue), transaction);
     do {
-        auto entryPos = findMatchedEntryInSlot(transaction, iter.slot, key, fingerprint);
+        auto entryPos = findMatchedEntryInSlot(transaction, iter.slot, key, fingerprint, isVisible);
         if (entryPos != SlotHeader::INVALID_ENTRY_POS) {
             iter.slot.header.setEntryInvalid(entryPos);
             updateSlot(transaction, iter.slotInfo, iter.slot);
@@ -62,9 +63,9 @@ void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key
 }
 
 template<>
-inline common::hash_t HashIndex<ku_string_t>::hashStored(const Transaction* transaction,
+inline hash_t HashIndex<ku_string_t>::hashStored(const Transaction* transaction,
     const ku_string_t& key) const {
-    common::hash_t hash;
+    hash_t hash;
     auto str = overflowFileHandle->readString(transaction->getType(), key);
     function::Hash::operation(str, hash);
     return hash;
@@ -79,7 +80,10 @@ bool HashIndex<T>::checkpoint() {
             reserve(transaction, netInserts);
         }
         localStorage->applyLocalChanges(
-            [&](Key key) { deleteFromPersistentIndex(transaction, key); },
+            [&](Key) {
+                // TODO(Guodong/Ben): FIX-ME. We should vaccum the index during checkpoint.
+                // DO NOTHING.
+            },
             [&](const auto& insertions) { mergeBulkInserts(transaction, insertions); });
         pSlots->checkpoint();
         oSlots->checkpoint();

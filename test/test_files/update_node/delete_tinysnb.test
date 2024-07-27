@@ -34,6 +34,26 @@
 ---- 1
 33|
 
+-CASE MixedDeleteInsertTestAutoCheckpoint
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT CALL checkpoint_threshold=0
+---- ok
+-STATEMENT CREATE (a:organisation {ID:30, mark:3.3})
+---- ok
+-STATEMENT MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark
+---- 1
+|3.300000
+-STATEMENT MATCH (a:organisation) WHERE a.ID = 30 DELETE a
+---- ok
+-STATEMENT MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark
+---- 0
+-STATEMENT CREATE (a:organisation {ID:30, orgCode:33})
+---- ok
+-STATEMENT MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark
+---- 1
+33|
+
 -CASE DeleteNodeMultiLabel1
 -STATEMENT MATCH (a:person)-[e]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
 ---- 1
