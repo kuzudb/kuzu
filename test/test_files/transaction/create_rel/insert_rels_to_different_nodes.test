@@ -33,7 +33,7 @@
 -CASE insertRelsToDifferentNodesCommitNormalExecutionAutoCheckpoint
 -STATEMENT CALL auto_checkpoint=true
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CALL checkpoint_threshold=0;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok

@@ -26,7 +26,8 @@ offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
         return 0;
     }
     if (nodeOffset >= offset->getNumValues()) {
-        return offset->getNumValues() - 1;
+        const offset_t maxNodeOffset = offset->getNumValues() - 1;
+        return offset->getData().getValue<offset_t>(maxNodeOffset) + getCSRLength(maxNodeOffset);
     }
     KU_ASSERT(nodeOffset < offset->getNumValues());
     return offset->getData().getValue<offset_t>(nodeOffset - 1);
@@ -39,7 +40,8 @@ offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
         return 0;
     }
     if (nodeOffset >= offset->getNumValues()) {
-        return offset->getNumValues() - 1;
+        const offset_t maxNodeOffset = offset->getNumValues() - 1;
+        return offset->getData().getValue<offset_t>(maxNodeOffset) + getCSRLength(maxNodeOffset);
     }
     KU_ASSERT(nodeOffset < offset->getNumValues());
     KU_ASSERT(nodeOffset < length->getNumValues());

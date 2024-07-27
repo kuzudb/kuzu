@@ -410,6 +410,7 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
         const auto newLeftCSROffset = csrState.newHeader->getStartCSROffset(region.leftNodeOffset);
         const auto rightCSROffset = csrState.oldHeader->getEndCSROffset(region.rightNodeOffset);
         const auto numOldRowsInRegion = rightCSROffset - oldLeftCSROffset;
+        KU_ASSERT(rightCSROffset >= oldLeftCSROffset);
         auto oldChunkWithUpdates = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(),
             numOldRowsInRegion, false, ResidencyState::IN_MEMORY);
         ChunkState chunkState;

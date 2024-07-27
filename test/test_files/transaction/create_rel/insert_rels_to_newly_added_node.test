@@ -50,13 +50,33 @@
 -STATEMENT COMMIT;
 ---- ok
 
+-CASE insertRelsToNewlyAddedNodeCommitRecoveryAutoCheckpoint
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT COMMIT
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
+---- 3
+43|
+50|long long string test
+|
+-STATEMENT COMMIT;
+---- ok
 
 -CASE insertRelsToNewlyAddedNodeRollbackNormalExecution
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
