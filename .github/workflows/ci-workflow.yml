@@ -118,6 +118,7 @@ jobs:
     env:
       TEST_JOBS: 10
       WERROR: 0
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
