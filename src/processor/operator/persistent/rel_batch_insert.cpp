@@ -6,6 +6,7 @@
 #include "processor/result/factorized_table_util.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/csr_node_group.h"
 #include "storage/store/rel_table.h"
 
 using namespace kuzu::catalog;

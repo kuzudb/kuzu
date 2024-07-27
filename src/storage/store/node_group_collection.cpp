@@ -2,6 +2,7 @@
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/store/csr_node_group.h"
 #include <storage/store/table.h>
 
 using namespace kuzu::common;

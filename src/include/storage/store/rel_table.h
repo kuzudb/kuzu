@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "storage/store/csr_node_group.h"
 #include "storage/store/rel_table_data.h"
 #include "storage/store/table.h"
 

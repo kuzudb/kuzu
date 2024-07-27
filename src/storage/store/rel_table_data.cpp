@@ -7,6 +7,7 @@
 #include "common/types/internal_id_t.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/store/csr_node_group.h"
 #include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
 
