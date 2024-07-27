@@ -77,7 +77,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {
-        bindData = function->bindFunc(children, function);
+        bindData = function->bindFunc({children, function, context});
         if (bindData == nullptr) { // No need to cast.
             // TODO(Xiyang): We should return a deep copy otherwise the same expression might
             // appear in the final projection list repeatedly.
@@ -91,7 +91,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
         if (function->bindFunc) {
-            bindData = function->bindFunc(children, function);
+            bindData = function->bindFunc({children, function, context});
         } else {
             bindData =
                 std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
@@ -162,7 +162,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     }
     std::unique_ptr<function::FunctionBindData> bindData;
     if (function->bindFunc) {
-        bindData = function->bindFunc(children, function.get());
+        bindData = function->bindFunc({children, function.get(), context});
     } else {
         bindData =
             std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));

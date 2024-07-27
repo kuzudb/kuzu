@@ -280,6 +280,10 @@ function_set RegexpExtractFunction::getFunctionSet() {
     return functionSet;
 }
 
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput /* input */) {
+    return std::make_unique<FunctionBindData>(LogicalType::LIST(LogicalType::STRING()));
+}
+
 function_set RegexpExtractAllFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
@@ -296,11 +300,6 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
             RegexpExtractAll>,
         nullptr, bindFunc));
     return functionSet;
-}
-
-std::unique_ptr<FunctionBindData> RegexpExtractAllFunction::bindFunc(
-    const binder::expression_vector& /*arguments*/, Function* /*definition*/) {
-    return std::make_unique<FunctionBindData>(LogicalType::LIST(LogicalType::STRING()));
 }
 
 } // namespace function

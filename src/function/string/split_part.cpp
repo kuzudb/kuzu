@@ -16,9 +16,8 @@ struct SplitPart {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    return FunctionBindData::getSimpleBindData(arguments, LogicalType::STRING());
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::STRING());
 }
 
 function_set SplitPartFunction::getFunctionSet() {

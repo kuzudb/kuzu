@@ -8,22 +8,21 @@ namespace function {
 
 using namespace kuzu::common;
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    if (arguments[1]->expressionType != ExpressionType::LAMBDA) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    if (input.arguments[1]->expressionType != ExpressionType::LAMBDA) {
         throw BinderException(stringFormat(
             "The second argument of LIST_FILTER should be a lambda expression but got {}.",
-            ExpressionTypeUtil::toString(arguments[1]->expressionType)));
+            ExpressionTypeUtil::toString(input.arguments[1]->expressionType)));
     }
     std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(arguments[0]->getDataType().copy());
-    paramTypes.push_back(arguments[1]->getDataType().copy());
-    if (arguments[1]->getDataType() != LogicalType::BOOL()) {
+    paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    paramTypes.push_back(input.arguments[1]->getDataType().copy());
+    if (input.arguments[1]->getDataType() != LogicalType::BOOL()) {
         throw BinderException(stringFormat(
             "{} requires the result type of lambda expression be BOOL.", ListFilterFunction::name));
     }
     return std::make_unique<FunctionBindData>(std::move(paramTypes),
-        LogicalType::LIST(ListType::getChildType(arguments[0]->getDataType()).copy()));
+        LogicalType::LIST(ListType::getChildType(input.arguments[0]->getDataType()).copy()));
 }
 
 static uint64_t getSelectedListSize(const list_entry_t& srcListEntry,

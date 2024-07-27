@@ -41,8 +41,19 @@ struct KUZU_API FunctionBindData {
 
 struct Function;
 using function_set = std::vector<std::unique_ptr<Function>>;
-using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
-    const binder::expression_vector&, Function* definition)>;
+
+struct ScalarBindFuncInput {
+    const binder::expression_vector& arguments;
+    Function* definition;
+    main::ClientContext* context;
+
+    ScalarBindFuncInput(const binder::expression_vector& expressionVectors, Function* definition,
+        main::ClientContext* context)
+        : arguments{expressionVectors}, definition{definition}, context{context} {}
+};
+
+using scalar_bind_func =
+    std::function<std::unique_ptr<FunctionBindData>(ScalarBindFuncInput bindInput)>;
 
 struct Function {
     std::string name;

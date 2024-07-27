@@ -58,15 +58,14 @@ struct ListSlice {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    KU_ASSERT(arguments.size() == 3);
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    KU_ASSERT(input.arguments.size() == 3);
     std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(arguments[0]->getDataType().copy());
-    paramTypes.push_back(LogicalType(function->parameterTypeIDs[1]));
-    paramTypes.push_back(LogicalType(function->parameterTypeIDs[2]));
+    paramTypes.push_back(input.arguments[0]->getDataType().copy());
+    paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));
+    paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[2]));
     return std::make_unique<FunctionBindData>(std::move(paramTypes),
-        arguments[0]->getDataType().copy());
+        input.arguments[0]->getDataType().copy());
 }
 
 function_set ListSliceFunction::getFunctionSet() {

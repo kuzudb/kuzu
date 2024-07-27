@@ -40,8 +40,8 @@ struct StructExtractFunctions {
 
     static function_set getFunctionSet();
 
-    static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-        Function* function);
+    static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input);
+
     static void compileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);

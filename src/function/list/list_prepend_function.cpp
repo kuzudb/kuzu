@@ -28,22 +28,21 @@ struct ListPrepend {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
-        arguments[1]->dataType != ListType::getChildType(arguments[0]->dataType)) {
-        throw BinderException(
-            ExceptionMessage::listFunctionIncompatibleChildrenType(ListPrependFunction::name,
-                arguments[0]->getDataType().toString(), arguments[1]->getDataType().toString()));
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    if (input.arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
+        input.arguments[1]->dataType != ListType::getChildType(input.arguments[0]->dataType)) {
+        throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
+            ListPrependFunction::name, input.arguments[0]->getDataType().toString(),
+            input.arguments[1]->getDataType().toString()));
     }
-    const auto& resultType = arguments[0]->getDataType();
-    auto scalarFunction = function->ptrCast<ScalarFunction>();
-    TypeUtils::visit(arguments[1]->getDataType().getPhysicalType(),
+    const auto& resultType = input.arguments[0]->getDataType();
+    auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
+    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
         [&scalarFunction]<typename T>(T) {
             scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
                 list_entry_t, ListPrepend>;
         });
-    return FunctionBindData::getSimpleBindData(arguments, resultType.copy());
+    return FunctionBindData::getSimpleBindData(input.arguments, resultType.copy());
 }
 
 function_set ListPrependFunction::getFunctionSet() {

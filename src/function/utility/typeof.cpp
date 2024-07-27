@@ -7,14 +7,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     std::unique_ptr<FunctionBindData> bindData;
-    if (arguments[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+    if (input.arguments[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
         bindData = std::make_unique<FunctionStringBindData>("NULL");
         bindData->paramTypes.push_back(LogicalType::STRING());
     } else {
-        bindData = std::make_unique<FunctionStringBindData>(arguments[0]->getDataType().toString());
+        bindData =
+            std::make_unique<FunctionStringBindData>(input.arguments[0]->getDataType().toString());
     }
     return bindData;
 }

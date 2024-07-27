@@ -25,16 +25,15 @@ void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVecto
     }
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     LogicalType combinedType(LogicalTypeID::ANY);
-    binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
+    binder::ExpressionUtil::tryCombineDataType(input.arguments, combinedType);
     if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
         combinedType = LogicalType::INT64();
     }
     auto resultType = LogicalType::LIST(combinedType.copy());
     auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
-    for (auto& _ : arguments) {
+    for (auto& _ : input.arguments) {
         (void)_;
         bindData->paramTypes.push_back(combinedType.copy());
     }

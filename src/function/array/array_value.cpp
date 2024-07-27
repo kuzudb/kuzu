@@ -8,16 +8,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     LogicalType combinedType(LogicalTypeID::ANY);
-    binder::ExpressionUtil::tryCombineDataType(arguments, combinedType);
+    binder::ExpressionUtil::tryCombineDataType(input.arguments, combinedType);
     if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
         combinedType = LogicalType::STRING();
     }
-    auto resultType = LogicalType::ARRAY(combinedType.copy(), arguments.size());
+    auto resultType = LogicalType::ARRAY(combinedType.copy(), input.arguments.size());
     auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
-    for (auto& _ : arguments) {
+    for (auto& _ : input.arguments) {
         (void)_;
         bindData->paramTypes.push_back(combinedType.copy());
     }

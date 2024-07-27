@@ -72,12 +72,11 @@ static scalar_func_exec_t getTernaryExecFunc(const LogicalType& type) {
     return execFunc;
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    auto type = LogicalType(function->parameterTypeIDs[0]);
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    auto type = LogicalType(input.definition->parameterTypeIDs[0]);
     auto resultType = LogicalType::LIST(type.copy());
     auto bindData = std::make_unique<FunctionBindData>(std::move(resultType));
-    for (auto& _ : arguments) {
+    for (auto& _ : input.arguments) {
         (void)_;
         bindData->paramTypes.push_back(type.copy());
     }

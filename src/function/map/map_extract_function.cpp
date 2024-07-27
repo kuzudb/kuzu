@@ -18,16 +18,15 @@ static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpres
     }
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    kuzu::function::Function* function) {
-    validateKeyType(arguments[0], arguments[1]);
-    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(function);
-    TypeUtils::visit(arguments[1]->getDataType().getPhysicalType(), [&]<typename T>(T) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    validateKeyType(input.arguments[0], input.arguments[1]);
+    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(input.definition);
+    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(), [&]<typename T>(T) {
         scalarFunction->execFunc =
             ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, list_entry_t, MapExtract>;
     });
-    auto resultType = LogicalType::LIST(MapType::getValueType(arguments[0]->dataType).copy());
-    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
+    auto resultType = LogicalType::LIST(MapType::getValueType(input.arguments[0]->dataType).copy());
+    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
 }
 
 function_set MapExtractFunctions::getFunctionSet() {
