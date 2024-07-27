@@ -49,7 +49,7 @@ public:
     }
 
     static std::unique_ptr<kuzu::main::SystemConfig> getSystemConfigFromEnv() {
-        auto systemConfig = std::make_unique<SystemConfig>();
+        auto systemConfig = std::make_unique<kuzu::main::SystemConfig>();
         auto autoCheckpointEnv = std::getenv("AUTO_CHECKPOINT");
         auto bufferPoolSizeEnv = std::getenv("BUFFER_POOL_SIZE");
         auto maxNumThreadsEnv = std::getenv("MAX_NUM_THREADS");

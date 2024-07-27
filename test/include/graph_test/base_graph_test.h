@@ -25,7 +25,7 @@ static void removeDir(const std::string& dir) {
 class BaseGraphTest : public Test {
 public:
     void SetUp() override {
-        systemConfig = std::move(TestHelper::getSystemConfigFromEnv());
+        systemConfig = TestHelper::getSystemConfigFromEnv();
         setDatabasePath();
         removeDir(databasePath);
 
