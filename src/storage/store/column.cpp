@@ -534,7 +534,6 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
 }
 
 void Column::syncAfterCheckpointColumnChunk(ColumnCheckpointState& checkpointState) {
-    Column::checkpointNullData(checkpointState);
     checkpointState.persistentData.syncNumValues();
 }
 

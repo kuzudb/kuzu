@@ -389,6 +389,8 @@ void ListColumn::checkpointColumnChunkImpl(ColumnCheckpointState& checkpointStat
         ColumnCheckpointState sizeCheckpointState(*persistentListChunk.getSizeColumnChunk(),
             std::move(sizeChunkCheckpointStates));
         sizeColumn->checkpointColumnChunk(sizeCheckpointState);
+
+        Column::checkpointNullData(checkpointState);
     }
 }
 

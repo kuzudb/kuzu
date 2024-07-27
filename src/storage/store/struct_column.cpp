@@ -108,6 +108,7 @@ void StructColumn::checkpointColumnChunkImpl(ColumnCheckpointState& checkpointSt
             std::move(childChunkCheckpointStates));
         childColumns[i]->checkpointColumnChunk(childColumnCheckpointState);
     }
+    Column::checkpointNullData(checkpointState);
 }
 
 } // namespace storage
