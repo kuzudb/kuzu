@@ -129,7 +129,6 @@ jobs:
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          ls -lH dataset/ldbc-1/csv
           make test
 
       - name: Python test
@@ -311,7 +310,6 @@ jobs:
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          ls -lH dataset/ldbc-1/csv
           make test
 
       - name: Python test
@@ -601,7 +599,6 @@ jobs:
         run: |
           ulimit -n 10240
           ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
-          ls -lH dataset/ldbc-1/csv
           make test
 
       - name: Python test
