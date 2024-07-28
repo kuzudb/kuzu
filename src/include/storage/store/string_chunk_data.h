@@ -21,6 +21,7 @@ public:
     StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata);
 
     void resetToEmpty() override;
+
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
@@ -64,6 +65,11 @@ public:
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
     void resetNumValuesFromMetadata() override;
+    void syncNumValues() override {
+        numValues = indexColumnChunk->getNumValues();
+        metadata.numValues = numValues;
+    }
+
     void setToInMemory() override;
     void resize(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
