@@ -25,9 +25,7 @@ static void removeDir(const std::string& dir) {
 class BaseGraphTest : public Test {
 public:
     void SetUp() override {
-        systemConfig = std::make_unique<main::SystemConfig>(
-            common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING,
-            2 /*numThreadsForExec*/);
+        systemConfig = TestHelper::getSystemConfigFromEnv();
         systemConfig->autoCheckpoint = true;
         systemConfig->checkpointThreshold = 0;
         setDatabasePath();
