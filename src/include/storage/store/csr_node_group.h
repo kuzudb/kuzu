@@ -58,6 +58,23 @@ struct NodeCSRIndex {
         isSequential = false;
         rowIndices.clear();
     }
+
+    void turnToNonSequential() {
+        if (isSequential) {
+            row_idx_vec_t newIndices;
+            newIndices.reserve(rowIndices[1]);
+            for (common::row_idx_t i = 0u; i < rowIndices[1]; ++i) {
+                newIndices.push_back(i + rowIndices[0]);
+            }
+            rowIndices = std::move(newIndices);
+            isSequential = false;
+        }
+    }
+    void setInvalid(common::idx_t idx) {
+        KU_ASSERT(!isSequential);
+        KU_ASSERT(idx < rowIndices.size());
+        rowIndices[idx] = common::INVALID_ROW_IDX;
+    }
 };
 
 // TODO(Guodong): Split CSRIndex into two levels: one level per csr leaf region, another per node

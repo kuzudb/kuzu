@@ -468,12 +468,13 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
             // TODO(Guodong): Optimize here. if no deletions and has sequential rows, scan in
             // range.
             for (const auto row : rows) {
+                if (row == INVALID_ROW_IDX) {
+                    continue;
+                }
                 auto [chunkIdx, rowInChunk] =
                     StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
                 const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
-                if (chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk)) {
-                    continue;
-                }
+                KU_ASSERT(!chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk));
                 chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
                     &DUMMY_CHECKPOINT_TRANSACTION, chunkState, *newChunk, rowInChunk, 1);
             }
@@ -529,11 +530,14 @@ void CSRNodeGroup::collectInMemRegionChangesAndUpdateHeaderLength(const UniqLock
             auto rows = csrIndex->indices[nodeOffset].getRows();
             row_idx_t numInsertedRows = rows.size();
             row_idx_t numInMemDeletionsInCSR = 0;
-            for (const auto row : rows) {
+            for (auto i = 0u; i < rows.size(); i++) {
+                const auto row = rows[i];
                 auto [chunkIdx, rowInChunk] =
                     StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
                 const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
                 if (chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk)) {
+                    csrIndex->indices[nodeOffset].turnToNonSequential();
+                    csrIndex->indices[nodeOffset].setInvalid(i);
                     numInMemDeletionsInCSR++;
                 }
             }
@@ -634,23 +638,32 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     // Scan tuples from in mem node groups and append to data chunks to flush.
     for (auto offset = 0u; offset < numNodes; offset++) {
         const auto numRows = csrIndex->getNumRows(offset);
-        if (numRows > 0) {
-            auto rows = csrIndex->indices[offset].getRows();
-            auto numRowsAppended = 0u;
-            while (numRowsAppended < numRows) {
-                const auto numRowsToAppend =
-                    std::min(numRows - numRowsAppended, DEFAULT_VECTOR_CAPACITY);
-                scanChunkState->getSelVectorUnsafe().setSelSize(numRowsToAppend);
-                for (auto i = 0u; i < numRowsToAppend; i++) {
-                    scanState->rowIdxVector->setValue<row_idx_t>(i, rows[numRowsAppended + i]);
+        if (numRows == 0) {
+            continue;
+        }
+        auto rows = csrIndex->indices[offset].getRows();
+        auto numRowsTryAppended = 0u;
+        while (numRowsTryAppended < numRows) {
+            const auto maxNumRowsToAppend =
+                std::min(numRows - numRowsTryAppended, DEFAULT_VECTOR_CAPACITY);
+            auto numRowsToAppend = 0u;
+            for (auto i = 0u; i < maxNumRowsToAppend; i++) {
+                const auto row = rows[numRowsTryAppended + i];
+                if (row == INVALID_ROW_IDX) {
+                    continue;
                 }
+                numRowsToAppend++;
+                scanState->rowIdxVector->setValue<row_idx_t>(i, row);
+            }
+            scanChunkState->getSelVectorUnsafe().setSelSize(numRowsToAppend);
+            if (numRowsToAppend > 0) {
                 NodeGroup::lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
                 for (auto idx = 0u; idx < numColumnsToCheckpoint; idx++) {
                     dataChunksToFlush[idx]->getData().append(scanChunk.valueVectors[idx].get(),
                         scanChunkState->getSelVector());
                 }
-                numRowsAppended += numRowsToAppend;
             }
+            numRowsTryAppended += maxNumRowsToAppend;
         }
         auto gapSize = csrState.newHeader->getGapSize(offset);
         while (gapSize > 0) {
@@ -707,11 +720,18 @@ void CSRNodeGroup::populateCSRLengthInMemOnly(const UniqLock& lock, offset_t num
         auto rows = csrIndex->indices[offset].getRows();
         const length_t length = rows.size();
         auto lengthAfterDelete = length;
-        for (const auto row : rows) {
+        for (auto i = 0u; i < rows.size(); i++) {
+            const auto row = rows[i];
             auto [chunkIdx, rowInChunk] =
                 StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
             const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
-            lengthAfterDelete -= chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk);
+            const auto isDeleted =
+                chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk);
+            if (isDeleted) {
+                csrIndex->indices[offset].turnToNonSequential();
+                csrIndex->indices[offset].setInvalid(i);
+                lengthAfterDelete--;
+            }
         }
         KU_ASSERT(lengthAfterDelete <= length);
         csrState.newHeader->length->getData().setValue<length_t>(lengthAfterDelete, offset);

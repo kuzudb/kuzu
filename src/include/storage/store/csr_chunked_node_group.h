@@ -16,6 +16,7 @@ struct CSRRegion {
     std::vector<bool> hasUpdates;
     // Note: `sizeChange` equal to 0 is not enough to indicate the region has no insert or
     // delete. It might just be num of insertions are equal to num of deletions.
+    // hasInsertions is true if there are insertions that are not deleted yet in this region.
     bool hasInsertions = false;
     bool hasPersistentDeletions = false;
 
