@@ -790,6 +790,9 @@ void InternalIDChunkData::copyVectorToBuffer(ValueVector* vector, offset_t start
     }
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         const auto pos = selVector[i];
+        if (vector->isNull(pos)) {
+            continue;
+        }
         KU_ASSERT(relIDsInVector[pos].tableID == commonTableID);
         memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue, &relIDsInVector[pos].offset,
             numBytesPerValue);
@@ -801,6 +804,9 @@ void InternalIDChunkData::copyInt64VectorToBuffer(ValueVector* vector, offset_t 
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         const auto pos = selVector[i];
+        if (vector->isNull(pos)) {
+            continue;
+        }
         memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
             &vector->getValue<offset_t>(pos), numBytesPerValue);
     }
