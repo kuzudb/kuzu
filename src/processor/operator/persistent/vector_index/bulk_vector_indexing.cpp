@@ -6,6 +6,7 @@
 #include "catalog/catalog.h"
 #include "common/enums/rel_multiplicity.h"
 #include "storage/storage_manager.h"
+#include "storage/store/column.h"
 
 namespace kuzu {
 namespace processor {
@@ -36,13 +37,22 @@ void BulkVectorIndexing::initGlobalStateInternal(ExecutionContext* context) {
         StorageConstants::NODE_GROUP_SIZE);
     sharedState->builder = std::make_unique<VectorIndexBuilder>(sharedState->header,
         sharedState->graph.get(), sharedState->tempStorage.get());
+
+    auto table = ku_dynamic_cast<Table*, NodeTable*>(context->clientContext->getStorageManager()->getTable(
+        sharedState->header->getNodeTableId()));
+    sharedState->compressedStorage = std::make_unique<CompressedVectorStorage>(
+        context->clientContext->getTx(), table->getColumn(table->getPKColumnID())->getMetadataDA(),
+        sharedState->header->getDim());
+    sharedState->compressedPropertyColumn =
+        table->getColumn(sharedState->header->getCompressedPropertyId());
 }
 
 void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
     std::vector<vector_id_t> vectorIds(DEFAULT_VECTOR_CAPACITY);
+    SQ8Bit* quantizer = sharedState->header->getQuantizer();
+    printf("Running indexing!!\n");
     while (children[0]->getNextTuple(context)) {
         // print the thread id
-        printf("Thread id in: %d\n", std::this_thread::get_id());
         auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
         auto vectors = reinterpret_cast<float*>(
             ListVector::getDataVector(localState->embeddingVector)->getData());
@@ -53,9 +63,28 @@ void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
         }
         sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
             localState->visited.get(), localState->dc.get());
+        // Train the quantizer
+        quantizer->batch_train(numVectors, vectors);
     }
-    // Need some kind of barrier here to ensure all threads have finished and then
-    // populate the partition buffer
+    // TODO: Need some kind of barrier here to ensure all threads have finished and then
+    //  populate the partition buffer
+    printf("Running quantization!!\n");
+    // Wait for all threads to finish indexing
+    sharedState->compressionLatch.arrive_and_wait();
+    Column::ChunkState state;
+    // Start compressing the vectors
+    while (true) {
+        auto element = sharedState->compressedStorage->getCompressedChunk();
+        if (element.nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
+            break;
+        }
+        auto& listChunk = element.columnChunk->cast<ListChunkData>();
+        quantizer->encode(sharedState->tempStorage->vectors + element.startOffset,
+            listChunk.getDataColumnChunk()->getData(), listChunk.getNumValues());
+        sharedState->compressedPropertyColumn->initChunkState(context->clientContext->getTx(),
+            element.nodeGroupIdx, state);
+        sharedState->compressedPropertyColumn->append(element.columnChunk.get(), state);
+    }
 }
 
 void BulkVectorIndexing::finalize(ExecutionContext* /*context*/) {

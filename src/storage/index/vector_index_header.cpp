@@ -13,17 +13,19 @@ namespace kuzu {
 namespace storage {
 
 VectorIndexHeader::VectorIndexHeader(int dim, const VectorIndexConfig config, table_id_t tableId,
-    property_id_t embeddingPropertyId, table_id_t csrRelTableId)
+    property_id_t embeddingPropertyId, property_id_t compressedPropertyId, table_id_t csrRelTableId)
     : dim(dim), numVectors(0), config(std::move(config)), entrypoint(INVALID_VECTOR_ID),
       entrypointLevel(0), numVectorsInUpperLevel(0), nodeTableId(tableId),
-      embeddingPropertyId(embeddingPropertyId), csrRelTableIds(csrRelTableId), re(RandomEngine()) {}
+      embeddingPropertyId(embeddingPropertyId), compressedPropertyId(compressedPropertyId),
+      csrRelTableIds(csrRelTableId), quantizer(std::make_unique<SQ8Bit>(dim)), re(RandomEngine()) {}
 
 VectorIndexHeader::VectorIndexHeader(const VectorIndexHeader& other)
     : dim(other.dim), numVectors(other.numVectors), config(other.config),
       entrypoint(other.entrypoint), entrypointLevel(other.entrypointLevel),
       numVectorsInUpperLevel(other.numVectorsInUpperLevel), nodeTableId(other.nodeTableId),
-      embeddingPropertyId(other.embeddingPropertyId), csrRelTableIds(other.csrRelTableIds),
-      re(RandomEngine()) {
+      embeddingPropertyId(other.embeddingPropertyId),
+      compressedPropertyId(other.compressedPropertyId), csrRelTableIds(other.csrRelTableIds),
+      quantizer(other.quantizer->copy()), re(RandomEngine()) {
     actualIds = std::vector<vector_id_t>(other.actualIds);
     neighbors = std::vector<vector_id_t>(other.neighbors);
 }
@@ -31,12 +33,14 @@ VectorIndexHeader::VectorIndexHeader(const VectorIndexHeader& other)
 VectorIndexHeader::VectorIndexHeader(int dim, uint64_t numVectors, const VectorIndexConfig config,
     vector_id_t entrypoint, uint8_t entrypointLevel, std::vector<vector_id_t> actualIds,
     std::vector<vector_id_t> neighbors, uint64_t numVectorsInUpperLevel, table_id_t nodeTableId,
-    property_id_t embeddingPropertyId, table_id_t csrRelTableIds)
+    property_id_t embeddingPropertyId, property_id_t compressedPropertyId,
+    table_id_t csrRelTableIds, std::unique_ptr<SQ8Bit> quantizer)
     : dim(dim), numVectors(numVectors), config(config), entrypoint(entrypoint),
       entrypointLevel(entrypointLevel), actualIds(std::move(actualIds)),
       neighbors(std::move(neighbors)), numVectorsInUpperLevel(numVectorsInUpperLevel),
       nodeTableId(nodeTableId), embeddingPropertyId(embeddingPropertyId),
-      csrRelTableIds(csrRelTableIds), re(RandomEngine()) {}
+      compressedPropertyId(compressedPropertyId), csrRelTableIds(csrRelTableIds),
+      quantizer(std::move(quantizer)), re(RandomEngine()) {}
 
 bool VectorIndexHeader::includeInUpperLevel() {
     float f = re.randomFloat();
@@ -111,7 +115,9 @@ void VectorIndexHeader::serialize(Serializer& serializer) const {
     serializer.serializeValue(numVectorsInUpperLevel);
     serializer.serializeValue(nodeTableId);
     serializer.serializeValue(embeddingPropertyId);
+    serializer.serializeValue(compressedPropertyId);
     serializer.serializeValue(csrRelTableIds);
+    quantizer->serialize(serializer);
 }
 
 std::unique_ptr<VectorIndexHeader> VectorIndexHeader::deserialize(Deserializer& deserializer) {
@@ -134,11 +140,14 @@ std::unique_ptr<VectorIndexHeader> VectorIndexHeader::deserialize(Deserializer& 
     deserializer.deserializeValue(nodeTableId);
     property_id_t embeddingPropertyId;
     deserializer.deserializeValue(embeddingPropertyId);
+    property_id_t compressedPropertyId;
+    deserializer.deserializeValue(compressedPropertyId);
     table_id_t csrRelTableIds;
     deserializer.deserializeValue(csrRelTableIds);
+    std::unique_ptr<SQ8Bit> quantizer = SQ8Bit::deserialize(deserializer);
     return std::make_unique<VectorIndexHeader>(dim, numVectors, config, entrypoint, entrypointLevel,
         std::move(actualIds), std::move(neighbors), numVectorsInUpperLevel, nodeTableId,
-        embeddingPropertyId, csrRelTableIds);
+        embeddingPropertyId, compressedPropertyId, csrRelTableIds, std::move(quantizer));
 }
 
 void VectorIndexKey::serialize(common::Serializer& serializer) const {

@@ -196,7 +196,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 }
 
 void NodeTable::addColumn(Transaction* transaction, const Property& property,
-    ExpressionEvaluator& defaultEvaluator) {
+    ExpressionEvaluator* defaultEvaluator) {
     const auto nodesStats =
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
     nodesStats->addMetadataDAHInfo(tableID, property.getDataType());

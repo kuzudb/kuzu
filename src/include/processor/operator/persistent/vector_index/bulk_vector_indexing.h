@@ -7,6 +7,7 @@
 #include "storage/index/vector_index_header.h"
 #include "storage/store/chunked_node_group_collection.h"
 #include "storage/store/node_table.h"
+#include <latch>
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -22,11 +23,14 @@ struct BulkVectorIndexingSharedState {
     std::unique_ptr<VectorIndexBuilder> builder;
     std::unique_ptr<VectorIndexGraph> graph;
     std::unique_ptr<VectorTempStorage> tempStorage;
+    std::unique_ptr<CompressedVectorStorage> compressedStorage;
+    Column* compressedPropertyColumn;
+    std::latch compressionLatch;
 
     explicit BulkVectorIndexingSharedState(offset_t maxOffsetNodeTable, VectorIndexHeader* header,
-        std::shared_ptr<PartitionerSharedState> partitionerSharedState)
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState, int numThreads)
         : maxOffsetNodeTable{maxOffsetNodeTable}, header{header},
-          partitionerSharedState{partitionerSharedState} {}
+          partitionerSharedState{partitionerSharedState}, compressionLatch(numThreads) {}
 };
 
 struct BulkVectorIndexingLocalState {

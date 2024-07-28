@@ -1,1 +1,1 @@
-CREATE NODE TABLE embeddings (id SERIAL, embedding FLOAT[128], PRIMARY KEY (id));
+CREATE NODE TABLE embeddings (id SERIAL, embedding FLOAT[960], PRIMARY KEY (id));

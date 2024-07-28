@@ -23,6 +23,10 @@ public:
         reader->read((uint8_t*)&value, sizeof(T));
     }
 
+    void deserializeValue(uint8_t* value, uint64_t size) {
+        reader->read(value, size);
+    }
+
     template<typename T>
     void deserializeOptionalValue(std::unique_ptr<T>& value) {
         bool isNull;

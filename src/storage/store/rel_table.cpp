@@ -1,10 +1,13 @@
 #include "storage/store/rel_table.h"
 
+#include <optional>
+
 #include "common/cast.h"
 #include "common/exception/message.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/rel_table_data.h"
+#include "expression_evaluator/expression_evaluator.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -154,7 +157,8 @@ row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableDat
 //
 //>>>>>>> 5cbfe998f (Fix issue-3166)
 void RelTable::addColumn(Transaction* transaction, const Property& property,
-    ExpressionEvaluator& defaultEvaluator) {
+    evaluator::ExpressionEvaluator* defaultEvaluator) {
+    KU_ASSERT(defaultEvaluator != nullptr);
     const auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
     relsStats->addMetadataDAHInfo(tableID, property.getDataType());
     fwdRelTableData->addColumn(transaction,

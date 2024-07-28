@@ -1,7 +1,0 @@
-CREATE NODE TABLE embeddings (id SERIAL, embedding FLOAT[128], PRIMARY KEY (id));
-COPY embeddings FROM "/Users/gauravsehgal/work/orangedb/data/gist_10k/embeddings.csv" (deLim=',');
-COPY embeddings FROM "/Users/gauravsehgal/work/orangedb/data/siftsmall/embeddings.csv" (deLim=',');
-ls ;
-CREATE VECTOR INDEX ON embeddings.embedding (samplingProbability=0.2, alpha=1.0);
-UPDATE VECTOR INDEX ON embeddings.embedding;
-CALL ANN_SEARCH(embeddings.embedding, [0.0459], 100, 100, false) RETURN Id(_node), _distance;

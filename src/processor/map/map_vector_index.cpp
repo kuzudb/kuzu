@@ -9,6 +9,7 @@
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/storage_manager.h"
+#include "main/db_config.h"
 
 using namespace kuzu::planner;
 using namespace kuzu::catalog;
@@ -68,8 +69,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUpdateVectorIndex(
     partitionerSharedState->numPartitions.push_back(numPartitions);
     partitionerSharedState->partitioningBuffers.push_back(std::make_unique<PartitioningBuffer>());
 
-    auto sharedState =
-        std::make_shared<BulkVectorIndexingSharedState>(maxOffset, header, partitionerSharedState);
+    auto sharedState = std::make_shared<BulkVectorIndexingSharedState>(maxOffset, header,
+        partitionerSharedState, clientContext->getDBConfig()->maxNumThreads);
 
     auto bulkIndexing = std::make_unique<BulkVectorIndexing>(
         std::make_unique<ResultSetDescriptor>(outSchema), std::move(localState), sharedState,

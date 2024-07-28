@@ -57,7 +57,7 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         auto addedProp = schema->getProperty(addedPropID);
         auto storageManager = context->clientContext->getStorageManager();
         storageManager->getTable(info.tableID)
-            ->addColumn(context->clientContext->getTx(), *addedProp, *defaultValueEvaluator);
+            ->addColumn(context->clientContext->getTx(), *addedProp, defaultValueEvaluator.get());
     }
 }
 

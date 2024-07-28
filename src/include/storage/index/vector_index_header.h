@@ -4,14 +4,15 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <vector>
-#include <mutex>
 
 #include "common/random_engine.h"
 #include "common/types/types.h"
 #include "common/vector_index/vector_index_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/index/quantization.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -26,14 +27,16 @@ class DiskArrayCollection;
 class VectorIndexHeader {
 public:
     explicit VectorIndexHeader(int dim, const VectorIndexConfig config, table_id_t tableId,
-        property_id_t embeddingPropertyId, table_id_t csrRelTableId);
+        property_id_t embeddingPropertyId, property_id_t compressedPropertyId,
+        table_id_t csrRelTableId);
 
     VectorIndexHeader(const VectorIndexHeader& other);
 
     explicit VectorIndexHeader(int dim, uint64_t numVectors, const VectorIndexConfig config,
         vector_id_t entrypoint, uint8_t entrypointLevel, std::vector<vector_id_t> actualIds,
         std::vector<vector_id_t> neighbors, uint64_t numVectorsInUpperLevel, table_id_t nodeTableId,
-        property_id_t embeddingPropertyId, table_id_t csrRelTableIds);
+        property_id_t embeddingPropertyId, property_id_t compressedPropertyId,
+        table_id_t csrRelTableIds, std::unique_ptr<SQ8Bit> quantizer);
 
     void initSampleGraph(uint64_t numVectors);
 
@@ -65,6 +68,8 @@ public:
 
     inline property_id_t getEmbeddingPropertyId() const { return embeddingPropertyId; }
 
+    inline property_id_t getCompressedPropertyId() const { return compressedPropertyId; }
+
     inline table_id_t getCSRRelTableId() const { return csrRelTableIds; }
 
     static std::string getIndexRelTableName(table_id_t nodeTableId,
@@ -72,7 +77,13 @@ public:
         return stringFormat("{}_{}_vector_index", nodeTableId, embeddingPropertyId);
     }
 
+    static std::string getCompressedVectorPropertyName(property_id_t embeddingPropertyId) {
+        return stringFormat("{}_compressed_vectors", embeddingPropertyId);
+    }
+
     inline uint64_t getNumVectors() const { return numVectors; }
+
+    inline SQ8Bit* getQuantizer() { return quantizer.get(); }
 
     void serialize(Serializer& serializer) const;
 
@@ -104,9 +115,13 @@ private:
     // Node table info
     table_id_t nodeTableId;
     property_id_t embeddingPropertyId;
+    property_id_t compressedPropertyId;
 
     // CSR Rel Table ID
     table_id_t csrRelTableIds;
+
+    // Quantizer
+    std::unique_ptr<SQ8Bit> quantizer;
 
     // This is used to keep track of the number of vectors in each level
     RandomEngine re;
@@ -138,8 +153,7 @@ struct VectorIndexHeaderCollection {
     std::unordered_map<VectorIndexKey, std::unique_ptr<VectorIndexHeader>, VectorIndexKeyHasher>
         vectorIndexPerTable;
 
-    VectorIndexHeader* getVectorIndexHeader(table_id_t tableID,
-        property_id_t propertyId) const {
+    VectorIndexHeader* getVectorIndexHeader(table_id_t tableID, property_id_t propertyId) const {
         auto key = VectorIndexKey(tableID, propertyId);
         KU_ASSERT(vectorIndexPerTable.contains(key));
         return vectorIndexPerTable.at(key).get();

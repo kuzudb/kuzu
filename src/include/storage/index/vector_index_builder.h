@@ -8,6 +8,8 @@
 #include "common/vector_index/helpers.h"
 #include "processor/operator/partitioner.h"
 #include "storage/index/vector_index_header.h"
+#include "storage/storage_structure/disk_array.h"
+#include "storage/store/list_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
@@ -78,7 +80,6 @@ struct VectorTempStorage {
     }
 
     ~VectorTempStorage() {
-        printf("Deleting VectorTempStorage\n");
         free(vectors);
     }
 
@@ -113,6 +114,66 @@ struct VectorTempStorage {
     float* vectors;
     uint64_t dim;
     uint64_t numVectors;
+};
+
+// Struct to store compressed vectors with ColumnChunkData
+struct CompressedVectorStorage {
+    struct Element {
+        node_group_idx_t nodeGroupIdx;
+        uint64_t startOffset;
+        std::unique_ptr<ColumnChunkData> columnChunk;
+    };
+
+    explicit CompressedVectorStorage(Transaction* transaction,
+        DiskArray<ColumnChunkMetadata>* metadataDA, size_t dim) {
+        KU_ASSERT(metadataDA != nullptr);
+        // TODO: Make it generic, currently only supports scalar quantization
+        auto dataType = LogicalType::ARRAY(LogicalType::INT8(), dim);
+        auto numNodeGroups = metadataDA->getNumElements(transaction->getType());
+
+        uint64_t startOffset = 0;
+        for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+            auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+            auto capacity = StorageConstants::NODE_GROUP_SIZE;
+            // TODO: Maybe this is not needed for node group
+            while (capacity < chunkMeta.numValues) {
+                capacity *= CHUNK_RESIZE_RATIO;
+            }
+            auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(), true, capacity);
+            auto& listChunk = columnChunk->cast<ListChunkData>();
+            listChunk.getDataColumnChunk()->resize(chunkMeta.numValues * (dim + 4));
+            // Set offset and size column
+            auto offsetColumn = listChunk.getOffsetColumnChunk();
+            auto sizeColumn = listChunk.getSizeColumnChunk();
+
+            // Initialize offset and size column
+            uint64_t offset = 0;
+            for (auto i = 0u; i < chunkMeta.numValues; i++) {
+                offsetColumn->setValue(offset, i);
+                sizeColumn->setValue((uint32_t)(dim + 4), i);
+                offset += (dim + 4);
+            }
+            listChunk.setNumValues(chunkMeta.numValues);
+            listChunk.getDataColumnChunk()->setNumValues(chunkMeta.numValues * (dim + 4));
+            queue.push({nodeGroupIdx, startOffset, std::move(columnChunk)});
+            startOffset += chunkMeta.numValues * (dim + 4);
+        }
+    }
+
+    Element getCompressedChunk() {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (queue.empty()) {
+            return {INVALID_NODE_GROUP_IDX, UINT64_MAX, nullptr};
+        }
+
+        auto pair = std::move(queue.front());
+        queue.pop();
+
+        return pair;
+    }
+
+    std::mutex mtx;
+    std::queue<Element> queue;
 };
 
 class IndexKNN {
