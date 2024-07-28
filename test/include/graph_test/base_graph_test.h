@@ -26,8 +26,6 @@ class BaseGraphTest : public Test {
 public:
     void SetUp() override {
         systemConfig = TestHelper::getSystemConfigFromEnv();
-        systemConfig->autoCheckpoint = true;
-        systemConfig->checkpointThreshold = 0;
         setDatabasePath();
         removeDir(databasePath);
 
