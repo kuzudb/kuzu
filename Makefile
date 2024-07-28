@@ -93,10 +93,12 @@ alldebug:
 
 # Main tests
 test:
+	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
 	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
+	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
 	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
