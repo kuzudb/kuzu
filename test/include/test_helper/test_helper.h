@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 
 #include "main/kuzu.h"
 
@@ -45,6 +46,29 @@ public:
         } else {
             return path;
         }
+    }
+
+    static std::unique_ptr<kuzu::main::SystemConfig> getSystemConfigFromEnv() {
+        auto systemConfig = std::make_unique<kuzu::main::SystemConfig>();
+        auto autoCheckpointEnv = std::getenv("AUTO_CHECKPOINT");
+        auto bufferPoolSizeEnv = std::getenv("BUFFER_POOL_SIZE");
+        auto maxNumThreadsEnv = std::getenv("MAX_NUM_THREADS");
+        auto enableCompressionEnv = std::getenv("ENABLE_COMPRESSION");
+        auto checkpointThresholdEnv = std::getenv("CHECKPOINT_THRESHOLD");
+        auto isValid = [](const char* env) { return env != nullptr && strlen(env) > 0; };
+        systemConfig->autoCheckpoint =
+            isValid(autoCheckpointEnv) ? std::string(autoCheckpointEnv) == "true" : false;
+        systemConfig->bufferPoolSize =
+            isValid(bufferPoolSizeEnv) ?
+                std::stoull(bufferPoolSizeEnv) :
+                common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
+        systemConfig->maxNumThreads = isValid(maxNumThreadsEnv) ? std::stoull(maxNumThreadsEnv) : 2;
+        systemConfig->enableCompression =
+            isValid(enableCompressionEnv) ? std::string(enableCompressionEnv) == "true" : true;
+        systemConfig->checkpointThreshold = isValid(checkpointThresholdEnv) ?
+                                                std::stoull(checkpointThresholdEnv) :
+                                                systemConfig->checkpointThreshold;
+        return systemConfig;
     }
 
     static std::string getMillisecondsSuffix();
