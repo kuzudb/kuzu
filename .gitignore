@@ -65,4 +65,4 @@ scripts/generate-cpp-docs/c/docs
 # Generated datasets
 dataset/binary-demo
 dataset/databases/tinysnb
-dataset/ldbc-1/csv/csv
+dataset/ldbc-1/csv

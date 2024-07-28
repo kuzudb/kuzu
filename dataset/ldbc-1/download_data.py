@@ -17,9 +17,9 @@ print("Downloading CSV files from '%s' to '%s'..." % (URL, CSV_ZIP_PATH))
 urllib.request.urlretrieve(URL, CSV_ZIP_PATH)
 
 
-print("Extracting CSV files to '%s'..." % CSV_PATH)
+print("Extracting CSV files to '%s'..." % BASE_PATH)
 with zipfile.ZipFile(CSV_ZIP_PATH, "r") as zip_ref:
-    zip_ref.extractall(CSV_PATH)
+    zip_ref.extractall(BASE_PATH)
 
 print("Removing CSV zip file '%s'..." % CSV_ZIP_PATH)
 os.remove(CSV_ZIP_PATH)

@@ -594,6 +594,7 @@ jobs:
       - name: Test
         run: |
           ulimit -n 10240
+          ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Python test
