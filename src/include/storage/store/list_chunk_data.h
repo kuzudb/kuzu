@@ -44,7 +44,13 @@ public:
         sizeColumnChunk->setNumValues(numValues_);
         offsetColumnChunk->setNumValues(numValues_);
     }
+
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
+
+    void syncNumValues() {
+        numValues = offsetColumnChunk->getNumValues();
+        metadata.numValues = numValues;
+    }
 
     void resetNumValuesFromMetadata() override;
 
@@ -73,6 +79,7 @@ public:
         sizeColumnChunk->setToInMemory();
         offsetColumnChunk->setToInMemory();
         dataColumnChunk->setToInMemory();
+        KU_ASSERT(offsetColumnChunk->getNumValues() == numValues);
     }
     void resize(uint64_t newCapacity) override {
         ColumnChunkData::resize(newCapacity);

@@ -6,17 +6,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     std::vector<StructField> fields;
-    for (auto& argument : arguments) {
+    for (auto& argument : input.arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
         fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
     }
     auto resultType = LogicalType::STRUCT(std::move(fields));
-    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
+    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
 }
 
 void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,

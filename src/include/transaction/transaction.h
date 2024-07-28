@@ -91,8 +91,8 @@ public:
         return maxCommittedNodeOffsets.at(tableID);
     }
 
-    void pushCatalogEntry(catalog::CatalogSet& catalogSet,
-        catalog::CatalogEntry& catalogEntry) const;
+    void pushCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
+        bool skipLoggingToWAL = false) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
     void pushVectorInsertInfo(storage::VersionInfo& versionInfo, common::idx_t vectorIdx,

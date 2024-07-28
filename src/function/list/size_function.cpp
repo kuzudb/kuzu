@@ -7,16 +7,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> sizeBindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    auto scalarFunc = function->constPtrCast<ScalarFunction>();
+static std::unique_ptr<FunctionBindData> sizeBindFunc(ScalarBindFuncInput input) {
+    auto scalarFunc = input.definition->constPtrCast<ScalarFunction>();
     auto resultType = LogicalType(scalarFunc->returnTypeID);
-    if (function->parameterTypeIDs[0] == common::LogicalTypeID::STRING) {
+    if (input.definition->parameterTypeIDs[0] == common::LogicalTypeID::STRING) {
         std::vector<LogicalType> paramTypes;
         paramTypes.push_back(LogicalType::STRING());
         return std::make_unique<FunctionBindData>(std::move(paramTypes), resultType.copy());
     } else {
-        return FunctionBindData::getSimpleBindData(arguments, resultType);
+        return FunctionBindData::getSimpleBindData(input.arguments, resultType);
     }
 }
 

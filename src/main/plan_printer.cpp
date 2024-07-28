@@ -194,19 +194,35 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss
                     auto leftHorizLineSize = (opProfileBoxWidth - 1) / 2;
                     if (i == halfWayPoint) {
                         oss << genHorizLine(leftHorizLineSize + 1);
-                        if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1)) {
+                        if (hasOpProfileBox(rowIdx + 1, j + 4) && !hasOpProfileBox(rowIdx, j + 1)) {
                             oss << "┬" << genHorizLine(opProfileBoxWidth - 1 - leftHorizLineSize);
                         } else {
-                            oss << "┐"
-                                << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
+                            if ((hasOpProfileBox(rowIdx + 1, j + 1) &&
+                                    !hasOpProfileBox(rowIdx, j) &&
+                                    !hasOpProfileBox(rowIdx, j + 1)) ||
+                                (hasOpProfileBox(rowIdx + 1, j + 2) &&
+                                    !hasOpProfileBox(rowIdx, j + 1))) {
+                                oss << "┬" << genHorizLine(opProfileBoxWidth / 2);
+                            } else {
+                                oss << "┐"
+                                    << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
+                            }
                         }
                     } else if (i > halfWayPoint) {
                         printSpaceIfNecessary(j, oss);
                         oss << std::string(leftHorizLineSize, ' ') << "│"
                             << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
                     }
-                } else if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1) &&
-                           i == halfWayPoint) {
+                } else if (((hasOpProfileBox(rowIdx + 1, j + 1) &&
+                                !hasOpProfileBox(rowIdx, j + 1)) ||
+                               (hasOpProfileBox(rowIdx + 1, j + 3) &&
+                                   !hasOpProfileBox(rowIdx, j + 3) &&
+                                   !hasOpProfileBox(rowIdx, j + 1) &&
+                                   !hasOpProfileBox(rowIdx, j + 2)) ||
+                               (hasOpProfileBox(rowIdx + 1, j - 2) &&
+                                   !hasOpProfileBox(rowIdx, j - 2) &&
+                                   hasOpProfileBox(rowIdx + 1, j + 3))) &&
+                           i == halfWayPoint && !hasOpProfileBox(rowIdx, j + 2)) {
                     oss << genHorizLine(opProfileBoxWidth + 1);
                     offset = offset == 0 ? 1 : 0;
                 } else {

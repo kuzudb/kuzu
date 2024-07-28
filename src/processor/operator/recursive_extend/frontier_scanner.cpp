@@ -202,14 +202,14 @@ void PathScanner::writePathToVector(RecursiveJoinVectors& vectors, sel_t& vector
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             for (auto i = 0u; i < k; ++i) {
-                writePathSrcDstNode(i, i + 1, vectors, relIDDataVectorPos);
+                writePathSrcDstNode(k - 1 - i, k - i, vectors, relIDDataVectorPos);
                 writePathRel(relIDs[k - 1 - i], vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }
         } break;
         case ExtendDirection::BWD: {
             for (auto i = 0u; i < k; ++i) {
-                writePathSrcDstNode(i + 1, i, vectors, relIDDataVectorPos);
+                writePathSrcDstNode(k - i, k - 1 - i, vectors, relIDDataVectorPos);
                 writePathRel(relIDs[k - 1 - i], vectors, relIDDataVectorPos);
                 relIDDataVectorPos++;
             }

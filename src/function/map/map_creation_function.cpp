@@ -8,12 +8,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function* /*function*/) {
-    const auto& keyType = ListType::getChildType(arguments[0]->dataType);
-    const auto& valueType = ListType::getChildType(arguments[1]->dataType);
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    const auto& keyType = ListType::getChildType(input.arguments[0]->dataType);
+    const auto& valueType = ListType::getChildType(input.arguments[1]->dataType);
     auto resultType = LogicalType::MAP(keyType.copy(), valueType.copy());
-    return FunctionBindData::getSimpleBindData(arguments, std::move(resultType));
+    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
 }
 
 function_set MapCreationFunctions::getFunctionSet() {

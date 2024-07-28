@@ -121,14 +121,14 @@ static void jsonExtractMultiPath(const std::vector<std::shared_ptr<ValueVector>>
     }
 }
 
-static std::unique_ptr<FunctionBindData> bindJsonExtractMultiPath(
-    const binder::expression_vector& params, Function* /*definition*/) {
-    KU_ASSERT(params.size() == 2);
-    if (ListType::getChildType(params[1]->getDataType()).getLogicalTypeID() !=
+static std::unique_ptr<FunctionBindData> bindJsonExtractMultiPath(ScalarBindFuncInput input) {
+    KU_ASSERT(input.arguments.size() == 2);
+    if (ListType::getChildType(input.arguments[1]->getDataType()).getLogicalTypeID() !=
         LogicalTypeID::STRING) {
         throw BinderException("List passed to json_extract must contain type STRING");
     }
-    return FunctionBindData::getSimpleBindData(params, LogicalType::LIST(LogicalType::STRING()));
+    return FunctionBindData::getSimpleBindData(input.arguments,
+        LogicalType::LIST(LogicalType::STRING()));
 }
 
 function_set JsonExtractFunction::getFunctionSet() {
@@ -197,10 +197,10 @@ function_set JsonContainsFunction::getFunctionSet() {
     return result;
 }
 
-static std::unique_ptr<FunctionBindData> bindJsonKeysFunction(
-    const binder::expression_vector& params, Function* /*definition*/) {
-    KU_ASSERT(params.size() == 1);
-    return FunctionBindData::getSimpleBindData(params, LogicalType::LIST(LogicalType::STRING()));
+static std::unique_ptr<FunctionBindData> bindJsonKeysFunction(ScalarBindFuncInput input) {
+    KU_ASSERT(input.arguments.size() == 1);
+    return FunctionBindData::getSimpleBindData(input.arguments,
+        LogicalType::LIST(LogicalType::STRING()));
 }
 
 static void jsonKeysExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,

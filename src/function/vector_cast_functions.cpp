@@ -10,6 +10,7 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
 #include "function/cast/functions/cast_rdf_variant.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -1056,9 +1057,8 @@ function_set CastToIntervalFunction::getFunctionSet() {
     return result;
 }
 
-static std::unique_ptr<FunctionBindData> toStringBindFunc(
-    const binder::expression_vector& arguments, Function*) {
-    return FunctionBindData::getSimpleBindData(arguments, LogicalType::STRING());
+static std::unique_ptr<FunctionBindData> toStringBindFunc(ScalarBindFuncInput input) {
+    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::STRING());
 }
 
 function_set CastToStringFunction::getFunctionSet() {
@@ -1254,29 +1254,31 @@ function_set CastToUInt8Function::getFunctionSet() {
 // TODO(Xiyang): I think it is better to create a new grammar/syntax for casting operations.
 //  E.g. Instead of reusing the function grammar (cast(3, 'string')), i think it is better to
 //  provide the user with a new grammar: cast(3 as string) similar to duckdb.
-static std::unique_ptr<FunctionBindData> castBindFunc(const binder::expression_vector& arguments,
-    Function* function) {
-    KU_ASSERT(arguments.size() == 2);
+static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input) {
+    KU_ASSERT(input.arguments.size() == 2);
     // Bind target type.
-    if (arguments[1]->expressionType != ExpressionType::LITERAL) {
+    if (input.arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException(stringFormat("Second parameter of CAST function must be a literal."));
     }
-    auto literalExpr = arguments[1]->constPtrCast<LiteralExpression>();
+    auto literalExpr = input.arguments[1]->constPtrCast<LiteralExpression>();
     auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
     // TODO(Ziyi): we should pass the clientContext pointer here so the bind function can access
     // the user defined types.
-    auto targetType = LogicalType::fromString(targetTypeStr);
-    if (targetType == arguments[0]->getDataType()) { // No need to cast.
+    LogicalType targetType;
+    if (!LogicalType::tryConvertFromString(targetTypeStr, targetType)) {
+        targetType = input.context->getCatalog()->getType(input.context->getTx(), targetTypeStr);
+    }
+    if (targetType == input.arguments[0]->getDataType()) { // No need to cast.
         return nullptr;
     }
-    if (ExpressionUtil::canCastStatically(*arguments[0], targetType)) {
-        arguments[0]->cast(targetType);
+    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType)) {
+        input.arguments[0]->cast(targetType);
         return nullptr;
     }
-    auto func = ku_dynamic_cast<Function*, ScalarFunction*>(function);
+    auto func = input.definition->ptrCast<ScalarFunction>();
     func->name = "CAST_TO_" + targetTypeStr;
     func->execFunc =
-        CastFunction::bindCastFunction(func->name, arguments[0]->getDataType(), targetType)
+        CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType)
             ->execFunc;
     return std::make_unique<function::CastFunctionBindData>(targetType.copy());
 }

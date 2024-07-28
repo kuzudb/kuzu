@@ -9,13 +9,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(const binder::expression_vector& arguments,
-    Function*) {
-    const auto& structType = arguments[0]->getDataType();
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    const auto& structType = input.arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(structType, InternalKeyword::RELS);
     auto resultType = StructType::getField(structType, fieldIdx).getType().copy();
     auto bindData = std::make_unique<StructExtractBindData>(std::move(resultType), fieldIdx);
-    bindData->paramTypes = binder::ExpressionUtil::getDataTypes(arguments);
+    bindData->paramTypes = binder::ExpressionUtil::getDataTypes(input.arguments);
     return bindData;
 }
 

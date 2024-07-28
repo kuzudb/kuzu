@@ -43,7 +43,7 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples)")
-    result.check_not_stdout(["|  . |", "|  . |", "|  . |"])
+    result.check_not_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
 
     # test 1 row shown
     test = (
@@ -54,7 +54,7 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples, 1 shown)")
-    result.check_stdout(["|  . |", "|  . |", "|  . |"])
+    result.check_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
 
     # test setting back to default
     test = (
@@ -65,7 +65,7 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples, 20 shown)")
-    result.check_stdout(["|  . |", "|  . |", "|  . |"])
+    result.check_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
 
 
 def test_max_width(temp_db, csv_path) -> None:
@@ -77,9 +77,20 @@ def test_max_width(temp_db, csv_path) -> None:
         .statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN *;')
     )
     result = test.run()
-    result.check_stdout("-" * 266)
-    result.check_not_stdout("-" * 267)
-    result.check_not_stdout("| ... |")
+    result.check_stdout("id")
+    result.check_stdout("fname")
+    result.check_stdout("Gender")
+    result.check_stdout("ISStudent")
+    result.check_stdout("isWorker")
+    result.check_stdout("age")
+    result.check_stdout("eyeSight")
+    result.check_stdout("birthdate")
+    result.check_stdout("registerTime")
+    result.check_stdout("lastJobDuration")
+    result.check_stdout("workedHours")
+    result.check_stdout("usedNames")
+    result.check_stdout("courseScoresPerTerm")
+    result.check_not_stdout("\u2502 ... \u2502")
     result.check_stdout("(13 columns)")
 
     # test 2 columns shown
@@ -90,10 +101,20 @@ def test_max_width(temp_db, csv_path) -> None:
         .statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN *;')
     )
     result = test.run()
-    # while max width is 44, the columns that fit have a total width of 34
-    result.check_stdout("-" * 34)
-    result.check_not_stdout("-" * 35)
-    result.check_stdout("| ... |")
+    result.check_stdout("id")
+    result.check_not_stdout("fname")
+    result.check_not_stdout("Gender")
+    result.check_not_stdout("ISStudent")
+    result.check_not_stdout("isWorker")
+    result.check_not_stdout("\u2502 age    \u2502")
+    result.check_not_stdout("eyeSight")
+    result.check_not_stdout("birthdate")
+    result.check_not_stdout("registerTime")
+    result.check_not_stdout("lastJobDuration")
+    result.check_not_stdout("workedHours")
+    result.check_not_stdout("usedNames")
+    result.check_stdout("\u2502 ... \u2502")
+    result.check_stdout("courseScoresPerTerm")
     result.check_stdout("(13 columns, 2 shown)")
 
     # test too small to display (back to terminal width)
@@ -105,9 +126,20 @@ def test_max_width(temp_db, csv_path) -> None:
     )
     result = test.run()
     # terminal width when running test is 80
-    result.check_stdout("-" * 80)
-    result.check_not_stdout("-" * 81)
-    result.check_stdout("| ... |")
+    result.check_stdout("id")
+    result.check_stdout("fname")
+    result.check_stdout("Gender")
+    result.check_not_stdout("ISStudent")
+    result.check_not_stdout("isWorker")
+    result.check_not_stdout("\u2502 age    \u2502")
+    result.check_not_stdout("eyeSight")
+    result.check_not_stdout("birthdate")
+    result.check_not_stdout("registerTime")
+    result.check_not_stdout("lastJobDuration")
+    result.check_not_stdout("workedHours")
+    result.check_not_stdout("usedNames")
+    result.check_stdout("\u2502 ... \u2502")
+    result.check_stdout("courseScoresPerTerm")
     result.check_stdout("(13 columns, 4 shown)")
 
     # test result tuples unaffected by width
@@ -121,8 +153,8 @@ def test_max_width(temp_db, csv_path) -> None:
     )
     result = test.run()
     # terminal width when running test is 80
-    result.check_stdout("Table LANGUAGE_CODE has been created.")
-    result.check_not_stdout("| ... |")
+    result.check_stdout("\u2502 Table LANGUAGE_CODE has been created. \u2502")
+    result.check_not_stdout("\u2502 ... \u2502")
     result.check_stdout("(1 column)")
 
 

@@ -103,16 +103,176 @@ row_idx_t VectorVersionInfo::getNumDeletions(transaction_t startTS, transaction_
     return numDeletions;
 }
 
+void VectorVersionInfo::rollbackInsertions(row_idx_t startRowInVector, row_idx_t numRows) {
+    for (auto row = startRowInVector; row < startRowInVector + numRows; row++) {
+        insertedVersions[row] = INVALID_TRANSACTION;
+    }
+    // TODO(Guodong): We can choose to vaccum inserted key/values in this transaction from
+    // index.
+    bool hasAnyInsertions = false;
+    for (const auto& version : insertedVersions) {
+        if (version != INVALID_TRANSACTION) {
+            hasAnyInsertions = true;
+            break;
+        }
+    }
+    if (!hasAnyInsertions) {
+        insertionStatus = InsertionStatus::NO_INSERTED;
+        deletionStatus = DeletionStatus::NO_DELETED;
+    }
+}
+
+void VectorVersionInfo::rollbackDeletions(row_idx_t startRowInVector, row_idx_t numRows) {
+    for (auto row = startRowInVector; row < startRowInVector + numRows; row++) {
+        deletedVersions[row] = INVALID_TRANSACTION;
+    }
+    bool hasAnyDeletions = false;
+    for (const auto& version : deletedVersions) {
+        if (version != INVALID_TRANSACTION) {
+            hasAnyDeletions = true;
+            break;
+        }
+    }
+    if (!hasAnyDeletions) {
+        deletionStatus = DeletionStatus::NO_DELETED;
+    }
+}
+
+bool VectorVersionInfo::finalizeStatusFromVersions() {
+    if (insertionStatus == InsertionStatus::NO_INSERTED) {
+        KU_ASSERT(deletionStatus == VectorVersionInfo::DeletionStatus::NO_DELETED);
+        return true;
+    }
+    const auto hasAnyDeletions =
+        std::any_of(deletedVersions.begin(), deletedVersions.end(), [](auto version) {
+            KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
+            return version == 0;
+        });
+    if (!hasAnyDeletions) {
+        deletionStatus = DeletionStatus::NO_DELETED;
+    }
+    const auto allValidInsertions =
+        std::all_of(insertedVersions.begin(), insertedVersions.end(), [](auto version) {
+            KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
+            return version == 0;
+        });
+    if (allValidInsertions) {
+        insertionStatus = InsertionStatus::ALWAYS_INSERTED;
+    } else {
+        const auto hasAnyValidInsertions =
+            std::any_of(insertedVersions.begin(), insertedVersions.end(), [](auto version) {
+                KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
+                return version == 0;
+            });
+        if (!hasAnyValidInsertions) {
+            insertionStatus = InsertionStatus::NO_INSERTED;
+        } else {
+            insertionStatus = InsertionStatus::CHECK_VERSION;
+        }
+    }
+    if (insertionStatus == InsertionStatus::ALWAYS_INSERTED &&
+        deletionStatus == DeletionStatus::NO_DELETED) {
+        // No need to keep vector info as all tuples are valid and no deletions.
+        return false;
+    }
+    return true;
+}
+
 void VectorVersionInfo::serialize(Serializer& serializer) const {
-    KU_ASSERT(deletionStatus == DeletionStatus::CHECK_VERSION);
+    for (const auto inserted : insertedVersions) {
+        // Versions should be either INVALID_TRANSACTION or committed timestamps.
+        KU_ASSERT(inserted == INVALID_TRANSACTION ||
+                  inserted < transaction::Transaction::START_TRANSACTION_ID);
+        KU_UNUSED(inserted);
+    }
     for (const auto deleted : deletedVersions) {
         // Versions should be either INVALID_TRANSACTION or committed timestamps.
         KU_ASSERT(deleted == INVALID_TRANSACTION ||
                   deleted < transaction::Transaction::START_TRANSACTION_ID);
         KU_UNUSED(deleted);
     }
-    // TODO(Guodong): We should just serialize isDeleted or not to save space instead of versions.
-    serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
+    serializer.writeDebuggingInfo("insertion_status");
+    serializer.serializeValue<InsertionStatus>(insertionStatus);
+    serializer.writeDebuggingInfo("deletion_status");
+    serializer.serializeValue<DeletionStatus>(deletionStatus);
+    switch (insertionStatus) {
+    case InsertionStatus::NO_INSERTED:
+    case InsertionStatus::ALWAYS_INSERTED: {
+        // Nothing to serialize.
+    } break;
+    case InsertionStatus::CHECK_VERSION: {
+        serializer.writeDebuggingInfo("inserted_versions");
+        serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(insertedVersions);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    switch (deletionStatus) {
+    case DeletionStatus::NO_DELETED: {
+        // Nothing to serialize.
+    } break;
+    case DeletionStatus::CHECK_VERSION: {
+        serializer.writeDebuggingInfo("deleted_versions");
+        serializer.serializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(deletedVersions);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+std::unique_ptr<VectorVersionInfo> VectorVersionInfo::deSerialize(Deserializer& deSer) {
+    std::string key;
+    InsertionStatus insertionStatus;
+    DeletionStatus deletionStatus;
+    deSer.validateDebuggingInfo(key, "insertion_status");
+    deSer.deserializeValue<InsertionStatus>(insertionStatus);
+    deSer.validateDebuggingInfo(key, "deletion_status");
+    deSer.deserializeValue<DeletionStatus>(deletionStatus);
+    auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
+    vectorVersionInfo->insertionStatus = insertionStatus;
+    vectorVersionInfo->deletionStatus = deletionStatus;
+    switch (vectorVersionInfo->insertionStatus) {
+    case InsertionStatus::NO_INSERTED:
+    case InsertionStatus::ALWAYS_INSERTED: {
+        // Nothing to deserialize.
+    } break;
+    case InsertionStatus::CHECK_VERSION: {
+        deSer.validateDebuggingInfo(key, "inserted_versions");
+        deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
+            vectorVersionInfo->insertedVersions);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    switch (vectorVersionInfo->deletionStatus) {
+    case DeletionStatus::NO_DELETED: {
+        // Nothing to deserialize.
+    } break;
+    case DeletionStatus::CHECK_VERSION: {
+        deSer.validateDebuggingInfo(key, "deleted_versions");
+        deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
+            vectorVersionInfo->deletedVersions);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    for (const auto inserted : vectorVersionInfo->insertedVersions) {
+        // Versions should be either INVALID_TRANSACTION or committed timestamps.
+        KU_ASSERT(inserted == INVALID_TRANSACTION ||
+                  inserted < transaction::Transaction::START_TRANSACTION_ID);
+        KU_UNUSED(inserted);
+    }
+    for (const auto deleted : vectorVersionInfo->deletedVersions) {
+        // Versions should be either INVALID_TRANSACTION or committed timestamps.
+        KU_ASSERT(deleted == INVALID_TRANSACTION ||
+                  deleted < transaction::Transaction::START_TRANSACTION_ID);
+        KU_UNUSED(deleted);
+    }
+    return vectorVersionInfo;
 }
 
 row_idx_t VectorVersionInfo::numCommittedDeletions(
@@ -290,15 +450,34 @@ row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transacti
     return numDeletions;
 }
 
+bool VersionInfo::finalizeStatusFromVersions() {
+    for (auto vectorIdx = 0u; vectorIdx < getNumVectors(); vectorIdx++) {
+        const auto vectorInfo = getVectorVersionInfo(vectorIdx);
+        if (!vectorInfo) {
+            continue;
+        }
+        if (!vectorInfo->finalizeStatusFromVersions()) {
+            clearVectorInfo(vectorIdx);
+        }
+    }
+    bool hasAnyVectorVersionInfo = false;
+    for (const auto& info : vectorsInfo) {
+        if (info) {
+            hasAnyVectorVersionInfo = true;
+            break;
+        }
+    }
+    return hasAnyVectorVersionInfo;
+}
+
 void VersionInfo::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("vectors_info_size");
     serializer.write<uint64_t>(vectorsInfo.size());
     for (auto i = 0u; i < vectorsInfo.size(); i++) {
-        auto hasDeletion = vectorsInfo[i] && vectorsInfo[i]->deletionStatus ==
-                                                 VectorVersionInfo::DeletionStatus::CHECK_VERSION;
-        serializer.writeDebuggingInfo("has_deletion");
-        serializer.write<bool>(hasDeletion);
-        if (hasDeletion) {
+        auto hasVectorVersion = vectorsInfo[i] != nullptr;
+        serializer.writeDebuggingInfo("has_vector_info");
+        serializer.write<bool>(hasVectorVersion);
+        if (hasVectorVersion) {
             serializer.writeDebuggingInfo("vector_info");
             vectorsInfo[i]->serialize(serializer);
         }
@@ -312,14 +491,12 @@ std::unique_ptr<VersionInfo> VersionInfo::deserialize(Deserializer& deSer) {
     deSer.deserializeValue<uint64_t>(vectorSize);
     auto versionInfo = std::make_unique<VersionInfo>();
     for (auto i = 0u; i < vectorSize; i++) {
-        bool hasDeletion;
-        deSer.validateDebuggingInfo(key, "has_deletion");
-        deSer.deserializeValue<bool>(hasDeletion);
-        if (hasDeletion) {
-            auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
+        bool hasVectorVersion;
+        deSer.validateDebuggingInfo(key, "has_vector_info");
+        deSer.deserializeValue<bool>(hasVectorVersion);
+        if (hasVectorVersion) {
             deSer.validateDebuggingInfo(key, "vector_info");
-            deSer.deserializeArray<transaction_t, DEFAULT_VECTOR_CAPACITY>(
-                vectorVersionInfo->deletedVersions);
+            auto vectorVersionInfo = VectorVersionInfo::deSerialize(deSer);
             versionInfo->vectorsInfo.push_back(std::move(vectorVersionInfo));
         } else {
             versionInfo->vectorsInfo.push_back(nullptr);

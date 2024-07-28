@@ -36,7 +36,7 @@ public:
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
         return nodeGroups.getNodeGroup(nodeGroupIdx);
     }
-    const NodeGroupCollection& getNodeGroups() const { return nodeGroups; }
+    NodeGroupCollection& getNodeGroups() { return nodeGroups; }
 
     bool lookupPK(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         common::offset_t& result);

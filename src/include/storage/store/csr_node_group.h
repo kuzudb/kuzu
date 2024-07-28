@@ -194,8 +194,6 @@ public:
 
     void checkpoint(NodeGroupCheckpointState& state) override;
 
-    void resetVersionAndUpdateInfo() override;
-
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
     ChunkedNodeGroup* getPersistentChunkedGroup() const { return persistentChunkGroup.get(); }
@@ -220,8 +218,7 @@ private:
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
 
-    void checkpointInMemOnly(const common::UniqLock& lock,
-        NodeGroupCheckpointState& state) override;
+    void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
         const CSRNodeGroupCheckpointState& csrState);

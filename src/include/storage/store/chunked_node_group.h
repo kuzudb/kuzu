@@ -64,6 +64,9 @@ public:
     void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
     void resizeChunks(uint64_t newSize) const;
+    void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
+        this->versionInfo = std::move(versionInfo);
+    }
     void resetVersionAndUpdateInfo() {
         if (versionInfo) {
             versionInfo.reset();
@@ -121,6 +124,7 @@ public:
         common::row_idx_t startRow, common::length_t numRows) const;
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::length_t numRows) const;
+    bool hasVersionInfo() const { return versionInfo != nullptr; }
 
     void finalize() const;
 

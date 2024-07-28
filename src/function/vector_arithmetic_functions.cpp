@@ -2,7 +2,6 @@
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
-#include "common/type_utils.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
@@ -30,32 +29,23 @@ namespace function {
 
 struct DecimalFunction {
 
-    static std::unique_ptr<FunctionBindData> bindAddFunc(const binder::expression_vector& arguments,
-        Function*);
+    static std::unique_ptr<FunctionBindData> bindAddFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindSubtractFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindSubtractFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindMultiplyFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindMultiplyFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindDivideFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindDivideFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindModuloFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindModuloFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindNegateFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindNegateFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindAbsFunc(const binder::expression_vector& arguments,
-        Function*);
+    static std::unique_ptr<FunctionBindData> bindAbsFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindFloorFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindFloorFunc(ScalarBindFuncInput input);
 
-    static std::unique_ptr<FunctionBindData> bindCeilFunc(
-        const binder::expression_vector& arguments, Function*);
+    static std::unique_ptr<FunctionBindData> bindCeilFunc(ScalarBindFuncInput input);
 };
 
 template<typename FUNC>
@@ -934,49 +924,40 @@ static std::unique_ptr<FunctionBindData> genericUnaryArithmeticFunc(
     return std::make_unique<FunctionBindData>(std::move(argTypes), std::move(resultingType));
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindAddFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericBinaryArithmeticFunc<DecimalAdd>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindAddFunc(ScalarBindFuncInput input) {
+    return genericBinaryArithmeticFunc<DecimalAdd>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindSubtractFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericBinaryArithmeticFunc<DecimalSubtract>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindSubtractFunc(ScalarBindFuncInput input) {
+    return genericBinaryArithmeticFunc<DecimalSubtract>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindMultiplyFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericBinaryArithmeticFunc<DecimalMultiply>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindMultiplyFunc(ScalarBindFuncInput input) {
+    return genericBinaryArithmeticFunc<DecimalMultiply>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindDivideFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericBinaryArithmeticFunc<DecimalDivide>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindDivideFunc(ScalarBindFuncInput input) {
+    return genericBinaryArithmeticFunc<DecimalDivide>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindModuloFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericBinaryArithmeticFunc<DecimalModulo>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindModuloFunc(ScalarBindFuncInput input) {
+    return genericBinaryArithmeticFunc<DecimalModulo>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindNegateFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericUnaryArithmeticFunc<DecimalNegate>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindNegateFunc(ScalarBindFuncInput input) {
+    return genericUnaryArithmeticFunc<DecimalNegate>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindAbsFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericUnaryArithmeticFunc<DecimalAbs>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindAbsFunc(ScalarBindFuncInput input) {
+    return genericUnaryArithmeticFunc<DecimalAbs>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindFloorFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericUnaryArithmeticFunc<DecimalFloor>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindFloorFunc(ScalarBindFuncInput input) {
+    return genericUnaryArithmeticFunc<DecimalFloor>(input.arguments, input.definition);
 }
 
-std::unique_ptr<FunctionBindData> DecimalFunction::bindCeilFunc(
-    const binder::expression_vector& arguments, Function* func) {
-    return genericUnaryArithmeticFunc<DecimalCeil>(arguments, func);
+std::unique_ptr<FunctionBindData> DecimalFunction::bindCeilFunc(ScalarBindFuncInput input) {
+    return genericUnaryArithmeticFunc<DecimalCeil>(input.arguments, input.definition);
 }
 
 } // namespace function
