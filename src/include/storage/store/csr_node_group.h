@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
 
 #include "common/data_chunk/data_chunk.h"

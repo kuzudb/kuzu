@@ -140,7 +140,7 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps) {
+std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps) const {
     const auto numNodes = length->getNumValues();
     const auto numLeafRegions = getNumRegions();
     offset_t leftCSROffset = 0;
@@ -165,7 +165,7 @@ std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool l
     return rightCSROffsetOfRegions;
 }
 
-void ChunkedCSRHeader::populateEndCSROffsetFromStartAndLength() {
+void ChunkedCSRHeader::populateEndCSROffsetFromStartAndLength() const {
     const auto numNodes = length->getNumValues();
     KU_ASSERT(offset->getNumValues() == numNodes);
     const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
