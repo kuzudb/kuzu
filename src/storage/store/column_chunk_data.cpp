@@ -816,10 +816,6 @@ void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t le
     sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues);
     KU_ASSERT(commonTableID != INVALID_TABLE_ID);
-    // TODO(Sam/Guodong): When we get rid of nullData for InternalID, remove this
-    if (nullData) {
-        nullData->scan(output, offset, length, posInOutputVector);
-    }
     internalID_t relID;
     relID.tableID = commonTableID;
     for (auto i = 0u; i < length; i++) {
@@ -831,20 +827,16 @@ void InternalIDChunkData::scan(ValueVector& output, offset_t offset, length_t le
 void InternalIDChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     sel_t posInOutputVector) const {
     KU_ASSERT(offsetInChunk < capacity);
-    output.setNull(posInOutputVector, nullData->isNull(offsetInChunk));
-    if (!output.isNull(posInOutputVector)) {
-        internalID_t relID;
-        relID.offset = getValue<offset_t>(offsetInChunk);
-        KU_ASSERT(commonTableID != INVALID_TABLE_ID);
-        relID.tableID = commonTableID;
-        output.setValue<internalID_t>(posInOutputVector, relID);
-    }
+    internalID_t relID;
+    relID.offset = getValue<offset_t>(offsetInChunk);
+    KU_ASSERT(commonTableID != INVALID_TABLE_ID);
+    relID.tableID = commonTableID;
+    output.setValue<internalID_t>(posInOutputVector, relID);
 }
 
 void InternalIDChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-    nullData->setNull(offsetInChunk, vector->isNull(offsetInVector));
     const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());
     if (commonTableID == INVALID_TABLE_ID) {
         commonTableID = relIDsInVector[offsetInVector].tableID;

@@ -15,7 +15,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext*) {
+void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     localState->chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(relInfo->columnTypes,
@@ -28,6 +28,14 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext*) {
         nbrTableID);
     localState->chunkedGroup->getColumnChunk(1).getData().cast<InternalIDChunkData>().setTableID(
         relTableID);
+    const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
+    relLocalState->dummyAllNullDataChunk = std::make_unique<DataChunk>(relInfo->columnTypes.size());
+    for (auto i = 0u; i < relInfo->columnTypes.size(); i++) {
+        auto valueVector = std::make_shared<ValueVector>(relInfo->columnTypes[i].copy(),
+            context->clientContext->getMemoryManager());
+        valueVector->setAllNull();
+        relLocalState->dummyAllNullDataChunk->insert(i, std::move(valueVector));
+    }
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -77,6 +85,22 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }
+    // Reset num of rows in the chunked group to fill gaps at the end of the node group.
+    auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
+    auto numGapsAtEnd =
+        csrHeader.getEndCSROffset(numNodes - 1) - localState.chunkedGroup->getNumRows();
+    while (numGapsAtEnd > 0) {
+        const auto numGapsToFill = std::min(numGapsAtEnd, DEFAULT_VECTOR_CAPACITY);
+        localState.dummyAllNullDataChunk->state->getSelVectorUnsafe().setSelSize(numGapsToFill);
+        std::vector<ValueVector*> dummyVectors;
+        for (auto i = 0u; i < relInfo.columnTypes.size(); i++) {
+            dummyVectors.push_back(localState.dummyAllNullDataChunk->getValueVector(i).get());
+        }
+        localState.chunkedGroup->append(&transaction::DUMMY_TRANSACTION, dummyVectors, 0,
+            numGapsToFill);
+        numGapsAtEnd -= numGapsToFill;
+    }
+    KU_ASSERT(localState.chunkedGroup->getNumRows() == csrHeader.getEndCSROffset(numNodes - 1));
     localState.chunkedGroup->finalize();
     if (isNewNodeGroup) {
         auto flushedChunkedGroup = localState.chunkedGroup->flushAsNewChunkedNodeGroup(transaction,

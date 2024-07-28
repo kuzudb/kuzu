@@ -37,6 +37,7 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
 
 struct RelBatchInsertLocalState final : BatchInsertLocalState {
     common::partition_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    std::unique_ptr<common::DataChunk> dummyAllNullDataChunk;
 };
 
 class RelBatchInsert final : public BatchInsert {
