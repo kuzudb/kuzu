@@ -26,6 +26,8 @@ public:
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
         ColumnChunkData* data, common::offset_t srcOffset, common::length_t numValues) override;
 
+    void checkpointColumnChunk(kuzu::storage::ColumnCheckpointState& checkpointState) override;
+
     const DictionaryColumn& getDictionary() const { return dictionary; }
 
     static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);

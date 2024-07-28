@@ -85,7 +85,6 @@ class BMFileHandle;
 class ColumnChunkData {
 public:
     friend struct ColumnChunkFactory;
-    friend struct ListDataColumnChunk;
 
     ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
         ResidencyState residencyState, bool hasNullData);
@@ -193,6 +192,7 @@ public:
     // TODO(Guodong): Alternatively, we can let `getNumValues` read from metadata when ON_DISK.
     virtual void resetNumValuesFromMetadata();
     virtual void setNumValues(uint64_t numValues_);
+    virtual void syncNumValues() {}
     virtual bool numValuesSanityCheck() const;
 
     virtual bool sanityCheck() const;

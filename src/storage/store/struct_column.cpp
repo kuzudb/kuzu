@@ -109,6 +109,7 @@ void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
         childColumns[i]->checkpointColumnChunk(childColumnCheckpointState);
     }
     Column::checkpointNullData(checkpointState);
+    persistentStructChunk.syncNumValues();
 }
 
 } // namespace storage
