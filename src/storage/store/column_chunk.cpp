@@ -45,34 +45,37 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     case ResidencyState::ON_DISK: {
         state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
     } break;
+    default: {
+        KU_UNREACHABLE;
     }
-    if (updateInfo) {
-        auto [startVectorIdx, startOffsetInVector] =
-            StorageUtils::getQuotientRemainder(offsetInChunk, DEFAULT_VECTOR_CAPACITY);
-        auto [endVectorIdx, endOffsetInVector] =
-            StorageUtils::getQuotientRemainder(offsetInChunk + length, DEFAULT_VECTOR_CAPACITY);
-        idx_t idx = startVectorIdx;
-        sel_t posInVector = 0u;
-        while (idx <= endVectorIdx) {
-            const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
-            const auto endOffset =
-                idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
-            const auto numRowsInVector = endOffset - startOffset;
-            if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, idx);
-                vectorInfo && vectorInfo->numRowsUpdated > 0) {
-                for (auto i = 0u; i < numRowsInVector; i++) {
-                    if (const auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
-                            vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated,
-                            [i, startOffset](auto row) { return row == i + startOffset; });
-                        itr != vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated) {
-                        vectorInfo->data->lookup(itr - vectorInfo->rowsInVector.begin(), output,
-                            posInVector + i);
-                    }
+    }
+    if (!updateInfo) {
+        return;
+    }
+    auto [startVectorIdx, startOffsetInVector] =
+        StorageUtils::getQuotientRemainder(offsetInChunk, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endOffsetInVector] =
+        StorageUtils::getQuotientRemainder(offsetInChunk + length, DEFAULT_VECTOR_CAPACITY);
+    idx_t idx = startVectorIdx;
+    sel_t posInVector = 0u;
+    while (idx <= endVectorIdx) {
+        const auto startOffset = idx == startVectorIdx ? startOffsetInVector : 0;
+        const auto endOffset = idx == endVectorIdx ? endOffsetInVector : DEFAULT_VECTOR_CAPACITY;
+        const auto numRowsInVector = endOffset - startOffset;
+        if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, idx);
+            vectorInfo && vectorInfo->numRowsUpdated > 0) {
+            for (auto i = 0u; i < numRowsInVector; i++) {
+                if (const auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
+                        vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated,
+                        [i, startOffset](auto row) { return row == i + startOffset; });
+                    itr != vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated) {
+                    vectorInfo->data->lookup(itr - vectorInfo->rowsInVector.begin(), output,
+                        posInVector + i);
                 }
             }
-            posInVector += numRowsInVector;
-            idx++;
         }
+        posInVector += numRowsInVector;
+        idx++;
     }
 }
 
@@ -88,13 +91,15 @@ void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState
         if (SCAN_RESIDENCY_STATE == residencyState) {
             chunkState.column->scan(transaction, chunkState, &output.getData(), startRow,
                 startRow + numRows);
-            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow);
+            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow,
+                numRows);
         }
     } break;
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
             output.getData().append(data.get(), startRow, numRows);
-            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow);
+            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow,
+                numRows);
         }
     } break;
     default: {
@@ -114,21 +119,41 @@ bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
 }
 
 void ColumnChunk::scanCommittedUpdates(const Transaction* transaction, ColumnChunkData& output,
-    offset_t startOffsetInOutput, row_idx_t startRowScanned) const {
+    offset_t startOffsetInOutput, row_idx_t startRowScanned, row_idx_t numRows) const {
     if (!updateInfo) {
         return;
     }
-    const auto numVectors =
-        (getNumValues() + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY;
-    for (auto vectorIdx = 0u; vectorIdx < numVectors; vectorIdx++) {
-        if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
-            for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
-                output.write(vectorInfo->data.get(), i,
-                    startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
-                        vectorInfo->rowsInVector[i] - startRowScanned,
-                    1);
+    auto [startVectorIdx, startRowInVector] =
+        StorageUtils::getQuotientRemainder(startRowScanned, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowInVector] =
+        StorageUtils::getQuotientRemainder(startRowScanned + numRows, DEFAULT_VECTOR_CAPACITY);
+    idx_t vectorIdx = startVectorIdx;
+    while (vectorIdx <= endVectorIdx) {
+        const auto startRow = vectorIdx == startVectorIdx ? startRowInVector : 0;
+        const auto endRow = vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY;
+        // const auto numRowsInVector = endRow - startRow;
+        const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx);
+        if (vectorInfo && vectorInfo->numRowsUpdated > 0) {
+            if (vectorIdx != startVectorIdx && vectorIdx != endVectorIdx) {
+                for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
+                    output.write(vectorInfo->data.get(), i,
+                        startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
+                            vectorInfo->rowsInVector[i] - startRowScanned,
+                        1);
+                }
+            } else {
+                for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
+                    const auto rowInVecUpdated = vectorInfo->rowsInVector[i];
+                    if (rowInVecUpdated >= startRow && rowInVecUpdated < endRow) {
+                        output.write(vectorInfo->data.get(), i,
+                            startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
+                                rowInVecUpdated - startRowScanned,
+                            1);
+                    }
+                }
             }
         }
+        vectorIdx++;
     }
 }
 

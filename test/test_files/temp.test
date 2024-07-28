@@ -1,0 +1,16 @@
+-DATASET CSV read-list-tests/large-list
+
+--
+
+-CASE AddPropertyWithLargeListTest
+-STATEMENT alter table knows add length INT64 DEFAULT 50
+---- ok
+-STATEMENT match (:person)-[e:knows]->(:person) return SUM(e.length)
+---- 1
+500050
+
+-STATEMENT match (:person)-[e:knows]->(:person) set e.length=37
+---- ok
+-STATEMENT match (p:person)-[e:knows]->(:person) return SUM(e.length)
+---- 1
+370037

@@ -96,7 +96,8 @@ public:
 
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
-        common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned) const;
+        common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
+        common::row_idx_t numRows) const;
 
 private:
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in
