@@ -212,11 +212,28 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         O_RDWR | O_CREAT, &clientContext);
     const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
+    const auto nodeTableEntries =
+        clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto relTableEntries =
+        clientContext.getCatalog()->getRelTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto numTables = nodeTableEntries.size() + relTableEntries.size();
     ser.writeDebuggingInfo("num_tables");
-    ser.write<uint64_t>(tables.size());
-    // TODO(Guodong): We should avoid deleted tables.
-    for (auto& [_, table] : tables) {
-        table->checkpoint(ser);
+    ser.write<uint64_t>(numTables);
+    for (const auto tableEntry : nodeTableEntries) {
+        if (!tables.contains(tableEntry->getTableID())) {
+            throw RuntimeException(
+                stringFormat("Checkpoint failed: table {} not found in storage manager.",
+                    tableEntry->getName()));
+        }
+        tables.at(tableEntry->getTableID())->checkpoint(ser);
+    }
+    for (const auto tableEntry : relTableEntries) {
+        if (!tables.contains(tableEntry->getTableID())) {
+            throw RuntimeException(
+                stringFormat("Checkpoint failed: table {} not found in storage manager.",
+                    tableEntry->getName()));
+        }
+        tables.at(tableEntry->getTableID())->checkpoint(ser);
     }
     writer->flush();
     writer->getFileInfo().syncFile();

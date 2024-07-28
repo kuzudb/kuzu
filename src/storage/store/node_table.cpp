@@ -54,11 +54,14 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.validateDebuggingInfo(key, "table_name");
     deSer.deserializeValue<std::string>(tableName);
-    auto catalogEntry =
-        catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<NodeTableCatalogEntry>();
+    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
+    if (!catalogEntry) {
+        throw RuntimeException(
+            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableName));
+    }
     KU_ASSERT(catalogEntry->getName() == tableName);
-    return std::make_unique<NodeTable>(storageManager, catalogEntry, memoryManager, vfs, context,
-        &deSer);
+    return std::make_unique<NodeTable>(storageManager,
+        catalogEntry->ptrCast<NodeTableCatalogEntry>(), memoryManager, vfs, context, &deSer);
 }
 
 void NodeTable::initializePKIndex(const std::string& databasePath,

@@ -40,10 +40,14 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     deSer.deserializeValue<std::string>(tableName);
     deSer.validateDebuggingInfo(key, "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);
-    auto catalogEntry =
-        catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID)->ptrCast<RelTableCatalogEntry>();
+    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
+    if (!catalogEntry) {
+        throw RuntimeException(
+            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableName));
+    }
     KU_ASSERT(catalogEntry->getName() == tableName);
-    auto relTable = std::make_unique<RelTable>(catalogEntry, storageManager, memoryManager, &deSer);
+    auto relTable = std::make_unique<RelTable>(catalogEntry->ptrCast<RelTableCatalogEntry>(),
+        storageManager, memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
     return relTable;
 }
