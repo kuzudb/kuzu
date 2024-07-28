@@ -61,7 +61,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
             if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, idx);
                 vectorInfo && vectorInfo->numRowsUpdated > 0) {
                 for (auto i = 0u; i < numRowsInVector; i++) {
-                    if (auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
+                    if (const auto itr = std::find_if(vectorInfo->rowsInVector.begin(),
                             vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated,
                             [i, startOffset](auto row) { return row == i + startOffset; });
                         itr != vectorInfo->rowsInVector.begin() + vectorInfo->numRowsUpdated) {
@@ -86,14 +86,15 @@ void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState
     switch (const auto residencyState = getResidencyState()) {
     case ResidencyState::ON_DISK: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(transaction, chunkState, &output.getData(), startRow, numRows);
-            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
+            chunkState.column->scan(transaction, chunkState, &output.getData(), startRow,
+                startRow + numRows);
+            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow);
         }
     } break;
     case ResidencyState::IN_MEMORY: {
         if (SCAN_RESIDENCY_STATE == residencyState) {
             output.getData().append(data.get(), startRow, numRows);
-            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan);
+            scanCommittedUpdates(transaction, output.getData(), numValuesBeforeScan, startRow);
         }
     } break;
     default: {
@@ -112,8 +113,8 @@ bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     return updateInfo && updateInfo->hasUpdates(transaction, startRow, numRows);
 }
 
-void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData& output,
-    offset_t startOffsetInOutput) const {
+void ColumnChunk::scanCommittedUpdates(const Transaction* transaction, ColumnChunkData& output,
+    offset_t startOffsetInOutput, row_idx_t startRowScanned) const {
     if (!updateInfo) {
         return;
     }
@@ -124,14 +125,14 @@ void ColumnChunk::scanCommittedUpdates(Transaction* transaction, ColumnChunkData
             for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
                 output.write(vectorInfo->data.get(), i,
                     startOffsetInOutput + vectorIdx * DEFAULT_VECTOR_CAPACITY +
-                        vectorInfo->rowsInVector[i],
+                        vectorInfo->rowsInVector[i] - startRowScanned,
                     1);
             }
         }
     }
 }
 
-void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t rowInChunk,
+void ColumnChunk::lookup(Transaction* transaction, const ChunkState& state, offset_t rowInChunk,
     ValueVector& output, sel_t posInOutputVector) const {
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
@@ -144,7 +145,7 @@ void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t r
     if (updateInfo) {
         auto [vectorIdx, rowInVector] =
             StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
-        if (auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
+        if (const auto vectorInfo = updateInfo->getVectorInfo(transaction, vectorIdx)) {
             for (auto i = 0u; i < vectorInfo->numRowsUpdated; i++) {
                 if (vectorInfo->rowsInVector[i] == rowInVector) {
                     vectorInfo->data->lookup(i, output, posInOutputVector);
@@ -155,7 +156,7 @@ void ColumnChunk::lookup(Transaction* transaction, ChunkState& state, offset_t r
     }
 }
 
-void ColumnChunk::update(Transaction* transaction, offset_t offsetInChunk,
+void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
     if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
         data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
@@ -191,7 +192,7 @@ row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
 }
 
 std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChunk::scanUpdates(
-    Transaction* transaction) const {
+    const Transaction* transaction) const {
     auto numUpdatedRows = getNumUpdatedRows(transaction);
     // TODO(Guodong): Actually for row idx in a column chunk, UINT32 should be enough.
     auto updatedRows = std::make_unique<ColumnChunk>(LogicalType::UINT64(), numUpdatedRows, false,

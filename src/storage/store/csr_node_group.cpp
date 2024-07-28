@@ -252,7 +252,7 @@ void CSRNodeGroup::updateCSRIndex(offset_t boundNodeOffsetInGroup, row_idx_t sta
 }
 
 void CSRNodeGroup::update(Transaction* transaction, CSRNodeGroupScanSource source,
-    row_idx_t rowIdxInGroup, column_id_t columnID, const ::ValueVector& propertyVector) {
+    row_idx_t rowIdxInGroup, column_id_t columnID, const ValueVector& propertyVector) {
     switch (source) {
     case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
         KU_ASSERT(persistentChunkGroup);
@@ -431,7 +431,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     chunkState.column = csrState.columns[columnID];
     persistentChunk.initializeScanState(chunkState);
     persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
-        chunkState, *oldChunkWithUpdates);
+        chunkState, *oldChunkWithUpdates, leftCSROffset, numOldRowsInRegion);
     KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
     const auto numRowsInRegion =
         csrState.newHeader->getEndCSROffset(region.rightNodeOffset) - leftCSROffset;
