@@ -4,6 +4,7 @@ add_library(kuzu_common_enums
         path_semantic.cpp
         rel_direction.cpp
         rel_multiplicity.cpp
+        scan_source_type.cpp
         table_type.cpp
         transaction_action.cpp
         drop_type.cpp
