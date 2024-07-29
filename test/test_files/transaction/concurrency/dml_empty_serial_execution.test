@@ -19,34 +19,6 @@
 ---- ok
  ]
 
--DEFINE_STATEMENT_BLOCK INSERT_TINYSNB_PERSON [
--STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
----- ok
--STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
-            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',')
-            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
----- ok
--STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
-            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (deLim=',')
-            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
----- ok
- ]
-
--DEFINE_STATEMENT_BLOCK INSERT_TINYSNB_KNOWS [
--STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
----- ok
--STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
-            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
-            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
-            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
----- ok
--STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
-            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"
-            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
-            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
----- ok
- ]
-
 -CASE WWConflictNodeCopyUpdate
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
@@ -112,7 +84,8 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 -CASE WWConflictNodeInsertUpdate
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
--INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
+-CREATE_DATASET_SCHEMA tinysnb
+-INSERT_DATASET_BY_ROW tinysnb
 -CREATE_CONNECTION conn2
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -127,13 +100,14 @@ Runtime exception: Write-write conflict of updating the same row.
 -CASE WWConflictNodeInsertDelete
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
--INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
+-CREATE_DATASET_SCHEMA tinysnb
+-INSERT_DATASET_BY_ROW tinysnb
 -CREATE_CONNECTION conn2
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT [conn2] BEGIN TRANSACTION;
 ---- ok
--STATEMENT MATCH (p:person) WHERE p.ID = 0 DELETE p RETURN p.*;
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 DETACH DELETE p RETURN p.*;
 ---- ok
 -STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 DELETE p RETURN p.*;
 ---- error
@@ -142,8 +116,8 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 -CASE WWConflictRelInsertUpdate
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
--INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
--INSERT_STATEMENT_BLOCK INSERT_TINYSNB_KNOWS
+-CREATE_DATASET_SCHEMA tinysnb
+-INSERT_DATASET_BY_ROW tinysnb
 -CREATE_CONNECTION conn2
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -158,8 +132,8 @@ Runtime exception: Write-write conflict of updating the same row.
 -CASE WWConflictRelInsertDelete
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
--INSERT_STATEMENT_BLOCK INSERT_TINYSNB_PERSON
--INSERT_STATEMENT_BLOCK INSERT_TINYSNB_KNOWS
+-CREATE_DATASET_SCHEMA tinysnb
+-INSERT_DATASET_BY_ROW tinysnb
 -CREATE_CONNECTION conn2
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
