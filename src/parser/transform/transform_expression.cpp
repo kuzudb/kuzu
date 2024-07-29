@@ -642,7 +642,16 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
-    auto type = inferMinimalTypeFromString(text);
+    if (text[0] == '-') {
+        text.erase(text.begin());
+    }
+    auto type = LogicalType::DOUBLE();
+    if (text.size() - 1 <= DECIMAL_PRECISION_LIMIT) {
+        auto decimalPoint = text.find('.');
+        KU_ASSERT(decimalPoint != std::string::npos);
+        type = LogicalType::DECIMAL(text.size() - 1, text.size() - decimalPoint - 1);
+    }
+    text = ctx.RegularDecimalReal()->getText(); // undo changes
     if (type.getLogicalTypeID() == LogicalTypeID::DECIMAL) {
         int128_t val;
         decimalCast(text.c_str(), text.length(), val, type);
