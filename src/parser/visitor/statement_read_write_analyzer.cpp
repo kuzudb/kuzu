@@ -1,6 +1,7 @@
 #include "parser/visitor/statement_read_write_analyzer.h"
-#include "parser/query/reading_clause/reading_clause.h"
+
 #include "parser/expression/parsed_expression_visitor.h"
+#include "parser/query/reading_clause/reading_clause.h"
 #include "parser/query/return_with_clause/with_clause.h"
 
 namespace kuzu {
@@ -38,7 +39,7 @@ void StatementReadWriteAnalyzer::visitReturnClause(const ReturnClause* returnCla
     for (auto& expr : returnClause->getProjectionBody()->getProjectionExpressions()) {
         if (hasSequenceUpdate(expr.get())) {
             readOnly = false;
-            return ;
+            return;
         }
     }
 }

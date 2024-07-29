@@ -37,10 +37,10 @@ void DBTest::createNewDB() {
     createDBAndConn();
 }
 
-void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements, uint64_t checkpointWaitTimeout, std::set<std::string> connNames) {
+void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
+    uint64_t checkpointWaitTimeout, std::set<std::string> connNames) {
     for (const auto& connName : connNames) {
-        concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName],
-            databasePath);
+        concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName], databasePath);
     }
     for (auto& statement : statements) {
         // special for testing import and export test cases
