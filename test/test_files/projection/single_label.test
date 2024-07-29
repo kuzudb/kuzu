@@ -577,6 +577,8 @@ Dan|Carol
 {Alice=20, Bob=34, Carol=50, Dan=22}
 
 -LOG DuplicateMapBoolKey
+-STATEMENT CALL DISABLE_MAP_KEY_CHECK=FALSE
+---- ok
 -STATEMENT RETURN map([true, false, true], [20, 34, 50]);
 ---- error
 Runtime exception: Found duplicate key: True in map.

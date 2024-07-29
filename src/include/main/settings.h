@@ -81,6 +81,18 @@ struct EnableSemiMaskSetting {
     }
 };
 
+struct DisableMapKeyCheck {
+    static constexpr const char* name = "disable_map_key_check";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->disableMapKeyCheck = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getClientConfig()->disableMapKeyCheck);
+    }
+};
+
 struct EnableZoneMapSetting {
     static constexpr const char* name = "enable_zone_map";
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
