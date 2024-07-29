@@ -74,7 +74,11 @@ struct JsonBindData : public ScanBindData {
             scanFromList, scanFromStruct, config.copy(), context);
     }
 
-    uint32_t getIdxFromName(const std::string& s) const {
+    int32_t getIdxFromName(const std::string& s) const {
+        auto cpy = StringUtils::getUpper(s);
+        if (!nameToIdxMap.contains(cpy)) {
+            return -1;
+        }
         return nameToIdxMap.at(StringUtils::getUpper(s));
     }
 
@@ -241,6 +245,9 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
                 auto columnIdx = bindData->getIdxFromName(yyjson_get_str(key));
+                if (columnIdx == -1) {
+                    continue;
+                }
                 readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx],
                     i - localState->begin);
             }

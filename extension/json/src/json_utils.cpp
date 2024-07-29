@@ -665,19 +665,23 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, uint64_t pos) {
 std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
     std::vector<std::string> actualPath;
     for (auto i = 0u, prvDelim = 0u; i <= path.size(); i++) {
-        if (i == path.size() || path[i] == '/') {
+        if (i == path.size() || path[i] == '/' || path[i] == '.') {
             actualPath.push_back(path.substr(prvDelim, i - prvDelim));
             prvDelim = i + 1;
         }
     }
     yyjson_val* ptr = yyjson_doc_get_root(wrapper.ptr);
     for (const auto& item : actualPath) {
+        if (item == actualPath.begin() && item == "$") {
+            continue;
+        }
         if (yyjson_get_type(ptr) == YYJSON_TYPE_OBJ) {
             ptr = yyjson_obj_get(ptr, item.c_str());
         } else {
             int32_t idx = -1;
-            if (!function::)
-            auto idx = std::stoi(item);
+            if (!function::trySimpleIntegerCast(item.c_str(), item.length(), idx)) {
+                return "";
+            }
             ptr = yyjson_arr_get(ptr, idx);
         }
     }
