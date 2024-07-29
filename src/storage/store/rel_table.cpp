@@ -140,6 +140,7 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
         wal.logTableInsertion(tableID, TableType::REL,
             relInsertState.srcNodeIDVector.state->getSelVector().getSelSize(), vectorsToLog);
     }
+    hasChanges = true;
 }
 
 void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -166,6 +167,7 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
             &relUpdateState.dstNodeIDVector, &relUpdateState.relIDVector,
             &relUpdateState.propertyVector);
     }
+    hasChanges = true;
 }
 
 bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
@@ -187,12 +189,15 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
                 relDeleteState.relIDVector);
         }
     }
-    if (transaction->shouldLogToWAL()) {
-        KU_ASSERT(transaction->isWriteTransaction());
-        KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
-        wal.logRelDelete(tableID, &relDeleteState.srcNodeIDVector, &relDeleteState.dstNodeIDVector,
-            &relDeleteState.relIDVector);
+    if (isDeleted) {
+        hasChanges = true;
+        if (transaction->shouldLogToWAL()) {
+            KU_ASSERT(transaction->isWriteTransaction());
+            KU_ASSERT(transaction->getClientContext());
+            auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+            wal.logRelDelete(tableID, &relDeleteState.srcNodeIDVector,
+                &relDeleteState.dstNodeIDVector, &relDeleteState.relIDVector);
+        }
     }
     return isDeleted;
 }
@@ -230,6 +235,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
         wal.logRelDetachDelete(tableID, direction, &deleteState->srcNodeIDVector);
     }
+    hasChanges = true;
 }
 
 void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
@@ -285,6 +291,7 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     }
     fwdRelTableData->addColumn(transaction, addColumnState);
     bwdRelTableData->addColumn(transaction, addColumnState);
+    hasChanges = true;
 }
 
 NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
@@ -425,11 +432,16 @@ void RelTable::rollback(LocalTable* localTable) {
 }
 
 void RelTable::checkpoint(Serializer& ser) {
+    if (hasChanges) {
+        fwdRelTableData->checkpoint();
+        bwdRelTableData->checkpoint();
+        hasChanges = false;
+    }
     Table::serialize(ser);
     ser.writeDebuggingInfo("next_rel_offset");
     ser.write<offset_t>(nextRelOffset);
-    fwdRelTableData->checkpoint(ser);
-    bwdRelTableData->checkpoint(ser);
+    fwdRelTableData->serialize(ser);
+    bwdRelTableData->serialize(ser);
 }
 
 } // namespace storage

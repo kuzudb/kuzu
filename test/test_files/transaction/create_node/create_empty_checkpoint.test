@@ -1,0 +1,576 @@
+-DATASET CSV empty
+--
+
+-CASE CreateSimple
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:Date('2019-01-01')})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
+---- 1
+0|A|True|2019-01-01
+
+-CASE CreateStruct
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, isTrue BOOLEAN, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:{age:10, isTrue:True, name:'A'}})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+{age: 10, isTrue: True, name: A}
+
+-CASE CreateStructWithWriteTransaction
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:{age:10, name:'A'}})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+{age: 10, name: A}
+-STATEMENT COMMIT
+---- ok
+
+-CASE CreateList
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRING[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:['A', 'B', 'C', 'This is a long string for test']})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+[A,B,C,This is a long string for test]
+
+-CASE CreateDeleteNodeOnEmptyTable
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE emptyTable(id INT64, prop INT64[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (e:emptyTable {id: 0, prop: [3,2]})
+---- ok
+-STATEMENT MATCH (a:emptyTable) RETURN a.*
+---- 1
+0|[3,2]
+-STATEMENT MATCH (a:emptyTable) DELETE a
+---- ok
+-STATEMENT CREATE (e:emptyTable {id: 2, prop: [1,5,6]})
+---- ok
+-STATEMENT MATCH (a:emptyTable) RETURN a.*
+---- 1
+2|[1,5,6]
+
+-CASE CreateMap
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(name STRING, m MAP(STRING,STRING), PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE (t:test {name:"foo"});
+---- ok
+-STATEMENT CREATE (t:test {name:"foobar"});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+foo|
+foobar|
+
+-CASE CreateSerial
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE A(pk1 SERIAL, PRIMARY KEY(pk1));
+---- ok
+-STATEMENT CREATE NODE TABLE B(pk2 SERIAL, PRIMARY KEY(pk2));
+---- ok
+-STATEMENT CREATE NODE TABLE C(pk3 SERIAL, PRIMARY KEY(pk3));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT CREATE (:B);
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: A, pk1: 0}
+{_ID: 1:0, _LABEL: B, pk2: 0}
+
+-CASE CreateAndCopySerial
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE A(s SERIAL, id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY(s));
+---- ok
+-STATEMENT COPY A FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT MATCH (a:A) RETURN COUNT(*);
+---- 1
+151043
+-STATEMENT CREATE (a:A);
+---- ok
+-STATEMENT MATCH (a:A) RETURN COUNT(*);
+---- 1
+151044
+
+-CASE CreateWithLargeStringPK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:"fe38f9dc-f761-4184-8b8b"});
+---- ok
+-STATEMENT CREATE (t:test {id:"foobar-ewe-j323-8nd*-ewew"});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+fe38f9dc-f761-4184-8b8b
+foobar-ewe-j323-8nd*-ewew
+
+-CASE CreateInt8MaxWidth
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, value INT8, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {value: 127})
+---- ok
+-STATEMENT CREATE (t:test {value: 0})
+---- ok
+-STATEMENT CREATE (t:test {value: -128})
+---- ok
+-STATEMENT CALL storage_info("test") WHERE column_name = "value" return compression
+---- 1
+UNCOMPRESSED
+-STATEMENT MATCH (t:test) RETURN t.value
+---- 3
+127
+0
+-128
+
+-CASE CreateInt16MaxWidth
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, value INT16, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {value: 32767})
+---- ok
+-STATEMENT CREATE (t:test {value: 0})
+---- ok
+-STATEMENT CREATE (t:test {value: -32768})
+---- ok
+-STATEMENT CALL storage_info("test") WHERE column_name = "value" return compression
+---- 1
+UNCOMPRESSED
+-STATEMENT MATCH (t:test) RETURN t.value
+---- 3
+32767
+0
+-32768
+
+-CASE CreateInt32MaxWidth
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, value INT32, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {value:2147483647})
+---- ok
+-STATEMENT CREATE (t:test {value: 0})
+---- ok
+-STATEMENT CREATE (t:test {value: -2147483648})
+---- ok
+-STATEMENT CALL storage_info("test") WHERE column_name = "value" return compression
+---- 1
+UNCOMPRESSED
+-STATEMENT MATCH (t:test) RETURN t.value
+---- 3
+2147483647
+0
+-2147483648
+
+-CASE CreateInt64MaxWidth
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, value INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {value:9223372036854775807})
+---- ok
+-STATEMENT CREATE (t:test {value: 0})
+---- ok
+-STATEMENT CREATE (t:test {value: -9223372036854775808})
+---- ok
+-STATEMENT CALL storage_info("test") WHERE column_name = "value" return compression
+---- 1
+UNCOMPRESSED
+-STATEMENT MATCH (t:test) RETURN t.value
+---- 3
+9223372036854775807
+0
+-9223372036854775808
+
+-CASE CreateInt128MaxWidth
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, value INT128, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {value:170141183460469231731687303715884105727})
+---- ok
+-STATEMENT CREATE (t:test {value: 0})
+---- ok
+-STATEMENT CREATE (t:test {value: -170141183460469231731687303715884105727})
+---- ok
+-STATEMENT CALL storage_info("test") WHERE column_name = "value" return compression
+---- 1
+UNCOMPRESSED
+-STATEMENT MATCH (t:test) RETURN t.value
+---- 3
+170141183460469231731687303715884105727
+0
+-170141183460469231731687303715884105727
+
+-CASE CreateUInt8PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id UINT8, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+-STATEMENT MATCH (t:test) WHERE t.id = 255 RETURN COUNT(*);
+---- 1
+1
+
+-CASE CreateUInt16PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id UINT16, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+
+-CASE CreateUInt32PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id UINT32, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+
+-CASE CreateUInt64PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id UINT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+
+-CASE CreateInt8PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT8, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:127});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+127
+-STATEMENT MATCH (t:test) WHERE t.id = 127 RETURN COUNT(*);
+---- 1
+1
+
+-CASE CreateInt16PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT16, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+
+-CASE CreateInt32PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT32, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+
+-CASE CreateInt64PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:255});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+1
+255
+
+-CASE CreateInt128PK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT128, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:170141183460469231731687303715884105727});
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id = 170141183460469231731687303715884105727 RETURN t.id;
+---- 1
+170141183460469231731687303715884105727
+
+-CASE CreateTimestampPK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id TIMESTAMP, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:timestamp('2024-01-24')});
+---- ok
+-STATEMENT CREATE (t:test {id:timestamp('2024-01-01')});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+2024-01-24 00:00:00
+2024-01-01 00:00:00
+
+
+-CASE CreateDoublePK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id DOUBLE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:0.1});
+---- ok
+-STATEMENT CREATE (t:test {id:0.2});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+0.100000
+0.200000
+-STATEMENT MATCH (t:test) WHERE t.id > 0.15 RETURN t.id;
+---- 1
+0.200000
+-STATEMENT MATCH (t:test) WHERE t.id = 0.1 RETURN t.id;
+---- 1
+0.100000
+
+-CASE CreateFloatPK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id FLOAT, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:0.1});
+---- ok
+-STATEMENT CREATE (t:test {id:0.2});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+0.100000
+0.200000
+-STATEMENT MATCH (t:test) WHERE t.id > 0.15 RETURN t.id;
+---- 1
+0.200000
+-STATEMENT MATCH (t:test) WHERE t.id = to_float(0.1) RETURN t.id;
+---- 1
+0.100000
+-STATEMENT CREATE (t:test {id:0});
+---- ok
+# Zero and negative zero need to be equivalent
+-STATEMENT MATCH (t:test) WHERE t.id = (0.0 * -1) RETURN t.id;
+---- 1
+0.000000
+-STATEMENT MATCH (t:test) WHERE t.id = -0.0 RETURN t.id;
+---- 1
+0.000000
+-STATEMENT MATCH (t:test) WHERE t.id = to_float("-0.0") RETURN t.id;
+---- 1
+0.000000
+# infinity should work
+-STATEMENT CREATE (t:test {id:1.0/0.0});
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id = 1.0/0.0 RETURN t.id;
+---- 1
+inf
+-STATEMENT MATCH (t:test) WHERE t.id = to_float("inf") RETURN t.id;
+---- 1
+inf
+-STATEMENT MATCH (t:test) WHERE t.id = to_float("-inf") RETURN t.id;
+---- 0
+# NaN should not be searchable
+-STATEMENT CREATE (t:test {id:0.0/0.0});
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id = 0.0/0.0 RETURN t.id;
+---- 0
+-STATEMENT CREATE (t:test {id:sqrt(-1.0)});
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id = sqrt(-1.0) RETURN t.id;
+---- 0
+
+-CASE CreateBlobPK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id BLOB, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:blob("foo")});
+---- ok
+-STATEMENT CREATE (t:test {id:blob("bar")});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+foo
+bar
+
+-CASE CreateDatePK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:date("2024-01-26")});
+---- ok
+-STATEMENT CREATE (t:test {id:date("2024-01-24")});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+2024-01-26
+2024-01-24
+
+-CASE CreateUUIDPK
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id UUID, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12")});
+---- ok
+-STATEMENT CREATE (t:test {id:UUID("8fffffff-ffff-ffff-ffff-ffffffffffff")});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+8fffffff-ffff-ffff-ffff-ffffffffffff
+a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+
+-CASE CreateBatch
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, age INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT UNWIND RANGE(1,100) AS id CREATE (t:test {id:id});
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.age IS NOT NULL RETURN COUNT(*);
+---- 1
+0
+
+-CASE CreateDuplicatedNodesWithinSameTransaction
+-STATEMENT CALL auto_checkpoint=true;
+---- ok
+-STATEMENT CALL checkpoint_threshold=0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- ok
+-STATEMENT CREATE (t:test {id:1});
+---- error
+Runtime exception: Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.

@@ -70,6 +70,15 @@ void ChunkedNodeGroup::resizeChunks(const uint64_t newSize) const {
     }
 }
 
+void ChunkedNodeGroup::resetVersionAndUpdateInfo() {
+    if (versionInfo) {
+        versionInfo.reset();
+    }
+    for (const auto& chunk : chunks) {
+        chunk->resetUpdateInfo();
+    }
+}
+
 void ChunkedNodeGroup::setNumRows(const offset_t numRows_) {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (const auto& chunk : chunks) {

@@ -37,6 +37,7 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
 
 struct RelBatchInsertLocalState final : BatchInsertLocalState {
     common::partition_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+    std::unique_ptr<common::DataChunk> dummyAllNullDataChunk;
 };
 
 class RelBatchInsert final : public BatchInsert {
@@ -65,24 +66,24 @@ public:
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
-        RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+        const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
         const PartitionerSharedState& partitionerSharedState);
 
-    static void populateCSROffsets(storage::InMemChunkedNodeGroupCollection& partition,
+    static void populateCSRHeaderAndRowIdx(storage::InMemChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
 
-    static void populateCSRLengths(storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
-        storage::InMemChunkedNodeGroupCollection& partition,
+    static void populateCSRLengths(const storage::ChunkedCSRHeader& csrHeader,
+        common::offset_t numNodes, storage::InMemChunkedNodeGroupCollection& partition,
         common::column_id_t boundNodeOffsetColumn);
 
     static void setOffsetToWithinNodeGroup(storage::ColumnChunkData& chunk,
         common::offset_t startOffset);
-    static void setOffsetFromCSROffsets(storage::ColumnChunkData& nodeOffsetChunk,
+    static void setRowIdxFromCSROffsets(storage::ColumnChunkData& rowIdxChunk,
         storage::ColumnChunkData& csrOffsetChunk);
 
-    static std::optional<common::offset_t> checkRelMultiplicityConstraint(
-        const storage::ChunkedCSRHeader& csrHeader, const RelBatchInsertInfo& relInfo);
+    static void checkRelMultiplicityConstraint(const storage::ChunkedCSRHeader& csrHeader,
+        common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo);
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;

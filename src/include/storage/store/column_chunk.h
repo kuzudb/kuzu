@@ -37,7 +37,7 @@ struct ColumnCheckpointState {
 class ColumnChunk {
 public:
     ColumnChunk(const common::LogicalType& dataType, uint64_t capacity, bool enableCompression,
-        ResidencyState type);
+        ResidencyState residencyState);
     ColumnChunk(const common::LogicalType& dataType, bool enableCompression,
         ColumnChunkMetadata metadata);
     ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
@@ -50,10 +50,10 @@ public:
     void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunk& output, common::row_idx_t startRow = 0,
         common::row_idx_t numRows = common::INVALID_ROW_IDX) const;
-    void lookup(transaction::Transaction* transaction, ChunkState& state,
-        common::offset_t offsetInChunk, common::ValueVector& output,
+    void lookup(transaction::Transaction* transaction, const ChunkState& state,
+        common::offset_t rowInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
-    void update(transaction::Transaction* transaction, common::offset_t offsetInChunk,
+    void update(const transaction::Transaction* transaction, common::offset_t offsetInChunk,
         const common::ValueVector& values);
 
     uint64_t getEstimatedMemoryUsage() const {
@@ -68,7 +68,7 @@ public:
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
 
     std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
-        transaction::Transaction* transaction) const;
+        const transaction::Transaction* transaction) const;
 
     void setData(std::unique_ptr<ColumnChunkData> data) { this->data = std::move(data); }
     // Functions to access the in memory data.
@@ -95,8 +95,9 @@ public:
     }
 
 private:
-    void scanCommittedUpdates(transaction::Transaction* transaction, ColumnChunkData& output,
-        common::offset_t startOffsetInOutput) const;
+    void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
+        common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
+        common::row_idx_t numRows) const;
 
 private:
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in

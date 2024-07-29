@@ -154,7 +154,7 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
 }
 
 void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector* pkVector) {
-    common::offset_t dummyOffset;
+    offset_t dummyOffset;
     auto& selVector = pkVector->state->getSelVector();
     KU_ASSERT(selVector.getSelSize() == 1);
     if (pkVector->isNull(selVector[0])) {
@@ -187,6 +187,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
             nodeInsertState.nodeIDVector.state->getSelVector().getSelSize(),
             insertState.propertyVectors);
     }
+    hasChanges = true;
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
@@ -226,6 +227,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         wal.logNodeUpdate(tableID, nodeUpdateState.columnID, nodeOffset,
             &nodeUpdateState.propertyVector);
     }
+    hasChanges = true;
 }
 
 bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
@@ -249,11 +251,14 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
     }
-    if (transaction->shouldLogToWAL()) {
-        KU_ASSERT(transaction->isWriteTransaction());
-        KU_ASSERT(transaction->getClientContext());
-        auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
-        wal.logNodeDeletion(tableID, nodeOffset, &nodeDeleteState.pkVector);
+    if (isDeleted) {
+        hasChanges = true;
+        if (transaction->shouldLogToWAL()) {
+            KU_ASSERT(transaction->isWriteTransaction());
+            KU_ASSERT(transaction->getClientContext());
+            auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
+            wal.logNodeDeletion(tableID, nodeOffset, &nodeDeleteState.pkVector);
+        }
     }
     return isDeleted;
 }
@@ -272,10 +277,12 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
         localTable->addColumn(transaction, addColumnState);
     }
     nodeGroups->addColumn(transaction, addColumnState);
+    hasChanges = true;
 }
 
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
-    ChunkedNodeGroup& chunkedGroup) const {
+    ChunkedNodeGroup& chunkedGroup) {
+    hasChanges = true;
     return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, chunkedGroup);
 }
 
@@ -369,16 +376,19 @@ void NodeTable::rollback(LocalTable* localTable) {
 }
 
 void NodeTable::checkpoint(Serializer& ser) {
-    // TODO(Guodong): Should refer to TableCatalogEntry to figure out non-deleted columns.
-    std::vector<Column*> checkpointColumns;
-    std::vector<column_id_t> columnIDs;
-    for (auto i = 0u; i < columns.size(); i++) {
-        columnIDs.push_back(i);
-        checkpointColumns.push_back(columns[i].get());
+    if (hasChanges) {
+        // TODO(Guodong): Should refer to TableCatalogEntry to figure out non-deleted columns.
+        std::vector<Column*> checkpointColumns;
+        std::vector<column_id_t> columnIDs;
+        for (auto i = 0u; i < columns.size(); i++) {
+            columnIDs.push_back(i);
+            checkpointColumns.push_back(columns[i].get());
+        }
+        NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, memoryManager};
+        nodeGroups->checkpoint(state);
+        pkIndex->checkpoint();
+        hasChanges = false;
     }
-    NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, memoryManager};
-    nodeGroups->checkpoint(state);
-    pkIndex->checkpoint();
     serialize(ser);
 }
 

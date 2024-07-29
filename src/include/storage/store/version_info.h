@@ -87,8 +87,8 @@ public:
     void clearVectorInfo(common::idx_t vectorIdx);
 
     bool hasDeletions() const;
-    bool getNumDeletions(const transaction::Transaction* transaction, common::row_idx_t startRow,
-        common::length_t numRows) const;
+    common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
+        common::row_idx_t startRow, common::length_t numRows) const;
     bool hasInsertions() const;
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
@@ -96,11 +96,8 @@ public:
 
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction) const;
 
-    VectorVersionInfo* getVectorVersionInfo(common::idx_t vectorIdx) const {
-        KU_ASSERT(vectorIdx < vectorsInfo.size());
-        KU_ASSERT(vectorsInfo[vectorIdx]);
-        return vectorsInfo[vectorIdx].get();
-    }
+    // Return nullptr when vectorIdx is out of range or when the vector is not created.
+    VectorVersionInfo* getVectorVersionInfo(common::idx_t vectorIdx) const;
     common::idx_t getNumVectors() const { return vectorsInfo.size(); }
     VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
 
@@ -108,9 +105,6 @@ public:
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);
-
-private:
-    const VectorVersionInfo& getVersionInfo(common::idx_t vectorIdx) const;
 
 private:
     std::vector<std::unique_ptr<VectorVersionInfo>> vectorsInfo;

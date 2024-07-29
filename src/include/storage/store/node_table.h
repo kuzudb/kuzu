@@ -152,7 +152,7 @@ public:
     }
 
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
-        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup) const;
+        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void rollback(LocalTable* localTable) override;

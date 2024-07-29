@@ -1,6 +1,5 @@
 #pragma once
 
-#include "csr_node_group.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
 
@@ -35,21 +34,8 @@ public:
         const auto lock = nodeGroups.lock();
         return nodeGroups.getGroup(lock, groupIdx);
     }
-    NodeGroup* getOrCreateNodeGroup(const common::node_group_idx_t groupIdx,
-        NodeGroupDataFormat format) {
-        const auto lock = nodeGroups.lock();
-        const auto nodeGroup = nodeGroups.getGroup(lock, groupIdx);
-        if (!nodeGroup) {
-            nodeGroups.replaceGroup(lock, groupIdx,
-                format == NodeGroupDataFormat::REGULAR ?
-                    std::make_unique<NodeGroup>(groupIdx, enableCompression,
-                        common::LogicalType::copy(types)) :
-                    std::make_unique<CSRNodeGroup>(groupIdx, enableCompression,
-                        common::LogicalType::copy(types)));
-            return nodeGroups.getGroup(lock, groupIdx);
-        }
-        return nodeGroup;
-    }
+    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
+
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
         const auto lock = nodeGroups.lock();

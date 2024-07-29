@@ -42,6 +42,8 @@ Alice
 
 -CASE CheckpointTimeoutErrorTest
 -CHECKPOINT_WAIT_TIMEOUT 10000
+-STATEMENT CALL auto_checkpoint=false
+---- ok
 -STATEMENT CREATE NODE TABLE person(ID INT64, age INT64, PRIMARY KEY(ID));
 ---- ok
 -CREATE_CONNECTION conn1
