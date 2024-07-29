@@ -144,8 +144,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
         offsetVectorIdx, std::move(columnTypes));
-    auto printInfo = std::make_unique<OPPrintInfo>(copyFrom.getExpressionsForPrinting());
-    return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
+    auto printInfo = std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName(),
+        copyFrom.getInfo()->source->type);    return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),
         std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo));
 }
