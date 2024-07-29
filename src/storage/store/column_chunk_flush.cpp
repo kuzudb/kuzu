@@ -92,6 +92,8 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
             exceptionBufferCursor, remainingExceptionBufferSize, pageExceptionCount,
             metadata.compMeta);
         exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeBytes();
+        KU_ASSERT(
+            pageExceptionCount * EncodeException<T>::sizeBytes() <= remainingExceptionBufferSize);
         remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeBytes();
         totalExceptionCount += pageExceptionCount;
 
@@ -110,6 +112,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
     }
 
     KU_ASSERT(exceptionBufferCursor <= exceptionBuffer.get() + exceptionBufferSize);
+    KU_ASSERT(totalExceptionCount == metadata.compMeta.alpMetadata.exceptionCount);
 
     // set unused exception buffer entries to posInChunk = INVALID_POS
     for (size_t i = totalExceptionCount; i < metadata.compMeta.alpMetadata.exceptionCapacity; ++i) {

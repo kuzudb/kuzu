@@ -52,6 +52,8 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
             metadata.alpMetadata.fac, metadata.alpMetadata.exp);
 
         if (floatValue != decodedValue) {
+            KU_ASSERT(
+                (exceptionCount + 1) * EncodeException<T>::sizeBytes() <= exceptionBufferSize);
             auto* exceptionBufferEntry = reinterpret_cast<std::byte*>(
                 exceptionBuffer + exceptionCount * EncodeException<T>::sizeBytes());
             KU_ASSERT(srcOffset + posInPage == static_cast<uint32_t>(srcOffset + posInPage));

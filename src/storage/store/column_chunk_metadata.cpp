@@ -131,7 +131,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     }
 
     std::vector<int64_t> floatEncodedValues(numValues);
-    std::vector<size_t> exceptionsPrefixSum(numValues); // TODO optimize out
+    size_t exceptionCount = 0;
     for (offset_t i = 0; i < numValues; ++i) {
         const T& val = src[i];
         const auto encoded_value =
@@ -139,21 +139,17 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
         const auto decoded_value =
             alp::AlpDecode<T>::decode_value(encoded_value, alpMetadata.fac, alpMetadata.exp);
 
-        if (i > 0) {
-            exceptionsPrefixSum[i] = exceptionsPrefixSum[i - 1];
-        }
-
         if (val == decoded_value) {
             floatEncodedValues[i] = encoded_value;
         } else {
             floatEncodedValues[i] = *firstSuccessfulEncode;
-            ++exceptionsPrefixSum[i];
+            ++exceptionCount;
         }
     }
     const auto& [minEncoded, maxEncoded] =
         std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
 
-    alpMetadata.exceptions_count = exceptionsPrefixSum.back();
+    alpMetadata.exceptions_count = exceptionCount;
     auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
         StorageValue{*minEncoded}, StorageValue{*maxEncoded}, physicalType);
 
@@ -162,8 +158,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     const auto numPagesForEncoded =
         capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
     // TODO: consolidate
-    const auto exceptionCapacity =
-        std::bit_ceil(exceptionsPrefixSum.back() * sizeof(T)) / sizeof(T);
+    const auto exceptionCapacity = std::bit_ceil(exceptionCount * sizeof(T)) / sizeof(T);
     const auto numPagesForExceptions = ceilDiv(static_cast<uint64_t>(exceptionCapacity),
         (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes()));
     return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,
