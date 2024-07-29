@@ -2,7 +2,6 @@
 
 #include "common/exception/copy.h"
 #include "common/exception/parser.h"
-#include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/blob.h"
 #include "function/list/functions/list_unique_function.h"
