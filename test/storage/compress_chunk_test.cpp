@@ -481,5 +481,9 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
     });
 }
 
+// TODO: tests to add:
+// - numExceptions doesn't fit in uint16
+// - insert/remove exception at same pos in chunk multiple times before finalize
+
 } // namespace testing
 } // namespace kuzu
