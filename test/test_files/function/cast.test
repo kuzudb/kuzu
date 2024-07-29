@@ -1343,6 +1343,8 @@ False
 -STATEMENT RETURN map([1,2], [NULL, NULL]), map([1,2], ['a', NULL]);
 ---- 1
 {1=, 2=}|{1=a, 2=}
+-STATEMENT CALL DISABLE_MAP_KEY_CHECK=FALSE
+---- ok
 -STATEMENT RETURN map([NULL, NULL], [1, 2]);
 ---- error
 Runtime exception: Null value key is not allowed in map.

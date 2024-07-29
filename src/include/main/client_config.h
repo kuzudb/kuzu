@@ -44,7 +44,7 @@ struct ClientConfigDefault {
     static constexpr uint64_t SHOW_PROGRESS_AFTER = 1000;
     static constexpr common::PathSemantic RECURSIVE_PATTERN_SEMANTIC = common::PathSemantic::WALK;
     static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 1;
-    static constexpr bool DISABLE_MAP_KEY_CHECK = false;
+    static constexpr bool DISABLE_MAP_KEY_CHECK = true;
 };
 
 } // namespace main

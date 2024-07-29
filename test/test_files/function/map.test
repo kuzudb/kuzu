@@ -97,8 +97,6 @@
 []
 
 -LOG MapAllowDuplicateKey
--STATEMENT CALL DISABLE_MAP_KEY_CHECK=TRUE
----- ok
 -STATEMENT RETURN map([1,1,2], ['Alice','Bob','Carol']);
 ---- 1
 {1=Alice, 1=Bob, 2=Carol}
