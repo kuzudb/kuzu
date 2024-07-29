@@ -21,6 +21,10 @@ private:
     void visitStandaloneCall(const Statement& /*statement*/) override { readOnly = true; }
     void visitCreateMacro(const Statement& /*statement*/) override { readOnly = false; }
 
+    void visitReadingClause(const ReadingClause* readingClause) override;
+    void visitWithClause(const WithClause* withClause) override;
+    void visitReturnClause(const ReturnClause* returnClause) override;
+
     void visitUpdatingClause(const UpdatingClause* /*updatingClause*/) override {
         readOnly = false;
     }

@@ -15,15 +15,8 @@ public:
 
     const ParsedExpression* getFunctionExpression() const { return functionExpression.get(); }
 
-    void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
-        wherePredicate = std::move(expression);
-    }
-    bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
-
 private:
     std::unique_ptr<ParsedExpression> functionExpression;
-    std::unique_ptr<ParsedExpression> wherePredicate;
 };
 
 } // namespace parser

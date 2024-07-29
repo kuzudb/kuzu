@@ -1,7 +1,9 @@
 #include "parser/expression/parsed_expression_visitor.h"
 
 #include "common/exception/not_implemented.h"
+#include "function/sequence/sequence_functions.h"
 #include "parser/expression/parsed_case_expression.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;
@@ -64,6 +66,9 @@ void ParsedExpressionVisitor::visitSwitch(const ParsedExpression* expr) {
     case ExpressionType::LAMBDA: {
         visitLambdaExpr(expr);
     } break;
+    case ExpressionType::STAR: {
+        visitStar(expr);
+    } break;
         // LCOV_EXCL_START
     default:
         throw NotImplementedException("ExpressionVisitor::visitSwitch");
@@ -100,6 +105,16 @@ void ParsedExpressionVisitor::visitCaseExprChildren(const ParsedExpression& expr
     }
     if (caseExpr.hasElseExpression()) {
         visit(caseExpr.getElseExpression());
+    }
+}
+
+void ParsedSequenceFunctionCollector::visitFunctionExpr(const ParsedExpression* expr) {
+    if (expr->getExpressionType() != ExpressionType::FUNCTION) {
+        return;
+    }
+    auto funName = expr->constCast<ParsedFunctionExpression>().getFunctionName();
+    if (StringUtils::getUpper(funName) == function::NextValFunction::name) {
+        hasSeqUpdate_ = true;
     }
 }
 

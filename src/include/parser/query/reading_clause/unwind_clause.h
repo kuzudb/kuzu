@@ -7,9 +7,11 @@ namespace kuzu {
 namespace parser {
 
 class UnwindClause : public ReadingClause {
+    static constexpr common::ClauseType clauseType_ = common::ClauseType::UNWIND;
+
 public:
     UnwindClause(std::unique_ptr<ParsedExpression> expression, std::string listAlias)
-        : ReadingClause{common::ClauseType::UNWIND}, expression{std::move(expression)},
+        : ReadingClause{clauseType_}, expression{std::move(expression)},
           alias{std::move(listAlias)} {}
 
     const ParsedExpression* getExpression() const { return expression.get(); }
