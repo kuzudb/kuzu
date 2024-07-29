@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
