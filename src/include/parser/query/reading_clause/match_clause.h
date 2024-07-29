@@ -1,6 +1,5 @@
 #pragma once
 
-#include "parser/expression/parsed_expression.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "reading_clause.h"
 
@@ -28,12 +27,6 @@ public:
 
     const std::vector<PatternElement>& getPatternElementsRef() const { return patternElements; }
 
-    void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
-        wherePredicate = std::move(expression);
-    }
-    bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
-
     common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
 
     void setHint(std::shared_ptr<JoinHintNode> root) { hintRoot = std::move(root); }
@@ -42,7 +35,6 @@ public:
 
 private:
     std::vector<PatternElement> patternElements;
-    std::unique_ptr<ParsedExpression> wherePredicate;
     common::MatchClauseType matchClauseType;
     std::shared_ptr<JoinHintNode> hintRoot = nullptr;
 };

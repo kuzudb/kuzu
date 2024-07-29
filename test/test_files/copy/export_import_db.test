@@ -190,6 +190,7 @@ Adam|Zhang
 Karissa|Zhang
 Zhang|Noura
 
+
 -CASE DocExportImportExampleParquet
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db" (format="parquet");
 ---- ok
