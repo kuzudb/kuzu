@@ -64,6 +64,7 @@ ClientContext::ClientContext(Database* database)
     clientConfig.recursivePatternSemantic = ClientConfigDefault::RECURSIVE_PATTERN_SEMANTIC;
     clientConfig.recursivePatternCardinalityScaleFactor =
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
+    clientConfig.allowMapDuplicateKey = ClientConfigDefault::ALLOW_MAP_DUPLICATE_KEY;
 }
 
 ClientContext::~ClientContext() = default;

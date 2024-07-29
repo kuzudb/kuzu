@@ -95,3 +95,13 @@
 -STATEMENT RETURN map_values(map([], []));
 ---- 1
 []
+
+-LOG MapAllowDuplicateKey
+-STATEMENT CALL ALLOW_MAP_DUPLICATE_KEY=TRUE
+---- ok
+-STATEMENT RETURN map([1,1,2], ['Alice','Bob','Carol']);
+---- 1
+{1=Alice, 1=Bob, 2=Carol}
+-STATEMENT RETURN  map_extract(map([1,1,2], ['Alice','Bob','Carol']), 1);
+---- 1
+[Bob,Alice]

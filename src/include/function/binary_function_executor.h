@@ -21,10 +21,20 @@ struct BinaryFunctionWrapper {
 
 struct BinaryListStructFunctionWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+    static void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
         common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
         common::ValueVector* resultValueVector, uint64_t /*resultPos*/, void* /*dataPtr*/) {
         OP::operation(left, right, result, *leftValueVector, *rightValueVector, *resultValueVector);
+    }
+};
+
+struct BinaryMapCreationFunctionWrapper {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
+    static void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
+        common::ValueVector* resultValueVector, uint64_t /*resultPos*/, void* dataPtr) {
+        OP::operation(left, right, result, *leftValueVector, *rightValueVector, *resultValueVector,
+            dataPtr);
     }
 };
 
@@ -259,6 +269,13 @@ struct BinaryFunctionExecutor {
         common::ValueVector& result) {
         executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryListStructFunctionWrapper>(
             left, right, result, nullptr /* dataPtr */);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeMapCreation(common::ValueVector& left, common::ValueVector& right,
+        common::ValueVector& result, void* dataPtr) {
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryMapCreationFunctionWrapper>(
+            left, right, result, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>

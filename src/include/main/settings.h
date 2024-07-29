@@ -81,6 +81,18 @@ struct EnableSemiMaskSetting {
     }
 };
 
+struct AllowMapDuplicateKeySetting {
+    static constexpr const char* name = "allow_map_duplicate_key";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->allowMapDuplicateKey = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getClientConfig()->allowMapDuplicateKey);
+    }
+};
+
 struct EnableZoneMapSetting {
     static constexpr const char* name = "enable_zone_map";
     static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
