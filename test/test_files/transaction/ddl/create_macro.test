@@ -14,7 +14,7 @@
 36
 40
 78
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -RELOADDB
 -STATEMENT match (a:person) return case_macro(a.age) as age
@@ -41,7 +41,7 @@
 
 
 36
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -RELOADDB
 -STATEMENT match (a:person) return case_macro(a.age) as age
@@ -68,7 +68,7 @@
 47.600000
 52.600000
 90.600000
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -RELOADDB
 -STATEMENT match (a:person) return func_macro(a.age) as age
@@ -96,7 +96,7 @@
 -STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
 ---- 1
 result|6|5.600000|00:20:00|[1,3,2]
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -RELOADDB
 -STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
@@ -116,7 +116,7 @@ result|6|5.600000|00:20:00|[1,3,2]
 7
 8
 9
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -RELOADDB
 -STATEMENT match (a:person) return prop_macro(a) as age
@@ -144,7 +144,7 @@ result|6|5.600000|00:20:00|[1,3,2]
 7
 8
 9
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -RELOADDB
 -STATEMENT match (a:person) return var_macro(a.ID)

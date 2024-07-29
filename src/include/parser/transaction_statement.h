@@ -7,11 +7,13 @@ namespace kuzu {
 namespace parser {
 
 class TransactionStatement : public Statement {
+    static constexpr common::StatementType statementType_ = common::StatementType::TRANSACTION;
+
 public:
     explicit TransactionStatement(transaction::TransactionAction transactionAction)
-        : Statement{common::StatementType::TRANSACTION}, transactionAction{transactionAction} {}
+        : Statement{statementType_}, transactionAction{transactionAction} {}
 
-    inline transaction::TransactionAction getTransactionAction() const { return transactionAction; }
+    transaction::TransactionAction getTransactionAction() const { return transactionAction; }
 
 private:
     transaction::TransactionAction transactionAction;

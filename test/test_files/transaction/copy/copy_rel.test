@@ -81,7 +81,7 @@
 2021-06-30
 1950-05-14
 1950-05-14
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT match (:person)-[e:knows]->(:person) return e.date
 ---- 6
@@ -109,7 +109,7 @@
 2021-06-30
 2021-06-30
 2021-06-30
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT match (:person)-[e:knows]->(:person) return e.date
 ---- 14

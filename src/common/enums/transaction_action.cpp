@@ -19,6 +19,9 @@ std::string TransactionActionUtils::toString(TransactionAction action) {
     case TransactionAction::ROLLBACK: {
         return "ROLLBACK";
     }
+    case TransactionAction::CHECKPOINT: {
+        return "CHECKPOINT";
+    }
     default:
         KU_UNREACHABLE;
     }
