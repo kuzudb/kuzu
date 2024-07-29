@@ -1274,11 +1274,13 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         try {
             // try find a UDT cast
             func->name = "CAST_TO_" + targetTypeStr;
-            func->execFunc = BuiltInFunctionsUtils::matchFunction(input.context->getTx(), "CAST_TO_" + targetTypeStr, typeVec,
-                input.context->getCatalog()->getFunctions(input.context->getTx()))->constPtrCast<ScalarFunction>()->execFunc;
+            func->execFunc = BuiltInFunctionsUtils::matchFunction(input.context->getTx(),
+                "CAST_TO_" + targetTypeStr, typeVec,
+                input.context->getCatalog()->getFunctions(input.context->getTx()))
+                                 ->constPtrCast<ScalarFunction>()
+                                 ->execFunc;
             return std::make_unique<function::CastFunctionBindData>(targetType.copy());
         } catch (...) { // NOLINT
-
         }
     }
     if (targetType == input.arguments[0]->getDataType()) { // No need to cast.
