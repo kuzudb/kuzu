@@ -3,7 +3,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
-#include "common/exception/catalog.h"
 #include "common/exception/conversion.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/cast_array.h"
