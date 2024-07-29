@@ -1,4 +1,3 @@
-#include "test_runner/csv_to_parquet_converter.h"
 #include "test_runner/insert_by_row.h"
 
 #include <fstream>
@@ -6,13 +5,15 @@
 #include "common/exception/test.h"
 #include "common/string_utils.h"
 #include "test_helper/test_helper.h"
+#include "test_runner/csv_to_parquet_converter.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace testing {
 
-static std::unique_ptr<main::QueryResult> validateQuery(main::Connection& conn, std::string& query) {
+static std::unique_ptr<main::QueryResult> validateQuery(main::Connection& conn,
+    std::string& query) {
     auto result = conn.query(query);
     if (!result->isSuccess()) {
         throw Exception(stringFormat("Failed to execute statement: {}.\nError: {}", query,
@@ -40,13 +41,13 @@ void InsertDatasetByRow::init() {
         auto query = stringFormat("call show_tables() where name='{}' return type;", tableName);
         auto result = validateQuery(connection, query);
         auto tableType = result->getNext()->getValue(0)->toString();
-        query = stringFormat("call table_info('{}') return name, type order by 'property id';", tableName);
+        query = stringFormat("call table_info('{}') return name, type order by 'property id';",
+            tableName);
         result = validateQuery(connection, query);
         std::vector<std::pair<std::string, std::string>> properties;
         while (result->hasNext()) {
             auto tuple = result->getNext();
-            properties.emplace_back(tuple->getValue(0)->toString(), 
-                tuple->getValue(1)->toString());
+            properties.emplace_back(tuple->getValue(0)->toString(), tuple->getValue(1)->toString());
         }
         size_t start = line.find('"', 0);
         size_t end = line.find('"', start + 1);
@@ -59,7 +60,7 @@ void InsertDatasetByRow::init() {
         end = line.find(';');
         auto datasetFilePath = line.substr(start, end == std::string::npos ? end : end - start);
         if (tableType == "NODE") {
-            tables.push_back(std::make_unique<NodeTableInfo>(std::move(tableName), 
+            tables.push_back(std::make_unique<NodeTableInfo>(std::move(tableName),
                 std::move(datasetFilePath), std::move(properties)));
         } else if (tableType == "REL") {
             query = stringFormat("call show_connection('{}') return *;", tableName);
@@ -71,15 +72,14 @@ void InsertDatasetByRow::init() {
             from.property = tuple->getValue(2)->toString();
             to.name = tuple->getValue(1)->toString();
             to.property = tuple->getValue(3)->toString();
-            query = stringFormat(
-                "call table_info('{}') where name='{}' return type;"
-                "call table_info('{}') where name='{}' return type;", 
+            query = stringFormat("call table_info('{}') where name='{}' return type;"
+                                 "call table_info('{}') where name='{}' return type;",
                 from.name, from.property, to.name, to.property);
             result = validateQuery(connection, query);
             from.type = result->getNext()->getValue(0)->toString();
             auto next = result->getNextQueryResult();
             to.type = next->getNext()->getValue(0)->toString();
-            tables.push_back(std::make_unique<RelTableInfo>(std::move(tableName), 
+            tables.push_back(std::make_unique<RelTableInfo>(std::move(tableName),
                 std::move(datasetFilePath), std::move(properties), std::move(from), std::move(to)));
         } else {
             throw Exception(stringFormat("Unsupported table type {} for insert by row", tableName,
@@ -89,7 +89,7 @@ void InsertDatasetByRow::init() {
 }
 
 void InsertDatasetByRow::run() {
-    for (auto& table: tables) {
+    for (auto& table : tables) {
         auto query = table->getLoadFromQuery();
         validateQuery(connection, query);
     }
@@ -97,7 +97,7 @@ void InsertDatasetByRow::run() {
 
 std::string InsertDatasetByRow::TableInfo::getHeaderForLoad() const {
     std::vector<std::string> strVec;
-    for (auto& prop: properties) {
+    for (auto& prop : properties) {
         strVec.push_back(prop.first + " " + prop.second);
     }
     return StringUtils::join(strVec, ",");
@@ -105,31 +105,30 @@ std::string InsertDatasetByRow::TableInfo::getHeaderForLoad() const {
 
 std::string InsertDatasetByRow::TableInfo::getBodyForLoad() const {
     std::vector<std::string> strVec;
-    for (auto& prop: properties) {
+    for (auto& prop : properties) {
         strVec.push_back(prop.first + ":" + prop.first);
     }
     return StringUtils::join(strVec, ",");
 }
 
 std::string InsertDatasetByRow::NodeTableInfo::getLoadFromQuery() const {
-    const std::string query = 
-        "LOAD WITH HEADERS ({}) FROM {} "
-        "CREATE (:{} {});";
+    const std::string query = "LOAD WITH HEADERS ({}) FROM {} "
+                              "CREATE (:{} {});";
     const auto header = getHeaderForLoad();
     const auto body = getBodyForLoad();
     return stringFormat(query, header, filePath, name, "{" + body + "}");
 }
 
 std::string InsertDatasetByRow::RelTableInfo::getLoadFromQuery() const {
-    const std::string query = 
-        "LOAD WITH HEADERS ({}) FROM {} "
-        "MATCH (a:{}), (b:{}) WHERE a.{} = aid_ AND b.{} = bid_ "
-        "CREATE (a)-[:{} {}]->(b);";
+    const std::string query = "LOAD WITH HEADERS ({}) FROM {} "
+                              "MATCH (a:{}), (b:{}) WHERE a.{} = aid_ AND b.{} = bid_ "
+                              "CREATE (a)-[:{} {}]->(b);";
     auto header = stringFormat("aid_ {},bid_ {}", from.type, to.type);
     auto headerRest = getHeaderForLoad();
     header += headerRest.length() == 0 ? "" : "," + getHeaderForLoad();
     const auto body = getBodyForLoad();
-    return stringFormat(query, header, filePath, from.name, to.name, from.property, to.property, name, "{" + body + "}");
+    return stringFormat(query, header, filePath, from.name, to.name, from.property, to.property,
+        name, "{" + body + "}");
 }
 
 } // namespace testing
