@@ -108,6 +108,72 @@ Catalog exception: currval: sequence "before" is not yet defined. To define the 
 Catalog exception: after does not exist in catalog.
 
 -CASE SequenceImplicitCommit
+-STATEMENT CREATE SEQUENCE id_sequence START 0 MINVALUE 0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64 default nextval('id_sequence'), primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:test {});
+---- ok
+-STATEMENT Commit;
+---- ok
+-STATEMENT RETURN currval('id_sequence');
+---- 1
+0
+
+-CASE SequenceImplicitCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE SEQUENCE id_sequence START 0 MINVALUE 0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64 default nextval('id_sequence'), primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:test {});
+---- ok
+-STATEMENT Commit;
+---- ok
+-RELOADDB
+-STATEMENT RETURN currval('id_sequence');
+---- 1
+0
+
+-CASE SequenceImplicitRollback
+-STATEMENT CREATE SEQUENCE id_sequence START 0 MINVALUE 0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64 default nextval('id_sequence'), primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:test {});
+---- ok
+-STATEMENT Rollback;
+---- ok
+-STATEMENT RETURN currval('id_sequence');
+---- error
+Catalog exception: currval: sequence "id_sequence" is not yet defined. To define the sequence, call nextval first.
+
+-CASE SequenceImplicitRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE SEQUENCE id_sequence START 0 MINVALUE 0;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id INT64 default nextval('id_sequence'), primary key(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:test {});
+---- ok
+-STATEMENT Rollback;
+---- ok
+-RELOADDB
+-STATEMENT RETURN currval('id_sequence');
+---- error
+Catalog exception: currval: sequence "id_sequence" is not yet defined. To define the sequence, call nextval first.
+
+-CASE SerialImplicitCommit
 -STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -120,7 +186,7 @@ Catalog exception: after does not exist in catalog.
 ---- 1
 0
 
--CASE SequenceImplicitCommitRecovery
+-CASE SerialImplicitCommitRecovery
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
@@ -136,7 +202,7 @@ Catalog exception: after does not exist in catalog.
 ---- 1
 0
 
--CASE SequenceImplicitRollback
+-CASE SerialImplicitRollback
 -STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -149,7 +215,7 @@ Catalog exception: after does not exist in catalog.
 ---- error
 Catalog exception: currval: sequence "test_id_serial" is not yet defined. To define the sequence, call nextval first.
 
--CASE SequenceImplicitRollbackRecovery
+-CASE SerialImplicitRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
