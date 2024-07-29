@@ -165,7 +165,7 @@ void ColumnChunk::lookup(Transaction* transaction, const ChunkState& state, offs
     } break;
     case ResidencyState::ON_DISK: {
         state.column->lookupValue(transaction, state, rowInChunk, &output, posInOutputVector);
-    }
+    } break;
     }
     if (updateInfo) {
         auto [vectorIdx, rowInVector] =

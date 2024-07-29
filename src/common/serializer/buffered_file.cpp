@@ -62,14 +62,17 @@ BufferedFileReader::BufferedFileReader(std::unique_ptr<FileInfo> fileInfo)
 
 void BufferedFileReader::read(uint8_t* data, uint64_t size) {
     if (size > BUFFER_SIZE) {
+        // Clear read buffer.
+        fileOffset -= bufferSize;
+        fileOffset += bufferOffset;
         fileInfo->readFromFile(data, size, fileOffset);
         fileOffset += size;
-        bufferOffset = 0;
-    } else if (bufferOffset + size <= BUFFER_SIZE) {
+        bufferOffset = bufferSize;
+    } else if (bufferOffset + size <= bufferSize) {
         memcpy(data, &buffer[bufferOffset], size);
         bufferOffset += size;
     } else {
-        auto toCopy = BUFFER_SIZE - bufferOffset;
+        auto toCopy = bufferSize - bufferOffset;
         memcpy(data, &buffer[bufferOffset], toCopy);
         bufferOffset += toCopy;
         readNextPage();
