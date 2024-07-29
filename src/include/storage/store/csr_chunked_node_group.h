@@ -2,6 +2,8 @@
 
 #include "storage/store/chunked_node_group.h"
 
+#include <algorithm>
+
 namespace kuzu {
 namespace storage {
 

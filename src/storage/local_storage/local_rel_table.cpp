@@ -6,6 +6,8 @@
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
+#include <algorithm>
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
