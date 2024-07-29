@@ -333,6 +333,7 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 
     ChunkState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState);
+    initializeScanState(chunkState);
     ColumnCheckpointState listDataCheckpointState(*persistentDataChunk,
         std::move(listDataChunkCheckpointStates));
     const auto listDataCanCheckpointInPlace = dataColumn->canCheckpointInPlace(
