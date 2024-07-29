@@ -1,12 +1,12 @@
 #include "storage/local_storage/local_rel_table.h"
 
+#include <algorithm>
+
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
-
-#include <algorithm>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

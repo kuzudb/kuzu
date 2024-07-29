@@ -1,8 +1,8 @@
 #pragma once
 
-#include "storage/store/chunked_node_group.h"
-
 #include <algorithm>
+
+#include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
 namespace storage {
