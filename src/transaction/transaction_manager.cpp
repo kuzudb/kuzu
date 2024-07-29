@@ -61,10 +61,6 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
         lastTimestamp++;
         transaction->commitTS = lastTimestamp;
         transaction->commit(&wal);
-        if (transaction->isWriteTransaction()) {
-            // For recovery, we skip logging to WAL.
-            wal.flushAllPages();
-        }
         activeWriteTransactions.erase(transaction->getID());
         if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
             checkpointNoLock(clientContext);
