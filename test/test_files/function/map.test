@@ -102,7 +102,7 @@
 {1=Alice, 1=Bob, 2=Carol}
 -STATEMENT RETURN  map_extract(map([1,1,2], ['Alice','Bob','Carol']), 1);
 ---- 1
-[Bob,Alice]
+[Alice,Bob]
 -STATEMENT RETURN map([null, 3], ['Alice', 'Bob']);
 ---- 1
 {=Alice, 3=Bob}
