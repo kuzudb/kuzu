@@ -4,6 +4,7 @@
 #include "graph_test/base_graph_test.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
+#include "test_runner/insert_by_row.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_manager.h"
 
@@ -87,6 +88,13 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
                 TestHelper::executeScript(dataset + "/" + TestHelper::SCHEMA_FILE_NAME,
                     *(connMap.begin()->second));
             }
+            continue;
+        }
+        if (statement->manualUseDataset == ManualUseDatasetFlag::INSERT) {
+            auto& connection = conn ? *conn : *(connMap.begin()->second);
+            InsertDatasetByRow insert(statement->dataset, connection);
+            insert.init();
+            insert.run();
             continue;
         }
         if (conn) {
