@@ -208,7 +208,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 {}|{}|{}
 -STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN cast(map, "MAP(MAP(UINT64, UINT64), STRING)"), cast(cast(map, "MAP(MAP(FLOAT, INT64), MAP(STRING, STRING))"), "MAP(MAP(INT128, FLOAT), MAP(STRING, STRING))");
 ---- error
-Copy exception: Error in file /Users/z473chen/Desktop/code/kuzu/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys.
 -STATEMENT RETURN cast(cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT32, UINT8), DOUBLE), MAP(FLOAT, MAP(STRING, INT128)))"), cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(STRING, INT16), MAP(INT128, STRING))");
 ---- error
 Conversion exception: Map does not allow null as key.
