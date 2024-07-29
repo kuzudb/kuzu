@@ -380,7 +380,7 @@ public:
     ~SymmetricIP() = default;
 
     inline void compute_distance(const uint8_t* x, const uint8_t* y, double* result) override {
-#ifdef SIMSIMD_TARGET_NEON
+#if SIMSIMD_TARGET_NEON
         compute_sym_ip_neon(x, y, result, dim, alphaSqr, betaSqr);
 #else
         compute_sym_ip_serial(x, y, result, dim, alphaSqr, betaSqr);
