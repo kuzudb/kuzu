@@ -97,7 +97,7 @@
 []
 
 -LOG MapAllowDuplicateKey
--STATEMENT CALL ALLOW_MAP_DUPLICATE_KEY=TRUE
+-STATEMENT CALL DISABLE_MAP_KEY_CHECK=TRUE
 ---- ok
 -STATEMENT RETURN map([1,1,2], ['Alice','Bob','Carol']);
 ---- 1
@@ -105,3 +105,6 @@
 -STATEMENT RETURN  map_extract(map([1,1,2], ['Alice','Bob','Carol']), 1);
 ---- 1
 [Bob,Alice]
+-STATEMENT RETURN map([null, 3], ['Alice', 'Bob']);
+---- 1
+{=Alice, 3=Bob}

@@ -10,10 +10,7 @@
 namespace kuzu {
 namespace function {
 
-static void duplicateValueHandler(const std::string& key, main::ClientContext* context) {
-    if (context->getClientConfig()->allowMapDuplicateKey) {
-        return;
-    }
+static void duplicateValueHandler(const std::string& key) {
     throw common::RuntimeException{common::stringFormat("Found duplicate key: {} in map.", key)};
 }
 
@@ -21,10 +18,8 @@ static void nullValueHandler() {
     throw common::RuntimeException("Null value key is not allowed in map.");
 }
 
-static void validateKeys(common::list_entry_t& keyEntry, common::ValueVector& keyVector,
-    FunctionBindData* bindData) {
-    ListUnique::appendListElementsToValueSet(keyEntry, keyVector,
-        std::bind(duplicateValueHandler, std::placeholders::_1, bindData->clientContext),
+static void validateKeys(common::list_entry_t& keyEntry, common::ValueVector& keyVector) {
+    ListUnique::appendListElementsToValueSet(keyEntry, keyVector, duplicateValueHandler,
         nullptr /* uniqueValueHandler */, nullValueHandler);
 }
 
@@ -35,8 +30,11 @@ struct MapCreation {
         if (keyEntry.size != valueEntry.size) {
             throw common::RuntimeException{"Unaligned key list and value list."};
         }
-
-        validateKeys(keyEntry, keyVector, reinterpret_cast<FunctionBindData*>(dataPtr));
+        if (!reinterpret_cast<FunctionBindData*>(dataPtr)
+                 ->clientContext->getClientConfig()
+                 ->disableMapKeyCheck) {
+            validateKeys(keyEntry, keyVector);
+        }
         resultEntry = common::ListVector::addList(&resultVector, keyEntry.size);
         auto resultStructVector = common::ListVector::getDataVector(&resultVector);
         copyListEntry(resultEntry,
