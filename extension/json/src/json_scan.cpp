@@ -75,16 +75,18 @@ struct JsonBindData : public ScanBindData {
     }
 
     int32_t getIdxFromName(std::string s) const {
-        // try removing any [a-zA-Z]+\. prefix
-        auto periodPos = s.find('.');
-        if (periodPos != std::string::npos) {
-            s = s.substr(periodPos + 1);
-        }
         auto cpy = StringUtils::getUpper(s);
+        if (!nameToIdxMap.contains(cpy)) {
+            // try removing any [a-zA-Z]+\. prefix
+            auto periodPos = cpy.find('.');
+            if (periodPos != std::string::npos) {
+                cpy = cpy.substr(periodPos + 1);
+            }
+        }
         if (!nameToIdxMap.contains(cpy)) {
             return -1;
         }
-        return nameToIdxMap.at(StringUtils::getUpper(s));
+        return nameToIdxMap.at(StringUtils::getUpper(cpy));
     }
 
 private:
