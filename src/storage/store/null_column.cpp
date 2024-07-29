@@ -90,10 +90,12 @@ void NullColumn::setNull(ColumnChunkData& persistentChunk, ChunkState& state,
 
 void NullColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t offsetInChunk,
     ColumnChunkData* data, offset_t dataOffset, length_t numValues) {
+    if (numValues == 0) {
+        return;
+    }
     writeValues(persistentChunk, state, offsetInChunk, data->getData(), nullptr /*nullChunkData*/,
         dataOffset, numValues);
     auto& nullChunk = data->cast<NullChunkData>();
-    KU_ASSERT(numValues > 0);
     bool min = nullChunk.isNull(dataOffset);
     bool max = min;
     for (auto i = 0u; i < numValues; i++) {

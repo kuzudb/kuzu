@@ -124,6 +124,11 @@ void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, of
         dstOffset + numValues - 1, minWritten, maxWritten);
 }
 
+void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
+    Column::checkpointColumnChunk(checkpointState);
+    checkpointState.persistentData.syncNumValues();
+}
+
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
     ValueVector* resultVector) {

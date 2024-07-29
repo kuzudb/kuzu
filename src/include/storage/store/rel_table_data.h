@@ -5,6 +5,7 @@
 #include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "storage/store/column.h"
+#include "storage/store/csr_node_group.h"
 #include "storage/store/node_group_collection.h"
 
 namespace kuzu {
@@ -61,7 +62,9 @@ public:
         return numRows;
     }
 
-    void checkpoint(common::Serializer& ser) const;
+    void checkpoint() const;
+
+    void serialize(common::Serializer& serializer) const;
 
 private:
     void initCSRHeaderColumns();
@@ -70,8 +73,6 @@ private:
     std::pair<CSRNodeGroupScanSource, common::row_idx_t> findMatchingRow(
         transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
         const common::ValueVector& relIDVector) const;
-
-    void serialize(common::Serializer& serializer) const;
 
     template<typename T1, typename T2>
     static double divideNoRoundUp(T1 v1, T2 v2) {

@@ -1,0 +1,20 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE RedundantNodeDeletions
+-STATEMENT MATCH (a:person {ID: 3})-[e]->() DELETE e
+---- ok
+-STATEMENT MATCH (a:person {ID: 3})<-[e]-() DELETE e
+---- ok
+-STATEMENT MATCH (a:person {ID: 3}), (b:person {ID: 3}) DELETE a, b
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.ID
+---- 7
+0
+2
+5
+7
+8
+9
+10

@@ -198,7 +198,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     }
 }
 
-void RelTableData::checkpoint(Serializer& ser) const {
+void RelTableData::checkpoint() const {
     std::vector<Column*> checkpointColumns;
     std::vector<column_id_t> columnIDs;
     for (auto i = 0u; i < columns.size(); i++) {
@@ -208,7 +208,6 @@ void RelTableData::checkpoint(Serializer& ser) const {
     CSRNodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, mm,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(state);
-    serialize(ser);
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

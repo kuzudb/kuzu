@@ -2,6 +2,7 @@
 
 #include "common/cast.h"
 #include "common/enums/clause_type.h"
+#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace parser {
@@ -13,6 +14,12 @@ public:
 
     common::ClauseType getClauseType() const { return clauseType; }
 
+    void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
+        wherePredicate = std::move(expression);
+    }
+    bool hasWherePredicate() const { return wherePredicate != nullptr; }
+    const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
+
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const ReadingClause&, const TARGET&>(*this);
@@ -20,6 +27,7 @@ public:
 
 private:
     common::ClauseType clauseType;
+    std::unique_ptr<ParsedExpression> wherePredicate;
 };
 } // namespace parser
 } // namespace kuzu

@@ -245,6 +245,8 @@ Catalog exception: t does not exist in catalog.
 -CASE RenameColumn
 -STATEMENT CALL ENABLE_MULTI_WRITES=true;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE t(a INT, b INT, PRIMARY KEY(a));

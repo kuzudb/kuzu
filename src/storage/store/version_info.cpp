@@ -289,16 +289,16 @@ VectorVersionInfo& VersionInfo::getOrCreateVersionInfo(idx_t vectorIdx) {
         vectorsInfo.resize(vectorIdx + 1);
     }
     if (!vectorsInfo[vectorIdx]) {
-        // TODO(Guodong): Should populate the vector with committed insertions. Set to 0.
         vectorsInfo[vectorIdx] = std::make_unique<VectorVersionInfo>();
     }
     return *vectorsInfo[vectorIdx];
 }
 
-const VectorVersionInfo& VersionInfo::getVersionInfo(idx_t vectorIdx) const {
-    KU_ASSERT(vectorIdx < vectorsInfo.size());
-    KU_ASSERT(vectorsInfo[vectorIdx]);
-    return *vectorsInfo[vectorIdx];
+VectorVersionInfo* VersionInfo::getVectorVersionInfo(idx_t vectorIdx) const {
+    if (vectorIdx >= vectorsInfo.size()) {
+        return nullptr;
+    }
+    return vectorsInfo[vectorIdx].get();
 }
 
 row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const row_idx_t startRow,
@@ -353,15 +353,15 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
         const auto endRowIdx =
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY - 1;
         const auto numRowsInVector = endRowIdx - startRowIdx + 1;
-        if (vectorIdx >= vectorsInfo.size() || !vectorsInfo[vectorIdx]) {
+        const auto vectorVersion = getVectorVersionInfo(vectorIdx);
+        if (!vectorVersion) {
             auto numSelected = selVector.getSelSize();
             for (auto i = 0u; i < numRowsInVector; i++) {
                 selVector.getMultableBuffer()[numSelected++] = outputPos + i;
             }
             selVector.setToFiltered(numSelected);
         } else {
-            auto& vectorVersionInfo = getVersionInfo(vectorIdx);
-            vectorVersionInfo.getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
+            vectorVersion->getSelVectorForScan(startTS, transactionID, selVector, startRowIdx,
                 numRowsInVector, outputPos);
         }
         outputPos += numRowsInVector;
@@ -385,8 +385,8 @@ bool VersionInfo::hasDeletions() const {
     return false;
 }
 
-bool VersionInfo::getNumDeletions(const transaction::Transaction* transaction, row_idx_t startRow,
-    length_t numRows) const {
+row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transaction,
+    row_idx_t startRow, length_t numRows) const {
     auto [startVector, startRowInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowInVector] =
@@ -396,9 +396,10 @@ bool VersionInfo::getNumDeletions(const transaction::Transaction* transaction, r
     while (vectorIdx <= endVectorIdx) {
         const auto rowInVector = vectorIdx == startVector ? startRowInVector : 0;
         const auto numRowsInVector =
-            vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY - rowInVector;
-        if (vectorsInfo[vectorIdx]) {
-            numDeletions += vectorsInfo[vectorIdx]->getNumDeletions(transaction->getStartTS(),
+            (vectorIdx == endVectorIdx ? endRowInVector : DEFAULT_VECTOR_CAPACITY) - rowInVector;
+        const auto vectorVersion = getVectorVersionInfo(vectorIdx);
+        if (vectorVersion) {
+            numDeletions += vectorVersion->getNumDeletions(transaction->getStartTS(),
                 transaction->getID(), rowInVector, numRowsInVector);
         }
         vectorIdx++;
@@ -420,9 +421,9 @@ bool VersionInfo::isDeleted(const transaction::Transaction* transaction,
     row_idx_t rowInChunk) const {
     auto [vectorIdx, rowInVector] =
         StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
-    KU_ASSERT(vectorIdx < vectorsInfo.size());
-    if (vectorsInfo[vectorIdx]) {
-        return vectorsInfo[vectorIdx]->isDeleted(transaction->getStartTS(), transaction->getID(),
+    const auto vectorVersion = getVectorVersionInfo(vectorIdx);
+    if (vectorVersion) {
+        return vectorVersion->isDeleted(transaction->getStartTS(), transaction->getID(),
             rowInVector);
     }
     return false;
@@ -432,9 +433,9 @@ bool VersionInfo::isInserted(const transaction::Transaction* transaction,
     row_idx_t rowInChunk) const {
     auto [vectorIdx, rowInVector] =
         StorageUtils::getQuotientRemainder(rowInChunk, DEFAULT_VECTOR_CAPACITY);
-    KU_ASSERT(vectorIdx < vectorsInfo.size());
-    if (vectorsInfo[vectorIdx]) {
-        return vectorsInfo[vectorIdx]->isInserted(transaction->getStartTS(), transaction->getID(),
+    const auto vectorVersion = getVectorVersionInfo(vectorIdx);
+    if (vectorVersion) {
+        return vectorVersion->isInserted(transaction->getStartTS(), transaction->getID(),
             rowInVector);
     }
     return true;

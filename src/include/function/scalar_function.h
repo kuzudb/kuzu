@@ -206,6 +206,15 @@ struct ScalarFunction final : public BaseScalarFunction {
             *params[0], *params[1], result);
     }
 
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void BinaryExecMapCreationFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* dataPtr) {
+        KU_ASSERT(params.size() == 2);
+        BinaryFunctionExecutor::executeMapCreation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], result, dataPtr);
+    }
+
     std::unique_ptr<Function> copy() const override {
         return std::make_unique<ScalarFunction>(*this);
     }

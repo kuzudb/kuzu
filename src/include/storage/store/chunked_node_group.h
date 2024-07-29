@@ -67,14 +67,7 @@ public:
     void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
         this->versionInfo = std::move(versionInfo);
     }
-    void resetVersionAndUpdateInfo() {
-        if (versionInfo) {
-            versionInfo.reset();
-        }
-        for (const auto& chunk : chunks) {
-            chunk->resetUpdateInfo();
-        }
-    }
+    void resetVersionAndUpdateInfo();
 
     uint64_t append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& columnVectors, common::row_idx_t startRowInVectors,

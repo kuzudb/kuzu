@@ -47,12 +47,11 @@ public:
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
 
-    void syncNumValues() {
+    void resetNumValuesFromMetadata() override;
+    void syncNumValues() override {
         numValues = offsetColumnChunk->getNumValues();
         metadata.numValues = numValues;
     }
-
-    void resetNumValuesFromMetadata() override;
 
     void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
 

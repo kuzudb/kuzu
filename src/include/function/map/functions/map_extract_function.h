@@ -15,21 +15,23 @@ struct MapExtract {
         auto mapKeyValues = common::MapVector::getMapKeys(&listVector, listEntry);
         auto mapValVector = common::MapVector::getValueVector(&listVector);
         auto mapValPos = listEntry.offset;
+        std::vector<common::offset_t> mapValPoses;
         uint8_t comparisonResult;
         for (auto i = 0u; i < listEntry.size; i++) {
             Equals::operation(*reinterpret_cast<T*>(mapKeyValues), key, comparisonResult,
                 mapKeyVector, &keyVector);
             if (comparisonResult) {
-                resultEntry = common::ListVector::addList(&resultVector, 1 /* size */);
-                common::ListVector::getDataVector(&resultVector)
-                    ->copyFromVectorData(resultEntry.offset, mapValVector, mapValPos);
-                return;
+                mapValPoses.push_back(mapValPos);
             }
             mapKeyValues += mapKeyVector->getNumBytesPerValue();
             mapValPos++;
         }
-        // If the key is not found, return an empty list.
-        resultEntry = common::ListVector::addList(&resultVector, 0 /* size */);
+        resultEntry = common::ListVector::addList(&resultVector, mapValPoses.size());
+        auto resultOffset = resultEntry.offset;
+        for (auto& valPos : mapValPoses) {
+            common::ListVector::getDataVector(&resultVector)
+                ->copyFromVectorData(resultOffset++, mapValVector, valPos);
+        }
     }
 };
 

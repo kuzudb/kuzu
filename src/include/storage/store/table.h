@@ -168,6 +168,8 @@ public:
 
     virtual common::row_idx_t getNumRows() = 0;
 
+    void setHasChanges() { hasChanges = true; }
+
     template<class TARGET>
     TARGET& cast() {
         return common::ku_dynamic_cast<Table&, TARGET&>(*this);
@@ -198,6 +200,7 @@ protected:
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
     ShadowFile* shadowFile;
+    bool hasChanges;
 };
 
 } // namespace storage

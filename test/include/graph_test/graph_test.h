@@ -29,8 +29,6 @@ protected:
     static inline bool hasActiveTransaction(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->hasActiveTransaction();
     }
-
-    void validateQueryBestPlanJoinOrder(std::string query, std::string expectedJoinOrder);
 };
 
 // This class starts database without initializing graph.
@@ -75,64 +73,9 @@ public:
     void createDB(uint64_t checkpointWaitTimeout);
     void createNewDB();
 
-    inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
+    void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
         uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
-        std::set<std::string> connNames = std::set<std::string>()) {
-        for (const auto& connName : connNames) {
-            concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName],
-                databasePath);
-        }
-        for (auto& statement : statements) {
-            // special for testing import and export test cases
-            if (statement->removeFileFlag) {
-                auto filePath = statement->removeFilePath;
-                filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
-                removeDir(filePath);
-                continue;
-            }
-            if (statement->importDBFlag) {
-                auto filePath = statement->importFilePath;
-                filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
-                createNewDB();
-                BaseGraphTest::setIEDatabasePath(filePath);
-                continue;
-            }
-            if (statement->reloadDBFlag) {
-                createDB(checkpointWaitTimeout);
-                createConns(connNames);
-                continue;
-            }
-            if (statement->connectionsStatusFlag == ConcurrentStatusFlag::BEGIN) {
-                for (auto& concurrentTest : concurrentTests) {
-                    concurrentTest.second.reset();
-                }
-                isConcurrent = true;
-                connectionsPaused = true;
-                continue;
-            }
-            if (statement->connectionsStatusFlag == ConcurrentStatusFlag::END) {
-                for (auto& concurrentTest : concurrentTests) {
-                    concurrentTest.second.execute();
-                }
-                isConcurrent = false;
-                connectionsPaused = false;
-                for (auto& concurrentTest : concurrentTests) {
-                    concurrentTest.second.join();
-                }
-                continue;
-            }
-            if (conn) {
-                TestRunner::runTest(statement.get(), *conn, databasePath);
-            } else {
-                auto connName = *statement->connName;
-                if (isConcurrent) {
-                    concurrentTests.at(connName).addStatement(statement.get());
-                } else {
-                    TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
-                }
-            }
-        }
-    }
+        std::set<std::string> connNames = std::set<std::string>());
 
 protected:
     bool isConcurrent = false;

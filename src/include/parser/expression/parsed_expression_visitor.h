@@ -24,6 +24,7 @@ public:
     virtual void visitCaseExpr(const ParsedExpression*) {}
     virtual void visitGraphExpr(const ParsedExpression*) {}
     virtual void visitLambdaExpr(const ParsedExpression*) {}
+    virtual void visitStar(const ParsedExpression*) {}
 
     void visitChildren(const ParsedExpression& expr);
     void visitCaseExprChildren(const ParsedExpression& expr);
@@ -38,6 +39,15 @@ public:
 
 private:
     std::vector<const ParsedExpression*> paramExprs;
+};
+
+class ParsedSequenceFunctionCollector : public ParsedExpressionVisitor {
+public:
+    bool hasSeqUpdate() const { return hasSeqUpdate_; }
+    void visitFunctionExpr(const ParsedExpression* expr) override;
+
+private:
+    bool hasSeqUpdate_ = false;
 };
 
 } // namespace parser

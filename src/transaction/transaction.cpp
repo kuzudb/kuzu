@@ -28,7 +28,7 @@ void Transaction::commit(storage::WAL* wal) const {
     undoBuffer->commit(commitTS);
     if (isWriteTransaction()) {
         KU_ASSERT(wal);
-        wal->logAndFlushCommit(ID);
+        wal->logAndFlushCommit(commitTS);
     }
 }
 

@@ -30,6 +30,11 @@ public:
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
     void resetNumValuesFromMetadata() override;
+    void syncNumValues() override {
+        KU_ASSERT(!childChunks.empty());
+        numValues = childChunks[0]->getNumValues();
+        metadata.numValues = numValues;
+    }
 
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);

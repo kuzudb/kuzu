@@ -20,17 +20,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace testing {
 
-void PrivateGraphTest::validateQueryBestPlanJoinOrder(std::string query,
-    std::string expectedJoinOrder) {
-    auto statement = parser::Parser::parseQuery(query);
-    ASSERT_EQ(statement.size(), 1);
-    auto parsedQuery = (parser::RegularQuery*)statement[0].get();
-    auto boundQuery = Binder(conn->clientContext.get()).bind(*parsedQuery);
-    auto planner = Planner(conn->clientContext.get());
-    auto plan = planner.getBestPlan(*boundQuery);
-    ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
-}
-
 void DBTest::createDB(uint64_t checkpointWaitTimeout) {
     if (database != nullptr) {
         database.reset();
@@ -46,6 +35,63 @@ void DBTest::createNewDB() {
     conn.reset();
     removeDir(databasePath);
     createDBAndConn();
+}
+
+void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
+    uint64_t checkpointWaitTimeout, std::set<std::string> connNames) {
+    for (const auto& connName : connNames) {
+        concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName], databasePath);
+    }
+    for (auto& statement : statements) {
+        // special for testing import and export test cases
+        if (statement->removeFileFlag) {
+            auto filePath = statement->removeFilePath;
+            filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
+            removeDir(filePath);
+            continue;
+        }
+        if (statement->importDBFlag) {
+            auto filePath = statement->importFilePath;
+            filePath.erase(std::remove(filePath.begin(), filePath.end(), '\"'), filePath.end());
+            createNewDB();
+            BaseGraphTest::setIEDatabasePath(filePath);
+            continue;
+        }
+        if (statement->reloadDBFlag) {
+            createDB(checkpointWaitTimeout);
+            createConns(connNames);
+            continue;
+        }
+        if (statement->connectionsStatusFlag == ConcurrentStatusFlag::BEGIN) {
+            for (auto& concurrentTest : concurrentTests) {
+                concurrentTest.second.reset();
+            }
+            isConcurrent = true;
+            connectionsPaused = true;
+            continue;
+        }
+        if (statement->connectionsStatusFlag == ConcurrentStatusFlag::END) {
+            for (auto& concurrentTest : concurrentTests) {
+                concurrentTest.second.execute();
+            }
+            isConcurrent = false;
+            connectionsPaused = false;
+            for (auto& concurrentTest : concurrentTests) {
+                concurrentTest.second.join();
+            }
+            continue;
+        }
+        if (conn) {
+            TestRunner::runTest(statement.get(), *conn, databasePath);
+        } else {
+            auto connName = *statement->connName;
+            if (isConcurrent) {
+                concurrentTests.at(connName).addStatement(statement.get());
+            } else {
+                TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
+            }
+        }
+    }
 }
 
 void ConcurrentTestExecutor::runStatements() {

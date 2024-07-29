@@ -2,7 +2,8 @@
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include <storage/store/table.h>
+#include "storage/store/csr_node_group.h"
+#include "storage/store/table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -143,6 +144,25 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
 row_idx_t NodeGroupCollection::getNumRows() {
     const auto lock = nodeGroups.lock();
     return numRows;
+}
+
+NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(node_group_idx_t groupIdx,
+    NodeGroupDataFormat format) {
+    const auto lock = nodeGroups.lock();
+    const auto nodeGroup = nodeGroups.getGroup(lock, groupIdx);
+    if (!nodeGroup) {
+        while (groupIdx >= nodeGroups.getNumGroups(lock)) {
+            const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
+            nodeGroups.replaceGroup(lock, currentGroupIdx,
+                format == NodeGroupDataFormat::REGULAR ?
+                    std::make_unique<NodeGroup>(currentGroupIdx, enableCompression,
+                        LogicalType::copy(types)) :
+                    std::make_unique<CSRNodeGroup>(currentGroupIdx, enableCompression,
+                        LogicalType::copy(types)));
+        }
+        return nodeGroups.getGroup(lock, groupIdx);
+    }
+    return nodeGroup;
 }
 
 void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {

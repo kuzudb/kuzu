@@ -27,17 +27,10 @@ public:
         return propertyDefinitions;
     }
 
-    void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
-        wherePredicate = std::move(expression);
-    }
-    bool hasWherePredicate() const { return wherePredicate != nullptr; }
-    const ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
-
 private:
     std::unique_ptr<BaseScanSource> source;
     std::vector<PropertyDefinition> propertyDefinitions;
     options_t parsingOptions;
-    std::unique_ptr<ParsedExpression> wherePredicate;
 };
 
 } // namespace parser

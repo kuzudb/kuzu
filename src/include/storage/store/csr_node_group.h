@@ -1,8 +1,8 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
 
+#include "common/data_chunk/data_chunk.h"
 #include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/node_group.h"
 
@@ -57,6 +57,23 @@ struct NodeCSRIndex {
         isSequential = false;
         rowIndices.clear();
     }
+
+    void turnToNonSequential() {
+        if (isSequential) {
+            row_idx_vec_t newIndices;
+            newIndices.reserve(rowIndices[1]);
+            for (common::row_idx_t i = 0u; i < rowIndices[1]; ++i) {
+                newIndices.push_back(i + rowIndices[0]);
+            }
+            rowIndices = std::move(newIndices);
+            isSequential = false;
+        }
+    }
+    void setInvalid(common::idx_t idx) {
+        KU_ASSERT(!isSequential);
+        KU_ASSERT(idx < rowIndices.size());
+        rowIndices[idx] = common::INVALID_ROW_IDX;
+    }
 };
 
 // TODO(Guodong): Split CSRIndex into two levels: one level per csr leaf region, another per node
@@ -66,6 +83,16 @@ struct CSRIndex {
 
     common::row_idx_t getNumRows(common::offset_t offset) const {
         return indices[offset].getNumRows();
+    }
+
+    common::offset_t getMaxOffsetWithRels() const {
+        common::offset_t maxOffset = 0;
+        for (auto i = 0u; i < indices.size(); i++) {
+            if (!indices[i].isEmpty()) {
+                maxOffset = i;
+            }
+        }
+        return maxOffset;
     }
 };
 
@@ -131,33 +158,6 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 struct RelTableScanState;
 class CSRNodeGroup final : public NodeGroup {
 public:
-    struct CSRRegion {
-        common::idx_t regionIdx = common::INVALID_IDX;
-        common::idx_t level = common::INVALID_IDX;
-        common::offset_t leftNodeOffset = common::INVALID_OFFSET;
-        common::offset_t rightNodeOffset = common::INVALID_OFFSET;
-        int64_t sizeChange = 0;
-        // Track if there is any updates to persistent data in this region per column.
-        std::vector<bool> hasUpdates;
-        // Note: `sizeChange` equal to 0 is not enough to indicate the region has no insert or
-        // delete. It might just be num of insertions are equal to num of deletions.
-        bool hasInsertions = false;
-        bool hasDeletions = false;
-
-        CSRRegion(common::idx_t regionIdx, common::idx_t level);
-
-        bool needCheckpoint() const {
-            return hasInsertions || hasDeletions ||
-                   std::any_of(hasUpdates.begin(), hasUpdates.end(),
-                       [](bool hasUpdate) { return hasUpdate; });
-        }
-        common::idx_t getLeftLeafRegionIdx() const { return regionIdx << level; }
-        common::idx_t getRightLeafRegionIdx() const {
-            return getLeftLeafRegionIdx() + (static_cast<common::idx_t>(1) << level) - 1;
-        }
-        // Return true if other is within the realm of this region.
-        bool isWithin(const CSRRegion& other) const;
-    };
     static constexpr PackedCSRInfo DEFAULT_PACKED_CSR_INFO{};
 
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
@@ -219,15 +219,30 @@ private:
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+    void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);
+
+    void populateCSRLengthInMemOnly(const common::UniqLock& lock, common::offset_t numNodes,
+        const CSRNodeGroupCheckpointState& csrState);
+    void initInMemScanChunkAndScanState(const CSRNodeGroupCheckpointState& csrState,
+        common::DataChunk& dataChunk, TableScanState& scanState) const;
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
         const CSRNodeGroupCheckpointState& csrState);
+    void collectInMemRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock,
+        CSRRegion& region, const CSRNodeGroupCheckpointState& csrState);
+    void collectOnDiskRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock,
+        CSRRegion& region, const CSRNodeGroupCheckpointState& csrState) const;
 
-    void findUpdatesInRegion(CSRRegion& region, common::offset_t leftCSROffset,
+    std::vector<CSRRegion> collectLeafRegionsAndCSRLength(const common::UniqLock& lock,
+        const CSRNodeGroupCheckpointState& csrState);
+    void collectPersistentUpdatesInRegion(CSRRegion& region, common::offset_t leftCSROffset,
         common::offset_t rightCSROffset) const;
+
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
 
+    static void redistributeCSRRegions(const CSRNodeGroupCheckpointState& csrState,
+        const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(
         const CSRNodeGroupCheckpointState& csrState, std::vector<CSRRegion>& leafRegions);
     static bool isWithinDensityBound(const ChunkedCSRHeader& header,
@@ -235,6 +250,11 @@ private:
 
     void checkpointColumn(const common::UniqLock& lock, common::column_id_t columnID,
         const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& regions);
+    ChunkCheckpointState checkpointColumnInRegion(const common::UniqLock& lock,
+        common::column_id_t columnID, const CSRNodeGroupCheckpointState& csrState,
+        const CSRRegion& region);
+    void checkpointCSRHeaderColumns(const CSRNodeGroupCheckpointState& csrState) const;
+    void finalizeCheckpoint(const common::UniqLock& lock);
 
 private:
     std::unique_ptr<ChunkedNodeGroup> persistentChunkGroup;

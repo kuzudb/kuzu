@@ -117,6 +117,7 @@ Catalog exception: currval: sequence "err" is not yet defined. To define the seq
 -STATEMENT RETURN nextval('overflowMax');
 ---- 1
 9223372036854775807
+-RELOADDB
 -STATEMENT RETURN nextval('overflowMin');
 ---- 1
 -9223372036854775808
