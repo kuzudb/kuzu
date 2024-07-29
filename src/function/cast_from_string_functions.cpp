@@ -388,30 +388,36 @@ struct SplitStringMapOperation {
     ValueSet uniqueKeys;
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    inline bool handleKey(const char* start, const char* end, const CSVOption* option) {
-        trimRightWhitespace(start, end);
-        auto fieldVector = StructVector::getFieldVector(resultVector, 0).get();
-        CastString::copyStringToVector(fieldVector, offset,
-            std::string_view{start, (uint32_t)(end - start)}, option);
-        if (fieldVector->isNull(offset)) {
-            throw common::CopyException{"Map does not allow null as key."};
-        }
-        auto val = common::Value::createDefaultValue(fieldVector->dataType);
-        val.copyFromColLayout(fieldVector->getData() + fieldVector->getNumBytesPerValue() * offset,
-            fieldVector);
-        auto uniqueKey = uniqueKeys.insert(val).second;
-        if (!uniqueKey) {
-            throw common::CopyException{"Map does not allow duplicate keys."};
-        }
-        return true;
-    }
+    bool handleKey(const char* start, const char* end, const CSVOption* option);
 
-    inline void handleValue(const char* start, const char* end, const CSVOption* option) {
-        trimRightWhitespace(start, end);
-        CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(),
-            offset++, std::string_view{start, (uint32_t)(end - start)}, option);
-    }
+    void handleValue(const char* start, const char* end, const CSVOption* option);
 };
+
+bool SplitStringMapOperation::handleKey(const char* start, const char* end,
+    const CSVOption* option) {
+    trimRightWhitespace(start, end);
+    auto fieldVector = StructVector::getFieldVector(resultVector, 0).get();
+    CastString::copyStringToVector(fieldVector, offset,
+        std::string_view{start, (uint32_t)(end - start)}, option);
+    if (fieldVector->isNull(offset)) {
+        throw common::ConversionException{"Map does not allow null as key."};
+    }
+    auto val = common::Value::createDefaultValue(fieldVector->dataType);
+    val.copyFromColLayout(fieldVector->getData() + fieldVector->getNumBytesPerValue() * offset,
+        fieldVector);
+    auto uniqueKey = uniqueKeys.insert(val).second;
+    if (!uniqueKey) {
+        throw common::ConversionException{"Map does not allow duplicate keys."};
+    }
+    return true;
+}
+
+void SplitStringMapOperation::handleValue(const char* start, const char* end,
+    const CSVOption* option) {
+    trimRightWhitespace(start, end);
+    CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(), offset++,
+        std::string_view{start, (uint32_t)(end - start)}, option);
+}
 
 template<typename T>
 static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool isKey,
