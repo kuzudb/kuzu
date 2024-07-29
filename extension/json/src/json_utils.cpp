@@ -672,7 +672,7 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
     }
     yyjson_val* ptr = yyjson_doc_get_root(wrapper.ptr);
     for (const auto& item : actualPath) {
-        if (item == actualPath.begin() && item == "$") {
+        if (&item == &actualPath.front() && item == "$") {
             continue;
         }
         if (yyjson_get_type(ptr) == YYJSON_TYPE_OBJ) {
@@ -683,6 +683,9 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
                 return "";
             }
             ptr = yyjson_arr_get(ptr, idx);
+        }
+        if (ptr == nullptr) {
+            return "";
         }
     }
     return jsonToString(ptr);

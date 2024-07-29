@@ -74,7 +74,12 @@ struct JsonBindData : public ScanBindData {
             scanFromList, scanFromStruct, config.copy(), context);
     }
 
-    int32_t getIdxFromName(const std::string& s) const {
+    int32_t getIdxFromName(std::string s) const {
+        // try removing any [a-zA-Z]+\. prefix
+        auto periodPos = s.find('.');
+        if (periodPos != std::string::npos) {
+            s = s.substr(periodPos + 1);
+        }
         auto cpy = StringUtils::getUpper(s);
         if (!nameToIdxMap.contains(cpy)) {
             return -1;
@@ -120,43 +125,6 @@ struct JsonScanSharedState : public BaseScanSharedState {
         return true;
     }
 };
-
-static bool jsonContextCanCast(const LogicalType& in, const LogicalType& out) {
-    if (in.getLogicalTypeID() == LogicalTypeID::STRING ||
-        (LogicalTypeUtils::isNumerical(in) && LogicalTypeUtils::isNumerical(out))) {
-        return true;
-    }
-    return BuiltInFunctionsUtils::getCastCost(in.getLogicalTypeID(), out.getLogicalTypeID()) !=
-           UNDEFINED_CAST_COST;
-}
-
-static void verifyExpectedSchema(const std::vector<LogicalType>& expectedTypes,
-    const std::vector<LogicalType>& actualTypes, const std::vector<std::string>& expectedNames,
-    const std::vector<std::string>&
-        actualNames) { // NOLINT : this function will be used in the future
-    if (expectedNames.size() != actualNames.size()) {
-        throw BinderException(stringFormat("Expected {} columns. Found {}", expectedNames.size(),
-            actualNames.size()));
-    }
-    for (auto i = 0u; i < expectedNames.size(); i++) {
-        bool matchFound = false;
-        for (auto j = 0u; j < actualNames.size() && !matchFound; j++) {
-            if (StringUtils::getUpper(expectedNames[i]) == StringUtils::getUpper(actualNames[j])) {
-                if (!jsonContextCanCast(actualTypes[j], expectedTypes[j])) {
-                    throw BinderException(stringFormat(
-                        "Column '{}' cannot be cast to type {}; actual type is {}",
-                        expectedNames[i], expectedTypes[i].toString(), actualTypes[j].toString()));
-                } else {
-                    matchFound = true;
-                }
-            }
-        }
-        if (!matchFound) {
-            throw BinderException(
-                stringFormat("Column '{}' was not found in JSON file", expectedNames[i]));
-        }
-    }
-}
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
     TableFuncBindInput* input) {

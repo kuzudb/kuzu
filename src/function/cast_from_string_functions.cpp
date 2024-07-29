@@ -189,6 +189,9 @@ static void trimQuotes(const char*& keyStart, const char*& keyEnd) {
     if (keyStart[0] == '\'' && (keyEnd - 1)[0] == '\'') {
         keyStart++;
         keyEnd--;
+    } else if (keyStart[0] == '\"' && (keyEnd - 1)[0] == '\"') {
+        keyStart++;
+        keyEnd--;
     }
 }
 

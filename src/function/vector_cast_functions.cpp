@@ -3,6 +3,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
+#include "common/exception/catalog.h"
 #include "common/exception/conversion.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/cast_array.h"
@@ -1262,11 +1263,23 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
     }
     auto literalExpr = input.arguments[1]->constPtrCast<LiteralExpression>();
     auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
+    auto func = input.definition->ptrCast<ScalarFunction>();
     // TODO(Ziyi): we should pass the clientContext pointer here so the bind function can access
     // the user defined types.
     LogicalType targetType;
     if (!LogicalType::tryConvertFromString(targetTypeStr, targetType)) {
         targetType = input.context->getCatalog()->getType(input.context->getTx(), targetTypeStr);
+        std::vector<LogicalType> typeVec;
+        typeVec.push_back(input.arguments[0]->getDataType().copy());
+        try {
+            // try find a UDT cast
+            func->name = "CAST_TO_" + targetTypeStr;
+            func->execFunc = BuiltInFunctionsUtils::matchFunction(input.context->getTx(), "CAST_TO_" + targetTypeStr, typeVec,
+                input.context->getCatalog()->getFunctions(input.context->getTx()))->constPtrCast<ScalarFunction>()->execFunc;
+            return std::make_unique<function::CastFunctionBindData>(targetType.copy());
+        } catch (...) { // NOLINT
+
+        }
     }
     if (targetType == input.arguments[0]->getDataType()) { // No need to cast.
         return nullptr;
@@ -1275,7 +1288,6 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         input.arguments[0]->cast(targetType);
         return nullptr;
     }
-    auto func = input.definition->ptrCast<ScalarFunction>();
     func->name = "CAST_TO_" + targetTypeStr;
     func->execFunc =
         CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType)

@@ -3,30 +3,27 @@
 --
 
 -CASE ExtractNotExistField
--SKIP
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
 -STATEMENT CREATE (p:person {id: 5, description: 6})
 ---- ok
--STATEMENT CREATE (p:person {id: 8, description: {"family": "anatidae", "species": [ "duck", "goose", "swan", null]})
+-STATEMENT CREATE (p:person {id: 8, description: to_json({"family": "anatidae", "species": [ "duck", "goose", "swan", null]})})
 ---- ok
-#TODO(Maxwell): fix this
 -STATEMENT MATCH (p:person) return json_extract(p.description, '$.family');
 ---- 2
 
 anatidae
 
 -CASE ExampleDoc
--SKIP
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
--STATEMENT CREATE (p:person {id: 20, description: {height: 52, age: 32, scores: [1,2,5]}});
+-STATEMENT CREATE (p:person {id: 20, description: to_json({height: 52, age: 32, scores: [1,2,5]})});
 ---- ok
--STATEMENT CREATE (p:person {id: 40, description: {age: 55, scores: [1,32,5,null], name: 'dan'}});
+-STATEMENT CREATE (p:person {id: 40, description: to_json({age: 55, scores: [1,32,5,null], name: 'dan'})});
 ---- ok
 -STATEMENT MATCH (p:person) RETURN p.*;
 ---- 2
@@ -38,7 +35,6 @@ anatidae
 ---- ok
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
-# TODO(MAXWELL): FAILURE
 -STATEMENT copy person from '/tmp/test.json'
 ---- ok
 
@@ -48,10 +44,11 @@ anatidae
 -STATEMENT return cast('alice' as json)
 ---- 1
 alice
-#-LOG CompositeJsonStringCast
-# TODO(MAXWELL): FAILURE
-#-STATEMENT return cast(to_json({age: 50, names: ['Alice', 'Bob', 'Carol', 'Dan'], description: {height: 1.52}}) as struct(age int64, names string[], description struct(height int64)));
-#---- 2
+-LOG CompositeJsonStringCast
+-STATEMENT return cast(to_json({age: 50, names: ['Alice', 'Bob', 'Carol', 'Dan'], description: {height: 2}}) as struct(age int64, names string[], description struct(height int64)));
+---- 1
+{age: 50, names: ["Alice","Bob","Carol","Dan"], description: {height: 2}}
+
 # Same query runs in duckdb:
 #  D select cast(to_json({age: 50, names: ['Alice', 'Bob', 'Carol', 'Dan'], description: {height: 1.52}}) as struct(age int64, names string[], description struct(height int64)));
 #   ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
