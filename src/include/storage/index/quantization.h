@@ -13,7 +13,7 @@ namespace storage {
 // TODO: Probably get rid of virtual functions and use template specialization. Benchmark it!!
 
 enum DistanceType {
-    L2,
+    L2_SQ,
     INNER_PRODUCT,
     COSINE,
 };
@@ -169,6 +169,13 @@ inline void compute_sym_ip_serial(const uint8_t* x, const uint8_t* y, double* re
     // Add precomputed value (last 4 bytes)
     xy += *reinterpret_cast<const float*>(x + dim);
     *result = xy;
+}
+
+inline void compute_asym_l2sq_serial(const float *x, const uint8_t *y, double *result, size_t dim,
+    const float *alpha, const float *beta) {
+    auto *decoded = new float[dim];
+    decode_serial(y, decoded, 1, dim, alpha, beta);
+    simsimd_l2sq_f32(x, decoded, dim, result);
 }
 
 #if SIMSIMD_TARGET_ARM
@@ -401,6 +408,30 @@ private:
     const float* betaSqr;
 };
 
+class AsymmetricL2Sq : public DC<float, uint8_t> {
+public:
+    explicit AsymmetricL2Sq(int dim, const float *alpha, const float *beta)
+        : dim(dim), alpha(alpha), beta(beta) {};
+
+    ~AsymmetricL2Sq() = default;
+
+    inline void compute_distance(const float *x, const uint8_t *y, double *result) override {
+        compute_asym_l2sq_serial(x, y, result, dim, alpha, beta);
+    }
+
+    inline void batch_compute_distances(const float *x, const uint8_t *y, double *results, size_t n) override {
+        for (size_t i = 0; i < n; i++) {
+            // We need to skip the last 4 bytes as they are precomputed values
+            compute_distance(x + i * dim, y + i * (dim + 4), results + i);
+        }
+    }
+
+private:
+    int dim;
+    const float *alpha;
+    const float *beta;
+};
+
 class SQ8Bit : public Quantizer<uint8_t> {
 public:
     explicit SQ8Bit(int dim) : Quantizer(dim, dim + 4) {
@@ -476,6 +507,8 @@ public:
         switch (type) {
         case DistanceType::INNER_PRODUCT:
             return std::make_unique<AsymmetricIP>(dim, alpha, beta);
+        case DistanceType::L2_SQ:
+            return std::make_unique<AsymmetricL2Sq>(dim, alpha, beta);
         default:
             throw std::runtime_error("Unsupported distance type");
         }

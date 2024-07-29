@@ -68,9 +68,9 @@ void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
     }
     // TODO: Need some kind of barrier here to ensure all threads have finished and then
     //  populate the partition buffer
-    printf("Running quantization!!\n");
     // Wait for all threads to finish indexing
     sharedState->compressionLatch.arrive_and_wait();
+    printf("Running quantization!!\n");
     Column::ChunkState state;
     // Start compressing the vectors
     while (true) {
@@ -87,7 +87,7 @@ void BulkVectorIndexing::executeInternal(ExecutionContext* context) {
     }
 }
 
-void BulkVectorIndexing::finalize(ExecutionContext* /*context*/) {
+void BulkVectorIndexing::finalize(ExecutionContext* context) {
     // TODO: Benchmark and make it parallelized (might be important)
     KU_ASSERT_MSG(sharedState->partitionerSharedState->partitioningBuffers.size() == 1,
         "Only one partitioning buffer in fwd direction is supported");
@@ -96,6 +96,7 @@ void BulkVectorIndexing::finalize(ExecutionContext* /*context*/) {
     // Populate partition buffer
     sharedState->graph->populatePartitionBuffer(
         *sharedState->partitionerSharedState->partitioningBuffers[0]);
+    context->clientContext->getStorageManager()->getWAL().addToUpdatedTables(sharedState->header->getNodeTableId());
 }
 
 //void BulkVectorIndexing::printGraph() {
