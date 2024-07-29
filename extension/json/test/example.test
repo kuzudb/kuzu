@@ -9,26 +9,26 @@
 ---- ok
 -STATEMENT CREATE (p:person {id: 5, description: 6})
 ---- ok
--STATEMENT CREATE (p:person {id: 8, description: to_json({"family": "anatidae", "species": [ "duck", "goose", "swan", null]})})
+-STATEMENT CREATE (p:person {id: 8, description: {"family": "anatidae", "species": [ "duck", "goose", "swan", null]}})
 ---- ok
 -STATEMENT MATCH (p:person) return json_extract(p.description, '$.family');
 ---- 2
 
-anatidae
+"anatidae"
 
 -CASE ExampleDoc
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT create node table person (id INT64, description json, primary key(id));
 ---- ok
--STATEMENT CREATE (p:person {id: 20, description: to_json({height: 52, age: 32, scores: [1,2,5]})});
+-STATEMENT CREATE (p:person {id: 20, description: {height: 52, age: 32, scores: [1,2,5]}});
 ---- ok
--STATEMENT CREATE (p:person {id: 40, description: to_json({age: 55, scores: [1,32,5,null], name: 'dan'})});
+-STATEMENT CREATE (p:person {id: 40, description: {age: 55, scores: [1,32,5,null], name: 'dan'}});
 ---- ok
 -STATEMENT MATCH (p:person) RETURN p.*;
 ---- 2
-20|{height: 52, age: 32, scores: [1,2,5]}
-40|{age: 55, scores: [1,32,5,], name: dan}
+20|{"height":52,"age":32,"scores":[1,2,5]}
+40|{"age":55,"scores":[1,32,5,null],"name":"dan"}
 -STATEMENT COPY (MATCH (p:person) RETURN p.*) To '/tmp/test.json'
 ---- ok
 -STATEMENT DROP TABLE person;
@@ -43,7 +43,7 @@ anatidae
 ---- ok
 -STATEMENT return cast('alice' as json)
 ---- 1
-alice
+"alice"
 -LOG CompositeJsonStringCast
 -STATEMENT return cast(to_json({age: 50, names: ['Alice', 'Bob', 'Carol', 'Dan'], description: {height: 2}}) as struct(age int64, names string[], description struct(height int64)));
 ---- 1
