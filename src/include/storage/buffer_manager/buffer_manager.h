@@ -247,6 +247,8 @@ private:
     // hold two sizes of PAGE_4KB and PAGE_256KB.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
     std::vector<std::unique_ptr<BMFileHandle>> fileHandles;
+
+    std::chrono::duration<double> pinDuration = std::chrono::duration<double>::zero();
 };
 
 } // namespace storage
