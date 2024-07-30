@@ -421,3 +421,13 @@ Bob
 ABFsUni|
 |Alice
 |Bob
+
+-CASE SetNulls
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 SET p.age = null
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 RETURN p.age
+---- 4
+
+
+
+

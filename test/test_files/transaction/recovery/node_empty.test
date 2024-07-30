@@ -112,3 +112,20 @@
 ---- 2
 0|True|2019-01-01
 1|True|2020-01-01
+
+-CASE MixedCreateAndSetRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CREATE NODE TABLE person(id SERIAL, prop INT64, primary key(id));
+---- ok
+-STATEMENT UNWIND range(1, 200000) AS i CREATE (:person {prop: i})
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id % 2 = 0 SET p.prop=p.prop+1000000
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id % 2 = 0 AND p.prop>=1000000 RETURN COUNT(*)
+---- 1
+100000
+-RELOADDB
+-STATEMENT MATCH (p:person) WHERE p.id % 2 = 0 AND p.prop>=1000000 RETURN COUNT(*)
+---- 1
+100000

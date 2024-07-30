@@ -157,3 +157,14 @@ Charlie
 Alicenewnew
 Bobnew
 Charlienew
+
+-CASE MixedCreateAndSet
+-STATEMENT CREATE NODE TABLE person(id SERIAL, prop INT64, primary key(id));
+---- ok
+-STATEMENT UNWIND range(1, 200000) AS i CREATE (:person {prop: i})
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id % 2 = 0 SET p.prop=p.prop+1000000
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.id % 2 = 0 AND p.prop>=1000000 RETURN COUNT(*)
+---- 1
+100000

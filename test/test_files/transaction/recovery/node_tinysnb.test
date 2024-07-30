@@ -1,0 +1,22 @@
+-DATASET CSV tinysnb
+--
+
+-CASE UpdateNodeNullsRecovery
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 SET p.age = null
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 RETURN p.age
+---- 4
+
+
+
+
+-RELOADDB
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 RETURN p.age
+---- 4
+
+
+
+
+

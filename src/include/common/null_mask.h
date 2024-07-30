@@ -162,9 +162,6 @@ public:
     // (essentially just three states, all null, all non-null and some null)
     static std::pair<bool, bool> getMinMax(const uint64_t* nullEntries, uint64_t numValues);
 
-    void serialize(Serializer& ser) const;
-    static NullMask deserialize(Deserializer& deSer);
-
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {
         auto nullEntryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
