@@ -386,6 +386,7 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     }
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         *dataFH, pageIdx, *wal, transaction->getType());
+    printf("read datatype: %s\n", dataType.toString().c_str());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 

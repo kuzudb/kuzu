@@ -251,7 +251,6 @@ uint64_t BufferManager::evictPages() {
     size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
 
-    printf("Evicting pages\n");
     // Try each page at least twice.
     // E.g. if the vast majority of pages are unmarked and unlocked,
     // the first pass will mark them and the second pass, if insufficient marked pages
