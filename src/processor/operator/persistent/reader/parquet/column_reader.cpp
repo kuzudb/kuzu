@@ -261,7 +261,6 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     case common::LogicalTypeID::UUID:
         return std::make_unique<UUIDColumnReader>(reader, std::move(type), schema, fileIdx,
             maxDefine, maxRepeat);
-    // TODO(kebing): timestamp
     default:
         KU_UNREACHABLE;
     }
