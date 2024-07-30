@@ -338,12 +338,15 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     compilingTimer.start();
     try {
         preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
-        preparedStatement->readOnly =
-            parser::StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
+        preparedStatement->readOnly = StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
         if (!canExecuteWriteQuery() && !preparedStatement->isReadOnly()) {
             throw ConnectionException("Cannot execute write operations in a read-only database!");
         }
         preparedStatement->parsedStatement = parsedStatement;
+        if (preparedStatement->getStatementType() == StatementType::COPY_FROM &&
+            !transactionContext->isAutoTransaction()) {
+            throw ConnectionException("COPY FROM is only supported in auto transaction mode.");
+        }
         if (parsedStatement->requireTx()) {
             if (transactionContext->isAutoTransaction()) {
                 transactionContext->beginAutoTransaction(preparedStatement->readOnly);
