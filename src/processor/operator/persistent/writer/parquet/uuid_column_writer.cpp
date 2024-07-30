@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/writer/parquet/uuid_column_writer.h"
 
 #include "common/serializer/serializer.h"
+#include "common/types/uuid.h"
 #include "processor/operator/persistent/reader/parquet/resizable_buffer.h"
 
 namespace kuzu {
