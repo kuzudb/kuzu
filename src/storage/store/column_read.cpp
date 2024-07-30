@@ -428,7 +428,7 @@ void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReader* columnReade
             state.numValuesPerPage),
         exceptionCapacity);
 
-    const size_t numExceptionPages = ceilDiv((uint64_t)exceptionCapacity,
+    const size_t numExceptionPages = ceilDiv((uint64_t)getExceptionCount(),
         BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
     size_t remainingBytesToCopy = exceptionCapacity * EncodeException<T>::sizeBytes();
     for (size_t i = 0; i < numExceptionPages; ++i) {
