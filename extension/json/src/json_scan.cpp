@@ -173,8 +173,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
     auto parsedJsonPtr = parsedJson.ptr;
     parsedJson.ptr = nullptr;
     return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames),
-        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr), parsedJson.buffer), scanFromList, scanFromStruct,
-        scanInput->config.copy(), ctx);
+        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr), parsedJson.buffer), scanFromList,
+        scanFromStruct, scanInput->config.copy(), ctx);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

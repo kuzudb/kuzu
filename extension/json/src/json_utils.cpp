@@ -614,13 +614,15 @@ static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint
     return JsonWrapper(json, buffer);
 }
 
-static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
+static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffer,
+    uint64_t fileSize) {
     JsonMutWrapper result;
     auto root = yyjson_mut_arr(result.ptr);
     yyjson_mut_doc_set_root(result.ptr, root);
     auto filePos = 0u;
     while (true) {
-        auto curDoc = yyjson_read_opts(buffer.get() + filePos, fileSize - filePos, YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, nullptr);
+        auto curDoc = yyjson_read_opts(buffer.get() + filePos, fileSize - filePos,
+            YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, nullptr);
         if (curDoc == nullptr) {
             break;
         }
