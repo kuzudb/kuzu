@@ -362,6 +362,7 @@ template<std::floating_point T>
 InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReader* columnReader,
     Transaction* transaction, const ChunkState& state)
     : exceptionCount(state.metadata.compMeta.alpMetadata.exceptionCount),
+      finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.alpMetadata.exceptionCapacity),
       exceptionBuffer(
           std::make_unique<std::byte[]>(exceptionCapacity * EncodeException<T>::sizeBytes())),
@@ -422,6 +423,7 @@ void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReader* columnReade
         (exceptionCount - actualExceptionCount) * EncodeException<T>::sizeBytes());
     emptyMask.setNullFromRange(actualExceptionCount, (exceptionCount - actualExceptionCount), true);
     exceptionCount = actualExceptionCount;
+    finalizedExceptionCount = exceptionCount;
 
     auto exceptionCursor = getExceptionPageCursor(state.metadata,
         columnReader->getPageCursorForOffsetInGroup(0, state.metadata.pageIdx,
@@ -484,9 +486,10 @@ void InMemoryExceptionChunk<T>::writeException(EncodeException<T> exception, siz
 template<std::floating_point T>
 offset_t InMemoryExceptionChunk<T>::findFirstExceptionAtOrPastOffset(offset_t offsetInChunk) const {
     // binary search for chunkOffset in exceptions
+    // we only search among non-finalized exceptions
 
     offset_t lo = 0;
-    offset_t hi = exceptionCount;
+    offset_t hi = finalizedExceptionCount;
     while (lo < hi) {
         const size_t curExceptionIdx = (lo + hi) / 2;
         EncodeException<T> lastException = getExceptionAt(curExceptionIdx);
@@ -514,7 +517,7 @@ PageCursor InMemoryExceptionChunk<T>::getExceptionPageCursor(const ColumnChunkMe
 
 template<std::floating_point T>
 size_t InMemoryExceptionChunk<T>::getExceptionCount() const {
-    return exceptionCount;
+    return finalizedExceptionCount;
 }
 
 template class InMemoryExceptionChunk<float>;

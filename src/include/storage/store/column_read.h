@@ -71,6 +71,7 @@ private:
         PageCursor pageBaseCursor, size_t exceptionCapacity);
 
     size_t exceptionCount;
+    size_t finalizedExceptionCount;
     size_t exceptionCapacity;
 
     std::unique_ptr<std::byte[]> exceptionBuffer;
