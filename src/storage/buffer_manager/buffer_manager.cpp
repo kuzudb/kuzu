@@ -24,6 +24,7 @@ namespace storage {
 
 bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
     EvictionCandidate candidate{fileIndex, pageIndex};
+    printf("Inserting candidate %d %d\n", fileIndex, pageIndex);
     while (size < capacity) {
         // Weak is fine since spurious failure is acceptable.
         // The slot can always be filled later.
@@ -51,6 +52,7 @@ void EvictionQueue::removeCandidatesForFile(uint32_t fileIndex) {
     if (size == 0) {
         return;
     }
+    printf("Removing candidates for file %d\n", fileIndex);
     for (uint64_t i = 0; i < capacity; i++) {
         auto candidate = data[i].load();
         if (candidate.fileIdx == fileIndex && data[i].compare_exchange_strong(candidate, EMPTY)) {
@@ -244,6 +246,7 @@ uint64_t BufferManager::evictPages() {
     size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
 
+    printf("Evicting pages\n");
     // Try each page at least twice.
     // E.g. if the vast majority of pages are unmarked and unlocked,
     // the first pass will mark them and the second pass, if insufficient marked pages
