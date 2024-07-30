@@ -360,10 +360,12 @@ void ValueVector::serialize(Serializer& ser) const {
     ser.writeDebuggingInfo("data_type");
     dataType.serialize(ser);
     ser.writeDebuggingInfo("num_values");
-    auto selSize = state->getSelVector().getSelSize();
+    const auto selSize = state->getSelVector().getSelSize();
     ser.write<sel_t>(selSize);
-    ser.writeDebuggingInfo("null_mask");
-    nullMask.serialize(ser);
+    for (auto i = 0u; i < selSize; i++) {
+        const auto pos = state->getSelVector()[i];
+        ser.write<bool>(nullMask.isNull(pos));
+    }
     ser.writeDebuggingInfo("values");
     for (auto i = 0u; i < selSize; i++) {
         getAsValue(state->getSelVector()[i])->serialize(ser);
@@ -381,8 +383,12 @@ std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
     sel_t numValues;
     deSer.deserializeValue<sel_t>(numValues);
     result->state->getSelVectorUnsafe().setSelSize(numValues);
-    deSer.validateDebuggingInfo(key, "null_mask");
-    result->nullMask = NullMask::deserialize(deSer);
+    KU_ASSERT(result->state->getSelVector().isUnfiltered());
+    bool isNull;
+    for (auto i = 0u; i < numValues; i++) {
+        deSer.deserializeValue<bool>(isNull);
+        result->setNull(i, isNull);
+    }
     deSer.validateDebuggingInfo(key, "values");
     for (auto i = 0u; i < numValues; i++) {
         auto val = Value::deserialize(deSer);

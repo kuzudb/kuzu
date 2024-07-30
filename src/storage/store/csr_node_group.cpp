@@ -390,6 +390,7 @@ void CSRNodeGroup::redistributeCSRRegions(const CSRNodeGroupCheckpointState& csr
         [](const auto& a, const auto& b) { return a.regionIdx < b.regionIdx; }));
     KU_ASSERT(std::all_of(leafRegions.begin(), leafRegions.end(),
         [](const CSRRegion& region) { return region.level == 0; }));
+    KU_UNUSED(leafRegions);
     const auto rightCSROffsetOfRegions =
         csrState.newHeader->populateStartCSROffsetsFromLength(true /* leaveGaps */);
     csrState.newHeader->populateEndCSROffsetFromStartAndLength();
@@ -448,6 +449,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
         const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
         const auto newStartRow = csrState.newHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
         KU_ASSERT(newStartRow == newChunk->getData().getNumValues());
+        KU_UNUSED(newStartRow);
         // Copy old csr list with updates into the new chunk.
         if (!region.hasPersistentDeletions) {
             newChunk->getData().append(&oldChunkWithUpdates->getData(), oldStartRow, oldCSRLength);
