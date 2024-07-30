@@ -123,14 +123,14 @@ uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
                     pageState->unlock();
                     throw BufferManagerException("Failed to claim a frame.");
                 }
+                pinDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::high_resolution_clock::now() - start);
+                printf("duration %lld ns\n", pinDuration.count());
                 if (!evictionQueue.insert(fileHandle.getFileIndex(), pageIdx)) {
                     throw BufferManagerException(
                         "Eviction queue is full! This should be impossible.");
                 }
                auto frame = getFrame(fileHandle, pageIdx);
-               pinDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                   std::chrono::high_resolution_clock::now() - start);
-               printf("duration %lld ns\n", pinDuration.count());
                return frame;
             }
         } break;
