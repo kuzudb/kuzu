@@ -343,6 +343,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             throw ConnectionException("Cannot execute write operations in a read-only database!");
         }
         preparedStatement->parsedStatement = parsedStatement;
+        // TODO(Guodong): Remove this check after we support COPY FROM in manual transactions.
         if (preparedStatement->getStatementType() == StatementType::COPY_FROM &&
             !transactionContext->isAutoTransaction()) {
             throw ConnectionException("COPY FROM is only supported in auto transaction mode.");
