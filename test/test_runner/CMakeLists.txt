@@ -2,6 +2,7 @@ add_library(
         test_runner
         OBJECT
         csv_to_parquet_converter.cpp
+        insert_by_row.cpp
         test_parser.cpp
         test_runner.cpp
 )

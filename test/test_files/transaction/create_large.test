@@ -1,0 +1,389 @@
+-DATASET CSV empty
+-BUFFER_POOL_SIZE 1073741824
+--
+
+-DEFINE_STATEMENT_BLOCK COPY_LDBC_NODES [
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Forum FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Person FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Place FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Tag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY TagClass FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass.csv" (HEADER=true, DELIM='|');
+---- ok
+]
+-DEFINE_STATEMENT_BLOCK COPY_LDBC_RELS [
+-STATEMENT COPY Comment_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Comment_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person_1.csv" (HEADER=false, DELIM='|');
+---- ok
+-STATEMENT COPY Comment_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Comment_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag_1.csv" (HEADER=false, DELIM='|');
+---- ok
+-STATEMENT COPY Comment_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Comment_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place_1.csv" (HEADER=false, DELIM='|');
+---- ok
+-STATEMENT COPY replyOf_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Comment.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY replyOf_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Post.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY containerOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_containerOf_Post.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY hasMember FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasMember_Person.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY hasModerator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasModerator_Person.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Forum_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasTag_Tag.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Organisation_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation_isLocatedIn_Place.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY hasInterest FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_hasInterest_Tag.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Person_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY likes_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY likes_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment_1.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY likes_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY likes_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post_1.csv" (HEADER=false, DELIM='|');
+---- ok
+-STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_studyAt_Organisation.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY workAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_workAt_Organisation.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY isPartOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place_isPartOf_Place.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Post_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasCreator_Person.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Post_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasTag_Tag.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY Post_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_isLocatedIn_Place.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY hasType FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag_hasType_TagClass.csv" (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT COPY isSubclassOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass_isSubclassOf_TagClass.csv" (HEADER=true, DELIM='|');
+---- ok
+]
+
+-DEFINE_STATEMENT_BLOCK LOAD_LDBC_NODES [
+-STATEMENT LOAD WITH HEADERS (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" (HEADER=true, DELIM='|')
+           CREATE (:Comment {id:id, creationDate:creationDate, locationIP:locationIP, browserUsed:browserUsed, content:content, length:length})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, title STRING, creationDate INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv" (HEADER=true, DELIM='|')
+           CREATE (:Forum {id:id, title:title, creationDate:creationDate})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, label STRING, name STRING, url STRING)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation.csv" (HEADER=true, DELIM='|')
+           CREATE (:Organisation {id:id, label:label, name:name, url:url})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv" (HEADER=true, DELIM='|')
+           CREATE (:Person {id:id, firstName:firstName, lastName:lastName, gender:gender, birthday:birthday, creationDate:creationDate, locationIP:locationIP, browserUsed:browserUsed})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, name STRING, url STRING, label STRING)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place.csv" (HEADER=true, DELIM='|')
+           CREATE (:Place {id:id, name:name, url:url, label:label})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv" (HEADER=true, DELIM='|')
+           CREATE (:Post {id:id, imageFile:imageFile, creationDate:creationDate, locationIP:locationIP, browserUsed:browserUsed, language:language, content:content, length:length})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, name STRING, url STRING)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag.csv" (HEADER=true, DELIM='|')
+           CREATE (:Tag {id:id, name:name, url:url})
+---- ok
+-STATEMENT LOAD WITH HEADERS (id INT64, name STRING, url STRING)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass.csv" (HEADER=true, DELIM='|')
+           CREATE (:TagClass {id:id, name:name, url:url})
+---- ok
+]
+
+-DEFINE_STATEMENT_BLOCK LOAD_LDBC_RELS_1 [
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Comment), (b:Person) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Comment_hasCreator {}]->(b)
+---- ok
+#-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag.csv" (HEADER=true, DELIM='|')
+#           MATCH (a:Comment), (b:Tag) WHERE a.id = aid AND b.id = bid
+#           CREATE (a)-[:Comment_hasTag {}]->(b)
+#---- ok
+#-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place.csv" (HEADER=true, DELIM='|')
+#           MATCH (a:Comment), (b:Place) WHERE a.id = aid AND b.id = bid
+#           CREATE (a)-[:Comment_isLocatedIn {}]->(b)
+#---- ok
+#-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv" (HEADER=true, DELIM='|')
+#           MATCH (a:Person), (b:Person) WHERE a.id = aid AND b.id = bid
+#           CREATE (a)-[:knows {creationDate:creationDate}]->(b)
+#---- ok
+#-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment.csv" (HEADER=true, DELIM='|')
+#           MATCH (a:Person), (b:Comment) WHERE a.id = aid AND b.id = bid
+#           CREATE (a)-[:likes_Comment {creationDate:creationDate}]->(b)
+#---- ok
+#-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post.csv" (HEADER=true, DELIM='|')
+#           MATCH (a:Person), (b:Post) WHERE a.id = aid AND b.id = bid
+#           CREATE (a)-[:likes_Post {creationDate:creationDate}]->(b)
+#---- ok
+]
+
+-DEFINE_STATEMENT_BLOCK LOAD_LDBC_RELS_2 [
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person_1.csv" (HEADER=false, DELIM='|')
+           MATCH (a:Comment), (b:Person) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Comment_hasCreator {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag_1.csv" (HEADER=false, DELIM='|')
+           MATCH (a:Comment), (b:Tag) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Comment_hasTag {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place_1.csv" (HEADER=false, DELIM='|')
+           MATCH (a:Comment), (b:Place) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Comment_isLocatedIn {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Person), (b:Person) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:knows {creationDate:creationDate}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment_1.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Person), (b:Comment) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:likes_Comment {creationDate:creationDate}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post_1.csv" (HEADER=false, DELIM='|')
+           MATCH (a:Person), (b:Post) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:likes_Post {creationDate:creationDate}]->(b)
+---- ok
+]
+
+-DEFINE_STATEMENT_BLOCK LOAD_LDBC_RELS_3 [
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Comment.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Comment), (b:Comment) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:replyOf_Comment {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Post.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Comment), (b:Post) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:replyOf_Post {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_containerOf_Post.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Forum), (b:Post) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:containerOf {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, joinDate INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasMember_Person.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Forum), (b:Person) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:hasMember {joinDate:joinDate}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasModerator_Person.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Forum), (b:Person) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:hasModerator {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasTag_Tag.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Forum), (b:Tag) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Forum_hasTag {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation_isLocatedIn_Place.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Organisation), (b:Place) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Organisation_isLocatedIn {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_hasInterest_Tag.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Person), (b:Tag) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:hasInterest {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Person), (b:Place) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Person_isLocatedIn {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, classYear INT32)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_studyAt_Organisation.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Person), (b:Organisation) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:studyAt {classYear:classYear}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, workFrom INT32)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_workAt_Organisation.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Person), (b:Organisation) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:workAt {workFrom:workFrom}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place_isPartOf_Place.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Place), (b:Place) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:isPartOf {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasCreator_Person.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Post), (b:Person) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Post_hasCreator {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasTag_Tag.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Post), (b:Tag) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Post_hasTag {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_isLocatedIn_Place.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Post), (b:Place) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:Post_isLocatedIn {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag_hasType_TagClass.csv" (HEADER=true, DELIM='|')
+           MATCH (a:Tag), (b:TagClass) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:hasType {}]->(b)
+---- ok
+-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass_isSubclassOf_TagClass.csv" (HEADER=true, DELIM='|')
+           MATCH (a:TagClass), (b:TagClass) WHERE a.id = aid AND b.id = bid
+           CREATE (a)-[:isSubclassOf {}]->(b)
+---- ok
+]
+
+# TODO(Guodong/Sam): enable this to check disabling copy in manual trxs
+-CASE CopyLargeDisabled
+#-SKIP
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_LDBC_NODES
+-INSERT_STATEMENT_BLOCK COPY_LDBC_RELS
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t) RETURN count(*);
+---- 1
+327588
+
+-CASE InsertLDBCNodeCommit
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t) RETURN count(*);
+---- 1
+327588
+
+-CASE InsertLDBCNodeCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
+-STATEMENT COMMIT
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t) RETURN count(*);
+---- 1
+327588
+
+-CASE InsertLDBCNodeRollback
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (t) RETURN count(*);
+---- 1
+0
+
+-CASE InsertLDBCNodeRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_STATEMENT_BLOCK LOAD_LDBC_NODES
+-STATEMENT ROLLBACK
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t) RETURN count(*);
+---- 1
+0
+
+-CASE InsertLDBCFullCommit
+-SKIP
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_DATASET_BY_ROW ldbc-sf01
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH ()-[t]->() RETURN count(*);
+---- 1
+1477965
+
+-CASE InsertLDBCFullCommitRecovery
+-SKIP
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_DATASET_BY_ROW ldbc-sf01
+-STATEMENT COMMIT
+---- ok
+-RELOADDB
+-STATEMENT MATCH ()-[t]->() RETURN count(*);
+---- 1
+1477965
+
+-CASE InsertLDBCFullRollback
+-SKIP
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_DATASET_BY_ROW ldbc-sf01
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH ()-[t]->() RETURN count(*);
+---- 1
+0
+
+-CASE InsertLDBCFullRollbackRecovery
+-SKIP
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-CREATE_DATASET_SCHEMA ldbc-sf01
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-INSERT_DATASET_BY_ROW ldbc-sf01
+-STATEMENT ROLLBACK
+---- ok
+-RELOADDB
+-STATEMENT MATCH ()-[t]->() RETURN count(*);
+---- 1
+0

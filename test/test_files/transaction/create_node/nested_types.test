@@ -1,0 +1,478 @@
+-DATASET CSV empty
+--
+
+-CASE InsertInt64Commit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64 default 21, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+21
+21
+21
+
+-CASE InsertInt64CommitRecovery
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64 default 21, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+21
+21
+21
+
+-CASE InsertInt64Rollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64 default 21, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertInt64RollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64 default 21, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertStringCommit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random String default 'long long string', primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+long long string
+long long string
+long long string
+
+-CASE InsertStringCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random String default 'long long string', primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+long long string
+long long string
+long long string
+
+-CASE InsertStringRollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random String default 'long long string', primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertStringRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random String default 'long long string', primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfInt64Commit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64[] default [142,123,789], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[142,123,789]
+[142,123,789]
+[142,123,789]
+
+-CASE InsertListOfInt64CommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64[] default [142,123,789], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[142,123,789]
+[142,123,789]
+[142,123,789]
+
+-CASE InsertListOfInt64Rollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64[] default [142,123,789], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfInt64RollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random INT64[] default [142,123,789], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfStringCommit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[] default ['142','short','long long long string'], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+
+-CASE InsertListOfStringCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[] default ['142','short','long long long string'], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[142,short,long long long string]
+[142,short,long long long string]
+[142,short,long long long string]
+
+-CASE InsertListOfStringRollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[] default ['142','short','long long long string'], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfStringRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[] default ['142','short','long long long string'], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfListOfStringCommit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+
+-CASE InsertListOfListOfStringCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+[[142,51],[short,long,123],[long long long string,short short short short,short]]
+
+-CASE InsertListOfListOfStringRollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfListOfStringRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRING[][] default [['142','51'],['short','long','123'],['long long long string','short short short short','short']], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfStructCommit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[{revenue: 144, ages: [3.200000,7.200000]}]
+[{revenue: 144, ages: [3.200000,7.200000]}]
+[{revenue: 144, ages: [3.200000,7.200000]}]
+
+-CASE InsertListOfStructCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+[{revenue: 144, ages: [3.200000,7.200000]}]
+[{revenue: 144, ages: [3.200000,7.200000]}]
+[{revenue: 144, ages: [3.200000,7.200000]}]
+
+-CASE InsertListOfStructRollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertListOfStructRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(revenue int64, ages double[])[] default [{revenue: 144, ages: [3.200000,7.200000]}], primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertMapCommit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]]), primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+{key3=[3,2,1]}
+{key3=[3,2,1]}
+{key3=[3,2,1]}
+
+-CASE InsertMapCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]]), primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+{key3=[3,2,1]}
+{key3=[3,2,1]}
+{key3=[3,2,1]}
+
+-CASE InsertMapRollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]]), primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT rollback
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertMapRollbackRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random MAP(STRING, INT64[]) default map(['key3'],[[3,2,1]]), primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertStructCommit
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+{price: [5,3,2], volume: 24}
+{price: [5,3,2], volume: 24}
+{price: [5,3,2], volume: 24}
+
+-CASE InsertStructCommitRecovery
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 3
+{price: [5,3,2], volume: 24}
+{price: [5,3,2], volume: 24}
+{price: [5,3,2], volume: 24}
+
+-CASE InsertStructRollback
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT MATCH (t:test) return t.random
+---- 0
+
+-CASE InsertStructRollbackReovery
+-STATEMENT CREATE NODE TABLE test (id SERIAL, random STRUCT(price INT64[], volume INT64) default {price: [5,3,2], volume: 24}, primary key (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:test {}), (:test {}), (:test {})
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (t:test) return t.random
+---- 0

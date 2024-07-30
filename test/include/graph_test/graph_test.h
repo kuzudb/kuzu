@@ -5,7 +5,6 @@
 
 #include "graph_test/base_graph_test.h"
 #include "test_runner/test_group.h"
-#include "test_runner/test_runner.h"
 #include "transaction/transaction_context.h"
 
 namespace kuzu {

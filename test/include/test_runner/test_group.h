@@ -18,6 +18,12 @@ enum class ConcurrentStatusFlag {
     END,
 };
 
+enum class ManualUseDatasetFlag {
+    NONE,
+    SCHEMA,
+    INSERT,
+};
+
 enum class ResultType {
     OK,
     HASH,
@@ -44,6 +50,8 @@ struct TestStatement {
     bool checkColumnNames = false;
     bool checkPrecision = false;
     std::vector<TestQueryResult> result;
+    ManualUseDatasetFlag manualUseDataset;
+    std::string dataset;
     // for multiple conns
     std::string batchStatmentsCSVFile;
     std::optional<std::string> connName;

@@ -237,6 +237,16 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->reloadDBFlag = true;
         return statement;
     }
+    case TokenType::CREATE_DATASET_SCHEMA: {
+        statement->dataset = getParam(1);
+        statement->manualUseDataset = ManualUseDatasetFlag::SCHEMA;
+        return statement;
+    }
+    case TokenType::INSERT_DATASET_BY_ROW: {
+        statement->dataset = getParam(1);
+        statement->manualUseDataset = ManualUseDatasetFlag::INSERT;
+        return statement;
+    }
     case TokenType::IMPORT_DATABASE: {
         statement->importDBFlag = true;
         auto filePath = getParam(1);
