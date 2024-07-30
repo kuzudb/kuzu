@@ -52,6 +52,9 @@ struct TestStatement {
     std::vector<TestQueryResult> result;
     ManualUseDatasetFlag manualUseDataset;
     std::string dataset;
+    uint32_t multiCopySplits = 0;
+    std::string multiCopyTable;
+    std::string multiCopyFile;
     // for multiple conns
     std::string batchStatmentsCSVFile;
     std::optional<std::string> connName;

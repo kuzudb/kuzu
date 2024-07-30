@@ -276,6 +276,14 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->removeFilePath = filePath;
         return statement;
     }
+    case TokenType::MULTI_COPY_RANDOM: {
+        statement->multiCopySplits = stoll(getParam(1));
+        statement->multiCopyTable = getParam(2);
+        auto multiCopyFile = getParam(3);
+        replaceVariables(multiCopyFile);
+        statement->multiCopyFile = multiCopyFile;
+        return statement;
+    }
     case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
         extractConnName(query, statement);

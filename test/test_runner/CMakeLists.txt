@@ -3,6 +3,7 @@ add_library(
         OBJECT
         csv_converter.cpp
         insert_by_row.cpp
+        multi_copy_split.cpp
         test_parser.cpp
         test_runner.cpp
 )
