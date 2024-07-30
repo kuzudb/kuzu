@@ -24,7 +24,6 @@ namespace storage {
 
 bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
     EvictionCandidate candidate{fileIndex, pageIndex};
-    printf("Inserting candidate %d %d\n", fileIndex, pageIndex);
     while (size < capacity) {
         // Weak is fine since spurious failure is acceptable.
         // The slot can always be filled later.
@@ -52,7 +51,6 @@ void EvictionQueue::removeCandidatesForFile(uint32_t fileIndex) {
     if (size == 0) {
         return;
     }
-    printf("Removing candidates for file %d\n", fileIndex);
     for (uint64_t i = 0; i < capacity; i++) {
         auto candidate = data[i].load();
         if (candidate.fileIdx == fileIndex && data[i].compare_exchange_strong(candidate, EMPTY)) {
@@ -108,6 +106,7 @@ void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize
 // both get access to the same piece of memory.
 uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
+    printf("Pinning page %d\n", pageIdx);
     auto pageState = fileHandle.getPageState(pageIdx);
     while (true) {
         auto currStateAndVersion = pageState->getStateAndVersion();
