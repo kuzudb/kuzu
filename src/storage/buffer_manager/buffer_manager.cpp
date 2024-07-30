@@ -106,12 +106,12 @@ void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize
 // both get access to the same piece of memory.
 uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
-    printf("Pinning page %d\n", pageIdx);
     auto pageState = fileHandle.getPageState(pageIdx);
     while (true) {
         auto currStateAndVersion = pageState->getStateAndVersion();
         switch (PageState::getState(currStateAndVersion)) {
         case PageState::EVICTED: {
+            printf("Pinning page %d\n", pageIdx);
             if (pageState->tryLock(currStateAndVersion)) {
                 if (!claimAFrame(fileHandle, pageIdx, pageReadPolicy)) {
                     pageState->unlock();
