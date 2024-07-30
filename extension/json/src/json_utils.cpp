@@ -606,21 +606,21 @@ JsonWrapper stringToJsonNoError(const std::string& str) {
     return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0));
 }
 
-static JsonWrapper fileToJsonArrayFormatted(char* buffer, uint64_t fileSize) {
-    auto json = yyjson_read(buffer, fileSize, 0);
+static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
+    auto json = yyjson_read_opts(buffer.get(), fileSize, YYJSON_READ_INSITU, nullptr, nullptr);
     if (json == nullptr) {
         throw RuntimeException("Invalid json input");
     }
-    return JsonWrapper(json);
+    return JsonWrapper(json, buffer);
 }
 
-static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSize) {
+static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
     JsonMutWrapper result;
     auto root = yyjson_mut_arr(result.ptr);
     yyjson_mut_doc_set_root(result.ptr, root);
     auto filePos = 0u;
     while (true) {
-        auto curDoc = yyjson_read(buffer + filePos, fileSize - filePos, YYJSON_READ_STOP_WHEN_DONE);
+        auto curDoc = yyjson_read_opts(buffer.get() + filePos, fileSize - filePos, YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, nullptr);
         if (curDoc == nullptr) {
             break;
         }
@@ -628,7 +628,7 @@ static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSi
         yyjson_mut_arr_append(root, yyjson_val_mut_copy(result.ptr, yyjson_doc_get_root(curDoc)));
         yyjson_doc_free(curDoc);
     }
-    return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
+    return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr), buffer);
 }
 
 JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
@@ -636,15 +636,16 @@ JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
 
     auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
     auto fileSize = file->getFileSize();
-    std::unique_ptr<char[]> buffer(new char[fileSize + 4]());
+    std::shared_ptr<char[]> buffer(new char[fileSize + 9]());
+    memset(buffer.get() + fileSize, 0, 9);
     file->readFile(buffer.get(), fileSize);
 
     switch (format) {
     case JsonScanFormat::ARRAY:
-        return fileToJsonArrayFormatted(buffer.get(), fileSize);
+        return fileToJsonArrayFormatted(buffer, fileSize);
         break;
     case JsonScanFormat::UNSTRUCTURED:
-        return fileToJsonUnstructuredFormatted(buffer.get(), fileSize);
+        return fileToJsonUnstructuredFormatted(buffer, fileSize);
         break;
     default:
         KU_UNREACHABLE;
@@ -655,7 +656,7 @@ JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B) {
     JsonMutWrapper ret;
     auto root = yyjson_merge_patch(ret.ptr, yyjson_doc_get_root(A.ptr), yyjson_doc_get_root(B.ptr));
     yyjson_mut_doc_set_root(ret.ptr, root);
-    return JsonWrapper(yyjson_mut_doc_imut_copy(ret.ptr, nullptr));
+    return JsonWrapper(yyjson_mut_doc_imut_copy(ret.ptr, nullptr), nullptr);
 }
 
 std::string jsonExtractToString(const JsonWrapper& wrapper, uint64_t pos) {

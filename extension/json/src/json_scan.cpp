@@ -14,8 +14,8 @@ namespace kuzu {
 namespace json_extension {
 
 constexpr JsonScanFormat DEFAULT_JSON_FORMAT = JsonScanFormat::ARRAY;
-constexpr int64_t DEFAULT_JSON_DEPTH = -1;
-constexpr int64_t DEFAULT_JSON_BREADTH = -1;
+constexpr int64_t DEFAULT_JSON_DEPTH = 10;
+constexpr int64_t DEFAULT_JSON_BREADTH = 2048;
 
 struct JsonScanConfig {
     JsonScanFormat format = DEFAULT_JSON_FORMAT;
@@ -74,7 +74,7 @@ struct JsonBindData : public ScanBindData {
             scanFromList, scanFromStruct, config.copy(), context);
     }
 
-    int32_t getIdxFromName(std::string s) const {
+    int32_t getIdxFromName(std::string s) const { // possible bottleneck
         auto cpy = StringUtils::getUpper(s);
         if (!nameToIdxMap.contains(cpy)) {
             // try removing any [a-zA-Z]+\. prefix
@@ -173,7 +173,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
     auto parsedJsonPtr = parsedJson.ptr;
     parsedJson.ptr = nullptr;
     return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames),
-        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr)), scanFromList, scanFromStruct,
+        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr), parsedJson.buffer), scanFromList, scanFromStruct,
         scanInput->config.copy(), ctx);
 }
 
