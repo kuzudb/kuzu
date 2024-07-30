@@ -72,8 +72,8 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(const std::vector<T>& buff
                 alpMetadata.fac, alpMetadata.exp);
             return val == decoded_value ? encoded_value : 0;
         });
-    const auto& [minEncoded, maxEncoded] =
-        std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
+    std::vector<T> vec(floatEncodedValues.begin(), floatEncodedValues.end());
+    const auto& [minEncoded, maxEncoded] = std::minmax_element(vec.begin(), vec.end());
     const auto physicalType =
         std::is_same_v<T, double> ? PhysicalTypeID::DOUBLE : PhysicalTypeID::FLOAT;
     return std::make_unique<CompressionMetadata>(StorageValue(*min), StorageValue(*max),
