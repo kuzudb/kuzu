@@ -60,14 +60,16 @@ void Transaction::validateActiveTransaction(const TransactionContext& context) c
     case TransactionAction::COMMIT:
     case TransactionAction::ROLLBACK: {
         if (!context.hasActiveTransaction()) {
-            throw TransactionManagerException(stringFormat("No active transaction for {}.", TransactionActionUtils::toString(transactionAction)));
+            throw TransactionManagerException(stringFormat("No active transaction for {}.",
+                TransactionActionUtils::toString(transactionAction)));
         }
-    } break ;
+    } break;
     case TransactionAction::CHECKPOINT: {
         if (context.hasActiveTransaction()) {
-            throw TransactionManagerException(stringFormat("Found active transaction for {}.", TransactionActionUtils::toString(transactionAction)));
+            throw TransactionManagerException(stringFormat("Found active transaction for {}.",
+                TransactionActionUtils::toString(transactionAction)));
         }
-    } break ;
+    } break;
     default: {
         KU_UNREACHABLE;
     }
