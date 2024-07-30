@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
-#include "common/enums/scan_source_type.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
 
@@ -16,7 +15,7 @@ namespace processor {
 struct RelBatchInsertPrintInfo final : OPPrintInfo {
     std::string tableName;
 
-    RelBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+    explicit RelBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
 
     std::string toString() const override;
 
