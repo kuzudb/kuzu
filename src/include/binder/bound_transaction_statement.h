@@ -7,13 +7,14 @@ namespace kuzu {
 namespace binder {
 
 class BoundTransactionStatement : public BoundStatement {
+    static constexpr common::StatementType statementType_ = common::StatementType::TRANSACTION;
+
 public:
     explicit BoundTransactionStatement(transaction::TransactionAction transactionAction)
-        : BoundStatement{common::StatementType::TRANSACTION,
-              BoundStatementResult::createEmptyResult()},
+        : BoundStatement{statementType_, BoundStatementResult::createEmptyResult()},
           transactionAction{transactionAction} {}
 
-    inline transaction::TransactionAction getTransactionAction() const { return transactionAction; }
+    transaction::TransactionAction getTransactionAction() const { return transactionAction; }
 
 private:
     transaction::TransactionAction transactionAction;

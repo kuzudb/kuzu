@@ -50,7 +50,7 @@
 -CASE SetNodeInt64MultipleTestManualCheckpoint
 -STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 SET a.age=20 + a.ID
 ---- ok
--STATEMENT CALL CHECKPOINT() RETURN *
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 RETURN a.age
 ---- 3

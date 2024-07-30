@@ -25,7 +25,7 @@ public:
     }
 
     void initDBAndConnection() {
-        conn->query("CALL CHECKPOINT() RETURN *");
+        conn->query("CHECKPOINT");
         createDBAndConn();
         readConn = std::make_unique<Connection>(database.get());
         conn->query("BEGIN TRANSACTION");

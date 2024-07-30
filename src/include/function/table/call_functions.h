@@ -105,11 +105,5 @@ struct ShowFunctionsFunction : public CallFunction {
     static function_set getFunctionSet();
 };
 
-struct CheckpointFunction final : CallFunction {
-    static constexpr const char* name = "CHECKPOINT";
-
-    static function_set getFunctionSet();
-};
-
 } // namespace function
 } // namespace kuzu

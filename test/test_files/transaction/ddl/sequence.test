@@ -1,25 +1,22 @@
 -DATASET CSV empty
 --
 
-# TODO(issue #3502): Function write status check
 -CASE SequenceReadTrxError
--SKIP
 -STATEMENT CREATE SEQUENCE before;
 ---- ok
 -STATEMENT BEGIN TRANSACTION READ ONLY;
 ---- ok
 -STATEMENT RETURN nextval('before');
----- 1
-1
+---- error
+Can not execute a write query inside a read-only transaction.
+-STATEMENT BEGIN TRANSACTION READ ONLY;
+---- ok
 -STATEMENT CREATE SEQUENCE after;
 ---- error
 Can not execute a write query inside a read-only transaction.
 -STATEMENT RETURN currval('before');
----- 1
-1
--STATEMENT RETURN nextval('before');
 ---- error
-Can not execute a write query inside a read-only transaction.
+Catalog exception: currval: sequence "before" is not yet defined. To define the sequence, call nextval first.
 
 -CASE SequenceCallCommit
 -STATEMENT BEGIN TRANSACTION;

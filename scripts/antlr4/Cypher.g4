@@ -40,6 +40,8 @@ CASE : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
 CAST : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'T' | 't' ) ;
 
+CHECKPOINT : ( 'C' | 'c' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'K' | 'k' ) ( 'P' | 'p' ) ( 'O' | 'o' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
+
 COLUMN : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'M' | 'm' ) ( 'N' | 'n' ) ;
 
 COMMENT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
@@ -416,7 +418,8 @@ kU_Transaction
     : BEGIN SP TRANSACTION
         | BEGIN SP TRANSACTION SP READ SP ONLY
         | COMMIT
-        | ROLLBACK;
+        | ROLLBACK
+        | CHECKPOINT;
 
 kU_Extension
     : kU_LoadExtension
@@ -889,6 +892,7 @@ kU_NonReservedKeywords
         | BEGIN
         | BY
         | CALL
+        | CHECKPOINT
         | COMMENT
         | COMMIT
         | CONTAINS

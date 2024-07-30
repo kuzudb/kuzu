@@ -20,7 +20,7 @@
 -CASE smallListBecomesLargeListAfterInsertionCommitRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -57,7 +57,7 @@
 -CASE smallListBecomesLargeListAfterInsertionRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
