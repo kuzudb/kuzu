@@ -13,5 +13,9 @@ uint32_t RandomEngine::nextRandomInteger() {
     return randomState.pcg();
 }
 
+uint32_t RandomEngine::nextRandomInteger(uint32_t upper) {
+    return randomState.pcg(upper);
+}
+
 } // namespace common
 } // namespace kuzu

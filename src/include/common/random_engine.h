@@ -21,6 +21,7 @@ public:
     RandomEngine();
 
     uint32_t nextRandomInteger();
+    uint32_t nextRandomInteger(uint32_t upper);
 
 private:
     RandomState randomState;
