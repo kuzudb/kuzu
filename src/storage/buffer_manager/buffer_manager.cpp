@@ -23,21 +23,24 @@ namespace kuzu {
 namespace storage {
 
 bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
-    printf("Into insert\n");
+    auto start = std::chrono::high_resolution_clock::now();
     EvictionCandidate candidate{fileIndex, pageIndex};
     while (size < capacity) {
-        printf("Into loop\n");
         // Weak is fine since spurious failure is acceptable.
         // The slot can always be filled later.
         auto emptyCandidate = EMPTY;
         if (data[insertCursor.fetch_add(1, std::memory_order_relaxed) % capacity]
                 .compare_exchange_weak(emptyCandidate, candidate)) {
             size++;
-            printf("Exit loop\n");
+            insertDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now() - start);
+            printf("duration: %f ns\n", insertDuration.count());
             return true;
         }
     }
-    printf("Exit loop\n");
+    insertDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now() - start);
+    printf("duration: %f ns\n", insertDuration.count());
     return false;
 }
 

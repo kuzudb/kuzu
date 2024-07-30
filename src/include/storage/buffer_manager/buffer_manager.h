@@ -71,6 +71,7 @@ private:
     std::atomic<uint64_t> size;
     const uint64_t capacity;
     std::unique_ptr<std::atomic<EvictionCandidate>[]> data;
+    std::chrono::duration<double> insertDuration = std::chrono::duration<double>::zero();
 };
 
 /**
