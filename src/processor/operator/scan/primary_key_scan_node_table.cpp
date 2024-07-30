@@ -67,11 +67,16 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!lookupSucceed) {
         return false;
     }
-    // TODO(Guodong): Should read from uncommitted as well.
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
     nodeInfo.localScanState->IDVector->setValue<nodeID_t>(pos, nodeID);
-    nodeInfo.localScanState->source = TableScanSource::COMMITTED;
-    nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+        nodeInfo.localScanState->source = TableScanSource::UNCOMMITTED;
+        nodeInfo.localScanState->nodeGroupIdx =
+            StorageUtils::getNodeGroupIdx(nodeOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE);
+    } else {
+        nodeInfo.localScanState->source = TableScanSource::COMMITTED;
+        nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    }
     nodeInfo.table->initializeScanState(transaction, *nodeInfo.localScanState);
     return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
 }
