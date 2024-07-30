@@ -31,8 +31,7 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (nodeID.offset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         nodeInfo.localScanState->source = TableScanSource::UNCOMMITTED;
         nodeInfo.localScanState->nodeGroupIdx =
-            StorageUtils::getQuotient(nodeID.offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE,
-                StorageConstants::NODE_GROUP_SIZE);
+            StorageUtils::getNodeGroupIdx(nodeID.offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE);
     } else {
         nodeInfo.localScanState->source = TableScanSource::COMMITTED;
         nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeID.offset);

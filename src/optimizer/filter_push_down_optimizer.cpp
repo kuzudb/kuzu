@@ -174,10 +174,6 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
         scan.setPropertyPredicates(std::move(propertyPredicateSets));
     }
 
-    // TODO(Guodong): make index scan works under write transaction
-    if (context->getTx()->isWriteTransaction()) {
-        return finishPushDown(op);
-    }
     // Apply index scan
     auto tableIDs = scan.getTableIDs();
     std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/column_evaluate_type.h"
-#include "common/enums/scan_source_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
@@ -23,7 +22,7 @@ struct ExecutionContext;
 struct NodeBatchInsertPrintInfo final : OPPrintInfo {
     std::string tableName;
 
-    NodeBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+    explicit NodeBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
 
     std::string toString() const override;
 

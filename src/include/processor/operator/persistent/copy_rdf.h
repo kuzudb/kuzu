@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/enums/scan_source_type.h"
 #include "processor/operator/sink.h"
 namespace kuzu {
 namespace processor {
@@ -8,7 +7,7 @@ namespace processor {
 struct CopyRdfPrintInfo final : OPPrintInfo {
     std::string tableName;
 
-    CopyRdfPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+    explicit CopyRdfPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
 
     std::string toString() const override;
 

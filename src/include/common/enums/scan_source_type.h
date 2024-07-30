@@ -18,5 +18,5 @@ public:
     static std::string toString(ScanSourceType type);
 };
 
-}
+} // namespace common
 } // namespace kuzu

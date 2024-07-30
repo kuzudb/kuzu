@@ -1,6 +1,5 @@
 #include "processor/operator/persistent/copy_rdf.h"
 
-#include "binder/expression/expression_util.h"
 #include "common/string_format.h"
 #include "processor/result/factorized_table_util.h"
 namespace kuzu {
