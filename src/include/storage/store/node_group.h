@@ -175,12 +175,14 @@ public:
         return common::ku_dynamic_cast<const NodeGroup&, const TARGETT&>(*this);
     }
 
+    bool isVisible(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
     bool isDeleted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
 private:
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx);
+    ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx);
 
     common::row_idx_t getNumDeletedRows(const common::UniqLock& lock);
 
