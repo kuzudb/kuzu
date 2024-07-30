@@ -136,7 +136,8 @@ LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
 }
 
 LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
-    std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right, std::unique_ptr<OPPrintInfo> printInfo)
+    std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right,
+    std::unique_ptr<OPPrintInfo> printInfo)
     : LogicalOperator{operatorType, std::move(printInfo)} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));

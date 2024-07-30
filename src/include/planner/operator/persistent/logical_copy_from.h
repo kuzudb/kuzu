@@ -29,7 +29,8 @@ public:
     binder::expression_vector getOutExprs() const { return outExprs; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyFrom>(info.copy(), outExprs, LogicalOperator::copy(children), printInfo->copy());
+        return make_unique<LogicalCopyFrom>(info.copy(), outExprs, LogicalOperator::copy(children),
+            printInfo->copy());
     }
 
 private:

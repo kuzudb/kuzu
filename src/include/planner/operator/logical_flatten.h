@@ -7,8 +7,10 @@ namespace planner {
 
 class LogicalFlatten : public LogicalOperator {
 public:
-    LogicalFlatten(f_group_pos groupPos, std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child), std::move(printInfo)}, groupPos{groupPos} {}
+    LogicalFlatten(f_group_pos groupPos, std::shared_ptr<LogicalOperator> child,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child), std::move(printInfo)},
+          groupPos{groupPos} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

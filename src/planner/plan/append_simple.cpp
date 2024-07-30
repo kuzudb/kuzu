@@ -83,7 +83,7 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
     plan.setLastOperator(std::move(op));
 }
 
-void Planner:: appendExplain(const BoundStatement& statement, LogicalPlan& plan) {
+void Planner::appendExplain(const BoundStatement& statement, LogicalPlan& plan) {
     auto& explain = statement.constCast<BoundExplain>();
     auto statementToExplain = explain.getStatementToExplain();
     auto planToExplain = getBestPlan(*statementToExplain);
@@ -105,7 +105,8 @@ void Planner::appendCreateMacro(const BoundStatement& statement, LogicalPlan& pl
 void Planner::appendTransaction(const BoundStatement& statement, LogicalPlan& plan) {
     auto& transactionStatement = statement.constCast<BoundTransactionStatement>();
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto op = std::make_shared<LogicalTransaction>(transactionStatement.getTransactionAction(), std::move(printInfo));
+    auto op = std::make_shared<LogicalTransaction>(transactionStatement.getTransactionAction(),
+        std::move(printInfo));
     plan.setLastOperator(std::move(op));
 }
 
@@ -113,15 +114,17 @@ void Planner::appendExtension(const BoundStatement& statement, LogicalPlan& plan
     auto& extensionStatement = statement.constCast<BoundExtensionStatement>();
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto op = std::make_shared<LogicalExtension>(extensionStatement.getAction(),
-        extensionStatement.getPath(), statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
+        extensionStatement.getPath(), statement.getStatementResult()->getSingleColumnExpr(),
+        std::move(printInfo));
     plan.setLastOperator(std::move(op));
 }
 
 void Planner::appendAttachDatabase(const BoundStatement& statement, LogicalPlan& plan) {
     auto& boundAttachDatabase = statement.constCast<BoundAttachDatabase>();
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto attachDatabase = std::make_shared<LogicalAttachDatabase>(
-        boundAttachDatabase.getAttachInfo(), statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
+    auto attachDatabase =
+        std::make_shared<LogicalAttachDatabase>(boundAttachDatabase.getAttachInfo(),
+            statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
     plan.setLastOperator(std::move(attachDatabase));
 }
 

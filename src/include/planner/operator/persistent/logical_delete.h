@@ -28,7 +28,8 @@ public:
     f_group_pos_set getGroupsPosToFlatten() const;
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalDelete>(copyVector(infos), children[0]->copy(), printInfo->copy());
+        return std::make_unique<LogicalDelete>(copyVector(infos), children[0]->copy(),
+            printInfo->copy());
     }
 
 private:

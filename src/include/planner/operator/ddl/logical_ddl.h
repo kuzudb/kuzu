@@ -9,7 +9,8 @@ namespace planner {
 class LogicalDDL : public LogicalOperator {
 public:
     LogicalDDL(LogicalOperatorType operatorType, std::string tableName,
-        std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalOperator{operatorType, std::move(printInfo)}, tableName{std::move(tableName)},
           outputExpression{std::move(outputExpression)} {}
 

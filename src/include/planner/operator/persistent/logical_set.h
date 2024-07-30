@@ -26,7 +26,8 @@ public:
     const binder::BoundSetPropertyInfo& getInfo(uint32_t idx) const { return infos[idx]; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalSetProperty>(copyVector(infos), children[0]->copy(), printInfo->copy());
+        return std::make_unique<LogicalSetProperty>(copyVector(infos), children[0]->copy(),
+            printInfo->copy());
     }
 
 private:

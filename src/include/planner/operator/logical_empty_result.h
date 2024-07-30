@@ -8,7 +8,8 @@ namespace planner {
 class LogicalEmptyResult final : public LogicalOperator {
 public:
     explicit LogicalEmptyResult(const Schema& schema, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::EMPTY_RESULT, std::move(printInfo)}, originalSchema{schema.copy()} {
+        : LogicalOperator{LogicalOperatorType::EMPTY_RESULT, std::move(printInfo)},
+          originalSchema{schema.copy()} {
         this->schema = schema.copy();
     }
 

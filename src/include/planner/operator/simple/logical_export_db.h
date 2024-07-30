@@ -12,7 +12,8 @@ public:
     explicit LogicalExportDatabase(common::ReaderConfig boundFileInfo,
         std::shared_ptr<binder::Expression> outputExpression,
         std::vector<std::shared_ptr<LogicalOperator>> plans, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, std::move(plans), outputExpression, std::move(printInfo)},
+        : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, std::move(plans), outputExpression,
+              std::move(printInfo)},
           boundFileInfo{std::move(boundFileInfo)} {}
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }

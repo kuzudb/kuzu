@@ -48,14 +48,14 @@ private:
     static void calculateNumRowsAndColsForOp(processor::PhysicalOperator* op, uint32_t& numRows,
         uint32_t& numCols);
 
-    static void calculateNumRowsAndColsForOp(std::shared_ptr<planner::LogicalOperator> op, uint32_t& numRows,
-        uint32_t& numCols);
+    static void calculateNumRowsAndColsForOp(std::shared_ptr<planner::LogicalOperator> op,
+        uint32_t& numRows, uint32_t& numCols);
 
     uint32_t fillOpProfileBoxes(processor::PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
         uint32_t& maxFieldWidth, common::Profiler& profiler);
 
-    uint32_t fillOpProfileBoxes(std::shared_ptr<planner::LogicalOperator> op, uint32_t rowIdx, uint32_t colIdx,
-        uint32_t& maxFieldWidth);
+    uint32_t fillOpProfileBoxes(std::shared_ptr<planner::LogicalOperator> op, uint32_t rowIdx,
+        uint32_t colIdx, uint32_t& maxFieldWidth);
 
     void printOpProfileBoxUpperFrame(uint32_t rowIdx, std::ostringstream& oss) const;
 
@@ -121,8 +121,7 @@ private:
 
 class LogicalPlanPrinter {
 public:
-    LogicalPlanPrinter(planner::LogicalPlan* logicalPlan)
-        : logicalPlan{logicalPlan} {};
+    LogicalPlanPrinter(planner::LogicalPlan* logicalPlan) : logicalPlan{logicalPlan} {};
 
     nlohmann::json printPlanToJson();
 

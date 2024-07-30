@@ -9,7 +9,8 @@ namespace planner {
 class LogicalCreateMacro : public LogicalOperator {
 public:
     LogicalCreateMacro(std::shared_ptr<binder::Expression> outputExpression, std::string macroName,
-        std::unique_ptr<function::ScalarMacroFunction> macro, std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<function::ScalarMacroFunction> macro,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalOperator{LogicalOperatorType::CREATE_MACRO, std::move(printInfo)},
           outputExpression{std::move(outputExpression)}, macroName{std::move(macroName)},
           macro{std::move(macro)} {}
@@ -28,7 +29,8 @@ public:
     inline std::string getExpressionsForPrinting() const override { return macroName; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalCreateMacro>(outputExpression, macroName, macro->copy(), printInfo->copy());
+        return std::make_unique<LogicalCreateMacro>(outputExpression, macroName, macro->copy(),
+            printInfo->copy());
     }
 
 private:

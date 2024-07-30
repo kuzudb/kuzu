@@ -9,8 +9,10 @@ namespace planner {
 class LogicalAttachDatabase final : public LogicalSimple {
 public:
     explicit LogicalAttachDatabase(binder::AttachInfo attachInfo,
-        std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalSimple{LogicalOperatorType::ATTACH_DATABASE, std::move(outputExpression), std::move(printInfo)},
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalSimple{LogicalOperatorType::ATTACH_DATABASE, std::move(outputExpression),
+              std::move(printInfo)},
           attachInfo{std::move(attachInfo)} {}
 
     binder::AttachInfo getAttachInfo() const { return attachInfo; }
@@ -18,7 +20,8 @@ public:
     std::string getExpressionsForPrinting() const override { return attachInfo.dbPath; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalAttachDatabase>(attachInfo, outputExpression, printInfo->copy());
+        return std::make_unique<LogicalAttachDatabase>(attachInfo, outputExpression,
+            printInfo->copy());
     }
 
 private:

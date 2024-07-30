@@ -8,7 +8,8 @@ namespace planner {
 
 void Planner::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto expressionsScan = std::make_shared<LogicalExpressionsScan>(expressions, std::move(printInfo));
+    auto expressionsScan =
+        std::make_shared<LogicalExpressionsScan>(expressions, std::move(printInfo));
     expressionsScan->computeFactorizedSchema();
     plan.setLastOperator(expressionsScan);
 }

@@ -30,7 +30,8 @@ void Planner::appendProjection(const expression_vector& expressionsToProject, Lo
         }
     }
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator(), std::move(printInfo));
+    auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator(),
+        std::move(printInfo));
     projection->computeFactorizedSchema();
     plan.setLastOperator(std::move(projection));
 }

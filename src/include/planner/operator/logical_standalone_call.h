@@ -8,9 +8,10 @@ namespace planner {
 
 class LogicalStandaloneCall : public LogicalOperator {
 public:
-    LogicalStandaloneCall(main::Option* option, std::shared_ptr<binder::Expression> optionValue, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::STANDALONE_CALL, std::move(printInfo)}, option{option},
-          optionValue{std::move(optionValue)} {}
+    LogicalStandaloneCall(main::Option* option, std::shared_ptr<binder::Expression> optionValue,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::STANDALONE_CALL, std::move(printInfo)},
+          option{option}, optionValue{std::move(optionValue)} {}
 
     inline main::Option* getOption() const { return option; }
     inline std::shared_ptr<binder::Expression> getOptionValue() const { return optionValue; }

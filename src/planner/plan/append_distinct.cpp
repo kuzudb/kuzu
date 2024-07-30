@@ -8,7 +8,8 @@ namespace planner {
 
 void Planner::appendDistinct(const expression_vector& keys, LogicalPlan& plan) {
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto distinct = make_shared<LogicalDistinct>(keys, plan.getLastOperator(), std::move(printInfo));
+    auto distinct =
+        make_shared<LogicalDistinct>(keys, plan.getLastOperator(), std::move(printInfo));
     appendFlattens(distinct->getGroupsPosToFlatten(), plan);
     distinct->setChild(0, plan.getLastOperator());
     distinct->computeFactorizedSchema();

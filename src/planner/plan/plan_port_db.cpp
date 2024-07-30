@@ -50,7 +50,8 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto exportDatabase =
         make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(),
-            statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators), std::move(printInfo));
+            statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators),
+            std::move(printInfo));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }

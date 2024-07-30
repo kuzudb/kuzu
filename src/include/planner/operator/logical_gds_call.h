@@ -10,7 +10,8 @@ class LogicalGDSCall final : public LogicalOperator {
     static constexpr LogicalOperatorType operatorType_ = LogicalOperatorType::GDS_CALL;
 
 public:
-    explicit LogicalGDSCall(binder::BoundGDSCallInfo info, std::unique_ptr<OPPrintInfo> printInfo = nullptr)
+    explicit LogicalGDSCall(binder::BoundGDSCallInfo info,
+        std::unique_ptr<OPPrintInfo> printInfo = nullptr)
         : LogicalOperator{operatorType_, std::move(printInfo)}, info{std::move(info)} {}
 
     void computeFlatSchema() override;

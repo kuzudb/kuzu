@@ -18,7 +18,8 @@ std::vector<std::shared_ptr<Statement>> Transformer::transform() {
             auto cypherOption = oc_Statement->oC_AnyCypherOption();
             ExplainType explainType;
             if (cypherOption->oC_Explain()) {
-                explainType = cypherOption->oC_Explain()->LOGICAL() ? ExplainType::LOGICAL_PLAN : ExplainType::PHYSICAL_PLAN;
+                explainType = cypherOption->oC_Explain()->LOGICAL() ? ExplainType::LOGICAL_PLAN :
+                                                                      ExplainType::PHYSICAL_PLAN;
             } else {
                 explainType = ExplainType::PROFILE;
             }

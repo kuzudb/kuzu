@@ -14,8 +14,8 @@ public:
     LogicalTableFunctionCall(function::TableFunction tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns,
         std::shared_ptr<binder::Expression> offset, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{operatorType_, std::move(printInfo)}, tableFunc{tableFunc}, bindData{std::move(bindData)},
-          columns{std::move(columns)}, offset{std::move(offset)} {}
+        : LogicalOperator{operatorType_, std::move(printInfo)}, tableFunc{tableFunc},
+          bindData{std::move(bindData)}, columns{std::move(columns)}, offset{std::move(offset)} {}
 
     function::TableFunction getTableFunc() const { return tableFunc; }
     function::TableFuncBindData* getBindData() const { return bindData.get(); }

@@ -7,8 +7,10 @@ namespace planner {
 
 class LogicalImportDatabase : public LogicalSimple {
 public:
-    LogicalImportDatabase(std::string query, std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalSimple{LogicalOperatorType::IMPORT_DATABASE, std::move(outputExpression), std::move(printInfo)},
+    LogicalImportDatabase(std::string query, std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalSimple{LogicalOperatorType::IMPORT_DATABASE, std::move(outputExpression),
+              std::move(printInfo)},
           query{query} {}
 
     std::string getQuery() const { return query; }

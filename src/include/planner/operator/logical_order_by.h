@@ -33,7 +33,8 @@ public:
     inline uint64_t getLimitNum() const { return limitNum; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy(), printInfo->copy());
+        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy(),
+            printInfo->copy());
     }
 
 private:

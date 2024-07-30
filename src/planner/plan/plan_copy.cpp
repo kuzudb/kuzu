@@ -18,8 +18,8 @@ namespace planner {
 
 static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& plan) {
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto indexScan =
-        std::make_shared<LogicalPrimaryKeyLookup>(std::move(infos), plan.getLastOperator(), std::move(printInfo));
+    auto indexScan = std::make_shared<LogicalPrimaryKeyLookup>(std::move(infos),
+        plan.getLastOperator(), std::move(printInfo));
     indexScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(indexScan));
 }
@@ -46,8 +46,8 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
 static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
     LogicalPlan& plan) {
     auto printInfo = std::make_unique<OPPrintInfo>();
-    auto op =
-        make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator(), std::move(printInfo));
+    auto op = make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator(),
+        std::move(printInfo));
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }

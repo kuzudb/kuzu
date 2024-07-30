@@ -9,7 +9,8 @@ namespace planner {
 class LogicalCreateSequence : public LogicalDDL {
 public:
     LogicalCreateSequence(std::string sequenceName, binder::BoundCreateSequenceInfo info,
-        std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalDDL{LogicalOperatorType::CREATE_SEQUENCE, std::move(sequenceName),
               std::move(outputExpression), std::move(printInfo)},
           info{std::move(info)} {}
@@ -17,7 +18,8 @@ public:
     binder::BoundCreateSequenceInfo getInfo() const { return info.copy(); }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateSequence>(tableName, info.copy(), outputExpression, printInfo->copy());
+        return std::make_unique<LogicalCreateSequence>(tableName, info.copy(), outputExpression,
+            printInfo->copy());
     }
 
 private:

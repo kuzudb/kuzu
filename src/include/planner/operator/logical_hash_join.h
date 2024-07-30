@@ -18,7 +18,8 @@ public:
     LogicalHashJoin(std::vector<join_condition_t> joinConditions, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, std::shared_ptr<LogicalOperator> probeChild,
         std::shared_ptr<LogicalOperator> buildChild, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild), std::move(printInfo)},
+        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild),
+              std::move(printInfo)},
           joinConditions(std::move(joinConditions)), joinType{joinType}, mark{std::move(mark)} {}
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();

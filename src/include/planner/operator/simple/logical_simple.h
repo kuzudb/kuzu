@@ -8,11 +8,14 @@ namespace planner {
 class LogicalSimple : public LogicalOperator {
 public:
     LogicalSimple(LogicalOperatorType operatorType,
-        std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{operatorType, std::move(printInfo)}, outputExpression{std::move(outputExpression)} {}
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{operatorType, std::move(printInfo)},
+          outputExpression{std::move(outputExpression)} {}
     LogicalSimple(LogicalOperatorType operatorType,
         std::vector<std::shared_ptr<LogicalOperator>> plans,
-        std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalOperator{operatorType, std::move(plans), std::move(printInfo)},
           outputExpression{std::move(outputExpression)} {}
 

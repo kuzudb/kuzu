@@ -3,8 +3,8 @@
 #include <sstream>
 
 #include "json.hpp"
-#include "processor/physical_plan.h"
 #include "planner/operator/logical_plan.h"
+#include "processor/physical_plan.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -139,8 +139,8 @@ void OpProfileTree::calculateNumRowsAndColsForOp(PhysicalOperator* op, uint32_t&
     numRows++;
 }
 
-void OpProfileTree::calculateNumRowsAndColsForOp(std::shared_ptr<LogicalOperator> op, uint32_t& numRows,
-    uint32_t& numCols) {
+void OpProfileTree::calculateNumRowsAndColsForOp(std::shared_ptr<LogicalOperator> op,
+    uint32_t& numRows, uint32_t& numCols) {
     if (!op->getNumChildren()) {
         numRows = 1;
         numCols = 1;
@@ -174,8 +174,8 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
     return colOffset;
 }
 
-uint32_t OpProfileTree::fillOpProfileBoxes(std::shared_ptr<LogicalOperator> op, uint32_t rowIdx, uint32_t colIdx,
-    uint32_t& maxFieldWidth) {
+uint32_t OpProfileTree::fillOpProfileBoxes(std::shared_ptr<LogicalOperator> op, uint32_t rowIdx,
+    uint32_t colIdx, uint32_t& maxFieldWidth) {
     auto opProfileBox = std::make_unique<OpProfileBox>(LogicalPlanPrinter::getOperatorName(op),
         LogicalPlanPrinter::getOperatorParams(op), std::vector<std::string>());
     maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
@@ -186,7 +186,8 @@ uint32_t OpProfileTree::fillOpProfileBoxes(std::shared_ptr<LogicalOperator> op, 
 
     uint32_t colOffset = 0;
     for (auto i = 0u; i < op->getNumChildren(); i++) {
-        colOffset += fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset, maxFieldWidth);
+        colOffset +=
+            fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset, maxFieldWidth);
     }
     return colOffset;
 }
@@ -424,7 +425,8 @@ std::string LogicalPlanPrinter::getOperatorName(std::shared_ptr<LogicalOperator>
         logicalOperator->getOperatorType());
 }
 
-std::string LogicalPlanPrinter::getOperatorParams(std::shared_ptr<LogicalOperator> logicalOperator) {
+std::string LogicalPlanPrinter::getOperatorParams(
+    std::shared_ptr<LogicalOperator> logicalOperator) {
     return logicalOperator->getPrintInfo()->toString();
 }
 
