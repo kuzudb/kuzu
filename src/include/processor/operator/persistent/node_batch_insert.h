@@ -22,10 +22,8 @@ struct ExecutionContext;
 
 struct NodeBatchInsertPrintInfo final : OPPrintInfo {
     std::string tableName;
-    common::ScanSourceType copySource;
 
-    NodeBatchInsertPrintInfo(std::string tableName, common::ScanSourceType copySource)
-        : tableName(std::move(tableName)), copySource(std::move(copySource)) {}
+    NodeBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
 
     std::string toString() const override;
 
@@ -35,7 +33,7 @@ struct NodeBatchInsertPrintInfo final : OPPrintInfo {
 
 private:
     NodeBatchInsertPrintInfo(const NodeBatchInsertPrintInfo& other)
-        : OPPrintInfo(other), tableName(other.tableName), copySource(other.copySource) {}
+        : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
 struct NodeBatchInsertInfo final : BatchInsertInfo {

@@ -18,13 +18,10 @@ namespace processor {
 std::string RelBatchInsertPrintInfo::toString() const {
     std::string result = "Table Name: ";
     result += tableName;
-    result += ", Source: ";
-    result += common::ScanSourceTypeUtils::toString(copySource);
     return result;
 }
 
-void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/,
-    ExecutionContext* /*context*/) {
+void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     localState->chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(relInfo->columnTypes,

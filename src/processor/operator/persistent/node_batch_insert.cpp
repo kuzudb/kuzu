@@ -24,8 +24,6 @@ namespace processor {
 std::string NodeBatchInsertPrintInfo::toString() const {
     std::string result = "Table Name: ";
     result += tableName;
-    result += ", Source: ";
-    result += common::ScanSourceTypeUtils::toString(copySource);
     return result;
 }
 

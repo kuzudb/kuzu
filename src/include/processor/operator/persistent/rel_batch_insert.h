@@ -15,10 +15,8 @@ namespace processor {
 
 struct RelBatchInsertPrintInfo final : OPPrintInfo {
     std::string tableName;
-    common::ScanSourceType copySource;
 
-    RelBatchInsertPrintInfo(std::string tableName, common::ScanSourceType copySource)
-        : tableName(std::move(tableName)), copySource(std::move(copySource)) {}
+    RelBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
 
     std::string toString() const override;
 
@@ -28,7 +26,7 @@ struct RelBatchInsertPrintInfo final : OPPrintInfo {
 
 private:
     RelBatchInsertPrintInfo(const RelBatchInsertPrintInfo& other)
-        : OPPrintInfo(other), tableName(other.tableName), copySource(other.copySource) {}
+        : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
 struct RelBatchInsertInfo final : BatchInsertInfo {

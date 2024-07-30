@@ -7,10 +7,8 @@ namespace processor {
 
 struct CopyRdfPrintInfo final : OPPrintInfo {
     std::string tableName;
-    common::ScanSourceType copySource;
 
-    CopyRdfPrintInfo(std::string tableName, common::ScanSourceType copySource)
-        : tableName(std::move(tableName)), copySource(std::move(copySource)) {}
+    CopyRdfPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
 
     std::string toString() const override;
 
@@ -20,7 +18,7 @@ struct CopyRdfPrintInfo final : OPPrintInfo {
 
 private:
     CopyRdfPrintInfo(const CopyRdfPrintInfo& other)
-        : OPPrintInfo(other), tableName(other.tableName), copySource(other.copySource) {}
+        : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
 struct CopyRdfSharedState {
