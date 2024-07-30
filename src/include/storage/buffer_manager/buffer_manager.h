@@ -71,7 +71,7 @@ private:
     std::atomic<uint64_t> size;
     const uint64_t capacity;
     std::unique_ptr<std::atomic<EvictionCandidate>[]> data;
-    std::chrono::duration<double> insertDuration = std::chrono::duration<double>::zero();
+    std::chrono::nanoseconds insertDuration = std::chrono::nanoseconds::zero();
 };
 
 /**
@@ -248,7 +248,7 @@ private:
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
     std::vector<std::unique_ptr<BMFileHandle>> fileHandles;
 
-    std::chrono::duration<double> pinDuration = std::chrono::duration<double>::zero();
+    std::chrono::nanoseconds pinDuration = std::chrono::nanoseconds::zero();
 };
 
 } // namespace storage
