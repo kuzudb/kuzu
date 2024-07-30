@@ -316,9 +316,13 @@ private:
         const ColumnChunkMetadata& metadata = state.metadata;
 
         auto* exceptionChunk = state.getExceptionChunk<T>();
-
+        // if (numValues == StorageConstants::NODE_GROUP_SIZE) {
+        //     exceptionChunk->clear();
+        // }
+        std::vector<T> valuesToWrite(numValues);
+        const auto bitpackHeader = FloatCompression<T>::getBitpackInfo(state.metadata.compMeta);
+        offset_t curExceptionIdx = exceptionChunk->findFirstExceptionAtOrPastOffset(offsetInChunk);
         for (size_t i = 0; i < numValues; ++i) {
-
             const size_t writeOffset = offsetInChunk + i;
             const size_t readOffset = srcOffset + i;
 
@@ -332,13 +336,11 @@ private:
             const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
                 metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
 
-            const offset_t curExceptionIdx =
-                exceptionChunk->findFirstExceptionAtOrPastOffset(writeOffset);
-
             if (curExceptionIdx < exceptionChunk->getExceptionCount()) {
                 const auto curException = exceptionChunk->getExceptionAt(curExceptionIdx);
                 if (curException.posInChunk == writeOffset) {
                     exceptionChunk->removeExceptionAt(curExceptionIdx);
+                    ++curExceptionIdx;
                 }
             }
 
@@ -346,11 +348,14 @@ private:
                 KU_ASSERT(static_cast<uint32_t>(writeOffset) == writeOffset);
                 exceptionChunk->addException(
                     EncodeException<T>{newValue, static_cast<uint32_t>(writeOffset)});
+                valuesToWrite[i] = bitpackHeader.offset;
             } else {
-                defaultReader->writeValuesToPage(state, writeOffset, data, readOffset, 1, writeFunc,
-                    nullMask);
+                valuesToWrite[i] = newValue;
             }
         }
+
+        defaultReader->writeValuesToPage(state, offsetInChunk,
+            reinterpret_cast<InputType>(valuesToWrite.data()), 0, numValues, writeFunc, nullMask);
     }
 
     std::unique_ptr<DefaultColumnReader> defaultReader;

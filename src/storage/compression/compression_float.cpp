@@ -165,10 +165,12 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
         }
     }
     localUpdateState.floatState.newExceptionCount += newExceptionCount;
+    // const size_t totalExceptionCount =
+    //     (value.size() == common::StorageConstants::NODE_GROUP_SIZE) ?
+    //         localUpdateState.floatState.newExceptionCount :
+    //         metadata.alpMetadata.exceptionCount + localUpdateState.floatState.newExceptionCount;
     const size_t totalExceptionCount =
-        (value.size() == common::StorageConstants::NODE_GROUP_SIZE) ?
-            localUpdateState.floatState.newExceptionCount :
-            metadata.alpMetadata.exceptionCount + localUpdateState.floatState.newExceptionCount;
+        metadata.alpMetadata.exceptionCount + localUpdateState.floatState.newExceptionCount;
     const bool exceptionsOK = totalExceptionCount <= metadata.alpMetadata.exceptionCapacity;
 
     return exceptionsOK && decltype(encodedFloatBitpacker)::canUpdateInPlace(encodedValues,
