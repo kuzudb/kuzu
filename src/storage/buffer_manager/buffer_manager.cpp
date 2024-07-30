@@ -117,15 +117,11 @@ uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
         auto currStateAndVersion = pageState->getStateAndVersion();
         switch (PageState::getState(currStateAndVersion)) {
         case PageState::EVICTED: {
-            auto start = std::chrono::high_resolution_clock::now();
             if (pageState->tryLock(currStateAndVersion)) {
                 if (!claimAFrame(fileHandle, pageIdx, pageReadPolicy)) {
                     pageState->unlock();
                     throw BufferManagerException("Failed to claim a frame.");
                 }
-                pinDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::high_resolution_clock::now() - start);
-                printf("duration %lld ns\n", pinDuration.count());
                 if (!evictionQueue.insert(fileHandle.getFileIndex(), pageIdx)) {
                     throw BufferManagerException(
                         "Eviction queue is full! This should be impossible.");
@@ -296,10 +292,14 @@ uint64_t BufferManager::evictPages() {
 // and return false, otherwise, we load the page to its corresponding frame and return true.
 bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
+    auto start = std::chrono::high_resolution_clock::now();
     page_offset_t pageSizeToClaim = fileHandle.getPageSize();
     if (!reserve(pageSizeToClaim)) {
         return false;
     }
+    pinDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now() - start);
+    printf("duration %lld ns\n", pinDuration.count());
     cachePageIntoFrame(fileHandle, pageIdx, pageReadPolicy);
     return true;
 }
