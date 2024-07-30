@@ -21,6 +21,12 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+std::string NodeBatchInsertPrintInfo::toString() const {
+    std::string result = "Table Name: ";
+    result += tableName;
+    return result;
+}
+
 void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     uint64_t numRows;
     if (readerSharedState != nullptr) {

@@ -89,7 +89,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto info =
         std::make_unique<NodeBatchInsertInfo>(nodeTableEntry, storageManager->compressionEnabled(),
             std::move(columnTypes), std::move(columnEvaluators), copyFromInfo->columnEvaluateTypes);
-    auto printInfo = std::make_unique<OPPrintInfo>(copyFrom.getExpressionsForPrinting());
+    auto printInfo =
+        std::make_unique<NodeBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
     return std::make_unique<NodeBatchInsert>(std::move(info), sharedState,
         std::make_unique<ResultSetDescriptor>(copyFrom.getSchema()), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
@@ -143,7 +144,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
         offsetVectorIdx, std::move(columnTypes));
-    auto printInfo = std::make_unique<OPPrintInfo>(copyFrom.getExpressionsForPrinting());
+    auto printInfo =
+        std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),
         std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo));
@@ -231,7 +233,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
     const auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     sharedState->fTable = fTable;
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<CopyRdfPrintInfo>(copyFrom->getInfo()->tableEntry->getName());
     auto copyRdf = std::make_unique<CopyRdf>(std::move(sharedState),
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), getOperatorID(),
         std::move(printInfo));

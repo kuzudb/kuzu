@@ -15,7 +15,13 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
+std::string RelBatchInsertPrintInfo::toString() const {
+    std::string result = "Table Name: ";
+    result += tableName;
+    return result;
+}
+
+void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     localState->chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(relInfo->columnTypes,

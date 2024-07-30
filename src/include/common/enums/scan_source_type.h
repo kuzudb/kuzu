@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace kuzu {
 namespace common {
@@ -10,6 +11,11 @@ enum class ScanSourceType : uint8_t {
     FILE = 1,
     OBJECT = 2,
     QUERY = 3,
+};
+
+class ScanSourceTypeUtils {
+public:
+    static std::string toString(ScanSourceType type);
 };
 
 }

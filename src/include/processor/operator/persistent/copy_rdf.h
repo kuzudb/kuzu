@@ -1,9 +1,25 @@
 #pragma once
 
+#include "common/enums/scan_source_type.h"
 #include "processor/operator/sink.h"
-
 namespace kuzu {
 namespace processor {
+
+struct CopyRdfPrintInfo final : OPPrintInfo {
+    std::string tableName;
+
+    CopyRdfPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<CopyRdfPrintInfo>(new CopyRdfPrintInfo(*this));
+    }
+
+private:
+    CopyRdfPrintInfo(const CopyRdfPrintInfo& other)
+        : OPPrintInfo(other), tableName(other.tableName) {}
+};
 
 struct CopyRdfSharedState {
     std::shared_ptr<FactorizedTable> fTable;

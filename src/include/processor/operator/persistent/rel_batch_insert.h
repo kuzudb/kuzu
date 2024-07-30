@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
+#include "common/enums/scan_source_type.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
 
@@ -11,6 +12,22 @@ struct ChunkedCSRHeader;
 } // namespace storage
 
 namespace processor {
+
+struct RelBatchInsertPrintInfo final : OPPrintInfo {
+    std::string tableName;
+
+    RelBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<RelBatchInsertPrintInfo>(new RelBatchInsertPrintInfo(*this));
+    }
+
+private:
+    RelBatchInsertPrintInfo(const RelBatchInsertPrintInfo& other)
+        : OPPrintInfo(other), tableName(other.tableName) {}
+};
 
 struct RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;

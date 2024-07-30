@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/enums/column_evaluate_type.h"
+#include "common/enums/scan_source_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
@@ -18,6 +19,22 @@ class Transaction;
 
 namespace processor {
 struct ExecutionContext;
+
+struct NodeBatchInsertPrintInfo final : OPPrintInfo {
+    std::string tableName;
+
+    NodeBatchInsertPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<NodeBatchInsertPrintInfo>(new NodeBatchInsertPrintInfo(*this));
+    }
+
+private:
+    NodeBatchInsertPrintInfo(const NodeBatchInsertPrintInfo& other)
+        : OPPrintInfo(other), tableName(other.tableName) {}
+};
 
 struct NodeBatchInsertInfo final : BatchInsertInfo {
     std::vector<common::LogicalType> columnTypes;
