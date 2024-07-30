@@ -80,6 +80,7 @@ Type::type ParquetWriter::convertToParquetType(const LogicalType& type) {
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
         return Type::BYTE_ARRAY;
+    case LogicalTypeID::UUID:
     case LogicalTypeID::INTERVAL:
         return Type::FIXED_LEN_BYTE_ARRAY;
     default:
@@ -160,6 +161,12 @@ void ParquetWriter::setSchemaProperties(const LogicalType& type, SchemaElement& 
     case LogicalTypeID::SERIAL: {
         schemaElement.converted_type = ConvertedType::SERIAL;
         schemaElement.__isset.converted_type = true;
+    } break;
+    case LogicalTypeID::UUID: {
+        schemaElement.type_length = common::ParquetConstants::PARQUET_UUID_SIZE;
+        schemaElement.__isset.type_length = true;
+        schemaElement.__isset.logicalType = true;
+        schemaElement.logicalType.__isset.UUID = true;
     } break;
     default:
         break;

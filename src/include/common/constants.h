@@ -183,6 +183,7 @@ struct ParquetConstants {
     static constexpr uint64_t STRING_LENGTH_SIZE = sizeof(uint32_t);
     static constexpr uint64_t MAX_STRING_STATISTICS_SIZE = 10000;
     static constexpr uint64_t PARQUET_INTERVAL_SIZE = 12;
+    static constexpr uint64_t PARQUET_UUID_SIZE = 16;
 };
 
 struct ExportCSVConstants {

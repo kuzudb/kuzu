@@ -38,6 +38,10 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 
 void ResultCollector::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
+        if (payloadVectors[0]->dataType.getLogicalTypeID() == LogicalTypeID::UNION) {
+            auto dateVector = UnionVector::getValVector(payloadVectors[0], 1);
+            auto a = 5;
+        }
         if (!payloadVectors.empty()) {
             for (auto i = 0u; i < resultSet->multiplicity; i++) {
                 localTable->append(payloadAndMarkVectors);
