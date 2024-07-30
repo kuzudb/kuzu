@@ -1,0 +1,24 @@
+-DATASET CSV copy-test/map-copy-error
+
+--
+
+-CASE CopyDuplicateMapKey
+-SKIP
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/copy-test/duplicate-map-key/duplicate-map-key.csv'
+---- ok
+-STATEMENT MATCH (m:person) RETURN m.*;
+---- 2
+1|{alice=52, bob=42}
+3|{dan=52, carol=42, dan=53}
+
+-CASE CopyDuplicateKeyError
+-STATEMENT CALL DISABLE_MAP_KEY_CHECK = FALSE
+---- ok
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/copy-test/map-copy-error/duplicate-map-key.csv'
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/map-copy-error/duplicate-map-key.csv on line 2: Conversion exception: Map does not allow duplicate keys.
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/copy-test/map-copy-error/null-map-key.csv'
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/map-copy-error/null-map-key.csv on line 1: Conversion exception: Map does not allow null as key.
+-STATEMENT MATCH (m:person) RETURN m.*;
+---- 0

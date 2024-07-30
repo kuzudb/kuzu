@@ -1003,6 +1003,9 @@ uint64_t Value::computeHash() const {
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST:
     case PhysicalTypeID::STRUCT: {
+        if (childrenSize == 0) {
+            return function::NULL_HASH;
+        }
         hashValue = children[0]->computeHash();
         for (auto i = 1u; i < childrenSize; i++) {
             hashValue = function::combineHashScalar(hashValue, children[i]->computeHash());

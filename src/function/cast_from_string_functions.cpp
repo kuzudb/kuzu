@@ -4,6 +4,7 @@
 #include "common/exception/parser.h"
 #include "common/string_format.h"
 #include "common/types/blob.h"
+#include "function/list/functions/list_unique_function.h"
 #include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
@@ -379,25 +380,43 @@ void CastString::operation(const ku_string_t& input, list_entry_t& result,
 // ---------------------- cast String to Map ------------------------------ //
 struct SplitStringMapOperation {
     SplitStringMapOperation(uint64_t& offset, ValueVector* resultVector)
-        : offset(offset), resultVector(resultVector) {}
+        : offset{offset}, resultVector{resultVector} {}
 
     uint64_t& offset;
     ValueVector* resultVector;
+    ValueSet uniqueKeys;
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    inline bool handleKey(const char* start, const char* end, const CSVOption* option) {
-        trimRightWhitespace(start, end);
-        CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 0).get(), offset,
-            std::string_view{start, (uint32_t)(end - start)}, option);
-        return true;
-    }
+    bool handleKey(const char* start, const char* end, const CSVOption* option);
 
-    inline void handleValue(const char* start, const char* end, const CSVOption* option) {
-        trimRightWhitespace(start, end);
-        CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(),
-            offset++, std::string_view{start, (uint32_t)(end - start)}, option);
-    }
+    void handleValue(const char* start, const char* end, const CSVOption* option);
 };
+
+bool SplitStringMapOperation::handleKey(const char* start, const char* end,
+    const CSVOption* option) {
+    trimRightWhitespace(start, end);
+    auto fieldVector = StructVector::getFieldVector(resultVector, 0).get();
+    CastString::copyStringToVector(fieldVector, offset,
+        std::string_view{start, (uint32_t)(end - start)}, option);
+    if (fieldVector->isNull(offset)) {
+        throw common::ConversionException{"Map does not allow null as key."};
+    }
+    auto val = common::Value::createDefaultValue(fieldVector->dataType);
+    val.copyFromColLayout(fieldVector->getData() + fieldVector->getNumBytesPerValue() * offset,
+        fieldVector);
+    auto uniqueKey = uniqueKeys.insert(val).second;
+    if (!uniqueKey) {
+        throw common::ConversionException{"Map does not allow duplicate keys."};
+    }
+    return true;
+}
+
+void SplitStringMapOperation::handleValue(const char* start, const char* end,
+    const CSVOption* option) {
+    trimRightWhitespace(start, end);
+    CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(), offset++,
+        std::string_view{start, (uint32_t)(end - start)}, option);
+}
 
 template<typename T>
 static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool isKey,
@@ -746,7 +765,7 @@ static bool tryCastUnionField(ValueVector* vector, uint64_t rowToAdd, const char
         }
         StringVector::addString(vector, rowToAdd, input, len);
         return true;
-    } break;
+    }
     default: {
         return false;
     }

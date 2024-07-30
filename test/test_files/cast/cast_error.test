@@ -708,10 +708,10 @@ Conversion exception: Unsupported casting function from INT64[] to UINT8.
 Overflow exception: Value -1 is not within UINT8 range
 -STATEMENT RETURN cast(cast("{NULL=3}", "MAP(MAP(INT8, INT8), INT64)"), "MAP(UINT8, UINT8)");
 ---- error
-Conversion exception: Unsupported casting function from MAP(INT8, INT8) to UINT8.
+Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN cast(cast("{NULL=3}", "MAP(MAP(INT8, INT8), INT64)"), "MAP(MAP(INT8, MAP(INT8, INT8)), UINT8)");
 ---- error
-Conversion exception: Unsupported casting function from INT8 to MAP.
+Conversion exception: Map does not allow null as key.
 
 -LOG InvalidStructToStruct
 -STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING, c STRING)"), "STRUCT(a INT128, b INT128)");
@@ -762,7 +762,7 @@ Conversion exception: Unsupported casting LIST with incorrect list entry to ARRA
 Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 2, Actual: 3.
 -STATEMENT RETURN cast(cast("{3={}, 3= {a: 12}, 3={a:32, b:[1, 2, 3]}}", "MAP(STRING, STRUCT(a INT64, b INT64[]))"), "MAP(STRING, STRUCT(a INT64, b INT64[1]))");
 ---- error
-Conversion exception: Unsupported casting LIST with incorrect list entry to ARRAY. Expected: 1, Actual: 3.
+Conversion exception: Map does not allow duplicate keys.
 
 -LOG InvalidArrayToArray
 -STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[3]");
