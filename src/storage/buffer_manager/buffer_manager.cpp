@@ -130,7 +130,7 @@ uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
                auto frame = getFrame(fileHandle, pageIdx);
                pinDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
                    std::chrono::high_resolution_clock::now() - start);
-               printf("duration %f ns\n", pinDuration.count());
+               printf("duration %lld ns\n", pinDuration.count());
                return frame;
             }
         } break;
