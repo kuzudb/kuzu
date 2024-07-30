@@ -38,14 +38,24 @@ class OpProfileTree {
 public:
     OpProfileTree(processor::PhysicalOperator* opProfileBoxes, common::Profiler& profiler);
 
+    OpProfileTree(std::shared_ptr<planner::LogicalOperator> opProfileBoxes);
+
     std::ostringstream printPlanToOstream() const;
+
+    std::ostringstream printLogicalPlanToOstream() const;
 
 private:
     static void calculateNumRowsAndColsForOp(processor::PhysicalOperator* op, uint32_t& numRows,
         uint32_t& numCols);
 
+    static void calculateNumRowsAndColsForOp(std::shared_ptr<planner::LogicalOperator> op, uint32_t& numRows,
+        uint32_t& numCols);
+
     uint32_t fillOpProfileBoxes(processor::PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
         uint32_t& maxFieldWidth, common::Profiler& profiler);
+
+    uint32_t fillOpProfileBoxes(std::shared_ptr<planner::LogicalOperator> op, uint32_t rowIdx, uint32_t colIdx,
+        uint32_t& maxFieldWidth);
 
     void printOpProfileBoxUpperFrame(uint32_t rowIdx, std::ostringstream& oss) const;
 
@@ -53,7 +63,7 @@ private:
 
     void printOpProfileBoxLowerFrame(uint32_t rowIdx, std::ostringstream& oss) const;
 
-    void prettyPrintPlanTitle(std::ostringstream& oss) const;
+    void prettyPrintPlanTitle(std::ostringstream& oss, std::string title) const;
 
     static std::string genHorizLine(uint32_t len);
 
@@ -107,6 +117,26 @@ private:
 private:
     processor::PhysicalPlan* physicalPlan;
     common::Profiler* profiler;
+};
+
+class LogicalPlanPrinter {
+public:
+    LogicalPlanPrinter(planner::LogicalPlan* logicalPlan)
+        : logicalPlan{logicalPlan} {};
+
+    nlohmann::json printPlanToJson();
+
+    std::ostringstream printPlanToOstream();
+
+    static std::string getOperatorName(std::shared_ptr<planner::LogicalOperator> logicalOperator);
+
+    static std::string getOperatorParams(std::shared_ptr<planner::LogicalOperator> logicalOperator);
+
+private:
+    nlohmann::json toJson(std::shared_ptr<planner::LogicalOperator> logicalOperator);
+
+private:
+    planner::LogicalPlan* logicalPlan;
 };
 
 } // namespace main

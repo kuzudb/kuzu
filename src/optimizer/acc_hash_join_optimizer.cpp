@@ -19,8 +19,9 @@ namespace kuzu {
 namespace optimizer {
 
 static std::shared_ptr<LogicalOperator> appendAccumulate(std::shared_ptr<LogicalOperator> child) {
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto accumulate = std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR,
-        expression_vector{}, nullptr /* offset */, nullptr /* mark */, std::move(child));
+        expression_vector{}, nullptr /* offset */, nullptr /* mark */, std::move(child), std::move(printInfo));
     accumulate->computeFlatSchema();
     return accumulate;
 }
@@ -93,7 +94,8 @@ static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskConstructionTyp
     std::shared_ptr<Expression> key, std::vector<LogicalOperator*> candidates,
     std::shared_ptr<LogicalOperator> child) {
     auto tableIDs = getTableIDs(candidates[0]);
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(type, key, tableIDs, candidates, child);
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(type, key, tableIDs, candidates, child, std::move(printInfo));
     semiMasker->computeFlatSchema();
     return semiMasker;
 }

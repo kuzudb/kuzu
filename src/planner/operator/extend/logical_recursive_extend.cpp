@@ -75,7 +75,7 @@ std::unique_ptr<LogicalOperator> LogicalPathPropertyProbe::copy() {
     auto nodeChildCopy = nodeChild == nullptr ? nullptr : nodeChild->copy();
     auto relChildCopy = relChild == nullptr ? nullptr : relChild->copy();
     auto op = std::make_unique<LogicalPathPropertyProbe>(recursiveRel, children[0]->copy(),
-        std::move(nodeChildCopy), std::move(relChildCopy), joinType);
+        std::move(nodeChildCopy), std::move(relChildCopy), joinType, printInfo->copy());
     op->sipInfo = sipInfo;
     return op;
 }

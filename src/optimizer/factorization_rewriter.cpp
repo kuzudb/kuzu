@@ -196,7 +196,8 @@ std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattenIf
     if (op->getSchema()->getGroup(groupPos)->isFlat()) {
         return op;
     }
-    auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op));
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op), std::move(printInfo));
     flatten->computeFactorizedSchema();
     return flatten;
 }

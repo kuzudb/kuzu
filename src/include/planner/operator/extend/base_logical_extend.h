@@ -13,8 +13,8 @@ public:
         std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         common::ExtendDirection direction, bool extendFromSource_,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{operatorType, std::move(child)}, boundNode{std::move(boundNode)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{operatorType, std::move(child), std::move(printInfo)}, boundNode{std::move(boundNode)},
           nbrNode{std::move(nbrNode)}, rel{std::move(rel)}, direction{direction},
           extendFromSource_{extendFromSource_} {}
 

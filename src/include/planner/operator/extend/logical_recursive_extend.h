@@ -14,9 +14,9 @@ public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         common::ExtendDirection direction, bool extendFromSource, RecursiveJoinType joinType,
-        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild)
+        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild, std::unique_ptr<OPPrintInfo> printInfo)
         : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
-              direction, extendFromSource, std::move(child)},
+              direction, extendFromSource, std::move(child), std::move(printInfo)},
           joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
@@ -30,7 +30,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-            extendFromSource_, joinType, children[0]->copy(), recursiveChild->copy());
+            extendFromSource_, joinType, children[0]->copy(), recursiveChild->copy(), printInfo->copy());
     }
 
 private:
@@ -44,8 +44,8 @@ class LogicalPathPropertyProbe : public LogicalOperator {
 public:
     LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> recursiveRel,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
-        std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType)
-        : LogicalOperator{type_, std::move(probeChild)}, recursiveRel{std::move(recursiveRel)},
+        std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type_, std::move(probeChild), std::move(printInfo)}, recursiveRel{std::move(recursiveRel)},
           nodeChild{std::move(nodeChild)}, relChild{std::move(relChild)}, joinType{joinType} {}
 
     void computeFactorizedSchema() final;

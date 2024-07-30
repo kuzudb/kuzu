@@ -8,8 +8,8 @@ namespace planner {
 class LogicalOrderBy : public LogicalOperator {
 public:
     LogicalOrderBy(binder::expression_vector expressionsToOrderBy, std::vector<bool> sortOrders,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child), std::move(printInfo)},
           expressionsToOrderBy{std::move(expressionsToOrderBy)},
           isAscOrders{std::move(sortOrders)} {}
 
@@ -33,7 +33,7 @@ public:
     inline uint64_t getLimitNum() const { return limitNum; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy());
+        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy(), printInfo->copy());
     }
 
 private:

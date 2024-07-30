@@ -4,8 +4,10 @@
 
 #include "json.hpp"
 #include "processor/physical_plan.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::common;
+using namespace kuzu::planner;
 using namespace kuzu::processor;
 
 namespace kuzu {
@@ -77,6 +79,21 @@ OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
     this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
 }
 
+OpProfileTree::OpProfileTree(std::shared_ptr<LogicalOperator> op) {
+    auto numRows = 0u, numCols = 0u;
+    calculateNumRowsAndColsForOp(op, numRows, numCols);
+    opProfileBoxes.resize(numRows);
+    for_each(opProfileBoxes.begin(), opProfileBoxes.end(),
+        [numCols](std::vector<std::unique_ptr<OpProfileBox>>& profileBoxes) {
+            profileBoxes.resize(numCols);
+        });
+    auto maxFieldWidth = 0u;
+    fillOpProfileBoxes(op, 0 /* rowIdx */, 0 /* colIdx */, maxFieldWidth);
+    // The width of each profileBox = fieldWidth + leftIndentWidth + boxLeftFrameWidth +
+    // rightIndentWidth + boxRightFrameWidth;
+    this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
+}
+
 void printSpaceIfNecessary(uint32_t idx, std::ostringstream& oss) {
     if (idx > 0) {
         oss << " ";
@@ -85,7 +102,18 @@ void printSpaceIfNecessary(uint32_t idx, std::ostringstream& oss) {
 
 std::ostringstream OpProfileTree::printPlanToOstream() const {
     std::ostringstream oss;
-    prettyPrintPlanTitle(oss);
+    prettyPrintPlanTitle(oss, "Physical Plan");
+    for (auto i = 0u; i < opProfileBoxes.size(); i++) {
+        printOpProfileBoxUpperFrame(i, oss);
+        printOpProfileBoxes(i, oss);
+        printOpProfileBoxLowerFrame(i, oss);
+    }
+    return oss;
+}
+
+std::ostringstream OpProfileTree::printLogicalPlanToOstream() const {
+    std::ostringstream oss;
+    prettyPrintPlanTitle(oss, "Logical Plan");
     for (auto i = 0u; i < opProfileBoxes.size(); i++) {
         printOpProfileBoxUpperFrame(i, oss);
         printOpProfileBoxes(i, oss);
@@ -95,6 +123,23 @@ std::ostringstream OpProfileTree::printPlanToOstream() const {
 }
 
 void OpProfileTree::calculateNumRowsAndColsForOp(PhysicalOperator* op, uint32_t& numRows,
+    uint32_t& numCols) {
+    if (!op->getNumChildren()) {
+        numRows = 1;
+        numCols = 1;
+        return;
+    }
+
+    for (auto i = 0u; i < op->getNumChildren(); i++) {
+        auto numRowsInChild = 0u, numColsInChild = 0u;
+        calculateNumRowsAndColsForOp(op->getChild(i), numRowsInChild, numColsInChild);
+        numCols += numColsInChild;
+        numRows = std::max(numRowsInChild, numRows);
+    }
+    numRows++;
+}
+
+void OpProfileTree::calculateNumRowsAndColsForOp(std::shared_ptr<LogicalOperator> op, uint32_t& numRows,
     uint32_t& numCols) {
     if (!op->getNumChildren()) {
         numRows = 1;
@@ -125,6 +170,23 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
     for (auto i = 0u; i < op->getNumChildren(); i++) {
         colOffset += fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset,
             maxFieldWidth, profiler);
+    }
+    return colOffset;
+}
+
+uint32_t OpProfileTree::fillOpProfileBoxes(std::shared_ptr<LogicalOperator> op, uint32_t rowIdx, uint32_t colIdx,
+    uint32_t& maxFieldWidth) {
+    auto opProfileBox = std::make_unique<OpProfileBox>(LogicalPlanPrinter::getOperatorName(op),
+        LogicalPlanPrinter::getOperatorParams(op), std::vector<std::string>());
+    maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
+    insertOpProfileBox(rowIdx, colIdx, std::move(opProfileBox));
+    if (!op->getNumChildren()) {
+        return 1;
+    }
+
+    uint32_t colOffset = 0;
+    for (auto i = 0u; i < op->getNumChildren(); i++) {
+        colOffset += fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset, maxFieldWidth);
     }
     return colOffset;
 }
@@ -263,14 +325,14 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, std::ostringstr
     oss << '\n';
 }
 
-void OpProfileTree::prettyPrintPlanTitle(std::ostringstream& oss) const {
-    const std::string physicalPlan = "Physical Plan";
+void OpProfileTree::prettyPrintPlanTitle(std::ostringstream& oss, std::string title) const {
+    const std::string plan = title;
     oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << '\n';
     oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << '\n';
-    auto numLeftSpaces = (opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
+    auto numLeftSpaces = (opProfileBoxWidth - plan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
     auto numRightSpaces =
-        opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
-    oss << "││" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
+        opProfileBoxWidth - plan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
+    oss << "││" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << plan
         << std::string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << '\n';
     oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << '\n';
     oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << '\n';
@@ -345,6 +407,32 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
     }
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
         json["Child" + std::to_string(i)] = toJson(physicalOperator->getChild(i), profiler_);
+    }
+    return json;
+}
+
+nlohmann::json LogicalPlanPrinter::printPlanToJson() {
+    return toJson(logicalPlan->getLastOperator());
+}
+
+std::ostringstream LogicalPlanPrinter::printPlanToOstream() {
+    return OpProfileTree(logicalPlan->getLastOperator()).printLogicalPlanToOstream();
+}
+
+std::string LogicalPlanPrinter::getOperatorName(std::shared_ptr<LogicalOperator> logicalOperator) {
+    return planner::LogicalOperatorUtils::logicalOperatorTypeToString(
+        logicalOperator->getOperatorType());
+}
+
+std::string LogicalPlanPrinter::getOperatorParams(std::shared_ptr<LogicalOperator> logicalOperator) {
+    return logicalOperator->getPrintInfo()->toString();
+}
+
+nlohmann::json LogicalPlanPrinter::toJson(std::shared_ptr<LogicalOperator> logicalOperator) {
+    auto json = nlohmann::json();
+    json["Name"] = getOperatorName(logicalOperator);
+    for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
+        json["Child" + std::to_string(i)] = toJson(logicalOperator->getChild(i));
     }
     return json;
 }

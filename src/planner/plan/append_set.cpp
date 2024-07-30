@@ -8,7 +8,8 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendSetProperty(const std::vector<BoundSetPropertyInfo>& infos, LogicalPlan& plan) {
-    auto set = std::make_shared<LogicalSetProperty>(copyVector(infos), plan.getLastOperator());
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto set = std::make_shared<LogicalSetProperty>(copyVector(infos), plan.getLastOperator(), std::move(printInfo));
     for (auto i = 0u; i < set->getInfos().size(); ++i) {
         auto groupsPos = set->getGroupsPosToFlatten(i);
         appendFlattens(groupsPos, plan);

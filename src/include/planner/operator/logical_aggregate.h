@@ -8,12 +8,12 @@ namespace planner {
 class LogicalAggregate : public LogicalOperator {
 public:
     LogicalAggregate(binder::expression_vector keys, binder::expression_vector aggregates,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)}, keys{std::move(keys)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child), std::move(printInfo)}, keys{std::move(keys)},
           aggregates{std::move(aggregates)} {}
     LogicalAggregate(binder::expression_vector keys, binder::expression_vector dependentKeys,
-        binder::expression_vector aggregates, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)}, keys{std::move(keys)},
+        binder::expression_vector aggregates, std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child), std::move(printInfo)}, keys{std::move(keys)},
           dependentKeys{std::move(dependentKeys)}, aggregates{std::move(aggregates)} {}
 
     void computeFactorizedSchema() override;
@@ -40,7 +40,7 @@ public:
     binder::expression_vector getAggregates() const { return aggregates; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAggregate>(keys, dependentKeys, aggregates, children[0]->copy());
+        return make_unique<LogicalAggregate>(keys, dependentKeys, aggregates, children[0]->copy(), printInfo->copy());
     }
 
 private:

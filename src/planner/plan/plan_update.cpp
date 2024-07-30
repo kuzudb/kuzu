@@ -70,8 +70,9 @@ void Planner::planMergeClause(const BoundUpdatingClause* updatingClause, Logical
     auto existenceMark = mergeClause.getExistenceMark();
     planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, corrExprs, existenceMark,
         plan);
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto merge =
-        std::make_shared<LogicalMerge>(existenceMark, std::move(corrExprs), plan.getLastOperator());
+        std::make_shared<LogicalMerge>(existenceMark, std::move(corrExprs), plan.getLastOperator(), std::move(printInfo));
     if (mergeClause.hasInsertNodeInfo()) {
         for (auto& info : mergeClause.getInsertNodeInfos()) {
             merge->addInsertNodeInfo(createLogicalInsertInfo(info)->copy());

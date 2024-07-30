@@ -17,8 +17,9 @@ namespace kuzu {
 namespace planner {
 
 static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& plan) {
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto indexScan =
-        std::make_shared<LogicalPrimaryKeyLookup>(std::move(infos), plan.getLastOperator());
+        std::make_shared<LogicalPrimaryKeyLookup>(std::move(infos), plan.getLastOperator(), std::move(printInfo));
     indexScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(indexScan));
 }
@@ -35,16 +36,18 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::BWD /* keyIdx */,
         relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
                                                                      ColumnDataFormat::CSR));
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(info), copyFromInfo.copy(),
-        plan.getLastOperator());
+        plan.getLastOperator(), std::move(printInfo));
     partitioner->computeFactorizedSchema();
     plan.setLastOperator(std::move(partitioner));
 }
 
 static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
     LogicalPlan& plan) {
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto op =
-        make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator());
+        make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator(), std::move(printInfo));
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }
@@ -143,7 +146,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(const BoundCopyFromInfo* i
         children.push_back(readerPlan.getLastOperator());
     }
     auto resultPlan = std::make_unique<LogicalPlan>();
-    auto op = make_shared<LogicalCopyFrom>(info->copy(), results, children);
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto op = make_shared<LogicalCopyFrom>(info->copy(), results, children, std::move(printInfo));
     op->computeFactorizedSchema();
     resultPlan->setLastOperator(std::move(op));
     return resultPlan;
@@ -158,8 +162,9 @@ std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement
     }
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = getBestPlan(*regularQuery);
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto copyTo = make_shared<LogicalCopyTo>(boundCopyTo.getBindData()->copy(),
-        boundCopyTo.getExportFunc(), plan->getLastOperator());
+        boundCopyTo.getExportFunc(), plan->getLastOperator(), std::move(printInfo));
     plan->setLastOperator(std::move(copyTo));
     return plan;
 }

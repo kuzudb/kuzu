@@ -9,15 +9,15 @@ namespace planner {
 class LogicalCreateTable : public LogicalDDL {
 public:
     LogicalCreateTable(std::string tableName, binder::BoundCreateTableInfo info,
-        std::shared_ptr<binder::Expression> outputExpression)
+        std::shared_ptr<binder::Expression> outputExpression, std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalDDL{LogicalOperatorType::CREATE_TABLE, std::move(tableName),
-              std::move(outputExpression)},
+              std::move(outputExpression), std::move(printInfo)},
           info{std::move(info)} {}
 
     inline const binder::BoundCreateTableInfo* getInfo() const { return &info; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateTable>(tableName, info.copy(), outputExpression);
+        return std::make_unique<LogicalCreateTable>(tableName, info.copy(), outputExpression, printInfo->copy());
     }
 
 private:

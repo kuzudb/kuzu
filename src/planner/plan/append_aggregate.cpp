@@ -8,8 +8,9 @@ namespace planner {
 
 void Planner::appendAggregate(const expression_vector& expressionsToGroupBy,
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto aggregate = make_shared<LogicalAggregate>(expressionsToGroupBy, expressionsToAggregate,
-        plan.getLastOperator());
+        plan.getLastOperator(), std::move(printInfo));
     appendFlattens(aggregate->getGroupsPosToFlattenForGroupBy(), plan);
     aggregate->setChild(0, plan.getLastOperator());
     appendFlattens(aggregate->getGroupsPosToFlattenForAggregate(), plan);

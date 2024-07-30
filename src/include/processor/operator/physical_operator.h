@@ -81,17 +81,13 @@ struct OperatorMetrics {
 };
 
 struct OPPrintInfo {
-    // TODO(Xiyang): get rid of string based info gradually and let operator print on its own.
-    std::string info;
-
     OPPrintInfo() = default;
-    explicit OPPrintInfo(std::string info) : info{std::move(info)} {}
     virtual ~OPPrintInfo() = default;
 
-    virtual std::string toString() const { return info; }
+    virtual std::string toString() const { return std::string(); }
 
     virtual std::unique_ptr<OPPrintInfo> copy() const {
-        return std::make_unique<OPPrintInfo>(info);
+        return std::make_unique<OPPrintInfo>();
     }
 };
 

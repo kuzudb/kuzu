@@ -7,8 +7,8 @@ namespace planner {
 
 class LogicalLimit : public LogicalOperator {
 public:
-    LogicalLimit(uint64_t skipNum, uint64_t limitNum, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, skipNum{skipNum},
+    LogicalLimit(uint64_t skipNum, uint64_t limitNum, std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child), std::move(printInfo)}, skipNum{skipNum},
           limitNum{limitNum} {}
 
     f_group_pos_set getGroupsPosToFlatten();
@@ -30,7 +30,7 @@ public:
     }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalLimit>(skipNum, limitNum, children[0]->copy());
+        return make_unique<LogicalLimit>(skipNum, limitNum, children[0]->copy(), printInfo->copy());
     }
 
 private:

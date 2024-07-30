@@ -7,7 +7,7 @@ namespace planner {
 
 class LogicalDummyScan : public LogicalOperator {
 public:
-    LogicalDummyScan() : LogicalOperator{LogicalOperatorType::DUMMY_SCAN} {}
+    LogicalDummyScan(std::unique_ptr<OPPrintInfo> printInfo) : LogicalOperator{LogicalOperatorType::DUMMY_SCAN, std::move(printInfo)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
@@ -17,7 +17,7 @@ public:
     static std::shared_ptr<binder::Expression> getDummyExpression();
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalDummyScan>();
+        return std::make_unique<LogicalDummyScan>(printInfo->copy());
     }
 };
 

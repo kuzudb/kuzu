@@ -192,7 +192,7 @@ oC_AnyCypherOption
         | oC_Profile ;
 
 oC_Explain
-    : EXPLAIN ;
+    : EXPLAIN (SP LOGICAL)? ;
 
 oC_Profile
     : PROFILE ;

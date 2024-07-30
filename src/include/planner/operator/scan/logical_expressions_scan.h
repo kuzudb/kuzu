@@ -9,8 +9,8 @@ namespace planner {
 // LogicalExpressionsScan scans from an outer factorize table
 class LogicalExpressionsScan : public LogicalOperator {
 public:
-    explicit LogicalExpressionsScan(binder::expression_vector expressions)
-        : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN},
+    explicit LogicalExpressionsScan(binder::expression_vector expressions, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN, std::move(printInfo)},
           expressions{std::move(expressions)} {}
 
     inline void computeFactorizedSchema() final { computeSchema(); }
@@ -25,7 +25,7 @@ public:
     inline LogicalOperator* getOuterAccumulate() const { return outerAccumulate; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalExpressionsScan>(expressions);
+        return std::make_unique<LogicalExpressionsScan>(expressions, printInfo->copy());
     }
 
 private:

@@ -7,12 +7,12 @@ namespace planner {
 
 class LogicalDistinct : public LogicalOperator {
 public:
-    LogicalDistinct(binder::expression_vector keys, std::shared_ptr<LogicalOperator> child)
+    LogicalDistinct(binder::expression_vector keys, std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalDistinct{LogicalOperatorType::DISTINCT, keys, binder::expression_vector{},
-              std::move(child)} {}
+              std::move(child), std::move(printInfo)} {}
     LogicalDistinct(LogicalOperatorType type, binder::expression_vector keys,
-        binder::expression_vector payloads, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type, std::move(child)}, keys{std::move(keys)},
+        binder::expression_vector payloads, std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type, std::move(child), std::move(printInfo)}, keys{std::move(keys)},
           payloads{std::move(payloads)} {}
 
     void computeFactorizedSchema() override;
@@ -28,7 +28,7 @@ public:
     void setPayloads(binder::expression_vector expressions) { payloads = std::move(expressions); }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalDistinct>(operatorType, keys, payloads, children[0]->copy());
+        return make_unique<LogicalDistinct>(operatorType, keys, payloads, children[0]->copy(), printInfo->copy());
     }
 
 protected:

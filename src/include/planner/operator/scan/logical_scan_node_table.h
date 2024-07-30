@@ -53,8 +53,8 @@ class LogicalScanNodeTable final : public LogicalOperator {
 
 public:
     LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
-        : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
+        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type_, std::move(printInfo)}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
           nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
     LogicalScanNodeTable(const LogicalScanNodeTable& other);
 

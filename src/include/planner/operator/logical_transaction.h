@@ -8,8 +8,8 @@ namespace planner {
 
 class LogicalTransaction : public LogicalOperator {
 public:
-    explicit LogicalTransaction(transaction::TransactionAction transactionAction)
-        : LogicalOperator{LogicalOperatorType::TRANSACTION}, transactionAction{transactionAction} {}
+    explicit LogicalTransaction(transaction::TransactionAction transactionAction, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::TRANSACTION, std::move(printInfo)}, transactionAction{transactionAction} {}
 
     inline std::string getExpressionsForPrinting() const final { return std::string(); }
 
@@ -19,7 +19,7 @@ public:
     inline transaction::TransactionAction getTransactionAction() const { return transactionAction; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalTransaction>(transactionAction);
+        return std::make_unique<LogicalTransaction>(transactionAction, printInfo->copy());
     }
 
 private:

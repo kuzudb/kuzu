@@ -37,7 +37,7 @@ f_group_pos_set LogicalMerge::getGroupsPosToFlatten() {
 }
 
 std::unique_ptr<LogicalOperator> LogicalMerge::copy() {
-    auto merge = std::make_unique<LogicalMerge>(existenceMark, keys, children[0]->copy());
+    auto merge = std::make_unique<LogicalMerge>(existenceMark, keys, children[0]->copy(), printInfo->copy());
     merge->insertNodeInfos = copyVector(insertNodeInfos);
     merge->insertRelInfos = copyVector(insertRelInfos);
     merge->onCreateSetNodeInfos = copyVector(onCreateSetNodeInfos);
