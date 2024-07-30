@@ -5,8 +5,6 @@
 #include <utility>
 
 #include "common/assert.h"
-#include "common/serializer/deserializer.h"
-#include "common/serializer/serializer.h"
 
 namespace kuzu {
 namespace common {
@@ -52,6 +50,7 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
             invert);
     }
 }
+
 bool NullMask::copyUnaligned(const uint64_t* srcNullEntries, uint64_t srcOffset,
     uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
     uint64_t bitPos = 0;
