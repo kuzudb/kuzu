@@ -1,5 +1,6 @@
 #pragma once
 
+#include "planner/operator/operator_print_info.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 
@@ -78,15 +79,6 @@ struct OperatorMetrics {
 
     OperatorMetrics(common::TimeMetric& executionTime, common::NumericMetric& numOutputTuple)
         : executionTime{executionTime}, numOutputTuple{numOutputTuple} {}
-};
-
-struct OPPrintInfo {
-    OPPrintInfo() = default;
-    virtual ~OPPrintInfo() = default;
-
-    virtual std::string toString() const { return std::string(); }
-
-    virtual std::unique_ptr<OPPrintInfo> copy() const { return std::make_unique<OPPrintInfo>(); }
 };
 
 class PhysicalOperator;

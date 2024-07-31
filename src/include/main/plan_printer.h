@@ -94,6 +94,7 @@ private:
     uint32_t opProfileBoxWidth;
     static constexpr uint32_t INDENT_WIDTH = 3u;
     static constexpr uint32_t BOX_FRAME_WIDTH = 1u;
+    static constexpr uint32_t MIN_LOGICAL_BOX_WIDTH = 22u;
 };
 
 class PlanPrinter {
