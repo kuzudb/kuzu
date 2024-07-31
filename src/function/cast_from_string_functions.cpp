@@ -186,7 +186,8 @@ static void trimRightWhitespace(const char* input, const char*& end) {
 
 static void trimQuotes(const char*& keyStart, const char*& keyEnd) {
     // Skip quotations on struct keys.
-    if (keyStart[0] == '\'' && (keyEnd - 1)[0] == '\'') {
+    if ((keyStart[0] == '\'' && (keyEnd - 1)[0] == '\'') ||
+        (keyStart[0] == '\"' && (keyEnd - 1)[0] == '\"')) {
         keyStart++;
         keyEnd--;
     }

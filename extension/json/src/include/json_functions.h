@@ -11,6 +11,11 @@ struct ToJsonFunction {
     static function::function_set getFunctionSet();
 };
 
+// alias for castany to work with json
+struct CastToJsonFunction : public ToJsonFunction {
+    static constexpr const char* name = "cast_to_json";
+};
+
 struct JsonMergeFunction {
     static constexpr const char* name = "json_merge_patch";
 

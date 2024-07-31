@@ -178,7 +178,7 @@ inline void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) 
 }
 
 template<typename T, bool IS_SIGNED = true>
-inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
+KUZU_API inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
     IntegerCastData<T> data;
     data.result = 0;
     if (tryIntegerCast<IntegerCastData<T>, IS_SIGNED>(input, len, data)) {
@@ -189,7 +189,7 @@ inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T, bool IS_SIGNED = true>
-inline void simpleIntegerCast(const char* input, uint64_t len, T& result,
+KUZU_API inline void simpleIntegerCast(const char* input, uint64_t len, T& result,
     LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!trySimpleIntegerCast<T, IS_SIGNED>(input, len, result)) {
         throw ConversionException(stringFormat("Cast failed. Could not convert \"{}\" to {}.",

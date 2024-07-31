@@ -16,15 +16,18 @@ class JsonWrapper {
     JsonWrapper() : ptr{nullptr} {}
 
 public:
-    explicit JsonWrapper(yyjson_doc* ptr) : ptr{ptr} {}
+    explicit JsonWrapper(yyjson_doc* ptr, std::shared_ptr<char[]> buffer = nullptr)
+        : ptr{ptr}, buffer{buffer} {}
     ~JsonWrapper();
     JsonWrapper(JsonWrapper& other) = delete;
     JsonWrapper(JsonWrapper&& other) {
         ptr = other.ptr;
         other.ptr = nullptr;
+        buffer = std::move(other.buffer);
     }
 
     yyjson_doc* ptr;
+    std::shared_ptr<char[]> buffer;
 };
 
 class JsonMutWrapper {

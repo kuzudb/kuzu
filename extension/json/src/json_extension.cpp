@@ -14,6 +14,7 @@ namespace json_extension {
 void JsonExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ADD_FUNC(ToJsonFunction);
+    ADD_FUNC(CastToJsonFunction);
     ADD_FUNC(JsonMergeFunction);
     ADD_FUNC(JsonExtractFunction);
     ADD_FUNC(JsonArrayLengthFunction);
