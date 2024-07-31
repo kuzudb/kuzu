@@ -1263,16 +1263,13 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
     auto literalExpr = input.arguments[1]->constPtrCast<LiteralExpression>();
     auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
     auto func = input.definition->ptrCast<ScalarFunction>();
-    // TODO(Ziyi): we should pass the clientContext pointer here so the bind function can access
-    // the user defined types.
+    func->name = "CAST_TO_" + targetTypeStr;
     LogicalType targetType;
     if (!LogicalType::tryConvertFromString(targetTypeStr, targetType)) {
         targetType = input.context->getCatalog()->getType(input.context->getTx(), targetTypeStr);
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {
-            // try find a UDT cast
-            func->name = "CAST_TO_" + targetTypeStr;
             func->execFunc = BuiltInFunctionsUtils::matchFunction(input.context->getTx(),
                 "CAST_TO_" + targetTypeStr, typeVec,
                 input.context->getCatalog()->getFunctions(input.context->getTx()))
@@ -1289,7 +1286,6 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         input.arguments[0]->cast(targetType);
         return nullptr;
     }
-    func->name = "CAST_TO_" + targetTypeStr;
     func->execFunc =
         CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType)
             ->execFunc;

@@ -581,7 +581,7 @@ void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t p
 }
 
 std::string jsonToString(const JsonWrapper& wrapper) {
-    auto tmp = yyjson_write(wrapper.ptr, 0, nullptr);
+    auto tmp = yyjson_write(wrapper.ptr, 0 /* flg */, nullptr /* len */);
     std::string str(tmp ? tmp : "");
     free(tmp); // call free to avoid alloc-dealloc mismatch
     return str;
@@ -603,11 +603,12 @@ JsonWrapper stringToJson(const std::string& str) {
 }
 
 JsonWrapper stringToJsonNoError(const std::string& str) {
-    return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0));
+    return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0 /* flg */));
 }
 
 static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
-    auto json = yyjson_read_opts(buffer.get(), fileSize, YYJSON_READ_INSITU, nullptr, nullptr);
+    auto json = yyjson_read_opts(reinterpret_cast<char*>(buffer.get()), fileSize,
+        YYJSON_READ_INSITU, nullptr /* alc */, nullptr /* err */);
     if (json == nullptr) {
         throw RuntimeException("Invalid json input");
     }
@@ -638,17 +639,15 @@ JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
 
     auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
     auto fileSize = file->getFileSize();
-    std::shared_ptr<char[]> buffer(new char[fileSize + 9]());
-    memset(buffer.get() + fileSize, 0, 9);
+    auto buffer = std::make_shared<char[]>(fileSize + 9);
+    memset(buffer.get() + fileSize, 0 /* valueToSet */, 9 /* len */);
     file->readFile(buffer.get(), fileSize);
 
     switch (format) {
     case JsonScanFormat::ARRAY:
         return fileToJsonArrayFormatted(buffer, fileSize);
-        break;
     case JsonScanFormat::UNSTRUCTURED:
         return fileToJsonUnstructuredFormatted(buffer, fileSize);
-        break;
     default:
         KU_UNREACHABLE;
     }
@@ -658,7 +657,7 @@ JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B) {
     JsonMutWrapper ret;
     auto root = yyjson_merge_patch(ret.ptr, yyjson_doc_get_root(A.ptr), yyjson_doc_get_root(B.ptr));
     yyjson_mut_doc_set_root(ret.ptr, root);
-    return JsonWrapper(yyjson_mut_doc_imut_copy(ret.ptr, nullptr), nullptr);
+    return JsonWrapper(yyjson_mut_doc_imut_copy(ret.ptr, nullptr /* alc */), nullptr /* buffer */);
 }
 
 std::string jsonExtractToString(const JsonWrapper& wrapper, uint64_t pos) {

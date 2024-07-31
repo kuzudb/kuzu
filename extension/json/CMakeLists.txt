@@ -5,6 +5,7 @@ add_library(kuzu_json_extension
     src/json_functions.cpp
     src/json_scan.cpp
     src/json_utils.cpp
+    src/functions/to_json.cpp
 )
 
 add_subdirectory(third_party)
