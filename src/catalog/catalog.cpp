@@ -24,7 +24,6 @@
 #include "function/built_in_function_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
-#include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::binder;
@@ -52,7 +51,9 @@ Catalog::Catalog(std::string directory, VirtualFileSystem* fs) {
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
-        // saveToFile(directory, fs, FileVersionType::ORIGINAL);
+        if (!directory.empty()) {
+            saveToFile(directory, fs, FileVersionType::ORIGINAL);
+        }
     }
     registerBuiltInFunctions();
 }
