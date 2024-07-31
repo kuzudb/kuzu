@@ -12,6 +12,7 @@
 #include "processor/operator/persistent/writer/parquet/standard_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/struct_column_writer.h"
+#include "processor/operator/persistent/writer/parquet/uuid_column_writer.h"
 #include "snappy/snappy.h"
 #include "zstd.h"
 
@@ -92,6 +93,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
             std::move(childWriters), canHaveNullsToCreate);
     }
+    case LogicalTypeID::ARRAY:
     case LogicalTypeID::LIST: {
         const auto& childType = ListType::getChildType(type);
         // Set up the two schema elements for the list
@@ -255,6 +257,10 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
                 canHaveNullsToCreate, mm);
         case LogicalTypeID::INTERVAL:
             return std::make_unique<IntervalColumnWriter>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
+        case LogicalTypeID::UUID:
+            return std::make_unique<UUIDColumnWriter>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
         default:

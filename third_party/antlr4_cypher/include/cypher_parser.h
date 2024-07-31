@@ -21,29 +21,28 @@ public:
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
     T__44 = 45, ADD = 46, ALL = 47, ALTER = 48, AND = 49, AS = 50, ASC = 51, 
     ASCENDING = 52, ATTACH = 53, BEGIN = 54, BY = 55, CALL = 56, CASE = 57, 
-    CAST = 58, COLUMN = 59, COMMENT = 60, COMMIT = 61, COMMIT_SKIP_CHECKPOINT = 62, 
-    CONTAINS = 63, COPY = 64, COUNT = 65, CREATE = 66, CYCLE = 67, DATABASE = 68, 
-    DBTYPE = 69, DEFAULT = 70, DELETE = 71, DESC = 72, DESCENDING = 73, 
-    DETACH = 74, DISTINCT = 75, DROP = 76, ELSE = 77, END = 78, ENDS = 79, 
-    EXISTS = 80, EXPLAIN = 81, EXPORT = 82, EXTENSION = 83, FALSE = 84, 
-    FROM = 85, GLOB = 86, GRAPH = 87, GROUP = 88, HEADERS = 89, HINT = 90, 
-    IMPORT = 91, IF = 92, IN = 93, INCREMENT = 94, INSTALL = 95, IS = 96, 
-    JOIN = 97, KEY = 98, LIMIT = 99, LOAD = 100, LOGICAL = 101, MACRO = 102, 
-    MATCH = 103, MAXVALUE = 104, MERGE = 105, MINVALUE = 106, MULTI_JOIN = 107, 
-    NO = 108, NODE = 109, NOT = 110, NULL_ = 111, ON = 112, ONLY = 113, 
-    OPTIONAL = 114, OR = 115, ORDER = 116, PRIMARY = 117, PROFILE = 118, 
-    PROJECT = 119, RDFGRAPH = 120, READ = 121, REL = 122, RENAME = 123, 
-    RETURN = 124, ROLLBACK = 125, ROLLBACK_SKIP_CHECKPOINT = 126, SEQUENCE = 127, 
-    SET = 128, SHORTEST = 129, START = 130, STARTS = 131, TABLE = 132, THEN = 133, 
-    TO = 134, TRANSACTION = 135, TRUE = 136, TYPE = 137, UNION = 138, UNWIND = 139, 
-    USE = 140, WHEN = 141, WHERE = 142, WITH = 143, WRITE = 144, XOR = 145, 
-    DECIMAL = 146, STAR = 147, L_SKIP = 148, INVALID_NOT_EQUAL = 149, MINUS = 150, 
-    FACTORIAL = 151, COLON = 152, StringLiteral = 153, EscapedChar = 154, 
-    DecimalInteger = 155, HexLetter = 156, HexDigit = 157, Digit = 158, 
-    NonZeroDigit = 159, NonZeroOctDigit = 160, ZeroDigit = 161, RegularDecimalReal = 162, 
-    UnescapedSymbolicName = 163, IdentifierStart = 164, IdentifierPart = 165, 
-    EscapedSymbolicName = 166, SP = 167, WHITESPACE = 168, CypherComment = 169, 
-    Unknown = 170
+    CAST = 58, CHECKPOINT = 59, COLUMN = 60, COMMENT = 61, COMMIT = 62, 
+    COMMIT_SKIP_CHECKPOINT = 63, CONTAINS = 64, COPY = 65, COUNT = 66, CREATE = 67, 
+    CYCLE = 68, DATABASE = 69, DBTYPE = 70, DEFAULT = 71, DELETE = 72, DESC = 73, 
+    DESCENDING = 74, DETACH = 75, DISTINCT = 76, DROP = 77, ELSE = 78, END = 79, 
+    ENDS = 80, EXISTS = 81, EXPLAIN = 82, EXPORT = 83, EXTENSION = 84, FALSE = 85, 
+    FROM = 86, GLOB = 87, GRAPH = 88, GROUP = 89, HEADERS = 90, HINT = 91, 
+    IMPORT = 92, IF = 93, IN = 94, INCREMENT = 95, INSTALL = 96, IS = 97, 
+    JOIN = 98, KEY = 99, LIMIT = 100, LOAD = 101, MACRO = 102, MATCH = 103, 
+    MAXVALUE = 104, MERGE = 105, MINVALUE = 106, MULTI_JOIN = 107, NO = 108, 
+    NODE = 109, NOT = 110, NULL_ = 111, ON = 112, ONLY = 113, OPTIONAL = 114, 
+    OR = 115, ORDER = 116, PRIMARY = 117, PROFILE = 118, PROJECT = 119, 
+    RDFGRAPH = 120, READ = 121, REL = 122, RENAME = 123, RETURN = 124, ROLLBACK = 125, 
+    ROLLBACK_SKIP_CHECKPOINT = 126, SEQUENCE = 127, SET = 128, SHORTEST = 129, 
+    START = 130, STARTS = 131, TABLE = 132, THEN = 133, TO = 134, TRANSACTION = 135, 
+    TRUE = 136, TYPE = 137, UNION = 138, UNWIND = 139, USE = 140, WHEN = 141, 
+    WHERE = 142, WITH = 143, WRITE = 144, XOR = 145, DECIMAL = 146, STAR = 147, 
+    L_SKIP = 148, INVALID_NOT_EQUAL = 149, MINUS = 150, FACTORIAL = 151, 
+    COLON = 152, StringLiteral = 153, EscapedChar = 154, DecimalInteger = 155, 
+    HexLetter = 156, HexDigit = 157, Digit = 158, NonZeroDigit = 159, NonZeroOctDigit = 160, 
+    ZeroDigit = 161, RegularDecimalReal = 162, UnescapedSymbolicName = 163, 
+    IdentifierStart = 164, IdentifierPart = 165, EscapedSymbolicName = 166, 
+    SP = 167, WHITESPACE = 168, CypherComment = 169, Unknown = 170
   };
 
   enum {
@@ -1186,6 +1185,7 @@ public:
     antlr4::tree::TerminalNode *ONLY();
     antlr4::tree::TerminalNode *COMMIT();
     antlr4::tree::TerminalNode *ROLLBACK();
+    antlr4::tree::TerminalNode *CHECKPOINT();
 
    
   };
@@ -2797,6 +2797,7 @@ public:
     antlr4::tree::TerminalNode *BEGIN();
     antlr4::tree::TerminalNode *BY();
     antlr4::tree::TerminalNode *CALL();
+    antlr4::tree::TerminalNode *CHECKPOINT();
     antlr4::tree::TerminalNode *COMMIT();
     antlr4::tree::TerminalNode *CONTAINS();
     antlr4::tree::TerminalNode *COPY();

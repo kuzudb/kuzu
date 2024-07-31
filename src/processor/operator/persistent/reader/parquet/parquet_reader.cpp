@@ -385,6 +385,10 @@ LogicalType ParquetReader::deriveLogicalType(const kuzu_parquet::format::SchemaE
         throw CopyException("FIXED_LEN_BYTE_ARRAY requires length to be set");
         // LCOV_EXCL_STOP
     }
+    if (s_ele.__isset.logicalType && s_ele.logicalType.__isset.UUID &&
+        s_ele.type == Type::FIXED_LEN_BYTE_ARRAY) {
+        return LogicalType::UUID();
+    }
     if (s_ele.__isset.converted_type) {
         switch (s_ele.converted_type) {
         case ConvertedType::INT_8:
@@ -499,6 +503,7 @@ LogicalType ParquetReader::deriveLogicalType(const kuzu_parquet::format::SchemaE
                     "SERIAL converted type can only be set for value of Type::INT64"};
                 // LCOV_EXCL_STOP
             }
+
         default:
             // LCOV_EXCL_START
             throw CopyException{"Unsupported converted type"};

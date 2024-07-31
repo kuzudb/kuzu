@@ -27,7 +27,7 @@
 -CASE DeleteRelsTwoHopCommitRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -80,7 +80,7 @@
 -CASE DeleteRelsTwoHopRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok

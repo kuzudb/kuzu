@@ -14,8 +14,8 @@ namespace kuzu {
 namespace json_extension {
 
 constexpr JsonScanFormat DEFAULT_JSON_FORMAT = JsonScanFormat::ARRAY;
-constexpr int64_t DEFAULT_JSON_DEPTH = -1;
-constexpr int64_t DEFAULT_JSON_BREADTH = -1;
+constexpr int64_t DEFAULT_JSON_DEPTH = 10;
+constexpr int64_t DEFAULT_JSON_BREADTH = 2048;
 
 struct JsonScanConfig {
     JsonScanFormat format = DEFAULT_JSON_FORMAT;
@@ -74,8 +74,19 @@ struct JsonBindData : public ScanBindData {
             scanFromList, scanFromStruct, config.copy(), context);
     }
 
-    uint32_t getIdxFromName(const std::string& s) const {
-        return nameToIdxMap.at(StringUtils::getUpper(s));
+    int32_t getIdxFromName(std::string s) const { // possible bottleneck
+        auto cpy = StringUtils::getUpper(s);
+        if (!nameToIdxMap.contains(cpy)) {
+            // try removing any [a-zA-Z]+\. prefix
+            auto periodPos = cpy.find('.');
+            if (periodPos != std::string::npos) {
+                cpy = cpy.substr(periodPos + 1);
+            }
+        }
+        if (!nameToIdxMap.contains(cpy)) {
+            return -1;
+        }
+        return nameToIdxMap.at(StringUtils::getUpper(cpy));
     }
 
 private:
@@ -116,43 +127,6 @@ struct JsonScanSharedState : public BaseScanSharedState {
         return true;
     }
 };
-
-static bool jsonContextCanCast(const LogicalType& in, const LogicalType& out) {
-    if (in.getLogicalTypeID() == LogicalTypeID::STRING ||
-        (LogicalTypeUtils::isNumerical(in) && LogicalTypeUtils::isNumerical(out))) {
-        return true;
-    }
-    return BuiltInFunctionsUtils::getCastCost(in.getLogicalTypeID(), out.getLogicalTypeID()) !=
-           UNDEFINED_CAST_COST;
-}
-
-static void verifyExpectedSchema(const std::vector<LogicalType>& expectedTypes,
-    const std::vector<LogicalType>& actualTypes, const std::vector<std::string>& expectedNames,
-    const std::vector<std::string>&
-        actualNames) { // NOLINT : this function will be used in the future
-    if (expectedNames.size() != actualNames.size()) {
-        throw BinderException(stringFormat("Expected {} columns. Found {}", expectedNames.size(),
-            actualNames.size()));
-    }
-    for (auto i = 0u; i < expectedNames.size(); i++) {
-        bool matchFound = false;
-        for (auto j = 0u; j < actualNames.size() && !matchFound; j++) {
-            if (StringUtils::getUpper(expectedNames[i]) == StringUtils::getUpper(actualNames[j])) {
-                if (!jsonContextCanCast(actualTypes[j], expectedTypes[j])) {
-                    throw BinderException(stringFormat(
-                        "Column '{}' cannot be cast to type {}; actual type is {}",
-                        expectedNames[i], expectedTypes[i].toString(), actualTypes[j].toString()));
-                } else {
-                    matchFound = true;
-                }
-            }
-        }
-        if (!matchFound) {
-            throw BinderException(
-                stringFormat("Column '{}' was not found in JSON file", expectedNames[i]));
-        }
-    }
-}
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
     TableFuncBindInput* input) {
@@ -199,8 +173,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
     auto parsedJsonPtr = parsedJson.ptr;
     parsedJson.ptr = nullptr;
     return std::make_unique<JsonBindData>(std::move(columnTypes), std::move(columnNames),
-        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr)), scanFromList, scanFromStruct,
-        scanInput->config.copy(), ctx);
+        std::make_shared<JsonWrapper>(std::move(parsedJsonPtr), parsedJson.buffer), scanFromList,
+        scanFromStruct, scanInput->config.copy(), ctx);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
@@ -241,6 +215,9 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
                 auto columnIdx = bindData->getIdxFromName(yyjson_get_str(key));
+                if (columnIdx == -1) {
+                    continue;
+                }
                 readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx],
                     i - localState->begin);
             }
