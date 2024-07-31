@@ -89,6 +89,10 @@ private:
     static constexpr int NBUCKETS = 997;
     std::vector<std::pair<std::string, uint32_t>> buckets[NBUCKETS];
 
+    // suppose we have copy (match (p:Person) return p.*) to 'data.json'
+    // the column names are all going to start with 'p.', meaning
+    // copy Person from 'data.json' would no longer work
+    // this compare function fixes that.
     static bool specialCompare(const std::string& a, const std::string& b) {
         if (b.ends_with(a)) {
             if (b.size() == a.size()) {
@@ -115,6 +119,9 @@ private:
         return -1;
     }
 
+    // two hashes: one for the whole string, the other
+    // in the case that a string begins with 'p.' for example
+    // functions as a toUpper as well
     static std::pair<uint32_t, uint32_t> hashAndToUpper(std::string& s) {
         uint32_t ret = 0;
         uint32_t ret2 = 0;
