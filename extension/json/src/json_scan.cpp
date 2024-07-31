@@ -81,8 +81,8 @@ struct JsonBindData : public ScanBindData {
         auto result = getIdx(s, hash.first);
         if (result != -1) {
             return result;
-        }
-        else return getIdx(s, hash.second);
+        } else
+            return getIdx(s, hash.second);
     }
 
 private:
@@ -96,8 +96,7 @@ private:
             }
             if (b.size() > a.size()) {
                 return b[b.size() - a.size() - 1] == '.';
-            }
-            else {
+            } else {
                 // Should not happen
                 return false;
             }
@@ -107,7 +106,7 @@ private:
 
     int32_t getIdx(const std::string& s, uint32_t hash) const {
         auto idx = hash % NBUCKETS;
-        for (const auto& i: buckets[idx]) {
+        for (const auto& i : buckets[idx]) {
             if (specialCompare(i.first, s)) {
                 return i.second;
             }
@@ -119,7 +118,7 @@ private:
         uint32_t ret = 0;
         uint32_t ret2 = 0;
         bool useRet2 = false;
-        for (auto& i: s) {
+        for (auto& i : s) {
             if (i >= 'a' && i <= 'z') {
                 i += 'A' - 'a';
             }
