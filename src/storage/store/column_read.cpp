@@ -322,9 +322,6 @@ private:
         const ColumnChunkMetadata& metadata = state.metadata;
 
         auto* exceptionChunk = state.getExceptionChunk<T>();
-        // if (numValues == StorageConstants::NODE_GROUP_SIZE) {
-        //     exceptionChunk->clear();
-        // }
         std::vector<T> valuesToWrite(numValues);
         const auto bitpackHeader = FloatCompression<T>::getBitpackInfo(state.metadata.compMeta);
         offset_t curExceptionIdx = exceptionChunk->findFirstExceptionAtOrPastOffset(offsetInChunk);
@@ -342,21 +339,26 @@ private:
             const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
                 metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
 
-            if (curExceptionIdx < exceptionChunk->getExceptionCount()) {
-                const auto curException = exceptionChunk->getExceptionAt(curExceptionIdx);
-                if (curException.posInChunk == writeOffset) {
-                    exceptionChunk->removeExceptionAt(curExceptionIdx);
-                    ++curExceptionIdx;
-                }
-            }
+            bool newValueIsException = newValue != decodedValue;
+            valuesToWrite[i] = newValueIsException ? bitpackHeader.offset : newValue;
 
-            if (newValue != decodedValue) {
+            // if the previous value was an exception
+            // either overwrite it (if the new value is also an exception) or remove it
+            if (curExceptionIdx < exceptionChunk->getExceptionCount() &&
+                exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk == writeOffset) {
+                if (newValueIsException) {
+                    KU_ASSERT(static_cast<uint32_t>(writeOffset) == writeOffset);
+                    exceptionChunk->writeException(
+                        EncodeException<T>{newValue, static_cast<uint32_t>(writeOffset)},
+                        curExceptionIdx);
+                } else {
+                    exceptionChunk->removeExceptionAt(curExceptionIdx);
+                }
+                ++curExceptionIdx;
+            } else if (newValueIsException) {
                 KU_ASSERT(static_cast<uint32_t>(writeOffset) == writeOffset);
                 exceptionChunk->addException(
                     EncodeException<T>{newValue, static_cast<uint32_t>(writeOffset)});
-                valuesToWrite[i] = bitpackHeader.offset;
-            } else {
-                valuesToWrite[i] = newValue;
             }
         }
 
@@ -467,13 +469,6 @@ void InMemoryExceptionChunk<T>::flushToDisk(ColumnReadWriter* columnReader, Chun
         KU_ASSERT(remainingBytesToCopy >= 0);
         exceptionCursor.nextPage();
     }
-}
-
-template<std::floating_point T>
-void InMemoryExceptionChunk<T>::clear() {
-    emptyMask.setAllNull();
-    finalizedExceptionCount = 0;
-    exceptionCount = 0;
 }
 
 template<std::floating_point T>

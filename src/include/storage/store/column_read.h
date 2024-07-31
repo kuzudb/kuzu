@@ -65,11 +65,9 @@ public:
 
     size_t getExceptionCount() const;
 
-    void clear();
-
-private:
     void writeException(EncodeException<T> exception, size_t exceptionIdx);
 
+private:
     static PageCursor getExceptionPageCursor(const ColumnChunkMetadata& metadata,
         PageCursor pageBaseCursor, size_t exceptionCapacity);
 

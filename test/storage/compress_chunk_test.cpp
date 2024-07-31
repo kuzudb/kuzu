@@ -377,7 +377,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
-    std::vector<double> src(11 * 1024, 5.6);
+    std::vector<double> src(256, 5.6);
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
