@@ -90,7 +90,7 @@ struct JsonBindData : public ScanBindData {
     }
 
 private:
-    std::map<std::string, uint32_t> nameToIdxMap;
+    std::unordered_map<std::string, uint32_t> nameToIdxMap;
 };
 
 struct JsonScanLocalState : public TableFuncLocalState {
