@@ -60,8 +60,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     const sel_t totalNodeIdxs = nodeSelVector.getSelSize();
     KU_ASSERT(totalNodeIdxs > 0);
     relScanState.endNodeIdx = relScanState.currNodeIdx;
-    relScanState.boundNodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
-        nodeSelVector[relScanState.currNodeIdx]);
+    relScanState.boundNodeOffset =
+        relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.currNodeIdx]);
     if (relScanState.boundNodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         // No more to read from committed
         relScanState.nodeGroup = nullptr;
@@ -79,8 +79,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     offset_t nodeOffset = relScanState.boundNodeOffset;
     // collect all node ids that can be read from the same node group
     while (relScanState.endNodeIdx < totalNodeIdxs) {
-        nodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
-            nodeSelVector[relScanState.endNodeIdx]);
+        nodeOffset =
+            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx]);
         if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
             break;
         }
@@ -92,8 +92,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     }
     KU_ASSERT(relScanState.endNodeIdx < relScanState.currNodeIdx);
     relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
-                                fwdRelTableData->getNodeGroup(nodeGroupIdx) :
-                                bwdRelTableData->getNodeGroup(nodeGroupIdx);
+                                 fwdRelTableData->getNodeGroup(nodeGroupIdx) :
+                                 bwdRelTableData->getNodeGroup(nodeGroupIdx);
     relScanState.nodeGroup->initializeScanState(transaction, scanState);
 }
 
