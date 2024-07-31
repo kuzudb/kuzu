@@ -91,7 +91,7 @@ OpProfileTree::OpProfileTree(std::shared_ptr<LogicalOperator> op) {
     fillOpProfileBoxes(op, 0 /* rowIdx */, 0 /* colIdx */, maxFieldWidth);
     // The width of each profileBox = fieldWidth + leftIndentWidth + boxLeftFrameWidth +
     // rightIndentWidth + boxRightFrameWidth;
-    this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
+    this->opProfileBoxWidth = std::max<uint32_t>(maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH), 22);
 }
 
 void printSpaceIfNecessary(uint32_t idx, std::ostringstream& oss) {
