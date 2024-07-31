@@ -291,14 +291,10 @@ uint64_t BufferManager::evictPages() {
 // and return false, otherwise, we load the page to its corresponding frame and return true.
 bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
-    auto start = std::chrono::high_resolution_clock::now();
     page_offset_t pageSizeToClaim = fileHandle.getPageSize();
     if (!reserve(pageSizeToClaim)) {
         return false;
     }
-    pinDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::high_resolution_clock::now() - start);
-    printf("duration %lld ns\n", pinDuration.count());
     cachePageIntoFrame(fileHandle, pageIdx, pageReadPolicy);
     return true;
 }
