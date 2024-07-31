@@ -12,8 +12,7 @@ class LogicalTransaction : public LogicalOperator {
 public:
     explicit LogicalTransaction(transaction::TransactionAction transactionAction,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(printInfo)},
-          transactionAction{transactionAction} {}
+        : LogicalOperator{type_, std::move(printInfo)}, transactionAction{transactionAction} {}
 
     std::string getExpressionsForPrinting() const final { return std::string(); }
 

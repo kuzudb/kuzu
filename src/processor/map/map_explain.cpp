@@ -26,7 +26,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
         auto printInfo = std::make_unique<OPPrintInfo>();
         return std::make_unique<Profile>(outputPosition, ProfileInfo{}, ProfileLocalState{},
             getOperatorID(), std::move(lastPhysicalOP), std::move(printInfo));
-    } 
+    }
     if (logicalExplain.getExplainType() == ExplainType::PHYSICAL_PLAN) {
         auto physicalPlanToExplain = std::make_unique<PhysicalPlan>(std::move(lastPhysicalOP));
         auto profiler = std::make_unique<Profiler>();
@@ -44,7 +44,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
     auto explainStr = planPrinter->printPlanToOstream().str();
     auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
         clientContext->getMemoryManager());
-    return createFTableScanAligned(expression_vector{outputExpression}, outSchema, factorizedTable, 
+    return createFTableScanAligned(expression_vector{outputExpression}, outSchema, factorizedTable,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
 }
 
