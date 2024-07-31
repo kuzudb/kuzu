@@ -65,9 +65,9 @@ struct JsonBindData : public ScanBindData {
         : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx),
           json(wrapper), scanFromList{scanFromList}, scanFromStruct{scanFromStruct} {
         for (auto i = 0u; i < this->columnNames.size(); i++) {
-            auto hash = hashAndToUpper(this->columnNames[i]);
-            std::string duplicate;
-            buckets[hash.first % NBUCKETS].push_back({this->columnNames[i], i});
+            std::string duplicate = this->columnNames[i];
+            auto hash = hashAndToUpper(duplicate);
+            buckets[hash.first % NBUCKETS].push_back({duplicate, i});
         }
     }
 
