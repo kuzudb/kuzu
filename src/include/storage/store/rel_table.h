@@ -18,6 +18,12 @@ struct RelTableScanState : TableScanState {
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
+    common::sel_t currNodeIdx = 0;
+    common::sel_t endNodeIdx = 0;
+    common::offset_t currentCSROffset = 0;
+    common::offset_t posInLastCSR = 0;
+    common::offset_t batchSize = 0;
+
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.

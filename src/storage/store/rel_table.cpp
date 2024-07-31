@@ -56,28 +56,45 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     // Scan always start with committed data first.
     auto& relScanState = scanState.cast<RelTableScanState>();
 
+    auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
+    const sel_t totalNodeIdxs = nodeSelVector.getSelSize();
+    KU_ASSERT(totalNodeIdxs > 0);
+    relScanState.endNodeIdx = relScanState.currNodeIdx;
     relScanState.boundNodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
-        relScanState.boundNodeIDVector->state->getSelVector()[0]);
+        nodeSelVector[relScanState.currNodeIdx]);
     if (relScanState.boundNodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+        // No more to read from committed
         relScanState.nodeGroup = nullptr;
-    } else {
-        // Check if the node group idx is same as previous scan.
-        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
-        if (relScanState.nodeGroupIdx != nodeGroupIdx) {
-            // We need to re-initialize the node group scan state.
-            relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
-                                         fwdRelTableData->getNodeGroup(nodeGroupIdx) :
-                                         bwdRelTableData->getNodeGroup(nodeGroupIdx);
+        if (relScanState.localTableScanState) {
+            initializeLocalRelScanState(relScanState);
+        } else {
+            relScanState.source = TableScanSource::NONE;
         }
+        return;
     }
-    if (relScanState.nodeGroup) {
-        relScanState.source = TableScanSource::COMMITTED;
-        relScanState.nodeGroup->initializeScanState(transaction, scanState);
-    } else if (relScanState.localTableScanState) {
-        initializeLocalRelScanState(relScanState);
-    } else {
-        relScanState.source = TableScanSource::NONE;
+
+    relScanState.source = TableScanSource::COMMITTED;
+    relScanState.currentCSROffset = 0;
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
+    offset_t nodeOffset = relScanState.boundNodeOffset;
+    // collect all node ids that can be read from the same node group
+    while (relScanState.endNodeIdx < totalNodeIdxs) {
+        nodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
+            nodeSelVector[relScanState.endNodeIdx]);
+        if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+            break;
+        }
+        auto curNodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        if (curNodeGroupIdx != nodeGroupIdx) {
+            break;
+        }
+        relScanState.endNodeIdx++;
     }
+    KU_ASSERT(relScanState.endNodeIdx < relScanState.currNodeIdx);
+    relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
+                                fwdRelTableData->getNodeGroup(nodeGroupIdx) :
+                                bwdRelTableData->getNodeGroup(nodeGroupIdx);
+    relScanState.nodeGroup->initializeScanState(transaction, scanState);
 }
 
 void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
