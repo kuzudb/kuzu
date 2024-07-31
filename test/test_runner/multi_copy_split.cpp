@@ -25,29 +25,43 @@ static std::unique_ptr<main::QueryResult> validateQuery(main::Connection& conn,
     return result;
 }
 
-void SplitMultiCopyRandom::init() {
+std::vector<uint32_t> SplitMultiCopyRandom::getLineEnds(std::string path) const {
     RandomEngine random;
-    std::ifstream file(filePath);
+    std::ifstream file(path);
     if (!file.is_open()) {
-        throw TestException(stringFormat("Error opening file: {}, errno: {}.", filePath, errno));
+        throw TestException(stringFormat("Error opening file: {}, errno: {}.", path, errno));
     }
+    // determine # lines in each split file
     std::string line;
-    std::vector<std::string> contents;
+    uint32_t linecnt = 0;
     while (getline(file, line)) {
         if (!line.empty()) {
-            contents.push_back(line);
+            linecnt++;
         }
     }
-    std::vector<uint32_t> endLines;
+    std::vector<uint32_t> lineEnds;
     for (auto i = 0u; i < numSplit - 1; i++) {
-        endLines.push_back(random.nextRandomInteger(contents.size()));
+        lineEnds.push_back(random.nextRandomInteger(linecnt));
     }
-    endLines.push_back(contents.size());
-    std::sort(endLines.begin(), endLines.end());
+    lineEnds.push_back(linecnt);
+    std::sort(lineEnds.begin(), lineEnds.end());
+    return lineEnds;
+}
+
+void SplitMultiCopyRandom::init() {
+    const std::string tmpDir = TestHelper::getTempDir("multi_copy");
+    auto totalFilePath = LocalFileSystem::joinPath(tmpDir, tableName + ".csv");
+    std::string loadQuery = "COPY (LOAD FROM {} RETURN *) TO '{}';";
+    loadQuery = stringFormat(loadQuery, source, totalFilePath);
+    spdlog::info("QUERY: {}", loadQuery);
+    validateQuery(connection, loadQuery);
+
+    auto lineEnds = getLineEnds(totalFilePath);
+
     auto lineIdx = 0u;
     std::vector<std::string> lengths;
-    const std::string tmpDir = TestHelper::getTempDir("multi_copy");
-    for (auto& endLine : endLines) {
+    std::ifstream file(totalFilePath);
+    for (auto& endLine : lineEnds) {
         lengths.push_back(std::to_string(endLine - lineIdx));
         auto currFilePath =
             LocalFileSystem::joinPath(tmpDir, tableName + std::to_string(lineIdx) + ".csv");
@@ -57,12 +71,17 @@ void SplitMultiCopyRandom::init() {
                 stringFormat("Error opening file: {}, errno: {}.", currFilePath, errno));
         }
         splitFilePaths.push_back(currFilePath);
+        std::string line;
         for (; lineIdx < endLine; lineIdx++) {
-            outfile << contents[lineIdx] << "\n";
+            if (!getline(file, line)) {
+                throw TestException(
+                    stringFormat("Expected line number mismatch: {} to {}.", lineIdx, endLine));
+            }
+            outfile << line << "\n";
         }
     }
-    spdlog::info("RANDOM MULTI COPY: split {} into {} chunks of {} lines", 
-        filePath, numSplit,  StringUtils::join(lengths, ", "));
+    spdlog::info("RANDOM MULTI COPY: split {} lines into {} chunks of {} lines", 
+        lineEnds[lineEnds.size() - 1], numSplit,  StringUtils::join(lengths, ", "));
 }
 
 void SplitMultiCopyRandom::run() {
