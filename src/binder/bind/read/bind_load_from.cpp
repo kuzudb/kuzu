@@ -39,16 +39,6 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
             throw BinderException("Load from multiple files is not supported.");
         }
         auto fileTypeInfo = bindFileTypeInfo(filePaths);
-        //        switch (fileType) {
-        //        case common::FileType::CSV:
-        //        case common::FileType::PARQUET:
-        //        case common::FileType::NPY:
-        //            break;
-        //        default:
-        //            throw BinderException(
-        //                stringFormat("Cannot load from file type {}.",
-        //                FileTypeUtils::toString(fileType)));
-        //        }
         auto boundScanSource =
             bindFileScanSource(*source, loadFrom.getParsingOptions(), columnNames, columnTypes);
         auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;
