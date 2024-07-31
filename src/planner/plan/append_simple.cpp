@@ -35,7 +35,8 @@ namespace planner {
 void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto info = createTable.getInfo();
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalCreateTablePrintInfo>(info->type, info->tableName,
+        info->extraInfo.get());
     auto op = make_shared<LogicalCreateTable>(info->tableName, info->copy(),
         statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
@@ -43,7 +44,7 @@ void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& pl
 
 void Planner::appendCreateType(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createType = statement.constCast<BoundCreateType>();
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalCreateTypePrintInfo>(createType.getName());
     auto op = make_shared<LogicalCreateType>(createType.getName(), createType.getType().copy(),
         statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
@@ -52,7 +53,7 @@ void Planner::appendCreateType(const BoundStatement& statement, LogicalPlan& pla
 void Planner::appendCreateSequence(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createSequence = statement.constCast<BoundCreateSequence>();
     auto info = createSequence.getInfo();
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalCreateSequencePrintInfo>(info->sequenceName);
     auto op = make_shared<LogicalCreateSequence>(info->sequenceName, info->copy(),
         statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
@@ -69,7 +70,8 @@ void Planner::appendDrop(const BoundStatement& statement, LogicalPlan& plan) {
 void Planner::appendAlter(const BoundStatement& statement, LogicalPlan& plan) {
     auto& alter = statement.constCast<BoundAlter>();
     auto info = alter.getInfo();
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalAlterPrintInfo>(info->alterType, info->tableName,
+        info->extraInfo.get());
     auto op = std::make_shared<LogicalAlter>(info->copy(), info->tableName,
         statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
@@ -96,7 +98,7 @@ void Planner::appendExplain(const BoundStatement& statement, LogicalPlan& plan) 
 
 void Planner::appendCreateMacro(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createMacro = statement.constCast<BoundCreateMacro>();
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalCreateMacroPrintInfo>(createMacro.getMacroName());
     auto op = make_shared<LogicalCreateMacro>(statement.getStatementResult()->getSingleColumnExpr(),
         createMacro.getMacroName(), createMacro.getMacro(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
@@ -121,7 +123,8 @@ void Planner::appendExtension(const BoundStatement& statement, LogicalPlan& plan
 
 void Planner::appendAttachDatabase(const BoundStatement& statement, LogicalPlan& plan) {
     auto& boundAttachDatabase = statement.constCast<BoundAttachDatabase>();
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalAttachDatabasePrintInfo>(
+        boundAttachDatabase.getAttachInfo().dbAlias);
     auto attachDatabase =
         std::make_shared<LogicalAttachDatabase>(boundAttachDatabase.getAttachInfo(),
             statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));

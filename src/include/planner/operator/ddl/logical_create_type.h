@@ -5,6 +5,18 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalCreateTypePrintInfo final : OPPrintInfo {
+    std::string typeName;
+
+    explicit LogicalCreateTypePrintInfo(std::string typeName) : typeName(std::move(typeName)) {}
+
+    std::string toString() const override { return "Type: " + typeName; };
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalCreateTypePrintInfo>(new LogicalCreateTypePrintInfo(*this));
+    }
+};
+
 class LogicalCreateType : public LogicalDDL {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_TYPE;
 
