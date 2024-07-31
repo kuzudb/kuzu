@@ -39,6 +39,7 @@ void DBTest::createNewDB() {
 
 void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
     uint64_t checkpointWaitTimeout, std::set<std::string> connNames) {
+    std::vector<uint64_t> seed;
     for (const auto& connName : connNames) {
         concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName], databasePath);
     }
@@ -84,6 +85,10 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
             }
             continue;
         }
+        if (statement->seed.size() == 2) {
+            seed = statement->seed;
+            continue;
+        }
         if (statement->manualUseDataset == ManualUseDatasetFlag::SCHEMA) {
             auto dataset = TestHelper::appendKuzuRootPath("dataset/" + statement->dataset);
             if (conn) {
@@ -105,6 +110,9 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
             auto& connection = conn ? *conn : *(connMap.begin()->second);
             SplitMultiCopyRandom split(statement->multiCopySplits, statement->multiCopyTable,
                 statement->multiCopySource, connection);
+            if (seed.size() == 2) {
+                split.setSeed(seed);
+            }
             split.init();
             split.run();
             continue;

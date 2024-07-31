@@ -1,6 +1,7 @@
 #include "test_runner/multi_copy_split.h"
 
 #include <fstream>
+#include <random>
 
 #include "common/exception/test.h"
 #include "common/file_system/local_file_system.h"
@@ -25,8 +26,18 @@ static std::unique_ptr<main::QueryResult> validateQuery(main::Connection& conn,
     return result;
 }
 
+void SplitMultiCopyRandom::genSeedIfNecessary() {
+    if (seed.size() == 2) {
+        return;
+    }
+    auto seedGen = pcg_extras::seed_seq_from<std::random_device>();
+    seed.resize(2);
+    seedGen.generate(seed.begin(), seed.end());
+}
+
 std::vector<uint32_t> SplitMultiCopyRandom::getLineEnds(std::string path) const {
-    RandomEngine random;
+    RandomEngine random(seed[0], seed[1]);
+    spdlog::info("RANDOM GENERATOR used seed: {} {}", seed[0], seed[1]);
     std::ifstream file(path);
     if (!file.is_open()) {
         throw TestException(stringFormat("Error opening file: {}, errno: {}.", path, errno));
@@ -49,6 +60,8 @@ std::vector<uint32_t> SplitMultiCopyRandom::getLineEnds(std::string path) const 
 }
 
 void SplitMultiCopyRandom::init() {
+    genSeedIfNecessary();
+
     const std::string tmpDir = TestHelper::getTempDir("multi_copy");
     auto totalFilePath = LocalFileSystem::joinPath(tmpDir, tableName + ".csv");
     std::string loadQuery = "COPY (LOAD FROM {} RETURN *) TO '{}';";
@@ -64,7 +77,7 @@ void SplitMultiCopyRandom::init() {
     for (auto& endLine : lineEnds) {
         lengths.push_back(std::to_string(endLine - lineIdx));
         auto currFilePath =
-            LocalFileSystem::joinPath(tmpDir, tableName + std::to_string(lineIdx) + ".csv");
+            LocalFileSystem::joinPath(tmpDir, tableName + std::to_string(lengths.size()) + ".csv");
         std::ofstream outfile(currFilePath);
         if (!outfile.is_open()) {
             throw TestException(

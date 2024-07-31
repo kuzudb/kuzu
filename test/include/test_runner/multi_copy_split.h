@@ -16,11 +16,15 @@ public:
         : numSplit{numSplit}, tableName{tableName}, source{source}, connection{connection} {}
     void init();
     void run();
+    void setSeed(std::vector<uint64_t> seed_) { seed = seed_; };
 
 private:
     std::vector<uint32_t> getLineEnds(std::string path) const;
+    void genSeedIfNecessary();
 
 private:
+    std::vector<uint64_t> seed;
+
     uint32_t numSplit;
     std::string tableName;
     std::string source;
