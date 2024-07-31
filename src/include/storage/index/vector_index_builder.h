@@ -149,14 +149,14 @@ struct CompressedVectorStorage {
             // Initialize offset and size column
             uint64_t offset = 0;
             for (auto i = 0u; i < chunkMeta.numValues; i++) {
+                offset += (dim + 4);
                 offsetColumn->setValue(offset, i);
                 sizeColumn->setValue((uint32_t)(dim + 4), i);
-                offset += (dim + 4);
             }
             listChunk.setNumValues(chunkMeta.numValues);
             listChunk.getDataColumnChunk()->setNumValues(chunkMeta.numValues * (dim + 4));
             queue.push({nodeGroupIdx, startOffset, std::move(columnChunk)});
-            startOffset += chunkMeta.numValues * (dim + 4);
+            startOffset += chunkMeta.numValues * dim;
         }
     }
 
