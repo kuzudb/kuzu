@@ -39,13 +39,19 @@ void WAL::logBeginTransaction() {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logAndFlushCommit(uint64_t transactionID) {
+void WAL::logAndFlushCommit() {
     lock_t lck{mtx};
     // Flush all pages before committing to make sure that commits only show up in the file when
     // their data is also written.
-    CommitRecord walRecord(transactionID);
+    CommitRecord walRecord;
     addNewWALRecordNoLock(walRecord);
     flushAllPages();
+}
+
+void WAL::logRollback() {
+    lock_t lck{mtx};
+    RollbackRecord walRecord;
+    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logAndFlushCheckpoint() {

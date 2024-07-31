@@ -28,13 +28,17 @@ void Transaction::commit(storage::WAL* wal) const {
     undoBuffer->commit(commitTS);
     if (isWriteTransaction()) {
         KU_ASSERT(wal);
-        wal->logAndFlushCommit(commitTS);
+        wal->logAndFlushCommit();
     }
 }
 
-void Transaction::rollback() const {
+void Transaction::rollback(storage::WAL* wal) const {
     localStorage->rollback();
     undoBuffer->rollback();
+    if (isWriteTransaction()) {
+        KU_ASSERT(wal);
+        wal->logRollback();
+    }
 }
 
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,

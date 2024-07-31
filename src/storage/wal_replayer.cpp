@@ -74,6 +74,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
     case WALRecordType::COMMIT_RECORD: {
         clientContext.getTransactionContext()->commit();
     } break;
+    case WALRecordType::ROLLBACK_RECORD: {
+        clientContext.getTransactionContext()->rollback();
+    } break;
     case WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD: {
         replayCreateTableEntryRecord(walRecord);
     } break;
