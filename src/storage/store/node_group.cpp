@@ -457,6 +457,16 @@ ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, ro
     return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
+ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) {
+    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
+    if (rowIdx < numRowsInFirstGroup) {
+        return chunkedGroups.getFirstGroupNoLock();
+    }
+    rowIdx -= numRowsInFirstGroup;
+    const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    return chunkedGroups.getGroupNoLock(chunkedGroupIdx);
+}
+
 template<ResidencyState RESIDENCY_STATE>
 row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) {
     row_idx_t numRows = 0u;
@@ -500,6 +510,13 @@ NodeGroup::scanAllInsertedAndVersions<ResidencyState::ON_DISK>(const UniqLock& l
 template std::unique_ptr<ChunkedNodeGroup>
 NodeGroup::scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(const UniqLock& lock,
     const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns);
+
+bool NodeGroup::isVisible(const Transaction* transaction, row_idx_t rowIdxInGroup) {
+    const auto* chunkedGroup = findChunkedGroupFromRowIdxNoLock(rowIdxInGroup);
+    const auto rowIdxInChunkedGroup = rowIdxInGroup - chunkedGroup->getStartRowIdx();
+    return !chunkedGroup->isDeleted(transaction, rowIdxInChunkedGroup) &&
+           chunkedGroup->isInserted(transaction, rowIdxInChunkedGroup);
+}
 
 bool NodeGroup::isDeleted(const Transaction* transaction, offset_t offsetInGroup) {
     const auto lock = chunkedGroups.lock();

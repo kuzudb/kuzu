@@ -171,6 +171,9 @@ public:
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx);
     }
+    NodeGroup* getNodeGroupNoLock(common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
+    }
 
 private:
     void insertPK(const transaction::Transaction* transaction,

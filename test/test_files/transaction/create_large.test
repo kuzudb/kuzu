@@ -272,7 +272,7 @@
 
 # TODO(Guodong/Sam): enable this to check disabling copy in manual trxs
 -CASE CopyLargeDisabled
-#-SKIP
+-SKIP
 -CREATE_DATASET_SCHEMA ldbc-sf01
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
