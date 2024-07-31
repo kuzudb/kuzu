@@ -279,9 +279,9 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
     case TokenType::MULTI_COPY_RANDOM: {
         statement->multiCopySplits = stoll(getParam(1));
         statement->multiCopyTable = getParam(2);
-        auto multiCopyFile = getParam(3);
-        replaceVariables(multiCopyFile);
-        statement->multiCopyFile = multiCopyFile;
+        auto multiCopySource = paramsToString(3);
+        replaceVariables(multiCopySource);
+        statement->multiCopySource = multiCopySource;
         return statement;
     }
     case TokenType::STATEMENT: {

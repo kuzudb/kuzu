@@ -54,7 +54,7 @@ struct TestStatement {
     std::string dataset;
     uint32_t multiCopySplits = 0;
     std::string multiCopyTable;
-    std::string multiCopyFile;
+    std::string multiCopySource;
     // for multiple conns
     std::string batchStatmentsCSVFile;
     std::optional<std::string> connName;
