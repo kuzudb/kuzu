@@ -18,8 +18,6 @@ public:
               direction, extendFromSource, std::move(child)},
           properties{std::move(properties)} {}
 
-    f_group_pos_set getGroupsPosToFlatten() override;
-
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 

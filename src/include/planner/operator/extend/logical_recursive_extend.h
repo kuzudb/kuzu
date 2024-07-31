@@ -19,7 +19,7 @@ public:
               direction, extendFromSource, std::move(child)},
           joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
 
-    f_group_pos_set getGroupsPosToFlatten() override;
+    f_group_pos_set getGroupsPosToFlatten();
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
