@@ -38,7 +38,7 @@ class OpProfileTree {
 public:
     OpProfileTree(processor::PhysicalOperator* opProfileBoxes, common::Profiler& profiler);
 
-    OpProfileTree(std::shared_ptr<planner::LogicalOperator> opProfileBoxes);
+    explicit OpProfileTree(std::shared_ptr<planner::LogicalOperator> opProfileBoxes);
 
     std::ostringstream printPlanToOstream() const;
 
@@ -122,7 +122,7 @@ private:
 
 class LogicalPlanPrinter {
 public:
-    LogicalPlanPrinter(planner::LogicalPlan* logicalPlan) : logicalPlan{logicalPlan} {};
+    explicit LogicalPlanPrinter(planner::LogicalPlan* logicalPlan) : logicalPlan{logicalPlan} {};
 
     nlohmann::json printPlanToJson();
 
