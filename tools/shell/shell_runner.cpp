@@ -57,9 +57,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     if (!inputDirFlag) {
-        std::cerr << "Option '" + inputDirFlag.Name() + "' is required" << '\n';
-        std::cerr << parser;
-        return 1;
+        std::cout << "Open in in-mem mode." << '\n';
     }
 
     uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
