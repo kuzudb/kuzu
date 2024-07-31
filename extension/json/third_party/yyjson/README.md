@@ -227,16 +227,17 @@ yyjson, feel free to open a PR to add it to this list.
 | [bemorehuman][] | C        | Recommendation engine with a focus on uniqueness of the person receiving the rec         |
 
 
-# TODO
+# TODO for v1.0
 * [x] Add documentation page.
 * [x] Add GitHub workflow for CI and codecov.
-* [x] Add more tests: valgrind, sanitizer.
-* [x] Support JSON Pointer to query value from document.
-* [x] Add fuzzer.
+* [x] Add more tests: valgrind, sanitizer, fuzzing.
+* [x] Support JSON Pointer to query and modify JSON.
 * [x] Add `RAW` type for JSON reader and writer.
-* [ ] Add streaming API for JSON reader and writer.
-* [ ] Add documentation about performance.
-* [ ] Optimize performance for 32-bit processor.
+* [ ] Add option to limit real number output precision.
+* [ ] Add option to support JSON5 (if feasible).
+* [ ] Add functions to diff two JSON documents.
+* [ ] Add documentation on performance optimizations.
+* [ ] Ensure ABI stability.
 
 # License
 This project is released under the MIT license.
