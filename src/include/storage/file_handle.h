@@ -34,6 +34,7 @@ public:
     constexpr static uint8_t O_PERSISTENT_FILE_NO_CREATE{0b0000'0000};
     constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
+    constexpr static uint8_t O_PERSISTENT_FILE_IN_MEM{0b0000'0010};
 
     FileHandle(const std::string& path, uint8_t flags, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
@@ -42,23 +43,24 @@ public:
     common::page_idx_t addNewPage();
     common::page_idx_t addNewPages(common::page_idx_t numPages);
 
-    inline void readPage(uint8_t* frame, common::page_idx_t pageIdx) const {
+    void readPage(uint8_t* frame, common::page_idx_t pageIdx) const {
         KU_ASSERT(pageIdx < numPages);
         fileInfo->readFromFile(frame, getPageSize(), pageIdx * getPageSize());
     }
-    inline void writePage(uint8_t* buffer, common::page_idx_t pageIdx) const {
+    void writePage(const uint8_t* buffer, common::page_idx_t pageIdx) const {
         KU_ASSERT(pageIdx < numPages);
         fileInfo->writeFile(buffer, getPageSize(), pageIdx * getPageSize());
     }
 
-    inline bool isLargePaged() const { return flags & isLargePagedMask; }
-    inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
-    inline bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
-    inline bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
+    bool isLargePaged() const { return flags & isLargePagedMask; }
+    bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
+    bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
+    bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
+    bool isInMemoryMode() const { return !isLargePaged() && isNewTmpFile(); }
 
-    inline common::page_idx_t getNumPages() const { return numPages; }
-    inline common::FileInfo* getFileInfo() const { return fileInfo.get(); }
-    inline uint64_t getPageSize() const {
+    common::page_idx_t getNumPages() const { return numPages; }
+    common::FileInfo* getFileInfo() const { return fileInfo.get(); }
+    uint64_t getPageSize() const {
         return isLargePaged() ? common::BufferPoolConstants::PAGE_256KB_SIZE :
                                 common::BufferPoolConstants::PAGE_4KB_SIZE;
     }

@@ -95,9 +95,10 @@ void DiskArrayInternal::get(uint64_t idx, const Transaction* transaction,
     if (transaction->getType() != TransactionType::CHECKPOINT || !hasTransactionalUpdates ||
         apPageIdx > lastPageOnDisk ||
         !shadowFile->hasShadowPage(fileHandle.getFileIndex(), apPageIdx)) {
-        bufferManager->optimisticRead(bmFileHandle, apPageIdx, [&](const uint8_t* frame) -> void {
-            memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
-        });
+        DBFileUtils::optimisticReadPage(bmFileHandle, apPageIdx, *bufferManager,
+            [&](const uint8_t* frame) -> void {
+                memcpy(val.data(), frame + apCursor.elemPosInPage, val.size());
+            });
     } else {
         DBFileUtils::readShadowVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *shadowFile,
             [&val, &apCursor](const uint8_t* frame) -> void {
@@ -118,9 +119,8 @@ void DiskArrayInternal::updatePage(uint64_t pageIdx, bool isNewPage,
         DBFileUtils::updatePage(bmFileHandle, dbFileID, pageIdx, isNewPage, *bufferManager,
             *shadowFile, updateOp);
     } else {
-        auto frame = bufferManager->pin(bmFileHandle, pageIdx,
-            isNewPage ? BufferManager::PageReadPolicy::DONT_READ_PAGE :
-                        BufferManager::PageReadPolicy::READ_PAGE);
+        const auto frame = DBFileUtils::pinPage(bmFileHandle, pageIdx, *bufferManager,
+            isNewPage ? PageReadPolicy::DONT_READ_PAGE : PageReadPolicy::READ_PAGE);
         updateOp(frame);
         bmFileHandle.setLockedPageDirty(pageIdx);
         bufferManager->unpin(bmFileHandle, pageIdx);
@@ -363,9 +363,9 @@ void DiskArrayInternal::WriteIterator::getPage(common::page_idx_t newPageIdx, bo
             isNewlyAdded, diskArray.fileHandle, diskArray.dbFileID, *diskArray.bufferManager,
             *diskArray.shadowFile);
     } else {
-        shadowPageAndFrame.frame = diskArray.bufferManager->pin(diskArray.fileHandle, newPageIdx,
-            isNewlyAdded ? BufferManager::PageReadPolicy::DONT_READ_PAGE :
-                           BufferManager::PageReadPolicy::READ_PAGE);
+        shadowPageAndFrame.frame =
+            DBFileUtils::pinPage(diskArray.fileHandle, newPageIdx, *diskArray.bufferManager,
+                isNewlyAdded ? PageReadPolicy::DONT_READ_PAGE : PageReadPolicy::READ_PAGE);
         shadowPageAndFrame.originalPage = newPageIdx;
         shadowPageAndFrame.shadowPage = common::INVALID_PAGE_IDX;
     }

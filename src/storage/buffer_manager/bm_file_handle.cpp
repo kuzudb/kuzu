@@ -23,7 +23,11 @@ page_idx_t BMFileHandle::addNewPageWithoutLock() {
         addNewPageGroupWithoutLock();
     }
     pageStates[numPages].resetToEvicted();
-    return numPages++;
+    const auto pageIdx = numPages++;
+    if (isInMemoryMode()) {
+        bm->pin(*this, pageIdx, PageReadPolicy::DONT_READ_PAGE);
+    }
+    return pageIdx;
 }
 
 void BMFileHandle::addNewPageGroupWithoutLock() {
@@ -34,7 +38,18 @@ void BMFileHandle::addNewPageGroupWithoutLock() {
 
 void BMFileHandle::resetToZeroPagesAndPageCapacity() {
     removePageIdxAndTruncateIfNecessary(0 /* pageIdx */);
-    fileInfo->truncate(0 /* size */);
+    if (isInMemoryMode()) {
+        for (auto i = 0u; i < numPages; i++) {
+            bm->unpin(*this, i);
+        }
+    } else {
+        fileInfo->truncate(0 /* size */);
+    }
+}
+
+uint8_t* BMFileHandle::getFrame(page_idx_t pageIdx) {
+    KU_ASSERT(pageIdx < numPages);
+    return bm->getFrame(*this, pageIdx);
 }
 
 void BMFileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdx) {

@@ -302,7 +302,7 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 
 class PrimaryKeyIndex {
 public:
-    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
+    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly, bool inMemMode,
         common::PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
@@ -377,9 +377,7 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory();
-    void rollbackInMemory();
     void checkpoint();
-    void prepareRollback();
     BMFileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 

@@ -4,6 +4,7 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
+#include "storage/enums/page_read_policy.h"
 
 namespace kuzu {
 namespace transaction {
@@ -32,6 +33,11 @@ struct ShadowPageAndFrame {
 class DBFileUtils {
 public:
     constexpr static common::page_idx_t NULL_PAGE_IDX = common::INVALID_PAGE_IDX;
+
+    static uint8_t* pinPage(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        BufferManager& bufferManager, PageReadPolicy readPolicy);
+    static void optimisticReadPage(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        BufferManager& bufferManager, const std::function<void(uint8_t*)>& readOp);
 
     // Where possible, updatePage/insertNewPage should be used instead
     static ShadowPageAndFrame createShadowVersionIfNecessaryAndPinPage(

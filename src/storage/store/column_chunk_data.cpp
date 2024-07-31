@@ -13,6 +13,7 @@
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/string_chunk_data.h"
@@ -28,8 +29,13 @@ namespace storage {
 ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
-    dataFH->getFileInfo()->writeFile(buffer, bufferSize,
-        startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    if (dataFH->isInMemoryMode()) {
+        const auto frame = dataFH->getBM()->getFrame(*dataFH, startPageIdx);
+        memcpy(frame, buffer, bufferSize);
+    } else {
+        dataFH->getFileInfo()->writeFile(buffer, bufferSize,
+            startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    }
     return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
         metadata.compMeta);
 }
@@ -82,17 +88,28 @@ public:
             }
             KU_ASSERT(numPages < metadata.numPages);
             KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
-            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+            if (dataFH->isInMemoryMode()) {
+                const auto frame = dataFH->getBM()->getFrame(*dataFH, startPageIdx + numPages);
+                memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
+            } else {
+                dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
+                    BufferPoolConstants::PAGE_4KB_SIZE,
+                    (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+            }
             numPages++;
         }
         // Make sure that the file is the right length
         if (numPages < metadata.numPages) {
             memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
-            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
+            if (dataFH->isInMemoryMode()) {
+                const auto frame =
+                    dataFH->getBM()->getFrame(*dataFH, startPageIdx + metadata.numPages - 1);
+                memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
+            } else {
+                dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
+                    BufferPoolConstants::PAGE_4KB_SIZE,
+                    (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
+            }
         }
         return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
             metadata.compMeta);

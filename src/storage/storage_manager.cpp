@@ -6,6 +6,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "storage/wal_replayer.h"
@@ -35,6 +36,10 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
 
 BMFileHandle* StorageManager::initFileHandle(const std::string& filename, VirtualFileSystem* vfs,
     main::ClientContext* context) const {
+    if (databasePath.empty()) {
+        return memoryManager.getBufferManager()->getBMFileHandle(filename,
+            FileHandle::O_PERSISTENT_FILE_IN_MEM, vfs, context);
+    }
     return memoryManager.getBufferManager()->getBMFileHandle(filename,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
@@ -61,6 +66,9 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
+    if (databasePath.empty()) {
+        return;
+    }
     const auto metaFilePath =
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL);
     if (vfs->fileOrPathExists(metaFilePath, context)) {
@@ -88,8 +96,12 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
-    auto vfs = clientContext.getVFSUnsafe();
-    auto walFilePath =
+    if (clientContext.getDatabasePath().empty()) {
+        // In-memory mode. Nothing to recover from.
+        return;
+    }
+    const auto vfs = clientContext.getVFSUnsafe();
+    const auto walFilePath =
         vfs->joinPath(clientContext.getDatabasePath(), StorageConstants::WAL_FILE_SUFFIX);
     if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
         return;
@@ -97,7 +109,7 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     try {
         // TODO(Guodong): We should first check if there is CHECKPOINT record at the end.
         // If so, we can skip replaying the WAL, instead directly replacing shadow files/pages.
-        auto walReplayer = std::make_unique<WALReplayer>(clientContext);
+        const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
         walReplayer->replay();
     } catch (std::exception& e) {
         throw Exception(stringFormat("Error during recovery: {}", e.what()));
@@ -205,6 +217,9 @@ uint64_t StorageManager::getEstimatedMemoryUsage() {
 }
 
 void StorageManager::checkpoint(main::ClientContext& clientContext) {
+    if (databasePath.empty()) {
+        return;
+    }
     std::lock_guard lck{mtx};
     const auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
         StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath,

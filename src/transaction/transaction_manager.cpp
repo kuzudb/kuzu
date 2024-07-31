@@ -37,7 +37,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
             std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
         activeWriteTransactions.insert(transaction->getID());
         KU_ASSERT(clientContext.getStorageManager());
-        if (transaction->isWriteTransaction()) {
+        if (transaction->shouldLogToWAL()) {
             clientContext.getStorageManager()->getWAL().logBeginTransaction();
         }
     } break;
@@ -96,6 +96,9 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
+    if (clientContext.getDatabasePath().empty()) {
+        return;
+    }
     checkpointNoLock(clientContext);
 }
 
@@ -126,6 +129,9 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
+    if (clientContext.getDatabasePath().empty()) {
+        return false;
+    }
     if (!clientContext.getDBConfig()->autoCheckpoint) {
         return false;
     }

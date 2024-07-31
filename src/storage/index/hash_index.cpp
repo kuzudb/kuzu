@@ -424,13 +424,15 @@ template class HashIndex<int128_t>;
 template class HashIndex<ku_string_t>;
 
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-    PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
-    VirtualFileSystem* vfs, main::ClientContext* context)
+    bool inMemMode, PhysicalTypeID keyDataType, BufferManager& bufferManager,
+    ShadowFile* shadowFile, VirtualFileSystem* vfs, main::ClientContext* context)
     : keyDataTypeID(keyDataType), fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
-                                      readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                                 FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                                      inMemMode ? FileHandle::O_PERSISTENT_FILE_IN_MEM :
+                                      readOnly  ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                                  FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
                                       vfs, context)},
       bufferManager{bufferManager}, dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
+    KU_ASSERT(!(inMemMode && readOnly));
     bool newIndex = fileHandle->getNumPages() == 0;
 
     if (newIndex) {
@@ -459,8 +461,12 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             true /*bypassShadowing*/);
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
-        overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager, shadowFile,
-            readOnly, vfs, context);
+        if (inMemMode) {
+            overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
+        } else {
+            overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager,
+                shadowFile, readOnly, vfs, context);
+        }
     }
     if (newIndex) {
         // Each index has a primary slot array and an overflow slot array
@@ -549,24 +555,6 @@ void PrimaryKeyIndex::checkpointInMemory() {
     }
 }
 
-void PrimaryKeyIndex::rollbackInMemory() {
-    bool indexChanged = false;
-    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-        if (hashIndices[i]->rollbackInMemory()) {
-            indexChanged = true;
-        }
-    }
-    if (indexChanged) {
-        for (size_t i = 0; i < NUM_HASH_INDEXES; i++) {
-            hashIndexHeadersForReadTrx[i] = hashIndexHeadersForWriteTrx[i];
-        }
-        hashIndexDiskArrays->rollbackInMemory();
-    }
-    if (overflowFile) {
-        overflowFile->rollbackInMemory();
-    }
-}
-
 void PrimaryKeyIndex::writeHeaders() {
     size_t headerIdx = 0;
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
@@ -605,12 +593,6 @@ void PrimaryKeyIndex::checkpoint() {
     // disk array
     bufferManager.flushAllDirtyPagesInFrames(*fileHandle);
     checkpointInMemory();
-}
-
-void PrimaryKeyIndex::prepareRollback() {
-    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-        hashIndices[i]->prepareRollback();
-    }
 }
 
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;

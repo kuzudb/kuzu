@@ -352,7 +352,7 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     }
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         *dataFH, pageIdx, *shadowFile, transaction->getType());
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
+    DBFileUtils::optimisticReadPage(*fileHandleToPin, pageIdxToPin, *bufferManager, func);
 }
 
 static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {

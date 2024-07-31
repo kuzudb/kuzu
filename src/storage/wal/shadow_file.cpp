@@ -6,6 +6,7 @@
 #include "common/serializer/buffered_file.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -32,6 +33,9 @@ ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
 
 ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, ClientContext* context) {
+    if (directory.empty()) {
+        return;
+    }
     shadowingFH = bufferManager.getBMFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :

@@ -8,7 +8,7 @@
 
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/buffer_manager/memory_manager.h"
+#include "storage/enums/page_read_policy.h"
 
 namespace kuzu {
 namespace storage {
@@ -20,17 +20,16 @@ namespace storage {
 struct EvictionCandidate {
     friend class EvictionQueue;
 
-public:
     // If the candidate is Marked it is evictable.
-    inline bool isEvictable(uint64_t currPageStateAndVersion) const {
+    static bool isEvictable(uint64_t currPageStateAndVersion) {
         return PageState::getState(currPageStateAndVersion) == PageState::MARKED;
     }
     // If the candidate was recently read optimistically, it is second chance evictable.
-    inline bool isSecondChanceEvictable(uint64_t currPageStateAndVersion) const {
+    static bool isSecondChanceEvictable(uint64_t currPageStateAndVersion) {
         return PageState::getState(currPageStateAndVersion) == PageState::UNLOCKED;
     }
 
-    inline bool operator==(const EvictionCandidate& other) const {
+    bool operator==(const EvictionCandidate& other) const {
         return fileIdx == other.fileIdx && pageIdx == other.pageIdx;
     }
 
@@ -45,8 +44,7 @@ public:
 // One candidate should be stored for each page currently in memory
 class EvictionQueue {
 public:
-    static constexpr EvictionCandidate EMPTY =
-        EvictionCandidate{UINT32_MAX, common::INVALID_PAGE_IDX};
+    static constexpr auto EMPTY = EvictionCandidate{UINT32_MAX, common::INVALID_PAGE_IDX};
     explicit EvictionQueue(uint64_t capacity)
         : insertCursor{0}, evictionCursor{0}, size{0}, capacity{capacity},
           data{std::make_unique<std::atomic<EvictionCandidate>[]>(capacity)} {}
@@ -172,8 +170,6 @@ class BufferManager {
     friend class MemoryAllocator;
 
 public:
-    enum class PageReadPolicy : uint8_t { READ_PAGE = 0, DONT_READ_PAGE = 1 };
-
     BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);
     ~BufferManager() = default;
 
@@ -200,11 +196,14 @@ public:
         return fileHandles.back().get();
     }
 
-    inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
+    common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
     }
+    uint8_t* getFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
+        return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));
+    }
 
-    inline uint64_t getUsedMemory() const { return usedMemory; }
+    uint64_t getUsedMemory() const { return usedMemory; }
 
 private:
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
@@ -223,16 +222,13 @@ private:
     void removePageFromFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         bool shouldFlush);
 
-    inline uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
-    inline uint64_t freeUsedMemory(uint64_t size) {
+    uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
+    uint64_t freeUsedMemory(uint64_t size) {
         KU_ASSERT(usedMemory.load() >= size);
         return usedMemory.fetch_sub(size);
     }
 
-    inline uint8_t* getFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
-        return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));
-    }
-    inline void releaseFrameForPage(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
+    void releaseFrameForPage(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
         vmRegions[fileHandle.getPageSizeClass()]->releaseFrame(fileHandle.getFrameIdx(pageIdx));
     }
 

@@ -49,7 +49,7 @@ std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZ
             freePages.pop();
         }
     }
-    auto buffer = bm->pin(*fh, pageIdx, BufferManager::PageReadPolicy::DONT_READ_PAGE);
+    auto buffer = bm->pin(*fh, pageIdx, PageReadPolicy::DONT_READ_PAGE);
     auto memoryBuffer = std::make_unique<MemoryBuffer>(this, pageIdx, buffer);
     if (initializeToZero) {
         memset(memoryBuffer->buffer.data(), 0, pageSize);

@@ -23,10 +23,19 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
 
+bool Transaction::shouldLogToWAL() const {
+    // When we are in recovery mode, we don't log to WAL.
+    return !isRecovery() && !clientContext->getDatabasePath().empty();
+}
+
+bool Transaction::shouldForceCheckpoint() const {
+    return !clientContext->getDatabasePath().empty() && forceCheckpoint;
+}
+
 void Transaction::commit(storage::WAL* wal) const {
     localStorage->commit();
     undoBuffer->commit(commitTS);
-    if (isWriteTransaction()) {
+    if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logAndFlushCommit();
     }

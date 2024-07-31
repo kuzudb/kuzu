@@ -21,6 +21,9 @@ namespace storage {
 WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : directory{directory}, bufferManager{bufferManager}, vfs{vfs} {
+    if (directory.empty()) {
+        return;
+    }
     fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
             readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);

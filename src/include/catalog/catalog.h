@@ -82,9 +82,10 @@ public:
     void alterTableEntry(transaction::Transaction* tx, const binder::BoundAlterInfo& info);
 
     // ----------------------------- Sequences ----------------------------
-    bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
+    bool containsSequence(transaction::Transaction* transaction,
+        const std::string& sequenceName) const;
 
-    common::sequence_id_t getSequenceID(transaction::Transaction* tx,
+    common::sequence_id_t getSequenceID(transaction::Transaction* transaction,
         const std::string& sequenceName) const;
     SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* tx,
         common::sequence_id_t sequenceID) const;

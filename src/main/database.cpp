@@ -139,6 +139,10 @@ void Database::openLockFile() {
 }
 
 void Database::initAndLockDBDir() {
+    if (databasePath.empty()) {
+        // In-memory mode.
+        return;
+    }
     if (!vfs->fileOrPathExists(databasePath)) {
         if (dbConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");

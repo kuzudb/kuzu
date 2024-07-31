@@ -69,8 +69,8 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager,
-        shadowFile, vfs, context);
+        databasePath.empty(), nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(),
+        *bufferManager, shadowFile, vfs, context);
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {
