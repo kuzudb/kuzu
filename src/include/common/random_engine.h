@@ -19,6 +19,7 @@ struct RandomState {
 class RandomEngine {
 public:
     RandomEngine();
+    RandomEngine(uint64_t seed, uint64_t stream);
 
     uint32_t nextRandomInteger();
     uint32_t nextRandomInteger(uint32_t upper);

@@ -9,6 +9,10 @@ RandomEngine::RandomEngine() : randomState(RandomState()) {
     randomState.pcg.seed(pcg_extras::seed_seq_from<std::random_device>());
 }
 
+RandomEngine::RandomEngine(uint64_t seed, uint64_t stream) : randomState(RandomState()) {
+    randomState.pcg.seed(seed, stream);
+}
+
 uint32_t RandomEngine::nextRandomInteger() {
     return randomState.pcg();
 }
