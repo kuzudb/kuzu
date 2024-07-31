@@ -597,13 +597,10 @@ std::string jsonToString(const yyjson_val* val) {
 void invalidJsonError(const char* data, size_t size, yyjson_read_err* err) {
     size_t line, col, chr;
     if (yyjson_locate_pos(data, size, err->pos, &line, &col, &chr)) {
-        throw RuntimeException(stringFormat(
-            "Error {} at line {}, column {}, character index {}",
+        throw RuntimeException(stringFormat("Error {} at line {}, column {}, character index {}",
             err->msg, line, col, chr));
     } else {
-        throw RuntimeException(stringFormat(
-            "Error {} at byte {}",
-            err->msg, err->pos));
+        throw RuntimeException(stringFormat("Error {} at byte {}", err->msg, err->pos));
     }
 }
 
