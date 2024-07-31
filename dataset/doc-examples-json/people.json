@@ -1,0 +1,25 @@
+[
+    {
+      "id": 2,
+      "name": "Gregory"
+    },
+    {
+      "id": 1,
+      "name": "Bob",
+      "info": {
+        "height": 1.81,
+        "age": 71,
+        "previousUsernames": [ "theBuilder", "theMinion" ]
+      }
+    },
+    {
+      "id": 0,
+      "name": "Alice",
+      "registryDate": "2024-07-31",
+      "info": {
+        "height": 1.68,
+        "age": 45,
+        "previousUsernames": [ "obviouslyAlice", "definitelyNotAlice" ]
+      }
+    }
+]

@@ -1,0 +1,5 @@
+[
+{"p.id":0,"p.name":"Alice","p.info":{"height":1.68,"age":45,"previousUsernames":["obviouslyAlice","definitelyNotAlice"]}},
+{"p.id":1,"p.name":"Bob","p.info":{"height":1.81,"age":71,"previousUsernames":["theBuilder","theMinion"]}},
+{"p.id":2,"p.name":"Gregory","p.info":{"height":1.73,"age":22,"previousUsernames":["gregory7"]}}
+]
