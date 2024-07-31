@@ -260,6 +260,11 @@ TEST_F(CompressChunkTest, TestConstant) {
     testCheckWholeOutput(src);
 }
 
+TEST_F(CompressChunkTest, TestUncompressed) {
+    std::vector<double> src({123456789.123456789, 987654321.987654321});
+    testCheckWholeOutput(src);
+}
+
 TEST_F(CompressChunkTest, TestFloatManyExceptionsNoCompress) {
     std::vector<float> src(10 * 1024, 1.23);
     src[0] = 54387589.8341;

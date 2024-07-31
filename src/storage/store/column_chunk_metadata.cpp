@@ -146,12 +146,22 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
             ++exceptionCount;
         }
     }
+
     const auto& [minEncoded, maxEncoded] =
         std::minmax_element(floatEncodedValues.begin(), floatEncodedValues.end());
 
     alpMetadata.exceptions_count = exceptionCount;
     auto compMeta = CompressionMetadata(min, max, alg->getCompressionType(), alpMetadata,
         StorageValue{*minEncoded}, StorageValue{*maxEncoded}, physicalType);
+
+    const auto bitpackingInfo = FloatCompression<T>::getBitpackInfo(compMeta);
+    if (ceilDiv(bitpackingInfo.bitWidth * (numValues - exceptionCount), static_cast<uint64_t>(8)) +
+            EncodeException<T>::sizeBytes() * exceptionCount >=
+        numValues * sizeof(T)) {
+        return ColumnChunkMetadata(INVALID_PAGE_IDX,
+            ColumnChunkData::getNumPagesForBytes(bufferSize), numValues,
+            CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
+    }
 
     const auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     KU_ASSERT(numValuesPerPage >= 0);
