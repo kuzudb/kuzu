@@ -103,7 +103,7 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
         }
         if (statement->multiCopySplits > 0) {
             auto& connection = conn ? *conn : *(connMap.begin()->second);
-            SplitMultiCopyRandom split(statement->multiCopySplits, statement->multiCopyTable, 
+            SplitMultiCopyRandom split(statement->multiCopySplits, statement->multiCopyTable,
                 statement->multiCopySource, connection);
             split.init();
             split.run();
