@@ -130,7 +130,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
             CompressionMetadata(min, max, CompressionType::UNCOMPRESSED));
     }
 
-    std::vector<int64_t> floatEncodedValues(numValues);
+    std::vector<typename FloatCompression<T>::EncodedType> floatEncodedValues(numValues);
     size_t exceptionCount = 0;
     for (offset_t i = 0; i < numValues; ++i) {
         const T& val = src[i];
@@ -168,7 +168,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     const auto numPagesForEncoded =
         capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
     // TODO: consolidate
-    const auto exceptionCapacity = std::bit_ceil(exceptionCount * sizeof(T)) / sizeof(T);
+    const auto exceptionCapacity = compMeta.floatMetadata().exceptionCapacity;
     const auto numPagesForExceptions = ceilDiv(static_cast<uint64_t>(exceptionCapacity),
         (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes()));
     return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,

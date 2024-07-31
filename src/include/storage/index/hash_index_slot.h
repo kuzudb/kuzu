@@ -84,10 +84,8 @@ struct Slot {
     static constexpr size_t serializedSizeBytes(common::PhysicalTypeID /*internalDataType*/) {
         return sizeof(Slot);
     }
-    decltype(auto) serializeToBytes(common::PhysicalTypeID internalDataType) const {
-        std::vector<std::byte> ret(serializedSizeBytes(internalDataType));
-        memcpy(ret.data(), this, serializedSizeBytes(internalDataType));
-        return ret;
+    std::span<const std::byte> serializeToBytes(common::PhysicalTypeID internalDataType) const {
+        return {reinterpret_cast<const std::byte*>(this), serializedSizeBytes(internalDataType)};
     }
     void deserializeFromBytes(std::span<const std::byte> serializedSlot,
         common::PhysicalTypeID internalDataType) {

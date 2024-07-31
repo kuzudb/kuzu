@@ -75,5 +75,11 @@ constexpr T ceilDiv(T a, T b) {
     return (a / b) + (a % b != 0);
 }
 
+template<std::integral To, std::integral From>
+constexpr To narrowingConversion(From val) {
+    KU_ASSERT(static_cast<To>(val) == val);
+    return val;
+}
+
 } // namespace common
 } // namespace kuzu

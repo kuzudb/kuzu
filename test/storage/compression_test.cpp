@@ -8,6 +8,102 @@
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
+/*
+ * StorageValue Tests
+ */
+
+TEST(CompressionTests, TestStorageValueEquality) {
+    KU_ASSERT(StorageValue{-1} == StorageValue{-2 + 1});
+    KU_ASSERT(StorageValue{5} == StorageValue{5U});
+    KU_ASSERT(
+        StorageValue{1} == StorageValue{StorageValue{(int128_t{1} << 100)}.get<int128_t>() >> 100});
+}
+
+/*
+ * CompressionMetadata Tests
+ */
+
+bool operator==(const ALPMetadata& a, const ALPMetadata& b) {
+    return (a.exceptionCapacity == b.exceptionCapacity) && (a.exceptionCount == b.exceptionCount) &&
+           (a.exp == b.exp) && (a.fac == b.fac);
+}
+
+bool operator!=(const ALPMetadata& a, const ALPMetadata& b) {
+    return !(a == b);
+}
+
+bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
+    if (a.min != b.min)
+        return false;
+    if (a.max != b.max)
+        return false;
+    if (a.additionalMetadata.index() != b.additionalMetadata.index())
+        return false;
+    if (std::holds_alternative<ALPMetadata>(a.additionalMetadata) &&
+        std::get<ALPMetadata>(a.additionalMetadata) !=
+            std::get<ALPMetadata>(b.additionalMetadata)) {}
+    if (a.children.size() != b.children.size())
+        return false;
+    for (size_t i = 0; i < a.children.size(); ++i) {
+        if (a.getChild(i) != b.getChild(i))
+            return false;
+    }
+    return true;
+}
+
+TEST(CompressionTests, DoubleMetadataSerializeThenDeserialize) {
+    alp::state alpState{};
+    alpState.exceptions_count = 1 << 17;
+    alpState.exp = 10;
+    alpState.fac = 5;
+
+    const auto physicalType = kuzu::common::PhysicalTypeID::DOUBLE;
+
+    const CompressionMetadata orig{StorageValue{-1.01}, StorageValue{1.01}, CompressionType::FLOAT,
+        alpState, StorageValue{0}, StorageValue{1}, PhysicalTypeID::DOUBLE};
+
+    CompressionMetadata deserialized(StorageValue{0}, StorageValue{0}, CompressionType::FLOAT);
+    deserialized.deserializeFromBytes(orig.serializeToBytes(physicalType), physicalType);
+    EXPECT_TRUE(orig == deserialized);
+}
+
+TEST(CompressionTests, DoubleUncompressedMetadataSerializeThenDeserialize) {
+    alp::state alpState{};
+    alpState.exceptions_count = 1 << 17;
+    alpState.exp = 10;
+    alpState.fac = 5;
+
+    const auto physicalType = kuzu::common::PhysicalTypeID::DOUBLE;
+
+    CompressionMetadata orig{StorageValue{-1.01}, StorageValue{1.01},
+        CompressionType::UNCOMPRESSED};
+
+    CompressionMetadata deserialized(StorageValue{0}, StorageValue{0}, CompressionType::FLOAT);
+    deserialized.deserializeFromBytes(orig.serializeToBytes(physicalType), physicalType);
+
+    // for uncompressed metadata we don't care about children
+    orig.children.clear();
+    deserialized.children.clear();
+
+    EXPECT_TRUE(orig == deserialized);
+}
+
+TEST(CompressionTests, IntMetadataSerializeThenDeserialize) {
+    const CompressionMetadata orig{StorageValue{-10}, StorageValue{-5},
+        CompressionType::INTEGER_BITPACKING};
+
+    const auto physicalType = kuzu::common::PhysicalTypeID::INT32;
+
+    CompressionMetadata deserialized(StorageValue{0}, StorageValue{0},
+        CompressionType::INTEGER_BITPACKING);
+    deserialized.deserializeFromBytes(orig.serializeToBytes(physicalType), physicalType);
+    EXPECT_TRUE(orig == deserialized);
+}
+
+/*
+ * Compression Tests
+ */
+
 template<typename T>
 void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset_zero = true) {
     if (force_offset_zero) {

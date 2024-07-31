@@ -5,6 +5,7 @@
 #include <limits>
 #include <optional>
 #include <type_traits>
+#include <variant>
 
 #include "alp/state.hpp"
 #include "common/assert.h"
@@ -59,7 +60,6 @@ union StorageValue {
         floatVal = value;
     }
 
-    // TODO: add unit tests for this
     bool operator==(const StorageValue& other) const {
         // We zero-initialize any padding bits, so we can compare values to check equality
         return this->signedInt128 == other.signedInt128;
@@ -114,13 +114,8 @@ enum class CompressionType : uint8_t {
 // used only for compressing floats/doubles
 struct ALPMetadata {
     ALPMetadata() = default;
-    explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType)
-        : exp(alpState.exp), fac(alpState.fac), exceptionCount(alpState.exceptions_count) {
-        const size_t physicalTypeSize =
-            (physicalType == common::PhysicalTypeID::DOUBLE ? sizeof(double) : sizeof(float));
-        exceptionCapacity =
-            std::bit_ceil(alpState.exceptions_count * physicalTypeSize) / physicalTypeSize;
-    }
+    explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType);
+
     uint8_t exp;
     uint8_t fac;
     uint32_t exceptionCount;
@@ -143,31 +138,34 @@ struct CompressionMetadata {
 
     CompressionType compression;
 
-    // only used for floats/doubles
-    ALPMetadata alpMetadata;
+    std::variant<ALPMetadata> additionalMetadata;
 
     std::vector<CompressionMetadata> children;
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
-        : min(min), max(max), compression(compression), alpMetadata() {}
+        : min(min), max(max), compression(compression), additionalMetadata() {}
+
+    // constructor for float metadata
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
         const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded,
         common::PhysicalTypeID physicalType)
-        : min(min), max(max), compression(compression), alpMetadata(state, physicalType) {
+        : min(min), max(max), compression(compression),
+          additionalMetadata(ALPMetadata{state, physicalType}) {
         children.emplace_back(minEncoded, maxEncoded,
             minEncoded == maxEncoded ? CompressionType::CONSTANT :
                                        CompressionType::INTEGER_BITPACKING);
     }
 
-    static constexpr size_t getChildCount(common::PhysicalTypeID internalDataType) {
-        return (internalDataType == common::PhysicalTypeID::DOUBLE ||
-                   internalDataType == common::PhysicalTypeID::FLOAT) ?
-                   1 :
-                   0;
-    }
+    static std::vector<common::PhysicalTypeID> getChildTypes(
+        common::PhysicalTypeID internalDataType);
+
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
     CompressionMetadata& getChild(common::offset_t idx);
     const CompressionMetadata& getChild(common::offset_t idx) const;
+
+    // accessors for additionalMetadata
+    ALPMetadata floatMetadata() const;
+    ALPMetadata& floatMetadata();
 
     static size_t serializedSizeBytes(common::PhysicalTypeID internalDataType);
     std::vector<std::byte> serializeToBytes(common::PhysicalTypeID internalDataType) const;
@@ -283,10 +281,7 @@ public:
             numBytesPerValue * numValues);
     }
 
-    static inline uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType) {
-        auto numBytesPerValue = getDataTypeSizeInChunk(logicalType);
-        return numBytesPerValue == 0 ? UINT64_MAX : dataSize / numBytesPerValue;
-    }
+    static uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType);
 
     inline uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,

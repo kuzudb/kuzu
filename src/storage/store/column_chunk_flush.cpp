@@ -72,7 +72,7 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
     const uint8_t* bufferStart = buffer;
     const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
     const size_t exceptionBufferSize =
-        ceilDiv(static_cast<uint64_t>(metadata.compMeta.alpMetadata.exceptionCapacity),
+        ceilDiv(static_cast<uint64_t>(metadata.compMeta.floatMetadata().exceptionCapacity),
             (BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes())) *
         BufferPoolConstants::PAGE_4KB_SIZE;
     const auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
@@ -110,10 +110,11 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
     }
 
     KU_ASSERT(exceptionBufferCursor <= exceptionBuffer.get() + exceptionBufferSize);
-    KU_ASSERT(totalExceptionCount == metadata.compMeta.alpMetadata.exceptionCount);
+    KU_ASSERT(totalExceptionCount == metadata.compMeta.floatMetadata().exceptionCount);
 
     // set unused exception buffer entries to posInChunk = INVALID_POS
-    for (size_t i = totalExceptionCount; i < metadata.compMeta.alpMetadata.exceptionCapacity; ++i) {
+    for (size_t i = totalExceptionCount; i < metadata.compMeta.floatMetadata().exceptionCapacity;
+         ++i) {
         EncodeException<T> invalidEntry{.value = 0, .posInChunk = EncodeException<T>::INVALID_POS};
         std::memcpy(exceptionBuffer.get() + i * EncodeException<T>::sizeBytes() +
                         sizeof(invalidEntry.value),
@@ -125,33 +126,22 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buf
 
     const auto preExceptionMetadata =
         uncompressedGetMetadata(nullptr, exceptionBufferSize, exceptionBufferSize,
-            metadata.compMeta.alpMetadata.exceptionCapacity, StorageValue{0}, StorageValue{1});
+            metadata.compMeta.floatMetadata().exceptionCapacity, StorageValue{0}, StorageValue{1});
 
     const auto exceptionStartPageIdx =
         startPageIdx + metadata.numPages - preExceptionMetadata.numPages;
     KU_ASSERT(exceptionStartPageIdx + preExceptionMetadata.numPages <= dataFH->getNumPages());
 
-    if constexpr (std::is_same_v<T, float>) {
-        const auto encodedType = common::LogicalType::ALP_EXCEPTION_FLOAT();
-        CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<Uncompressed>(encodedType),
-            encodedType};
-        const auto exceptionMetadata =
-            exceptionFlushBuffer.operator()(reinterpret_cast<const uint8_t*>(exceptionBuffer.get()),
-                exceptionBufferSize, dataFH, exceptionStartPageIdx, preExceptionMetadata);
+    const auto encodedType = std::is_same_v<T, float> ? common::LogicalType::ALP_EXCEPTION_FLOAT() :
+                                                        common::LogicalType::ALP_EXCEPTION_DOUBLE();
+    CompressedFlushBuffer exceptionFlushBuffer{
+        std::make_shared<Uncompressed>(EncodeException<T>::sizeBytes()), encodedType};
+    const auto exceptionMetadata =
+        exceptionFlushBuffer.operator()(reinterpret_cast<const uint8_t*>(exceptionBuffer.get()),
+            exceptionBufferSize, dataFH, exceptionStartPageIdx, preExceptionMetadata);
 
-        return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
-            metadata.compMeta);
-    } else {
-        const auto encodedType = common::LogicalType::ALP_EXCEPTION_DOUBLE();
-        CompressedFlushBuffer exceptionFlushBuffer{std::make_shared<Uncompressed>(encodedType),
-            encodedType};
-        const auto exceptionMetadata =
-            exceptionFlushBuffer.operator()(reinterpret_cast<const uint8_t*>(exceptionBuffer.get()),
-                exceptionBufferSize, dataFH, exceptionStartPageIdx, preExceptionMetadata);
-
-        return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
-            metadata.compMeta);
-    }
+    return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
+        metadata.compMeta);
 }
 
 template class CompressedFloatFlushBuffer<float>;

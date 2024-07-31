@@ -1,6 +1,7 @@
 #pragma once
 
 #include <limits>
+#include <type_traits>
 
 #include "storage/compression/compression.h"
 #include <concepts>
@@ -16,12 +17,21 @@ class ColumnChunkData;
 
 struct PageCursor;
 
+template<std::floating_point T>
+decltype(auto) getBitpackingType() {
+    if constexpr (std::is_same_v<T, double>) {
+        return int64_t{};
+    } else {
+        return int32_t{};
+    }
+}
+
 // Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<std::floating_point T>
 class FloatCompression final : public CompressionAlg {
 public:
     // TODO change to int32_t for floats
-    using EncodedType = int64_t;
+    using EncodedType = decltype(getBitpackingType<T>());
 
 public:
     FloatCompression() = default;
@@ -54,11 +64,14 @@ public:
 
     CompressionType getCompressionType() const override { return CompressionType::FLOAT; }
 
-    static BitpackInfo<int64_t> getBitpackInfo(const CompressionMetadata& metadata);
+    static BitpackInfo<EncodedType> getBitpackInfo(const CompressionMetadata& metadata);
 
 private:
-    IntegerBitpacking<int64_t> encodedFloatBitpacker;
+    IntegerBitpacking<EncodedType> encodedFloatBitpacker;
 };
+
+static_assert(std::is_same_v<FloatCompression<double>::EncodedType, int64_t>, "");
+static_assert(std::is_same_v<FloatCompression<float>::EncodedType, int32_t>, "");
 
 template<std::floating_point T>
 struct EncodeException {

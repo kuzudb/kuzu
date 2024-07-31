@@ -139,8 +139,6 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
         clientContext->getTx(), state);
 
     checkFunc(columnReader.get(), clientContext->getTx(), state, dataType);
-
-    // TODO: check that exception buffer is sorted by posInChunk
 }
 
 template<std::floating_point T>
@@ -416,7 +414,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
-    std::vector<double> src(256, 5.6);
+    std::vector<double> src(StorageConstants::NODE_GROUP_SIZE, 5.6);
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
@@ -424,18 +422,17 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
                              ChunkState& state, const LogicalType& dataType) {
-        static constexpr size_t numValuesToSet = 25;
         const size_t cpyOffset = 1;
         src[cpyOffset] = 10101010100101;
-        for (size_t i = 1; i < numValuesToSet; ++i) {
-            src[i * cpyOffset] = src[(i - 1 * cpyOffset)] + 1;
+        for (size_t i = 11; i < src.size(); i += 10) {
+            src[i] = src[i - 10] + 1;
         }
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
-        reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
-            cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
+        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), 0, src.size(),
+            dataType.getPhysicalType(), localUpdateState));
+        reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), nullptr, 0, src.size(),
+            WriteCompressedValuesToPage(dataType));
     });
 }
 

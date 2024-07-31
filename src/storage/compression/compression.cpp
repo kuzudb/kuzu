@@ -74,6 +74,21 @@ uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     }
 }
 
+ALPMetadata::ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType)
+    : exp(alpState.exp), fac(alpState.fac), exceptionCount(alpState.exceptions_count) {
+    const size_t physicalTypeSize =
+        (physicalType == common::PhysicalTypeID::DOUBLE ? EncodeException<double>::sizeBytes() :
+                                                          EncodeException<float>::sizeBytes());
+
+    // to get the exception capacity we find the number of bytes needed to store the current
+    // exception count, take the smallest power of 2 greater than or equal to that value
+    // or the size of one page (whichever is larger)
+    // then find how many exceptions fit in that size
+    exceptionCapacity =
+        static_cast<uint64_t>(std::bit_ceil(alpState.exceptions_count * physicalTypeSize)) /
+        physicalTypeSize;
+}
+
 CompressionMetadata& CompressionMetadata::getChild(offset_t idx) {
     return children[idx];
 }
@@ -86,14 +101,12 @@ size_t CompressionMetadata::serializedSizeBytes(common::PhysicalTypeID internalD
     size_t sizeToWrite = sizeof(min) + sizeof(max) + sizeof(compression);
     if (internalDataType == common::PhysicalTypeID::FLOAT ||
         internalDataType == common::PhysicalTypeID::DOUBLE) {
-        sizeToWrite += sizeof(alpMetadata);
+        sizeToWrite += sizeof(ALPMetadata);
     }
-    size_t paddedSizeToWrite = sizeToWrite + (8 - sizeToWrite % 8);
-    if (internalDataType == common::PhysicalTypeID::FLOAT ||
-        internalDataType == common::PhysicalTypeID::DOUBLE) {
-        paddedSizeToWrite += serializedSizeBytes(common::PhysicalTypeID::INT64);
+    for (const auto& childType : getChildTypes(internalDataType)) {
+        sizeToWrite += serializedSizeBytes(childType);
     }
-    return paddedSizeToWrite;
+    return sizeToWrite;
 }
 
 std::vector<std::byte> CompressionMetadata::serializeToBytes(
@@ -105,12 +118,17 @@ std::vector<std::byte> CompressionMetadata::serializeToBytes(
     writeOffset += writeValueToVector(ret, writeOffset, compression);
     if (internalDataType == common::PhysicalTypeID::FLOAT ||
         internalDataType == common::PhysicalTypeID::DOUBLE) {
-        writeOffset += writeValueToVector(ret, writeOffset, alpMetadata);
+        writeOffset += writeValueToVector(ret, writeOffset, floatMetadata());
     }
 
-    for (const auto& child : children) {
-        // TODO fix
-        const auto serializedChild = child.serializeToBytes(common::PhysicalTypeID::INT64);
+    const auto childTypes = getChildTypes(internalDataType);
+    // number of children can be less than the expected if the compression type does not match the
+    // internal data type
+    // e.g. compression type UNCOMPRESSED + internal data type FLOAT
+    // in this case we just write 0s to the child as we won't use it anyways
+    KU_ASSERT(childTypes.size() >= children.size());
+    for (size_t i = 0; i < children.size(); ++i) {
+        const auto serializedChild = children[i].serializeToBytes(childTypes[i]);
         memcpy(ret.data() + writeOffset, serializedChild.data(), serializedChild.size());
         writeOffset += serializedChild.size();
     }
@@ -127,16 +145,16 @@ void CompressionMetadata::deserializeFromBytes(std::span<const std::byte> serial
     readOffset += readValueFromSpan(serializedMetadata, readOffset, compression);
     if (internalDataType == common::PhysicalTypeID::FLOAT ||
         internalDataType == common::PhysicalTypeID::DOUBLE) {
-        readOffset += readValueFromSpan(serializedMetadata, readOffset, alpMetadata);
+        readOffset += readValueFromSpan(serializedMetadata, readOffset, floatMetadata());
     }
 
-    children.resize(getChildCount(internalDataType),
+    const auto childTypes = getChildTypes(internalDataType);
+    children.resize(childTypes.size(),
         CompressionMetadata{StorageValue(), StorageValue(), CompressionType::CONSTANT});
-    for (auto& child : children) {
-        // TODO fix
-        const auto serializedChildSize = child.serializedSizeBytes(common::PhysicalTypeID::INT64);
+    for (size_t i = 0; i < childTypes.size(); ++i) {
+        const auto serializedChildSize = children[i].serializedSizeBytes(childTypes[i]);
         const auto serializedChild = serializedMetadata.subspan(readOffset, serializedChildSize);
-        child.deserializeFromBytes(serializedChild, common::PhysicalTypeID::INT64);
+        children[i].deserializeFromBytes(serializedChild, childTypes[i]);
         readOffset += serializedChildSize;
     }
 
@@ -210,10 +228,10 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
                     std::move(nullMask));
             },
             [&](auto) {
-                throw common::StorageException(
-                    "Attempted to read from a column chunk which uses float compression but does "
-                    "not have a supported physical type: " +
-                    PhysicalTypeUtils::toString(physicalType));
+                throw common::StorageException("Attempted to read from a column chunk which "
+                                               "uses float compression but does "
+                                               "not have a supported physical type: " +
+                                               PhysicalTypeUtils::toString(physicalType));
                 return false;
             });
     }
@@ -232,10 +250,10 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
                     std::move(nullMask));
             },
             [&](auto) {
-                throw common::StorageException(
-                    "Attempted to read from a column chunk which uses integer bitpacking but does "
-                    "not have a supported integer physical type: " +
-                    PhysicalTypeUtils::toString(physicalType));
+                throw common::StorageException("Attempted to read from a column chunk which "
+                                               "uses integer bitpacking but does "
+                                               "not have a supported integer physical type: " +
+                                               PhysicalTypeUtils::toString(physicalType));
                 return false;
             });
     }
@@ -277,7 +295,8 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
             return IntegerBitpacking<uint8_t>::numValues(pageSize, *this);
         default: {
             throw common::StorageException(
-                "Attempted to read from a column chunk which uses integer bitpacking but does not "
+                "Attempted to read from a column chunk which uses integer bitpacking but does "
+                "not "
                 "have a supported integer physical type: " +
                 PhysicalTypeUtils::toString(dataType.getPhysicalType()));
         }
@@ -293,7 +312,8 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
         }
         default: {
             throw common::StorageException(
-                "Attempted to read from a column chunk which uses float compression but does not "
+                "Attempted to read from a column chunk which uses float compression but does "
+                "not "
                 "have a supported physical type: " +
                 PhysicalTypeUtils::toString(dataType.getPhysicalType()));
         }
@@ -309,9 +329,20 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     }
 }
 
+std::vector<common::PhysicalTypeID> CompressionMetadata::getChildTypes(
+    common::PhysicalTypeID internalDataType) {
+    if (internalDataType == common::PhysicalTypeID::DOUBLE ||
+        internalDataType == common::PhysicalTypeID::FLOAT) {
+        return {PhysicalTypeID::INT64};
+    } else {
+        return {};
+    }
+}
+
 std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChunkData& chunk) {
     switch (chunk.getDataType().getPhysicalType()) {
-    // Only values that can fit in the CompressionMetadata's data field can use constant compression
+    // Only values that can fit in the CompressionMetadata's data field can use constant
+    // compression
     case PhysicalTypeID::BOOL: {
         if (chunk.getCapacity() == 0) {
             return std::optional(
@@ -364,6 +395,22 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     }
 }
 
+uint64_t Uncompressed::numValues(uint64_t dataSize, const common::LogicalType& logicalType) {
+    uint32_t numBytesPerValue = 0;
+    switch (logicalType.getLogicalTypeID()) {
+    case common::LogicalTypeID::ALP_EXCEPTION_FLOAT:
+        numBytesPerValue = EncodeException<float>::sizeBytes();
+        break;
+    case common::LogicalTypeID::ALP_EXCEPTION_DOUBLE:
+        numBytesPerValue = EncodeException<double>::sizeBytes();
+        break;
+    default:
+        numBytesPerValue = getDataTypeSizeInChunk(logicalType);
+        break;
+    }
+    return numBytesPerValue == 0 ? UINT64_MAX : dataSize / numBytesPerValue;
+}
+
 std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) const {
     switch (compression) {
     case CompressionType::UNCOMPRESSED: {
@@ -373,11 +420,14 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
         // TODO maybe update
         uint8_t bitWidth = TypeUtils::visit(
             physicalType,
-            [&]<std::floating_point T>(
-                T) { return IntegerBitpacking<int64_t>::getPackingInfo(getChild(0)).bitWidth; },
+            [&]<std::floating_point T>(T) {
+                return IntegerBitpacking<typename FloatCompression<T>::EncodedType>::getPackingInfo(
+                    getChild(0))
+                    .bitWidth;
+            },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
         return stringFormat("FLOAT_COMPRESSION[{}], {} Exceptions", bitWidth,
-            alpMetadata.exceptionCount);
+            floatMetadata().exceptionCount);
     }
     case CompressionType::INTEGER_BITPACKING: {
         uint8_t bitWidth = TypeUtils::visit(
@@ -401,6 +451,14 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
         KU_UNREACHABLE;
     }
     }
+}
+
+ALPMetadata CompressionMetadata::floatMetadata() const {
+    return std::get<ALPMetadata>(additionalMetadata);
+}
+
+ALPMetadata& CompressionMetadata::floatMetadata() {
+    return std::get<ALPMetadata>(additionalMetadata);
 }
 
 void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffset,
@@ -472,9 +530,9 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
     bool hasNegative;
     T offset = 0;
     uint8_t bitWidth;
-    // Frame of reference encoding is only used when values are either all positive or all negative,
-    // and when we will save at least 1 bit per value.
-    // when the chunk was first compressed
+    // Frame of reference encoding is only used when values are either all positive or all
+    // negative, and when we will save at least 1 bit per value. when the chunk was first
+    // compressed
     if (min > 0 && max > 0 &&
         numeric_utils::bitWidth((U)(max - min)) < numeric_utils::bitWidth((U)max)) {
         offset = min;
@@ -486,8 +544,8 @@ BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& m
         bitWidth = static_cast<uint8_t>(numeric_utils::bitWidth((U)(min - max))) + 1;
         // This is somewhat suboptimal since we know that the values are all negative
         // We could use an offset equal to the minimum, but values which are all negative are
-        // probably going to grow in the negative direction, leading to many re-compressions when
-        // inserting
+        // probably going to grow in the negative direction, leading to many re-compressions
+        // when inserting
         hasNegative = true;
     } else if (min < 0) {
         bitWidth =
@@ -628,7 +686,8 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     KU_ASSERT(maxReadIndex <= CHUNK_SIZE);
 
     for (size_t i = pos; i < maxReadIndex; i++) {
-        // Always use unsigned version of unpacker to prevent sign-bit filling when right shifting
+        // Always use unsigned version of unpacker to prevent sign-bit filling when right
+        // shifting
         U& out = reinterpret_cast<U*>(dst)[i - pos];
         BitpackingUtils<U>::unpackSingle(chunkStart, &out, header.bitWidth, i);
 
@@ -681,8 +740,9 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         numValuesToCompress * bitWidth / 8 + (numValuesToCompress * bitWidth % 8 != 0);
     KU_ASSERT(dstBufferSize >= CHUNK_SIZE);
     KU_ASSERT(dstBufferSize >= sizeToCompress);
-    // This might overflow the source buffer if there are fewer values remaining than the chunk size
-    // so we stop at the end of the last full chunk and use a temporary array to avoid overflow.
+    // This might overflow the source buffer if there are fewer values remaining than the chunk
+    // size so we stop at the end of the last full chunk and use a temporary array to avoid
+    // overflow.
     if (info.offset == 0) {
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
