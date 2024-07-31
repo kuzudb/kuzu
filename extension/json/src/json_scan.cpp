@@ -81,8 +81,8 @@ struct JsonBindData : public ScanBindData {
         auto result = getIdx(s, hash.first);
         if (result != -1) {
             return result;
-        } else
-            return getIdx(s, hash.second);
+        }
+        return getIdx(s, hash.second);
     }
 
 private:
