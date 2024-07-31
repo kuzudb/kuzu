@@ -34,7 +34,11 @@ public:
 
     virtual std::string getInputDir() = 0;
 
-    void TearDown() override { removeDir(databasePath); }
+    void TearDown() override {
+        if (!inMemory) {
+            removeDir(databasePath);
+        }
+    }
 
     void createDBAndConn();
 
@@ -80,9 +84,12 @@ protected:
     }
 
 private:
-    void setDatabasePath() { databasePath = TestHelper::getTempDir(getTestGroupAndName()); }
+    void setDatabasePath() {
+        databasePath = inMemory ? "" : TestHelper::getTempDir(getTestGroupAndName());
+    }
 
 public:
+    bool inMemory = true;
     std::string databasePath;
     std::unique_ptr<main::SystemConfig> systemConfig;
     std::unique_ptr<main::Database> database;

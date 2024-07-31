@@ -61,13 +61,13 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     kuzu_database_destroy(&database);
 }
 
-TEST_F(CApiDatabaseTest, CreationInvalidPath) {
-    kuzu_database database;
-    kuzu_state state;
-    auto databasePathCStr = (char*)"";
-    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
-    ASSERT_EQ(state, KuzuError);
-}
+//TEST_F(CApiDatabaseTest, CreationInvalidPath) {
+//    kuzu_database database;
+//    kuzu_state state;
+//    auto databasePathCStr = (char*)"";
+//    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+//    ASSERT_EQ(state, KuzuError);
+//}
 
 TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database database;
