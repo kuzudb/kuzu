@@ -89,6 +89,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "re2",
         "brotli",
         "serd",
+        "alp",
         "fastpfor",
         "miniparquet",
         "zstd",
