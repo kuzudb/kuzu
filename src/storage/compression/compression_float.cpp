@@ -112,16 +112,15 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     common::offset_t srcOffset, uint8_t* dstBuffer, common::offset_t dstOffset,
     common::offset_t numValues, const CompressionMetadata& metadata,
     const common::NullMask* nullMask) const {
-    // RUNTIME_CHECK(CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};)
-    // KU_ASSERT(numValues ==
-    //           static_cast<common::offset_t>(
-    //               std::ranges::count_if(std::ranges::iota_view{srcOffset, srcOffset + numValues},
-    //                   [&localUpdateState, srcBuffer, &metadata, nullMask](common::offset_t i) {
-    //                       auto value = reinterpret_cast<const T*>(srcBuffer)[i];
-    //                       return (nullMask && nullMask->isNull(i)) ||
-    //                              canUpdateInPlace(std::span(&value, 1), metadata,
-    //                              localUpdateState);
-    //                   })));
+    RUNTIME_CHECK(CompressionMetadata::InPlaceUpdateLocalState localUpdateState{});
+    KU_ASSERT(numValues ==
+              static_cast<common::offset_t>(
+                  std::ranges::count_if(std::ranges::iota_view{srcOffset, srcOffset + numValues},
+                      [&localUpdateState, srcBuffer, &metadata, nullMask](common::offset_t i) {
+                          auto value = reinterpret_cast<const T*>(srcBuffer)[i];
+                          return (nullMask && nullMask->isNull(i)) ||
+                                 canUpdateInPlace(std::span(&value, 1), metadata, localUpdateState);
+                      })));
 
     std::vector<EncodedType> integerEncodedValues(numValues);
     for (size_t i = 0; i < numValues; ++i) {
