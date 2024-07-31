@@ -4,7 +4,6 @@
 #include <random>
 
 #include "common/exception/test.h"
-#include "common/file_system/local_file_system.h"
 #include "common/random_engine.h"
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
@@ -63,7 +62,7 @@ void SplitMultiCopyRandom::init() {
     genSeedIfNecessary();
 
     const std::string tmpDir = TestHelper::getTempDir("multi_copy");
-    auto totalFilePath = LocalFileSystem::joinPath(tmpDir, tableName + ".csv");
+    auto totalFilePath = TestHelper::joinPath(tmpDir, tableName + ".csv");
     std::string loadQuery = "COPY (LOAD FROM {} RETURN *) TO '{}';";
     loadQuery = stringFormat(loadQuery, source, totalFilePath);
     spdlog::info("QUERY: {}", loadQuery);
@@ -77,7 +76,7 @@ void SplitMultiCopyRandom::init() {
     for (auto& endLine : lineEnds) {
         lengths.push_back(std::to_string(endLine - lineIdx));
         auto currFilePath =
-            LocalFileSystem::joinPath(tmpDir, tableName + std::to_string(lengths.size()) + ".csv");
+            TestHelper::joinPath(tmpDir, tableName + std::to_string(lengths.size()) + ".csv");
         std::ofstream outfile(currFilePath);
         if (!outfile.is_open()) {
             throw TestException(
