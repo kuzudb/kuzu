@@ -80,8 +80,8 @@ void SplitMultiCopyRandom::init() {
             outfile << line << "\n";
         }
     }
-    spdlog::info("RANDOM MULTI COPY: split {} lines into {} chunks of {} lines", 
-        lineEnds[lineEnds.size() - 1], numSplit,  StringUtils::join(lengths, ", "));
+    spdlog::info("RANDOM MULTI COPY: split {} lines into {} chunks of {} lines",
+        lineEnds[lineEnds.size() - 1], numSplit, StringUtils::join(lengths, ", "));
 }
 
 void SplitMultiCopyRandom::run() {
