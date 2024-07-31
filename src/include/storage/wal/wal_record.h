@@ -73,7 +73,7 @@ struct CommitRecord final : WALRecord {
 };
 
 struct RollbackRecord final : WALRecord {
-    RollbackRecord() : WALRecord{} {}
+    RollbackRecord() : WALRecord{WALRecordType::ROLLBACK_RECORD} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RollbackRecord> deserialize(common::Deserializer& deserializer);
