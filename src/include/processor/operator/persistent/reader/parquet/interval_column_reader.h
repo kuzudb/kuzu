@@ -32,8 +32,8 @@ public:
               std::move(type), schema, fileIdx, maxDefine, maxRepeat){};
 
 protected:
-    void dictionary(const std::shared_ptr<ResizeableBuffer>& dictionary_data,
-        uint64_t num_entries) override;
+    void dictionary(const std::shared_ptr<ResizeableBuffer>& dictionaryData,
+        uint64_t numEntries) override;
 };
 
 } // namespace processor

@@ -15,6 +15,7 @@
 #include "processor/operator/persistent/reader/parquet/parquet_timestamp.h"
 #include "processor/operator/persistent/reader/parquet/string_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/templated_column_reader.h"
+#include "processor/operator/persistent/reader/parquet/uuid_column_reader.h"
 #include "snappy/snappy.h"
 #include "zstd.h"
 
@@ -257,7 +258,9 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     case common::LogicalTypeID::TIMESTAMP:
         return createTimestampReader(reader, std::move(type), schema, fileIdx, maxDefine,
             maxRepeat);
-    // TODO(kebing): timestamp
+    case common::LogicalTypeID::UUID:
+        return std::make_unique<UUIDColumnReader>(reader, std::move(type), schema, fileIdx,
+            maxDefine, maxRepeat);
     default:
         KU_UNREACHABLE;
     }

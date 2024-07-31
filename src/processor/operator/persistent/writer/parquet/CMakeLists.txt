@@ -8,7 +8,8 @@ add_library(kuzu_processor_operator_parquet_writer
         string_column_writer.cpp
         list_column_writer.cpp
         parquet_writer.cpp
-        parquet_rle_bp_encoder.cpp)
+        parquet_rle_bp_encoder.cpp
+        uuid_column_writer.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_parquet_writer>
