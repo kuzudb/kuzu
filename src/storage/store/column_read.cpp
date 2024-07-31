@@ -6,6 +6,7 @@
 #include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
+#include <concepts>
 
 namespace kuzu::storage {
 
@@ -21,6 +22,54 @@ template<std::floating_point T>
 size_t numPagesFromExceptions(size_t exceptionCount) {
     return ceilDiv(static_cast<uint64_t>(exceptionCount),
         BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
+}
+
+template<typename T, typename InputType, typename ElementType>
+concept WriteToPageInput = requires(T obj, InputType input, offset_t offset, ElementType element) {
+    { obj.getValue(offset) } -> std::same_as<ElementType>;
+    { obj.setValue(offset, element) };
+    { obj.getData() } -> std::same_as<InputType>;
+} && std::is_constructible_v<T, InputType, size_t>;
+
+template<std::floating_point T>
+struct WriteToBuffer {
+    WriteToBuffer(const uint8_t* inputBuffer, size_t numValues)
+        : inputBuffer(inputBuffer),
+          outputBuffer(std::make_unique<uint8_t[]>(numValues * sizeof(T))) {}
+    T getValue(offset_t offset) const { return reinterpret_cast<const T*>(inputBuffer)[offset]; }
+    void setValue(offset_t offset, T element) {
+        reinterpret_cast<T*>(outputBuffer.get())[offset] = element;
+    }
+    const uint8_t* getData() const { return outputBuffer.get(); }
+
+    const uint8_t* inputBuffer;
+    std::unique_ptr<uint8_t[]> outputBuffer;
+};
+static_assert(WriteToPageInput<WriteToBuffer<double>, const uint8_t*, double>);
+static_assert(WriteToPageInput<WriteToBuffer<float>, const uint8_t*, float>);
+
+template<std::floating_point T>
+struct WriteToVector {
+    explicit WriteToVector(ValueVector* inputVec, size_t /*numValues*/)
+        : inputVec(inputVec),
+          outputVec(std::is_same_v<double, T> ? LogicalTypeID::DOUBLE : LogicalTypeID::FLOAT) {}
+    T getValue(offset_t offset) const { return inputVec->getValue<T>(offset); }
+    void setValue(offset_t offset, T element) { outputVec.setValue(offset, element); }
+    ValueVector* getData() { return &outputVec; }
+
+    ValueVector* inputVec;
+    ValueVector outputVec;
+};
+static_assert(WriteToPageInput<WriteToVector<double>, ValueVector*, double>);
+static_assert(WriteToPageInput<WriteToVector<float>, ValueVector*, float>);
+
+template<typename InputType, std::floating_point T>
+decltype(auto) getWriteToPageInput(InputType input, size_t numValues) {
+    if constexpr (std::is_same_v<InputType, const uint8_t*>) {
+        return WriteToBuffer<T>(input, numValues);
+    } else {
+        return WriteToVector<T>(input, numValues);
+    }
 }
 
 template<std::floating_point T>
@@ -322,7 +371,9 @@ private:
         const ColumnChunkMetadata& metadata = state.metadata;
 
         auto* exceptionChunk = state.getExceptionChunk<T>();
-        std::vector<T> valuesToWrite(numValues);
+
+        auto writeToPageInput = getWriteToPageInput<InputType, T>(data, numValues);
+
         const auto bitpackHeader = FloatCompression<T>::getBitpackInfo(state.metadata.compMeta);
         offset_t curExceptionIdx = exceptionChunk->findFirstExceptionAtOrPastOffset(offsetInChunk);
         for (size_t i = 0; i < numValues; ++i) {
@@ -333,14 +384,14 @@ private:
                 continue;
             }
 
-            const T newValue = getValueFromInput(data, readOffset);
+            const T newValue = writeToPageInput.getValue(readOffset);
             const int64_t encodedValue = alp::AlpEncode<T>::encode_value(newValue,
                 metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
             const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue,
                 metadata.compMeta.alpMetadata.fac, metadata.compMeta.alpMetadata.exp);
 
             bool newValueIsException = newValue != decodedValue;
-            valuesToWrite[i] = newValueIsException ? bitpackHeader.offset : newValue;
+            writeToPageInput.setValue(i, newValueIsException ? bitpackHeader.offset : newValue);
 
             // if the previous value was an exception
             // either overwrite it (if the new value is also an exception) or remove it
@@ -362,8 +413,8 @@ private:
             }
         }
 
-        defaultReader->writeValuesToPage(state, offsetInChunk,
-            reinterpret_cast<InputType>(valuesToWrite.data()), 0, numValues, writeFunc, nullMask);
+        defaultReader->writeValuesToPage(state, offsetInChunk, writeToPageInput.getData(), 0,
+            numValues, writeFunc, nullMask);
     }
 
     std::unique_ptr<DefaultColumnReadWriter> defaultReader;
@@ -439,6 +490,7 @@ void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
         });
     std::memset(exceptionBuffer.get() + finalizedExceptionCount * EncodeException<T>::sizeBytes(),
         0, (exceptionCount - finalizedExceptionCount) * EncodeException<T>::sizeBytes());
+    emptyMask.setNullFromRange(0, finalizedExceptionCount, false);
     emptyMask.setNullFromRange(finalizedExceptionCount, (exceptionCount - finalizedExceptionCount),
         true);
     exceptionCount = finalizedExceptionCount;

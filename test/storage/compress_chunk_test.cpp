@@ -354,7 +354,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
-    std::vector<double> src(10 * 1024, 5.6);
+    std::vector<double> src(256, 5.6);
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
@@ -368,11 +368,21 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
             src[cpyOffset + i] = 5.7;
         }
 
+        common::ValueVector in{LogicalType::FLOAT()};
+        for (size_t i = 0; i < src.size(); ++i) {
+            in.setValue<double>(i, src[i]);
+        }
+
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
-            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
-        reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
-            cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
+        for (size_t i = cpyOffset; i < cpyOffset + numValuesToSet; ++i) {
+            KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), i, 1,
+                dataType.getPhysicalType(), localUpdateState));
+            reader->writeValueToPageFromVector(state, i, &in, i,
+                WriteCompressedValuesToPage(dataType));
+
+            // finalize after each update so that we can still update in place
+            state.getExceptionChunk<double>()->finalizeAndFlushToDisk(reader, state);
+        }
     });
 }
 
