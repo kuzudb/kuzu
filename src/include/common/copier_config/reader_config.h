@@ -17,7 +17,11 @@ enum class FileType : uint8_t {
     TURTLE = 4,   // Terse triples http://www.w3.org/TR/turtle
     NQUADS = 5,   // Line-based quads http://www.w3.org/TR/n-quads/
     NTRIPLES = 6, // Line-based triples http://www.w3.org/TR/n-triples/
-    JSON = 7,
+};
+
+struct FileTypeInfo {
+    FileType fileType;
+    std::string fileTypeStr;
 };
 
 struct FileTypeUtils {
@@ -27,20 +31,20 @@ struct FileTypeUtils {
 };
 
 struct ReaderConfig {
-    FileType fileType = FileType::UNKNOWN;
+    FileTypeInfo fileTypeInfo;
     std::vector<std::string> filePaths;
     std::unordered_map<std::string, Value> options;
 
-    ReaderConfig() = default;
-    ReaderConfig(FileType fileType, std::vector<std::string> filePaths)
-        : fileType{fileType}, filePaths{std::move(filePaths)} {}
+    ReaderConfig() : fileTypeInfo{FileType::UNKNOWN, ""} {}
+    ReaderConfig(FileTypeInfo fileTypeInfo, std::vector<std::string> filePaths)
+        : fileTypeInfo{std::move(fileTypeInfo)}, filePaths{std::move(filePaths)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ReaderConfig);
 
-    inline uint32_t getNumFiles() const { return filePaths.size(); }
+    uint32_t getNumFiles() const { return filePaths.size(); }
 
 private:
     ReaderConfig(const ReaderConfig& other)
-        : fileType{other.fileType}, filePaths{other.filePaths}, options{other.options} {}
+        : fileTypeInfo{other.fileTypeInfo}, filePaths{other.filePaths}, options{other.options} {}
 };
 
 } // namespace common

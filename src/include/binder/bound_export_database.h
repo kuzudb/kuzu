@@ -19,18 +19,18 @@ struct ExportedTableData {
 
 class BoundExportDatabase final : public BoundStatement {
 public:
-    BoundExportDatabase(std::string filePath, common::FileType fileType,
+    BoundExportDatabase(std::string filePath, common::FileTypeInfo fileTypeInfo,
         std::vector<ExportedTableData> exportData,
         std::unordered_map<std::string, common::Value> csvOption)
         : BoundStatement{common::StatementType::EXPORT_DATABASE,
               BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
-          boundFileInfo(fileType, std::vector{std::move(filePath)}) {
+          boundFileInfo(std::move(fileTypeInfo), std::vector{std::move(filePath)}) {
         boundFileInfo.options = std::move(csvOption);
     }
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
-    common::FileType getFileType() const { return boundFileInfo.fileType; }
+    common::FileType getFileType() const { return boundFileInfo.fileTypeInfo.fileType; }
     std::unordered_map<std::string, common::Value> getExportOptions() const {
         return boundFileInfo.options;
     }

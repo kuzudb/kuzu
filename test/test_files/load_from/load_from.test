@@ -60,7 +60,7 @@ Greg|0|1994-01-12
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0|1994-01-12
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/rdf/taxonomy.ttl" RETURN COUNT(*)
 ---- error
-Binder exception: Cannot load from file type TURTLE.
+Binder exception: Cannot load from file type ttl.
 -STATEMENT LOAD WITH HEADERS (a INT64, b INT64[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet" RETURN *;
 ---- error
 Binder exception: a has data type STRING but INT64 was expected.

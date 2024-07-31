@@ -58,7 +58,7 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
                 copyFromStatement->getSource())
                                  ->filePaths;
             KU_ASSERT(filePaths.size() == 1);
-            auto fileType = bindFileType(filePaths);
+            auto fileTypeInfo = bindFileTypeInfo(filePaths);
             auto copyFilePath = boundFilePath + "/" + filePaths[0];
             std::string columns;
             std::string delimiter = "";
@@ -70,7 +70,7 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
                 }
             }
             std::string query;
-            if (fileType == FileType::CSV) {
+            if (fileTypeInfo.fileType == FileType::CSV) {
                 auto csvConfig = CSVReaderConfig::construct(
                     bindParsingOptions(copyFromStatement->getParsingOptionsRef()));
                 query = stringFormat("COPY {} ( {} ) FROM \"{}\" {};",
