@@ -2,7 +2,6 @@
 
 #include "common/assert.h"
 #include "common/exception/binder.h"
-#include "common/exception/copy.h"
 
 namespace kuzu {
 namespace common {
