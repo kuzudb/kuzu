@@ -18,13 +18,19 @@ namespace {
 }
 
 template<std::floating_point T>
-class FloatColumnReader;
+size_t numPagesFromExceptions(size_t exceptionCount) {
+    return ceilDiv(static_cast<uint64_t>(exceptionCount),
+        BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
+}
 
-class DefaultColumnReader : public ColumnReader {
+template<std::floating_point T>
+class FloatColumnReadWriter;
+
+class DefaultColumnReadWriter : public ColumnReadWriter {
 public:
-    DefaultColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+    DefaultColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile)
-        : ColumnReader(dbFileID, dataFH, bufferManager, shadowFile) {}
+        : ColumnReadWriter(dbFileID, dataFH, bufferManager, shadowFile) {}
 
     void readCompressedValueToPage(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, uint8_t* result, uint32_t offsetInResult,
@@ -145,13 +151,13 @@ public:
 };
 
 template<std::floating_point T>
-class FloatColumnReader : public ColumnReader {
+class FloatColumnReadWriter : public ColumnReadWriter {
 public:
-    FloatColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+    FloatColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile)
-        : ColumnReader(dbFileID, dataFH, bufferManager, shadowFile),
-          defaultReader(
-              std::make_unique<DefaultColumnReader>(dbFileID, dataFH, bufferManager, shadowFile)) {}
+        : ColumnReadWriter(dbFileID, dataFH, bufferManager, shadowFile),
+          defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, bufferManager,
+              shadowFile)) {}
 
     void readCompressedValueToPage(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, uint8_t* result, uint32_t offsetInResult,
@@ -358,13 +364,13 @@ private:
             reinterpret_cast<InputType>(valuesToWrite.data()), 0, numValues, writeFunc, nullMask);
     }
 
-    std::unique_ptr<DefaultColumnReader> defaultReader;
+    std::unique_ptr<DefaultColumnReadWriter> defaultReader;
 };
 
 } // namespace
 
 template<std::floating_point T>
-InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReader* columnReader,
+InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReadWriter* columnReader,
     Transaction* transaction, const ChunkState& state)
     : exceptionCount(state.metadata.compMeta.alpMetadata.exceptionCount),
       finalizedExceptionCount(exceptionCount),
@@ -380,10 +386,9 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReader* columnReader,
         exceptionCapacity);
     KU_ASSERT(exceptionCursor.elemPosInPage == 0);
 
-    const size_t numExceptionPages = ceilDiv((uint64_t)exceptionCapacity,
-        BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
-    size_t remainingBytesToCopy = exceptionCapacity * EncodeException<T>::sizeBytes();
-    for (size_t i = 0; i < numExceptionPages; ++i) {
+    const size_t numPagesToCopy = numPagesFromExceptions<T>(getExceptionCount());
+    size_t remainingBytesToCopy = getExceptionCount() * EncodeException<T>::sizeBytes();
+    for (size_t i = 0; i < numPagesToCopy; ++i) {
         static constexpr size_t exceptionBytesPerPage = BufferPoolConstants::PAGE_4KB_SIZE /
                                                         EncodeException<T>::sizeBytes() *
                                                         EncodeException<T>::sizeBytes();
@@ -400,45 +405,54 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReader* columnReader,
 }
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReader* columnReader,
+void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReadWriter* columnReader,
     ChunkState& state) {
+    finalize(state);
+    flushToDisk(columnReader, state);
+}
+
+template<std::floating_point T>
+void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
     // removes holes + sorts exception chunk
-    size_t actualExceptionCount = 0;
+    finalizedExceptionCount = 0;
     for (size_t i = 0; i < exceptionCount; ++i) {
         if (!emptyMask.isNull(i)) {
-            ++actualExceptionCount;
-            if (actualExceptionCount - 1 == i) {
+            ++finalizedExceptionCount;
+            if (finalizedExceptionCount - 1 == i) {
                 continue;
             }
-            writeException(getExceptionAt(i), actualExceptionCount - 1);
+            writeException(getExceptionAt(i), finalizedExceptionCount - 1);
         }
     }
 
-    KU_ASSERT(actualExceptionCount <= state.metadata.compMeta.alpMetadata.exceptionCapacity);
-    state.metadata.compMeta.alpMetadata.exceptionCount = actualExceptionCount;
+    KU_ASSERT(finalizedExceptionCount <= state.metadata.compMeta.alpMetadata.exceptionCapacity);
+    state.metadata.compMeta.alpMetadata.exceptionCount = finalizedExceptionCount;
 
     using ExceptionWord = std::array<std::byte, EncodeException<T>::sizeBytes()>;
     ExceptionWord* exceptionWordBuffer = reinterpret_cast<ExceptionWord*>(exceptionBuffer.get());
-    std::sort(exceptionWordBuffer, exceptionWordBuffer + actualExceptionCount,
+    std::sort(exceptionWordBuffer, exceptionWordBuffer + finalizedExceptionCount,
         [](ExceptionWord& a, ExceptionWord& b) {
             return ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&a)}.getValue() <
                    ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&b)}.getValue();
         });
-    std::memset(exceptionBuffer.get() + actualExceptionCount * EncodeException<T>::sizeBytes(), 0,
-        (exceptionCount - actualExceptionCount) * EncodeException<T>::sizeBytes());
-    emptyMask.setNullFromRange(actualExceptionCount, (exceptionCount - actualExceptionCount), true);
-    exceptionCount = actualExceptionCount;
-    finalizedExceptionCount = exceptionCount;
+    std::memset(exceptionBuffer.get() + finalizedExceptionCount * EncodeException<T>::sizeBytes(),
+        0, (exceptionCount - finalizedExceptionCount) * EncodeException<T>::sizeBytes());
+    emptyMask.setNullFromRange(finalizedExceptionCount, (exceptionCount - finalizedExceptionCount),
+        true);
+    exceptionCount = finalizedExceptionCount;
+}
+
+template<std::floating_point T>
+void InMemoryExceptionChunk<T>::flushToDisk(ColumnReadWriter* columnReader, ChunkState& state) {
 
     auto exceptionCursor = getExceptionPageCursor(state.metadata,
         columnReader->getPageCursorForOffsetInGroup(0, state.metadata.pageIdx,
             state.numValuesPerPage),
         exceptionCapacity);
 
-    const size_t numExceptionPages = ceilDiv((uint64_t)getExceptionCount(),
-        BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
+    const size_t numPagesToFlush = numPagesFromExceptions<T>(exceptionCapacity);
     size_t remainingBytesToCopy = exceptionCapacity * EncodeException<T>::sizeBytes();
-    for (size_t i = 0; i < numExceptionPages; ++i) {
+    for (size_t i = 0; i < numPagesToFlush; ++i) {
         static constexpr size_t exceptionBytesPerPage = BufferPoolConstants::PAGE_4KB_SIZE /
                                                         EncodeException<T>::sizeBytes() *
                                                         EncodeException<T>::sizeBytes();
@@ -447,13 +461,19 @@ void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReader* columnReade
             [this, i, remainingBytesToCopy](auto frame, auto /*offsetInPage*/) {
                 std::memcpy(frame, exceptionBuffer.get() + i * exceptionBytesPerPage,
                     std::min(exceptionBytesPerPage, remainingBytesToCopy));
-                // TODO: zero remaining bytes
             });
 
         remainingBytesToCopy -= exceptionBytesPerPage;
         KU_ASSERT(remainingBytesToCopy >= 0);
         exceptionCursor.nextPage();
     }
+}
+
+template<std::floating_point T>
+void InMemoryExceptionChunk<T>::clear() {
+    emptyMask.setAllNull();
+    finalizedExceptionCount = 0;
+    exceptionCount = 0;
 }
 
 template<std::floating_point T>
@@ -513,8 +533,7 @@ template<std::floating_point T>
 PageCursor InMemoryExceptionChunk<T>::getExceptionPageCursor(const ColumnChunkMetadata& metadata,
     PageCursor pageBaseCursor, size_t exceptionCapacity) {
     // TODO fix
-    const size_t numExceptionPages = ceilDiv((uint64_t)exceptionCapacity,
-        BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
+    const size_t numExceptionPages = numPagesFromExceptions<T>(exceptionCapacity);
     const size_t exceptionPageOffset = metadata.numPages - numExceptionPages;
     KU_ASSERT(exceptionPageOffset == (page_idx_t)exceptionPageOffset);
     return {pageBaseCursor.pageIdx + (page_idx_t)exceptionPageOffset, 0};
@@ -528,26 +547,27 @@ size_t InMemoryExceptionChunk<T>::getExceptionCount() const {
 template class InMemoryExceptionChunk<float>;
 template class InMemoryExceptionChunk<double>;
 
-std::unique_ptr<ColumnReader> ColumnReaderFactory::createColumnReader(
+std::unique_ptr<ColumnReadWriter> ColumnReaderFactory::createColumnReader(
     common::PhysicalTypeID dataType, DBFileID dbFileID, BMFileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile) {
     switch (dataType) {
     case common::PhysicalTypeID::FLOAT:
-        return std::make_unique<FloatColumnReader<float>>(dbFileID, dataFH, bufferManager,
+        return std::make_unique<FloatColumnReadWriter<float>>(dbFileID, dataFH, bufferManager,
             shadowFile);
     case common::PhysicalTypeID::DOUBLE:
-        return std::make_unique<FloatColumnReader<double>>(dbFileID, dataFH, bufferManager,
+        return std::make_unique<FloatColumnReadWriter<double>>(dbFileID, dataFH, bufferManager,
             shadowFile);
     default:
-        return std::make_unique<DefaultColumnReader>(dbFileID, dataFH, bufferManager, shadowFile);
+        return std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, bufferManager,
+            shadowFile);
     }
 }
 
-ColumnReader::ColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
-    ShadowFile* shadowFile)
+ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH,
+    BufferManager* bufferManager, ShadowFile* shadowFile)
     : dbFileID(dbFileID), dataFH(dataFH), bufferManager(bufferManager), shadowFile(shadowFile) {}
 
-void ColumnReader::readFromPage(Transaction* transaction, page_idx_t pageIdx,
+void ColumnReadWriter::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) {
     // For constant compression, call read on a nullptr since there is no data on disk and
     // decompression only requires metadata
@@ -559,7 +579,7 @@ void ColumnReader::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 
-void ColumnReader::updatePageWithCursor(PageCursor cursor,
+void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
     bool insertingNewPage = false;
     if (cursor.pageIdx == INVALID_PAGE_IDX) {
@@ -574,14 +594,14 @@ void ColumnReader::updatePageWithCursor(PageCursor cursor,
         *shadowFile, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
-PageCursor ColumnReader::getPageCursorForOffsetInGroup(offset_t offsetInChunk,
+PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChunk,
     page_idx_t groupPageIdx, uint64_t numValuesPerPage) const {
     auto pageCursor = PageUtils::getPageCursorForPos(offsetInChunk, numValuesPerPage);
     pageCursor.pageIdx += groupPageIdx;
     return pageCursor;
 }
 
-std::pair<common::offset_t, PageCursor> ColumnReader::getOffsetAndCursor(
+std::pair<common::offset_t, PageCursor> ColumnReadWriter::getOffsetAndCursor(
     common::offset_t nodeOffset, const ChunkState& state) {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state.metadata.pageIdx,

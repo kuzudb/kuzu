@@ -10,7 +10,7 @@ class Transaction;
 }
 namespace storage {
 
-class ColumnReader;
+class ColumnReadWriter;
 class ShadowFile;
 struct ColumnChunkMetadata;
 struct ChunkState;
@@ -37,21 +37,22 @@ using write_values_func_t = write_values_to_page_func_t<const uint8_t*, const co
 using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
 struct ColumnReaderFactory {
-    static std::unique_ptr<ColumnReader> createColumnReader(common::PhysicalTypeID dataType,
+    static std::unique_ptr<ColumnReadWriter> createColumnReader(common::PhysicalTypeID dataType,
         DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile);
 };
 
 // In memory representation of ALP exception chunk
 // NOTE: read and write operations on this chunk cannot both be performed on this
-// After write operations are performed, you must call flushToDisk() before reading again
+// Additionally, each exceptionIdx can be updated at most once before finalizing
+// After such operations are performed, you must call finalizeAndFlushToDisk() before reading again
 template<std::floating_point T>
 class InMemoryExceptionChunk {
 public:
-    explicit InMemoryExceptionChunk(ColumnReader* columnReader,
+    explicit InMemoryExceptionChunk(ColumnReadWriter* columnReader,
         transaction::Transaction* transaction, const ChunkState& state);
 
-    void finalizeAndFlushToDisk(ColumnReader* columnReader, ChunkState& state);
+    void finalizeAndFlushToDisk(ColumnReadWriter* columnReader, ChunkState& state);
 
     void addException(EncodeException<T> exception);
 
@@ -64,11 +65,16 @@ public:
 
     size_t getExceptionCount() const;
 
+    void clear();
+
 private:
     void writeException(EncodeException<T> exception, size_t exceptionIdx);
 
     static PageCursor getExceptionPageCursor(const ColumnChunkMetadata& metadata,
         PageCursor pageBaseCursor, size_t exceptionCapacity);
+
+    void finalize(ChunkState& state);
+    void flushToDisk(ColumnReadWriter* columnReader, ChunkState& state);
 
     size_t exceptionCount;
     size_t finalizedExceptionCount;
@@ -78,12 +84,12 @@ private:
     common::NullMask emptyMask;
 };
 
-class ColumnReader {
+class ColumnReadWriter {
 public:
-    ColumnReader(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+    ColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile);
 
-    virtual ~ColumnReader() = default;
+    virtual ~ColumnReadWriter() = default;
 
     virtual void readCompressedValueToPage(transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,

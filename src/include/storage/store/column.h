@@ -148,7 +148,7 @@ protected:
     batch_lookup_func_t batchLookupFunc;
     bool enableCompression;
 
-    std::unique_ptr<ColumnReader> columnReader;
+    std::unique_ptr<ColumnReadWriter> columnReader;
 };
 
 class InternalIDColumn final : public Column {
