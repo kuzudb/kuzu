@@ -415,6 +415,30 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
     });
 }
 
+TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
+    std::vector<double> src(256, 5.6);
+    src[1] = 123456789012.56;
+    for (size_t i = 11; i < src.size(); i += 10) {
+        src[i] = src[i - 10] + 7890123.567;
+    }
+
+    testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
+                             ChunkState& state, const LogicalType& dataType) {
+        static constexpr size_t numValuesToSet = 25;
+        const size_t cpyOffset = 1;
+        src[cpyOffset] = 10101010100101;
+        for (size_t i = 1; i < numValuesToSet; ++i) {
+            src[i * cpyOffset] = src[(i - 1 * cpyOffset)] + 1;
+        }
+
+        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+            numValuesToSet, dataType.getPhysicalType(), localUpdateState));
+        reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
+            cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
+    });
+}
+
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
     std::vector<double> src(10 * 1024, 5.6);
     src[1] = 123456789012.56;
@@ -439,7 +463,8 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
-    std::vector<double> src(11 * 1024, 5.6);
+    // numValues not not fit in uint16
+    std::vector<double> src(1 << 17, 5.6);
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
@@ -495,10 +520,6 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
             cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
     });
 }
-
-// TODO: tests to add:
-// - numExceptions doesn't fit in uint16
-// - insert/remove exception at same pos in chunk multiple times before finalize
 
 } // namespace testing
 } // namespace kuzu
