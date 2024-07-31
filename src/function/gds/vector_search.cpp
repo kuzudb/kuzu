@@ -270,7 +270,7 @@ public:
     }
 
     void searchNNOnUpperLevel(ExecutionContext* context, VectorIndexHeader* header,
-        const float* query, DistanceComputer* dc, vector_id_t& nearest, double& nearestDist) {
+        const float* query, DC<float, uint8_t>* dc, vector_id_t& nearest, double& nearestDist) {
         while (true) {
             vector_id_t prev_nearest = nearest;
             size_t begin, end;
@@ -281,8 +281,8 @@ public:
                     break;
                 }
                 double dist;
-                auto embed = getEmbedding(context, header->getActualId(neighbor));
-                dc->computeDistance(embed, &dist);
+                auto embed = getCompressedEmbedding(context, header->getActualId(neighbor));
+                dc->compute_distance(query, embed, &dist);
                 if (dist < nearestDist) {
                     nearest = neighbor;
                     nearestDist = dist;
@@ -335,18 +335,18 @@ public:
     }
 
     void findEntrypointUsingUpperLayer(ExecutionContext* context, VectorIndexHeader* header,
-        const float* query, DistanceComputer* dc, vector_id_t& entrypoint,
+        const float* query, DC<float, uint8_t>* dc, vector_id_t& entrypoint,
         double* entrypointDist) {
         uint8_t entrypointLevel;
         header->getEntrypoint(entrypoint, entrypointLevel);
         if (entrypointLevel == 1) {
-            auto embedding = getEmbedding(context, header->getActualId(entrypoint));
-            dc->computeDistance(embedding, entrypointDist);
+            auto embedding = getCompressedEmbedding(context, header->getActualId(entrypoint));
+            dc->compute_distance(query, embedding, entrypointDist);
             searchNNOnUpperLevel(context, header, query, dc, entrypoint, *entrypointDist);
             entrypoint = header->getActualId(entrypoint);
         } else {
-            auto embedding = getEmbedding(context, entrypoint);
-            dc->computeDistance(embedding, entrypointDist);
+            auto embedding = getCompressedEmbedding(context, entrypoint);
+            dc->compute_distance(query, embedding, entrypointDist);
         }
     }
 
@@ -362,14 +362,14 @@ public:
         KU_ASSERT(bindState->queryVector.size() == header->getDim());
         auto query = bindState->queryVector.data();
         auto state = graph->prepareScan(header->getCSRRelTableId());
-//        auto dc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
-        L2DistanceComputer dc(nullptr, header->getDim(), 0);
-        dc.setQuery(query);
+        auto dc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
+//        L2DistanceComputer dc(nullptr, header->getDim(), 0);
+//        dc.setQuery(query);
         // Todo: Use bitset here
         auto visited = std::make_unique<VisitedTable>(header->getNumVectors());
         vector_id_t entrypoint;
         double entrypointDist;
-        findEntrypointUsingUpperLayer(context, header, query, &dc, entrypoint,
+        findEntrypointUsingUpperLayer(context, header, query, dc.get(), entrypoint,
             &entrypointDist);
 
         std::priority_queue<NodeDistFarther> candidates;
@@ -391,8 +391,8 @@ public:
                 }
                 visited->set(neighbor.offset);
                 double dist;
-                auto embed = getEmbedding(context, neighbor.offset);
-                dc.computeDistance(embed, &dist);
+                auto embed = getCompressedEmbedding(context, neighbor.offset);
+                dc->compute_distance(query, embed, &dist);
                 if (results.size() < efSearch || dist < results.top().dist) {
                     candidates.emplace(neighbor.offset, dist);
                     results.emplace(neighbor.offset, dist);

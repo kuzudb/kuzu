@@ -348,6 +348,174 @@ inline void compute_sym_ip_neon(const uint8_t* x, const uint8_t* y, double* resu
 #endif
 #endif
 
+#if SIMSIMD_TARGET_X86
+#if SIMSIMD_TARGET_HASWELL
+
+#pragma GCC push_options
+#pragma GCC target("avx2", "fma")
+#pragma clang attribute push(__attribute__((target("avx2,fma"))), apply_to = function)
+
+inline __m128i encode_haswell(const float *x, size_t i, const float *vmin, const float *vdiff) {
+    // Faster version
+    // 255 => 255.0f
+    __m256 const_255 = _mm256_set1_ps(255.0f);
+
+    // Load the input values
+    __m256 x_values = _mm256_loadu_ps(x + i);
+
+    // Load the vmin and vdiff values
+    __m256 vmin_values = _mm256_loadu_ps(vmin + i);
+    __m256 vdiff_values = _mm256_loadu_ps(vdiff + i);
+
+    // Scale to [0, 1] => (x - vmin) / vdiff
+    __m256 x_scaled = _mm256_div_ps(_mm256_sub_ps(x_values, vmin_values), vdiff_values);
+
+    // Scale to [0, 255] => x * 255
+    __m256 x_scaled_255 = _mm256_mul_ps(x_scaled, const_255);
+
+    // Convert to integers
+    __m256i ci = _mm256_cvtps_epi32(x_scaled_255);
+
+    // Pack and clamp to [0, 255]
+    __m128i ci_low = _mm256_extracti128_si256(ci, 0);
+    __m128i ci_high = _mm256_extracti128_si256(ci, 1);
+
+    // Saturate to uint8
+    __m128i result = _mm_packus_epi32(ci_low, ci_high);
+
+    return result;
+}
+
+inline __m256 calc_precomputed_values_haswell_2(__m128i ci_vec, size_t i, const float *alpha, const float *beta) {
+    // Unpack the 8-bit integers to 32-bit integers
+    __m256i ci_vec32 = _mm256_cvtepu8_epi32(ci_vec);
+
+    // Convert to float
+    __m256 ci_vec_float = _mm256_cvtepi32_ps(ci_vec32);
+
+    // Load alpha and beta
+    __m256 alpha_values = _mm256_loadu_ps(alpha + i);
+    __m256 beta_values = _mm256_loadu_ps(beta + i);
+
+    // Calculate precomputed values: i8 * alpha * beta
+    __m256 precompute_values = _mm256_mul_ps(_mm256_mul_ps(ci_vec_float, alpha_values), beta_values);
+
+    return precompute_values;
+}
+
+inline __m256 calc_precomputed_values_haswell(__m128i ci_vec, size_t i, const float *alphaSqr) {
+    // Unpack the 8-bit integers to 32-bit integers
+    __m256i ci_vec32 = _mm256_cvtepu8_epi32(ci_vec);
+
+    // Convert to float
+    __m256 ci_vec_float = _mm256_cvtepi32_ps(ci_vec32);
+
+    // Load alpha and beta
+    __m256 alpha_sqr_values = _mm256_loadu_ps(alphaSqr + i);
+
+    // Calculate precomputed values: i8 * alpha * beta
+    __m256 precompute_values = _mm256_mul_ps(_mm256_mul_ps(ci_vec_float, ci_vec_float), alpha_sqr_values);
+
+    return precompute_values;
+}
+
+inline void encode_haswell(const float *x, uint8_t *codes, size_t n, int dim, const float *vmin,
+    const float *vdiff, const float *alphaSqr) {
+    for (size_t i = 0; i < n; i++) {
+        size_t j = 0;
+        const float *xi = x + i * dim;
+        // We need to skip the last 4 bytes as they are precomputed values
+        uint8_t *ci = codes + i * (dim + 4);
+        __m256 precompute_values = _mm256_setzero_ps();
+        for (; j + 8 <= dim; j += 8) {
+            __m128i ci_vec = encode_haswell(xi, j, vmin, vdiff);
+            precompute_values = _mm256_add_ps(calc_precomputed_values_haswell(ci_vec, j, alphaSqr), precompute_values);
+            _mm_storeu_si128((__m128i *)(ci + j), ci_vec);
+        }
+        // Handle the remaining
+        for (; j < dim; j++) {
+            ci[j] = encode_serial(xi, j, vmin, vdiff); // Ensure encode_serial is available and works for single elements
+        }
+        // Store precomputed values
+        *reinterpret_cast<float *>(ci + dim) = _mm_cvtss_f32(_mm256_castps256_ps128(precompute_values));
+    }
+}
+
+inline __m256 decode_haswell(const uint8_t *code, size_t i, const float *alpha, const float *beta) {
+    __m128i ci_vec = _mm_loadu_si128((__m128i const *)(code + i));
+    __m256i ci_vec32 = _mm256_cvtepu8_epi32(ci_vec);
+    __m256 ci_vec_float = _mm256_cvtepi32_ps(ci_vec32);
+
+    // Load alpha and beta
+    __m256 alpha_values = _mm256_loadu_ps(alpha + i);
+    __m256 beta_values = _mm256_loadu_ps(beta + i);
+
+    // x = alpha * ci + beta
+    __m256 x_values = _mm256_fmadd_ps(alpha_values, ci_vec_float, beta_values);
+
+    return x_values;
+}
+
+inline void decode_haswell(const uint8_t *code, float *x, size_t n, int dim, const float *alpha, const float *beta) {
+    for (size_t i = 0; i < n; i++) {
+        size_t j = 0;
+        // We need to skip the last 4 bytes as they are precomputed values
+        const uint8_t *ci = code + i * (dim + 4);
+        float *xi = x + i * dim;
+        for (; j + 8 <= dim; j += 8) {
+            __m256 x_values = decode_haswell(ci, j, alpha, beta);
+            _mm256_storeu_ps(xi + j, x_values);
+        }
+        // Handle the remaining
+        for (; j < dim; j++) {
+            xi[j] = decode_serial(ci, j, alpha, beta); // Ensure decode_serial is available and works for single elements
+        }
+    }
+}
+
+#pragma clang attribute pop
+#pragma GCC pop_options
+#endif // SIMSIMD_TARGET_HASWELL
+
+#if SIMSIMD_TARGET_SKYLAKE
+#pragma GCC push_options
+#pragma GCC target("avx512f", "avx512vl", "bmi2")
+#pragma clang attribute push(__attribute__((target("avx512f,avx512vl,bmi2"))), apply_to = function)
+
+inline __m512 decode_skylake(const uint8_t *code, size_t i, const float *alpha, const float *beta) {
+    __m128i ci_vec = _mm_loadu_si128((__m128i const *)(code + i));
+    __m512i ci_vec32 = _mm512_cvtepu8_epi32(ci_vec);
+    __m512 ci_vec_float = _mm512_cvtepi32_ps(ci_vec32);
+
+    // Load alpha and beta
+    __m512 alpha_values = _mm512_loadu_ps(alpha + i);
+    __m512 beta_values = _mm512_loadu_ps(beta + i);
+
+    // x = alpha * ci + beta
+    __m512 x_values = _mm512_fmadd_ps(alpha_values, ci_vec_float, beta_values);
+
+    return x_values;
+}
+
+inline void compute_asym_l2sq_skylake(const float *x, const uint8_t *y, double *result, size_t dim,
+    const float *alpha, const float *beta) {
+    __m512 d2_vec = _mm512_setzero();
+    __m512 a_vec, b_vec;
+    size_t j = 0;
+    for (; j + 16 <= dim; j += 16) {
+        a_vec = decode_skylake(y, j, alpha, beta);
+        b_vec = _mm512_loadu_ps(x + j);
+        __m512 d_vec = _mm512_sub_ps(a_vec, b_vec);
+        d2_vec = _mm512_fmadd_ps(d_vec, d_vec, d2_vec);
+    }
+    *result = _mm512_reduce_add_ps(d2_vec);
+}
+
+#pragma clang attribute pop
+#pragma GCC pop_options
+#endif // SIMSIMD_TARGET_SKYLAKE
+#endif // SIMSIMD_TARGET_X86
+
 // This doesn't use precomputed values
 class AsymmetricIP : public DC<float, uint8_t> {
 public:
@@ -416,7 +584,11 @@ public:
     ~AsymmetricL2Sq() = default;
 
     inline void compute_distance(const float *x, const uint8_t *y, double *result) override {
+#if SIMSIMD_TARGET_SKYLAKE
+        compute_asym_l2sq_skylake(x, y, result, dim, alpha, beta);
+#else
         compute_asym_l2sq_serial(x, y, result, dim, alpha, beta);
+#endif
     }
 
     inline void batch_compute_distances(const float *x, const uint8_t *y, double *results, size_t n) override {
