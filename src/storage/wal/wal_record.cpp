@@ -2,7 +2,6 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
-#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -32,6 +31,9 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     } break;
     case WALRecordType::COMMIT_RECORD: {
         walRecord = CommitRecord::deserialize(deserializer);
+    } break;
+    case WALRecordType::ROLLBACK_RECORD: {
+        walRecord = RollbackRecord::deserialize(deserializer);
     } break;
     case WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD: {
         walRecord = CreateTableEntryRecord::deserialize(deserializer);
@@ -93,13 +95,18 @@ std::unique_ptr<BeginTransactionRecord> BeginTransactionRecord::deserialize(Dese
 
 void CommitRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
-    serializer.write(transactionID);
 }
 
-std::unique_ptr<CommitRecord> CommitRecord::deserialize(Deserializer& deserializer) {
-    auto retVal = std::make_unique<CommitRecord>();
-    deserializer.deserializeValue(retVal->transactionID);
-    return retVal;
+std::unique_ptr<CommitRecord> CommitRecord::deserialize(Deserializer&) {
+    return std::make_unique<CommitRecord>();
+}
+
+void RollbackRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+}
+
+std::unique_ptr<RollbackRecord> RollbackRecord::deserialize(Deserializer&) {
+    return std::make_unique<RollbackRecord>();
 }
 
 void CheckpointRecord::serialize(Serializer& serializer) const {

@@ -63,7 +63,8 @@ public:
     void logCopyTableRecord(common::table_id_t tableID);
 
     void logBeginTransaction();
-    void logAndFlushCommit(uint64_t transactionID);
+    void logAndFlushCommit();
+    void logRollback();
     void logAndFlushCheckpoint();
 
     // Removes the contents of WAL file.

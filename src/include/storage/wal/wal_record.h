@@ -24,12 +24,13 @@ enum class WALRecordType : uint8_t {
                         // accidentally read from an empty buffer.
     BEGIN_TRANSACTION_RECORD = 1,
     COMMIT_RECORD = 2,
-    COPY_TABLE_RECORD = 3,
-    CREATE_CATALOG_ENTRY_RECORD = 4,
-    CREATE_TABLE_CATALOG_ENTRY_RECORD = 5,
-    DROP_CATALOG_ENTRY_RECORD = 10,
-    ALTER_TABLE_ENTRY_RECORD = 11,
-    UPDATE_SEQUENCE_RECORD = 12,
+    ROLLBACK_RECORD = 3,
+    COPY_TABLE_RECORD = 13,
+    CREATE_CATALOG_ENTRY_RECORD = 14,
+    CREATE_TABLE_CATALOG_ENTRY_RECORD = 15,
+    DROP_CATALOG_ENTRY_RECORD = 16,
+    ALTER_TABLE_ENTRY_RECORD = 17,
+    UPDATE_SEQUENCE_RECORD = 18,
     TABLE_INSERTION_RECORD = 30,
     NODE_DELETION_RECORD = 31,
     NODE_UDPATE_RECORD = 32,
@@ -64,26 +65,28 @@ struct BeginTransactionRecord final : WALRecord {
     static std::unique_ptr<BeginTransactionRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CommitRecord final : public WALRecord {
-    uint64_t transactionID;
-
-    CommitRecord()
-        : WALRecord{WALRecordType::COMMIT_RECORD}, transactionID{common::INVALID_TRANSACTION} {}
-    explicit CommitRecord(uint64_t transactionID)
-        : WALRecord{WALRecordType::COMMIT_RECORD}, transactionID{transactionID} {}
+struct CommitRecord final : WALRecord {
+    CommitRecord() : WALRecord{WALRecordType::COMMIT_RECORD} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CommitRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CheckpointRecord final : public WALRecord {
+struct RollbackRecord final : WALRecord {
+    RollbackRecord() : WALRecord{WALRecordType::ROLLBACK_RECORD} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<RollbackRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct CheckpointRecord final : WALRecord {
     CheckpointRecord() : WALRecord{WALRecordType::CHECKPOINT_RECORD} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CheckpointRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CreateTableEntryRecord final : public WALRecord {
+struct CreateTableEntryRecord final : WALRecord {
     binder::BoundCreateTableInfo boundCreateTableInfo;
 
     explicit CreateTableEntryRecord(binder::BoundCreateTableInfo boundCreateTableInfo)
@@ -94,7 +97,7 @@ struct CreateTableEntryRecord final : public WALRecord {
     static std::unique_ptr<CreateTableEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CreateCatalogEntryRecord final : public WALRecord {
+struct CreateCatalogEntryRecord final : WALRecord {
     catalog::CatalogEntry* catalogEntry;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
 
@@ -108,7 +111,7 @@ struct CreateCatalogEntryRecord final : public WALRecord {
         common::Deserializer& deserializer);
 };
 
-struct CopyTableRecord final : public WALRecord {
+struct CopyTableRecord final : WALRecord {
     common::table_id_t tableID;
 
     CopyTableRecord()
@@ -120,7 +123,7 @@ struct CopyTableRecord final : public WALRecord {
     static std::unique_ptr<CopyTableRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct DropCatalogEntryRecord final : public WALRecord {
+struct DropCatalogEntryRecord final : WALRecord {
     common::table_id_t entryID;
     catalog::CatalogEntryType entryType;
 
@@ -135,7 +138,7 @@ struct DropCatalogEntryRecord final : public WALRecord {
     static std::unique_ptr<DropCatalogEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct AlterTableEntryRecord final : public WALRecord {
+struct AlterTableEntryRecord final : WALRecord {
     const binder::BoundAlterInfo* alterInfo;
     std::unique_ptr<binder::BoundAlterInfo> ownedAlterInfo;
 
@@ -148,7 +151,7 @@ struct AlterTableEntryRecord final : public WALRecord {
     static std::unique_ptr<AlterTableEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct UpdateSequenceRecord final : public WALRecord {
+struct UpdateSequenceRecord final : WALRecord {
     common::sequence_id_t sequenceID;
     uint64_t kCount;
 

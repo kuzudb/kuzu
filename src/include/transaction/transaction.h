@@ -77,7 +77,7 @@ public:
     bool shouldForceCheckpoint() const { return forceCheckpoint; }
 
     void commit(storage::WAL* wal) const;
-    void rollback() const;
+    void rollback(storage::WAL* wal) const;
 
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
     bool hasNewlyInsertedNodes(common::table_id_t tableID) const {

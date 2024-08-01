@@ -1,0 +1,41 @@
+-DATASET CSV empty
+--
+
+-CASE RollbackOnErrorRecovery
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(iddd));
+---- error
+Binder exception: Primary key iddd does not match any of the predefined node properties.
+-STATEMENT CREATE REL TABLE knows(FROM person TO person);
+---- error
+Binder exception: Table person does not exist.
+-RELOADDB
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+
+-CASE ManualRollbackRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+0
+-RELOADDB
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
+---- error
+Binder exception: person already exists in catalog.

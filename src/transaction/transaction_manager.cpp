@@ -85,7 +85,7 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
     } break;
     case TransactionType::RECOVERY:
     case TransactionType::WRITE: {
-        transaction->rollback();
+        transaction->rollback(&wal);
         activeWriteTransactions.erase(transaction->getID());
     } break;
     default: {
