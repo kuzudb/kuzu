@@ -44,7 +44,7 @@ void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& pl
 
 void Planner::appendCreateType(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createType = statement.constCast<BoundCreateType>();
-    auto printInfo = std::make_unique<LogicalCreateTypePrintInfo>(createType.getName());
+    auto printInfo = std::make_unique<LogicalCreateTypePrintInfo>(createType.getName(), createType.getType().toString());
     auto op = make_shared<LogicalCreateType>(createType.getName(), createType.getType().copy(),
         statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
