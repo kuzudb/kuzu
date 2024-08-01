@@ -222,12 +222,12 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
-function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
+function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const ReaderConfig& config) {
     function::Function* func;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    switch (fileType) {
+    switch (typeInfo.fileType) {
     case FileType::PARQUET: {
         func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
             ParquetScanFunction::name, inputTypes, functions);
@@ -242,14 +242,20 @@ function::TableFunction Binder::getScanFunction(FileType fileType, const ReaderC
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);
     } break;
-    case FileType::JSON: {
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
-            SCAN_JSON_FUNC_NAME, inputTypes, functions);
+    case FileType::TURTLE:
+    case FileType::UNKNOWN: {
+        try {
+            func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+                SCAN_JSON_FUNC_NAME, inputTypes, functions);
+        } catch (...) {
+            throw common::BinderException{
+                common::stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
+        }
     } break;
     default:
         KU_UNREACHABLE;
     }
-    return *ku_dynamic_cast<function::Function*, function::TableFunction*>(func);
+    return *func->ptrCast<function::TableFunction>();
 }
 
 } // namespace binder

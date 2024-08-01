@@ -167,8 +167,7 @@ public:
 
     std::unordered_map<std::string, common::Value> bindParsingOptions(
         const parser::options_t& parsingOptions);
-    common::FileType bindFileType(const std::vector<std::string>& filePaths);
-    common::FileType bindFileType(const std::string& filePath);
+    common::FileTypeInfo bindFileTypeInfo(const std::vector<std::string>& filePaths);
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
     /*** bind query ***/
@@ -306,7 +305,7 @@ public:
     BinderScope saveScope();
     void restoreScope(BinderScope prevScope);
 
-    function::TableFunction getScanFunction(common::FileType fileType,
+    function::TableFunction getScanFunction(common::FileTypeInfo typeInfo,
         const common::ReaderConfig& config);
 
     ExpressionBinder* getExpressionBinder() { return &expressionBinder; }

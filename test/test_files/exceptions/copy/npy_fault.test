@@ -12,4 +12,4 @@
 Binder exception: Copy by column is not supported for relationship table.
 -STATEMENT copy person from ("${KUZU_ROOT_DIRECTORY}/dataset/read-list-tests/large-list/vPerson.csv") by column;
 ---- error
-Binder exception: Copy by column with CSV file type is not supported.
+Binder exception: Copy by column with csv file type is not supported.

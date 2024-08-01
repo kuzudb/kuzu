@@ -16,7 +16,7 @@ public:
           boundFileInfo{std::move(boundFileInfo)} {}
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
-    common::FileType getFileType() const { return boundFileInfo.fileType; }
+    common::FileType getFileType() const { return boundFileInfo.fileTypeInfo.fileType; }
     common::CSVOption getCopyOption() const {
         auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo.options);
         return csvConfig.option.copy();

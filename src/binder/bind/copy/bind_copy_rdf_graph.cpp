@@ -8,7 +8,6 @@
 #include "common/keyword/rdf_keyword.h"
 #include "function/built_in_function_utils.h"
 #include "function/table/bind_input.h"
-#include "main/client_context.h"
 #include "parser/copy.h"
 #include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
@@ -175,9 +174,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfFrom(const Statement& stateme
     auto fileSource = copyStatement.getSource()->constPtrCast<FileScanSource>();
     auto filePaths = bindFilePaths(fileSource->filePaths);
     // Bind file type.
-    auto fileType = bindFileType(filePaths);
+    auto fileTypeInfo = bindFileTypeInfo(filePaths);
     // Bind configurations.
-    auto config = std::make_unique<ReaderConfig>(fileType, std::move(filePaths));
+    auto config = std::make_unique<ReaderConfig>(fileTypeInfo, std::move(filePaths));
     config->options = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();

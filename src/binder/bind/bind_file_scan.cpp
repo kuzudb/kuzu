@@ -21,19 +21,19 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-FileType Binder::bindFileType(const std::string& filePath) {
+FileTypeInfo bindSingleFileType(main::ClientContext* context, const std::string& filePath) {
     std::filesystem::path fileName(filePath);
-    auto extension = clientContext->getVFSUnsafe()->getFileExtension(fileName);
-    auto fileType = FileTypeUtils::getFileTypeFromExtension(extension);
-    return fileType;
+    auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
+    return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension), extension.substr(1)};
 }
 
-FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
-    auto expectedFileType = FileType::UNKNOWN;
+FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths) {
+    auto expectedFileType = FileTypeInfo{FileType::UNKNOWN, "" /* fileTypeStr */};
     for (auto& filePath : filePaths) {
-        auto fileType = bindFileType(filePath);
-        expectedFileType = (expectedFileType == FileType::UNKNOWN) ? fileType : expectedFileType;
-        if (fileType != expectedFileType) {
+        auto fileType = bindSingleFileType(clientContext, filePath);
+        expectedFileType =
+            (expectedFileType.fileType == FileType::UNKNOWN) ? fileType : expectedFileType;
+        if (fileType.fileType != expectedFileType.fileType) {
             throw CopyException("Loading files with different types is not currently supported.");
         }
     }
@@ -91,10 +91,10 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     const std::vector<LogicalType>& columnTypes) {
     auto fileSource = scanSource.constPtrCast<FileScanSource>();
     auto filePaths = bindFilePaths(fileSource->filePaths);
-    auto fileType = bindFileType(filePaths);
-    auto config = std::make_unique<ReaderConfig>(fileType, std::move(filePaths));
+    auto fileTypeInfo = bindFileTypeInfo(filePaths);
+    auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), std::move(filePaths));
     config->options = bindParsingOptions(options);
-    auto func = getScanFunction(config->fileType, *config);
+    auto func = getScanFunction(config->fileTypeInfo, *config);
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
         LogicalType::copy(columnTypes), clientContext);
     auto bindData = func.bindFunc(clientContext, bindInput.get());

@@ -2,7 +2,6 @@
 #include "binder/bound_scan_source.h"
 #include "binder/expression/expression_util.h"
 #include "binder/query/reading_clause/bound_load_from.h"
-#include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "main/database.h"
 #include "parser/query/reading_clause/load_from.h"
@@ -39,17 +38,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         if (filePaths.size() > 1) {
             throw BinderException("Load from multiple files is not supported.");
         }
-        auto fileType = bindFileType(filePaths);
-        switch (fileType) {
-        case common::FileType::CSV:
-        case common::FileType::PARQUET:
-        case common::FileType::NPY:
-        case common::FileType::JSON:
-            break;
-        default:
-            throw BinderException(
-                stringFormat("Cannot load from file type {}.", FileTypeUtils::toString(fileType)));
-        }
+        auto fileTypeInfo = bindFileTypeInfo(filePaths);
         auto boundScanSource =
             bindFileScanSource(*source, loadFrom.getParsingOptions(), columnNames, columnTypes);
         auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;

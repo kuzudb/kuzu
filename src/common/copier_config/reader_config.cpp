@@ -2,7 +2,6 @@
 
 #include "common/assert.h"
 #include "common/exception/binder.h"
-#include "common/exception/copy.h"
 
 namespace kuzu {
 namespace common {
@@ -26,10 +25,7 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     if (extension == ".nt") {
         return FileType::NTRIPLES;
     }
-    if (extension == ".json") {
-        return FileType::JSON;
-    }
-    throw CopyException(std::string("Unsupported file type ").append(extension));
+    return FileType::UNKNOWN;
 }
 
 std::string FileTypeUtils::toString(FileType fileType) {
@@ -54,9 +50,6 @@ std::string FileTypeUtils::toString(FileType fileType) {
     }
     case FileType::NTRIPLES: {
         return "NTRIPLES";
-    }
-    case FileType::JSON: {
-        return "JSON";
     }
     default: {
         KU_UNREACHABLE;

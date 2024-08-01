@@ -43,9 +43,9 @@ struct RdfResourceScanSharedState final : public RdfScanSharedState {
         initReader();
     }
 
-    inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
+    void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
         reader = std::make_unique<RdfResourceReader>(rdfConfig, fileIdx, path,
-            readerConfig.fileType, store.get());
+            readerConfig.fileTypeInfo.fileType, store.get());
     }
 };
 
@@ -60,8 +60,8 @@ struct RdfLiteralScanSharedState final : public RdfScanSharedState {
     }
 
     inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
-        reader = std::make_unique<RdfLiteralReader>(rdfConfig, fileIdx, path, readerConfig.fileType,
-            store.get());
+        reader = std::make_unique<RdfLiteralReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileTypeInfo.fileType, store.get());
     }
 };
 
@@ -77,7 +77,7 @@ struct RdfResourceTripleScanSharedState final : public RdfScanSharedState {
 
     inline void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
         reader = std::make_unique<RdfResourceTripleReader>(rdfConfig, fileIdx, path,
-            readerConfig.fileType, store.get());
+            readerConfig.fileTypeInfo.fileType, store.get());
     }
 };
 
@@ -94,7 +94,7 @@ struct RdfLiteralTripleScanSharedState final : public RdfScanSharedState {
     void createReader(uint32_t fileIdx, const std::string& path,
         common::offset_t startOffset) override {
         reader = std::make_unique<RdfLiteralTripleReader>(rdfConfig, fileIdx, path,
-            readerConfig.fileType, store.get(), startOffset);
+            readerConfig.fileTypeInfo.fileType, store.get(), startOffset);
     }
 };
 
@@ -107,8 +107,8 @@ struct RdfTripleScanSharedState final : public RdfScanSharedState {
     }
 
     void createReader(uint32_t fileIdx, const std::string& path, common::offset_t) override {
-        reader = std::make_unique<RdfTripleReader>(rdfConfig, fileIdx, path, readerConfig.fileType,
-            store.get());
+        reader = std::make_unique<RdfTripleReader>(rdfConfig, fileIdx, path,
+            readerConfig.fileTypeInfo.fileType, store.get());
     }
 };
 

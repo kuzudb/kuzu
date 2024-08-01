@@ -55,7 +55,7 @@ static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString
 
 static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
     ReaderConfig* boundFileInfo) {
-    auto fileTypeStr = FileTypeUtils::toString(boundFileInfo->fileType);
+    auto fileTypeStr = boundFileInfo->fileTypeInfo.fileTypeStr;
     StringUtils::toLower(fileTypeStr);
     auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
     auto tableName = entry->getName();

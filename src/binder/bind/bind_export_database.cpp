@@ -38,8 +38,8 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Tran
     return exportData;
 }
 
-FileType getFileType(std::unordered_map<std::string, common::Value>& options) {
-    auto fileType = FileType::CSV;
+FileTypeInfo getFileType(std::unordered_map<std::string, common::Value>& options) {
+    auto fileTypeInfo = FileTypeInfo{FileType::CSV, "CSV"};
     if (options.find("FORMAT") != options.end()) {
         auto value = options.at("FORMAT");
         if (value.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
@@ -47,10 +47,10 @@ FileType getFileType(std::unordered_map<std::string, common::Value>& options) {
         }
         auto valueStr = value.getValue<std::string>();
         StringUtils::toUpper(valueStr);
-        fileType = FileTypeUtils::fromString(valueStr);
+        fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(valueStr), valueStr};
         options.erase("FORMAT");
     }
-    return fileType;
+    return fileTypeInfo;
 }
 
 static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery) {
@@ -118,14 +118,18 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto boundFilePath = exportDB.getFilePath();
     auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext->getTx(), this);
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
-    auto fileType = getFileType(parsedOptions);
-    if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
+    auto fileTypeInfo = getFileType(parsedOptions);
+    switch (fileTypeInfo.fileType) {
+    case FileType::CSV:
+    case FileType::PARQUET:
+        break;
+    default:
         throw BinderException("Export database currently only supports csv and parquet files.");
     }
-    if (fileType != FileType::CSV && parsedOptions.size() != 0) {
+    if (fileTypeInfo.fileType != FileType::CSV && parsedOptions.size() != 0) {
         throw BinderException{"Only export to csv can have options."};
     }
-    return std::make_unique<BoundExportDatabase>(boundFilePath, fileType, std::move(exportData),
+    return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),
         std::move(parsedOptions));
 }
 
