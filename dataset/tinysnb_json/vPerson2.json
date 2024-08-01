@@ -1,4 +1,3 @@
-[
     {
       "ID": 8,
       "fName": "Farooq",
@@ -31,7 +30,7 @@
       ],
       "height": 1.51,
       "u": "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A16"
-    },
+    }
     {
       "ID": 9,
       "fName": "Greg",
@@ -60,7 +59,7 @@
       ],
       "height": 1.6,
       "u": "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A17"
-    },
+    }
     {
       "ID": 10,
       "fName": "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff",
@@ -104,4 +103,3 @@
       "height": 1.323,
       "u": "A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A18"
     }
-  ]

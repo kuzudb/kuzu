@@ -65,7 +65,9 @@ struct JsonBindData : public ScanBindData {
         : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx),
           json(wrapper), scanFromList{scanFromList}, scanFromStruct{scanFromStruct} {
         for (auto i = 0u; i < this->columnNames.size(); i++) {
-            nameToIdxMap[StringUtils::getUpper(this->columnNames[i])] = i;
+            std::string duplicate = this->columnNames[i];
+            auto hash = hashAndToUpper(duplicate);
+            buckets[hash.first % NBUCKETS].push_back({duplicate, i});
         }
     }
 
@@ -75,22 +77,68 @@ struct JsonBindData : public ScanBindData {
     }
 
     int32_t getIdxFromName(std::string s) const { // possible bottleneck
-        auto cpy = StringUtils::getUpper(s);
-        if (!nameToIdxMap.contains(cpy)) {
-            // try removing any [a-zA-Z]+\. prefix
-            auto periodPos = cpy.find('.');
-            if (periodPos != std::string::npos) {
-                cpy = cpy.substr(periodPos + 1);
-            }
+        auto hash = hashAndToUpper(s);
+        auto result = getIdx(s, hash.first);
+        if (result != -1) {
+            return result;
         }
-        if (!nameToIdxMap.contains(cpy)) {
-            return -1;
-        }
-        return nameToIdxMap.at(StringUtils::getUpper(cpy));
+        return getIdx(s, hash.second);
     }
 
 private:
-    std::map<std::string, uint32_t> nameToIdxMap;
+    static constexpr int NBUCKETS = 997;
+    std::vector<std::pair<std::string, uint32_t>> buckets[NBUCKETS];
+
+    // suppose we have copy (match (p:Person) return p.*) to 'data.json'
+    // the column names are all going to start with 'p.', meaning
+    // copy Person from 'data.json' would no longer work
+    // this compare function fixes that.
+    static bool specialCompare(const std::string& a, const std::string& b) {
+        if (b.ends_with(a)) {
+            if (b.size() == a.size()) {
+                return true;
+            }
+            if (b.size() > a.size()) {
+                return b[b.size() - a.size() - 1] == '.';
+            } else {
+                // Should not happen
+                return false;
+            }
+        }
+        return false;
+    }
+
+    int32_t getIdx(const std::string& s, uint32_t hash) const {
+        auto idx = hash % NBUCKETS;
+        for (const auto& i : buckets[idx]) {
+            if (specialCompare(i.first, s)) {
+                return i.second;
+            }
+        }
+        return -1;
+    }
+
+    // two hashes: one for the whole string, the other
+    // in the case that a string begins with 'p.' for example
+    // functions as a toUpper as well
+    static std::pair<uint32_t, uint32_t> hashAndToUpper(std::string& s) {
+        uint32_t ret = 0;
+        uint32_t ret2 = 0;
+        bool useRet2 = false;
+        for (auto& i : s) {
+            if (i >= 'a' && i <= 'z') {
+                i += 'A' - 'a';
+            }
+            ret = ret * 131 + i;
+            if (useRet2) {
+                ret2 = ret2 * 131 + i;
+            }
+            if (i == '.') {
+                useRet2 = true;
+            }
+        }
+        return {ret, ret2};
+    }
 };
 
 struct JsonScanLocalState : public TableFuncLocalState {

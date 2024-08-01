@@ -594,10 +594,21 @@ std::string jsonToString(const yyjson_val* val) {
     return str;
 }
 
+void invalidJsonError(const char* data, size_t size, yyjson_read_err* err) {
+    size_t line, col, chr;
+    if (yyjson_locate_pos(data, size, err->pos, &line, &col, &chr)) {
+        throw RuntimeException(stringFormat("Error {} at line {}, column {}, character index {}",
+            err->msg, line, col, chr));
+    } else {
+        throw RuntimeException(stringFormat("Error {} at byte {}", err->msg, err->pos));
+    }
+}
+
 JsonWrapper stringToJson(const std::string& str) {
-    auto json = yyjson_read(str.c_str(), str.size(), 0);
+    yyjson_read_err err;
+    auto json = yyjson_read_opts(const_cast<char*>(str.c_str()), str.size(), 0, nullptr, &err);
     if (json == nullptr) {
-        throw RuntimeException("Invalid json input");
+        invalidJsonError(str.c_str(), str.size(), &err);
     }
     return JsonWrapper(json);
 }
@@ -607,10 +618,11 @@ JsonWrapper stringToJsonNoError(const std::string& str) {
 }
 
 static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
+    yyjson_read_err err;
     auto json = yyjson_read_opts(reinterpret_cast<char*>(buffer.get()), fileSize,
-        YYJSON_READ_INSITU, nullptr /* alc */, nullptr /* err */);
+        YYJSON_READ_INSITU, nullptr /* alc */, &err);
     if (json == nullptr) {
-        throw RuntimeException("Invalid json input");
+        invalidJsonError(buffer.get(), fileSize, &err);
     }
     return JsonWrapper(json, buffer);
 }
@@ -622,10 +634,14 @@ static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffe
     yyjson_mut_doc_set_root(result.ptr, root);
     auto filePos = 0u;
     while (true) {
+        yyjson_read_err err;
         auto curDoc = yyjson_read_opts(buffer.get() + filePos, fileSize - filePos,
-            YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, nullptr);
-        if (curDoc == nullptr) {
+            YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, &err);
+        if (err.code == YYJSON_READ_ERROR_EMPTY_CONTENT) {
             break;
+        }
+        if (curDoc == nullptr) {
+            invalidJsonError(buffer.get(), fileSize, &err);
         }
         filePos += yyjson_doc_get_read_size(curDoc);
         yyjson_mut_arr_append(root, yyjson_val_mut_copy(result.ptr, yyjson_doc_get_root(curDoc)));

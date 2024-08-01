@@ -10,22 +10,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace json_extension {
 
-static void toJsonExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    KU_ASSERT(parameters.size() == 1);
-    result.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
-        auto resultPos = result.state->getSelVector()[selectedPos];
-        result.setNull(resultPos, parameters[0]->isNull(inputPos));
-        if (!parameters[0]->isNull(inputPos)) {
-            StringVector::addString(&result, resultPos,
-                jsonToString(jsonify(*parameters[0], inputPos)));
-        }
-    }
-}
-
 static void jsonMergeFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();

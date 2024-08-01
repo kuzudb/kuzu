@@ -20,14 +20,14 @@
  SOFTWARE.
  *============================================================================*/
 
-// clang-tidy should ignore this file
-// NOLINTBEGIN
-
 /**
  @file yyjson.h
  @date 2019-03-09
  @author YaoYuan
  */
+
+// clang-tidy should ignore this file
+// NOLINTBEGIN
 
 #ifndef YYJSON_H
 #define YYJSON_H
@@ -514,16 +514,16 @@ extern "C" {
 #define YYJSON_VERSION_MAJOR 0
 
 /** The minor version of yyjson. */
-#define YYJSON_VERSION_MINOR 9
+#define YYJSON_VERSION_MINOR 10
 
 /** The patch version of yyjson. */
 #define YYJSON_VERSION_PATCH 0
 
 /** The version of yyjson in hex: `(major << 16) | (minor << 8) | (patch)`. */
-#define YYJSON_VERSION_HEX 0x000900
+#define YYJSON_VERSION_HEX 0x000A00
 
 /** The version string of yyjson. */
-#define YYJSON_VERSION_STRING "0.9.0"
+#define YYJSON_VERSION_STRING "0.10.0"
 
 /** The version of yyjson in hex, same as `YYJSON_VERSION_HEX`. */
 yyjson_api uint32_t yyjson_version(void);

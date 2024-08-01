@@ -1,0 +1,14 @@
+-DATASET CSV empty
+
+--
+
+-CASE LoadFromError
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json' RETURN *;
+---- error
+Runtime exception: Error unexpected character, expected a valid JSON value at line 3, column 10, character index 35
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json'(format='unstructured') RETURN *;
+---- error
+Runtime exception: Error unexpected character, expected a valid JSON value at line 2, column 10, character index 10
+
