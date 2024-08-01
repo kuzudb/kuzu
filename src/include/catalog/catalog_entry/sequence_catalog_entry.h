@@ -7,6 +7,10 @@
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
+namespace common {
+class ValueVector;
+}
+
 namespace binder {
 struct BoundExtraCreateCatalogEntryInfo;
 struct BoundAlterInfo;

@@ -49,29 +49,15 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     return retval;
 }
 
-void PropertyInfo::serialize(Serializer& serializer) const {
-    serializer.serializeValue(name);
-    type.serialize(serializer);
-    defaultValue->serialize(serializer);
-}
-
-PropertyInfo PropertyInfo::deserialize(Deserializer& deserializer) {
-    std::string name;
-    deserializer.deserializeValue(name);
-    LogicalType type = LogicalType::deserialize(deserializer);
-    std::unique_ptr<ParsedExpression> defaultValue = ParsedExpression::deserialize(deserializer);
-    return PropertyInfo{name, std::move(type), std::move(defaultValue)};
-}
-
 void BoundExtraCreateTableInfo::serialize(Serializer& serializer) const {
-    serializer.serializeVector(propertyInfos);
+    serializer.serializeVector(propertyDefinitions);
 }
 
 std::unique_ptr<BoundExtraCreateTableInfo> BoundExtraCreateTableInfo::deserialize(
     Deserializer& deserializer, TableType type) {
-    std::vector<PropertyInfo> propertyInfos;
+    std::vector<PropertyDefinition> propertyDefinitions;
     std::unique_ptr<BoundExtraCreateTableInfo> info;
-    deserializer.deserializeVector(propertyInfos);
+    deserializer.deserializeVector(propertyDefinitions);
     switch (type) {
     case TableType::NODE: {
         info = BoundExtraCreateNodeTableInfo::deserialize(deserializer);
@@ -83,21 +69,21 @@ std::unique_ptr<BoundExtraCreateTableInfo> BoundExtraCreateTableInfo::deserializ
         KU_UNREACHABLE;
     }
     }
-    info->propertyInfos = std::move(propertyInfos);
+    info->propertyDefinitions = std::move(propertyDefinitions);
     return info;
 }
 
 void BoundExtraCreateNodeTableInfo::serialize(Serializer& serializer) const {
     BoundExtraCreateTableInfo::serialize(serializer);
-    serializer.serializeValue(primaryKeyIdx);
+    serializer.serializeValue(primaryKeyName);
 }
 
 std::unique_ptr<BoundExtraCreateNodeTableInfo> BoundExtraCreateNodeTableInfo::deserialize(
     Deserializer& deserializer) {
-    common::property_id_t primaryKeyIdx;
-    deserializer.deserializeValue(primaryKeyIdx);
-    return std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyIdx,
-        std::vector<PropertyInfo>());
+    std::string primaryKeyName;
+    deserializer.deserializeValue(primaryKeyName);
+    return std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyName,
+        std::vector<PropertyDefinition>());
 }
 
 void BoundExtraCreateRelTableInfo::serialize(Serializer& serializer) const {
@@ -119,7 +105,7 @@ std::unique_ptr<BoundExtraCreateRelTableInfo> BoundExtraCreateRelTableInfo::dese
     deserializer.deserializeValue(srcTableID);
     deserializer.deserializeValue(dstTableID);
     return std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
-        srcTableID, dstTableID, std::vector<PropertyInfo>());
+        srcTableID, dstTableID, std::vector<PropertyDefinition>());
 }
 
 void BoundExtraCreateRelTableGroupInfo::serialize(Serializer& serializer) const {

@@ -431,12 +431,12 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         // Deleted columns are vaccumed and not checkpointed or serialized.
         std::vector<column_id_t> columnIDs;
         columnIDs.push_back(0);
-        for (auto& property : tableEntry->getPropertiesUnsafe()) {
-            columnIDs.push_back(tableEntry->getColumnID(property.getPropertyID()));
+        for (auto& property : tableEntry->getProperties()) {
+            columnIDs.push_back(tableEntry->getColumnID(property.getName()));
         }
         fwdRelTableData->checkpoint(columnIDs);
         bwdRelTableData->checkpoint(columnIDs);
-        tableEntry->resetColumnIDs();
+        tableEntry->vacuumColumnIDs();
         hasChanges = false;
     }
     Table::serialize(ser);

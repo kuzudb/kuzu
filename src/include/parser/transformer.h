@@ -6,8 +6,8 @@
 #include "cypher_parser.h"
 #pragma GCC diagnostic pop
 
-#include "parser/ddl/create_table_info.h"
 #include "statement.h"
+#include "parser/ddl/parsed_property_definition.h"
 
 namespace kuzu {
 namespace parser {
@@ -209,10 +209,11 @@ private:
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
-    std::vector<PropertyDefinition> transformPropertyDefinitions(
+    std::vector<ParsedColumnDefinition> transformColumnDefinitions(
+        CypherParser::KU_ColumnDefinitionsContext& ctx);
+    ParsedColumnDefinition transformColumnDefinition(CypherParser::KU_ColumnDefinitionContext& ctx);
+    std::vector<ParsedPropertyDefinition> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
-    std::vector<PropertyDefinitionDDL> transformPropertyDefinitionsDDL(
-        CypherParser::KU_PropertyDefinitionsDDLContext& ctx);
 
     // Transform standalone call.
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);

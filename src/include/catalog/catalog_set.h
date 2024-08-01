@@ -36,7 +36,7 @@ public:
     void alterEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& alterInfo);
     CatalogEntrySet getEntries(transaction::Transaction* transaction);
 
-    uint64_t assignNextOID() {
+    common::idx_t assignNextOID() {
         std::lock_guard lck{mtx};
         return nextOID++;
     }
@@ -69,7 +69,7 @@ private:
 
 private:
     std::mutex mtx;
-    uint64_t nextOID = 0;
+    common::idx_t nextOID = 0;
     common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>> entries;
 };
 

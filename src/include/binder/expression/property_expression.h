@@ -8,30 +8,31 @@ namespace kuzu {
 namespace binder {
 
 struct SingleLabelPropertyInfo {
+    bool exists;
     bool isPrimaryKey;
-    common::property_id_t id;
 
-    SingleLabelPropertyInfo(bool isPrimaryKey, common::property_id_t id)
-        : isPrimaryKey{isPrimaryKey}, id{id} {}
+    explicit SingleLabelPropertyInfo(bool exists, bool isPrimaryKey)
+        : exists{exists}, isPrimaryKey{isPrimaryKey} {}
     EXPLICIT_COPY_DEFAULT_MOVE(SingleLabelPropertyInfo);
 
 private:
     SingleLabelPropertyInfo(const SingleLabelPropertyInfo& other)
-        : isPrimaryKey{other.isPrimaryKey}, id{other.id} {}
+        : exists{other.exists}, isPrimaryKey{other.isPrimaryKey} {}
 };
 
 class PropertyExpression : public Expression {
+    static constexpr common::ExpressionType expressionType_ = common::ExpressionType::PROPERTY;
+
 public:
     PropertyExpression(common::LogicalType dataType, const std::string& propertyName,
         const std::string& uniqueVarName, const std::string& rawVariableName,
         common::table_id_map_t<SingleLabelPropertyInfo> infos)
-        : Expression{common::ExpressionType::PROPERTY, std::move(dataType),
-              uniqueVarName + "." + propertyName},
+        : Expression{expressionType_, std::move(dataType), uniqueVarName + "." + propertyName},
           propertyName{propertyName}, uniqueVarName{uniqueVarName},
           rawVariableName{rawVariableName}, infos{std::move(infos)} {}
 
     PropertyExpression(const PropertyExpression& other)
-        : Expression{common::ExpressionType::PROPERTY, other.dataType.copy(), other.uniqueName},
+        : Expression{expressionType_, other.dataType.copy(), other.uniqueName},
           propertyName{other.propertyName}, uniqueVarName{other.uniqueVarName},
           rawVariableName{other.rawVariableName}, infos{copyMap(other.infos)} {}
 
@@ -49,8 +50,7 @@ public:
     std::string getRawVariableName() const { return rawVariableName; }
 
     // If this property exists for given table.
-    bool hasPropertyID(common::table_id_t tableID) const;
-    common::property_id_t getPropertyID(common::table_id_t tableID) const;
+    bool hasProperty(common::table_id_t tableID) const;
 
     bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
     bool isIRI() const { return getPropertyName() == common::rdf::IRI; }

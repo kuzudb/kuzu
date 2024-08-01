@@ -305,9 +305,9 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
 void ChunkedNodeGroup::addColumn(Transaction*, const TableAddColumnState& addColumnState,
     bool enableCompression, BMFileHandle* dataFH) {
     auto numRows = getNumRows();
-    auto& property = addColumnState.property;
-    chunks.push_back(std::make_unique<ColumnChunk>(property.getDataType().copy(), capacity,
-        enableCompression, ResidencyState::IN_MEMORY));
+    auto& dataType = addColumnState.propertyDefinition.getType();
+    chunks.push_back(std::make_unique<ColumnChunk>(dataType, capacity, enableCompression,
+        ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
     if (residencyState == ResidencyState::ON_DISK) {

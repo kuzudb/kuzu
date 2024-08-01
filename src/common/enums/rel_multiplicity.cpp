@@ -1,5 +1,6 @@
 #include "common/enums/rel_multiplicity.h"
 
+#include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -7,26 +8,35 @@
 namespace kuzu {
 namespace common {
 
-RelMultiplicity RelMultiplicityUtils::getFwd(const std::string& multiplicityStr) {
-    auto normalizedMultiStr = common::StringUtils::getUpper(multiplicityStr);
-    if ("ONE_ONE" == normalizedMultiStr || "ONE_MANY" == normalizedMultiStr) {
+RelMultiplicity RelMultiplicityUtils::getFwd(const std::string& str) {
+    auto normStr = common::StringUtils::getUpper(str);
+    if ("ONE_ONE" == normStr || "ONE_MANY" == normStr) {
         return RelMultiplicity::ONE;
-    } else if ("MANY_ONE" == normalizedMultiStr || "MANY_MANY" == normalizedMultiStr) {
+    } else if ("MANY_ONE" == normStr || "MANY_MANY" == normStr) {
         return RelMultiplicity::MANY;
     }
-    throw BinderException(
-        stringFormat("Cannot bind {} as relationship multiplicity.", multiplicityStr));
+    throw BinderException(stringFormat("Cannot bind {} as relationship multiplicity.", str));
 }
 
-RelMultiplicity RelMultiplicityUtils::getBwd(const std::string& multiplicityStr) {
-    auto normalizedMultiStr = common::StringUtils::getUpper(multiplicityStr);
-    if ("ONE_ONE" == normalizedMultiStr || "MANY_ONE" == normalizedMultiStr) {
+RelMultiplicity RelMultiplicityUtils::getBwd(const std::string& str) {
+    auto normStr = common::StringUtils::getUpper(str);
+    if ("ONE_ONE" == normStr || "MANY_ONE" == normStr) {
         return RelMultiplicity::ONE;
-    } else if ("ONE_MANY" == normalizedMultiStr || "MANY_MANY" == normalizedMultiStr) {
+    } else if ("ONE_MANY" == normStr || "MANY_MANY" == normStr) {
         return RelMultiplicity::MANY;
     }
-    throw BinderException(
-        stringFormat("Cannot bind {} as relationship multiplicity.", multiplicityStr));
+    throw BinderException(stringFormat("Cannot bind {} as relationship multiplicity.", str));
+}
+
+std::string RelMultiplicityUtils::toString(RelMultiplicity multiplicity) {
+    switch (multiplicity) {
+    case RelMultiplicity::ONE:
+        return "ONE";
+    case RelMultiplicity::MANY:
+        return "MANY";
+    default:
+        KU_UNREACHABLE;
+    }
 }
 
 } // namespace common
