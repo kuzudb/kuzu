@@ -85,7 +85,7 @@ static void finalizeFunc(ExportFuncSharedState& sharedState) {
     serializer.writeBufferData("[\n");
     for (auto& i : jsonSharedState.jsonValues) {
         serializer.writeBufferData(i);
-        if (i == jsonSharedState.jsonValues.back()) {
+        if (&i == &jsonSharedState.jsonValues.back()) {
             serializer.writeBufferData("\n");
         } else {
             serializer.writeBufferData(",\n");
