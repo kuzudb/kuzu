@@ -66,7 +66,8 @@ public:
     static BitpackInfo<EncodedType> getBitpackInfo(const CompressionMetadata& metadata);
 
 private:
-    IntegerBitpacking<EncodedType> encodedFloatBitpacker;
+    std::unique_ptr<CompressionAlg> getEncodedFloatBitpacker(
+        const CompressionMetadata& metadata) const;
 };
 
 static_assert(std::is_same_v<FloatCompression<double>::EncodedType, int64_t>, "");

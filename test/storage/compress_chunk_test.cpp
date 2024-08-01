@@ -170,7 +170,6 @@ void CompressChunkTest::testCheckWholeOutput(const std::vector<T>& bufferToCompr
 }
 
 TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
-
     std::vector<double> bufferToCompress(128, -5.5);
     bufferToCompress[5] = -1;
 
@@ -191,6 +190,7 @@ TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
 
 TEST_F(CompressChunkTest, TestDoubleWithExceptions) {
     std::vector<double> src(256, 5.6);
+    src[0] = 0;
     src[2] = 54387589437957.834;
     for (size_t i = 102; i < src.size(); i += 100) {
         src[i] = src[i - 100] + 4385498.234;
@@ -211,6 +211,7 @@ TEST_F(CompressChunkTest, TestFloatWithExceptions) {
 
 TEST_F(CompressChunkTest, TestFloatFilter) {
     std::vector<float> src(10 * 1024, 5.6);
+    src[4] = 0;
     src[2] = -54387589.8341;
     for (size_t i = 8; i < src.size(); i += 6) {
         src[i] = src[i - 6] + -4385.2348;
@@ -243,6 +244,7 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
 
 TEST_F(CompressChunkTest, TestDoubleMultiPage) {
     std::vector<double> src(10 * 1024, 5.6);
+    src[5] = 0;
     src[1] = 12345678901234.56;
     for (size_t i = 98; i < src.size(); i += 23) {
         src[i] = src[i - 23] + 78901234.567;
@@ -253,6 +255,12 @@ TEST_F(CompressChunkTest, TestDoubleMultiPage) {
 
 TEST_F(CompressChunkTest, TestConstant) {
     std::vector<double> src(256, 0.54);
+    testCheckWholeOutput(src);
+}
+
+TEST_F(CompressChunkTest, TestConstantExcludingExceptions) {
+    std::vector<double> src(256, -0.54);
+    src[1] = 1234567.890123456;
     testCheckWholeOutput(src);
 }
 
@@ -273,6 +281,7 @@ TEST_F(CompressChunkTest, TestFloatManyExceptionsNoCompress) {
 
 TEST_F(CompressChunkTest, TestDoubleWithCompress) {
     std::vector<double> src(10 * 1024, 5.6);
+    src[5] = 0;
     src[2] = 54387589437957.834;
     for (size_t i = 102; i < src.size(); i += 6) {
         src[i] = src[i - 6] + 4385498.234;
@@ -283,6 +292,7 @@ TEST_F(CompressChunkTest, TestDoubleWithCompress) {
 
 TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsets) {
     std::vector<double> src(10 * 1024, 5.6);
+    src[5] = 0;
     src[2] = 54387589437957.834;
     for (size_t i = 102; i < src.size(); i += 6) {
         src[i] = src[i - 6] + 4385498.234;
@@ -307,6 +317,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsets) {
 
 TEST_F(CompressChunkTest, TestDoubleReadPartialMultiPage) {
     std::vector<double> src(10 * 1024, 5.6);
+    src[5] = 0;
     src[2] = 54387538437957.834;
     for (size_t i = 102; i < src.size(); i += 6) {
         src[i] = src[i - 6] + 9285498.231;
@@ -329,7 +340,8 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialMultiPage) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
-    std::vector<double> src(512, 5.6);
+    std::vector<double> src(512, -5.6);
+    src[3] = -1;
     src[4] = -54387589437957.834;
     for (size_t i = 12; i < src.size(); i += 8) {
         src[i] = src[i - 8] - 4385498.234;
@@ -355,6 +367,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
     std::vector<double> src(256, 5.6);
+    src[0] = 0;
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
@@ -375,7 +388,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
         for (size_t i = cpyOffset; i < cpyOffset + numValuesToSet; ++i) {
-            KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), i, 1,
+            ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), i, 1,
                 dataType.getPhysicalType(), localUpdateState));
             reader->writeValueToPageFromVector(state, i, &in, i,
                 WriteCompressedValuesToPage(dataType));
@@ -388,6 +401,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
     std::vector<double> src(256, 5.6);
+    src[0] = 0;
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
@@ -403,7 +417,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
         }
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+        ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
             cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
@@ -413,6 +427,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
     std::vector<double> src(StorageConstants::NODE_GROUP_SIZE, 5.6);
     src[1] = 123456789012.56;
+    src[3] = 1;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
     }
@@ -426,7 +441,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
         }
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), 0, src.size(),
+        ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), 0, src.size(),
             dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), nullptr, 0, src.size(),
             WriteCompressedValuesToPage(dataType));
@@ -435,7 +450,9 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
     std::vector<double> src(10 * 1024, 5.6);
+    src[5] = 0;
     src[1] = 123456789012.56;
+    src[3] = 1;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
     }
@@ -449,7 +466,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
         }
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+        ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
             cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
@@ -460,6 +477,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
     // numValues not not fit in uint16
     std::vector<double> src(1 << 17, 5.6);
     src[1] = 123456789012.56;
+    src[3] = 1;
     for (size_t i = 11; i < src.size(); i += 10) {
         src[i] = src[i - 10] + 7890123.567;
     }
@@ -474,7 +492,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
         }
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+        ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
             cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));
@@ -508,7 +526,7 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
         }
 
         CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
-        KU_ASSERT(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
+        ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
             cpyOffset, numValuesToSet, WriteCompressedValuesToPage(dataType));

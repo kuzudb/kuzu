@@ -134,11 +134,12 @@ std::optional<T> getFirstSuccessfulALPEncode(std::span<const T> src,
     if (firstSuccessfulEncode == src.end()) {
         return {};
     }
-    return *firstSuccessfulEncode;
+    return alp::AlpEncode<T>::encode_value(*firstSuccessfulEncode, alpMetadata.fac,
+        alpMetadata.exp);
 }
 
 template<std::floating_point T>
-CompressionMetadata getMinMaxALPEncodedValues(CompressionType compressionType,
+CompressionMetadata getFloatBitpackingMetadata(CompressionType compressionType,
     PhysicalTypeID physicalType, std::span<const T> src, T firstSuccessfulEncode,
     alp::state& alpMetadata, StorageValue min, StorageValue max) {
     std::vector<typename FloatCompression<T>::EncodedType> floatEncodedValues(src.size());
@@ -193,7 +194,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
         return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
     }
 
-    const auto compMeta = getMinMaxALPEncodedValues(alg->getCompressionType(), physicalType,
+    const auto compMeta = getFloatBitpackingMetadata(alg->getCompressionType(), physicalType,
         castedBuffer, firstSuccessfulEncode.value(), alpMetadata, min, max);
     const auto exceptionCount = compMeta.floatMetadata().exceptionCount;
 
