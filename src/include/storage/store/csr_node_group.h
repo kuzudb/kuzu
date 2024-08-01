@@ -180,7 +180,7 @@ public:
 
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
     NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
-    
+
     common::length_t getCSRLength(CSRNodeGroupScanState& state, common::offset_t offsetInGroup);
 
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,

@@ -124,7 +124,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
-        auto& csrNodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
+        auto& csrNodeGroupScanState =
+            relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
         currCSRSize = relScanState.nodeGroup->cast<CSRNodeGroup>().getCSRLength(
             csrNodeGroupScanState, relScanState.boundNodeOffset - startNodeOffset);
         posInLastCSR = csrNodeGroupScanState.nextRowToScan;

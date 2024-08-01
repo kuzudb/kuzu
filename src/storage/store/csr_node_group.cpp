@@ -98,7 +98,6 @@ length_t CSRNodeGroup::getCSRLength(CSRNodeGroupScanState& state, offset_t offse
     return result;
 }
 
-
 NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
     const auto& relScanState = state.cast<RelTableScanState>();
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
