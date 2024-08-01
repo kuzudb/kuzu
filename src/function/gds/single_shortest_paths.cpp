@@ -26,7 +26,7 @@ public:
             // Note: We should be storing nodeID_t atomically but that is not possible. Therefore we
             // store two atomic<uint64_t> values per nodeID. First is the node offset and the second
             // is the tableID.
-            lastEdges.insert({tableID, mm->allocateBuffer(false, numNodes * (2*sizeof(std::atomic<uint64_t>)))});
+            parentEdges.insert({tableID, mm->allocateBuffer(false, numNodes * (2*sizeof(std::atomic<uint64_t>)))});
         }
     }
 
@@ -34,17 +34,17 @@ public:
         auto offsetPos = nodeID.offset << 1;
         auto tableIDPos = offsetPos + 1;
         auto bufPtr = reinterpret_cast<std::atomic<uint64_t>*>(
-            lastEdges.at(nodeID.tableID).get()->buffer.data());
+            parentEdges.at(nodeID.tableID).get()->buffer.data());
         return nodeID_t(bufPtr[offsetPos].load(std::memory_order_relaxed),
             bufPtr[tableIDPos].load(std::memory_order_relaxed));
     }
 
-    void setLastEdge(nodeID_t nodeID, nodeID_t lastEdge) {
-        KU_ASSERT(currentFixedLastEdges.load(std::memory_order_relaxed) != nullptr);
+    void setParentEdge(nodeID_t nodeID, nodeID_t parentEdge) {
+        KU_ASSERT(currentFixedParentEdges.load(std::memory_order_relaxed) != nullptr);
         // Note: We are changing 2 values non-atomically without any locking or atomics. This
         // should be fine because we assume that all extensions that are being done in a
         // particular iteration happen from the same relationship table, so if there are multiple
-        // writes to update the lastEdge for nodeID, say lastEdge1 and lastEdge2, they will have
+        // writes to update the parentEdge for nodeID, say parentEdge1 and parentEdge2, they will have
         // the same tableID. Further they can write different offsets but that's fine because
         // we are keeping track of only 1 singlePath so regardless of which one writes first
         // is fine.
@@ -53,24 +53,25 @@ public:
         // written atomically.
         auto offsetPos = nodeID.offset << 1;
         auto tableIDPos = offsetPos + 1;
-        auto bufPtr = currentFixedLastEdges.load(std::memory_order_relaxed);
-        bufPtr[offsetPos].store(lastEdge.offset, std::memory_order_relaxed);
-        bufPtr[tableIDPos].store(lastEdge.tableID, std::memory_order_relaxed);
+        auto bufPtr = currentFixedParentEdges.load(std::memory_order_relaxed);
+        bufPtr[offsetPos].store(parentEdge.offset, std::memory_order_relaxed);
+        bufPtr[tableIDPos].store(parentEdge.tableID, std::memory_order_relaxed);
     }
 
     void fixNodeTable(common::table_id_t tableID) {
-        KU_ASSERT(lastEdges.contains(tableID));
-        currentFixedLastEdges.store(
-            reinterpret_cast<std::atomic<uint64_t>*>(lastEdges.at(tableID).get()->buffer.data()),
+        KU_ASSERT(parentEdges.contains(tableID));
+        currentFixedParentEdges.store(
+            reinterpret_cast<std::atomic<uint64_t>*>(parentEdges.at(tableID).get()->buffer.data()),
             std::memory_order_relaxed);
     }
 
 private:
-    // TODO(Semih): Rename lastEdges to parentEdges.
-    common::table_id_map_t<std::unique_ptr<MemoryBuffer>> lastEdges;
-    std::atomic<std::atomic<uint64_t>*> currentFixedLastEdges;
+    common::table_id_map_t<std::unique_ptr<MemoryBuffer>> parentEdges;
+    std::atomic<std::atomic<uint64_t>*> currentFixedParentEdges;
 };
 
+// TODO(Semih): Consider refactoring to two classes, one for DESTINATION_NODES and LENGTHS and the
+// other for PATHS. The code will be more explicit that way.
 struct SingleSPOutputs : public RJOutputs {
     std::unique_ptr<PathLengths> pathLengths;
     std::unique_ptr<SinglePaths> singlePaths;
@@ -112,15 +113,15 @@ public:
         srcNodeIDVector->setValue<nodeID_t>(0, spOutputs->sourceNodeID);
         for (auto tableID : graph->getNodeTableIDs()) {
             spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
-            for (offset_t nodeOffset = 0;  nodeOffset < 5; // TODO(Semih): Remove
-                   // nodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
-                 ++nodeOffset) {
+            for (offset_t dstNodeOffset = 0;  // dstNodeOffset < 5; // TODO(Semih): Remove
+                 dstNodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+                 ++dstNodeOffset) {
                 auto length =
-                    spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(nodeOffset);
+                    spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeOffset);
                 if (length == PathLengths::UNVISITED) {
                     continue;
                 }
-                auto dstNodeID = nodeID_t{nodeOffset, tableID};
+                auto dstNodeID = nodeID_t{dstNodeOffset, tableID};
                 dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
                 if (RJOutputType::LENGTHS == rjOutputType || RJOutputType::PATHS == rjOutputType) {
                     lengthVector->setValue<int64_t>(0, length);
@@ -171,8 +172,8 @@ struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
         auto retVal = pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                           nbrID.offset) == PathLengths::UNVISITED;
         if (retVal) {
-            // We set the nbrID's last edge to curNodeID;
-            singlePaths->setLastEdge(nbrID, curNodeID);
+            // We set the nbrID's parent edge to curNodeID;
+            singlePaths->setParentEdge(nbrID, curNodeID);
         }
         return retVal;
     }

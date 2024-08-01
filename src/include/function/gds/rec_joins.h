@@ -118,7 +118,6 @@ struct RJCompState {
         table_id_t nextFrontierTableID) {
         frontiers->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
         outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
-        frontierCompute->initFrontierExtensions(nextFrontierTableID);
     }
 };
 
@@ -178,6 +177,8 @@ class PathLengths : public GDSFrontier {
 
 public:
     static constexpr uint8_t UNVISITED = 255;
+    // TODO(Semih): Make this private and make the reads happen through a function. That way
+    // we can ensure that reads are always done through load(std::memory_order_relaxed).
     std::atomic<uint8_t> curIter = 255;
 
     explicit PathLengths(
@@ -223,6 +224,7 @@ private:
         KU_ASSERT(retVal != nullptr);
         return retVal;
     }
+
     std::atomic<uint8_t>* getNextFrontierFixedMask() {
         auto retVal = nextFrontierFixedMask.load(std::memory_order_relaxed);
         KU_ASSERT(retVal != nullptr);
@@ -248,7 +250,7 @@ class PathLengthsFrontiers : public Frontiers {
     static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
     // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
     // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
-    // frontierSize computation for details.
+    // frontierMorselSize computation for details.
     static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
@@ -277,9 +279,9 @@ public:
         // the number of maximum threads that could be working on this frontier. However if
         // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
         auto maxNodesInFrontier = pathLengths->getNumNodesInCurFrontierFixedNodeTable();
-        auto idealFrontierSize = maxNodesInFrontier / (std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
+        auto idealFrontierMorselSize = maxNodesInFrontier / (std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
                                                           maxThreadsForExec * maxThreadsForExec));
-        frontierSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealFrontierSize);
+        frontierMorselSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealFrontierMorselSize);
     }
 
     void beginNewIterationInternalNoLock() override {
@@ -290,7 +292,7 @@ public:
 private:
     PathLengths* pathLengths;
     std::atomic<offset_t> nextOffset;
-    uint64_t frontierSize;
+    uint64_t frontierMorselSize;
 };
 
 } // namespace function

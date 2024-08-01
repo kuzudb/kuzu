@@ -22,7 +22,7 @@ void GDSTask::run() {
                 for (auto nbrID : nbrIDs) {
                     if (localFc->edgeCompute(nodeID, nbrID)) {
                         sharedState->frontiers.nextFrontier->setActive(nbrID);
-                        numApproxActiveNodesForNextIter++;
+                            numApproxActiveNodesForNextIter++;
                     }
                 }
             }

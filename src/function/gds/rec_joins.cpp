@@ -135,13 +135,13 @@ void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
 
 bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) {
     auto numNodes = pathLengths->getNumNodesInCurFrontierFixedNodeTable();
-    auto beginOffset = nextOffset.fetch_add(frontierSize, std::memory_order_acq_rel);
+    auto beginOffset = nextOffset.fetch_add(frontierMorselSize, std::memory_order_acq_rel);
     if (beginOffset >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {
         return false;
     }
-    auto endOffset = beginOffset + frontierSize > numNodes ?
+    auto endOffset = beginOffset + frontierMorselSize > numNodes ?
                          numNodes :
-                         beginOffset + frontierSize;
+                         beginOffset + frontierMorselSize;
     frontierMorsel.initMorsel(pathLengths->curTableID, beginOffset, endOffset);
     return true;
 }

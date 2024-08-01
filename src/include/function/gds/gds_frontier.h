@@ -55,14 +55,8 @@ public:
     // work.
     virtual bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) = 0;
 
-    // toNodeTableID is the tableID of the nbr nodes that will be used in extensions. This
-    // information can be useful to ensure the right data structures are initialized in the
-    // output data structures that the frontier compute will write.
-    // Note: This code will be called once for each relevant node table in an iteration by the
-    // "master" thread before frontier compute is passed to worker threads.
-    virtual void initFrontierExtensions(table_id_t toNodeTableID) {};
-
     // This function will be called by each worker thread on its copy of the FrontierCompute.
+    // TODO(Semih): See if this has any implementations. If not remove.
     virtual void init() {}
 
     virtual std::unique_ptr<FrontierCompute> clone() = 0;

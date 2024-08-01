@@ -32,7 +32,6 @@ void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* execution
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
     RJCompState& rjCompState, graph::Graph* graph, uint64_t maxIters) {
-
     auto frontiers = rjCompState.frontiers.get();
     auto fc = rjCompState.frontierCompute.get();
     while (frontiers->hasActiveNodesForNextIter() && frontiers->getNextIter() < maxIters) {
@@ -44,34 +43,8 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executi
                 relTableIDInfo.relTableID);
             GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
         }
-        // TODO(Semih): Remove
-        // We put the memory fence here to make sure that updates to pathLengths in this
-        // iteration is visible in the next round to all threads.
-//        std::atomic_thread_fence(std::memory_order_seq_cst);
     }
 }
-
-// TODO(Semih): Remove
-//void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
-//    Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc, uint64_t maxIters) {
-////    // We put the memory fence before to ensure that updates to any frontier that may be
-////    // requiring memory barrier becomes visible to all threads in the first iteration.
-////    std::atomic_thread_fence(std::memory_order_seq_cst);
-//    while (frontiers.hasActiveNodesForNextIter() && frontiers.getNextIter() < maxIters) {
-//        frontiers.beginNewIteration();
-//        for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
-//            frontiers.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
-//                relTableIDInfo.toNodeTableID);
-//            fc.initFrontierExtensions(relTableIDInfo.toNodeTableID);
-//            auto sharedState = std::make_shared<FrontierTaskSharedState>(frontiers, graph, fc,
-//                relTableIDInfo.relTableID);
-//            GDSUtils::parallelizeFrontierCompute(executionContext, sharedState);
-//        }
-////        // We put the memory fence here to make sure that updates to pathLengths in this
-////        // iteration is visible in the next round to all threads.
-////        std::atomic_thread_fence(std::memory_order_seq_cst);
-//    }
-//}
 
 } // namespace function
 } // namespace kuzu
