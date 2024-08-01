@@ -91,31 +91,32 @@ public:
 
     virtual void readCompressedValueToPage(transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,
-        uint32_t offsetInResult, read_value_from_page_func_t<uint8_t*> readFunc) = 0;
+        uint32_t offsetInResult, const read_value_from_page_func_t<uint8_t*>& readFunc) = 0;
 
     virtual void readCompressedValueToVector(transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* result,
-        uint32_t offsetInResult, read_value_from_page_func_t<common::ValueVector*> readFunc) = 0;
+        uint32_t offsetInResult,
+        const read_value_from_page_func_t<common::ValueVector*>& readFunc) = 0;
 
     virtual uint64_t readCompressedValuesToPage(transaction::Transaction* transaction,
         const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
-        read_values_from_page_func_t<uint8_t*> readFunc,
+        const read_values_from_page_func_t<uint8_t*>& readFunc,
         std::optional<filter_func_t> filterFunc = {}) = 0;
 
     virtual uint64_t readCompressedValuesToVector(transaction::Transaction* transaction,
         const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
-        read_values_from_page_func_t<common::ValueVector*> readFunc,
+        const read_values_from_page_func_t<common::ValueVector*>& readFunc,
         std::optional<filter_func_t> filterFunc = {}) = 0;
 
     virtual void writeValueToPageFromVector(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
-        write_values_from_vector_func_t writeFromVectorFunc) = 0;
+        const write_values_from_vector_func_t& writeFromVectorFunc) = 0;
 
     virtual void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
-        common::offset_t numValues, write_values_func_t writeFunc) = 0;
+        common::offset_t numValues, const write_values_func_t& writeFunc) = 0;
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& readFunc);
