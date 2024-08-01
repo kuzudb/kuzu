@@ -178,6 +178,10 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
         return getConstantFloatMetadata(physicalType, numValues, min, max);
     }
 
+    if (numValues == 0) {
+        return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
+    }
+
     alp::state alpMetadata = getAlpMetadata<T>(buffer, numValues);
     if (alpMetadata.scheme != alp::SCHEME::ALP) {
         return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
