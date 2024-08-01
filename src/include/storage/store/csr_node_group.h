@@ -112,8 +112,10 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // States at the node group level. Cached during scan over all csr lists within the same node
     // group. State for reading from checkpointed node group.
     std::unique_ptr<ChunkedCSRHeader> csrHeader;
-    csr_list_t persistentCSRList;
-    NodeCSRIndex inMemCSRList;
+    std::vector<csr_list_t> persistentCSRLists;
+    std::vector<NodeCSRIndex> inMemCSRLists;
+    // position in vector of either csr list/index vector
+    uint32_t nextCSRToScan;
 
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
@@ -127,7 +129,9 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
         NodeGroupScanState::resetState();
         csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
-        persistentCSRList = csr_list_t();
+        persistentCSRLists.resize(0);
+        inMemCSRLists.resize(0);
+        nextCSRToScan = 0;
     }
 };
 
@@ -213,10 +217,14 @@ private:
 
     NodeGroupScanResult scanCommittedPersistent(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+    NodeGroupScanResult scanCommittedInMem(transaction::Transaction* transaction,
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState, 
+        common::row_idx_t numScanned);
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState, 
+        common::row_idx_t numScanned);
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
     void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);
