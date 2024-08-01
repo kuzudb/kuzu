@@ -57,8 +57,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     auto& relScanState = scanState.cast<RelTableScanState>();
 
     auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
-    const sel_t totalNodeIdxs = nodeSelVector.getSelSize();
-    KU_ASSERT(totalNodeIdxs > 0);
+    relScanState.totalNodeIdx = nodeSelVector.getSelSize();
+    KU_ASSERT(relScanState.totalNodeIdx > 0);
     relScanState.endNodeIdx = relScanState.currNodeIdx;
     relScanState.boundNodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.currNodeIdx]);
@@ -78,7 +78,7 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
     offset_t nodeOffset = relScanState.boundNodeOffset;
     // collect all node ids that can be read from the same node group
-    while (relScanState.endNodeIdx < totalNodeIdxs) {
+    while (relScanState.endNodeIdx < relScanState.totalNodeIdx) {
         nodeOffset =
             relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx]);
         if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
@@ -110,6 +110,63 @@ void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
     auto& relScanState = scanState.cast<RelTableScanState>();
+    auto& outSelVector = relScanState.outputVectors[0]->state->getSelVectorUnsafe();
+    auto& nodeIDSelVector = relScanState.boundNodeIDVector->state->getSelVectorUnsafe();
+    nodeIDSelVector.setToUnfiltered(relScanState.totalNodeIdx);
+    // We need to reinitialize per node group
+    if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
+        initializeScanState(transaction, relScanState);
+    }
+    relScanState.boundNodeOffset =
+        relScanState.boundNodeIDVector->readNodeOffset(nodeIDSelVector[relScanState.currNodeIdx]);
+    row_idx_t posInLastCSR = 0;
+    row_idx_t currCSRSize = INVALID_OFFSET;
+    switch (relScanState.source) {
+    case TableScanSource::COMMITTED: {
+        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
+        auto& csrNodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
+        currCSRSize = relScanState.nodeGroup->cast<CSRNodeGroup>().getCSRLength(
+            csrNodeGroupScanState, relScanState.boundNodeOffset - startNodeOffset);
+        posInLastCSR = csrNodeGroupScanState.nextRowToScan;
+    } break;
+    case TableScanSource::UNCOMMITTED: {
+        currCSRSize = INVALID_OFFSET;
+        posInLastCSR = INVALID_OFFSET;
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    KU_ASSERT(currCSRSize != INVALID_OFFSET);
+    // We rescan after last batch is all processed (usually 2048 tuples)
+    if (relScanState.currentCSROffset >= relScanState.batchSize) {
+        if (!scanNext(transaction, relScanState)) {
+            return false;
+        }
+    }
+    // This assumes nodeIDVector is initially unfiltered, which is not safe
+    // we should do this using similar logic to Flatten
+    nodeIDSelVector.getMultableBuffer()[0] = nodeIDSelVector[relScanState.currNodeIdx];
+    nodeIDSelVector.setToFiltered(1);
+    if (relScanState.currentCSROffset == 0) {
+        currCSRSize -= posInLastCSR;
+    }
+    auto spaceLeft = relScanState.batchSize - relScanState.currentCSROffset;
+    if (currCSRSize > spaceLeft) {
+        currCSRSize = spaceLeft;
+    } else {
+        relScanState.currNodeIdx++;
+    }
+    for (auto i = 0u; i < currCSRSize; i++) {
+        outSelVector.getMultableBuffer()[i] = i + relScanState.currentCSROffset;
+    }
+    relScanState.currentCSROffset += currCSRSize;
+    outSelVector.setToFiltered(currCSRSize);
+    return true;
+}
+
+bool RelTable::scanNext(Transaction* transaction, TableScanState& scanState) {
+    auto& relScanState = scanState.cast<RelTableScanState>();
     relScanState.IDVector->state->getSelVectorUnsafe().setToUnfiltered();
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
@@ -122,6 +179,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
                 return false;
             }
         }
+        relScanState.batchSize = scanResult.numRows;
         return true;
     }
     case TableScanSource::UNCOMMITTED: {

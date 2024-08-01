@@ -20,8 +20,8 @@ struct RelTableScanState : TableScanState {
 
     common::sel_t currNodeIdx = 0;
     common::sel_t endNodeIdx = 0;
+    common::sel_t totalNodeIdx = 0;
     common::offset_t currentCSROffset = 0;
-    common::offset_t posInLastCSR = 0;
     common::offset_t batchSize = 0;
 
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
@@ -190,6 +190,8 @@ public:
     }
 
 private:
+    bool scanNext(transaction::Transaction* transaction, TableScanState& scanState);
+
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
         NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
         const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);

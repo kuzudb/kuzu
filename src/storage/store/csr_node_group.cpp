@@ -81,6 +81,24 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
     }
 }
 
+length_t CSRNodeGroup::getCSRLength(CSRNodeGroupScanState& state, offset_t offsetInGroup) {
+    length_t result = INVALID_OFFSET;
+    switch (state.source) {
+    case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
+        result = state.csrHeader->getCSRLength(offsetInGroup);
+    } break;
+    case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
+        result = csrIndex->getNumRows(offsetInGroup);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    KU_ASSERT(result != INVALID_OFFSET);
+    return result;
+}
+
+
 NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
     const auto& relScanState = state.cast<RelTableScanState>();
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
