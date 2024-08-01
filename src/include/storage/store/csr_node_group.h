@@ -220,10 +220,10 @@ private:
     NodeGroupScanResult scanCommittedInMem(transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState, 
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState,
         common::row_idx_t numScanned);
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState, 
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState,
         common::row_idx_t numScanned);
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);

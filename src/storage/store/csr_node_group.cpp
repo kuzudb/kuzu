@@ -26,9 +26,11 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
     auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     nodeGroupScanState.nextRowToScan = 0;
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    for (auto startNodeIdx = relScanState.currNodeIdx; startNodeIdx < relScanState.endNodeIdx; startNodeIdx++) {
-        const auto offsetInGroup = 
-            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[startNodeIdx]) - startNodeOffset;
+    for (auto startNodeIdx = relScanState.currNodeIdx; startNodeIdx < relScanState.endNodeIdx;
+         startNodeIdx++) {
+        const auto offsetInGroup =
+            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[startNodeIdx]) -
+            startNodeOffset;
         if (persistentChunkGroup) {
             auto offset = nodeGroupScanState.csrHeader->getStartCSROffset(offsetInGroup);
             auto length = nodeGroupScanState.csrHeader->getCSRLength(offsetInGroup);
@@ -40,10 +42,9 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
         if (csrIndex) {
             auto& index = csrIndex->indices[offsetInGroup];
             if (!index.isSequential) {
-                KU_ASSERT(std::is_sorted(index.rowIndices.begin(),
-                    index.rowIndices.end()));
+                KU_ASSERT(std::is_sorted(index.rowIndices.begin(), index.rowIndices.end()));
             }
-            if (index.rowIndices.size() > 0 && 
+            if (index.rowIndices.size() > 0 &&
                 nodeGroupScanState.source == CSRNodeGroupScanSource::NONE) {
                 nodeGroupScanState.inMemCSRLists.push_back(index);
                 nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
@@ -122,11 +123,12 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* tra
         auto& csrList = nodeGroupScanState.persistentCSRLists[nodeGroupScanState.nextCSRToScan];
         const auto startRow = csrList.startRow + nodeGroupScanState.nextRowToScan;
         const auto numToScan = std::min(csrList.length - nodeGroupScanState.nextRowToScan,
-                                  DEFAULT_VECTOR_CAPACITY - result.numRows);
+            DEFAULT_VECTOR_CAPACITY - result.numRows);
         if (result.startRow == INVALID_ROW_IDX) {
             result.startRow = startRow;
         }
-        persistentChunkGroup->scan(transaction, tableState, nodeGroupScanState, startRow, numToScan);
+        persistentChunkGroup->scan(transaction, tableState, nodeGroupScanState, startRow,
+            numToScan);
         result.numRows += numToScan;
         if (numToScan == csrList.length - nodeGroupScanState.nextRowToScan) {
             nodeGroupScanState.nextCSRToScan++;
@@ -145,9 +147,10 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(Transaction* transaction,
     auto result = NODE_GROUP_SCAN_EMMPTY_RESULT;
     while (nodeGroupScanState.nextCSRToScan < nodeGroupScanState.inMemCSRLists.size()) {
         auto& index = nodeGroupScanState.inMemCSRLists[nodeGroupScanState.nextCSRToScan];
-        auto current = index.isSequential ?
-            scanCommittedInMemSequential(transaction, tableState, nodeGroupScanState, result.numRows) :
-            scanCommittedInMemRandom(transaction, tableState, nodeGroupScanState, result.numRows);
+        auto current = index.isSequential ? scanCommittedInMemSequential(transaction, tableState,
+                                                nodeGroupScanState, result.numRows) :
+                                            scanCommittedInMemRandom(transaction, tableState,
+                                                nodeGroupScanState, result.numRows);
         if (result.startRow == INVALID_ROW_IDX) {
             result.startRow = current.startRow;
         }
@@ -160,24 +163,26 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(Transaction* transaction,
 }
 
 NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction* transaction,
-    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState, row_idx_t numScanned) {
+    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState,
+    row_idx_t numScanned) {
     auto& index = nodeGroupScanState.inMemCSRLists[nodeGroupScanState.nextCSRToScan];
     const auto startRow = index.rowIndices[0] + nodeGroupScanState.nextRowToScan;
     const auto numRows = std::min(index.rowIndices[1] - nodeGroupScanState.nextRowToScan,
-                            DEFAULT_VECTOR_CAPACITY - numScanned);
+        DEFAULT_VECTOR_CAPACITY - numScanned);
     KU_ASSERT(numRows > 0);
     row_idx_t rowsScanned = 0;
     while (rowsScanned < numRows) {
         auto [chunkIdx, startRowInChunk] = StorageUtils::getQuotientRemainder(
             startRow + rowsScanned, ChunkedNodeGroup::CHUNK_CAPACITY);
-        rowsScanned += std::min(numRows - rowsScanned, 
-                                ChunkedNodeGroup::CHUNK_CAPACITY - startRowInChunk);
+        rowsScanned +=
+            std::min(numRows - rowsScanned, ChunkedNodeGroup::CHUNK_CAPACITY - startRowInChunk);
         ChunkedNodeGroup* chunkedGroup;
         {
             const auto lock = chunkedGroups.lock();
             chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
         }
-        chunkedGroup->scan(transaction, tableState, nodeGroupScanState, startRowInChunk, numRows - rowsScanned);
+        chunkedGroup->scan(transaction, tableState, nodeGroupScanState, startRowInChunk,
+            numRows - rowsScanned);
     }
     KU_ASSERT(rowsScanned == numRows);
     if (numRows == index.rowIndices[1] - nodeGroupScanState.nextRowToScan) {
@@ -190,10 +195,11 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
 }
 
 NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transaction,
-    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState, row_idx_t numScanned) {
+    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState,
+    row_idx_t numScanned) {
     auto& index = nodeGroupScanState.inMemCSRLists[nodeGroupScanState.nextCSRToScan];
     const auto numRows = std::min(index.rowIndices.size() - nodeGroupScanState.nextRowToScan,
-                                  DEFAULT_VECTOR_CAPACITY - numScanned);
+        DEFAULT_VECTOR_CAPACITY - numScanned);
     KU_ASSERT(numRows > 0);
     row_idx_t nextRow = 0;
     ChunkedNodeGroup* chunkedGroup = nullptr;
