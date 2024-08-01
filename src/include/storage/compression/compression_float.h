@@ -1,6 +1,5 @@
 #pragma once
 
-#include <limits>
 #include <type_traits>
 
 #include "storage/compression/compression.h"
@@ -78,28 +77,18 @@ struct EncodeException {
     T value;
     uint32_t posInChunk;
 
-    static constexpr auto INVALID_POS = std::numeric_limits<decltype(posInChunk)>::max();
+    static constexpr size_t sizeBytes() { return sizeof(value) + sizeof(posInChunk); }
 
-    static constexpr size_t sizeBytes() {
-        constexpr size_t exceptionSizeBytes = sizeof(value) + sizeof(posInChunk);
+    static size_t numPagesFromExceptions(size_t exceptionCount);
 
-        // best we can do to ensure that all fields are accounted for due to struct padding
-        static_assert(exceptionSizeBytes + (8 - exceptionSizeBytes % 8) >= sizeof(EncodeException));
+    static size_t exceptionBytesPerPage();
 
-        return exceptionSizeBytes;
-    }
-
-    bool operator<(const EncodeException<T>& o) const {
-        KU_ASSERT(posInChunk != o.posInChunk);
-        return posInChunk < o.posInChunk;
-    }
+    bool operator<(const EncodeException<T>& o) const;
 };
 
 template<std::floating_point T>
-struct ExceptionBufferElementView {
-    using type = EncodeException<T>;
-
-    explicit ExceptionBufferElementView(std::byte* val) { bytes = val; }
+struct EncodeExceptionView {
+    explicit EncodeExceptionView(std::byte* val) { bytes = val; }
 
     EncodeException<T> getValue() const;
     void setValue(EncodeException<T> exception);

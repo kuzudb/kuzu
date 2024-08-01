@@ -18,12 +18,6 @@ namespace {
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
 
-template<std::floating_point T>
-size_t numPagesFromExceptions(size_t exceptionCount) {
-    return ceilDiv(static_cast<uint64_t>(exceptionCount),
-        BufferPoolConstants::PAGE_4KB_SIZE / EncodeException<T>::sizeBytes());
-}
-
 template<typename T, typename InputType, typename ElementType>
 concept WriteToPageInput = requires(T obj, InputType input, offset_t offset, ElementType element) {
     { obj.getValue(offset) } -> std::same_as<ElementType>;
@@ -100,7 +94,8 @@ public:
     uint64_t readCompressedValuesToPage(transaction::Transaction* transaction,
         const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
-        read_values_from_page_func_t<uint8_t*> readFunc, filter_func_t filterFunc) override {
+        read_values_from_page_func_t<uint8_t*> readFunc,
+        std::optional<filter_func_t> filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -109,7 +104,7 @@ public:
         const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         read_values_from_page_func_t<common::ValueVector*> readFunc,
-        filter_func_t filterFunc) override {
+        std::optional<filter_func_t> filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -168,7 +163,7 @@ public:
     uint64_t readCompressedValues(Transaction* transaction, const ChunkState& state,
         OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
         uint64_t endNodeOffset, read_values_from_page_func_t<OutputType> readFunc,
-        filter_func_t filterFunc) {
+        std::optional<filter_func_t> filterFunc) {
         const ColumnChunkMetadata& chunkMeta = state.metadata;
         const auto numValuesToScan = endNodeOffset - startNodeOffset;
         if (numValuesToScan == 0) {
@@ -185,7 +180,8 @@ public:
                 std::min(state.numValuesPerPage - pageCursor.elemPosInPage,
                     numValuesToScan - numValuesScanned);
             KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-            if (filterFunc(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
+            if (!filterFunc.has_value() ||
+                filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
                 readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
                     readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
                         numValuesToScanInPage, chunkMeta.compMeta);
@@ -212,22 +208,23 @@ public:
         common::offset_t nodeOffset, uint8_t* result, uint32_t offsetInResult,
         read_value_from_page_func_t<uint8_t*> readFunc) override {
         auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
-        readCompressedValue<uint8_t*>(transaction, state, cursor, offsetInChunk, result,
-            offsetInResult, readFunc);
+        readCompressedValue<uint8_t*>(transaction, state, offsetInChunk, result, offsetInResult,
+            readFunc);
     }
 
     void readCompressedValueToVector(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* result, uint32_t offsetInResult,
         read_value_from_page_func_t<common::ValueVector*> readFunc) override {
         auto [offsetInChunk, cursor] = getOffsetAndCursor(nodeOffset, state);
-        readCompressedValue<ValueVector*>(transaction, state, cursor, offsetInChunk, result,
-            offsetInResult, readFunc);
+        readCompressedValue<ValueVector*>(transaction, state, offsetInChunk, result, offsetInResult,
+            readFunc);
     }
 
     uint64_t readCompressedValuesToPage(transaction::Transaction* transaction,
         const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
-        read_values_from_page_func_t<uint8_t*> readFunc, filter_func_t filterFunc) override {
+        read_values_from_page_func_t<uint8_t*> readFunc,
+        std::optional<filter_func_t> filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -236,7 +233,7 @@ public:
         const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         read_values_from_page_func_t<common::ValueVector*> readFunc,
-        filter_func_t filterFunc) override {
+        std::optional<filter_func_t> filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -278,13 +275,12 @@ private:
     template<typename OutputType>
     void patchFloatExceptions(const ChunkState& state, offset_t startOffsetInChunk,
         size_t numValuesToScan, OutputType result, offset_t startOffsetInResult,
-        filter_func_t filterFunc) {
+        std::optional<filter_func_t> filterFunc) {
         // patch exceptions
         auto* exceptionChunk = state.getExceptionChunkConst<T>();
         offset_t curExceptionIdx =
             exceptionChunk->findFirstExceptionAtOrPastOffset(startOffsetInChunk);
         for (; curExceptionIdx < exceptionChunk->getExceptionCount(); ++curExceptionIdx) {
-            // TODO: potential optimization: read exceptions one page at a time
             const auto curException = exceptionChunk->getExceptionAt(curExceptionIdx);
             KU_ASSERT(curExceptionIdx == 0 ||
                       curException.posInChunk >
@@ -295,7 +291,7 @@ private:
             }
             const offset_t offsetInResult =
                 startOffsetInResult + curException.posInChunk - startOffsetInChunk;
-            if (filterFunc(offsetInResult, offsetInResult + 1)) {
+            if (!filterFunc.has_value() || filterFunc.value()(offsetInResult, offsetInResult + 1)) {
                 if constexpr (std::is_same_v<uint8_t*, OutputType>) {
                     reinterpret_cast<T*>(result)[offsetInResult] = curException.value;
                 } else {
@@ -308,47 +304,21 @@ private:
 
     template<typename OutputType>
     void readCompressedValue(transaction::Transaction* transaction, const ChunkState& state,
-        PageCursor cursor, common::offset_t offsetInChunk, OutputType result,
-        uint32_t offsetInResult, read_value_from_page_func_t<OutputType> readFunc) {
+        common::offset_t offsetInChunk, OutputType result, uint32_t offsetInResult,
+        read_value_from_page_func_t<OutputType> readFunc) {
         const ColumnChunkMetadata& metadata = state.metadata;
         KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT ||
                   metadata.compMeta.compression == CompressionType::CONSTANT ||
                   metadata.compMeta.compression == CompressionType::UNCOMPRESSED);
-
-        auto* exceptionChunk = state.getExceptionChunkConst<T>();
-
-        const offset_t firstExceptionIdx =
-            exceptionChunk->findFirstExceptionAtOrPastOffset(offsetInChunk);
-
-        do {
-            if (metadata.compMeta.compression != CompressionType::FLOAT ||
-                firstExceptionIdx == exceptionChunk->getExceptionCount()) {
-                break;
-            }
-
-            const auto searchedException = exceptionChunk->getExceptionAt(firstExceptionIdx);
-            if (searchedException.posInChunk != offsetInChunk) {
-                break;
-            }
-
-            KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT);
-            if constexpr (std::is_same_v<uint8_t*, OutputType>) {
-                *reinterpret_cast<T*>(result) = searchedException.value;
-            } else {
-                *reinterpret_cast<T*>(result->getData()) = searchedException.value;
-            }
-            return;
-        } while (false);
-
-        defaultReader->readCompressedValue(transaction, metadata, cursor, offsetInChunk, result,
-            offsetInResult, readFunc);
+        readCompressedValues(transaction, state, result, offsetInResult, offsetInChunk,
+            offsetInChunk + 1, readFunc);
     }
 
     template<typename OutputType>
     uint64_t readCompressedValues(Transaction* transaction, const ChunkState& state,
         OutputType result, uint32_t startOffsetInResult, uint64_t startNodeOffset,
         uint64_t endNodeOffset, read_values_from_page_func_t<OutputType> readFunc,
-        filter_func_t filterFunc) {
+        std::optional<filter_func_t> filterFunc = {}) {
         const ColumnChunkMetadata& metadata = state.metadata;
         KU_ASSERT(metadata.compMeta.compression == CompressionType::FLOAT ||
                   metadata.compMeta.compression == CompressionType::CONSTANT ||
@@ -440,19 +410,18 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReadWriter* columnReader
         exceptionCapacity);
     KU_ASSERT(exceptionCursor.elemPosInPage == 0);
 
-    const size_t numPagesToCopy = numPagesFromExceptions<T>(getExceptionCount());
+    const size_t numPagesToCopy = EncodeException<T>::numPagesFromExceptions(getExceptionCount());
     size_t remainingBytesToCopy = getExceptionCount() * EncodeException<T>::sizeBytes();
     for (size_t i = 0; i < numPagesToCopy; ++i) {
-        static constexpr size_t exceptionBytesPerPage = BufferPoolConstants::PAGE_4KB_SIZE /
-                                                        EncodeException<T>::sizeBytes() *
-                                                        EncodeException<T>::sizeBytes();
+
         columnReader->readFromPage(transaction, exceptionCursor.pageIdx,
             [this, i, remainingBytesToCopy](uint8_t* frame) {
-                std::memcpy(exceptionBuffer.get() + i * exceptionBytesPerPage, frame,
-                    std::min(exceptionBytesPerPage, remainingBytesToCopy));
+                std::memcpy(exceptionBuffer.get() + i * EncodeException<T>::exceptionBytesPerPage(),
+                    frame,
+                    std::min(EncodeException<T>::exceptionBytesPerPage(), remainingBytesToCopy));
             });
 
-        remainingBytesToCopy -= exceptionBytesPerPage;
+        remainingBytesToCopy -= EncodeException<T>::exceptionBytesPerPage();
         KU_ASSERT(remainingBytesToCopy >= 0);
         exceptionCursor.nextPage();
     }
@@ -486,8 +455,8 @@ void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
     ExceptionWord* exceptionWordBuffer = reinterpret_cast<ExceptionWord*>(exceptionBuffer.get());
     std::sort(exceptionWordBuffer, exceptionWordBuffer + finalizedExceptionCount,
         [](ExceptionWord& a, ExceptionWord& b) {
-            return ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&a)}.getValue() <
-                   ExceptionBufferElementView<T>{reinterpret_cast<std::byte*>(&b)}.getValue();
+            return EncodeExceptionView<T>{reinterpret_cast<std::byte*>(&a)}.getValue() <
+                   EncodeExceptionView<T>{reinterpret_cast<std::byte*>(&b)}.getValue();
         });
     std::memset(exceptionBuffer.get() + finalizedExceptionCount * EncodeException<T>::sizeBytes(),
         0, (exceptionCount - finalizedExceptionCount) * EncodeException<T>::sizeBytes());
@@ -505,20 +474,18 @@ void InMemoryExceptionChunk<T>::flushToDisk(ColumnReadWriter* columnReader, Chun
             state.numValuesPerPage),
         exceptionCapacity);
 
-    const size_t numPagesToFlush = numPagesFromExceptions<T>(exceptionCapacity);
+    const size_t numPagesToFlush = EncodeException<T>::numPagesFromExceptions(exceptionCapacity);
     size_t remainingBytesToCopy = exceptionCapacity * EncodeException<T>::sizeBytes();
     for (size_t i = 0; i < numPagesToFlush; ++i) {
-        static constexpr size_t exceptionBytesPerPage = BufferPoolConstants::PAGE_4KB_SIZE /
-                                                        EncodeException<T>::sizeBytes() *
-                                                        EncodeException<T>::sizeBytes();
         KU_ASSERT(exceptionCursor.elemPosInPage == 0);
         columnReader->updatePageWithCursor(exceptionCursor,
             [this, i, remainingBytesToCopy](auto frame, auto /*offsetInPage*/) {
-                std::memcpy(frame, exceptionBuffer.get() + i * exceptionBytesPerPage,
-                    std::min(exceptionBytesPerPage, remainingBytesToCopy));
+                std::memcpy(frame,
+                    exceptionBuffer.get() + i * EncodeException<T>::exceptionBytesPerPage(),
+                    std::min(EncodeException<T>::exceptionBytesPerPage(), remainingBytesToCopy));
             });
 
-        remainingBytesToCopy -= exceptionBytesPerPage;
+        remainingBytesToCopy -= EncodeException<T>::exceptionBytesPerPage();
         KU_ASSERT(remainingBytesToCopy >= 0);
         exceptionCursor.nextPage();
     }
@@ -543,7 +510,7 @@ EncodeException<T> InMemoryExceptionChunk<T>::getExceptionAt(size_t exceptionIdx
     KU_ASSERT(exceptionIdx < exceptionCount);
     auto* exceptionBufferEntry =
         exceptionBuffer.get() + exceptionIdx * EncodeException<T>::sizeBytes();
-    return ExceptionBufferElementView<T>{exceptionBufferEntry}.getValue();
+    return EncodeExceptionView<T>{exceptionBufferEntry}.getValue();
 }
 
 template<std::floating_point T>
@@ -552,7 +519,7 @@ void InMemoryExceptionChunk<T>::writeException(EncodeException<T> exception, siz
     // use memcpy instead of direct assign as we don't want to copy struct padding
     auto* exceptionBufferEntry =
         exceptionBuffer.get() + exceptionIdx * EncodeException<T>::sizeBytes();
-    ExceptionBufferElementView<T>{exceptionBufferEntry}.setValue(exception);
+    EncodeExceptionView<T>{exceptionBufferEntry}.setValue(exception);
 }
 
 // TODO: can return a pair [idx, exception] so we don't need to duplicate read
@@ -581,7 +548,7 @@ template<std::floating_point T>
 PageCursor InMemoryExceptionChunk<T>::getExceptionPageCursor(const ColumnChunkMetadata& metadata,
     PageCursor pageBaseCursor, size_t exceptionCapacity) {
     // TODO fix
-    const size_t numExceptionPages = numPagesFromExceptions<T>(exceptionCapacity);
+    const size_t numExceptionPages = EncodeException<T>::numPagesFromExceptions(exceptionCapacity);
     const size_t exceptionPageOffset = metadata.numPages - numExceptionPages;
     KU_ASSERT(exceptionPageOffset == (page_idx_t)exceptionPageOffset);
     return {pageBaseCursor.pageIdx + (page_idx_t)exceptionPageOffset, 0};

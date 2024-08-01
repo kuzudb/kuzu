@@ -197,8 +197,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
             resultVector, offsetInVector);
     }
     columnReader->readCompressedValuesToVector(transaction, state, resultVector, offsetInVector,
-        startOffsetInGroup, endOffsetInGroup, readToVectorFunc,
-        [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
+        startOffsetInGroup, endOffsetInGroup, readToVectorFunc);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunkData* columnChunk,
@@ -226,9 +225,8 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     cursor.pageIdx += state.metadata.pageIdx;
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
 
-    const uint64_t numValuesScanned =
-        columnReader->readCompressedValuesToPage(transaction, state, columnChunk->getData(), 0,
-            startOffset, endOffset, readToPageFunc, [](offset_t, offset_t) { return true; });
+    const uint64_t numValuesScanned = columnReader->readCompressedValuesToPage(transaction, state,
+        columnChunk->getData(), 0, startOffset, endOffset, readToPageFunc);
 
     columnChunk->setNumValues(numValuesScanned);
 }
@@ -236,8 +234,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, uint8_t* result) {
     columnReader->readCompressedValuesToPage(transaction, state, result, 0, startOffsetInGroup,
-        endOffsetInGroup, readToPageFunc,
-        [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
+        endOffsetInGroup, readToPageFunc);
 }
 
 void Column::scanInternal(Transaction* transaction, const ChunkState& state,
@@ -245,8 +242,7 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
     ValueVector* resultVector) {
     if (nodeIDVector->state->getSelVector().isUnfiltered()) {
         columnReader->readCompressedValuesToVector(transaction, state, resultVector, 0,
-            startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc,
-            [](offset_t /*startIdx*/, offset_t /*endIdx*/) { return true; });
+            startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc);
     } else {
         struct Filterer {
             explicit Filterer(const SelectionVector& selVector)

@@ -8,10 +8,29 @@
 namespace kuzu {
 namespace storage {
 
+namespace {
 static constexpr common::idx_t BITPACKING_CHILD_IDX = 0;
+}
 
 template<std::floating_point T>
-EncodeException<T> ExceptionBufferElementView<T>::getValue() const {
+size_t EncodeException<T>::numPagesFromExceptions(size_t exceptionCount) {
+    return common::ceilDiv(static_cast<uint64_t>(exceptionCount),
+        common::BufferPoolConstants::PAGE_4KB_SIZE / sizeBytes());
+}
+
+template<std::floating_point T>
+size_t EncodeException<T>::exceptionBytesPerPage() {
+    return common::BufferPoolConstants::PAGE_4KB_SIZE / sizeBytes() * sizeBytes();
+}
+
+template<std::floating_point T>
+bool EncodeException<T>::operator<(const EncodeException<T>& o) const {
+    KU_ASSERT(posInChunk != o.posInChunk);
+    return posInChunk < o.posInChunk;
+}
+
+template<std::floating_point T>
+EncodeException<T> EncodeExceptionView<T>::getValue() const {
     EncodeException<T> ret;
     std::memcpy(&ret.value, bytes, sizeof(ret.value));
     std::memcpy(&ret.posInChunk, bytes + sizeof(ret.value), sizeof(ret.posInChunk));
@@ -19,7 +38,7 @@ EncodeException<T> ExceptionBufferElementView<T>::getValue() const {
 }
 
 template<std::floating_point T>
-void ExceptionBufferElementView<T>::setValue(EncodeException<T> exception) {
+void EncodeExceptionView<T>::setValue(EncodeException<T> exception) {
     std::memcpy(bytes, &exception.value, sizeof(exception.value));
     std::memcpy(bytes + sizeof(exception.value), &exception.posInChunk,
         sizeof(exception.posInChunk));
@@ -46,7 +65,6 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
     const size_t numValuesToCompress =
         std::min(numValuesRemaining, numValues(dstBufferSize, metadata));
 
-    exceptionCount = 0;
     std::vector<EncodedType> integerEncodedValues(numValuesToCompress);
     for (size_t posInPage = 0; posInPage < numValuesToCompress; ++posInPage) {
         const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInPage];
@@ -60,7 +78,7 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
                 (exceptionCount + 1) * EncodeException<T>::sizeBytes() <= exceptionBufferSize);
             auto* exceptionBufferEntry = reinterpret_cast<std::byte*>(
                 exceptionBuffer + exceptionCount * EncodeException<T>::sizeBytes());
-            ExceptionBufferElementView<T>{exceptionBufferEntry}.setValue({.value = floatValue,
+            EncodeExceptionView<T>{exceptionBufferEntry}.setValue({.value = floatValue,
                 .posInChunk = common::narrowingConversion<uint32_t>(srcOffset + posInPage)});
 
             // We don't need to replace with 1st successful encode as the integer bitpacking
@@ -70,7 +88,6 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
             integerEncodedValues[posInPage] = encodedValue;
         }
     }
-    KU_ASSERT(exceptionCount * EncodeException<T>::sizeBytes() <= exceptionBufferSize);
     srcBuffer += numValuesToCompress * sizeof(T);
 
     const auto* castedIntegerEncodedBuffer =
@@ -190,8 +207,8 @@ template class FloatCompression<float>;
 template struct EncodeException<double>;
 template struct EncodeException<float>;
 
-template struct ExceptionBufferElementView<double>;
-template struct ExceptionBufferElementView<float>;
+template struct EncodeExceptionView<double>;
+template struct EncodeExceptionView<float>;
 
 } // namespace storage
 } // namespace kuzu

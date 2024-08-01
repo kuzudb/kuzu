@@ -4,7 +4,6 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
-#include "storage/compression/compression_float.h"
 #include "storage/db_file_id.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/column_read.h"

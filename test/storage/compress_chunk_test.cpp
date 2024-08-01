@@ -152,8 +152,7 @@ void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_
 
             std::vector<T> out(bufferToCompress.size());
             reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
-                out.size(), ReadCompressedValuesFromPage(dataType),
-                [](offset_t, offset_t) { return true; });
+                out.size(), ReadCompressedValuesFromPage(dataType));
             EXPECT_THAT(out, ::testing::ContainerEq(bufferToCompress));
         });
 }
@@ -165,16 +164,15 @@ void CompressChunkTest::testCheckWholeOutput(const std::vector<T>& bufferToCompr
             ChunkState& state, const LogicalType& dataType) {
             std::vector<T> out(bufferToCompress.size());
             reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
-                out.size(), ReadCompressedValuesFromPage(dataType),
-                [](offset_t, offset_t) { return true; });
+                out.size(), ReadCompressedValuesFromPage(dataType));
             EXPECT_THAT(out, ::testing::ContainerEq(bufferToCompress));
         });
 }
 
 TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
 
-    std::vector<double> bufferToCompress(128, 5.5);
-    bufferToCompress[5] = 0;
+    std::vector<double> bufferToCompress(128, -5.5);
+    bufferToCompress[5] = -1;
 
     auto checkFunc = [&bufferToCompress](ColumnReadWriter* reader,
                          transaction::Transaction* transaction, ChunkState& state,
@@ -186,7 +184,7 @@ TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
 
         reader->readCompressedValueToPage(transaction, state, 5, (uint8_t*)val.data(), 1,
             ReadCompressedValuesFromPage(dataType));
-        EXPECT_EQ(0, val[1]);
+        EXPECT_EQ(-1, val[1]);
     };
     testCompressChunk(bufferToCompress, checkFunc);
 }
@@ -299,8 +297,7 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsets) {
         const size_t offsetInSrc = src.size() - numValuesToRead;
 
         reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), offsetInResult,
-            offsetInSrc, offsetInSrc + numValuesToRead, ReadCompressedValuesFromPage(dataType),
-            [](offset_t, offset_t) { return true; });
+            offsetInSrc, offsetInSrc + numValuesToRead, ReadCompressedValuesFromPage(dataType));
         EXPECT_THAT(std::vector<double>(out.begin() + offsetInResult,
                         out.begin() + offsetInResult + numValuesToRead),
             ::testing::ContainerEq(std::vector<double>(src.begin() + offsetInSrc,

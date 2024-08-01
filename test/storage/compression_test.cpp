@@ -1,9 +1,13 @@
 #include <algorithm>
 #include <numeric>
 
+#include "common/constants.h"
+#include "common/exception/not_implemented.h"
+#include "common/exception/storage.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "storage/compression/compression.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -98,6 +102,54 @@ TEST(CompressionTests, IntMetadataSerializeThenDeserialize) {
         CompressionType::INTEGER_BITPACKING);
     deserialized.deserializeFromBytes(orig.serializeToBytes(physicalType), physicalType);
     EXPECT_TRUE(orig == deserialized);
+}
+
+TEST(CompressionTests, IntegerBitpackingMetadataInvalidPhysicalType) {
+    const CompressionMetadata metadata{StorageValue{-10}, StorageValue{-5},
+        CompressionType::INTEGER_BITPACKING};
+    uint8_t data = 0;
+
+    kuzu::storage::CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+    EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::ARRAY, localUpdateState),
+        StorageException);
+
+    EXPECT_THROW(metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, LogicalType::STRING()),
+        StorageException);
+
+    EXPECT_THROW(metadata.toString(PhysicalTypeID::FLOAT), InternalException);
+    EXPECT_THROW(metadata.toString(PhysicalTypeID::BOOL), InternalException);
+
+    uint8_t result = 0;
+    PageCursor cursor;
+    EXPECT_THROW(ReadCompressedValuesFromPage{LogicalType::DOUBLE()}.operator()(&data, cursor,
+                     &result, 0, 1, metadata),
+        NotImplementedException);
+    EXPECT_THROW(WriteCompressedValuesToPage{LogicalType::DOUBLE()}.operator()(&data, 0, &result, 0,
+                     1, metadata),
+        NotImplementedException);
+}
+
+TEST(CompressionTests, FloatCompressionMetadataInvalidPhysicalType) {
+    const CompressionMetadata metadata{StorageValue{-10}, StorageValue{-5}, CompressionType::FLOAT};
+    uint8_t data = 0;
+
+    kuzu::storage::CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+    EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::INT32, localUpdateState),
+        StorageException);
+
+    EXPECT_THROW(metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, LogicalType::UINT64()),
+        StorageException);
+
+    EXPECT_THROW(metadata.toString(PhysicalTypeID::STRUCT), InternalException);
+
+    uint8_t result = 0;
+    PageCursor cursor;
+    EXPECT_THROW(ReadCompressedValuesFromPage{LogicalType::DATE()}.operator()(&data, cursor,
+                     &result, 0, 1, metadata),
+        NotImplementedException);
+    EXPECT_THROW(WriteCompressedValuesToPage{LogicalType::DATE()}.operator()(&data, 0, &result, 0,
+                     1, metadata),
+        NotImplementedException);
 }
 
 /*
