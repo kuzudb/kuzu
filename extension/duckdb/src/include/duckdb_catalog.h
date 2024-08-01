@@ -17,11 +17,11 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
     std::string schemaName;
 
     BoundExtraCreateDuckDBTableInfo(std::string catalogName, std::string schemaName,
-        std::vector<binder::PropertyInfo> propertyInfos)
-        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, catalogName{std::move(catalogName)},
+        std::vector<binder::PropertyDefinition> propertyDefinitions)
+        : BoundExtraCreateTableInfo{std::move(propertyDefinitions)}, catalogName{std::move(catalogName)},
           schemaName{std::move(schemaName)} {}
     BoundExtraCreateDuckDBTableInfo(const BoundExtraCreateDuckDBTableInfo& other)
-        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)},
+        : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
           catalogName{other.catalogName}, schemaName{other.schemaName} {}
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
@@ -38,8 +38,8 @@ public:
     void init() override;
 
 protected:
-    bool bindPropertyInfos(const std::string& tableName,
-        std::vector<binder::PropertyInfo>& propertyInfos);
+    bool bindPropertyDefinitions(const std::string& tableName,
+        std::vector<binder::PropertyDefinition>& propertyDefinitions);
 
 private:
     virtual std::unique_ptr<binder::BoundCreateTableInfo> bindCreateTableInfo(

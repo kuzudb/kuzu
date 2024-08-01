@@ -17,8 +17,8 @@ std::string CreateTablePrintInfo::toString() const {
         result += "Create Node Table: ";
         result += tableName;
         result += ",Properties: ";
-        for (auto& prop : tableInfo->propertyInfos) {
-            result += prop.name;
+        for (auto& definition : tableInfo->propertyDefinitions) {
+            result += definition.getName();
             result += ", ";
         }
         break;
@@ -40,8 +40,8 @@ std::string CreateTablePrintInfo::toString() const {
             result += "MANY";
         }
         result += ",Properties: ";
-        for (auto& prop : tableInfo->propertyInfos) {
-            result += prop.name;
+        for (auto& definition : tableInfo->propertyDefinitions) {
+            result += definition.getName();
             result += ", ";
         }
         break;
@@ -58,8 +58,8 @@ std::string CreateTablePrintInfo::toString() const {
         auto* groupTableInfo =
             relGroupInfo->infos[0].extraInfo->ptrCast<binder::BoundExtraCreateTableInfo>();
         result += "Properties: ";
-        for (auto& prop : groupTableInfo->propertyInfos) {
-            result += prop.name;
+        for (auto& definition : groupTableInfo->propertyDefinitions) {
+            result += definition.getName();
             result += ", ";
         }
         break;

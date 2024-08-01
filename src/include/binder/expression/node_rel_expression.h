@@ -1,7 +1,6 @@
 #pragma once
 
-#include <unordered_map>
-
+#include "common/case_insensitive_map.h"
 #include "expression.h"
 
 namespace kuzu {
@@ -47,9 +46,6 @@ public:
     // Deep copy expressions.
     expression_vector getPropertyExprs() const;
 
-    bool hasPrimaryKey() const;
-    std::shared_ptr<Expression> getPrimaryKey() const;
-
     void setLabelExpression(std::shared_ptr<Expression> expression) {
         labelExpression = std::move(expression);
     }
@@ -58,7 +54,7 @@ public:
     void addPropertyDataExpr(std::string propertyName, std::shared_ptr<Expression> expr) {
         propertyDataExprs.insert({propertyName, expr});
     }
-    const std::unordered_map<std::string, std::shared_ptr<Expression>>&
+    const common::case_insensitive_map_t<std::shared_ptr<Expression>>&
     getPropertyDataExprRef() const {
         return propertyDataExprs;
     }
@@ -77,12 +73,12 @@ protected:
     // A pattern may bind to multiple tables.
     std::vector<common::table_id_t> tableIDs;
     // Index over propertyExprs on property name.
-    std::unordered_map<std::string, common::idx_t> propertyNameToIdx;
+    common::case_insensitive_map_t<common::idx_t> propertyNameToIdx;
     // Property expressions with order (aligned with catalog).
     std::vector<std::unique_ptr<Expression>> propertyExprs;
     std::shared_ptr<Expression> labelExpression;
     // Property data expressions specified by user in the form of "{propertyName : data}"
-    std::unordered_map<std::string, std::shared_ptr<Expression>> propertyDataExprs;
+    common::case_insensitive_map_t<std::shared_ptr<Expression>> propertyDataExprs;
 };
 
 } // namespace binder

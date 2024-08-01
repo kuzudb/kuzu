@@ -173,18 +173,14 @@ void AlterTableEntryRecord::serialize(Serializer& serializer) const {
     switch (alterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
         auto addInfo = extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
-        serializer.write(addInfo->propertyName);
-        addInfo->dataType.serialize(serializer);
-        addInfo->defaultValue->serialize(serializer);
+        addInfo->propertyDefinition.serialize(serializer);
     } break;
     case AlterType::DROP_PROPERTY: {
         auto dropInfo = extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
-        serializer.write(dropInfo->propertyID);
         serializer.write(dropInfo->propertyName);
     } break;
     case AlterType::RENAME_PROPERTY: {
         auto renamePropertyInfo = extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
-        serializer.write(renamePropertyInfo->propertyID);
         serializer.write(renamePropertyInfo->newName);
         serializer.write(renamePropertyInfo->oldName);
     } break;
@@ -213,32 +209,21 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
     std::unique_ptr<BoundExtraAlterInfo> extraInfo;
     switch (alterType) {
     case AlterType::ADD_PROPERTY: {
-        std::string propertyName;
-        LogicalType dataType;
-        std::unique_ptr<kuzu::parser::ParsedExpression> defaultValue;
-        deserializer.deserializeValue(propertyName);
-        dataType = LogicalType::deserialize(deserializer);
-        defaultValue = parser::ParsedExpression::deserialize(deserializer);
-        extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyName),
-            std::move(dataType), std::move(defaultValue), nullptr);
+        auto definition = PropertyDefinition::deserialize(deserializer);
+        extraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(definition), nullptr);
     } break;
     case AlterType::DROP_PROPERTY: {
-        property_id_t propertyID;
         std::string propertyName;
-        deserializer.deserializeValue(propertyID);
         deserializer.deserializeValue(propertyName);
-        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(std::move(propertyID),
-            std::move(propertyName));
+        extraInfo = std::make_unique<BoundExtraDropPropertyInfo>(std::move(propertyName));
     } break;
     case AlterType::RENAME_PROPERTY: {
-        property_id_t propertyID;
         std::string newName;
         std::string oldName;
-        deserializer.deserializeValue(propertyID);
         deserializer.deserializeValue(newName);
         deserializer.deserializeValue(oldName);
-        extraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(std::move(propertyID),
-            std::move(newName), std::move(oldName));
+        extraInfo =
+            std::make_unique<BoundExtraRenamePropertyInfo>(std::move(newName), std::move(oldName));
     } break;
     case AlterType::COMMENT: {
         std::string comment;

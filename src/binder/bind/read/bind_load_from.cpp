@@ -21,7 +21,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     std::unique_ptr<BoundLoadFrom> boundLoadFrom;
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    for (auto& [name, type] : loadFrom.getPropertyDefinitions()) {
+    for (auto& [name, type] : loadFrom.getColumnDefinitions()) {
         columnNames.push_back(name);
         columnTypes.push_back(clientContext->getCatalog()->getType(clientContext->getTx(), type));
     }

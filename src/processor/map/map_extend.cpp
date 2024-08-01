@@ -25,9 +25,8 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
     columnIDs.push_back(NBR_ID_COLUMN_ID);
     for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
-        if (property.hasPropertyID(relTableID)) {
-            auto propertyID = property.getPropertyID(relTableID);
-            columnIDs.push_back(tableCatalogEntry.getColumnID(propertyID));
+        if (property.hasProperty(relTableID)) {
+            columnIDs.push_back(tableCatalogEntry.getColumnID(property.getPropertyName()));
         } else {
             columnIDs.push_back(INVALID_COLUMN_ID);
         }

@@ -40,13 +40,13 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numPropertiesToOutput = morsel.endOffset - morsel.startOffset;
     auto vectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
-        auto property = &tableEntry->getPropertiesRef()[morsel.startOffset + i];
+        auto& property = tableEntry->getProperties()[morsel.startOffset + i];
         if (tableEntry->getTableType() == TableType::REL) {
-            if (property->getName() == InternalKeyword::ID) {
+            if (property.getName() == InternalKeyword::ID) {
                 // Skip internal id column.
                 continue;
             }
-            if (property->getName() == rdf::PID) {
+            if (property.getName() == rdf::PID) {
                 // Replace pid column with (virtual) iri column.
                 dataChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
                 dataChunk.getValueVector(1)->setValue(vectorPos,
@@ -56,15 +56,14 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
                 continue;
             }
         }
-        dataChunk.getValueVector(0)->setValue(vectorPos, (int64_t)property->getPropertyID());
-        dataChunk.getValueVector(1)->setValue(vectorPos, property->getName());
-        dataChunk.getValueVector(2)->setValue(vectorPos, property->getDataType().toString());
+        dataChunk.getValueVector(0)->setValue(vectorPos, tableEntry->getPropertyIdx(property.getName()));
+        dataChunk.getValueVector(1)->setValue(vectorPos, property.getName());
+        dataChunk.getValueVector(2)->setValue(vectorPos, property.getType().toString());
 
         if (tableEntry->getTableType() == TableType::NODE) {
             auto nodeTableEntry = tableEntry->constPtrCast<NodeTableCatalogEntry>();
-            auto primaryKeyID = nodeTableEntry->getPrimaryKeyPID();
-            dataChunk.getValueVector(3)->setValue(vectorPos,
-                primaryKeyID == property->getPropertyID());
+            auto primaryKeyName = nodeTableEntry->getPrimaryKeyName();
+            dataChunk.getValueVector(3)->setValue(vectorPos, primaryKeyName == property.getName());
         }
         vectorPos++;
     }
@@ -73,10 +72,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 
 static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(main::ClientContext* context,
     const std::string& tableName) {
+    auto transaction = context->getTx();
     auto tableInfo = common::StringUtils::split(tableName, ".");
     if (tableInfo.size() == 1) {
-        auto tableID = context->getCatalog()->getTableID(context->getTx(), tableName);
-        return context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID)->copy();
+        auto tableID = context->getCatalog()->getTableID(transaction, tableName);
+        return context->getCatalog()->getTableCatalogEntry(transaction, tableID)->copy();
     } else {
         auto catalogName = tableInfo[0];
         auto attachedTableName = tableInfo[1];
@@ -85,11 +85,8 @@ static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(main::ClientConte
             throw common::RuntimeException{
                 common::stringFormat("Database: {} doesn't exist.", catalogName)};
         }
-        auto tableID =
-            attachedDatabase->getCatalog()->getTableID(context->getTx(), attachedTableName);
-        return attachedDatabase->getCatalog()
-            ->getTableCatalogEntry(context->getTx(), tableID)
-            ->copy();
+        auto tableID = attachedDatabase->getCatalog()->getTableID(transaction, attachedTableName);
+        return attachedDatabase->getCatalog()->getTableCatalogEntry(transaction, tableID)->copy();
     }
 }
 
@@ -100,7 +97,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto catalogEntry = getTableCatalogEntry(context, input->inputs[0].getValue<std::string>());
     auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
     columnNames.emplace_back("property id");
-    columnTypes.push_back(LogicalType::INT64());
+    columnTypes.push_back(LogicalType::INT32());
     columnNames.emplace_back("name");
     columnTypes.push_back(LogicalType::STRING());
     columnNames.emplace_back("type");

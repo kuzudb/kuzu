@@ -190,15 +190,15 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto addInfo =
             alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         // We don't implicit cast here since it must already be done the first time
-        const auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
+        const auto boundDefault =
+            exprBinder->bindExpression(*addInfo->propertyDefinition.defaultExpr);
         auto exprMapper = ExpressionMapper();
         const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
         defaultValueEvaluator->init(ResultSet(0) /* dummy ResultSet */, &clientContext);
         const auto schema = clientContext.getCatalog()->getTableCatalogEntry(clientContext.getTx(),
             alterEntryRecord.ownedAlterInfo->tableID);
-        const auto addedPropID = schema->getPropertyID(addInfo->propertyName);
-        const auto addedProp = schema->getProperty(addedPropID);
-        TableAddColumnState state{*addedProp, *defaultValueEvaluator};
+        const auto& addedProp = schema->getProperty(addInfo->propertyDefinition.getName());
+        TableAddColumnState state{addedProp, *defaultValueEvaluator};
         KU_ASSERT(clientContext.getStorageManager());
         const auto storageManager = clientContext.getStorageManager();
         storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)

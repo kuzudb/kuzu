@@ -16,6 +16,10 @@ struct ExtraAlterInfo {
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const ExtraAlterInfo*, const TARGET*>(this);
     }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<ExtraAlterInfo*, TARGET*>(this);
+    }
 };
 
 struct AlterInfo {

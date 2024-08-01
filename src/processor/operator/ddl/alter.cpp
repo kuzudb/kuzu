@@ -5,6 +5,8 @@
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace processor {
 
@@ -12,34 +14,26 @@ std::string AlterPrintInfo::toString() const {
     std::string result = "Operation: ";
     switch (alterType) {
     case common::AlterType::RENAME_TABLE: {
-        auto renameInfo = common::ku_dynamic_cast<binder::BoundExtraAlterInfo*,
-            binder::BoundExtraRenameTableInfo*>(info);
+        auto renameInfo = info->constPtrCast<BoundExtraRenameTableInfo>();
         result += "Rename Table " + tableName + " to " + renameInfo->newName;
-        break;
-    }
+    } break;
     case common::AlterType::ADD_PROPERTY: {
-        auto addPropInfo = common::ku_dynamic_cast<binder::BoundExtraAlterInfo*,
-            binder::BoundExtraAddPropertyInfo*>(info);
-        result += "Add Property " + addPropInfo->propertyName + " to Table " + tableName;
-        break;
-    }
+        auto addPropInfo = info->constPtrCast<BoundExtraAddPropertyInfo>();
+        result +=
+            "Add Property " + addPropInfo->propertyDefinition.getName() + " to Table " + tableName;
+    } break;
     case common::AlterType::DROP_PROPERTY: {
-        auto dropPropInfo = common::ku_dynamic_cast<binder::BoundExtraAlterInfo*,
-            binder::BoundExtraDropPropertyInfo*>(info);
+        auto dropPropInfo = info->constPtrCast<BoundExtraDropPropertyInfo>();
         result += "Drop Property " + dropPropInfo->propertyName + " from Table " + tableName;
-        break;
-    }
+    } break;
     case common::AlterType::RENAME_PROPERTY: {
-        auto renamePropInfo = common::ku_dynamic_cast<binder::BoundExtraAlterInfo*,
-            binder::BoundExtraRenamePropertyInfo*>(info);
+        auto renamePropInfo = info->constPtrCast<BoundExtraRenamePropertyInfo>();
         result += "Rename Property " + renamePropInfo->oldName + " to " + renamePropInfo->newName +
                   " in Table " + tableName;
-        break;
-    }
+    } break;
     case common::AlterType::COMMENT: {
         result += "Comment on Table " + tableName;
-        break;
-    }
+    } break;
     default:
         break;
     }
@@ -47,17 +41,16 @@ std::string AlterPrintInfo::toString() const {
 }
 
 void Alter::executeDDLInternal(ExecutionContext* context) {
-    context->clientContext->getCatalog()->alterTableEntry(context->clientContext->getTx(), info);
+    auto catalog = context->clientContext->getCatalog();
+    auto transaction = context->clientContext->getTx();
+    catalog->alterTableEntry(transaction, info);
     if (info.alterType == common::AlterType::ADD_PROPERTY) {
-        auto& boundAddPropInfo = common::ku_dynamic_cast<const binder::BoundExtraAlterInfo&,
-            const binder::BoundExtraAddPropertyInfo&>(*info.extraInfo);
+        auto& boundAddPropInfo = info.extraInfo->constCast<BoundExtraAddPropertyInfo>();
         KU_ASSERT(defaultValueEvaluator);
-        auto schema = context->clientContext->getCatalog()->getTableCatalogEntry(
-            context->clientContext->getTx(), info.tableID);
-        auto addedPropID = schema->getPropertyID(boundAddPropInfo.propertyName);
-        auto addedProp = schema->getProperty(addedPropID);
+        auto entry = catalog->getTableCatalogEntry(transaction, info.tableID);
+        auto& addedProp = entry->getProperty(boundAddPropInfo.propertyDefinition.getName());
         auto storageManager = context->clientContext->getStorageManager();
-        storage::TableAddColumnState state{*addedProp, *defaultValueEvaluator};
+        storage::TableAddColumnState state{addedProp, *defaultValueEvaluator};
         storageManager->getTable(info.tableID)->addColumn(context->clientContext->getTx(), state);
     }
 }

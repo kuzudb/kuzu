@@ -7,27 +7,18 @@
 #include "common/serializer/deserializer.h"
 #include "main/client_context.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace catalog {
 
-RelTableCatalogEntry::RelTableCatalogEntry(CatalogSet* set, std::string name, table_id_t tableID,
-    RelMultiplicity srcMultiplicity, RelMultiplicity dstMultiplicity, table_id_t srcTableID,
-    table_id_t dstTableID)
-    : TableCatalogEntry{set, CatalogEntryType::REL_TABLE_ENTRY, std::move(name), tableID},
-      srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID},
-      dstTableID{dstTableID} {}
-
 bool RelTableCatalogEntry::isParent(table_id_t tableID) {
     return srcTableID == tableID || dstTableID == tableID;
 }
 
-column_id_t RelTableCatalogEntry::getColumnID(property_id_t propertyID) const {
-    auto it = std::find_if(properties.begin(), properties.end(),
-        [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
-    // Skip the first column in the rel table, which is reserved for nbrID.
-    return it == properties.end() ? INVALID_COLUMN_ID : it->getColumnID() + 1;
+common::column_id_t RelTableCatalogEntry::getColumnID(const std::string& propertyName) const {
+    return propertyCollection.getColumnID(propertyName) + 1; // Reserve column 0 for NBR_ID
 }
 
 bool RelTableCatalogEntry::isSingleMultiplicity(RelDataDirection direction) const {
@@ -88,21 +79,14 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     auto dstMultiStr = dstMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
     std::string tableInfo =
         stringFormat("CREATE REL TABLE {} (FROM {} TO {}, ", getName(), srcTableName, dstTableName);
-    ss << tableInfo << Property::toCypher(getPropertiesRef()) << srcMultiStr << "_" << dstMultiStr
-       << ");";
+    ss << tableInfo << propertyCollection.toCypher() << srcMultiStr << "_" << dstMultiStr << ");";
     return ss.str();
 }
 
-std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
-RelTableCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction*) const {
-    std::vector<binder::PropertyInfo> propertyInfos;
-    for (const auto& property : properties) {
-        propertyInfos.emplace_back(property.getName(), property.getDataType().copy(),
-            property.getDefaultExpr()->copy());
-    }
-    auto boundExtraCreateInfo = std::make_unique<binder::BoundExtraCreateRelTableInfo>(
-        srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(propertyInfos));
-    return boundExtraCreateInfo;
+std::unique_ptr<BoundExtraCreateCatalogEntryInfo> RelTableCatalogEntry::getBoundExtraCreateInfo(
+    transaction::Transaction*) const {
+    return std::make_unique<binder::BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
+        srcTableID, dstTableID, copyVector(propertyCollection.getDefinitions()));
 }
 
 } // namespace catalog

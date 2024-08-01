@@ -69,7 +69,7 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto lTableID = rdfEntry.getLiteralTableID();
     auto lEntry =
         catalog->getTableCatalogEntry(transaction, lTableID)->ptrCast<NodeTableCatalogEntry>();
-    auto valID = expressionBinder.bindExpression(*lEntry->getPrimaryKey()->getDefaultExpr());
+    auto valID = expressionBinder.bindExpression(*lEntry->getPrimaryKeyDefinition().defaultExpr);
     auto lCopyColumns = expression_vector{valID, val, lang};
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);

@@ -89,7 +89,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     common::offset_t* offsets, size_t numOffsets, uint8_t* result, size_t numThreads) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto entry = getEntry(*clientContext, nodeName);
-    auto columnID = entry->getColumnID(entry->getPropertyID(propertyName));
+    auto columnID = entry->getColumnID(propertyName);
     auto table = getTable(*clientContext, nodeName);
     auto& dataType = table->ptrCast<NodeTable>()->getColumn(columnID).getDataType();
     auto elementSize = getElementSize(dataType);

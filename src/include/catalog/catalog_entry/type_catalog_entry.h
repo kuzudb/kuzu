@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/property.h"
 #include "catalog_entry.h"
 
 namespace kuzu {

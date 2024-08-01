@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/ddl/create_table_info.h"
 #include "parser/expression/parsed_expression.h"
+#include "parser/ddl/parsed_property_definition.h"
 #include "parser/scan_source.h"
 #include "reading_clause.h"
 
@@ -20,16 +20,16 @@ public:
     void setParingOptions(options_t options) { parsingOptions = std::move(options); }
     const options_t& getParsingOptions() const { return parsingOptions; }
 
-    void setPropertyDefinitions(std::vector<PropertyDefinition> propertyDefns) {
-        propertyDefinitions = std::move(propertyDefns);
+    void setPropertyDefinitions(std::vector<ParsedColumnDefinition> definitions) {
+        columnDefinitions = std::move(definitions);
     }
-    const std::vector<PropertyDefinition>& getPropertyDefinitions() const {
-        return propertyDefinitions;
+    const std::vector<ParsedColumnDefinition>& getColumnDefinitions() const {
+        return columnDefinitions;
     }
 
 private:
     std::unique_ptr<BaseScanSource> source;
-    std::vector<PropertyDefinition> propertyDefinitions;
+    std::vector<ParsedColumnDefinition> columnDefinitions;
     options_t parsingOptions;
 };
 

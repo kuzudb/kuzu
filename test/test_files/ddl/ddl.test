@@ -480,3 +480,26 @@ Table UW1 has been created.
 -STATEMENT DROP TABLE IF EXISTS UW5
 ---- 1
 Table UW5 does not exist.
+
+-CASE CaseInsensitiveProperty
+-STATEMENT CREATE NODE TABLE Wrong(id INT64, NAME STRING, name INT64, PRIMARY KEY(id));
+---- error
+Binder exception: Duplicated column name: name, column name must be unique.
+-STATEMENT CREATE NODE TABLE A(id INT64, NAME STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:A {id:0, name:'a'});
+---- ok
+-STATEMENT MATCH (a:A) RETURN a.ID, a.name;
+---- 1
+0|a
+-STATEMENT ALTER TABLE A ADD name STRING;
+---- error
+Binder exception: A table already has property name.
+-STATEMENT ALTER TABLE A DROP name;
+---- 1
+Table A altered.
+-STATEMENT ALTER TABLE A ADD name STRING;
+---- ok
+-STATEMENT MATCH (a:A) RETURN a.ID, a.NAME;
+---- 1
+0|

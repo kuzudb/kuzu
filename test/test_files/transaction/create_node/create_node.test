@@ -10,6 +10,12 @@
 -STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
 ---- 1
 0|A|True|2019-01-01
+-STATEMENT CREATE (a:test {ID:1, NaMe:'B', istrue:False, BIRTHDAY:DATE('2024-10-10')})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.iD, a.nAMe, a.ISTrue, a.birthdaY
+---- 2
+0|A|True|2019-01-01
+1|B|False|2024-10-10
 
 -CASE Create2
 -STATEMENT BEGIN TRANSACTION
