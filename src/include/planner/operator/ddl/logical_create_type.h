@@ -9,17 +9,18 @@ struct LogicalCreateTypePrintInfo final : OPPrintInfo {
     std::string typeName;
     std::string type;
 
-    explicit LogicalCreateTypePrintInfo(std::string typeName, std::string type) : typeName(std::move(typeName)), type(std::move(type)) {}
+    explicit LogicalCreateTypePrintInfo(std::string typeName, std::string type)
+        : typeName(std::move(typeName)), type(std::move(type)) {}
 
     std::string toString() const override { return typeName + " As " + type; };
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<LogicalCreateTypePrintInfo>(new LogicalCreateTypePrintInfo(*this));
     }
-    
-    private:
-        LogicalCreateTypePrintInfo(const LogicalCreateTypePrintInfo& other)
-            : OPPrintInfo(other), typeName(other.typeName), type(other.type){}
+
+private:
+    LogicalCreateTypePrintInfo(const LogicalCreateTypePrintInfo& other)
+        : OPPrintInfo(other), typeName(other.typeName), type(other.type) {}
 };
 
 class LogicalCreateType : public LogicalDDL {
