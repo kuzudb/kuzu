@@ -387,7 +387,7 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
             value = yyjson_obj_iter_get_val(key);
             StringVector::addString(keyBuffer, listEntry.offset + i,
                 std::string(yyjson_get_str(key)));
-            readFromJsonObj(value, *valBuffer, listEntry.offset + i);
+            readJsonToValueVector(value, *valBuffer, listEntry.offset + i);
         }
     } break;
     case LogicalTypeID::STRING: {
