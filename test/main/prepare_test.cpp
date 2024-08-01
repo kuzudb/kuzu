@@ -246,7 +246,8 @@ TEST_F(ApiTest, PrepareExport) {
 TEST_F(ApiTest, ParameterWith) {
     auto preparedStatement = conn->prepare("WITH $1 AS x RETURN x");
     ASSERT_TRUE(preparedStatement->isSuccess());
-    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), std::string("abc")));
-    auto groupTruth =  std::vector<std::string>{"abc"};
+    auto result = conn->execute(preparedStatement.get(),
+        std::make_pair(std::string("1"), std::string("abc")));
+    auto groupTruth = std::vector<std::string>{"abc"};
     ASSERT_EQ(groupTruth, TestHelper::convertResultToString(*result));
 }
