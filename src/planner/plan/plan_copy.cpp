@@ -45,7 +45,7 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
 
 static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
     LogicalPlan& plan) {
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalCopyFromPrintInfo>(info.tableEntry->getName());
     auto op = make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator(),
         std::move(printInfo));
     op->computeFactorizedSchema();
@@ -162,7 +162,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement
     }
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = getBestPlan(*regularQuery);
-    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto printInfo = std::make_unique<LogicalCopyToPrintInfo>(columnNames,  boundCopyTo.getBindData()->fileName);
     auto copyTo = make_shared<LogicalCopyTo>(boundCopyTo.getBindData()->copy(),
         boundCopyTo.getExportFunc(), plan->getLastOperator(), std::move(printInfo));
     plan->setLastOperator(std::move(copyTo));

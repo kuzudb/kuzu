@@ -7,6 +7,22 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalCopyFromPrintInfo final : OPPrintInfo {
+    std::string tableName;
+
+    explicit LogicalCopyFromPrintInfo(std::string tableName) : tableName(std::move(tableName)) {}
+
+    std::string toString() const override { return "Table name: " + tableName; };
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalCopyFromPrintInfo>(new LogicalCopyFromPrintInfo(*this));
+    }
+
+private:
+    LogicalCopyFromPrintInfo(const LogicalCopyFromPrintInfo& other)
+        : OPPrintInfo(other), tableName(other.tableName) {}
+};
+
 class LogicalCopyFrom final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::COPY_FROM;
 

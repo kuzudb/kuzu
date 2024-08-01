@@ -6,6 +6,22 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalCreateMacroPrintInfo final : OPPrintInfo {
+    std::string macroName;
+
+    explicit LogicalCreateMacroPrintInfo(std::string macroName) : macroName(std::move(macroName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalCreateMacroPrintInfo>(new LogicalCreateMacroPrintInfo(*this));
+    }
+
+private:
+    LogicalCreateMacroPrintInfo(const LogicalCreateMacroPrintInfo& other)
+        : OPPrintInfo(other), macroName(other.macroName) {}
+};
+
 class LogicalCreateMacro : public LogicalOperator {
 public:
     LogicalCreateMacro(std::shared_ptr<binder::Expression> outputExpression, std::string macroName,

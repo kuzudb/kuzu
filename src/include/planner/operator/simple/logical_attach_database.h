@@ -6,6 +6,23 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalAttachDatabasePrintInfo final : OPPrintInfo {
+    std::string dbName;
+
+    explicit LogicalAttachDatabasePrintInfo(std::string dbName) : dbName(std::move(dbName)) {}
+
+    std::string toString() const override { return "Database: " + dbName; };
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalAttachDatabasePrintInfo>(
+            new LogicalAttachDatabasePrintInfo(*this));
+    }
+
+private:
+    LogicalAttachDatabasePrintInfo(const LogicalAttachDatabasePrintInfo& other)
+        : OPPrintInfo(other), dbName(other.dbName) {}
+};
+
 class LogicalAttachDatabase final : public LogicalSimple {
 public:
     explicit LogicalAttachDatabase(binder::AttachInfo attachInfo,

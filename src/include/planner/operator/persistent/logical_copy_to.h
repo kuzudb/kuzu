@@ -6,6 +6,24 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalCopyToPrintInfo final : OPPrintInfo {
+    std::vector<std::string> columnNames;
+    std::string fileName;
+
+    LogicalCopyToPrintInfo(std::vector<std::string> columnNames, std::string fileName)
+        : columnNames(std::move(columnNames)), fileName(std::move(fileName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalCopyToPrintInfo>(new LogicalCopyToPrintInfo(*this));
+    }
+
+private:
+    LogicalCopyToPrintInfo(const LogicalCopyToPrintInfo& other)
+        : OPPrintInfo(other), columnNames(other.columnNames), fileName(other.fileName) {}
+};
+
 class LogicalCopyTo : public LogicalOperator {
 public:
     LogicalCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
