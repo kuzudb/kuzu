@@ -187,14 +187,12 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
         }
     }
     localUpdateState.floatState.newExceptionCount += newExceptionCount;
-    // hack: if we rewrite the entire chunk we don't take into account previous exceptions
+    // TODO(Royi) hack: if we rewrite the entire chunk we don't take into account previous
+    // exceptions
     const size_t totalExceptionCount =
         (value.size() == common::StorageConstants::NODE_GROUP_SIZE) ?
             localUpdateState.floatState.newExceptionCount :
             metadata.floatMetadata().exceptionCount + localUpdateState.floatState.newExceptionCount;
-    // const size_t totalExceptionCount =
-    //     metadata.getFloatMetadata().exceptionCount +
-    //     localUpdateState.floatState.newExceptionCount;
     const bool exceptionsOK = totalExceptionCount <= metadata.floatMetadata().exceptionCapacity;
 
     return exceptionsOK && decltype(encodedFloatBitpacker)::canUpdateInPlace(encodedValues,

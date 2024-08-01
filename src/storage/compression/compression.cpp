@@ -89,10 +89,6 @@ ALPMetadata::ALPMetadata(const alp::state& alpState, common::PhysicalTypeID phys
         physicalTypeSize;
 }
 
-CompressionMetadata& CompressionMetadata::getChild(offset_t idx) {
-    return children[idx];
-}
-
 const CompressionMetadata& CompressionMetadata::getChild(offset_t idx) const {
     return children[idx];
 }
@@ -417,12 +413,12 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
         return "UNCOMPRESSED";
     }
     case CompressionType::FLOAT: {
-        // TODO maybe update
         uint8_t bitWidth = TypeUtils::visit(
             physicalType,
             [&]<std::floating_point T>(T) {
+                static constexpr common::idx_t BITPACKING_CHILD_IDX = 0;
                 return IntegerBitpacking<typename FloatCompression<T>::EncodedType>::getPackingInfo(
-                    getChild(0))
+                    getChild(BITPACKING_CHILD_IDX))
                     .bitWidth;
             },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
@@ -727,7 +723,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         return Uncompressed(sizeof(T)).compressNextPage(srcBuffer, numValuesRemaining, dstBuffer,
             dstBufferSize, metadata);
     }
-    // KU_ASSERT(metadata.compression == CompressionType::INTEGER_BITPACKING);
+    KU_ASSERT(metadata.compression == CompressionType::INTEGER_BITPACKING);
     auto info = getPackingInfo(metadata);
     auto bitWidth = info.bitWidth;
 

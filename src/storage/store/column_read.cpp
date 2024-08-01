@@ -413,7 +413,6 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReadWriter* columnReader
     const size_t numPagesToCopy = EncodeException<T>::numPagesFromExceptions(getExceptionCount());
     size_t remainingBytesToCopy = getExceptionCount() * EncodeException<T>::sizeBytes();
     for (size_t i = 0; i < numPagesToCopy; ++i) {
-
         columnReader->readFromPage(transaction, exceptionCursor.pageIdx,
             [this, i, remainingBytesToCopy](uint8_t* frame) {
                 std::memcpy(exceptionBuffer.get() + i * EncodeException<T>::exceptionBytesPerPage(),
@@ -583,15 +582,15 @@ ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH,
     : dbFileID(dbFileID), dataFH(dataFH), bufferManager(bufferManager), shadowFile(shadowFile) {}
 
 void ColumnReadWriter::readFromPage(Transaction* transaction, page_idx_t pageIdx,
-    const std::function<void(uint8_t*)>& func) {
+    const std::function<void(uint8_t*)>& readFunc) {
     // For constant compression, call read on a nullptr since there is no data on disk and
     // decompression only requires metadata
     if (pageIdx == INVALID_PAGE_IDX) {
-        return func(nullptr);
+        return readFunc(nullptr);
     }
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         *dataFH, pageIdx, *shadowFile, transaction->getType());
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, readFunc);
 }
 
 void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
@@ -617,7 +616,7 @@ PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChun
 }
 
 std::pair<common::offset_t, PageCursor> ColumnReadWriter::getOffsetAndCursor(
-    common::offset_t nodeOffset, const ChunkState& state) {
+    common::offset_t nodeOffset, const ChunkState& state) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state.metadata.pageIdx,
         state.numValuesPerPage);

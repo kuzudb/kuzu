@@ -117,12 +117,8 @@ public:
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, write_values_func_t writeFunc) = 0;
 
-protected:
-    std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
-        const ChunkState& state);
-
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& func);
+        const std::function<void(uint8_t*)>& readFunc);
 
     void updatePageWithCursor(PageCursor cursor,
         const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
@@ -130,14 +126,15 @@ protected:
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
         common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
 
+protected:
+    std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
+        const ChunkState& state) const;
+
 private:
     DBFileID dbFileID;
     BMFileHandle* dataFH;
     BufferManager* bufferManager;
     ShadowFile* shadowFile;
-
-    friend InMemoryExceptionChunk<float>;
-    friend InMemoryExceptionChunk<double>;
 };
 
 } // namespace storage
