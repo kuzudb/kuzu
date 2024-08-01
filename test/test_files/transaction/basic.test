@@ -42,6 +42,7 @@ Connection already has an active transaction. Cannot start a transaction within 
 Alice
 
 -CASE CheckpointTimeoutErrorTest
+-SKIP_IN_MEM
 -CHECKPOINT_WAIT_TIMEOUT 10000
 -STATEMENT CALL auto_checkpoint=false
 ---- ok

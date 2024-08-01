@@ -229,7 +229,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     initializeScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
-    if (!transaction->isRecovery()) {
+    if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
         auto& wal = transaction->getClientContext()->getStorageManager()->getWAL();
