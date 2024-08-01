@@ -1,9 +1,5 @@
 #include "planner/operator/ddl/logical_alter.h"
 
-#include "binder/expression/expression_util.h"
-#include "binder/expression/function_expression.h"
-#include "planner/operator/factorization/flatten_resolver.h"
-
 namespace kuzu {
 namespace planner {
 

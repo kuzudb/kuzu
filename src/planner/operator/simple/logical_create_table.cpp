@@ -1,8 +1,5 @@
 #include "planner/operator/ddl/logical_create_table.h"
 
-#include "binder/expression/function_expression.h"
-#include "planner/operator/factorization/flatten_resolver.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
