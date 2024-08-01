@@ -82,8 +82,8 @@ static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVecto
             result = yyjson_mut_real(wrapper.ptr, vec.getValue<float>(pos));
             break;
         case LogicalTypeID::STRING: {
-            auto strVal = vec.getValue<ku_string_t>(pos).getAsString();
-            result = yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
+            auto strVal = vec.getValue<ku_string_t>(pos);
+            result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
         } break;
         case LogicalTypeID::LIST:
         case LogicalTypeID::ARRAY: {
@@ -539,6 +539,11 @@ static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos
 
 static void readFromJsonStr(std::string val, common::ValueVector& vec, uint64_t pos) {
     vec.setNull(pos, false);
+    if (vec.dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+        // casting produces undesired behaviour when the dest requires no cast
+        StringVector::addString(&vec, pos, val);
+        return;
+    }
     CSVOption opt;
     function::CastString::copyStringToVector(&vec, pos, val, &opt);
 }
