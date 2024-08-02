@@ -5,7 +5,7 @@ const fs = require("fs");
 const fsCallback = require("fs");
 const process = require("process");
 
-const isNpmBuildFromSourceSet = process.env["NPM_CONFIG_BUILD_FROM_SOURCE"];
+const isNpmBuildFromSourceSet = process.env.npm_config_build_from_source;
 const platform = process.platform;
 const arch = process.arch;
 const prebuiltPath = path.join(
