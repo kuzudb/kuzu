@@ -113,3 +113,15 @@ Binder exception: Duplicated type name: DESCRIPTION.
 ---- ok
 -STATEMENT CREATE NODE TABLE STUDENT (ID BIGINT, HEIGHT LENGTH, PRIMARY KEY(ID));
 ---- ok
+
+-CASE UDTInNestedType
+-STATEMENT CREATE TYPE LENGTH AS INT64;
+---- ok
+-STATEMENT CREATE TYPE HEIGHT AS INT32;
+---- ok
+-STATEMENT CREATE TYPE PERSON (name string, info struct(h HEIGHT, l length), primary key(name));
+---- ok
+-STATEMENT CREATE TYPE PERSON1 (name string, info HEIGHT[], primary key(name));
+---- ok
+-STATEMENT CREATE TYPE PERSON2 (name string, info MAP(HEIGHT, LENGTH), primary key(name));
+---- ok

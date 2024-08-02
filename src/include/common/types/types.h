@@ -12,6 +12,9 @@
 #include "common/types/interval_t.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace processor {
 class ParquetReader;
 };
@@ -250,8 +253,7 @@ public:
     KUZU_API bool operator!=(const LogicalType& other) const;
 
     KUZU_API std::string toString() const;
-    static bool tryConvertFromString(const std::string& str, LogicalType& type);
-    static LogicalType fromString(const std::string& str);
+    static LogicalType convertFromString(const std::string& str, main::ClientContext* context);
 
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
     bool containsAny() const;

@@ -10,6 +10,9 @@
 #include "statement.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace parser {
 
 class RegularQuery;
@@ -31,7 +34,8 @@ struct JoinHintNode;
 
 class Transformer {
 public:
-    explicit Transformer(CypherParser::Ku_StatementsContext& root) : root{root} {}
+    explicit Transformer(CypherParser::Ku_StatementsContext& root, main::ClientContext* context)
+        : root{root}, context{context} {}
 
     std::vector<std::shared_ptr<Statement>> transform();
 
@@ -235,6 +239,7 @@ private:
 
 private:
     CypherParser::Ku_StatementsContext& root;
+    main::ClientContext* context;
 };
 
 } // namespace parser

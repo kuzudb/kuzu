@@ -244,7 +244,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query
     std::unique_lock<std::mutex> lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
-        parsedStatements = Parser::parseQuery(query);
+        parsedStatements = Parser::parseQuery(query, this);
     } catch (std::exception& exception) {
         return preparedStatementWithError(exception.what());
     }
@@ -260,7 +260,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareTest(std::string_view q
     std::unique_lock<std::mutex> lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
-        parsedStatements = Parser::parseQuery(query);
+        parsedStatements = Parser::parseQuery(query, this);
     } catch (std::exception& exception) {
         return preparedStatementWithError(exception.what());
     }
@@ -289,7 +289,7 @@ std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
     }
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
-        parsedStatements = Parser::parseQuery(query);
+        parsedStatements = Parser::parseQuery(query, this);
     } catch (std::exception& exception) {
         return queryResultWithError(exception.what());
     }
@@ -409,7 +409,7 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     if (query.empty()) {
         return statements;
     }
-    statements = Parser::parseQuery(query);
+    statements = Parser::parseQuery(query, this);
     return statements;
 }
 
@@ -574,7 +574,7 @@ void ClientContext::runQuery(std::string query) {
     }
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
-        parsedStatements = Parser::parseQuery(query);
+        parsedStatements = Parser::parseQuery(query, this);
     } catch (std::exception& exception) {
         throw ConnectionException(exception.what());
     }

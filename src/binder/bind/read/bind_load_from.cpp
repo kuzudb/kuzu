@@ -23,7 +23,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     std::vector<LogicalType> columnTypes;
     for (auto& [name, type] : loadFrom.getColumnDefinitions()) {
         columnNames.push_back(name);
-        columnTypes.push_back(clientContext->getCatalog()->getType(clientContext->getTx(), type));
+        columnTypes.push_back(LogicalType::convertFromString(type, clientContext));
     }
     switch (source->type) {
     case ScanSourceType::OBJECT: {
