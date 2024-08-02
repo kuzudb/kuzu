@@ -24,8 +24,6 @@ std::string AttachDatabasePrintInfo::toString() const {
 
 void AttachDatabase::executeInternal(ExecutionContext* context) {
     auto client = context->clientContext;
-    auto path1 = context->clientContext->getVFSUnsafe()->expandPath(context->clientContext,
-        attachInfo.dbPath);
     if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE) {
         auto attachedKuzuDB = std::make_unique<main::AttachedKuzuDatabase>(attachInfo.dbPath,
             attachInfo.dbAlias, common::ATTACHED_KUZU_DB_TYPE, context->clientContext);

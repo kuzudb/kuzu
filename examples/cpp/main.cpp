@@ -1,20 +1,27 @@
 #include <iostream>
+#include <thread>
+#include <vector>
 
 #include "kuzu.hpp"
+
 using namespace kuzu::main;
 
+static void execute(Connection* conn) {
+    printf("%s", conn->query("LOAD FROM 's3://kuzu/ldbc_part0.csv' return *;")->toString().c_str());
+}
+
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
-    auto connection = std::make_unique<Connection>(database.get());
-
-    // Create schema.
-    connection->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
-    // Create nodes.
-    connection->query("CREATE (:Person {name: 'Alice', age: 25});");
-    connection->query("CREATE (:Person {name: 'Bob', age: 30});");
-
-    // Execute a simple query.
-    auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
-    // Print query result.
-    std::cout << result->toString();
+    auto database = std::make_unique<Database>("abc" /* fill db path */);
+    auto connection1 = std::make_unique<Connection>(database.get());
+    auto connection2 = std::make_unique<Connection>(database.get());
+    connection1->query(
+        "load extension "
+        "'/Users/z473chen/Desktop/code/kuzu/extension/httpfs/build/libhttpfs.kuzu_extension'");
+    connection2->query(
+        "load extension "
+        "'/Users/z473chen/Desktop/code/kuzu/extension/httpfs/build/libhttpfs.kuzu_extension'");
+    auto thread1 = std::thread{execute, connection1.get()};
+    auto thread2 = std::thread{execute, connection2.get()};
+    thread1.join();
+    thread2.join();
 }
