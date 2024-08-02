@@ -90,7 +90,6 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
         }
         relScanState.endNodeIdx++;
     }
-    KU_ASSERT(relScanState.endNodeIdx < relScanState.currNodeIdx);
     relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
                                  fwdRelTableData->getNodeGroup(nodeGroupIdx) :
                                  bwdRelTableData->getNodeGroup(nodeGroupIdx);
@@ -118,6 +117,9 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     auto& outSelVector = relScanState.outputVectors[0]->state->getSelVectorUnsafe();
     auto& nodeIDSelVector = relScanState.boundNodeIDVector->state->getSelVectorUnsafe();
     nodeIDSelVector.setToUnfiltered(relScanState.totalNodeIdx);
+    if (relScanState.currNodeIdx == relScanState.totalNodeIdx) {
+        return false;
+    }
     // We need to reinitialize per node group
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         initializeScanState(transaction, relScanState);

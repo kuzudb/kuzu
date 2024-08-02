@@ -90,6 +90,9 @@ length_t CSRNodeGroup::getCSRLength(CSRNodeGroupScanState& state, offset_t offse
     case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
         result = csrIndex->getNumRows(offsetInGroup);
     } break;
+    case CSRNodeGroupScanSource::NONE: {
+        result = 0;
+    } break;
     default: {
         KU_UNREACHABLE;
     }
