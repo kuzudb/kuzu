@@ -5,7 +5,7 @@ const fs = require("fs");
 const fsCallback = require("fs");
 const process = require("process");
 
-// First, check if prebuilt binaries are available
+const isNpmBuildFromSourceSet = process.env.npm_config_build_from_source;
 const platform = process.platform;
 const arch = process.arch;
 const prebuiltPath = path.join(
@@ -13,7 +13,15 @@ const prebuiltPath = path.join(
   "prebuilt",
   `kuzujs-${platform}-${arch}.node`
 );
-if (fsCallback.existsSync(prebuiltPath)) {
+
+// Check if building from source is forced
+if (isNpmBuildFromSourceSet) {
+  console.log(
+    "The NPM_CONFIG_BUILD_FROM_SOURCE environment variable is set. Building from source."
+  );
+}
+// Check if prebuilt binaries are available
+else if (fsCallback.existsSync(prebuiltPath)) {
   console.log("Prebuilt binary is available.");
   console.log("Copying prebuilt binary to package directory...");
   fs.copyFileSync(prebuiltPath, path.join(__dirname, "kuzujs.node"));
@@ -65,8 +73,8 @@ if (process.platform === "darwin") {
     ? process.env["ARCHFLAGS"] === "-arch arm64"
       ? "arm64"
       : process.env["ARCHFLAGS"] === "-arch x86_64"
-      ? "x86_64"
-      : null
+        ? "x86_64"
+        : null
     : null;
   if (archflags) {
     console.log(`The ARCHFLAGS is set to '${archflags}'.`);
