@@ -8,6 +8,7 @@
 #include "main/client_context.h"
 #include "parser/parser.h"
 #include "parser/port_db.h"
+#include "common/file_system/virtual_file_system.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -115,7 +116,7 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
 
 std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement& statement) {
     auto& exportDB = statement.constCast<ExportDB>();
-    auto boundFilePath = exportDB.getFilePath();
+    auto boundFilePath = clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
     auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext->getTx(), this);
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
     auto fileTypeInfo = getFileType(parsedOptions);
