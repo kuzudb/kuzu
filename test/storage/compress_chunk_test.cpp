@@ -512,9 +512,9 @@ TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
 
 TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) {
     std::vector<float> src(100);
-    src[0] = 54387589.8341;
+    src[0] = 543875.8341;
     for (size_t i = 1; i < src.size(); i += 1) {
-        src[i] = (src[i - 1] + 4385.2348) * 0.9788;
+        src[i] = (src[i - 1] + 43.2348) * 0.9788;
     }
 
     testUpdateChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction*,
