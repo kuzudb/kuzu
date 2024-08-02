@@ -26,6 +26,18 @@ HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags,
 void HTTPFileInfo::initialize(main::ClientContext* context) {
     initializeClient();
     auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
+    if ((flags & O_ACCMODE) == O_RDONLY) {
+        readBuffer = std::make_unique<uint8_t[]>(READ_BUFFER_LEN);
+    }
+
+    if (httpConfig.cacheFile) {
+        cachedFileInfo =
+            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTx()->getID());
+        if (cachedFileInfo != nullptr) {
+            length = cachedFileInfo->getFileSize();
+            return;
+        }
+    }
     auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
     std::string rangeLength;
     if (res->code != 200) {
@@ -76,11 +88,6 @@ void HTTPFileInfo::initialize(main::ClientContext* context) {
         }
     }
 
-    // Initialize the read buffer now that we know the file exists
-    if ((flags & O_ACCMODE) == O_RDONLY) {
-        readBuffer = std::make_unique<uint8_t[]>(READ_BUFFER_LEN);
-    }
-
     if (res->headers.find("Content-Length") == res->headers.end() ||
         res->headers["Content-Length"].empty()) {
         // LCOV_EXCL_START
@@ -105,10 +112,6 @@ void HTTPFileInfo::initialize(main::ClientContext* context) {
                 res->headers["Content-Length"]));
             // LCOV_EXCL_STOP
         }
-    }
-    if (httpConfig.cacheFile) {
-        cachedFileInfo =
-            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTx()->getID());
     }
 }
 
@@ -156,7 +159,7 @@ void HTTPFileSystem::cleanUP(main::ClientContext* context) {
 
 void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
-    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
+    auto& httpFileInfo = *fileInfo.ptrCast<HTTPFileInfo>();
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
     if (httpFileInfo.cachedFileInfo != nullptr) {

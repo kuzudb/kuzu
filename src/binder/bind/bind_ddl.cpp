@@ -53,7 +53,7 @@ std::vector<PropertyInfo> Binder::bindPropertyInfo(
     std::vector<PropertyInfo> propertyInfos;
     propertyInfos.reserve(propertyDefinitions.size());
     for (auto& propertyDef : propertyDefinitions) {
-        auto type = clientContext->getCatalog()->getType(clientContext->getTx(), propertyDef.type);
+        auto type = LogicalType::convertFromString(propertyDef.type, clientContext);
         auto expr = propertyDef.expr->copy();
         // This will check the type correctness of the default value expression
         auto boundExpr = expressionBinder.implicitCastIfNecessary(
@@ -201,11 +201,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) {
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
-    LogicalType type;
-    if (!LogicalType::tryConvertFromString(createType->getDataType(), type)) {
-        type =
-            clientContext->getCatalog()->getType(clientContext->getTx(), createType->getDataType());
-    }
+    LogicalType type = LogicalType::convertFromString(createType->getDataType(), clientContext);
     if (clientContext->getCatalog()->containsType(clientContext->getTx(), name)) {
         throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
     }
@@ -482,8 +478,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto info = alter.getInfo();
     auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraAddPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
-    auto dataType =
-        clientContext->getCatalog()->getType(clientContext->getTx(), extraInfo->dataType);
+    auto dataType = LogicalType::convertFromString(extraInfo->dataType, clientContext);
     if (extraInfo->defaultValue == nullptr) {
         extraInfo->defaultValue =
             std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");

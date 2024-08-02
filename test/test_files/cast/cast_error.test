@@ -783,25 +783,25 @@ Conversion exception: Unsupported casting LIST with incorrect list entry to ARRA
 -LOG InvalidNameCast
 -STATEMENT RETURN cast("nop", "STRUCT()");
 ---- error
-Cannot parse dataTypeID:
+Catalog exception:  is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "STRUCT(a=fds)");
 ---- error
-Cannot parse dataTypeID: a=fds
+Catalog exception: A=FDS is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "STRUCT(a: )");
 ---- error
-Cannot parse dataTypeID:
+Catalog exception:  is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "MAP()");
 ---- error
-Cannot parse dataTypeID:
+Catalog exception:  is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "MAP(");
 ---- error
 Cannot parse map type: MAP(
 -STATEMENT RETURN cast("nop", "UNION(a:STRING)");
 ---- error
-Cannot parse dataTypeID: a:STRING
+Catalog exception: A:STRING is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "MAP(int)");
 ---- error
-Cannot parse dataTypeID:
+Catalog exception:  is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "STRUCT(a: INT, b MAP(INT, STRING, INT))");
 ---- error
-Cannot parse dataTypeID:  STRING, INT
+Catalog exception: STRING, INT is neither an internal type nor a user defined type.

@@ -7,6 +7,7 @@
 #pragma GCC diagnostic pop
 
 #include "common/exception/parser.h"
+#include "main/client_context.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
 #include "parser/antlr_parser/parser_error_strategy.h"
@@ -17,7 +18,8 @@ using namespace antlr4;
 namespace kuzu {
 namespace parser {
 
-std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query) {
+std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query,
+    main::ClientContext* context) {
     // LCOV_EXCL_START
     // We should have enforced this in connection, but I also realize empty query will cause
     // antlr to hang. So enforce a duplicate check here.
@@ -40,7 +42,7 @@ std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view quer
     kuzuCypherParser.addErrorListener(&parserErrorListener);
     kuzuCypherParser.setErrorHandler(std::make_shared<ParserErrorStrategy>());
 
-    Transformer transformer(*kuzuCypherParser.ku_Statements());
+    Transformer transformer(*kuzuCypherParser.ku_Statements(), context);
     return transformer.transform();
 }
 

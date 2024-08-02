@@ -84,3 +84,23 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, dadsa) {
+    createDBAndConn();
+    conn->query("CREATE NODE TABLE tableOfTypes3 (id INT64, int64Column INT64, doubleColumn "
+                "DOUBLE, booleanColumn BOOLEAN,\n"
+                "        nullInt64Column INT64, nullDoubleColumn DOUBLE, nullBooleanColumn "
+                "BOOLEAN,dateColumn DATE,\n"
+                "        timestampColumn TIMESTAMP, stringColumn STRING, nullDateColumn DATE, "
+                "nullTimestampColumn TIMESTAMP,\n"
+                "        nullStringColumn STRING, listOfInt INT64[], nullListOfInt INT64[], "
+                "PRIMARY KEY (id));");
+    printf("%s",
+        conn->query(" COPY tableOfTypes3(id, int64Column, doubleColumn, booleanColumn, dateColumn,"
+                    " timestampColumn, stringColumn, listOfInt) FROM "
+                    "\"/Users/z473chen/Desktop/code/kuzu/dataset/copy-test/node/csv/"
+                    "types_50k.csv\"(HEADER = "
+                    "true);")
+            ->toString()
+            .c_str());
+}
