@@ -29,6 +29,9 @@ ifdef GEN
 	CMAKE_FLAGS += -G "$(GEN)"
 endif
 
+ifdef PROFILE
+	CMAKE_FLAGS += -DENABLE_PROFILING=$(PROFILE)
+endif
 ifdef ASAN
 	CMAKE_FLAGS += -DENABLE_ADDRESS_SANITIZER=$(ASAN)
 endif
@@ -91,11 +94,14 @@ alldebug:
 	)
 
 
+build_test_debug:
+	$(call run-cmake-debug, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
+
 # Main tests
 test:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
-	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --timeout 120
 
 lcov:
 	python3 dataset/ldbc-1/download_data.py
