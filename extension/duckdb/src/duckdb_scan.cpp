@@ -61,7 +61,7 @@ std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedSt
     auto result = conn.Query(scanBindData->query);
     if (result->HasError()) {
         throw common::RuntimeException(
-            common::stringFormat("Failed to execute query: {} in duckdb.", result->GetError()));
+            common::stringFormat("Failed to execute query due to error: {}", result->GetError()));
     }
     return std::make_unique<DuckDBScanSharedState>(std::move(result));
 }

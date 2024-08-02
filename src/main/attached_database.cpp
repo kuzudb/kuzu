@@ -35,8 +35,9 @@ static void validateEmptyWAL(const std::string& path, ClientContext* context) {
     auto walFile = context->getVFSUnsafe()->openFile(
         path + "/" + common::StorageConstants::WAL_FILE_SUFFIX, O_RDONLY, context);
     if (walFile->getFileSize() > 0) {
-        throw common::RuntimeException(
-            common::stringFormat("Cannot attach a remote kuzu database with non-empty wal file."));
+        throw common::RuntimeException(common::stringFormat(
+            "Cannot attach an external Kùzu database with non-empty wal file. Try manually "
+            "checkpointing the external database (i.e., run \"CHECKPOINT;\")."));
     }
 }
 
