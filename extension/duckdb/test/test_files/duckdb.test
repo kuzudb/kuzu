@@ -165,10 +165,14 @@ Runtime exception: No database named NONEXIST.
 ---- 2
 Jeff|32
 Wendy|28
+-LOG AttachDBWithSameAlias
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/other.db' as dbfilewithoutext (dbtype duckdb);
+---- error
+Runtime exception: Duplicate attached database name: dbfilewithoutext. Attached database name must be unique.
 -LOG AttachSameDBError
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/dbfilewithoutext' (dbtype duckdb);
 ---- error
-Runtime exception: Database with name: dbfilewithoutext has already been attached.
+Runtime exception: Duplicate attached database name: dbfilewithoutext. Attached database name must be unique.
 -LOG DetachExistDB
 -STATEMENT DETACH dbfilewithoutext;
 ---- ok

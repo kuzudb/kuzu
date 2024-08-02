@@ -112,7 +112,7 @@ Binder exception: Table person does not exist.
 5
 -STATEMENT CALL HTTP_CACHE_FILE=FALSE
 -LOG AttachAgain
--STATEMENT attach 'http://localhost/databases/tinysnb' (dbtype kuzu)
+-STATEMENT attach 'http://localhost/databases/tinysnb' as tinysnb (dbtype kuzu)
 ---- ok
 -LOG QueryRemoteNodeTable
 -STATEMENT match (p:person) return p.*
@@ -130,6 +130,14 @@ Binder exception: Table person does not exist.
 tinysnb|KUZU
 -STATEMENT detach tinysnb
 ---- ok
+-LOG AttachWithSlashStylePath
+-STATEMENT attach 'http://localhost/databases/tinysnb/' as tinysnb1 (dbtype kuzu)
+---- ok
+-STATEMENT call SHOW_ATTACHED_DATABASES() return *;
+---- 1
+tinysnb1|KUZU
+-STATEMENT detach tinysnb1
+---- ok
 
 -CASE AttachNotExistPath
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
@@ -144,3 +152,8 @@ Runtime exception: Cannot attach a remote kuzu database due to invalid path: htt
 -STATEMENT attach 'http://localhost/databases/non-empty-wal' as test (dbtype kuzu)
 ---- error
 Runtime exception: Cannot attach an external Kùzu database with non-empty wal file. Try manually checkpointing the external database (i.e., run "CHECKPOINT;").
+
+-CASE AttachKuzuWithRelativePath
+-STATEMENT attach '${KUZU_ROOT_DIRECTORY}/dataset/databases/tinysnb/./' (dbtype kuzu)
+---- error
+Binder exception: Attaching a kuzu database without an alias is not allowed.
