@@ -56,6 +56,25 @@ Adam|Karissa|2020
 Adam|Zhang|2020
 Karissa|Zhang|2021
 Zhang|Noura|2022
+-LOG LoadFromWithCache
+-STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT load from 's3://kuzu-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT load from 's3://kuzu-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT COMMIT
+---- ok
 
 -DEFINE_STATEMENT_BLOCK AWS_S3_SETUP [
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"

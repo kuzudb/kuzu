@@ -125,7 +125,11 @@ Binder exception: Table person does not exist.
 8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
 9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
-
+-STATEMENT call SHOW_ATTACHED_DATABASES() return *;
+---- 1
+tinysnb|KUZU
+-STATEMENT detach tinysnb
+---- ok
 
 -CASE AttachNotExistPath
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
@@ -139,4 +143,4 @@ Runtime exception: Cannot attach a remote kuzu database due to invalid path: htt
 ---- ok
 -STATEMENT attach 'http://localhost/databases/non-empty-wal' as test (dbtype kuzu)
 ---- error
-Runtime exception: Cannot attach a remote kuzu database with non-empty wal file.
+Runtime exception: Cannot attach an external Kùzu database with non-empty wal file. Try manually checkpointing the external database (i.e., run "CHECKPOINT;").
