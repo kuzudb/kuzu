@@ -151,16 +151,18 @@ void LocalRelTable::initializeScan(TableScanState& state) {
     auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
     offset_t nodeOffset = relScanState.boundNodeOffset;
     // collect all node ids that can be read from the same node group
-    while (relScanState.endNodeIdx < relScanState.totalNodeIdx && relScanState.batchSize < DEFAULT_VECTOR_CAPACITY) {
+    while (relScanState.endNodeIdx < relScanState.totalNodeIdx &&
+           relScanState.batchSize < DEFAULT_VECTOR_CAPACITY) {
         nodeOffset =
             relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx]);
         if (index.contains(nodeOffset)) {
-            auto numToScan = std::min(index[nodeOffset].size() - relScanState.nextRowToScan, 
-                                      DEFAULT_VECTOR_CAPACITY - relScanState.batchSize);
-            relScanState.rowIndices.insert(relScanState.rowIndices.end(), 
-                index[nodeOffset].begin() + relScanState.nextRowToScan, 
+            auto numToScan = std::min(index[nodeOffset].size() - relScanState.nextRowToScan,
+                DEFAULT_VECTOR_CAPACITY - relScanState.batchSize);
+            relScanState.rowIndices.insert(relScanState.rowIndices.end(),
+                index[nodeOffset].begin() + relScanState.nextRowToScan,
                 index[nodeOffset].begin() + relScanState.nextRowToScan + numToScan);
-            KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
+            KU_ASSERT(
+                std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
             relScanState.batchSize += numToScan;
             if (numToScan < index[nodeOffset].size() - relScanState.nextRowToScan) {
                 relScanState.nextRowToScan += numToScan;

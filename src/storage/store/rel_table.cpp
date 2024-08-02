@@ -139,8 +139,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         currCSRSize = 0;
         posInLastCSR = relScanState.localTableScanState->nextRowToScan;
         auto localTable = relScanState.localTableScanState->localRelTable;
-        auto& index = relScanState.direction == RelDataDirection::FWD ? 
-            localTable->getFWDIndex() : localTable->getBWDIndex();
+        auto& index = relScanState.direction == RelDataDirection::FWD ? localTable->getFWDIndex() :
+                                                                        localTable->getBWDIndex();
         if (index.contains(relScanState.boundNodeOffset)) {
             currCSRSize = index[relScanState.boundNodeOffset].size();
         }
