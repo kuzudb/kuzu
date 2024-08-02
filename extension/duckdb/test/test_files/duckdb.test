@@ -27,6 +27,21 @@ Attached database successfully.
 8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16|[80,78,34,83]
 9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 11:21:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17|[43,83,67,43]
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|1.323000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18|[77,64,100,54]
+-STATEMENT create node table person_copy1 (ID INt64, fName STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT COPY person_copy1 FROM (LOAD FROM tinysnb.person RETURN ID, fName);
+---- 1
+8 tuples have been copied to the person_copy1 table.
+-STATEMENT MATCH (a:person_copy1) RETURN a.*;
+---- 8
+0|Alice
+2|Bob
+3|Carol
+5|Dan
+7|Elizabeth
+8|Farooq
+9|Greg
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -STATEMENT LOAD FROM tinysnb.person RETURN *;
 ---- 8
 0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|1.731000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11|[96,54,86,92]
@@ -72,9 +87,10 @@ Attached database successfully.
 ---- 1
 Attached database successfully.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
----- 7
+---- 8
 movies|ATTACHED|tinysnb(DUCKDB)|
 organisation|ATTACHED|tinysnb(DUCKDB)|
+person_copy1|NODE|local(kuzu)|
 person_copy|NODE|local(kuzu)|
 person|ATTACHED|Other1(DUCKDB)|
 person|ATTACHED|tinysnb(DUCKDB)|
@@ -165,10 +181,14 @@ Runtime exception: No database named NONEXIST.
 ---- 2
 Jeff|32
 Wendy|28
+-LOG AttachDBWithSameAlias
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/other.db' as dbfilewithoutext (dbtype duckdb);
+---- error
+Runtime exception: Duplicate attached database name: dbfilewithoutext. Attached database name must be unique.
 -LOG AttachSameDBError
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/duckdb/test/duckdb_database/dbfilewithoutext' (dbtype duckdb);
 ---- error
-Runtime exception: Database with name: dbfilewithoutext has already been attached.
+Runtime exception: Duplicate attached database name: dbfilewithoutext. Attached database name must be unique.
 -LOG DetachExistDB
 -STATEMENT DETACH dbfilewithoutext;
 ---- ok

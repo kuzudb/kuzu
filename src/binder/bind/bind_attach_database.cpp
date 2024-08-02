@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/bound_attach_database.h"
 #include "common/exception/binder.h"
+#include "common/string_utils.h"
 #include "parser/attach_database.h"
 #include "parser/expression/parsed_literal_expression.h"
 
@@ -15,6 +16,11 @@ static AttachInfo bindAttachInfo(const parser::AttachInfo& attachInfo) {
         }
         auto val = value->constPtrCast<parser::ParsedLiteralExpression>()->getValue();
         attachOption.options.emplace(name, std::move(val));
+    }
+
+    if (common::StringUtils::getUpper(attachInfo.dbType) == common::ATTACHED_KUZU_DB_TYPE &&
+        attachInfo.dbAlias.empty()) {
+        throw common::BinderException{"Attaching a kuzu database without an alias is not allowed."};
     }
     return binder::AttachInfo{attachInfo.dbPath, attachInfo.dbAlias, attachInfo.dbType,
         std::move(attachOption)};

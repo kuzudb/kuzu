@@ -14,7 +14,8 @@ void DatabaseManager::registerAttachedDatabase(std::unique_ptr<AttachedDatabase>
     }
     if (getAttachedDatabase(attachedDatabase->getDBName()) != nullptr) {
         throw common::RuntimeException{common::stringFormat(
-            "Database with name: {} has already been attached.", attachedDatabase->getDBName())};
+            "Duplicate attached database name: {}. Attached database name must be unique.",
+            attachedDatabase->getDBName())};
     }
     attachedDatabases.push_back(std::move(attachedDatabase));
 }
