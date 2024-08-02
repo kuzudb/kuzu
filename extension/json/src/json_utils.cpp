@@ -142,7 +142,7 @@ JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
 std::vector<JsonWrapper> jsonifyQueryResult(
     const std::vector<std::shared_ptr<common::ValueVector>>& columns,
     const std::vector<std::string>& names) {
-    auto numRows = 0u;
+    auto numRows = 1u; // 1 if all vectors are flat
     for (auto i = 0u; i < columns.size(); i++) {
         if (!columns[i]->state->isFlat()) {
             numRows = columns[i]->state->getSelVector().getSelSize();
