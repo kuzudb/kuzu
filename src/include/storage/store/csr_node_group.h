@@ -129,8 +129,8 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
         NodeGroupScanState::resetState();
         csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
-        persistentCSRLists.resize(0);
-        inMemCSRLists.resize(0);
+        persistentCSRLists.clear();
+        inMemCSRLists.clear();
         nextCSRToScan = 0;
     }
 };

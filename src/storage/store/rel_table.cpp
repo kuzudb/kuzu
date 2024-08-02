@@ -103,9 +103,14 @@ void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
     auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(localScanState.localRelTable);
     localScanState.boundNodeOffset = relScanState.boundNodeOffset;
+    localScanState.currNodeIdx = relScanState.currNodeIdx;
+    localScanState.endNodeIdx = relScanState.endNodeIdx;
+    localScanState.totalNodeIdx = relScanState.totalNodeIdx;
     localScanState.rowIdxVector->setState(relScanState.rowIdxVector->state);
     localScanState.localRelTable->initializeScan(*relScanState.localTableScanState);
-    localScanState.nextRowToScan = 0;
+    relScanState.currNodeIdx = localScanState.currNodeIdx;
+    relScanState.endNodeIdx = localScanState.endNodeIdx;
+    relScanState.batchSize = localScanState.batchSize;
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
@@ -131,8 +136,17 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         posInLastCSR = csrNodeGroupScanState.nextRowToScan;
     } break;
     case TableScanSource::UNCOMMITTED: {
-        currCSRSize = INVALID_OFFSET;
-        posInLastCSR = INVALID_OFFSET;
+        currCSRSize = 0;
+        posInLastCSR = relScanState.localTableScanState->nextRowToScan;
+        auto localTable = relScanState.localTableScanState->localRelTable;
+        auto& index = relScanState.direction == RelDataDirection::FWD ? 
+            localTable->getFWDIndex() : localTable->getBWDIndex();
+        if (index.contains(relScanState.boundNodeOffset)) {
+            currCSRSize = index[relScanState.boundNodeOffset].size();
+        }
+    } break;
+    case TableScanSource::NONE: {
+        return false;
     } break;
     default: {
         KU_UNREACHABLE;
