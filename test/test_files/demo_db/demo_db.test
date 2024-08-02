@@ -411,7 +411,8 @@ Zhang|50
 ---- 1
 Adam|30
 
--LOG CopyTO
+-CASE CopyTO
+-SKIP_IN_MEM
 -STATEMENT COPY (MATCH (u:User) RETURN u.*) TO '${DATABASE_PATH}/user.csv' (header=true);
 ---- ok
 -STATEMENT LOAD FROM '${DATABASE_PATH}/user.csv' RETURN *;

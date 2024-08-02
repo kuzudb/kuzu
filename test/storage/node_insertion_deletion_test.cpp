@@ -1,8 +1,6 @@
 #include <fcntl.h>
 
 #include "common/constants.h"
-#include "common/exception/runtime.h"
-#include "common/file_system/local_file_system.h"
 #include "graph_test/graph_test.h"
 
 using namespace kuzu::common;
@@ -26,7 +24,6 @@ public:
 
     void initDBAndConnection() {
         conn->query("CHECKPOINT");
-        createDBAndConn();
         readConn = std::make_unique<Connection>(database.get());
         conn->query("BEGIN TRANSACTION");
     }
