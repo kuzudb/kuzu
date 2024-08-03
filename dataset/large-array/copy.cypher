@@ -1,0 +1,1 @@
+COPY person FROM "dataset/large-array/large_array.parquet";

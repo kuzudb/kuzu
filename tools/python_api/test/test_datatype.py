@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from decimal import Decimal
 import datetime
+from decimal import Decimal
 from uuid import UUID
 
+import numpy as np
+import pandas as pd
 import pytz
+
 from type_aliases import ConnDB
 
 
@@ -393,3 +396,22 @@ def test_rdf_variant(conn_db_readwrite: ConnDB) -> None:
 
     with conn.execute("DROP RDFGraph T;") as result:
         result.close()
+
+
+def test_large_array(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+
+    data = []
+    for i in range(1000):
+        data.append({
+            "id": i,
+            "embedding": np.random.rand(1670).tolist()
+        })
+
+    df = pd.DataFrame(data)
+    conn.execute("CREATE NODE TABLE User(id INT64, embedding DOUBLE[1670], PRIMARY KEY (id))")
+    conn.execute("COPY User FROM df")
+    db_df = conn.execute("MATCH (u:User) RETURN u.id as id, u.embedding as embedding ORDER BY u.id").get_as_df()
+    sorted_df = df.sort_values(by="id").reset_index(drop=True)
+    sorted_db_df = db_df.sort_values(by="id").reset_index(drop=True)
+    assert sorted_df.equals(sorted_db_df)
