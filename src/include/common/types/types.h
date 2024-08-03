@@ -21,7 +21,7 @@ class Serializer;
 class Deserializer;
 struct FileInfo;
 
-using sel_t = uint16_t;
+using sel_t = uint64_t;
 using hash_t = uint64_t;
 using page_idx_t = uint32_t;
 using frame_idx_t = page_idx_t;
@@ -37,7 +37,7 @@ using column_id_t = property_id_t;
 constexpr column_id_t INVALID_COLUMN_ID = INVALID_PROPERTY_ID;
 constexpr column_id_t ROW_IDX_COLUMN_ID = INVALID_COLUMN_ID - 1;
 using idx_t = uint32_t;
-const idx_t INVALID_IDX = UINT32_MAX;
+constexpr idx_t INVALID_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 constexpr block_idx_t INVALID_BLOCK_IDX = UINT64_MAX;
 using struct_field_idx_t = uint8_t;
@@ -57,7 +57,7 @@ using sequence_id_t = uint64_t;
 using transaction_t = uint64_t;
 constexpr transaction_t INVALID_TRANSACTION = UINT64_MAX;
 using executor_id_t = uint64_t;
-using executor_info = std::unordered_map<common::executor_id_t, uint64_t>;
+using executor_info = std::unordered_map<executor_id_t, uint64_t>;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -68,11 +68,11 @@ struct overflow_value_t {
 };
 
 struct list_entry_t {
-    common::offset_t offset;
+    offset_t offset;
     list_size_t size;
 
     list_entry_t() : offset{INVALID_OFFSET}, size{UINT32_MAX} {}
-    list_entry_t(common::offset_t offset, list_size_t size) : offset{offset}, size{size} {}
+    list_entry_t(offset_t offset, list_size_t size) : offset{offset}, size{size} {}
 };
 
 struct struct_entry_t {
@@ -94,30 +94,27 @@ template<typename T>
 concept IntegerTypes =
     std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
     std::is_same_v<T, int64_t> || std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
-    std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> ||
-    std::is_same_v<T, common::int128_t>;
+    std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, int128_t>;
 
 template<typename T>
 concept NumericTypes = IntegerTypes<T> || std::floating_point<T>;
 
 template<typename T>
-concept ComparableTypes = NumericTypes<T> || std::is_same_v<T, common::ku_string_t> ||
+concept ComparableTypes = NumericTypes<T> || std::is_same_v<T, ku_string_t> ||
                           std::is_same_v<T, interval_t> || std::is_same_v<T, bool>;
 
 template<typename T>
 concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
-                             std::floating_point<T> || std::is_same_v<T, common::int128_t>);
+                             std::floating_point<T> || std::is_same_v<T, int128_t>);
 template<typename T>
-concept IndexHashable =
-    ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
-        std::is_same_v<T, common::int128_t> || std::is_same_v<T, common::ku_string_t> ||
-        std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
+concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
+                         std::is_same_v<T, int128_t> || std::is_same_v<T, ku_string_t> ||
+                         std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
 
 template<typename T>
-concept HashableNonNestedTypes =
-    (std::integral<T> || std::floating_point<T> || std::is_same_v<T, common::int128_t> ||
-        std::is_same_v<T, internalID_t> || std::is_same_v<T, interval_t> ||
-        std::is_same_v<T, ku_string_t>);
+concept HashableNonNestedTypes = (std::integral<T> || std::floating_point<T> ||
+                                  std::is_same_v<T, int128_t> || std::is_same_v<T, internalID_t> ||
+                                  std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t>);
 
 template<typename T>
 concept HashableNestedTypes =
@@ -334,7 +331,7 @@ protected:
     virtual void serializeInternal(Serializer& serializer) const = 0;
 };
 
-class DecimalTypeInfo : public ExtraTypeInfo {
+class DecimalTypeInfo final : public ExtraTypeInfo {
 public:
     explicit DecimalTypeInfo(uint32_t precision = 18, uint32_t scale = 3)
         : precision(precision), scale(scale) {}
@@ -378,7 +375,7 @@ protected:
     LogicalType childType;
 };
 
-class ArrayTypeInfo : public ListTypeInfo {
+class ArrayTypeInfo final : public ListTypeInfo {
 public:
     ArrayTypeInfo() = default;
     explicit ArrayTypeInfo(LogicalType childType, uint64_t numElements)
@@ -425,7 +422,7 @@ private:
     LogicalType type;
 };
 
-class StructTypeInfo : public ExtraTypeInfo {
+class StructTypeInfo final : public ExtraTypeInfo {
 public:
     StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<StructField>&& fields);
@@ -507,7 +504,7 @@ struct KUZU_API MapType {
 struct KUZU_API UnionType {
     static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
 
-    static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT8;
+    static constexpr auto TAG_FIELD_TYPE = LogicalTypeID::INT8;
 
     static constexpr char TAG_FIELD_NAME[] = "tag";
 
