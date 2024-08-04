@@ -4,6 +4,16 @@
 
 -CASE Hint
 
+-STATEMENT MATCH (a:person)-[e:knows]->(:person)
+            HINT (a JOIN e)
+            RETURN a.ID
+---- error
+Binder exception: Cannot hint join order in a match patter with anonymous node or relationship.
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person)
+            HINT (((a JOIN e) JOIN b) JOIN c) JOIN e2
+            RETURN a.ID, b.ID
+---- error
+Binder exception: Cannot resolve join condition between JOIN(Scan(a,e),Scan(b)) and Scan(c).
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person)
             WHERE a.ID > b.ID
             HINT (a JOIN e)
@@ -15,7 +25,7 @@ Binder exception: Cannot find b in join hint.
          HINT (a JOIN b) JOIN e
          RETURN a.ID, b.ID
 ---- error
-Binder exception: Cannot resolve join condition.
+Binder exception: Cannot resolve join condition between Scan(a) and Scan(b).
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person)
          WHERE a.ID > b.ID
          HINT (a JOIN x) JOIN e

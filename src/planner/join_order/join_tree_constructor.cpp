@@ -71,8 +71,8 @@ JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructTreeNode(
             joinNodes = getJoinNodes(right.subqueryGraph, left.subqueryGraph);
         }
         if (joinNodes.empty()) {
-            // TODO(Xiyang): print better error.
-            throw BinderException(stringFormat("Cannot resolve join condition."));
+            throw BinderException(stringFormat("Cannot resolve join condition between {} and {}.",
+                left.treeNode->toString(), right.treeNode->toString()));
         }
         auto newSubgraph = left.subqueryGraph;
         newSubgraph.addSubqueryGraph(right.subqueryGraph);

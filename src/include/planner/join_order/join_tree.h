@@ -12,6 +12,10 @@ enum class TreeNodeType : uint8_t {
     MULTIWAY_JOIN = 6,
 };
 
+struct TreeNodeTypeUtils {
+    static std::string toString(TreeNodeType type);
+};
+
 struct ExtraTreeNodeInfo {
     virtual ~ExtraTreeNodeInfo() = default;
 
@@ -78,6 +82,8 @@ struct JoinTreeNode {
     JoinTreeNode(TreeNodeType type, std::unique_ptr<ExtraTreeNodeInfo> extraInfo)
         : type{type}, extraInfo{std::move(extraInfo)} {}
     DELETE_COPY_DEFAULT_MOVE(JoinTreeNode);
+
+    std::string toString() const;
 
     void addChild(std::shared_ptr<JoinTreeNode> child) { children.push_back(std::move(child)); }
 };

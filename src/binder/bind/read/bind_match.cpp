@@ -23,6 +23,10 @@ static void validateHintCompleteness(const BoundJoinHintNode& root, const QueryG
     binder::expression_set set;
     collectHintPattern(root, set);
     for (auto& nodeOrRel : queryGraph.getAllPatterns()) {
+        if (nodeOrRel->getVariableName().empty()) {
+            throw BinderException(
+                "Cannot hint join order in a match patter with anonymous node or relationship.");
+        }
         if (!set.contains(nodeOrRel)) {
             throw BinderException(
                 stringFormat("Cannot find {} in join hint.", nodeOrRel->toString()));
