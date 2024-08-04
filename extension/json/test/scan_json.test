@@ -60,8 +60,8 @@ Cannot read from JSON Array to INT32
 
 -STATEMENT LOAD WITH HEADERS (obj MAP(STRING, STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/obj-test.json" RETURN *;
 ---- 2
-{a=1, b="2024-02-11"}
-{a=2, b="2000-01-01"}
+{a=1, b=2024-02-11}
+{a=2, b=2000-01-01}
 
 -STATEMENT LOAD WITH HEADERS (obj JSON) FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/obj-test.json" RETURN *;
 ---- 2
@@ -70,8 +70,8 @@ Cannot read from JSON Array to INT32
 
 -STATEMENT LOAD WITH HEADERS (obj UNION(b INT32, a MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/obj-test.json" RETURN *;
 ---- 2
-{a=1, b="2024-02-11"}
-{a=2, b="2000-01-01"}
+{a=1, b=2024-02-11}
+{a=2, b=2000-01-01}
 
 -STATEMENT LOAD WITH HEADERS (obj UNION(b INT32, c INT64)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/obj-test.json" RETURN *;
 ---- error
