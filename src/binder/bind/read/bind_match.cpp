@@ -24,7 +24,8 @@ static void validateHintCompleteness(const BoundJoinHintNode& root, const QueryG
     collectHintPattern(root, set);
     for (auto& nodeOrRel : queryGraph.getAllPatterns()) {
         if (nodeOrRel->getVariableName().empty()) {
-            throw BinderException("Cannot hint join order in a match patter with anonymous node or relationship.");
+            throw BinderException(
+                "Cannot hint join order in a match patter with anonymous node or relationship.");
         }
         if (!set.contains(nodeOrRel)) {
             throw BinderException(
