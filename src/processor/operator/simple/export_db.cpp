@@ -46,9 +46,9 @@ void ExportDB::initGlobalStateInternal(kuzu::processor::ExecutionContext* contex
     vfs->createDir(boundFileInfo.filePaths[0]);
 }
 
-static void writeStringStreamToFile(VirtualFileSystem* vfs, std::string ssString,
+static void writeStringStreamToFile(ClientContext* context, std::string ssString,
     const std::string& path) {
-    auto fileInfo = vfs->openFile(path, O_WRONLY | O_CREAT);
+    auto fileInfo = context->getVFSUnsafe()->openFile(path, O_WRONLY | O_CREAT, context);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ssString.c_str()), ssString.size(),
         0 /* offset */);
 }
@@ -116,15 +116,14 @@ std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* bound
 
 void ExportDB::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto fs = clientContext->getVFSUnsafe();
     auto tx = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     // write the schema.cypher file
-    writeStringStreamToFile(fs, getSchemaCypher(clientContext, tx, extraMsg),
+    writeStringStreamToFile(clientContext, getSchemaCypher(clientContext, tx, extraMsg),
         boundFileInfo.filePaths[0] + "/schema.cypher");
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
-    writeStringStreamToFile(fs, getCopyCypher(catalog, tx, &boundFileInfo),
+    writeStringStreamToFile(clientContext, getCopyCypher(catalog, tx, &boundFileInfo),
         boundFileInfo.filePaths[0] + "/copy.cypher");
 }
 

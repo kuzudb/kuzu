@@ -35,9 +35,9 @@ static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::s
 }
 
 std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement& statement) {
-    auto& importDatabaseStatement = ku_dynamic_cast<const Statement&, const ImportDB&>(statement);
-    auto boundFilePath = importDatabaseStatement.getFilePath();
+    auto& importDB = statement.constCast<ImportDB>();
     auto fs = clientContext->getVFSUnsafe();
+    auto boundFilePath = fs->expandPath(clientContext, importDB.getFilePath());
     if (!fs->fileOrPathExists(boundFilePath, clientContext)) {
         throw BinderException(stringFormat("Directory {} does not exist.", boundFilePath));
     }

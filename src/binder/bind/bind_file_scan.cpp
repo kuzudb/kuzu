@@ -48,8 +48,9 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};
         }
-        boundFilePaths.insert(boundFilePaths.end(), globbedFilePaths.begin(),
-            globbedFilePaths.end());
+        for (auto& globbedPath : globbedFilePaths) {
+            boundFilePaths.push_back(globbedPath);
+        }
     }
     return boundFilePaths;
 }
