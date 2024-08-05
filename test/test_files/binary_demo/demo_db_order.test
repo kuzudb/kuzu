@@ -1,5 +1,6 @@
 -DATASET KUZU binary-demo
 -SKIP_32BIT
+-SKIP_IN_MEM
 --
 
 -CASE DemoDBOrderedTest

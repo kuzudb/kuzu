@@ -12,17 +12,12 @@ public:
 
     void SetUp() override {
         APIRdfGraphTest::SetUp();
-        APIRdfGraphTest::createDBAndConn();
-        APIRdfGraphTest::initGraph();
-        // In C API tests, we don't use the database and connection created by DBTest because
-        // they are not C++ objects.
-        conn.reset();
-        database.reset();
-        auto databasePathCStr = databasePath.c_str();
-        auto systemConfig = kuzu_default_system_config();
-        systemConfig.buffer_pool_size = 512 * 1024 * 1024;
-        kuzu_database_init(databasePathCStr, systemConfig, &_database);
-        kuzu_connection_init(&_database, &connection);
+        createDBAndConn();
+        initGraph();
+        auto* connCppPointer = conn.release();
+        auto* databaseCppPointer = database.release();
+        connection = kuzu_connection{connCppPointer};
+        _database = kuzu_database{databaseCppPointer};
     }
 
     kuzu_database* getDatabase() { return &_database; }
