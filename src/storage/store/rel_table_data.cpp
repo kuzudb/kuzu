@@ -82,7 +82,7 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
         return false;
     }
     const auto [source, rowIdx] = findMatchingRow(transaction, boundNodeIDVector, relIDVector);
-    KU_ASSERT(rowIdx != INVALID_ROW_IDX);
+    KU_ASSERT(rowIdx != INVALID_ROW_IDX && source != CSRNodeGroupScanSource::NONE);
     const auto boundNodeOffset = boundNodeIDVector.getValue<nodeID_t>(boundNodePos).offset;
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeOffset);
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
@@ -140,7 +140,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
-    CSRNodeGroupScanSource source;
+    auto source = CSRNodeGroupScanSource::NONE;
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {

@@ -28,7 +28,8 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-static bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
+[[maybe_unused]] static bool isPageIdxValid(page_idx_t pageIdx,
+    const ColumnChunkMetadata& metadata) {
     return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
@@ -355,7 +356,8 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 
-static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
+[[maybe_unused]] static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata,
+    const LogicalType& dataType) {
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.numPages == 0;
     }
