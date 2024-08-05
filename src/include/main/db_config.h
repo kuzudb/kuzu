@@ -64,6 +64,7 @@ public:
     bool enableMultiWrites = false;
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
+    bool forceCheckpointOnClose;
 };
 
 } // namespace main

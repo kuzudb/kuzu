@@ -20,7 +20,8 @@ static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(ProgressBarSetting), GET_CONFIGURATION(ProgressBarTimerSetting),
     GET_CONFIGURATION(RecursivePatternSemanticSetting),
     GET_CONFIGURATION(RecursivePatternFactorSetting), GET_CONFIGURATION(EnableMVCCSetting),
-    GET_CONFIGURATION(CheckpointThresholdSetting), GET_CONFIGURATION(AutoCheckpointSetting)};
+    GET_CONFIGURATION(CheckpointThresholdSetting), GET_CONFIGURATION(AutoCheckpointSetting),
+    GET_CONFIGURATION(ForceCheckpointClosingDBSetting)};
 
 DBConfig::DBConfig(const SystemConfig& systemConfig) {
     bufferPoolSize = systemConfig.bufferPoolSize;
@@ -30,6 +31,7 @@ DBConfig::DBConfig(const SystemConfig& systemConfig) {
     maxDBSize = systemConfig.maxDBSize;
     autoCheckpoint = systemConfig.autoCheckpoint;
     checkpointThreshold = systemConfig.checkpointThreshold;
+    forceCheckpointOnClose = false;
 }
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
