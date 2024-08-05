@@ -72,9 +72,11 @@ TEST_F(CApiDatabaseTest, CreationInMemory) {
     auto databasePathCStr = (char*)"";
     state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
     ASSERT_EQ(state, KuzuSuccess);
+    kuzu_database_destroy(&database);
     databasePathCStr = (char*)":memory:";
     state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
     ASSERT_EQ(state, KuzuSuccess);
+    kuzu_database_destroy(&database);
 }
 
 TEST_F(CApiDatabaseTest, CreationHomeDir) {
