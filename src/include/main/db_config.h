@@ -64,7 +64,7 @@ struct DBConfig {
     explicit DBConfig(const SystemConfig& systemConfig);
 
     static ConfigurationOption* getOptionByName(const std::string& optionName);
-    static bool isDBPathInMemory(const std::string& dbPath);
+    KUZU_API static bool isDBPathInMemory(const std::string& dbPath);
 };
 
 } // namespace main
