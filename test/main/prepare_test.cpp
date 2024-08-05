@@ -236,12 +236,15 @@ TEST_F(ApiTest, issueTest4) {
     ASSERT_FALSE(result->hasNext());
 }
 
-// TEST_F(ApiTest, PrepareExport) {
-//     auto newDBPath = databasePath + "/newdb";
-//     auto preparedStatement = conn->prepare("EXPORT DATABASE '" + newDBPath + '\'');
-//     auto result = conn->execute(preparedStatement.get());
-//     ASSERT_TRUE(result->isSuccess());
-// }
+TEST_F(ApiTest, PrepareExport) {
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
+    auto newDBPath = databasePath + "/newdb";
+    auto preparedStatement = conn->prepare("EXPORT DATABASE '" + newDBPath + '\'');
+    auto result = conn->execute(preparedStatement.get());
+    ASSERT_TRUE(result->isSuccess());
+}
 
 TEST_F(ApiTest, ParameterWith) {
     auto preparedStatement = conn->prepare("WITH $1 AS x RETURN x");

@@ -7,6 +7,7 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
@@ -69,8 +70,9 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
-        databasePath.empty(), nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(),
-        *bufferManager, shadowFile, vfs, context);
+        main::DBConfig::isDBPathInMemory(databasePath),
+        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager,
+        shadowFile, vfs, context);
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {

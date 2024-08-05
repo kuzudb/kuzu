@@ -25,17 +25,20 @@ TEST_F(CApiVersionTest, GetVersion) {
     kuzu_destroy_string(version);
 }
 
-// TEST_F(CApiVersionTest, GetStorageVersion) {
-//     auto storageVersion = kuzu_get_storage_version();
-//     auto catalog = std::filesystem::path(databasePath) / "catalog.kz";
-//     std::ifstream catalogFile;
-//     catalogFile.open(catalog, std::ios::binary);
-//     char magic[5];
-//     catalogFile.read(magic, 4);
-//     magic[4] = '\0';
-//     ASSERT_STREQ(magic, "KUZU");
-//     uint64_t actualVersion;
-//     catalogFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
-//     catalogFile.close();
-//     ASSERT_EQ(storageVersion, actualVersion);
-// }
+TEST_F(CApiVersionTest, GetStorageVersion) {
+    auto storageVersion = kuzu_get_storage_version();
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
+    auto catalog = std::filesystem::path(databasePath) / "catalog.kz";
+    std::ifstream catalogFile;
+    catalogFile.open(catalog, std::ios::binary);
+    char magic[5];
+    catalogFile.read(magic, 4);
+    magic[4] = '\0';
+    ASSERT_STREQ(magic, "KUZU");
+    uint64_t actualVersion;
+    catalogFile.read(reinterpret_cast<char*>(&actualVersion), sizeof(actualVersion));
+    catalogFile.close();
+    ASSERT_EQ(storageVersion, actualVersion);
+}

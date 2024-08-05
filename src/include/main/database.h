@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <mutex>
-#include <string>
 #include <vector>
 
 #include "common/api.h"
@@ -124,7 +123,7 @@ public:
 
     KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
 
-    ExtensionOption* getExtensionOption(std::string name);
+    ExtensionOption* getExtensionOption(std::string name) const;
 
     const DBConfig& getConfig() const { return dbConfig; }
 
@@ -134,6 +133,11 @@ public:
     uint64_t getNextQueryID();
 
 private:
+    struct QueryIDGenerator {
+        uint64_t queryID = 0;
+        std::mutex queryIDLock;
+    };
+
     void openLockFile();
     void initAndLockDBDir();
 
@@ -151,10 +155,7 @@ private:
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
-    struct QueryIDGenerator {
-        uint64_t queryID = 0;
-        std::mutex queryIDLock;
-    } queryIDGenerator;
+    QueryIDGenerator queryIDGenerator;
 };
 
 } // namespace main

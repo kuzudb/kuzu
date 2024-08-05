@@ -10,6 +10,7 @@
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
+#include "main/db_config.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -21,7 +22,7 @@ namespace storage {
 WAL::WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : directory{directory}, bufferManager{bufferManager}, vfs{vfs} {
-    if (directory.empty()) {
+    if (main::DBConfig::isDBPathInMemory(directory)) {
         return;
     }
     fileInfo =
@@ -156,6 +157,7 @@ void WAL::flushAllPages() {
 
 void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
+    KU_ASSERT(!main::DBConfig::isDBPathInMemory(directory));
     Serializer serializer(bufferedWriter);
     walRecord.serialize(serializer);
 }

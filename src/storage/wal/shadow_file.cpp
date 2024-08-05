@@ -5,6 +5,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
@@ -33,7 +34,7 @@ ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
 
 ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, ClientContext* context) {
-    if (directory.empty()) {
+    if (DBConfig::isDBPathInMemory(directory)) {
         return;
     }
     shadowingFH = bufferManager.getBMFileHandle(

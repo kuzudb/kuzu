@@ -96,7 +96,7 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     lock_t lck{mtxForSerializingPublicFunctionCalls};
-    if (clientContext.getDatabasePath().empty()) {
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
     checkpointNoLock(clientContext);
@@ -129,7 +129,7 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
-    if (clientContext.getDatabasePath().empty()) {
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return false;
     }
     if (!clientContext.getDBConfig()->autoCheckpoint) {

@@ -22,6 +22,7 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "function/built_in_function_utils.h"
+#include "main/db_config.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
 #include "transaction/transaction.h"
@@ -42,17 +43,19 @@ Catalog::Catalog() {
     registerBuiltInFunctions();
 }
 
-Catalog::Catalog(std::string directory, VirtualFileSystem* fs) {
-    if (!directory.empty() && fs->fileOrPathExists(StorageUtils::getCatalogFilePath(fs, directory,
-                                  FileVersionType::ORIGINAL))) {
-        readFromFile(directory, fs, FileVersionType::ORIGINAL);
+Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
+    const auto isInMemMode = main::DBConfig::isDBPathInMemory(directory);
+    if (!isInMemMode && vfs->fileOrPathExists(StorageUtils::getCatalogFilePath(vfs, directory,
+                            FileVersionType::ORIGINAL))) {
+        readFromFile(directory, vfs, FileVersionType::ORIGINAL);
     } else {
         tables = std::make_unique<CatalogSet>();
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
-        if (!directory.empty()) {
-            saveToFile(directory, fs, FileVersionType::ORIGINAL);
+        if (!isInMemMode) {
+            // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
+            saveToFile(directory, vfs, FileVersionType::ORIGINAL);
         }
     }
     registerBuiltInFunctions();

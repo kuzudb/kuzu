@@ -7,6 +7,7 @@
 #include "storage/store/version_info.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
+#include <main/db_config.h>
 
 using namespace kuzu::catalog;
 
@@ -25,11 +26,11 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
 
 bool Transaction::shouldLogToWAL() const {
     // When we are in recovery mode, we don't log to WAL.
-    return !isRecovery() && !clientContext->getDatabasePath().empty();
+    return !isRecovery() && !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath());
 }
 
 bool Transaction::shouldForceCheckpoint() const {
-    return !clientContext->getDatabasePath().empty() && forceCheckpoint;
+    return !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath()) && forceCheckpoint;
 }
 
 void Transaction::commit(storage::WAL* wal) const {

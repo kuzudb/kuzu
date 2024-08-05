@@ -23,7 +23,6 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : databasePath{databasePath}, readOnly{readOnly}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
-    // TODO: should we disable WAL in readonly mode?
     wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
         context);
     shadowFile = std::make_unique<ShadowFile>(databasePath, readOnly,
@@ -34,29 +33,29 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     loadTables(catalog, vfs, context);
 }
 
-BMFileHandle* StorageManager::initFileHandle(const std::string& filename, VirtualFileSystem* vfs,
+BMFileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualFileSystem* vfs,
     main::ClientContext* context) const {
-    if (databasePath.empty()) {
-        return memoryManager.getBufferManager()->getBMFileHandle(filename,
+    if (main::DBConfig::isDBPathInMemory(databasePath)) {
+        return memoryManager.getBufferManager()->getBMFileHandle(fileName,
             FileHandle::O_PERSISTENT_FILE_IN_MEM, vfs, context);
     }
-    return memoryManager.getBufferManager()->getBMFileHandle(filename,
+    return memoryManager.getBufferManager()->getBMFileHandle(fileName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         vfs, context);
 }
 
 // TODO(Guodong): Rework setting common table ID for rdf rel tables.
-static void setCommonTableIDToRdfRelTable(RelTable* relTable,
-    std::vector<RDFGraphCatalogEntry*> rdfEntries) {
-    for (auto rdfEntry : rdfEntries) {
+static void setCommonTableIDToRdfRelTable(const RelTable* relTable,
+    const std::vector<RDFGraphCatalogEntry*>& rdfEntries) {
+    for (const auto rdfEntry : rdfEntries) {
         if (rdfEntry->isParent(relTable->getTableID())) {
             std::vector<Column*> columns;
             // TODO(Guodong): This is a hack. We should not use constant 2 and should move
             // the setting logic inside RelTableData.
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
-            for (auto& column : columns) {
+            for (const auto& column : columns) {
                 ku_dynamic_cast<Column*, InternalIDColumn*>(column)->setCommonTableID(
                     rdfEntry->getResourceTableID());
             }
@@ -66,7 +65,7 @@ static void setCommonTableIDToRdfRelTable(RelTable* relTable,
 
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    if (databasePath.empty()) {
+    if (main::DBConfig::isDBPathInMemory(databasePath)) {
         return;
     }
     const auto metaFilePath =
@@ -87,8 +86,8 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     }
 
     // TODO(Guodong): Rework setting common table ID for rdf rel tables.
-    auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_TRANSACTION);
-    for (auto relTableEntry : catalog.getRelTableEntries(&DUMMY_TRANSACTION)) {
+    const auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_TRANSACTION);
+    for (const auto relTableEntry : catalog.getRelTableEntries(&DUMMY_TRANSACTION)) {
         KU_ASSERT(tables.contains(relTableEntry->getTableID()));
         auto& relTable = tables.at(relTableEntry->getTableID()).get()->cast<RelTable>();
         setCommonTableIDToRdfRelTable(&relTable, rdfGraphSchemas);
@@ -124,15 +123,15 @@ void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* 
 }
 
 void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
-    Catalog* catalog, Transaction* transaction) {
+    const Catalog* catalog, Transaction* transaction) {
     auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
     setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
     tables[tableID] = std::move(relTable);
 }
 
-void StorageManager::createRelTableGroup(table_id_t, RelGroupCatalogEntry* tableSchema,
-    Catalog* catalog, Transaction* transaction) {
-    for (auto relTableID : tableSchema->getRelTableIDs()) {
+void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry* tableSchema,
+    const Catalog* catalog, Transaction* transaction) {
+    for (const auto relTableID : tableSchema->getRelTableIDs()) {
         createRelTable(relTableID,
             ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
                 catalog->getTableCatalogEntry(transaction, relTableID)),
@@ -140,34 +139,35 @@ void StorageManager::createRelTableGroup(table_id_t, RelGroupCatalogEntry* table
     }
 }
 
-void StorageManager::createRdfGraph(table_id_t, RDFGraphCatalogEntry* tableSchema, Catalog* catalog,
-    main::ClientContext* context) {
+void StorageManager::createRdfGraph(table_id_t, RDFGraphCatalogEntry* tableSchema,
+    const Catalog* catalog, main::ClientContext* context) {
     KU_ASSERT(context != nullptr);
-    auto rdfGraphSchema = ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableSchema);
-    auto resourceTableID = rdfGraphSchema->getResourceTableID();
-    auto resourceTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
+    const auto rdfGraphSchema =
+        ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableSchema);
+    const auto resourceTableID = rdfGraphSchema->getResourceTableID();
+    const auto resourceTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
         catalog->getTableCatalogEntry(context->getTx(), resourceTableID));
     createNodeTable(resourceTableID, resourceTableEntry, context);
-    auto literalTableID = rdfGraphSchema->getLiteralTableID();
-    auto literalTableEntry = catalog->getTableCatalogEntry(context->getTx(), literalTableID)
-                                 ->ptrCast<NodeTableCatalogEntry>();
+    const auto literalTableID = rdfGraphSchema->getLiteralTableID();
+    const auto literalTableEntry = catalog->getTableCatalogEntry(context->getTx(), literalTableID)
+                                       ->ptrCast<NodeTableCatalogEntry>();
     createNodeTable(literalTableID, literalTableEntry, context);
-    auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
-    auto resourceTripleTableEntry =
+    const auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
+    const auto resourceTripleTableEntry =
         catalog->getTableCatalogEntry(context->getTx(), resourceTripleTableID)
             ->ptrCast<RelTableCatalogEntry>();
     createRelTable(resourceTripleTableID, resourceTripleTableEntry, catalog, context->getTx());
-    auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
-    auto literalTripleTableEntry =
+    const auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
+    const auto literalTripleTableEntry =
         catalog->getTableCatalogEntry(context->getTx(), literalTripleTableID)
             ->ptrCast<RelTableCatalogEntry>();
     createRelTable(literalTripleTableID, literalTripleTableEntry, catalog, context->getTx());
 }
 
-void StorageManager::createTable(table_id_t tableID, Catalog* catalog,
+void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
     main::ClientContext* context) {
     std::lock_guard lck{mtx};
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    const auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
         createNodeTable(tableID, tableEntry->ptrCast<NodeTableCatalogEntry>(), context);
@@ -193,16 +193,16 @@ PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
     std::lock_guard lck{mtx};
     KU_ASSERT(tables.contains(tableID));
     KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
-    auto table = ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
+    const auto table = ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
     return table->getPKIndex();
 }
 
-WAL& StorageManager::getWAL() {
+WAL& StorageManager::getWAL() const {
     KU_ASSERT(wal);
     return *wal;
 }
 
-ShadowFile& StorageManager::getShadowFile() {
+ShadowFile& StorageManager::getShadowFile() const {
     KU_ASSERT(shadowFile);
     return *shadowFile;
 }
@@ -217,7 +217,7 @@ uint64_t StorageManager::getEstimatedMemoryUsage() {
 }
 
 void StorageManager::checkpoint(main::ClientContext& clientContext) {
-    if (databasePath.empty()) {
+    if (main::DBConfig::isDBPathInMemory(databasePath)) {
         return;
     }
     std::lock_guard lck{mtx};

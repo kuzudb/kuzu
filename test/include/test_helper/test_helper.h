@@ -2,8 +2,8 @@
 
 #include <filesystem>
 
+#include "common/string_utils.h"
 #include "main/kuzu.h"
-#include <common/string_utils.h>
 
 namespace kuzu {
 namespace testing {
