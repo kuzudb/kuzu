@@ -17,8 +17,6 @@ Checks:
 
   concurrency-*,
   
-  cppcoreguidelines-avoid-goto,
-  cppcoreguidelines-pro-type-const-cast,
   cppcoreguidelines-narrowing-conversions,
   cppcoreguidelines-virtual-class-destructor,
   cppcoreguidelines-pro-type-cstyle-cast,
