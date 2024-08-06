@@ -206,7 +206,7 @@ Zhang|Noura
 
 -CASE ExplainExport
 -SKIP_IN_MEM
--STATEMENT EXPLAIN EXPORT Database "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db" (format="parquet");
+-STATEMENT EXPLAIN EXPORT Database "${KUZU_EXPORT_DB_DIRECTORY}_case10/demo-db" (format="parquet");
 ---- ok
 -STATEMENT LOAD FROM "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet" RETURN *
 ---- error
