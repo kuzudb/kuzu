@@ -62,3 +62,26 @@ Alice
 Timeout waiting for active transactions to leave the system before checkpointing. If you have an open transaction, please close it and try again.
 -STATEMENT [conn1] MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 0
+
+-CASE ForceCheckpointWhenClosingDB
+-STATEMENT CALL auto_checkpoint=false
+---- ok
+-STATEMENT CREATE NODE TABLE person(ID INT64, age INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:person {ID: 0, age: 20});
+---- ok
+-STATEMENT CALL force_checkpoint_on_close=true;
+---- ok
+-STATEMENT CALL current_setting('force_checkpoint_on_close') RETURN *;
+---- 1
+True
+-STATEMENT CALL storage_info('person') WHERE residency='ON_DISK' RETURN COUNT(*);
+---- 1
+0
+-RELOADDB
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
+---- 1
+20
+-STATEMENT CALL storage_info('person') WHERE residency='IN_MEMORY' RETURN COUNT(*);
+---- 1
+0

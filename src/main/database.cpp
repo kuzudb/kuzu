@@ -91,7 +91,10 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
 }
 
 Database::~Database() {
-    // TODO(Guodong): We should consider forcing checkpoint when closing the database.
+    if (dbConfig.forceCheckpointOnClose) {
+        ClientContext clientContext(this);
+        transactionManager->checkpoint(clientContext);
+    }
 }
 
 void Database::addTableFunction(std::string name, function::function_set functionSet) {

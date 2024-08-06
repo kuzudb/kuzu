@@ -196,5 +196,17 @@ struct AutoCheckpointSetting {
     }
 };
 
+struct ForceCheckpointClosingDBSetting {
+    static constexpr const char* name = "force_checkpoint_on_close";
+    static constexpr common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getDBConfigUnsafe()->forceCheckpointOnClose = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(ClientContext* context) {
+        return common::Value(context->getDBConfig()->forceCheckpointOnClose);
+    }
+};
+
 } // namespace main
 } // namespace kuzu
