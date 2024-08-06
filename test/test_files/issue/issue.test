@@ -2,6 +2,22 @@
 
 --
 
+-CASE 3870
+-STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE after ( FROM V TO V , ONE_ONE);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (:V {id: 0}), (:V {id: 1});
+---- ok
+-STATEMENT MATCH (ba:V)-[:after*0..]->(bb:V) return ba.id;
+---- 2
+0
+1
+-STATEMENT COMMIT;
+---- ok
+
 -CASE 3691
 -STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
 ---- ok

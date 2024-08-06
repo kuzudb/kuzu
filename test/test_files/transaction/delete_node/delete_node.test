@@ -1,6 +1,12 @@
 -DATASET CSV empty
 --
 
+-CASE EmptyDatabaseDetachDelete
+-STATEMENT MATCH (n) DELETE n;
+---- ok
+-STATEMENT MATCH (n) DETACH DELETE n;
+---- ok
+
 -CASE DeleteLocalNode
 -STATEMENT CREATE NODE TABLE person (oid INT64, fName STRING, PRIMARY KEY(oid));
 ---- ok
