@@ -136,7 +136,8 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanState->IDVector = scanState->outputVectors[0];
     scanState->rowIdxVector->state = scanState->IDVector->state;
     scanState->source = TableScanSource::COMMITTED;
-    scanState->boundNodeOffset = boundNodeOffset;
+    scanState->currNodeIdx = 0;
+    scanState->endNodeIdx = 1;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
@@ -182,7 +183,8 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->IDVector = scanState->outputVectors[0];
     scanState->source = TableScanSource::COMMITTED;
-    scanState->boundNodeOffset = nodeOffset;
+    scanState->currNodeIdx = 0;
+    scanState->endNodeIdx = 1;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     while (true) {

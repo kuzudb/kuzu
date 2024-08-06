@@ -12,31 +12,29 @@ namespace storage {
 
 void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) {
     auto& relScanState = state.cast<RelTableScanState>();
-    KU_ASSERT(nodeGroupIdx == StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset));
+    auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
+    KU_ASSERT(nodeGroupIdx == StorageUtils::getNodeGroupIdx(
+        relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.currNodeIdx])
+    ));
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     relScanState.nodeGroupScanState->resetState();
     relScanState.nodeGroupIdx = nodeGroupIdx;
-    nodeGroupScanState.source = CSRNodeGroupScanSource::NONE;
     // Scan the csr header chunks from disk.
     if (persistentChunkGroup) {
         initializePersistentCSRHeader(transaction, relScanState, nodeGroupScanState);
     }
     // Queue all nodes to be scanned in the node group.
-    auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     nodeGroupScanState.nextRowToScan = 0;
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    for (auto startNodeIdx = relScanState.currNodeIdx; startNodeIdx < relScanState.endNodeIdx;
-         startNodeIdx++) {
-        const auto offsetInGroup =
-            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[startNodeIdx]) -
-            startNodeOffset;
+    for (auto i = relScanState.currNodeIdx; i < relScanState.endNodeIdx; i++) {
+        const auto offsetInGroup = 
+            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[i]) - startNodeOffset;
         if (persistentChunkGroup) {
             auto offset = nodeGroupScanState.csrHeader->getStartCSROffset(offsetInGroup);
             auto length = nodeGroupScanState.csrHeader->getCSRLength(offsetInGroup);
             if (length > 0) {
                 nodeGroupScanState.persistentCSRLists.emplace_back(offset, length);
-                nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
             }
         }
         if (csrIndex) {
@@ -44,12 +42,17 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
             if (!index.isSequential) {
                 KU_ASSERT(std::is_sorted(index.rowIndices.begin(), index.rowIndices.end()));
             }
-            if (index.rowIndices.size() > 0 &&
-                nodeGroupScanState.source == CSRNodeGroupScanSource::NONE) {
+            if (index.rowIndices.size() > 0) {
                 nodeGroupScanState.inMemCSRLists.push_back(index);
-                nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
             }
         }
+    }
+    if (!nodeGroupScanState.persistentCSRLists.empty()) {
+        nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
+    } else if (!nodeGroupScanState.inMemCSRLists.empty()) {
+        nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
+    } else {
+        nodeGroupScanState.source = CSRNodeGroupScanSource::NONE;
     }
 }
 

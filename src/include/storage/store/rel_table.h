@@ -14,7 +14,6 @@ struct LocalRelTableScanState;
 struct RelTableScanState : TableScanState {
     common::RelDataDirection direction;
     common::ValueVector* boundNodeIDVector;
-    common::offset_t boundNodeOffset;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
@@ -44,8 +43,7 @@ struct RelTableScanState : TableScanState {
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{columnIDs, columns, std::move(columnPredicateSets)}, direction{direction},
-          boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
-          csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
+          boundNodeIDVector{nullptr}, csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
           localTableScanState{nullptr} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
         if (!this->columnPredicateSets.empty()) {
@@ -56,7 +54,6 @@ struct RelTableScanState : TableScanState {
     }
 
     void resetState() override {
-        boundNodeOffset = common::INVALID_OFFSET;
         nodeGroupScanState->resetState();
     }
 };

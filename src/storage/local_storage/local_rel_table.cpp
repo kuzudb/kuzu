@@ -144,37 +144,17 @@ void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
 void LocalRelTable::initializeScan(TableScanState& state) {
     auto& relScanState = state.cast<LocalRelTableScanState>();
     KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
-    auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     relScanState.nodeGroup = localNodeGroup.get();
-    relScanState.rowIndices.clear();
-    relScanState.batchSize = 0;
+    auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
-    offset_t nodeOffset = relScanState.boundNodeOffset;
-    // collect all node ids that can be read from the same node group
-    while (relScanState.endNodeIdx < relScanState.totalNodeIdx &&
-           relScanState.batchSize < DEFAULT_VECTOR_CAPACITY) {
-        nodeOffset =
-            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx]);
-        if (index.contains(nodeOffset)) {
-            auto numToScan = std::min(index[nodeOffset].size() - relScanState.nextRowToScan,
-                DEFAULT_VECTOR_CAPACITY - relScanState.batchSize);
-            relScanState.rowIndices.insert(relScanState.rowIndices.end(),
-                index[nodeOffset].begin() + relScanState.nextRowToScan,
-                index[nodeOffset].begin() + relScanState.nextRowToScan + numToScan);
-            KU_ASSERT(
-                std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
-            relScanState.batchSize += numToScan;
-            if (numToScan < index[nodeOffset].size() - relScanState.nextRowToScan) {
-                relScanState.nextRowToScan += numToScan;
-                KU_ASSERT(relScanState.batchSize == DEFAULT_VECTOR_CAPACITY);
-                break;
-            } else {
-                relScanState.nextRowToScan = 0;
-            }
-        }
-        relScanState.endNodeIdx++;
+    offset_t nodeOffset =
+            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]);
+    if (index.contains(nodeOffset)) {
+        relScanState.rowIndices = index[nodeOffset];
+        KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
+    } else {
+        relScanState.rowIndices.clear();
     }
-    KU_ASSERT(relScanState.batchSize == relScanState.rowIndices.size());
 }
 
 std::vector<column_id_t> LocalRelTable::rewriteLocalColumnIDs(RelDataDirection direction,
@@ -196,19 +176,22 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
 }
 
 bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
-    const auto& relScanState = state.cast<RelTableScanState>();
+    auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
-    if (localScanState.batchSize == 0) {
+    KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
+    relScanState.batchSize = std::min(localScanState.rowIndices.size() - localScanState.nextRowToScan,
+        DEFAULT_VECTOR_CAPACITY);
+    if (relScanState.batchSize == 0) {
         return false;
     }
-    for (auto i = 0u; i < localScanState.batchSize; i++) {
+    for (auto i = 0u; i < relScanState.batchSize; i++) {
         localScanState.rowIdxVector->setValue<row_idx_t>(i,
             localScanState.rowIndices[localScanState.nextRowToScan + i]);
     }
-    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(localScanState.batchSize);
+    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(relScanState.batchSize);
     localNodeGroup->lookup(transaction, localScanState);
-    localScanState.nextRowToScan += localScanState.batchSize;
+    localScanState.nextRowToScan += relScanState.batchSize;
     return true;
 }
 

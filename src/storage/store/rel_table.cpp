@@ -59,10 +59,11 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     relScanState.totalNodeIdx = nodeSelVector.getSelSize();
     KU_ASSERT(relScanState.totalNodeIdx > 0);
-    relScanState.endNodeIdx = relScanState.currNodeIdx;
-    relScanState.boundNodeOffset =
+    KU_ASSERT(relScanState.endNodeIdx == relScanState.currNodeIdx);
+    KU_ASSERT(relScanState.endNodeIdx < relScanState.totalNodeIdx);
+    offset_t nodeOffset = 
         relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.currNodeIdx]);
-    if (relScanState.boundNodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         // No more to read from committed
         relScanState.nodeGroup = nullptr;
         if (relScanState.localTableScanState) {
@@ -75,8 +76,7 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
 
     relScanState.source = TableScanSource::COMMITTED;
     relScanState.currentCSROffset = 0;
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
-    offset_t nodeOffset = relScanState.boundNodeOffset;
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     // collect all node ids that can be read from the same node group
     while (relScanState.endNodeIdx < relScanState.totalNodeIdx) {
         nodeOffset =
@@ -101,15 +101,10 @@ void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(localScanState.localRelTable);
-    localScanState.boundNodeOffset = relScanState.boundNodeOffset;
-    localScanState.currNodeIdx = relScanState.currNodeIdx;
     localScanState.endNodeIdx = relScanState.endNodeIdx;
-    localScanState.totalNodeIdx = relScanState.totalNodeIdx;
     localScanState.rowIdxVector->setState(relScanState.rowIdxVector->state);
     localScanState.localRelTable->initializeScan(*relScanState.localTableScanState);
-    relScanState.currNodeIdx = localScanState.currNodeIdx;
     relScanState.endNodeIdx = localScanState.endNodeIdx;
-    relScanState.batchSize = localScanState.batchSize;
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
@@ -124,7 +119,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         initializeScanState(transaction, relScanState);
     }
-    relScanState.boundNodeOffset =
+    offset_t curNodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeIDSelVector[relScanState.currNodeIdx]);
     row_idx_t posInLastCSR = 0;
     row_idx_t currCSRSize = INVALID_OFFSET;
@@ -134,7 +129,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         auto& csrNodeGroupScanState =
             relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
         currCSRSize = relScanState.nodeGroup->cast<CSRNodeGroup>().getCSRLength(
-            csrNodeGroupScanState, relScanState.boundNodeOffset - startNodeOffset);
+            csrNodeGroupScanState, curNodeOffset - startNodeOffset);
         posInLastCSR = csrNodeGroupScanState.nextRowToScan;
     } break;
     case TableScanSource::UNCOMMITTED: {
@@ -143,8 +138,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         auto localTable = relScanState.localTableScanState->localRelTable;
         auto& index = relScanState.direction == RelDataDirection::FWD ? localTable->getFWDIndex() :
                                                                         localTable->getBWDIndex();
-        if (index.contains(relScanState.boundNodeOffset)) {
-            currCSRSize = index[relScanState.boundNodeOffset].size();
+        if (index.contains(curNodeOffset)) {
+            currCSRSize = index[curNodeOffset].size();
         }
     } break;
     case TableScanSource::NONE: {
@@ -161,8 +156,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
             return false;
         }
     }
-    // This assumes nodeIDVector is initially unfiltered, which is not safe
-    // we should do this using similar logic to Flatten
+    // This assumes nodeIDVector is initially unfiltered
     nodeIDSelVector.getMultableBuffer()[0] = nodeIDSelVector[relScanState.currNodeIdx];
     nodeIDSelVector.setToFiltered(1);
     if (relScanState.currentCSROffset == 0) {
