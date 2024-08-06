@@ -167,8 +167,7 @@ protected:
 class EmptyRelDeleteExecutor final : public RelDeleteExecutor {
 public:
     explicit EmptyRelDeleteExecutor(RelDeleteInfo info) : RelDeleteExecutor{std::move(info)} {}
-    EmptyRelDeleteExecutor(const EmptyRelDeleteExecutor& other)
-        : RelDeleteExecutor{other} {}
+    EmptyRelDeleteExecutor(const EmptyRelDeleteExecutor& other) : RelDeleteExecutor{other} {}
 
     void delete_(ExecutionContext*) override {}
 
