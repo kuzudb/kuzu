@@ -72,6 +72,9 @@ Timeout waiting for active transactions to leave the system before checkpointing
 ---- ok
 -STATEMENT CALL force_checkpoint_on_close=true;
 ---- ok
+-STATEMENT CALL current_setting('force_checkpoint_on_close') RETURN *;
+---- 1
+True
 -STATEMENT CALL storage_info('person') WHERE residency='ON_DISK' RETURN COUNT(*);
 ---- 1
 0
