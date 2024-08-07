@@ -15,6 +15,7 @@ namespace processor {
 
 class BaseCSVReader {
     friend class ParsingDriver;
+    friend struct SniffCSVNameAndTypeDriver;
 
 public:
     BaseCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,

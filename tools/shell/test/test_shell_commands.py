@@ -43,7 +43,7 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples)")
-    result.check_not_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
+    result.check_not_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
 
     # test 1 row shown
     test = (
@@ -54,7 +54,7 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples, 1 shown)")
-    result.check_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
+    result.check_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
 
     # test setting back to default
     test = (
@@ -65,7 +65,7 @@ def test_max_rows(temp_db, csv_path) -> None:
     )
     result = test.run()
     result.check_stdout("(21 tuples, 20 shown)")
-    result.check_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
+    result.check_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
 
 
 def test_max_width(temp_db, csv_path) -> None:

@@ -420,7 +420,6 @@ final_state:
 template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
 template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
 template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
-template uint64_t BaseCSVReader::parseCSV<SniffCSVColumnCountDriver>(SniffCSVColumnCountDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     KU_ASSERT(osFileOffset >= bufferSize);
