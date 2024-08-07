@@ -4,7 +4,6 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
-#include "storage/enums/page_read_policy.h"
 
 namespace kuzu {
 namespace transaction {

@@ -5,7 +5,6 @@
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"
