@@ -26,7 +26,8 @@ class DuckDBConnector {
 public:
     virtual ~DuckDBConnector() = default;
 
-    virtual void connect(const std::string& dbPath, main::ClientContext* context) = 0;
+    virtual void connect(const std::string& dbPath, const std::string& catalogName,
+        main::ClientContext* context) = 0;
 
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;
 
@@ -37,17 +38,20 @@ protected:
 
 class LocalDuckDBConnector : public DuckDBConnector {
 public:
-    void connect(const std::string& dbPath, main::ClientContext* context) override;
+    void connect(const std::string& dbPath, const std::string& catalogName,
+        main::ClientContext* context) override;
 };
 
 class HTTPDuckDBConnector : public DuckDBConnector {
 public:
-    void connect(const std::string& dbPath, main::ClientContext* context) override;
+    void connect(const std::string& dbPath, const std::string& catalogName,
+        main::ClientContext* context) override;
 };
 
 class S3DuckDBConnector : public DuckDBConnector {
 public:
-    void connect(const std::string& dbPath, main::ClientContext* context) override;
+    void connect(const std::string& dbPath, const std::string& catalogName,
+        main::ClientContext* context) override;
 };
 
 class DuckDBConnectorFactory {

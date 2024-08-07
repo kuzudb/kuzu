@@ -32,8 +32,8 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
 ---- ok
 -STATEMENT ATTACH 'http://localhost/databases/duckdb_database/tinysnb132.db' as remoteTiny (dbtype duckdb, skip_unsupported_table=true);
----- error
-IO Error: Cannot open database "http://localhost/databases/duckdb_database/tinysnb132.db" in read-only mode: database does not exist
+---- error(regex)
+^.+ Error: Cannot open database "http://localhost/databases/duckdb_database/tinysnb132.db" in read-only mode: database does not exist$
 
 -CASE AttachS3Duckdb
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
@@ -62,5 +62,6 @@ Attached database successfully.
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
 ---- ok
 -STATEMENT ATTACH 's3://duckdb-blobs/databases/stations1.duckdb' as remoteTiny (dbtype duckdb, skip_unsupported_table=true);
----- error
-IO Error: Cannot open database "s3://duckdb-blobs/databases/stations1.duckdb" in read-only mode: database does not exist
+# Error type is determined by duckdb version.
+---- error(regex)
+^.+ Error: Cannot open database "s3://duckdb-blobs/databases/stations1.duckdb" in read-only mode: database does not exist$

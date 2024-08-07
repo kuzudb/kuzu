@@ -25,7 +25,7 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
         dbName = catalogName;
     }
     auto connector = DuckDBConnectorFactory::getDuckDBConnector(dbPath);
-    connector->connect(dbPath, clientContext);
+    connector->connect(dbPath, catalogName, clientContext);
     auto duckdbCatalog = std::make_unique<DuckDBCatalog>(std::move(dbPath), std::move(catalogName),
         DuckDBStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
     duckdbCatalog->init();

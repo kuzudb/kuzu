@@ -25,15 +25,14 @@ std::string extractDBName(const std::string& connectionInfo) {
 std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::string dbPath,
     main::ClientContext* clientContext, const binder::AttachOption& attachOption) {
     auto catalogName = extractDBName(dbPath);
-    auto connector = std::make_unique<PostgresConnector>();
-    connector->connect(dbPath, clientContext);
-    // For attached postgres database, the default catalog name is the dbPath itself.
-    auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, dbPath,
-        PostgresStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
-    catalog->init();
     if (dbName == "") {
         dbName = catalogName;
     }
+    auto connector = std::make_unique<PostgresConnector>();
+    connector->connect(dbPath, catalogName, clientContext);
+    auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, catalogName,
+        PostgresStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
+    catalog->init();
     return std::make_unique<duckdb_extension::AttachedDuckDBDatabase>(dbName,
         PostgresStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }

@@ -27,7 +27,8 @@ std::unique_ptr<duckdb::MaterializedQueryResult> DuckDBConnector::executeQuery(
     return result;
 }
 
-void LocalDuckDBConnector::connect(const std::string& dbPath, main::ClientContext* context) {
+void LocalDuckDBConnector::connect(const std::string& dbPath, const std::string& /*catalogName*/,
+    main::ClientContext* context) {
     if (!context->getVFSUnsafe()->fileOrPathExists(dbPath, context)) {
         throw common::RuntimeException{
             common::stringFormat("'{}' is not a valid duckdb database path.", dbPath)};
@@ -37,13 +38,14 @@ void LocalDuckDBConnector::connect(const std::string& dbPath, main::ClientContex
     connection = std::make_unique<duckdb::Connection>(*instance);
 }
 
-void HTTPDuckDBConnector::connect(const std::string& dbPath, main::ClientContext* /*context*/) {
+void HTTPDuckDBConnector::connect(const std::string& dbPath, const std::string& catalogName,
+    main::ClientContext* /*context*/) {
     // Creates an in-memory duckdb instance, then install httpfs and attach remote duckdb.
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
-    executeQuery(common::stringFormat("attach '{}' (read_only);", dbPath));
+    executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));
 }
 
 static void setDuckDBExtensionOptions(const DuckDBConnector& connector,
@@ -57,7 +59,8 @@ static void setDuckDBExtensionOptions(const DuckDBConnector& connector,
         common::stringFormat("set {}='{}';", std::move(optionName), std::move(optionValueInKuzu)));
 }
 
-void S3DuckDBConnector::connect(const std::string& dbPath, main::ClientContext* context) {
+void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& catalogName,
+    main::ClientContext* context) {
     // Creates an in-memory duckdb instance, then install httpfs and attach remote duckdb.
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);
@@ -68,7 +71,7 @@ void S3DuckDBConnector::connect(const std::string& dbPath, main::ClientContext* 
     setDuckDBExtensionOptions(*this, context, "s3_endpoint");
     setDuckDBExtensionOptions(*this, context, "s3_url_style");
     setDuckDBExtensionOptions(*this, context, "s3_region");
-    executeQuery(common::stringFormat("attach '{}' (read_only);", dbPath));
+    executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));
 }
 
 std::unique_ptr<DuckDBConnector> DuckDBConnectorFactory::getDuckDBConnector(
