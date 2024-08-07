@@ -118,6 +118,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     uint32_t nextCSRToScan;
 
     bool persistentInitialized = false;
+    common::sel_t prevCSREndOffset;
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
@@ -132,6 +133,16 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         persistentCSRLists.clear();
         nextCSRToScan = 0;
+    }
+
+    common::sel_t getGap(common::offset_t offsetInGroup) {
+        common::sel_t result = 0;
+        if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+            auto curCSRStartOffset = csrHeader->getStartCSROffset(offsetInGroup);
+            result = curCSRStartOffset - prevCSREndOffset;
+            prevCSREndOffset = curCSRStartOffset + csrHeader->getCSRLength(offsetInGroup);
+        }
+        return result;
     }
 };
 

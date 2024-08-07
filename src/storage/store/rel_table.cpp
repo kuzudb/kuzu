@@ -119,19 +119,18 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
         auto& csrNodeGroupScanState =
             relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
+        posInLastCSR = csrNodeGroupScanState.nextRowToScan;
         currCSRSize = relScanState.nodeGroup->cast<CSRNodeGroup>().getCSRLength(
             csrNodeGroupScanState, curNodeOffset - startNodeOffset);
-        posInLastCSR = csrNodeGroupScanState.nextRowToScan;
+        // Accommodate for gaps in persistent data scan
+        relScanState.currentCSROffset += csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
     } break;
     case TableScanSource::UNCOMMITTED: {
-        currCSRSize = 0;
         posInLastCSR = relScanState.localTableScanState->nextRowToScan;
         auto localTable = relScanState.localTableScanState->localRelTable;
         auto& index = relScanState.direction == RelDataDirection::FWD ? localTable->getFWDIndex() :
                                                                         localTable->getBWDIndex();
-        if (index.contains(curNodeOffset)) {
-            currCSRSize = index[curNodeOffset].size();
-        }
+        currCSRSize = index.contains(curNodeOffset) ? index[curNodeOffset].size() : 0;
     } break;
     case TableScanSource::NONE: {
         return false;
@@ -141,7 +140,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     }
     }
     KU_ASSERT(currCSRSize != INVALID_OFFSET);
-    // We rescan after last batch is all processed (usually 2048 tuples)
+    // We rescan after last batch is all processed (max 2048 tuples)
     if (relScanState.currentCSROffset >= relScanState.batchSize) {
         if (!scanNext(transaction, relScanState)) {
             return false;
