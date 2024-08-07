@@ -1,6 +1,7 @@
 #include "main/database.h"
 
 #include "main/database_manager.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 #if defined(_WIN32)
 #include <windows.h>

@@ -10,6 +10,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"

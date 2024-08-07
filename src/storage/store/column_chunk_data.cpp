@@ -13,7 +13,6 @@
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/string_chunk_data.h"

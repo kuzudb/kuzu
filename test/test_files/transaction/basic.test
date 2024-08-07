@@ -65,6 +65,7 @@ Timeout waiting for active transactions to leave the system before checkpointing
 ---- 0
 
 -CASE ForceCheckpointWhenClosingDB
+-SKIP_IN_MEM
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
 -STATEMENT CREATE NODE TABLE person(ID INT64, age INT64, PRIMARY KEY(ID));

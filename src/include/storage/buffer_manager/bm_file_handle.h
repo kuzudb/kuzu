@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 
 #include "common/concurrent_vector.h"
 #include "common/constants.h"

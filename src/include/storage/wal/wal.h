@@ -5,7 +5,6 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/serializer/buffered_file.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {

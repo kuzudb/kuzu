@@ -101,13 +101,6 @@ public:
      */
     KUZU_API ~Database();
 
-    /**
-     * @brief Sets the logging level of the database instance.
-     * @param loggingLevel New logging level. (Supported logging levels are: "info", "debug",
-     * "err").
-     */
-    KUZU_API static void setLoggingLevel(std::string loggingLevel);
-
     // TODO(Ziyi): Instead of exposing a dedicated API for adding a new function, we should consider
     // add function through the extension module.
     void addTableFunction(std::string name,
