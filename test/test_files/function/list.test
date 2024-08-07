@@ -1025,7 +1025,7 @@ ad
 -LOG ListIn
 -STATEMENT RETURN 1 IN [2,3,4], 2.0 IN [2,3,4], 3 IN [0,0,3]
 ---- 1
-False|False|True
+False|True|True
 -STATEMENT RETURN [1+1] IN [[2], [3], [3,4,5]], "str" IN ["a", "Xiyang", "str"]
 ---- 1
 True|True
@@ -2254,3 +2254,12 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1
 [[23,432],[],[]]
+
+-CASE listContainsCast
+-STATEMENT CREATE NODE TABLE A(id SERIAL, primary key(id));
+---- ok
+-STATEMENT CREATE (:A), (:A);
+---- ok
+-STATEMENT MATCH (a:A) WHERE a.id IN [0] RETURN a.id;
+---- 1
+0

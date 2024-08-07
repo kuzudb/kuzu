@@ -26,7 +26,11 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
             scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
                 uint8_t, ListContains>;
         });
-    return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::BOOL());
+    auto& listType = input.arguments[0]->getDataType();
+    std::vector<LogicalType> paramTypes;
+    paramTypes.push_back(listType.copy());
+    paramTypes.push_back(ListType::getChildType(listType).copy());
+    return std::make_unique<FunctionBindData>(std::move(paramTypes), LogicalType::BOOL());
 }
 
 function_set ListContainsFunction::getFunctionSet() {
