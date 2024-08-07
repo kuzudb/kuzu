@@ -107,7 +107,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
     auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
     if (scanInput->expectedColumnTypes.size() > 0) {
         scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
-            Value((uint64_t)0)); // only scan headers
+            Value((int64_t)0)); // only scan headers
     }
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
