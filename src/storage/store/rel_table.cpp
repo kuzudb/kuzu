@@ -123,7 +123,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         currCSRSize = relScanState.nodeGroup->cast<CSRNodeGroup>().getCSRLength(
             csrNodeGroupScanState, curNodeOffset - startNodeOffset);
         // Accommodate for gaps in persistent data scan
-        relScanState.currentCSROffset += csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
+        relScanState.currentCSROffset +=
+            csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
     } break;
     case TableScanSource::UNCOMMITTED: {
         posInLastCSR = relScanState.localTableScanState->nextRowToScan;
