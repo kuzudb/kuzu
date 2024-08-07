@@ -114,7 +114,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     std::unique_ptr<ChunkedCSRHeader> csrHeader;
     std::vector<csr_list_t> persistentCSRLists;
     NodeCSRIndex inMemCSRList;
-    // position in vector of either csr list/index vector
+    // position in vector of csr list vector
     uint32_t nextCSRToScan;
 
     bool persistentInitialized = false;

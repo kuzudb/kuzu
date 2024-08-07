@@ -100,7 +100,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     if (relScanState.currNodeIdx == relScanState.totalNodeIdx) {
         return false;
     }
-    // We need to reinitialize per node group
+    // We reinitialize per node for in memory and local table data
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         if (relScanState.resetCommitted) {
             // reset to read committed, in memory data

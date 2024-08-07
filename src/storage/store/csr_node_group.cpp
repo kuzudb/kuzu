@@ -156,13 +156,15 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* tra
     while (nodeGroupScanState.nextCSRToScan < nodeGroupScanState.persistentCSRLists.size()) {
         auto& csrList = nodeGroupScanState.persistentCSRLists[nodeGroupScanState.nextCSRToScan];
         const auto startRow = csrList.startRow + nodeGroupScanState.nextRowToScan;
-        const auto numToScan = std::min(csrList.length - nodeGroupScanState.nextRowToScan,
-            DEFAULT_VECTOR_CAPACITY - result.numRows);
         if (result.startRow == INVALID_ROW_IDX) {
             result.startRow = startRow;
+        } else if (startRow - result.startRow >= DEFAULT_VECTOR_CAPACITY) {
+            break;
         }
-        persistentChunkGroup->scan(transaction, tableState, nodeGroupScanState, startRow,
-            numToScan);
+        // accomodate for any gaps in between the current and previous csr
+        result.numRows = startRow - result.startRow;
+        const auto numToScan = std::min(csrList.length - nodeGroupScanState.nextRowToScan,
+            DEFAULT_VECTOR_CAPACITY - result.numRows);
         result.numRows += numToScan;
         if (numToScan == csrList.length - nodeGroupScanState.nextRowToScan) {
             nodeGroupScanState.nextCSRToScan++;
@@ -173,6 +175,8 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* tra
             break;
         }
     }
+    persistentChunkGroup->scan(transaction, tableState, nodeGroupScanState, result.startRow,
+        result.numRows);
     return result;
 }
 
