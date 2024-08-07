@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "common/file_system/file_system.h"
 #include "main/kuzu.h"
 
 namespace kuzu {
@@ -86,6 +87,15 @@ public:
         auto path = getTempDir() / (name + TestHelper::getMillisecondsSuffix());
         std::filesystem::create_directories(path);
         auto pathStr = path.string();
+#ifdef _WIN32
+        // kuzu still doesn't support backslashes in paths on windows
+        std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+#endif
+        return pathStr;
+    }
+
+    inline static std::string joinPath(const std::string& base, const std::string& part) {
+        auto pathStr = common::FileSystem::joinPath(base, part);
 #ifdef _WIN32
         // kuzu still doesn't support backslashes in paths on windows
         std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
