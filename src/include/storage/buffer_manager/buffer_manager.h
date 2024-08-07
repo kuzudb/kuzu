@@ -168,24 +168,16 @@ private:
 
 class BufferManager {
     friend class MemoryAllocator;
+    friend class BMFileHandle;
 
 public:
     BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);
     ~BufferManager() = default;
 
-    uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
-        PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
-    void optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& func);
-    // The function assumes that the requested page is already pinned.
-    void unpin(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
-
     // Currently, these functions are specifically used only for WAL files.
     void removeFilePagesFromFrames(BMFileHandle& fileHandle);
-    void flushAllDirtyPagesInFrames(BMFileHandle& fileHandle);
     void updateFrameIfPageIsInFrameWithoutLock(common::file_idx_t fileIdx, const uint8_t* newPage,
         common::page_idx_t pageIdx);
-    void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // For files that are managed by BM, their FileHandles should be created through this function.
     BMFileHandle* getBMFileHandle(const std::string& filePath, uint8_t flags,
@@ -196,16 +188,23 @@ public:
         return fileHandles.back().get();
     }
 
-    common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
-        return vmRegions[pageSizeClass]->addNewFrameGroup();
-    }
-    uint8_t* getFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
-        return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));
-    }
-
     uint64_t getUsedMemory() const { return usedMemory; }
 
 private:
+    uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
+    void optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+        const std::function<void(uint8_t*)>& func);
+    // The function assumes that the requested page is already pinned.
+    void unpin(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
+    uint8_t* getFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx) const {
+        return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));
+    }
+    common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
+        return vmRegions[pageSizeClass]->addNewFrameGroup();
+    }
+    void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
+
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
 
     // Reclaims used memory until the given size to reserve is available
@@ -218,7 +217,7 @@ private:
 
     void cachePageIntoFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
-    void flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
+    // void flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
     void removePageFromFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         bool shouldFlush);
 

@@ -352,7 +352,7 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
     }
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         *dataFH, pageIdx, *shadowFile, transaction->getType());
-    DBFileUtils::optimisticReadPage(*fileHandleToPin, pageIdxToPin, *bufferManager, func);
+    fileHandleToPin->optimisticReadPage(pageIdxToPin, func);
 }
 
 static bool sanityCheckForWrites(const ColumnChunkMetadata& metadata, const LogicalType& dataType) {
@@ -451,11 +451,11 @@ void Column::updatePageWithCursor(PageCursor cursor,
     }
     if (cursor.pageIdx >= dataFH->getNumPages()) {
         KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *shadowFile);
+        DBFileUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
         insertingNewPage = true;
     }
-    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *bufferManager,
-        *shadowFile, [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
+    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
+        [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
 bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,

@@ -1,12 +1,12 @@
 #include "storage/store/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "main/client_context.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
+#include "storage/store/node_table.h"
 #include "storage/store/rel_table_data.h"
-#include <main/client_context.h>
-#include <storage/store/node_table.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

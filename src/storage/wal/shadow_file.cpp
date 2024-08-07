@@ -92,7 +92,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
     }
 }
 
-void ShadowFile::flushAll(ClientContext& context) const {
+void ShadowFile::flushAll() const {
     // Write header page to file.
     ShadowFileHeader header;
     header.numShadowPages = shadowPageRecords.size();
@@ -100,7 +100,7 @@ void ShadowFile::flushAll(ClientContext& context) const {
     memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
     shadowingFH->writePage(headerBuffer.get(), 0);
     // Flush shadow pages to file.
-    context.getMemoryManager()->getBufferManager()->flushAllDirtyPagesInFrames(*shadowingFH);
+    shadowingFH->flushAllDirtyPagesInFrames();
     // Append shadow page records to end of file.
     const auto writer = std::make_shared<BufferedFileWriter>(*shadowingFH->getFileInfo());
     writer->setFileOffset(shadowingFH->getNumPages() * BufferPoolConstants::PAGE_4KB_SIZE);
@@ -109,7 +109,7 @@ void ShadowFile::flushAll(ClientContext& context) const {
     ser.serializeVector(shadowPageRecords);
     writer->flush();
     // Sync the file to disk.
-    shadowingFH->getFileInfo()->syncFile();
+    writer->sync();
 }
 
 void ShadowFile::clearAll(ClientContext& context) {

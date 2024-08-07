@@ -102,8 +102,7 @@ public:
     // Used when loading from file
     DiskArrayInternal(BMFileHandle& fileHandle, DBFileID dbFileID,
         const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
-        BufferManager* bufferManager, ShadowFile* shadowFile, uint64_t elementSize,
-        bool bypassShadowing = false);
+        ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing = false);
 
     virtual ~DiskArrayInternal() = default;
 
@@ -223,7 +222,7 @@ protected:
     virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
 private:
-    bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
+    bool checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx) const;
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
     inline const DiskArrayHeader& getDiskArrayHeader(transaction::TransactionType trxType) const {
@@ -245,7 +244,6 @@ protected:
     const DiskArrayHeader& header;
     DiskArrayHeader& headerForWriteTrx;
     bool hasTransactionalUpdates;
-    BufferManager* bufferManager;
     ShadowFile* shadowFile;
     std::vector<PIPWrapper> pips;
     PIPUpdates pipUpdates;
@@ -269,10 +267,9 @@ public:
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
     DiskArray(BMFileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
-        DiskArrayHeader& headerForWriteTrx, BufferManager* bufferManager, ShadowFile* shadowFile,
-        bool bypassWAL = false)
-        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, bufferManager,
-              shadowFile, sizeof(U), bypassWAL) {}
+        DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, bool bypassWAL = false)
+        : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, shadowFile,
+              sizeof(U), bypassWAL) {}
 
     // Note: This function is to be used only by the WRITE trx.
     // The return value is the idx of val in array.

@@ -30,7 +30,7 @@ ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t buff
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
     if (dataFH->isInMemoryMode()) {
-        const auto frame = dataFH->getBM()->getFrame(*dataFH, startPageIdx);
+        const auto frame = dataFH->getFrame(startPageIdx);
         memcpy(frame, buffer, bufferSize);
     } else {
         dataFH->getFileInfo()->writeFile(buffer, bufferSize,
@@ -89,7 +89,7 @@ public:
             KU_ASSERT(numPages < metadata.numPages);
             KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
             if (dataFH->isInMemoryMode()) {
-                const auto frame = dataFH->getBM()->getFrame(*dataFH, startPageIdx + numPages);
+                const auto frame = dataFH->getFrame(startPageIdx + numPages);
                 memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
             } else {
                 dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
@@ -102,8 +102,7 @@ public:
         if (numPages < metadata.numPages) {
             memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
             if (dataFH->isInMemoryMode()) {
-                const auto frame =
-                    dataFH->getBM()->getFrame(*dataFH, startPageIdx + metadata.numPages - 1);
+                const auto frame = dataFH->getFrame(startPageIdx + metadata.numPages - 1);
                 memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
             } else {
                 dataFH->getFileInfo()->writeFile(compressedBuffer.get(),

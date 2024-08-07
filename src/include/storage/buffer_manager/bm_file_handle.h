@@ -9,6 +9,7 @@
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/vm_region.h"
+#include "storage/enums/page_read_policy.h"
 #include "storage/file_handle.h"
 
 namespace kuzu {
@@ -100,6 +101,12 @@ class BMFileHandle final : public FileHandle {
     friend class BufferManager;
 
 public:
+    uint8_t* pinPage(common::page_idx_t pageIdx, PageReadPolicy readPolicy);
+    void optimisticReadPage(common::page_idx_t pageIdx,
+        const std::function<void(uint8_t*)>& readOp);
+    // The function assumes that the requested page is already pinned.
+    void unpinPage(common::page_idx_t pageIdx);
+
     // This function assumes the page is already LOCKED.
     void setLockedPageDirty(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < numPages);
@@ -111,10 +118,12 @@ public:
     // does not hold any of the pages of the file.
     void resetToZeroPagesAndPageCapacity();
     void removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdx);
+    void removePageFromFrameIfNecessary(common::page_idx_t pageIdx);
+    void flushAllDirtyPagesInFrames();
+    void flushPageIfDirtyWithoutLock(common::page_idx_t pageIdx);
 
     common::file_idx_t getFileIndex() const { return fileIndex; }
 
-    BufferManager* getBM() { return bm; }
     uint8_t* getFrame(common::page_idx_t pageIdx);
 
     PageState* getPageState(common::page_idx_t pageIdx) {

@@ -23,8 +23,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     VirtualFileSystem* vfs, main::ClientContext* context)
     : databasePath{databasePath}, readOnly{readOnly}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
-    wal = std::make_unique<WAL>(databasePath, readOnly, *memoryManager.getBufferManager(), vfs,
-        context);
+    wal = std::make_unique<WAL>(databasePath, readOnly, vfs, context);
     shadowFile = std::make_unique<ShadowFile>(databasePath, readOnly,
         *memoryManager.getBufferManager(), vfs, context);
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
@@ -251,8 +250,8 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         tables.at(tableEntry->getTableID())->checkpoint(ser);
     }
     writer->flush();
-    writer->getFileInfo().syncFile();
-    shadowFile->flushAll(clientContext);
+    writer->sync();
+    shadowFile->flushAll();
 }
 
 } // namespace storage

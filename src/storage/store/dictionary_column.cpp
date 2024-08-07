@@ -1,9 +1,9 @@
 #include "storage/store/dictionary_column.h"
 
 #include "storage/storage_structure/disk_array_collection.h"
+#include "storage/store/string_chunk_data.h"
 #include "storage/store/string_column.h"
 #include <bit>
-#include <storage/store/string_chunk_data.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

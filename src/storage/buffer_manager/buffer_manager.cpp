@@ -344,7 +344,7 @@ uint64_t BufferManager::tryEvictPage(std::atomic<EvictionCandidate>& _candidate)
     // Next, flush out the frame into the file page if the frame
     // is dirty. Finally remove the page from the frame and reset the page to EVICTED.
     auto& fileHandle = *fileHandles[candidate.fileIdx];
-    flushIfDirtyWithoutLock(fileHandle, candidate.pageIdx);
+    fileHandle.flushPageIfDirtyWithoutLock(candidate.pageIdx);
     auto numBytesFreed = fileHandle.getPageSize();
     releaseFrameForPage(fileHandle, candidate.pageIdx);
     pageState.resetToEvicted();
@@ -362,25 +362,10 @@ void BufferManager::cachePageIntoFrame(BMFileHandle& fileHandle, page_idx_t page
     }
 }
 
-void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, page_idx_t pageIdx) {
-    auto pageState = fileHandle.getPageState(pageIdx);
-    if (!fileHandle.isInMemoryMode() && pageState->isDirty()) {
-        fileHandle.getFileInfo()->writeFile(getFrame(fileHandle, pageIdx), fileHandle.getPageSize(),
-            pageIdx * fileHandle.getPageSize());
-        pageState->clearDirtyWithoutLock();
-    }
-}
-
 void BufferManager::removeFilePagesFromFrames(BMFileHandle& fileHandle) {
     evictionQueue.removeCandidatesForFile(fileHandle.getFileIndex());
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
         removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
-    }
-}
-
-void BufferManager::flushAllDirtyPagesInFrames(BMFileHandle& fileHandle) {
-    for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
-        flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
 }
 
@@ -409,7 +394,7 @@ void BufferManager::removePageFromFrame(BMFileHandle& fileHandle, page_idx_t pag
     }
     pageState->spinLock(pageState->getStateAndVersion());
     if (shouldFlush) {
-        flushIfDirtyWithoutLock(fileHandle, pageIdx);
+        fileHandle.flushPageIfDirtyWithoutLock(pageIdx);
     }
     releaseFrameForPage(fileHandle, pageIdx);
     freeUsedMemory(fileHandle.getPageSize());

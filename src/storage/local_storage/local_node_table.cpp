@@ -1,10 +1,10 @@
 #include "storage/local_storage/local_node_table.h"
 
 #include "common/cast.h"
+#include "common/exception/message.h"
 #include "common/types/internal_id_t.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
-#include <common/exception/message.h>
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

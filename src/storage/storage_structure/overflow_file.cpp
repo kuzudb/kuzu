@@ -158,7 +158,7 @@ static DBFileIDAndName constructDBFileIDAndName(
 
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
     ShadowFile* shadowFile, bool readOnly, VirtualFileSystem* vfs, main::ClientContext* context)
-    : bufferManager{bufferManager}, shadowFile{shadowFile}, headerChanged{false} {
+    : shadowFile{shadowFile}, headerChanged{false} {
     const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     KU_ASSERT(vfs && bufferManager && context && shadowFile);
@@ -178,7 +178,7 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
 }
 
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName)
-    : fileHandle{nullptr}, bufferManager{nullptr}, shadowFile{nullptr}, headerChanged{false} {
+    : fileHandle{nullptr}, shadowFile{nullptr}, headerChanged{false} {
     const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     // Reserve a page for the header
@@ -191,14 +191,14 @@ void OverflowFile::readFromDisk(TransactionType trxType, page_idx_t pageIdx,
     KU_ASSERT(shadowFile);
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
         *getBMFileHandle(), pageIdx, *shadowFile, trxType);
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
+    fileHandleToPin->optimisticReadPage(pageIdxToPin, func);
 }
 
 void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     if (pageIdx < numPagesOnDisk) {
         KU_ASSERT(shadowFile);
         DBFileUtils::updatePage(*getBMFileHandle(), dbFileID, pageIdx,
-            true /* overwriting entire page*/, *bufferManager, *shadowFile,
+            true /* overwriting entire page*/, *shadowFile,
             [&](auto* frame) { memcpy(frame, data, BufferPoolConstants::PAGE_4KB_SIZE); });
     } else {
         KU_ASSERT(fileHandle);

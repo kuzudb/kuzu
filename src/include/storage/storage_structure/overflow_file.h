@@ -140,7 +140,6 @@ protected:
     common::page_idx_t numPagesOnDisk;
     DBFileID dbFileID;
     BMFileHandle* fileHandle;
-    BufferManager* bufferManager;
     ShadowFile* shadowFile;
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;
