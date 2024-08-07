@@ -36,6 +36,9 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
     auto& node = boundInfo.pattern->constCast<NodeExpression>();
     auto nodeIDPos = getDataPos(*node.getInternalID(), schema);
     auto info = NodeDeleteInfo(boundInfo.deleteType, nodeIDPos);
+    if (node.isEmpty()) {
+        return std::make_unique<EmptyNodeDeleteExecutor>(std::move(info));
+    }
     if (node.isMultiLabeled()) {
         common::table_id_map_t<NodeTableDeleteInfo> tableInfos;
         for (auto id : node.getTableIDs()) {
@@ -90,6 +93,9 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
     auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
     auto info = RelDeleteInfo(srcNodeIDPos, dstNodeIDPos, relIDPos);
+    if (rel.isEmpty()) {
+        return std::make_unique<EmptyRelDeleteExecutor>(std::move(info));
+    }
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {

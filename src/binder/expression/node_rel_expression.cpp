@@ -1,5 +1,7 @@
 #include "binder/expression/node_rel_expression.h"
 
+#include "common/exception/runtime.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -15,7 +17,12 @@ void NodeOrRelExpression::addTableIDs(const table_id_vector_t& tableIDsToAdd) {
 }
 
 common::table_id_t NodeOrRelExpression::getSingleTableID() const {
-    KU_ASSERT(tableIDs.size() == 1);
+    // LCOV_EXCL_START
+    if (tableIDs.empty()) {
+        throw RuntimeException(
+            "Trying to access table id in an empty node. This should never happen");
+    }
+    // LCOV_EXCL_STOP
     return tableIDs[0];
 }
 

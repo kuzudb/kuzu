@@ -77,6 +77,19 @@ protected:
     std::unique_ptr<storage::RelTableDeleteState> detachDeleteState;
 };
 
+// Handle MATCH (n) (DETACH)? DELETE n
+class EmptyNodeDeleteExecutor final : public NodeDeleteExecutor {
+public:
+    explicit EmptyNodeDeleteExecutor(NodeDeleteInfo info) : NodeDeleteExecutor{std::move(info)} {}
+    EmptyNodeDeleteExecutor(const EmptyNodeDeleteExecutor& other) : NodeDeleteExecutor{other} {}
+
+    void delete_(ExecutionContext*) override {}
+
+    std::unique_ptr<NodeDeleteExecutor> copy() const override {
+        return std::make_unique<EmptyNodeDeleteExecutor>(*this);
+    }
+};
+
 class SingleLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
     SingleLabelNodeDeleteExecutor(NodeDeleteInfo info, NodeTableDeleteInfo tableInfo)
@@ -149,6 +162,18 @@ public:
 
 protected:
     RelDeleteInfo info;
+};
+
+class EmptyRelDeleteExecutor final : public RelDeleteExecutor {
+public:
+    explicit EmptyRelDeleteExecutor(RelDeleteInfo info) : RelDeleteExecutor{std::move(info)} {}
+    EmptyRelDeleteExecutor(const EmptyRelDeleteExecutor& other) : RelDeleteExecutor{other} {}
+
+    void delete_(ExecutionContext*) override {}
+
+    std::unique_ptr<RelDeleteExecutor> copy() const override {
+        return std::make_unique<EmptyRelDeleteExecutor>(*this);
+    }
 };
 
 class SingleLabelRelDeleteExecutor final : public RelDeleteExecutor {
