@@ -86,7 +86,7 @@ BaseCSVReader* SerialParsingDriver::getReader() {
 }
 
 bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
-    return (csvOptions.hasHeader ? 1 : 0) + csvOptions.sampleSize <= (int64_t)rowNum;
+    return (csvOptions.hasHeader ? 1 : 0) + csvOptions.sampleSize <= rowNum;
 }
 
 void SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,

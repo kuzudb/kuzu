@@ -53,11 +53,11 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wr
 ---- ok
 -STATEMENT COPY User1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
 ---- error
-Binder exception: Column `f1` type mismatch. Expected INT64 but got STRING.
+Binder exception: Expression name has data type STRING but expected INT64. Implicit cast is not supported.
 -STATEMENT COPY User1 FROM ["${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet",
                             "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/lives-in.parquet"];
 ---- error
-Binder exception: Expression name has data type STRING but expected INT64. Implicit cast is not supported.
+Binder exception: Column `f1` type mismatch. Expected INT64 but got STRING.
 -STATEMENT COPY User2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
 ---- error
 Binder exception: Number of columns mismatch. Expected 3 but got 2.
