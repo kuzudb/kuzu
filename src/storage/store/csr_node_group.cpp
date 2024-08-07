@@ -25,8 +25,8 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
         initializePersistentCSRHeader(transaction, relScanState, nodeGroupScanState);
         // Queue persistent nodes to be scanned in the node group.
         while (relScanState.endNodeIdx < relScanState.totalNodeIdx) {
-            auto nodeOffset =
-                relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx]);
+            auto nodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
+                nodeSelVector[relScanState.endNodeIdx]);
             if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
                 break;
             }
@@ -56,15 +56,17 @@ void CSRNodeGroup::initializeInMemScanState(TableScanState& state) {
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    const auto offsetInGroup = relScanState.boundNodeIDVector->readNodeOffset(
-        nodeSelVector[relScanState.endNodeIdx++]) - startNodeOffset;
+    const auto offsetInGroup =
+        relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]) -
+        startNodeOffset;
     nodeGroupScanState.inMemCSRList = csrIndex->indices[offsetInGroup];
     if (!nodeGroupScanState.inMemCSRList.isSequential) {
-        KU_ASSERT(std::is_sorted(nodeGroupScanState.inMemCSRList.rowIndices.begin(), 
+        KU_ASSERT(std::is_sorted(nodeGroupScanState.inMemCSRList.rowIndices.begin(),
             nodeGroupScanState.inMemCSRList.rowIndices.end()));
     }
     nodeGroupScanState.source = nodeGroupScanState.inMemCSRList.rowIndices.size() > 0 ?
-        CSRNodeGroupScanSource::COMMITTED_IN_MEMORY : CSRNodeGroupScanSource::NONE;
+                                    CSRNodeGroupScanSource::COMMITTED_IN_MEMORY :
+                                    CSRNodeGroupScanSource::NONE;
 }
 
 void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
@@ -130,9 +132,10 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
             return result;
         }
         case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
-            const auto result = nodeGroupScanState.inMemCSRList.isSequential ?
-                scanCommittedInMemSequential(transaction, relScanState, nodeGroupScanState) :
-                scanCommittedInMemRandom(transaction, relScanState, nodeGroupScanState);
+            const auto result =
+                nodeGroupScanState.inMemCSRList.isSequential ?
+                    scanCommittedInMemSequential(transaction, relScanState, nodeGroupScanState) :
+                    scanCommittedInMemRandom(transaction, relScanState, nodeGroupScanState);
             if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
                 relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
                 return NODE_GROUP_SCAN_EMMPTY_RESULT;

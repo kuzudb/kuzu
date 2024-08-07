@@ -60,7 +60,7 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     KU_ASSERT(relScanState.totalNodeIdx > 0);
     KU_ASSERT(relScanState.endNodeIdx == relScanState.currNodeIdx);
     KU_ASSERT(relScanState.endNodeIdx < relScanState.totalNodeIdx);
-    offset_t nodeOffset = 
+    offset_t nodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.currNodeIdx]);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         // No more to read from committed

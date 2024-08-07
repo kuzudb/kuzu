@@ -148,7 +148,7 @@ void LocalRelTable::initializeScan(TableScanState& state) {
     auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
     offset_t nodeOffset =
-            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]);
+        relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]);
     if (index.contains(nodeOffset)) {
         relScanState.rowIndices = index[nodeOffset];
         KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
@@ -180,8 +180,8 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
-    relScanState.batchSize = std::min(localScanState.rowIndices.size() - localScanState.nextRowToScan,
-        DEFAULT_VECTOR_CAPACITY);
+    relScanState.batchSize = std::min(
+        localScanState.rowIndices.size() - localScanState.nextRowToScan, DEFAULT_VECTOR_CAPACITY);
     if (relScanState.batchSize == 0) {
         return false;
     }

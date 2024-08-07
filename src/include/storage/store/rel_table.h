@@ -54,9 +54,7 @@ struct RelTableScanState : TableScanState {
         }
     }
 
-    void resetState() override {
-        nodeGroupScanState->resetState();
-    }
+    void resetState() override { nodeGroupScanState->resetState(); }
 };
 
 class LocalRelTable;
