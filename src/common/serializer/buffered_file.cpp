@@ -53,7 +53,6 @@ void BufferedFileWriter::sync() {
     fileInfo.syncFile();
 }
 
-
 uint64_t BufferedFileWriter::getFileSize() const {
     return fileInfo.getFileSize() + bufferOffset;
 }
