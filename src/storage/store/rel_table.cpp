@@ -55,7 +55,6 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
 void RelTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {
     // Scan always start with committed data first.
     auto& relScanState = scanState.cast<RelTableScanState>();
-
     auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     relScanState.totalNodeIdx = nodeSelVector.getSelSize();
     KU_ASSERT(relScanState.totalNodeIdx > 0);
@@ -73,23 +72,9 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
         }
         return;
     }
-
     relScanState.source = TableScanSource::COMMITTED;
     relScanState.currentCSROffset = 0;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    // collect all node ids that can be read from the same node group
-    while (relScanState.endNodeIdx < relScanState.totalNodeIdx) {
-        nodeOffset =
-            relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx]);
-        if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
-            break;
-        }
-        auto curNodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        if (curNodeGroupIdx != nodeGroupIdx) {
-            break;
-        }
-        relScanState.endNodeIdx++;
-    }
     relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
                                  fwdRelTableData->getNodeGroup(nodeGroupIdx) :
                                  bwdRelTableData->getNodeGroup(nodeGroupIdx);
@@ -117,6 +102,12 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     }
     // We need to reinitialize per node group
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
+        if (relScanState.resetCommitted) {
+            // reset to read committed, in memory data
+            relScanState.currNodeIdx = 0;
+            relScanState.endNodeIdx = 0;
+            relScanState.resetCommitted = false;
+        }
         initializeScanState(transaction, relScanState);
     }
     offset_t curNodeOffset =

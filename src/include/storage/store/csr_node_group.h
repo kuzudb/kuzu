@@ -113,10 +113,11 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // group. State for reading from checkpointed node group.
     std::unique_ptr<ChunkedCSRHeader> csrHeader;
     std::vector<csr_list_t> persistentCSRLists;
-    std::vector<NodeCSRIndex> inMemCSRLists;
+    NodeCSRIndex inMemCSRList;
     // position in vector of either csr list/index vector
     uint32_t nextCSRToScan;
 
+    bool persistentInitialized = false;
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
@@ -130,7 +131,6 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
         csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         persistentCSRLists.clear();
-        inMemCSRLists.clear();
         nextCSRToScan = 0;
     }
 };
@@ -213,20 +213,17 @@ public:
 private:
     void initializePersistentCSRHeader(transaction::Transaction* transaction,
         RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
+    void initializeInMemScanState(TableScanState& state);
 
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
 
     NodeGroupScanResult scanCommittedPersistent(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
-    NodeGroupScanResult scanCommittedInMem(transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState,
-        common::row_idx_t numScanned);
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState,
-        common::row_idx_t numScanned);
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
     void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);

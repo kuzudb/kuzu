@@ -17,6 +17,7 @@ struct RelTableScanState : TableScanState {
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
+    bool resetCommitted = false;
     common::sel_t currNodeIdx = 0;
     common::sel_t endNodeIdx = 0;
     common::sel_t totalNodeIdx = 0;
