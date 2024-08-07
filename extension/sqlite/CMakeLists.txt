@@ -23,9 +23,10 @@ add_library(sqlite_extension
         ../duckdb/src/duckdb_table_catalog_entry.cpp
         ../duckdb/src/duckdb_type_converter.cpp
         ../duckdb/src/duckdb_functions.cpp
+        ../duckdb/src/duckdb_connector.cpp
         src/sqlite_extension.cpp
         src/sqlite_storage.cpp
-        src/sqlite_catalog.cpp)
+        src/sqlite_connector.cpp)
 
 set_target_properties(sqlite_extension
     PROPERTIES

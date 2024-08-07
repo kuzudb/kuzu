@@ -12,9 +12,12 @@ namespace kuzu {
 namespace duckdb_extension {
 
 DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
-    main::ClientContext* context, const binder::AttachOption& attachOption)
+    std::string defaultSchemaName, main::ClientContext* context, const DuckDBConnector& connector,
+    const binder::AttachOption& attachOption)
     : CatalogExtension{}, dbPath{std::move(dbPath)}, catalogName{std::move(catalogName)},
-      tableNamesVector{common::LogicalType::STRING(), context->getMemoryManager()} {
+      defaultSchemaName{std::move(defaultSchemaName)},
+      tableNamesVector{common::LogicalType::STRING(), context->getMemoryManager()},
+      connector{connector} {
     skipUnsupportedTable = DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL;
     auto& options = attachOption.options;
     if (options.contains(DuckDBStorageExtension::SKIP_UNSUPPORTED_TABLE_KEY)) {
@@ -28,12 +31,11 @@ DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
 }
 
 void DuckDBCatalog::init() {
-    auto [db, con] = getConnection(dbPath);
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
         "table_schema = '{}';",
-        catalogName, getDefaultSchemaName());
-    auto result = con.Query(query);
+        catalogName, defaultSchemaName);
+    auto result = connector.executeQuery(query);
     std::unique_ptr<duckdb::DataChunk> resultChunk;
     try {
         resultChunk = result->Fetch();
@@ -43,27 +45,24 @@ void DuckDBCatalog::init() {
     if (resultChunk == nullptr || resultChunk->size() == 0) {
         return;
     }
-    duckdb_extension::duckdb_conversion_func_t conversionFunc;
-    duckdb_extension::getDuckDBVectorConversionFunc(common::PhysicalTypeID::STRING, conversionFunc);
+    duckdb_conversion_func_t conversionFunc;
+    getDuckDBVectorConversionFunc(common::PhysicalTypeID::STRING, conversionFunc);
     conversionFunc(resultChunk->data[0], tableNamesVector, resultChunk->size());
     for (auto i = 0u; i < resultChunk->size(); i++) {
         auto tableName = tableNamesVector.getValue<common::ku_string_t>(i).getAsString();
-        createForeignTable(con, tableName, dbPath, catalogName);
+        createForeignTable(tableName);
     }
 }
 
 static std::string getQuery(const binder::BoundCreateTableInfo& info) {
-    auto extraInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
-        BoundExtraCreateDuckDBTableInfo*>(info.extraInfo.get());
-    return common::stringFormat("SELECT * FROM {}.{}.{}", extraInfo->catalogName,
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateDuckDBTableInfo>();
+    return common::stringFormat("SELECT * FROM \"{}\".{}.{}", extraInfo->catalogName,
         extraInfo->schemaName, info.tableName);
 }
 
-// TODO(Ziyi): Do u need to pass in `dbPath` and `catalogName` here? Why not use the private field?
-void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::string& tableName,
-    const std::string& dbPath, const std::string& catalogName) {
+void DuckDBCatalog::createForeignTable(const std::string& tableName) {
     auto tableID = tables->assignNextOID();
-    auto info = bindCreateTableInfo(con, tableName, dbPath, catalogName);
+    auto info = bindCreateTableInfo(tableName);
     if (info == nullptr) {
         return;
     }
@@ -76,7 +75,7 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
         columnTypes.push_back(propertyInfo.type.copy());
     }
     DuckDBScanBindData bindData(getQuery(*info), std::move(columnTypes), std::move(columnNames),
-        std::bind(&DuckDBCatalog::getConnection, this, dbPath));
+        connector);
     auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(tables.get(),
         info->tableName, tableID, getScanFunction(std::move(bindData)));
     for (auto& propertyInfo : extraInfo->propertyInfos) {
@@ -86,7 +85,7 @@ void DuckDBCatalog::createForeignTable(duckdb::Connection& con, const std::strin
     tables->createEntry(&transaction::DUMMY_TRANSACTION, std::move(tableEntry));
 }
 
-static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
+static bool getTableInfo(const DuckDBConnector& connector, const std::string& tableName,
     const std::string& schemaName, const std::string& catalogName,
     std::vector<common::LogicalType>& columnTypes, std::vector<std::string>& columnNames,
     bool skipUnsupportedTable) {
@@ -94,7 +93,7 @@ static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
         common::stringFormat("select data_type,column_name from information_schema.columns where "
                              "table_name = '{}' and table_schema = '{}' and table_catalog = '{}';",
             tableName, schemaName, catalogName);
-    auto result = con.Query(query);
+    auto result = connector.executeQuery(query);
     if (result->RowCount() == 0) {
         return false;
     }
@@ -115,13 +114,12 @@ static bool getTableInfo(duckdb::Connection& con, const std::string& tableName,
     return true;
 }
 
-// TODO(Ziyi): Do u need to pass in `catalogName` here? Why not use the private field?
-bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string& tableName,
-    const std::string& catalogName, std::vector<binder::PropertyInfo>& propertyInfos) {
+bool DuckDBCatalog::bindPropertyInfos(const std::string& tableName,
+    std::vector<binder::PropertyInfo>& propertyInfos) {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
-    if (!getTableInfo(con, tableName, getDefaultSchemaName(), catalogName, columnTypes, columnNames,
-            skipUnsupportedTable)) {
+    if (!getTableInfo(connector, tableName, defaultSchemaName, catalogName, columnTypes,
+            columnNames, skipUnsupportedTable)) {
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {
@@ -131,34 +129,16 @@ bool DuckDBCatalog::bindPropertyInfos(duckdb::Connection& con, const std::string
     return true;
 }
 
-// TODO(Ziyi): Do u need to pass in `dbPath` and `catalogName` here? Why not use the private field?
 std::unique_ptr<binder::BoundCreateTableInfo> DuckDBCatalog::bindCreateTableInfo(
-    duckdb::Connection& con, const std::string& tableName, const std::string& dbPath,
-    const std::string& catalogName) {
+    const std::string& tableName) {
     std::vector<binder::PropertyInfo> propertyInfos;
-    if (!bindPropertyInfos(con, tableName, catalogName, propertyInfos)) {
+    if (!bindPropertyInfos(tableName, propertyInfos)) {
         return nullptr;
     }
     return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
         common::ConflictAction::ON_CONFLICT_THROW,
-        std::make_unique<duckdb_extension::BoundExtraCreateDuckDBTableInfo>(dbPath, catalogName,
-            getDefaultSchemaName(), std::move(propertyInfos)));
-}
-
-std::string DuckDBCatalog::getDefaultSchemaName() const {
-    return "main";
-}
-
-// TODO(Ziyi): Do u need to pass in `dbPath` here? Why not use the private field?
-std::pair<duckdb::DuckDB, duckdb::Connection> DuckDBCatalog::getConnection(
-    const std::string& dbPath) const {
-    try {
-        duckdb::DuckDB db(dbPath);
-        duckdb::Connection con(db);
-        return std::make_pair(std::move(db), std::move(con));
-    } catch (std::exception& e) {
-        throw common::RuntimeException{e.what()};
-    }
+        std::make_unique<duckdb_extension::BoundExtraCreateDuckDBTableInfo>(catalogName,
+            defaultSchemaName, std::move(propertyInfos)));
 }
 
 } // namespace duckdb_extension

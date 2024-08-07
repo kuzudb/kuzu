@@ -15,19 +15,21 @@
 namespace kuzu {
 namespace duckdb_extension {
 
+class DuckDBConnector;
+
 using duckdb_conversion_func_t = std::function<void(duckdb::Vector& duckDBVector,
     common::ValueVector& result, uint64_t numValues)>;
 using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Connection>()>;
 
 struct DuckDBScanBindData : public function::TableFuncBindData {
     explicit DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, init_duckdb_conn_t initDuckDBConn);
+        std::vector<std::string> columnNames, const DuckDBConnector& connector);
 
     std::unique_ptr<TableFuncBindData> copy() const override;
 
     std::string query;
     std::vector<duckdb_conversion_func_t> conversionFunctions;
-    init_duckdb_conn_t initDuckDBConn;
+    const DuckDBConnector& connector;
 };
 
 struct DuckDBScanSharedState : public function::BaseScanSharedStateWithNumRows {
