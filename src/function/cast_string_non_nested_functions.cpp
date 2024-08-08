@@ -96,20 +96,63 @@ static bool isDate(const std::string& str) {
 }
 
 static bool isUUID(const std::string& str) {
-    return RE2::FullMatch(str, "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+    return RE2::FullMatch(str, "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
 }
 
 static bool isInterval(const std::string& str) {
     static constexpr auto pattern =
         "((0|[1-9]\\d*) "
-        "+(years?|yrs?|y|mons?|months?|days?|d|dayofmonth|decades?|decs?|century|centuries|cent|c|"
-        "millenn?iums?|mils?|millennia|microseconds?|us|usecs?|useconds?|seconds?|secs?|s|minutes?|"
-        "mins?|m|hours?|hrs?|h|weeks?|weekofyear|w|quarters?))( +(0|[1-9]\\d*) "
-        "+(years?|yrs?|y|mons?|months?|days?|d|dayofmonth|decades?|decs?|century|centuries|cent|c|"
-        "millenn?iums?|mils?|millennia|microseconds?|us|usecs?|useconds?|seconds?|secs?|s|minutes?|"
-        "mins?|m|hours?|hrs?|h|weeks?|weekofyear|w|quarters?))*";
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*";
     static constexpr auto pattern2 = "\\d+:\\d{2}:\\d{2}";
     return RE2::FullMatch(str, pattern2) || RE2::FullMatch(str, pattern);
+}
+
+static LogicalType inferMapOrStruct(const std::string& str) {
+    auto split = StringUtils::split(str.substr(1, str.size() - 2), ",", false);
+    bool isMap = true, isStruct = true; // Default match to map if both are true
+    for (auto& ele: split) {
+        if (isMap && ele.find("=") == std::string::npos) {
+            isMap = false;
+        }
+        if (isStruct && ele.find(":") == std::string::npos) {
+            isStruct = false;
+        }
+    }
+    if (isMap) {
+        auto childKeyType = LogicalType::ANY();
+        auto childValueType = LogicalType::ANY();
+        for (auto& ele : split) {
+            auto splitEle = StringUtils::split(ele, "=", false);
+            if (splitEle.size() != 2) {
+                // invalid map; give string
+                return LogicalType::STRING();
+            }
+            childKeyType = LogicalTypeUtils::combineTypes(childKeyType,
+                inferMinimalTypeFromString(splitEle[0]));
+            childValueType = LogicalTypeUtils::combineTypes(childValueType,
+                inferMinimalTypeFromString(splitEle[1]));
+        }
+        return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
+    } else if (isStruct) {
+        std::vector<StructField> fields;
+        for (auto& ele: split) {
+            auto splitEle = StringUtils::split(ele, ":", false);
+            if (splitEle.size() != 2) {
+                return LogicalType::STRING();
+            }
+            auto fieldKey = StringUtils::ltrim(StringUtils::rtrim(splitEle[0]));
+            auto fieldType = inferMinimalTypeFromString(splitEle[1]);
+            fields.emplace_back(fieldKey, std::move(fieldType));
+        }
+        return LogicalType::STRUCT(std::move(fields));
+    } else {
+        return LogicalType::STRING();
+    }
 }
 
 LogicalType inferMinimalTypeFromString(const std::string& str) {
@@ -137,7 +180,7 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
         if (!trySimpleInt128Cast(cpy.c_str(), cpy.length(), val)) {
             return LogicalType::STRING();
         }
-        if (val >= NumericLimits<int64_t>::minimum()) {
+        if (NumericLimits<int64_t>::isInBounds(val)) {
             return LogicalType::INT64();
         }
         return LogicalType::INT128();
@@ -185,22 +228,9 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     }
 
     if (cpy.front() == '{' && cpy.back() == '}') {
-        auto split = StringUtils::split(cpy.substr(1, cpy.size() - 2), ",", false);
-        auto childKeyType = LogicalType::ANY();
-        auto childValueType = LogicalType::ANY();
-        for (auto& ele : split) {
-            auto splitEle = StringUtils::split(ele, "=", false);
-            if (splitEle.size() != 2) {
-                // invalid map; give string
-                return LogicalType::STRING();
-            }
-            childKeyType = LogicalTypeUtils::combineTypes(childKeyType,
-                inferMinimalTypeFromString(splitEle[0]));
-            childValueType = LogicalTypeUtils::combineTypes(childValueType,
-                inferMinimalTypeFromString(splitEle[1]));
-        }
-        return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
+        return inferMapOrStruct(cpy);
     }
+
     return LogicalType::STRING();
 }
 

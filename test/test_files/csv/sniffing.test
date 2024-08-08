@@ -18,9 +18,14 @@ BOOL|STRING
 DOUBLE|DECIMAL(10, 2)|DECIMAL(10, 4)|STRING
 
 -CASE SniffDate
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/date.csv" (header=true) RETURN typeof(isDate), typeof(isTimestamp), typeof(isNeither1), typeof(isNeither2) LIMIT 1
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/date.csv" (header=true) RETURN typeof(isDate), typeof(isTimestamp), typeof(isNeither1), typeof(isNeither2), typeof(isInterval) LIMIT 1
 ---- 1
-DATE|TIMESTAMP|STRING|STRING
+DATE|TIMESTAMP|STRING|STRING|INTERVAL
+
+-CASE SniffUUID
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/uuid.csv" (HEADER=TRUE) RETURN typeof(isUUID), typeof(isNotUUID1), typeof(isNotUUID2), typeof(isNotUUID3), typeof(isNotUUID4) LIMIT 1
+---- 1
+UUID|STRING|STRING|STRING|STRING
 
 -CASE SniffList
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/list.csv" (header=true) RETURN typeof(isIntArray), typeof(isDecimalArray), typeof(isStringArray1), typeof(isStringArray2) LIMIT 1
@@ -31,6 +36,11 @@ INT64[]|DECIMAL(2, 1)[]|STRING[]|STRING[]
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/map.csv" (header=true) RETURN typeof(keytest), typeof(valuetest), typeof(bothtest), typeof(intint) LIMIT 1
 ---- 1
 MAP(STRING, INT64)|MAP(INT64, STRING)|MAP(STRING, STRING)|MAP(INT64, INT64)
+
+-CASE SniffStruct
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/struct.csv" (header=true) return typeof(basicStruct), typeof(unionOfFields), typeof(notStruct) LIMIT 1
+---- 1
+STRUCT(A INT64, B INT64)|STRUCT(A INT64, B INT64, C INT64)|STRING
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/sample-size.csv" (header=false,sample_size=3) RETURN typeof(column0) LIMIT 1
 ---- 1

@@ -550,6 +550,8 @@ struct KUZU_API LogicalTypeUtils {
 
     // Differs from tryGetMaxLogicalType because it treats string as a maximal type, instead of a
     // minimal type. as such, it will always succeed.
+    // Also combines structs by the union of their fields. As such, currently, it is not guaranteed
+    // for casting to work from input types to resulting types. Ideally this changes
     static LogicalType combineTypes(const LogicalType& left, const LogicalType& right);
 
     // makes a copy of the type with any occurences of ANY replaced with replacement
