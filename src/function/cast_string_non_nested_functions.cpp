@@ -115,7 +115,7 @@ static bool isInterval(const std::string& str) {
 static LogicalType inferMapOrStruct(const std::string& str) {
     auto split = StringUtils::split(str.substr(1, str.size() - 2), ",", false);
     bool isMap = true, isStruct = true; // Default match to map if both are true
-    for (auto& ele: split) {
+    for (auto& ele : split) {
         if (isMap && ele.find("=") == std::string::npos) {
             isMap = false;
         }
@@ -140,7 +140,7 @@ static LogicalType inferMapOrStruct(const std::string& str) {
         return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
     } else if (isStruct) {
         std::vector<StructField> fields;
-        for (auto& ele: split) {
+        for (auto& ele : split) {
             auto splitEle = StringUtils::split(ele, ":", false);
             if (splitEle.size() != 2) {
                 return LogicalType::STRING();
