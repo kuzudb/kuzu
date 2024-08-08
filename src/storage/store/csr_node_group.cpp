@@ -36,7 +36,7 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
             const auto offsetInGroup = nodeOffset - startNodeOffset;
             auto offset = nodeGroupScanState.csrHeader->getStartCSROffset(offsetInGroup);
             auto length = nodeGroupScanState.csrHeader->getCSRLength(offsetInGroup);
-            nodeGroupScanState.persistentCSRLists.emplace_back(offset, length);
+            nodeGroupScanState.persistentCSRLists.emplace_back(csr_list_t{offset, length});
             relScanState.endNodeIdx++;
         }
         if (csrIndex) {
