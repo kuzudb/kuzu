@@ -1,13 +1,14 @@
 #include "sqlite_storage.h"
 
 #include <filesystem>
-#include <regex>
 
+#include "attached_duckdb_database.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "duckdb_catalog.h"
 #include "duckdb_functions.h"
 #include "extension/extension.h"
-#include "sqlite_catalog.h"
+#include "sqlite_connector.h"
 
 namespace kuzu {
 namespace sqlite_extension {
@@ -23,11 +24,13 @@ std::unique_ptr<main::AttachedDatabase> attachSqlite(std::string dbName, std::st
     if (dbName == "") {
         dbName = catalogName;
     }
-    auto sqliteCatalog =
-        std::make_unique<SqliteCatalog>(dbPath, catalogName, clientContext, attachOption);
-    sqliteCatalog->init();
-    return std::make_unique<main::AttachedDatabase>(dbName, SqliteStorageExtension::DB_TYPE,
-        std::move(sqliteCatalog));
+    auto connector = std::make_unique<SqliteConnector>();
+    connector->connect(dbPath, catalogName, clientContext);
+    auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, catalogName,
+        SqliteStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
+    catalog->init();
+    return std::make_unique<duckdb_extension::AttachedDuckDBDatabase>(dbName,
+        SqliteStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }
 
 SqliteStorageExtension::SqliteStorageExtension(main::Database* database)

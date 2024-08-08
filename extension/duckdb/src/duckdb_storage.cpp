@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "attached_duckdb_database.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
@@ -17,26 +18,19 @@ static std::string getCatalogNameFromPath(const std::string& dbPath) {
     return path.stem().string();
 }
 
-static void validateDuckDBPathExistence(const std::string& dbPath, main::ClientContext* context) {
-    auto vfs = std::make_unique<common::VirtualFileSystem>();
-    if (!vfs->fileOrPathExists(dbPath, context)) {
-        throw common::RuntimeException{
-            common::stringFormat("'{}' is not a valid duckdb database path.", dbPath)};
-    }
-}
-
 std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::string dbPath,
     main::ClientContext* clientContext, const binder::AttachOption& attachOption) {
     auto catalogName = getCatalogNameFromPath(dbPath);
     if (dbName == "") {
         dbName = catalogName;
     }
-    validateDuckDBPathExistence(dbPath, clientContext);
-    auto duckdbCatalog =
-        std::make_unique<DuckDBCatalog>(dbPath, catalogName, clientContext, attachOption);
+    auto connector = DuckDBConnectorFactory::getDuckDBConnector(dbPath);
+    connector->connect(dbPath, catalogName, clientContext);
+    auto duckdbCatalog = std::make_unique<DuckDBCatalog>(std::move(dbPath), std::move(catalogName),
+        DuckDBStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
     duckdbCatalog->init();
-    return std::make_unique<main::AttachedDatabase>(dbName, DuckDBStorageExtension::DB_TYPE,
-        std::move(duckdbCatalog));
+    return std::make_unique<AttachedDuckDBDatabase>(dbName, DuckDBStorageExtension::DB_TYPE,
+        std::move(duckdbCatalog), std::move(connector));
 }
 
 DuckDBStorageExtension::DuckDBStorageExtension(main::Database* database)

@@ -3,6 +3,7 @@
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
+#include "duckdb_connector.h"
 #include "function/table/bind_input.h"
 
 using namespace kuzu::function;
@@ -16,9 +17,9 @@ void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
 
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
-    init_duckdb_conn_t initDuckDBConn)
+    const DuckDBConnector& connector)
     : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, query{std::move(query)},
-      initDuckDBConn{std::move(initDuckDBConn)} {
+      connector{connector} {
     conversionFunctions.resize(this->columnTypes.size());
     for (auto i = 0u; i < this->columnTypes.size(); i++) {
         getDuckDBVectorConversionFunc(this->columnTypes[i].getPhysicalType(),
@@ -28,7 +29,7 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
 
 std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
     return std::make_unique<DuckDBScanBindData>(query, LogicalType::copy(columnTypes), columnNames,
-        initDuckDBConn);
+        connector);
 }
 
 DuckDBScanSharedState::DuckDBScanSharedState(
@@ -56,9 +57,8 @@ struct DuckDBScanFunction {
 
 std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedState(
     function::TableFunctionInitInput& input) {
-    auto scanBindData = reinterpret_cast<DuckDBScanBindData*>(input.bindData);
-    auto [db, conn] = scanBindData->initDuckDBConn();
-    auto result = conn.Query(scanBindData->query);
+    auto scanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
+    auto result = scanBindData->connector.executeQuery(scanBindData->query);
     if (result->HasError()) {
         throw common::RuntimeException(
             common::stringFormat("Failed to execute query due to error: {}", result->GetError()));

@@ -9,10 +9,7 @@
 namespace kuzu {
 namespace httpfs {
 
-void HttpfsExtension::load(main::ClientContext* context) {
-    auto db = context->getDatabase();
-    db->registerFileSystem(std::make_unique<HTTPFileSystem>());
-    db->registerFileSystem(std::make_unique<S3FileSystem>());
+static void registerExtensionOptions(main::Database* db) {
     db->addExtensionOption("s3_access_key_id", common::LogicalTypeID::STRING, common::Value{""});
     db->addExtensionOption("s3_secret_access_key", common::LogicalTypeID::STRING,
         common::Value{""});
@@ -28,6 +25,17 @@ void HttpfsExtension::load(main::ClientContext* context) {
         common::Value{(int64_t)50});
     db->addExtensionOption(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION, common::LogicalTypeID::BOOL,
         common::Value{HTTPCacheFileConfig::DEFAULT_CACHE_FILE});
+}
+
+static void registerFileSystem(main::Database* db) {
+    db->registerFileSystem(std::make_unique<HTTPFileSystem>());
+    db->registerFileSystem(std::make_unique<S3FileSystem>());
+}
+
+void HttpfsExtension::load(main::ClientContext* context) {
+    auto db = context->getDatabase();
+    registerFileSystem(db);
+    registerExtensionOptions(db);
     AWSEnvironmentCredentialsProvider::setOptionValue(context);
     HTTPConfigEnvProvider::setOptionValue(context);
 }
