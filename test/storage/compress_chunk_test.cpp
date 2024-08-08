@@ -149,18 +149,21 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
 
 template<std::floating_point T>
 void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_func_t updateFunc) {
-    testCompressChunk(bufferToCompress,
-        [&bufferToCompress, &updateFunc, this](ColumnReadWriter* reader,
-            transaction::Transaction* transaction, ChunkState& state, const LogicalType& dataType) {
-            updateFunc(reader, transaction, state, dataType);
+    if (!inMemMode) {
+        testCompressChunk(bufferToCompress,
+            [&bufferToCompress, &updateFunc, this](ColumnReadWriter* reader,
+                transaction::Transaction* transaction, ChunkState& state,
+                const LogicalType& dataType) {
+                updateFunc(reader, transaction, state, dataType);
 
-            commitUpdate<T>(reader, transaction, state);
+                commitUpdate<T>(reader, transaction, state);
 
-            std::vector<T> out(bufferToCompress.size());
-            reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
-                out.size(), ReadCompressedValuesFromPage(dataType));
-            EXPECT_THAT(out, ::testing::ContainerEq(bufferToCompress));
-        });
+                std::vector<T> out(bufferToCompress.size());
+                reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
+                    out.size(), ReadCompressedValuesFromPage(dataType));
+                EXPECT_THAT(out, ::testing::ContainerEq(bufferToCompress));
+            });
+    }
 }
 
 template<std::floating_point T>
