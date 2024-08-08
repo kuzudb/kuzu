@@ -122,9 +122,6 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         posInLastCSR = csrNodeGroupScanState.nextRowToScan;
         currCSRSize = relScanState.nodeGroup->cast<CSRNodeGroup>().getCSRLength(
             csrNodeGroupScanState, curNodeOffset - startNodeOffset);
-        // Accommodate for gaps in persistent data scan
-        relScanState.currentCSROffset +=
-            csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
     } break;
     case TableScanSource::UNCOMMITTED: {
         posInLastCSR = relScanState.localTableScanState->nextRowToScan;
@@ -150,6 +147,13 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     // This assumes nodeIDVector is initially unfiltered
     nodeIDSelVector.getMultableBuffer()[0] = nodeIDSelVector[relScanState.currNodeIdx];
     nodeIDSelVector.setToFiltered(1);
+    if (relScanState.source == TableScanSource::COMMITTED) {
+        // Accommodate for gaps in persistent data scan
+        auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
+        auto& csrNodeGroupScanState =
+            relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
+        relScanState.currentCSROffset += csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
+    }
     if (relScanState.currentCSROffset == 0) {
         currCSRSize -= posInLastCSR;
     }
