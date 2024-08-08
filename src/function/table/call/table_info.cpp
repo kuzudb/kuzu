@@ -56,7 +56,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
                 continue;
             }
         }
-        dataChunk.getValueVector(0)->setValue(vectorPos, tableEntry->getPropertyIdx(property.getName()));
+        dataChunk.getValueVector(0)->setValue(vectorPos,
+            tableEntry->getPropertyIdx(property.getName()));
         dataChunk.getValueVector(1)->setValue(vectorPos, property.getName());
         dataChunk.getValueVector(2)->setValue(vectorPos, property.getType().toString());
 

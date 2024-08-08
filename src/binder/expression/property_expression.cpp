@@ -16,7 +16,8 @@ std::unique_ptr<PropertyExpression> PropertyExpression::construct(LogicalType ty
     // Assign an invalid property id for virtual property.
     common::table_id_map_t<SingleLabelPropertyInfo> infos;
     for (auto& tableID : patternExpr.getTableIDs()) {
-        infos.insert({tableID, SingleLabelPropertyInfo(false /* exists */, false /* isPrimaryKey */)});
+        infos.insert(
+            {tableID, SingleLabelPropertyInfo(false /* exists */, false /* isPrimaryKey */)});
     }
     return std::make_unique<PropertyExpression>(std::move(type), propertyName, uniqueName,
         variableName, std::move(infos));
