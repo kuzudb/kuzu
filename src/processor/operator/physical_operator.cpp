@@ -179,8 +179,12 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
     }
     metrics->executionTime.start();
     auto result = getNextTuplesInternal(context);
+#if KUZU_TSAN
+#if !defined(__has_feature) || !__has_feature(thread_sanitizer)
     context->clientContext->getProgressBar()->updateProgress(context->queryID,
         getProgress(context));
+#endif
+#endif
     metrics->executionTime.stop();
     return result;
 }
