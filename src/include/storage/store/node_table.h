@@ -2,12 +2,11 @@
 
 #include <cstdint>
 
+#include "common/exception/not_implemented.h"
 #include "common/types/types.h"
-#include "processor/operator/mask.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_group_collection.h"
 #include "storage/store/table.h"
-#include <common/exception/not_implemented.h>
 
 namespace kuzu {
 namespace evaluator {
@@ -26,25 +25,21 @@ class Transaction;
 namespace storage {
 
 struct NodeTableScanState final : TableScanState {
-    processor::NodeSemiMask* semiMask;
-
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
-        : TableScanState{std::move(columnIDs), {}}, semiMask{nullptr} {
+        : TableScanState{std::move(columnIDs), {}} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 
     NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
         : TableScanState{std::move(columnIDs), std::move(columns),
-              std::vector<ColumnPredicateSet>{}},
-          semiMask{nullptr} {
+              std::vector<ColumnPredicateSet>{}} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
     NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
         std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)},
-          semiMask{nullptr} {
+        : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 };

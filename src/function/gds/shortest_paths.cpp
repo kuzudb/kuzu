@@ -83,7 +83,7 @@ public:
     explicit PathLengths(
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes) {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            masks.insert({tableID, std::make_unique<processor::MaskData>(numNodes, UNVISITED)});
+            masks.insert({tableID, std::make_unique<MaskData>(numNodes, UNVISITED)});
         }
     }
 
@@ -131,10 +131,10 @@ public:
 
 private:
     uint8_t curIter = 255;
-    common::table_id_map_t<std::unique_ptr<processor::MaskData>> masks;
+    common::table_id_map_t<std::unique_ptr<MaskData>> masks;
     common::table_id_t curFrontierFixedTableID;
-    processor::MaskData* curFrontierFixedMask;
-    processor::MaskData* nextFrontierFixedMask;
+    MaskData* curFrontierFixedMask;
+    MaskData* nextFrontierFixedMask;
 };
 
 class PathLengthsFrontiers : public Frontiers {
@@ -419,7 +419,7 @@ public:
             }
             auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
             for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
-                if (!mask->isMasked(offset)) {
+                if (!mask->isMasked(offset, offset)) {
                     continue;
                 }
                 auto sourceNodeID = nodeID_t{offset, tableID};

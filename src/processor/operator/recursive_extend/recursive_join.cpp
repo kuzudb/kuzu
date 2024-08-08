@@ -280,7 +280,7 @@ void RecursiveJoin::populateTargetDstNodes(ExecutionContext*) {
         auto numNodes = mask->getMaxOffset() + 1;
         if (mask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
-                if (mask->isMasked(offset)) {
+                if (mask->isMasked(offset, offset)) {
                     targetNodeIDs.insert(nodeID_t{offset, mask->getTableID()});
                     numTargetNodes++;
                 }
