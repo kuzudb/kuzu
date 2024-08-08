@@ -2,6 +2,15 @@
 
 --
 
+-CASE listContainsCast
+-STATEMENT CREATE NODE TABLE A(id SERIAL, primary key(id));
+---- ok
+-STATEMENT CREATE (:A), (:A);
+---- ok
+-STATEMENT MATCH (a:A) WHERE a.id IN [0] RETURN a.id;
+---- 1
+0
+
 -CASE 3870
 -STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY (id));
 ---- ok

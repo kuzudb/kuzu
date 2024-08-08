@@ -169,6 +169,17 @@ bool ExpressionUtil::isFalseLiteral(const Expression& expression) {
     return expression.constCast<LiteralExpression>().getValue().getValue<bool>() == false;
 }
 
+bool ExpressionUtil::isEmptyList(const kuzu::binder::Expression& expression) {
+    if (expression.expressionType != ExpressionType::LITERAL) {
+        return false;
+    }
+    auto val = expression.constCast<LiteralExpression>().getValue();
+    if (val.getDataType().getLogicalTypeID() != LogicalTypeID::LIST) {
+        return false;
+    }
+    return val.getChildrenSize() == 0;
+}
+
 void ExpressionUtil::validateExpressionType(const Expression& expr,
     common::ExpressionType expectedType) {
     if (expr.expressionType == expectedType) {

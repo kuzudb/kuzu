@@ -3,7 +3,6 @@
 --
 
 -CASE FunctionList
-
 -LOG ListReverse
 -STATEMENT RETURN list_reverse([1,2,3]),
             list_reverse(cast([1,2,3], 'INT32[]')),
@@ -441,6 +440,11 @@ ad
 1
 1
 3
+
+-LOG EmptyListContains
+-STATEMENT RETURN 'a' IN [];
+---- 1
+False
 
 -LOG ListConcatListOfInts
 -STATEMENT MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
@@ -2254,12 +2258,3 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1
 [[23,432],[],[]]
-
--CASE listContainsCast
--STATEMENT CREATE NODE TABLE A(id SERIAL, primary key(id));
----- ok
--STATEMENT CREATE (:A), (:A);
----- ok
--STATEMENT MATCH (a:A) WHERE a.id IN [0] RETURN a.id;
----- 1
-0
