@@ -152,7 +152,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(relScanState.nodeGroupIdx);
         auto& csrNodeGroupScanState =
             relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
-        relScanState.currentCSROffset += csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
+        relScanState.currentCSROffset +=
+            csrNodeGroupScanState.getGap(curNodeOffset - startNodeOffset);
     }
     if (relScanState.currentCSROffset == 0) {
         currCSRSize -= posInLastCSR;
