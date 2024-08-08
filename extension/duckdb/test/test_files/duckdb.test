@@ -199,7 +199,7 @@ Runtime exception: Database: dbfilewithoutext doesn't exist.
 -LOG AttachNotExistDBError
 -STATEMENT ATTACH 'not-exist.db' (dbtype duckdb);
 ---- error
-Runtime exception: 'not-exist.db' is not a valid duckdb database path.
+Runtime exception: Given duckdb database path not-exist.db does not exist.
 
 -CASE AttachDBWithoutLoadingExtension
 -STATEMENT ATTACH 'notexist.db' (dbtype duckdb);
