@@ -36,6 +36,7 @@ struct ExpressionUtil {
     static bool isRecursiveRelPattern(const Expression& expression);
     static bool isNullLiteral(const Expression& expression);
     static bool isFalseLiteral(const Expression& expression);
+    static bool isEmptyList(const Expression& expression);
 
     static void validateExpressionType(const Expression& expr, common::ExpressionType expectedType);
 
