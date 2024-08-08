@@ -258,7 +258,7 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
-void StringChunkData::flush(BMFileHandle& dataFH) {
+void StringChunkData::flush(FileHandle& dataFH) {
     ColumnChunkData::flush(dataFH);
     indexColumnChunk->flush(dataFH);
     dictionaryChunk->flush(dataFH);

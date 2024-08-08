@@ -110,7 +110,7 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
     void addColumn(transaction::Transaction* transaction, const TableAddColumnState& addColumnState,
-        bool enableCompression, BMFileHandle* dataFH);
+        bool enableCompression, FileHandle* dataFH);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
@@ -131,8 +131,8 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, BMFileHandle& dataFH) const;
-    virtual void flush(BMFileHandle& dataFH);
+        transaction::Transaction* transaction, FileHandle& dataFH) const;
+    virtual void flush(FileHandle& dataFH);
 
     uint64_t getEstimatedMemoryUsage() const;
 

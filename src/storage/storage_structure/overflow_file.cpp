@@ -5,10 +5,9 @@
 #include "common/constants.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
-#include "storage/storage_structure/db_file_utils.h"
+#include "storage/shadow_utils.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
@@ -163,7 +162,7 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     KU_ASSERT(vfs && bufferManager && context && shadowFile);
-    fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
+    fileHandle = bufferManager->getFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         vfs, context);
@@ -190,20 +189,21 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName)
 void OverflowFile::readFromDisk(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     KU_ASSERT(shadowFile);
-    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *getBMFileHandle(), pageIdx, *shadowFile, trxType);
+    auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
+        *getFileHandle(), pageIdx, *shadowFile, trxType);
     fileHandleToPin->optimisticReadPage(pageIdxToPin, func);
 }
 
 void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     if (pageIdx < numPagesOnDisk) {
         KU_ASSERT(shadowFile);
-        DBFileUtils::updatePage(*getBMFileHandle(), dbFileID, pageIdx,
+        ShadowUtils::updatePage(*getFileHandle(), dbFileID, pageIdx,
             true /* overwriting entire page*/, *shadowFile,
             [&](auto* frame) { memcpy(frame, data, BufferPoolConstants::PAGE_4KB_SIZE); });
     } else {
         KU_ASSERT(fileHandle);
-        fileHandle->writePage(data, pageIdx);
+        KU_ASSERT(!fileHandle->isInMemoryMode());
+        fileHandle->writePageToFile(data, pageIdx);
     }
 }
 

@@ -11,6 +11,7 @@ add_library(kuzu_storage
         OBJECT
         db_file_id.cpp
         file_handle.cpp
+        shadow_utils.cpp
         storage_manager.cpp
         storage_utils.cpp
         storage_version_info.cpp

@@ -7,11 +7,11 @@ namespace storage {
 
 class StructColumn final : public Column {
 public:
-    StructColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+    StructColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
-        BMFileHandle& dataFH);
+        FileHandle& dataFH);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,

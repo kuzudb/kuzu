@@ -1,8 +1,8 @@
 #pragma once
 
 #include "function/hash/hash_functions.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/db_file_id.h"
+#include "storage/file_handle.h"
 
 namespace kuzu {
 namespace storage {
@@ -36,7 +36,7 @@ public:
     common::page_idx_t getOrCreateShadowPage(DBFileID dbFileID, common::file_idx_t originalFile,
         common::page_idx_t originalPage);
 
-    BMFileHandle& getShadowingFH() const { return *shadowingFH; }
+    FileHandle& getShadowingFH() const { return *shadowingFH; }
 
     void replayShadowPageRecords(main::ClientContext& context) const;
 
@@ -50,7 +50,7 @@ private:
     void deserializeShadowPageRecords();
 
 private:
-    BMFileHandle* shadowingFH;
+    FileHandle* shadowingFH;
     // The map caches shadow page idxes for pages in original files.
     std::unordered_map<common::file_idx_t,
         std::unordered_map<common::page_idx_t, common::page_idx_t>>

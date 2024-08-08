@@ -6,7 +6,7 @@
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
-#include "storage/storage_structure/db_file_utils.h"
+#include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
 #include <bit>
@@ -16,7 +16,6 @@ namespace kuzu {
 namespace storage {
 
 class FileHandle;
-class BMFileHandle;
 class BufferManager;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
@@ -45,7 +44,7 @@ struct PageStorageInfo {
 };
 
 struct PIP {
-    PIP() : nextPipPageIdx{DBFileUtils::NULL_PAGE_IDX}, pageIdxs{} {}
+    PIP() : nextPipPageIdx{ShadowUtils::NULL_PAGE_IDX}, pageIdxs{} {}
 
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
@@ -100,7 +99,7 @@ struct PIPUpdates {
 class DiskArrayInternal {
 public:
     // Used when loading from file
-    DiskArrayInternal(BMFileHandle& fileHandle, DBFileID dbFileID,
+    DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
         const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
         ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing = false);
 
@@ -140,7 +139,7 @@ public:
     // caching is only beneficial when seeking from one element to another on the same page)
     //
     // The iterator is not locked, allowing multiple to be used at the same time, but access to
-    // individual pages is locked through the BMFileHandle. It will hang if you seek/pushback on the
+    // individual pages is locked through the FileHandle. It will hang if you seek/pushback on the
     // same page as another iterator in an overlapping scope.
     struct WriteIterator {
         DiskArrayInternal& diskArray;
@@ -239,7 +238,7 @@ private:
 
 protected:
     PageStorageInfo storageInfo;
-    BMFileHandle& fileHandle;
+    FileHandle& fileHandle;
     DBFileID dbFileID;
     const DiskArrayHeader& header;
     DiskArrayHeader& headerForWriteTrx;
@@ -266,7 +265,7 @@ public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
     // original file, but does not handle flushing them. BufferManager::flushAllDirtyPagesInFrames
     // should be called on this file handle exactly once during prepare commit.
-    DiskArray(BMFileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
+    DiskArray(FileHandle& fileHandle, DBFileID dbFileID, const DiskArrayHeader& headerForReadTrx,
         DiskArrayHeader& headerForWriteTrx, ShadowFile* shadowFile, bool bypassWAL = false)
         : diskArray(fileHandle, dbFileID, headerForReadTrx, headerForWriteTrx, shadowFile,
               sizeof(U), bypassWAL) {}

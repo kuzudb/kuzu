@@ -1,7 +1,6 @@
 add_library(kuzu_storage_buffer_manager
         OBJECT
         vm_region.cpp
-        bm_file_handle.cpp
         buffer_manager.cpp
         memory_manager.cpp)
 

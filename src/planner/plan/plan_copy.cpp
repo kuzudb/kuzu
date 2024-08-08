@@ -1,6 +1,5 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -25,16 +24,10 @@ static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& pla
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
     LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
-    const auto relTableEntry =
-        ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(copyFromInfo.tableEntry);
     // Partitioner for FWD direction rel data.
-    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::FWD /* keyIdx */,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::FWD /* keyIdx */));
     // Partitioner for BWD direction rel data.
-    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::BWD /* keyIdx */,
-        relTableEntry->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
-                                                                     ColumnDataFormat::CSR));
+    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::BWD /* keyIdx */));
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(info), copyFromInfo.copy(),
         plan.getLastOperator());
     partitioner->computeFactorizedSchema();

@@ -435,7 +435,7 @@ void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData)
     chunkData.cast<ListChunkData>().offsetColumnChunk = ColumnChunkData::deserialize(deSer);
 }
 
-void ListChunkData::flush(BMFileHandle& dataFH) {
+void ListChunkData::flush(FileHandle& dataFH) {
     ColumnChunkData::flush(dataFH);
     sizeColumnChunk->flush(dataFH);
     dataColumnChunk->flush(dataFH);

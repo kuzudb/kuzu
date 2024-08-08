@@ -45,7 +45,7 @@ public:
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<DictionaryChunk> deserialize(common::Deserializer& deSer);
 
-    void flush(BMFileHandle& dataFH);
+    void flush(FileHandle& dataFH);
 
 private:
     bool enableCompression;

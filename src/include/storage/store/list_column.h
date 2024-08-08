@@ -49,11 +49,11 @@ class ListColumn final : public Column {
     static constexpr size_t CHILD_COLUMN_COUNT = 3;
 
 public:
-    ListColumn(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+    ListColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
-        BMFileHandle& dataFH);
+        FileHandle& dataFH);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
