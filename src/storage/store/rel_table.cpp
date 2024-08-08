@@ -58,6 +58,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     auto& nodeSelVector = relScanState.boundNodeIDVector->state->getSelVector();
     relScanState.source = TableScanSource::NONE;
     relScanState.totalNodeIdx = nodeSelVector.getSelSize();
+    relScanState.currentCSROffset = 0;
+    relScanState.batchSize = 0;
     KU_ASSERT(relScanState.totalNodeIdx > 0);
     KU_ASSERT(relScanState.endNodeIdx == relScanState.currNodeIdx);
     KU_ASSERT(relScanState.endNodeIdx < relScanState.totalNodeIdx);
@@ -71,7 +73,6 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
         }
         return;
     }
-    relScanState.currentCSROffset = 0;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
                                  fwdRelTableData->getNodeGroup(nodeGroupIdx) :
@@ -98,9 +99,6 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     auto& outSelVector = relScanState.outputVectors[0]->state->getSelVectorUnsafe();
     auto& nodeIDSelVector = relScanState.boundNodeIDVector->state->getSelVectorUnsafe();
     nodeIDSelVector.setToUnfiltered(relScanState.totalNodeIdx);
-    if (relScanState.currNodeIdx == relScanState.totalNodeIdx) {
-        return false;
-    }
     // We reinitialize per node for in memory and local table data
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         if (relScanState.resetCommitted) {
@@ -108,6 +106,9 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
             relScanState.currNodeIdx = 0;
             relScanState.endNodeIdx = 0;
             relScanState.resetCommitted = false;
+        }
+        if (relScanState.currNodeIdx == relScanState.totalNodeIdx) {
+            return false;
         }
         initializeScanState(transaction, relScanState);
     }
