@@ -31,7 +31,7 @@ void LocalDuckDBConnector::connect(const std::string& dbPath, const std::string&
     main::ClientContext* context) {
     if (!context->getVFSUnsafe()->fileOrPathExists(dbPath, context)) {
         throw common::RuntimeException{
-            common::stringFormat("'{}' is not a valid duckdb database path.", dbPath)};
+            common::stringFormat("Given duckdb database path {} does not exist.", dbPath)};
     }
     duckdb::DBConfig dbConfig{true /* isReadOnly */};
     instance = std::make_unique<duckdb::DuckDB>(dbPath, &dbConfig);

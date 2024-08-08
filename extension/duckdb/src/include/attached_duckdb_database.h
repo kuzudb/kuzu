@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-class AttachedDuckDBDatabase : public main::AttachedDatabase {
+class AttachedDuckDBDatabase final : public main::AttachedDatabase {
 public:
     AttachedDuckDBDatabase(std::string dbName, std::string dbType,
         std::unique_ptr<extension::CatalogExtension> catalog,
