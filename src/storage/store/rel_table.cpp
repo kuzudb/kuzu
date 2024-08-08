@@ -108,6 +108,9 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
             relScanState.resetCommitted = false;
         }
         if (relScanState.currNodeIdx == relScanState.totalNodeIdx) {
+            // reset relScanState for next scan
+            relScanState.currNodeIdx = 0;
+            relScanState.endNodeIdx = 0;
             return false;
         }
         initializeScanState(transaction, relScanState);
