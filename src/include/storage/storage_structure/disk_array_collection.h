@@ -31,9 +31,8 @@ class DiskArrayCollection {
     static_assert(std::has_unique_object_representations_v<HeaderPage>);
 
 public:
-    DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID, BufferManager* bufferManager,
-        ShadowFile& shadowFile, common::page_idx_t firstHeaderPage = 0,
-        bool bypassShadowing = false);
+    DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile,
+        common::page_idx_t firstHeaderPage = 0, bool bypassShadowing = false);
 
     void checkpoint();
 
@@ -44,12 +43,6 @@ public:
         headerPagesOnDisk = headersForReadTrx.size();
     }
 
-    void rollbackInMemory() {
-        for (size_t i = 0; i < headersForWriteTrx.size(); i++) {
-            *headersForWriteTrx[i] = *headersForReadTrx[i];
-        }
-    }
-
     template<typename T>
     std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx) {
         KU_ASSERT(idx < numHeaders);
@@ -58,7 +51,7 @@ public:
         auto& writeHeader = headersForWriteTrx[idx / HeaderPage::NUM_HEADERS_PER_PAGE]
                                 ->headers[idx % HeaderPage::NUM_HEADERS_PER_PAGE];
         return std::make_unique<DiskArray<T>>(fileHandle, dbFileID, readHeader, writeHeader,
-            &bufferManager, &shadowFile, bypassShadowing);
+            &shadowFile, bypassShadowing);
     }
 
     size_t addDiskArray();
@@ -66,7 +59,6 @@ public:
 private:
     BMFileHandle& fileHandle;
     DBFileID dbFileID;
-    BufferManager& bufferManager;
     ShadowFile& shadowFile;
     bool bypassShadowing;
     common::page_idx_t headerPagesOnDisk;

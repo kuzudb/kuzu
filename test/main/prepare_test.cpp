@@ -237,6 +237,9 @@ TEST_F(ApiTest, issueTest4) {
 }
 
 TEST_F(ApiTest, PrepareExport) {
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
     auto newDBPath = databasePath + "/newdb";
     auto preparedStatement = conn->prepare("EXPORT DATABASE '" + newDBPath + '\'');
     auto result = conn->execute(preparedStatement.get());

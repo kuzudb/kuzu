@@ -69,8 +69,8 @@ class HashIndex final : public OnDiskHashIndex {
 public:
     HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
-        BufferManager& bufferManager, ShadowFile* shadowFile,
-        const HashIndexHeader& indexHeaderForReadTrx, HashIndexHeader& indexHeaderForWriteTrx);
+        ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
+        HashIndexHeader& indexHeaderForWriteTrx);
 
     ~HashIndex() override;
 
@@ -274,7 +274,6 @@ private:
 
 private:
     DBFileIDAndName dbFileIDAndName;
-    BufferManager& bm;
     ShadowFile* shadowFile;
     uint64_t headerPageIdx;
     BMFileHandle* fileHandle;
@@ -302,7 +301,7 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 
 class PrimaryKeyIndex {
 public:
-    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
+    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly, bool inMemMode,
         common::PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
@@ -377,9 +376,7 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory();
-    void rollbackInMemory();
     void checkpoint();
-    void prepareRollback();
     BMFileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
@@ -394,7 +391,6 @@ private:
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
     std::vector<HashIndexHeader> hashIndexHeadersForReadTrx;
     std::vector<HashIndexHeader> hashIndexHeadersForWriteTrx;
-    BufferManager& bufferManager;
     DBFileIDAndName dbFileIDAndName;
     ShadowFile& shadowFile;
     // Stores both primary and overflow slots

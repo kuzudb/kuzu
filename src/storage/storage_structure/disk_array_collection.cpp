@@ -3,7 +3,6 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_structure/db_file_utils.h"
 
 using namespace kuzu::common;
@@ -12,17 +11,15 @@ namespace kuzu {
 namespace storage {
 
 DiskArrayCollection::DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID,
-    BufferManager* bufferManager, ShadowFile& shadowFile, common::page_idx_t firstHeaderPage,
-    bool bypassShadowing)
-    : fileHandle{fileHandle}, dbFileID{dbFileID}, bufferManager{*bufferManager},
-      shadowFile{shadowFile}, bypassShadowing{bypassShadowing}, headerPageIndices{firstHeaderPage},
-      numHeaders{0} {
+    ShadowFile& shadowFile, page_idx_t firstHeaderPage, bool bypassShadowing)
+    : fileHandle{fileHandle}, dbFileID{dbFileID}, shadowFile{shadowFile},
+      bypassShadowing{bypassShadowing}, headerPageIndices{firstHeaderPage}, numHeaders{0} {
     if (fileHandle.getNumPages() > firstHeaderPage) {
         // Read headers from disk
-        common::page_idx_t headerPageIdx = firstHeaderPage;
+        page_idx_t headerPageIdx = firstHeaderPage;
         do {
-            bufferManager->optimisticRead(fileHandle, headerPageIdx, [&](auto* frame) {
-                HeaderPage* page = reinterpret_cast<HeaderPage*>(frame);
+            fileHandle.optimisticReadPage(headerPageIdx, [&](auto* frame) {
+                const auto page = reinterpret_cast<HeaderPage*>(frame);
                 headersForReadTrx.push_back(std::make_unique<HeaderPage>(*page));
                 headersForWriteTrx.push_back(std::make_unique<HeaderPage>(*page));
                 headerPageIdx = page->nextHeaderPage;
@@ -31,7 +28,7 @@ DiskArrayCollection::DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFi
             if (headerPageIdx != INVALID_PAGE_IDX) {
                 headerPageIndices.push_back(headerPageIdx);
             }
-        } while (headerPageIdx != common::INVALID_PAGE_IDX);
+        } while (headerPageIdx != INVALID_PAGE_IDX);
         headerPagesOnDisk = headersForReadTrx.size();
     } else {
         KU_ASSERT(fileHandle.getNumPages() == firstHeaderPage);
@@ -55,12 +52,12 @@ void DiskArrayCollection::checkpoint() {
         if (indexInMemory >= headerPagesOnDisk ||
             *headersForWriteTrx[indexInMemory] != *headersForReadTrx[indexInMemory]) {
             DBFileUtils::updatePage(fileHandle, dbFileID, *headerPageIdx,
-                true /*writing full page*/, bufferManager, shadowFile, [&](auto* frame) {
+                true /*writing full page*/, shadowFile, [&](auto* frame) {
                     memcpy(frame, headersForWriteTrx[indexInMemory].get(), sizeof(HeaderPage));
-                    if constexpr (sizeof(HeaderPage) < common::BufferPoolConstants::PAGE_4KB_SIZE) {
+                    if constexpr (sizeof(HeaderPage) < BufferPoolConstants::PAGE_4KB_SIZE) {
                         // Zero remaining data in the page
                         std::fill(frame + sizeof(HeaderPage),
-                            frame + common::BufferPoolConstants::PAGE_4KB_SIZE, 0);
+                            frame + BufferPoolConstants::PAGE_4KB_SIZE, 0);
                     }
                 });
         }

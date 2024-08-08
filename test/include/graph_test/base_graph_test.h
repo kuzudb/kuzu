@@ -34,7 +34,11 @@ public:
 
     virtual std::string getInputDir() = 0;
 
-    void TearDown() override { removeDir(databasePath); }
+    void TearDown() override {
+        if (!inMemMode) {
+            removeDir(databasePath);
+        }
+    }
 
     void createDBAndConn();
 
@@ -43,46 +47,52 @@ public:
     virtual void createConns(const std::set<std::string>& connNames);
 
     void initGraph() { initGraph(getInputDir()); }
-    void initGraph(std::string datasetDir);
+    void initGraph(const std::string& datasetDir) const;
 
-    void setIEDatabasePath(std::string filePath) { ieDBPath = filePath; }
+    void setIEDatabasePath(const std::string& filePath) { ieDBPath = filePath; }
     void removeIEDBPath() const {
         if (ieDBPath != "") {
-            auto lastSlashPos = ieDBPath.rfind('/');
-            auto deletePath = ieDBPath.substr(0, lastSlashPos);
+            const auto lastSlashPos = ieDBPath.rfind('/');
+            const auto deletePath = ieDBPath.substr(0, lastSlashPos);
             removeDir(deletePath);
         }
     }
 
 protected:
     // Static functions to access Database's non-public properties/interfaces.
-    static storage::BufferManager* getBufferManager(main::Database& database) {
+    static storage::BufferManager* getBufferManager(const main::Database& database) {
         return database.bufferManager.get();
     }
-    static common::VirtualFileSystem* getFileSystem(main::Database& database) {
+    static common::VirtualFileSystem* getFileSystem(const main::Database& database) {
         return database.vfs.get();
     }
 
     // Static functions to access Connection's non-public properties/interfaces.
-    static main::ClientContext* getClientContext(main::Connection& connection) {
+    static main::ClientContext* getClientContext(const main::Connection& connection) {
         return connection.clientContext.get();
     }
-    static void sortAndCheckTestResults(std::vector<std::string>& actualResult,
+    static void sortAndCheckTestResults(const std::vector<std::string>& actualResult,
         std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
 
-    std::string getTestGroupAndName() {
+    static std::string getTestGroupAndName() {
         const ::testing::TestInfo* const testInfo =
             ::testing::UnitTest::GetInstance()->current_test_info();
         return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
     }
 
 private:
-    void setDatabasePath() { databasePath = TestHelper::getTempDir(getTestGroupAndName()); }
+    void setDatabasePath() {
+        auto isValid = [](const char* env) { return env != nullptr && strlen(env) > 0; };
+        const auto inMemModeEnv = std::getenv("IN_MEM_MODE");
+        inMemMode = isValid(inMemModeEnv) ? std::string(inMemModeEnv) == "true" : false;
+        databasePath = inMemMode ? "" : TestHelper::getTempDir(getTestGroupAndName());
+    }
 
 public:
+    bool inMemMode = true;
     std::string databasePath;
     std::unique_ptr<main::SystemConfig> systemConfig;
     std::unique_ptr<main::Database> database;

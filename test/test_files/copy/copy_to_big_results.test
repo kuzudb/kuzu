@@ -1,5 +1,5 @@
 -DATASET CSV copy-test/node/csv
-
+-SKIP_IN_MEM
 --
 
 -CASE CopyBigResults

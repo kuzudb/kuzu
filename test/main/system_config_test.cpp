@@ -22,6 +22,11 @@ TEST_F(SystemConfigTest, testAccessMode) {
     assertQuery(*con->query("MATCH (:Person1) RETURN COUNT(*)"));
     db.reset();
     systemConfig->readOnly = true;
+    if (databasePath == "" || databasePath == ":memory:") {
+        EXPECT_THROW(auto db2 = std::make_unique<Database>("", *systemConfig), Exception);
+        EXPECT_THROW(auto db2 = std::make_unique<Database>(":memory:", *systemConfig), Exception);
+        return;
+    }
     std::unique_ptr<Database> db2;
     std::unique_ptr<Connection> con2;
     EXPECT_NO_THROW(db2 = std::make_unique<Database>(databasePath, *systemConfig));

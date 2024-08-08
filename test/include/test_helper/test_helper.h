@@ -1,8 +1,8 @@
 #pragma once
 
 #include <filesystem>
-#include <memory>
 
+#include "common/string_utils.h"
 #include "main/kuzu.h"
 
 namespace kuzu {
@@ -34,7 +34,7 @@ public:
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false);
 
-    static void executeScript(const std::string& path, main::Connection& conn);
+    static void executeScript(const std::string& cypherScript, main::Connection& conn);
 
     static std::string getTestListFile() {
         return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");
@@ -50,30 +50,30 @@ public:
 
     static std::unique_ptr<main::SystemConfig> getSystemConfigFromEnv() {
         auto systemConfig = std::make_unique<main::SystemConfig>();
-        auto autoCheckpointEnv = std::getenv("AUTO_CHECKPOINT");
-        auto bufferPoolSizeEnv = std::getenv("BUFFER_POOL_SIZE");
-        auto maxNumThreadsEnv = std::getenv("MAX_NUM_THREADS");
-        auto enableCompressionEnv = std::getenv("ENABLE_COMPRESSION");
-        auto checkpointThresholdEnv = std::getenv("CHECKPOINT_THRESHOLD");
-        auto isValid = [](const char* env) { return env != nullptr && strlen(env) > 0; };
+        auto autoCheckpointEnv = getSystemEnv("AUTO_CHECKPOINT");
+        auto bufferPoolSizeEnv = getSystemEnv("BUFFER_POOL_SIZE");
+        auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
+        auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
+        auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
         systemConfig->autoCheckpoint =
-            isValid(autoCheckpointEnv) ? std::string(autoCheckpointEnv) == "true" : false;
+            autoCheckpointEnv.empty() ? false : std::string(autoCheckpointEnv) == "true";
         systemConfig->bufferPoolSize =
-            isValid(bufferPoolSizeEnv) ?
-                std::stoull(bufferPoolSizeEnv) :
-                common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
-        systemConfig->maxNumThreads = isValid(maxNumThreadsEnv) ? std::stoull(maxNumThreadsEnv) : 2;
-        systemConfig->enableCompression =
-            isValid(enableCompressionEnv) ? std::string(enableCompressionEnv) == "true" : true;
-        systemConfig->checkpointThreshold = isValid(checkpointThresholdEnv) ?
-                                                std::stoull(checkpointThresholdEnv) :
-                                                systemConfig->checkpointThreshold;
+            bufferPoolSizeEnv.empty() ?
+                common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
+                std::stoull(bufferPoolSizeEnv);
+        systemConfig->maxNumThreads = maxNumThreadsEnv.empty() ? 2 : std::stoull(maxNumThreadsEnv);
+        if (!enableCompressionEnv.empty()) {
+            systemConfig->enableCompression = enableCompressionEnv == "true";
+        }
+        systemConfig->checkpointThreshold = checkpointThresholdEnv.empty() ?
+                                                systemConfig->checkpointThreshold :
+                                                std::stoull(checkpointThresholdEnv);
         return systemConfig;
     }
 
     static std::string getMillisecondsSuffix();
 
-    inline static std::filesystem::path getTempDir() {
+    static std::filesystem::path getTempDir() {
         auto tempDir = std::getenv("RUNNER_TEMP");
         if (tempDir != nullptr) {
             return std::filesystem::path(tempDir) / "kuzu";
@@ -82,8 +82,8 @@ public:
         }
     }
 
-    inline static std::string getTempDir(const std::string& name) {
-        auto path = getTempDir() / (name + TestHelper::getMillisecondsSuffix());
+    static std::string getTempDir(const std::string& name) {
+        const auto path = getTempDir() / (name + getMillisecondsSuffix());
         std::filesystem::create_directories(path);
         auto pathStr = path.string();
 #ifdef _WIN32
@@ -91,6 +91,17 @@ public:
         std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
 #endif
         return pathStr;
+    }
+
+    static bool isSystemEnvValid(const char* env) { return env != nullptr && strlen(env) > 0; }
+    static std::string getSystemEnv(const char* key) {
+        const auto env = std::getenv(key);
+        if (isSystemEnvValid(env)) {
+            auto envStr = std::string(env);
+            common::StringUtils::toLower(envStr);
+            return envStr;
+        }
+        return "";
     }
 
 private:

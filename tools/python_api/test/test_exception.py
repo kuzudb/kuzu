@@ -4,6 +4,7 @@ import sys
 
 import kuzu
 import pytest
+
 from type_aliases import ConnDB
 
 
@@ -18,13 +19,12 @@ def test_exception(conn_db_readonly: ConnDB) -> None:
 
 
 def test_db_path_exception() -> None:
-    path = ""
+    path = ":memory:"
     error_message = (
-        "IO exception: Failed to create directory  due to: IO exception: Directory  cannot be created. "
-        "Check if it exists and remove it."
+        "Cannot open an in-memory database under READ ONLY mode."
     )
     with pytest.raises(RuntimeError, match=error_message):
-        kuzu.Database(path)
+        kuzu.Database(path, read_only=True)
 
 
 def test_read_only_exception(conn_db_readonly: ConnDB) -> None:

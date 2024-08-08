@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -10,7 +11,6 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/in_mem_page.h"
@@ -140,7 +140,6 @@ protected:
     common::page_idx_t numPagesOnDisk;
     DBFileID dbFileID;
     BMFileHandle* fileHandle;
-    BufferManager* bufferManager;
     ShadowFile* shadowFile;
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;

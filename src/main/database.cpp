@@ -1,6 +1,7 @@
 #include "main/database.h"
 
 #include "main/database_manager.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -79,11 +80,11 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     bufferManager =
         std::make_unique<BufferManager>(this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get(), nullptr);
-    queryProcessor = std::make_unique<processor::QueryProcessor>(this->dbConfig.maxNumThreads);
+    queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
     initAndLockDBDir();
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
-    storageManager = std::make_unique<StorageManager>(this->databasePath, systemConfig.readOnly,
-        *catalog, *memoryManager, systemConfig.enableCompression, vfs.get(), &clientContext);
+    storageManager = std::make_unique<StorageManager>(dbPathStr, dbConfig.readOnly, *catalog,
+        *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     StorageManager::recover(clientContext);
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
@@ -118,7 +119,7 @@ void Database::addExtensionOption(std::string name, LogicalTypeID type, Value de
     extensionOptions->addExtensionOption(name, type, std::move(defaultValue));
 }
 
-ExtensionOption* Database::getExtensionOption(std::string name) {
+ExtensionOption* Database::getExtensionOption(std::string name) const {
     return extensionOptions->getExtensionOption(std::move(name));
 }
 
@@ -139,6 +140,12 @@ void Database::openLockFile() {
 }
 
 void Database::initAndLockDBDir() {
+    if (DBConfig::isDBPathInMemory(databasePath)) {
+        if (dbConfig.readOnly) {
+            throw Exception("Cannot open an in-memory database under READ ONLY mode.");
+        }
+        return;
+    }
     if (!vfs->fileOrPathExists(databasePath)) {
         if (dbConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");

@@ -44,6 +44,11 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     // Now, access the same database read-only.
     systemConfig.read_only = true;
     state = kuzu_database_init(databasePathCStr, systemConfig, &database);
+    if (databasePath == "" || databasePath == ":memory:") {
+        ASSERT_EQ(state, KuzuError);
+        ASSERT_EQ(database._database, nullptr);
+        return;
+    }
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(database._database, nullptr);
     databaseCpp = static_cast<Database*>(database._database);
@@ -61,12 +66,17 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     kuzu_database_destroy(&database);
 }
 
-TEST_F(CApiDatabaseTest, CreationInvalidPath) {
+TEST_F(CApiDatabaseTest, CreationInMemory) {
     kuzu_database database;
     kuzu_state state;
     auto databasePathCStr = (char*)"";
     state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
-    ASSERT_EQ(state, KuzuError);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_database_destroy(&database);
+    databasePathCStr = (char*)":memory:";
+    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_database_destroy(&database);
 }
 
 TEST_F(CApiDatabaseTest, CreationHomeDir) {

@@ -49,6 +49,10 @@ void BufferedFileWriter::flush() {
     memset(buffer.get(), 0, BUFFER_SIZE);
 }
 
+void BufferedFileWriter::sync() {
+    fileInfo.syncFile();
+}
+
 uint64_t BufferedFileWriter::getFileSize() const {
     return fileInfo.getFileSize() + bufferOffset;
 }

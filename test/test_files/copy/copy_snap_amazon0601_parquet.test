@@ -1,5 +1,5 @@
 -DATASET CSV snap/amazon0601/parquet
-
+-SKIP_IN_MEM
 --
 
 -CASE CopySNAPAmazon0601Parquet

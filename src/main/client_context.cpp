@@ -44,9 +44,9 @@ void ActiveQuery::reset() {
 
 ClientContext::ClientContext(Database* database)
     : dbConfig{database->dbConfig}, localDatabase{database} {
-    progressBar = std::make_unique<common::ProgressBar>();
+    progressBar = std::make_unique<ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(*this);
-    randomEngine = std::make_unique<common::RandomEngine>();
+    randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
 #if defined(_WIN32)
     clientConfig.homeDirectory = getEnvVariable("USERPROFILE");

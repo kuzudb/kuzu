@@ -70,11 +70,9 @@ public:
     bool shouldAppendToUndoBuffer() const {
         return getID() > DUMMY_TRANSACTION_ID && !isReadOnly();
     }
-    bool shouldLogToWAL() const {
-        // When we are in recovery mode, we don't log to WAL.
-        return !isRecovery();
-    }
-    bool shouldForceCheckpoint() const { return forceCheckpoint; }
+    bool shouldLogToWAL() const;
+
+    bool shouldForceCheckpoint() const;
 
     void commit(storage::WAL* wal) const;
     void rollback(storage::WAL* wal) const;

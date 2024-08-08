@@ -22,9 +22,9 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "function/built_in_function_utils.h"
+#include "main/db_config.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
-#include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::binder;
@@ -43,16 +43,20 @@ Catalog::Catalog() {
     registerBuiltInFunctions();
 }
 
-Catalog::Catalog(std::string directory, VirtualFileSystem* fs) {
-    if (fs->fileOrPathExists(
-            StorageUtils::getCatalogFilePath(fs, directory, FileVersionType::ORIGINAL))) {
-        readFromFile(directory, fs, FileVersionType::ORIGINAL);
+Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
+    const auto isInMemMode = main::DBConfig::isDBPathInMemory(directory);
+    if (!isInMemMode && vfs->fileOrPathExists(StorageUtils::getCatalogFilePath(vfs, directory,
+                            FileVersionType::ORIGINAL))) {
+        readFromFile(directory, vfs, FileVersionType::ORIGINAL);
     } else {
         tables = std::make_unique<CatalogSet>();
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
-        saveToFile(directory, fs, FileVersionType::ORIGINAL);
+        if (!isInMemMode) {
+            // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
+            saveToFile(directory, vfs, FileVersionType::ORIGINAL);
+        }
     }
     registerBuiltInFunctions();
 }
@@ -222,12 +226,12 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
     return tableID;
 }
 
-void Catalog::dropTableEntry(transaction::Transaction* tx, std::string name) {
+void Catalog::dropTableEntry(Transaction* tx, std::string name) {
     auto tableID = getTableID(tx, name);
     dropTableEntry(tx, tableID);
 }
 
-void Catalog::dropTableEntry(transaction::Transaction* tx, common::table_id_t tableID) {
+void Catalog::dropTableEntry(Transaction* tx, table_id_t tableID) {
     auto tableEntry = getTableCatalogEntry(tx, tableID);
     switch (tableEntry->getType()) {
     case CatalogEntryType::REL_GROUP_ENTRY: {
@@ -260,7 +264,7 @@ void Catalog::dropTableEntry(transaction::Transaction* tx, common::table_id_t ta
     tables->dropEntry(tx, tableEntry->getName());
 }
 
-void Catalog::alterTableEntry(transaction::Transaction* tx, const binder::BoundAlterInfo& info) {
+void Catalog::alterTableEntry(Transaction* tx, const BoundAlterInfo& info) {
     auto tableEntry = getTableCatalogEntry(tx, info.tableID);
     KU_ASSERT(tableEntry);
     if (tableEntry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY &&
@@ -316,7 +320,7 @@ void Catalog::dropSequence(Transaction* transaction, std::string name) {
     dropSequence(transaction, sequenceID);
 }
 
-void Catalog::dropSequence(Transaction* transaction, common::sequence_id_t sequenceID) {
+void Catalog::dropSequence(Transaction* transaction, sequence_id_t sequenceID) {
     auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
     sequences->dropEntry(transaction, sequenceEntry->getName());
 }
@@ -420,6 +424,7 @@ std::vector<std::string> Catalog::getMacroNames(Transaction* transaction) const 
 }
 
 void Catalog::checkpoint(const std::string& databasePath, VirtualFileSystem* fs) const {
+    KU_ASSERT(!databasePath.empty());
     saveToFile(databasePath, fs, FileVersionType::WAL_VERSION);
 }
 
@@ -456,6 +461,7 @@ static void writeMagicBytes(Serializer& serializer) {
 
 void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     FileVersionType versionType) const {
+    KU_ASSERT(!directory.empty());
     const auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
     const auto catalogFile = fs->openFile(catalogPath, O_WRONLY | O_CREAT);
     Serializer serializer(std::make_unique<BufferedFileWriter>(*catalogFile));
@@ -469,6 +475,7 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
 
 void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     FileVersionType versionType, main::ClientContext* context) {
+    KU_ASSERT(!directory.empty());
     const auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
     Deserializer deserializer(
         std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY, context)));
@@ -529,7 +536,7 @@ void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* 
 }
 
 std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_id_t tableID,
-    const binder::BoundCreateTableInfo& info) const {
+    const BoundCreateTableInfo& info) const {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->primaryKeyIdx);
@@ -542,7 +549,7 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_
 }
 
 std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*, table_id_t tableID,
-    const binder::BoundCreateTableInfo& info) const {
+    const BoundCreateTableInfo& info) const {
     auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
@@ -556,7 +563,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*, table_i
 }
 
 std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* transaction,
-    table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    table_id_t tableID, const BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRelTableGroupInfo*>(
             info.extraInfo.get());
@@ -571,7 +578,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* tra
 }
 
 std::unique_ptr<CatalogEntry> Catalog::createRdfGraphEntry(Transaction* transaction,
-    table_id_t tableID, const binder::BoundCreateTableInfo& info) {
+    table_id_t tableID, const BoundCreateTableInfo& info) {
     auto extraInfo =
         ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, BoundExtraCreateRdfGraphInfo*>(
             info.extraInfo.get());

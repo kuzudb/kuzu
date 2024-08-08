@@ -7,6 +7,7 @@
 #include "storage/store/version_info.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
+#include <main/db_config.h>
 
 using namespace kuzu::catalog;
 
@@ -23,10 +24,19 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
 
+bool Transaction::shouldLogToWAL() const {
+    // When we are in recovery mode, we don't log to WAL.
+    return !isRecovery() && !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath());
+}
+
+bool Transaction::shouldForceCheckpoint() const {
+    return !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath()) && forceCheckpoint;
+}
+
 void Transaction::commit(storage::WAL* wal) const {
     localStorage->commit();
     undoBuffer->commit(commitTS);
-    if (isWriteTransaction()) {
+    if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logAndFlushCommit();
     }
@@ -35,7 +45,7 @@ void Transaction::commit(storage::WAL* wal) const {
 void Transaction::rollback(storage::WAL* wal) const {
     localStorage->rollback();
     undoBuffer->rollback();
-    if (isWriteTransaction()) {
+    if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();
     }

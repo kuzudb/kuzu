@@ -5,6 +5,10 @@
 #include "common/cast.h"
 #include "function/function.h"
 
+namespace kuzu::main {
+struct DBConfig;
+} // namespace kuzu::main
+
 namespace kuzu {
 namespace main {
 class AttachedKuzuDatabase;
@@ -47,53 +51,61 @@ class KUZU_API Catalog {
 public:
     // This is extended by DuckCatalog and PostgresCatalog.
     Catalog();
-    Catalog(std::string directory, common::VirtualFileSystem* vfs);
+    Catalog(const std::string& directory, common::VirtualFileSystem* vfs);
     virtual ~Catalog() = default;
 
     // ----------------------------- Table Schemas ----------------------------
-    bool containsTable(transaction::Transaction* tx, const std::string& tableName) const;
+    bool containsTable(transaction::Transaction* transaction, const std::string& tableName) const;
 
-    common::table_id_t getTableID(transaction::Transaction* tx, const std::string& tableName) const;
-    std::vector<common::table_id_t> getNodeTableIDs(transaction::Transaction* tx) const;
-    std::vector<common::table_id_t> getRelTableIDs(transaction::Transaction* tx) const;
+    common::table_id_t getTableID(transaction::Transaction* transaction,
+        const std::string& tableName) const;
+    std::vector<common::table_id_t> getNodeTableIDs(transaction::Transaction* transaction) const;
+    std::vector<common::table_id_t> getRelTableIDs(transaction::Transaction* transaction) const;
 
     // TODO: Should remove this.
-    std::string getTableName(transaction::Transaction* tx, common::table_id_t tableID) const;
-    TableCatalogEntry* getTableCatalogEntry(transaction::Transaction* tx,
+    std::string getTableName(transaction::Transaction* transaction,
         common::table_id_t tableID) const;
-    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(transaction::Transaction* tx) const;
-    std::vector<RelTableCatalogEntry*> getRelTableEntries(transaction::Transaction* tx) const;
-    std::vector<RelGroupCatalogEntry*> getRelTableGroupEntries(transaction::Transaction* tx) const;
-    std::vector<RDFGraphCatalogEntry*> getRdfGraphEntries(transaction::Transaction* tx) const;
-    std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx) const;
-    std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* tx,
+    TableCatalogEntry* getTableCatalogEntry(transaction::Transaction* transaction,
+        common::table_id_t tableID) const;
+    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(
+        transaction::Transaction* transaction) const;
+    std::vector<RelTableCatalogEntry*> getRelTableEntries(
+        transaction::Transaction* transaction) const;
+    std::vector<RelGroupCatalogEntry*> getRelTableGroupEntries(
+        transaction::Transaction* transaction) const;
+    std::vector<RDFGraphCatalogEntry*> getRdfGraphEntries(
+        transaction::Transaction* transaction) const;
+    std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* transaction) const;
+    std::vector<TableCatalogEntry*> getTableEntries(transaction::Transaction* transaction,
         const common::table_id_vector_t& tableIDs) const;
-    bool tableInRDFGraph(transaction::Transaction* tx, common::table_id_t tableID) const;
-    bool tableInRelGroup(transaction::Transaction* tx, common::table_id_t tableID) const;
-    common::table_id_set_t getFwdRelTableIDs(transaction::Transaction* tx,
+    bool tableInRDFGraph(transaction::Transaction* transaction, common::table_id_t tableID) const;
+    bool tableInRelGroup(transaction::Transaction* transaction, common::table_id_t tableID) const;
+    common::table_id_set_t getFwdRelTableIDs(transaction::Transaction* transaction,
         common::table_id_t nodeTableID) const;
-    common::table_id_set_t getBwdRelTableIDs(transaction::Transaction* tx,
+    common::table_id_set_t getBwdRelTableIDs(transaction::Transaction* transaction,
         common::table_id_t nodeTableID) const;
 
-    common::table_id_t createTableSchema(transaction::Transaction* tx,
+    common::table_id_t createTableSchema(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
-    void dropTableEntry(transaction::Transaction* tx, std::string name);
-    void dropTableEntry(transaction::Transaction* tx, common::table_id_t tableID);
-    void alterTableEntry(transaction::Transaction* tx, const binder::BoundAlterInfo& info);
+    void dropTableEntry(transaction::Transaction* transaction, std::string name);
+    void dropTableEntry(transaction::Transaction* transaction, common::table_id_t tableID);
+    void alterTableEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& info);
 
     // ----------------------------- Sequences ----------------------------
-    bool containsSequence(transaction::Transaction* tx, const std::string& sequenceName) const;
-
-    common::sequence_id_t getSequenceID(transaction::Transaction* tx,
+    bool containsSequence(transaction::Transaction* transaction,
         const std::string& sequenceName) const;
-    SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* tx,
-        common::sequence_id_t sequenceID) const;
-    std::vector<SequenceCatalogEntry*> getSequenceEntries(transaction::Transaction* tx) const;
 
-    common::sequence_id_t createSequence(transaction::Transaction* tx,
+    common::sequence_id_t getSequenceID(transaction::Transaction* transaction,
+        const std::string& sequenceName) const;
+    SequenceCatalogEntry* getSequenceCatalogEntry(transaction::Transaction* transaction,
+        common::sequence_id_t sequenceID) const;
+    std::vector<SequenceCatalogEntry*> getSequenceEntries(
+        transaction::Transaction* transaction) const;
+
+    common::sequence_id_t createSequence(transaction::Transaction* transaction,
         const binder::BoundCreateSequenceInfo& info);
-    void dropSequence(transaction::Transaction* tx, std::string name);
-    void dropSequence(transaction::Transaction* tx, common::sequence_id_t sequenceID);
+    void dropSequence(transaction::Transaction* transaction, std::string name);
+    void dropSequence(transaction::Transaction* transaction, common::sequence_id_t sequenceID);
 
     static std::string genSerialName(const std::string& tableName, const std::string& propertyName);
 
@@ -104,21 +116,22 @@ public:
     bool containsType(transaction::Transaction* transaction, const std::string& typeName);
 
     // ----------------------------- Functions ----------------------------
-    void addFunction(transaction::Transaction* tx, CatalogEntryType entryType, std::string name,
-        function::function_set functionSet);
-    void dropFunction(transaction::Transaction* tx, const std::string& name);
+    void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
+        std::string name, function::function_set functionSet);
+    void dropFunction(transaction::Transaction* transaction, const std::string& name);
     void addBuiltInFunction(CatalogEntryType entryType, std::string name,
         function::function_set functionSet);
-    CatalogSet* getFunctions(transaction::Transaction* tx) const;
-    CatalogEntry* getFunctionEntry(transaction::Transaction* tx, const std::string& name);
-    std::vector<FunctionCatalogEntry*> getFunctionEntries(transaction::Transaction* tx) const;
+    CatalogSet* getFunctions(transaction::Transaction* transaction) const;
+    CatalogEntry* getFunctionEntry(transaction::Transaction* transaction, const std::string& name);
+    std::vector<FunctionCatalogEntry*> getFunctionEntries(
+        transaction::Transaction* transaction) const;
 
-    bool containsMacro(transaction::Transaction* tx, const std::string& macroName) const;
-    void addScalarMacroFunction(transaction::Transaction* tx, std::string name,
+    bool containsMacro(transaction::Transaction* transaction, const std::string& macroName) const;
+    void addScalarMacroFunction(transaction::Transaction* transaction, std::string name,
         std::unique_ptr<function::ScalarMacroFunction> macro);
-    function::ScalarMacroFunction* getScalarMacroFunction(transaction::Transaction* tx,
+    function::ScalarMacroFunction* getScalarMacroFunction(transaction::Transaction* transaction,
         const std::string& name) const;
-    std::vector<std::string> getMacroNames(transaction::Transaction* tx) const;
+    std::vector<std::string> getMacroNames(transaction::Transaction* transaction) const;
 
     void checkpoint(const std::string& databasePath, common::VirtualFileSystem* fs) const;
 

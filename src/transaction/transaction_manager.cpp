@@ -17,8 +17,8 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     main::ClientContext& clientContext, TransactionType type) {
     // We obtain the lock for starting new transactions. In case this cannot be obtained this
     // ensures calls to other public functions is not restricted.
-    lock_t newTransactionLck{mtxForStartingNewTransactions};
-    lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
+    std::unique_lock<std::mutex> newTransactionLck{mtxForStartingNewTransactions};
+    std::unique_lock<std::mutex> publicFunctionLck{mtxForSerializingPublicFunctionCalls};
     std::unique_ptr<Transaction> transaction;
     switch (type) {
     case TransactionType::READ_ONLY: {
@@ -37,7 +37,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
             std::make_unique<Transaction>(clientContext, type, ++lastTransactionID, lastTimestamp);
         activeWriteTransactions.insert(transaction->getID());
         KU_ASSERT(clientContext.getStorageManager());
-        if (transaction->isWriteTransaction()) {
+        if (transaction->shouldLogToWAL()) {
             clientContext.getStorageManager()->getWAL().logBeginTransaction();
         }
     } break;
@@ -49,7 +49,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
 }
 
 void TransactionManager::commit(main::ClientContext& clientContext) {
-    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
     switch (transaction->getType()) {
@@ -77,7 +77,7 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
 // still.
 void TransactionManager::rollback(main::ClientContext& clientContext,
     const Transaction* transaction) {
-    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
@@ -95,7 +95,10 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
 }
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
-    lock_t lck{mtxForSerializingPublicFunctionCalls};
+    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+        return;
+    }
     checkpointNoLock(clientContext);
 }
 
@@ -126,6 +129,9 @@ void TransactionManager::allowReceivingNewTransactions() {
 }
 
 bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+        return false;
+    }
     if (!clientContext.getDBConfig()->autoCheckpoint) {
         return false;
     }

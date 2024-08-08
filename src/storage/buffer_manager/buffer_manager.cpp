@@ -22,7 +22,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
+bool EvictionQueue::insert(uint32_t fileIndex, page_idx_t pageIndex) {
     EvictionCandidate candidate{fileIndex, pageIndex};
     while (size < capacity) {
         // Weak is fine since spurious failure is acceptable.
@@ -76,8 +76,8 @@ BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
       usedMemory{evictionQueue.getCapacity() * sizeof(EvictionCandidate)} {
     verifySizeParams(bufferPoolSize, maxDBSize);
     vmRegions.resize(2);
-    vmRegions[0] = std::make_unique<VMRegion>(PageSizeClass::PAGE_4KB, maxDBSize);
-    vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
+    vmRegions[0] = std::make_unique<VMRegion>(PAGE_4KB, maxDBSize);
+    vmRegions[1] = std::make_unique<VMRegion>(PAGE_256KB, bufferPoolSize);
 }
 
 void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
@@ -172,7 +172,7 @@ void handleAccessViolation(unsigned int exceptionCode, PEXCEPTION_POINTERS excep
 
 // Returns true if the function completes successfully
 inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
-    const std::vector<std::unique_ptr<VMRegion>>& vmRegions, common::PageSizeClass pageSizeClass) {
+    const std::vector<std::unique_ptr<VMRegion>>& vmRegions, PageSizeClass pageSizeClass) {
 #if defined(_WIN32)
     try {
 #endif
@@ -238,7 +238,7 @@ void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
 
 // evicts up to 64 pages and returns the space reclaimed
 uint64_t BufferManager::evictPages() {
-    const size_t BATCH_SIZE = 64;
+    constexpr size_t BATCH_SIZE = 64;
     std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates;
     size_t evictablePages = 0;
     size_t pagesTried = 0;
@@ -336,11 +336,15 @@ uint64_t BufferManager::tryEvictPage(std::atomic<EvictionCandidate>& _candidate)
         pageState.unlock();
         return 0;
     }
+    if (fileHandles[candidate.fileIdx]->isInMemoryMode()) {
+        // Cannot flush pages under in memory mode.
+        return 0;
+    }
     // At this point, the page is LOCKED, and we have exclusive access to the eviction candidate.
     // Next, flush out the frame into the file page if the frame
     // is dirty. Finally remove the page from the frame and reset the page to EVICTED.
     auto& fileHandle = *fileHandles[candidate.fileIdx];
-    flushIfDirtyWithoutLock(fileHandle, candidate.pageIdx);
+    fileHandle.flushPageIfDirtyWithoutLock(candidate.pageIdx);
     auto numBytesFreed = fileHandle.getPageSize();
     releaseFrameForPage(fileHandle, candidate.pageIdx);
     pageState.resetToEvicted();
@@ -358,25 +362,10 @@ void BufferManager::cachePageIntoFrame(BMFileHandle& fileHandle, page_idx_t page
     }
 }
 
-void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, page_idx_t pageIdx) {
-    auto pageState = fileHandle.getPageState(pageIdx);
-    if (pageState->isDirty()) {
-        fileHandle.getFileInfo()->writeFile(getFrame(fileHandle, pageIdx), fileHandle.getPageSize(),
-            pageIdx * fileHandle.getPageSize());
-        pageState->clearDirtyWithoutLock();
-    }
-}
-
 void BufferManager::removeFilePagesFromFrames(BMFileHandle& fileHandle) {
     evictionQueue.removeCandidatesForFile(fileHandle.getFileIndex());
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
         removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
-    }
-}
-
-void BufferManager::flushAllDirtyPagesInFrames(BMFileHandle& fileHandle) {
-    for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
-        flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
 }
 
@@ -405,7 +394,7 @@ void BufferManager::removePageFromFrame(BMFileHandle& fileHandle, page_idx_t pag
     }
     pageState->spinLock(pageState->getStateAndVersion());
     if (shouldFlush) {
-        flushIfDirtyWithoutLock(fileHandle, pageIdx);
+        fileHandle.flushPageIfDirtyWithoutLock(pageIdx);
     }
     releaseFrameForPage(fileHandle, pageIdx);
     freeUsedMemory(fileHandle.getPageSize());

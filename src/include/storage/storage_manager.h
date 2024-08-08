@@ -24,7 +24,7 @@ public:
 
     static void recover(main::ClientContext& clientContext);
 
-    void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
+    void createTable(common::table_id_t tableID, const catalog::Catalog* catalog,
         main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
@@ -37,8 +37,8 @@ public:
         return tables.at(tableID).get();
     }
 
-    WAL& getWAL();
-    ShadowFile& getShadowFile();
+    WAL& getWAL() const;
+    ShadowFile& getShadowFile() const;
     BMFileHandle* getDataFH() const { return dataFH; }
     BMFileHandle* getMetadataFH() const { return metadataFH; }
     std::string getDatabasePath() const { return databasePath; }
@@ -48,19 +48,20 @@ public:
     uint64_t getEstimatedMemoryUsage();
 
 private:
-    BMFileHandle* initFileHandle(const std::string& filename, common::VirtualFileSystem* vfs,
+    BMFileHandle* initFileHandle(const std::string& fileName, common::VirtualFileSystem* vfs,
         main::ClientContext* context) const;
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
-    void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* tableSchema,
+    void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* nodeTableEntry,
         main::ClientContext* context);
-    void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* tableSchema,
-        catalog::Catalog* catalog, transaction::Transaction* transaction);
-    void createRelTableGroup(common::table_id_t tableID, catalog::RelGroupCatalogEntry* tableSchema,
-        catalog::Catalog* catalog, transaction::Transaction* transaction);
+    void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* relTableEntry,
+        const catalog::Catalog* catalog, transaction::Transaction* transaction);
+    void createRelTableGroup(common::table_id_t tableID,
+        const catalog::RelGroupCatalogEntry* tableSchema, const catalog::Catalog* catalog,
+        transaction::Transaction* transaction);
     void createRdfGraph(common::table_id_t tableID, catalog::RDFGraphCatalogEntry* tableSchema,
-        catalog::Catalog* catalog, main::ClientContext* context);
+        const catalog::Catalog* catalog, main::ClientContext* context);
 
 private:
     std::mutex mtx;
