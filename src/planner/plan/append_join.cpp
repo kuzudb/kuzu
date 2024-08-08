@@ -44,6 +44,16 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
+void Planner::appendAccHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
+    KU_ASSERT(probePlan.hasUpdate());
+    tryAppendAccumulate(probePlan);
+    appendHashJoin(joinNodeIDs, joinType, mark, probePlan, buildPlan, resultPlan);
+    auto& sipInfo = probePlan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe();
+    sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
+}
+
 void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
     const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     std::vector<join_condition_t> joinConditions;

@@ -5,8 +5,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static PhysicalOperator* getTableScanForAccHashJoin(PhysicalOperator* probe) {
-    auto op = probe->getChild(0);
+static PhysicalOperator* getTableScan(PhysicalOperator* joinRoot) {
+    auto op = joinRoot->getChild(0);
     while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
         op = op->getChild(0);
     }
@@ -14,10 +14,10 @@ static PhysicalOperator* getTableScanForAccHashJoin(PhysicalOperator* probe) {
     return op;
 }
 
-void PlanMapper::mapSIPJoin(kuzu::processor::PhysicalOperator* probe) {
-    auto tableScan = getTableScanForAccHashJoin(probe);
+void PlanMapper::mapSIPJoin(kuzu::processor::PhysicalOperator* joinRoot) {
+    auto tableScan = getTableScan(joinRoot);
     auto resultCollector = tableScan->moveUnaryChild();
-    probe->addChild(std::move(resultCollector));
+    joinRoot->addChild(std::move(resultCollector));
 }
 
 } // namespace processor

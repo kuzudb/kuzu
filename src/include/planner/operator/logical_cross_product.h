@@ -2,6 +2,7 @@
 
 #include "common/enums/accumulate_type.h"
 #include "planner/operator/logical_operator.h"
+#include "planner/operator/sip/side_way_info_passing.h"
 
 namespace kuzu {
 namespace planner {
@@ -25,14 +26,20 @@ public:
     bool hasMark() const { return mark != nullptr; }
     std::shared_ptr<binder::Expression> getMark() const { return mark; }
 
+    SIPInfo& getSIPInfoUnsafe() { return sipInfo; }
+    SIPInfo getSIPInfo() const { return sipInfo; }
+
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCrossProduct>(accumulateType, mark, children[0]->copy(),
+        auto op = make_unique<LogicalCrossProduct>(accumulateType, mark, children[0]->copy(),
             children[1]->copy());
+        op->sipInfo = sipInfo;
+        return op;
     }
 
 private:
     common::AccumulateType accumulateType;
     std::shared_ptr<binder::Expression> mark;
+    SIPInfo sipInfo;
 };
 
 } // namespace planner

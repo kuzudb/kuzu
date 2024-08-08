@@ -193,7 +193,7 @@ private:
         const binder::Expression& expr) const;
     uint32_t getOperatorID() { return physicalOperatorID++; }
 
-    static void mapSIPJoin(PhysicalOperator* probe);
+    static void mapSIPJoin(PhysicalOperator* joinRoot);
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);

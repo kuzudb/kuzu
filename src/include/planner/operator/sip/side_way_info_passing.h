@@ -12,6 +12,10 @@ enum class SemiMaskPosition : uint8_t {
     PROHIBIT = 3,
 };
 
+/*
+ * If semi mask is present, scan pipelines needs to be constructed before semi mask pipelines.
+ * SIPDependecy instructs whether probe or build should be constructed first.
+ */
 enum class SIPDependency : uint8_t {
     NONE = 0,
     PROBE_DEPENDS_ON_BUILD = 1,
@@ -21,6 +25,7 @@ enum class SIPDependency : uint8_t {
 /*
  * Direction of side way information passing. If direction is probe to build, then probe side
  * must have been materialized, and we need to construct a new pipeline to scan materialized result.
+ * We use SIPDirection in the mapper to create pipelines.
  * */
 enum class SIPDirection {
     NONE = 0,
@@ -39,11 +44,18 @@ enum class SIPDirection {
  * If we add semi mask on probe side, position is ON_PROBE, direction is PROBE_TO_BUILD
  * and dependency is BUILD_DEPENDS_ON_PROBE.
  *
- * 2. Unnesting corrected subquery
+ * 2. Unnesting correlated subquery
  *
  * When unnesting a correlated subquery, we first accumulate the probe plan and pass information to
  * the build side. Semi mask position is NONE, direction is PROBE_TO_BUILD and dependency is
  * PROBE_DEPENDS_ON_BUILD.
+ *
+ * 3. Optional match after update
+ *
+ * When performing optional match update, since we only have left join operator, update pipeline
+ * is placed on the probe side. However, by semantic, optional match should scan updated result.
+ * So we accumulate the probe side and make it the right-most pipeline to make sure update pipeline
+ * is executed before optional match pipeline.
  *
  * TODO(Xiyang): it worth thinking if we should simply put outer plan always on the build side.
  *
