@@ -14,7 +14,7 @@ public:
     CompressedFlushBuffer(std::shared_ptr<CompressionAlg> alg, common::PhysicalTypeID dataType)
         : alg{std::move(alg)}, dataType{dataType} {}
     CompressedFlushBuffer(std::shared_ptr<CompressionAlg> alg, const common::LogicalType& dataType)
-        : kuzu::storage::CompressedFlushBuffer(alg, dataType.getPhysicalType()) {}
+        : CompressedFlushBuffer(alg, dataType.getPhysicalType()) {}
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
@@ -24,16 +24,14 @@ public:
 
 template<std::floating_point T>
 class CompressedFloatFlushBuffer {
-    std::shared_ptr<FloatCompression<T>> alg;
+    std::shared_ptr<CompressionAlg> alg;
     common::PhysicalTypeID dataType;
 
 public:
-    CompressedFloatFlushBuffer(std::shared_ptr<FloatCompression<T>> alg,
-        common::PhysicalTypeID dataType)
-        : alg{std::move(alg)}, dataType{dataType} {}
-    CompressedFloatFlushBuffer(std::shared_ptr<FloatCompression<T>> alg,
-        const common::LogicalType& dataType)
-        : kuzu::storage::CompressedFloatFlushBuffer<T>(alg, dataType.getPhysicalType()) {}
+    CompressedFloatFlushBuffer(std::shared_ptr<CompressionAlg> alg,
+        common::PhysicalTypeID dataType);
+    CompressedFloatFlushBuffer(std::shared_ptr<CompressionAlg> alg,
+        const common::LogicalType& dataType);
 
     CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
 

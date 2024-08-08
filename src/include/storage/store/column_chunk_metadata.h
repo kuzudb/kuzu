@@ -16,9 +16,9 @@ struct ColumnChunkMetadata {
     ColumnChunkMetadata()
         : pageIdx{common::INVALID_PAGE_IDX}, numPages{0}, numValues{0},
           compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
-    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages,
-        uint64_t numNodesInChunk, const CompressionMetadata& compMeta)
-        : pageIdx(pageIdx), numPages(numPages), numValues(numNodesInChunk), compMeta(compMeta) {}
+    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages, uint64_t numValues,
+        const CompressionMetadata& compMeta)
+        : pageIdx(pageIdx), numPages(numPages), numValues(numValues), compMeta(compMeta) {}
 };
 
 class GetBitpackingMetadata {

@@ -47,7 +47,9 @@ bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
         return false;
     if (a.extraMetadata.has_value() != b.extraMetadata.has_value())
         return false;
-    if (a.extraMetadata.has_value() && a.extraMetadata.value() != b.extraMetadata.value()) {
+    if (a.extraMetadata.has_value() &&
+        *reinterpret_cast<ALPMetadata*>(a.extraMetadata.value().get()) !=
+            *reinterpret_cast<ALPMetadata*>(b.extraMetadata.value().get())) {
         return false;
     }
     if (a.children.size() != b.children.size())
@@ -126,7 +128,7 @@ TEST(CompressionTests, IntegerBitpackingMetadataInvalidPhysicalType) {
         CompressionType::INTEGER_BITPACKING};
     uint8_t data = 0;
 
-    kuzu::storage::CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+    kuzu::storage::InPlaceUpdateLocalState localUpdateState{};
     EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::ARRAY, localUpdateState),
         StorageException);
 
@@ -150,7 +152,7 @@ TEST(CompressionTests, FloatCompressionMetadataInvalidPhysicalType) {
     const CompressionMetadata metadata{StorageValue{-10}, StorageValue{-5}, CompressionType::ALP};
     uint8_t data = 0;
 
-    kuzu::storage::CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+    kuzu::storage::InPlaceUpdateLocalState localUpdateState{};
     EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::INT32, localUpdateState),
         StorageException);
 

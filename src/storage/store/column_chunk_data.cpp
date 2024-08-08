@@ -14,8 +14,8 @@
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
-#include "storage/store/column_chunk_flush.h"
 #include "storage/store/column_chunk_metadata.h"
+#include "storage/store/compression_flush_buffer.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/string_chunk_data.h"
 #include "storage/store/struct_chunk_data.h"
@@ -134,13 +134,13 @@ void ColumnChunkData::initializeFunction(bool enableCompression) {
         getMetadataFunction = GetBitpackingMetadata(compression, dataType);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        const auto compression = std::make_shared<FloatCompression<double>>();
+        const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFloatFlushBuffer<double>(compression, dataType);
         getMetadataFunction = GetFloatCompressionMetadata<double>(compression, dataType);
         break;
     }
     case PhysicalTypeID::FLOAT: {
-        const auto compression = std::make_shared<FloatCompression<float>>();
+        const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFloatFlushBuffer<float>(compression, dataType);
         getMetadataFunction = GetFloatCompressionMetadata<float>(compression, dataType);
         break;

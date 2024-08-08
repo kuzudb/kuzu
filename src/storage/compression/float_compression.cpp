@@ -24,12 +24,12 @@ common::LogicalType getBitpackingLogicalType() {
 template<std::floating_point T>
 size_t EncodeException<T>::numPagesFromExceptions(size_t exceptionCount) {
     return common::ceilDiv(static_cast<uint64_t>(exceptionCount),
-        common::BufferPoolConstants::PAGE_4KB_SIZE / sizeBytes());
+        common::BufferPoolConstants::PAGE_4KB_SIZE / sizeInBytes());
 }
 
 template<std::floating_point T>
 size_t EncodeException<T>::exceptionBytesPerPage() {
-    return common::BufferPoolConstants::PAGE_4KB_SIZE / sizeBytes() * sizeBytes();
+    return common::BufferPoolConstants::PAGE_4KB_SIZE / sizeInBytes() * sizeInBytes();
 }
 
 template<std::floating_point T>
@@ -38,17 +38,20 @@ bool EncodeException<T>::operator<(const EncodeException<T>& o) const {
 }
 
 template<std::floating_point T>
-EncodeException<T> EncodeExceptionView<T>::getValue() const {
+EncodeException<T> EncodeExceptionView<T>::getValue(common::offset_t elementOffset) const {
     EncodeException<T> ret;
-    std::memcpy(&ret.value, bytes, sizeof(ret.value));
-    std::memcpy(&ret.posInChunk, bytes + sizeof(ret.value), sizeof(ret.posInChunk));
+    const auto* const elementAddress = bytes + elementOffset * decltype(ret)::sizeInBytes();
+    std::memcpy(&ret.value, elementAddress, sizeof(ret.value));
+    std::memcpy(&ret.posInChunk, elementAddress + sizeof(ret.value), sizeof(ret.posInChunk));
     return ret;
 }
 
 template<std::floating_point T>
-void EncodeExceptionView<T>::setValue(EncodeException<T> exception) {
-    std::memcpy(bytes, &exception.value, sizeof(exception.value));
-    std::memcpy(bytes + sizeof(exception.value), &exception.posInChunk,
+void EncodeExceptionView<T>::setValue(EncodeException<T> exception,
+    common::offset_t elementOffset) {
+    auto* const elementAddress = bytes + elementOffset * decltype(exception)::sizeInBytes();
+    std::memcpy(elementAddress, &exception.value, sizeof(exception.value));
+    std::memcpy(elementAddress + sizeof(exception.value), &exception.posInChunk,
         sizeof(exception.posInChunk));
 }
 
@@ -61,7 +64,7 @@ uint64_t FloatCompression<T>::compressNextPage(const uint8_t*&, uint64_t, uint8_
 template<std::floating_point T>
 uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& srcBuffer,
     uint64_t srcOffset, uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
-    uint8_t* exceptionBuffer, [[maybe_unused]] uint64_t exceptionBufferSize,
+    EncodeExceptionView<T> exceptionBuffer, [[maybe_unused]] uint64_t exceptionBufferSize,
     uint64_t& exceptionCount, const struct CompressionMetadata& metadata) const {
     KU_ASSERT(metadata.compression == CompressionType::ALP);
 
@@ -71,19 +74,19 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
     std::vector<EncodedType> integerEncodedValues(numValuesToCompress);
     for (size_t posInPage = 0; posInPage < numValuesToCompress; ++posInPage) {
         const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInPage];
-        const auto& floatMetadata = metadata.floatMetadata();
+        const auto* floatMetadata = metadata.floatMetadata();
         const EncodedType encodedValue =
-            alp::AlpEncode<T>::encode_value(floatValue, floatMetadata.fac, floatMetadata.exp);
+            alp::AlpEncode<T>::encode_value(floatValue, floatMetadata->fac, floatMetadata->exp);
         const double decodedValue =
-            alp::AlpDecode<T>::decode_value(encodedValue, floatMetadata.fac, floatMetadata.exp);
+            alp::AlpDecode<T>::decode_value(encodedValue, floatMetadata->fac, floatMetadata->exp);
 
         if (floatValue != decodedValue) {
             KU_ASSERT(
-                (exceptionCount + 1) * EncodeException<T>::sizeBytes() <= exceptionBufferSize);
-            auto* exceptionBufferEntry = reinterpret_cast<std::byte*>(
-                exceptionBuffer + exceptionCount * EncodeException<T>::sizeBytes());
-            EncodeExceptionView<T>{exceptionBufferEntry}.setValue({.value = floatValue,
-                .posInChunk = common::safeIntegerConversion<uint32_t>(srcOffset + posInPage)});
+                (exceptionCount + 1) * EncodeException<T>::sizeInBytes() <= exceptionBufferSize);
+            exceptionBuffer.setValue(
+                {.value = floatValue,
+                    .posInChunk = common::safeIntegerConversion<uint32_t>(srcOffset + posInPage)},
+                exceptionCount);
 
             // We don't need to replace with 1st successful encode as the integer bitpacking
             // metadata is already populated
@@ -125,7 +128,7 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
 
     for (size_t i = 0; i < numValues; ++i) {
         reinterpret_cast<T*>(dstBuffer)[dstOffset + i] = alp::AlpDecode<T>::decode_value(
-            integerEncodedValues[i], metadata.floatMetadata().fac, metadata.floatMetadata().exp);
+            integerEncodedValues[i], metadata.floatMetadata()->fac, metadata.floatMetadata()->exp);
     }
 }
 
@@ -135,7 +138,7 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
     common::offset_t numValues, const CompressionMetadata& metadata,
     const common::NullMask* nullMask) const {
     // each individual value that is being updated should be able to be updated in place
-    RUNTIME_CHECK(CompressionMetadata::InPlaceUpdateLocalState localUpdateState{});
+    RUNTIME_CHECK(InPlaceUpdateLocalState localUpdateState{});
     KU_ASSERT(numValues ==
               static_cast<common::offset_t>(
                   std::ranges::count_if(std::ranges::iota_view{srcOffset, srcOffset + numValues},
@@ -151,7 +154,7 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
 
         const auto floatValue = reinterpret_cast<const T*>(srcBuffer)[posInSrc];
         const EncodedType encodedValue = alp::AlpEncode<T>::encode_value(floatValue,
-            metadata.floatMetadata().fac, metadata.floatMetadata().exp);
+            metadata.floatMetadata()->fac, metadata.floatMetadata()->exp);
         integerEncodedValues[i] = encodedValue;
     }
 
@@ -184,13 +187,12 @@ BitpackInfo<typename FloatCompression<T>::EncodedType> FloatCompression<T>::getB
 
 template<std::floating_point T>
 bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
-    const CompressionMetadata& metadata,
-    CompressionMetadata::InPlaceUpdateLocalState& localUpdateState,
+    const CompressionMetadata& metadata, InPlaceUpdateLocalState& localUpdateState,
     const std::optional<common::NullMask>& nullMask, uint64_t nullMaskOffset) {
     size_t newExceptionCount = 0;
     std::vector<EncodedType> encodedValues(value.size());
     const auto bitpackingInfo = getBitpackInfo(metadata);
-    const auto& floatMetadata = metadata.floatMetadata();
+    const auto* floatMetadata = metadata.floatMetadata();
     for (size_t i = 0; i < value.size(); ++i) {
         if (nullMask && nullMask->isNull(nullMaskOffset + i)) {
             continue;
@@ -198,9 +200,9 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
 
         const auto floatValue = value[i];
         const EncodedType encodedValue =
-            alp::AlpEncode<T>::encode_value(floatValue, floatMetadata.fac, floatMetadata.exp);
+            alp::AlpEncode<T>::encode_value(floatValue, floatMetadata->fac, floatMetadata->exp);
         const double decodedValue =
-            alp::AlpDecode<T>::decode_value(encodedValue, floatMetadata.fac, floatMetadata.exp);
+            alp::AlpDecode<T>::decode_value(encodedValue, floatMetadata->fac, floatMetadata->exp);
         if (floatValue != decodedValue) {
             ++newExceptionCount;
             encodedValues[i] = bitpackingInfo.offset;
@@ -214,8 +216,8 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
     const size_t totalExceptionCount =
         (value.size() == common::StorageConstants::NODE_GROUP_SIZE) ?
             localUpdateState.floatState.newExceptionCount :
-            floatMetadata.exceptionCount + localUpdateState.floatState.newExceptionCount;
-    const bool exceptionsOK = totalExceptionCount <= floatMetadata.exceptionCapacity;
+            floatMetadata->exceptionCount + localUpdateState.floatState.newExceptionCount;
+    const bool exceptionsOK = totalExceptionCount <= floatMetadata->exceptionCapacity;
 
     return exceptionsOK &&
            metadata.getChild(BITPACKING_CHILD_IDX)

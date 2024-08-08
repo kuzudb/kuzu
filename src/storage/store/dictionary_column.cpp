@@ -184,7 +184,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
     if (offsetState.metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
-    CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+    InPlaceUpdateLocalState localUpdateState{};
     if (!offsetState.metadata.compMeta.canUpdateInPlace(
             (const uint8_t*)&totalStringOffsetsAfterUpdate, 0 /*offset*/, 1 /*numValues*/,
             offsetColumn->getDataType().getPhysicalType(), localUpdateState)) {

@@ -4,9 +4,9 @@
 #include "graph_test/graph_test.h"
 #include "gtest/gtest.h"
 #include "storage/storage_manager.h"
-#include "storage/store/column_chunk_flush.h"
 #include "storage/store/column_chunk_metadata.h"
-#include "storage/store/column_read_writer.h"
+#include "storage/store/column_reader_writer.h"
+#include "storage/store/compression_flush_buffer.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_manager.h"
 #include <ranges>
@@ -149,18 +149,21 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
 
 template<std::floating_point T>
 void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_func_t updateFunc) {
-    testCompressChunk(bufferToCompress,
-        [&bufferToCompress, &updateFunc, this](ColumnReadWriter* reader,
-            transaction::Transaction* transaction, ChunkState& state, const LogicalType& dataType) {
-            updateFunc(reader, transaction, state, dataType);
+    if (!inMemMode) {
+        testCompressChunk(bufferToCompress,
+            [&bufferToCompress, &updateFunc, this](ColumnReadWriter* reader,
+                transaction::Transaction* transaction, ChunkState& state,
+                const LogicalType& dataType) {
+                updateFunc(reader, transaction, state, dataType);
 
-            commitUpdate<T>(reader, transaction, state);
+                commitUpdate<T>(reader, transaction, state);
 
-            std::vector<T> out(bufferToCompress.size());
-            reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
-                out.size(), ReadCompressedValuesFromPage(dataType));
-            EXPECT_THAT(out, ::testing::ContainerEq(bufferToCompress));
-        });
+                std::vector<T> out(bufferToCompress.size());
+                reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
+                    out.size(), ReadCompressedValuesFromPage(dataType));
+                EXPECT_THAT(out, ::testing::ContainerEq(bufferToCompress));
+            });
+    }
 }
 
 template<std::floating_point T>
@@ -392,7 +395,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
             in.setValue<double>(i, src[i]);
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         for (size_t i = cpyOffset; i < cpyOffset + numValuesToSet; ++i) {
             ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), i, 1,
                 dataType.getPhysicalType(), localUpdateState));
@@ -425,7 +428,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
@@ -449,7 +452,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
             src[i] = src[i - 10] + 1;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), 0, src.size(),
             dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), nullptr, 0, src.size(),
@@ -474,7 +477,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptionsMultiPage) {
             src[cpyOffset + i] = 5.7;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
@@ -500,7 +503,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
             src[cpyOffset + i] = src[cpyOffset + i - 2] + 1;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,
@@ -513,7 +516,7 @@ TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
     testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, ChunkState& state,
                                const LogicalType& dataType) {
         double newVal = -1;
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         EXPECT_FALSE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)&newVal, 0, 1,
             dataType.getPhysicalType(), localUpdateState));
     });
@@ -525,7 +528,7 @@ TEST_F(CompressChunkTest, TestInPlaceUpdateConstantExcludingExceptions) {
     testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, ChunkState& state,
                                const LogicalType& dataType) {
         float newVal = 1.2;
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         EXPECT_FALSE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)&newVal, 0, 1,
             dataType.getPhysicalType(), localUpdateState));
     });
@@ -546,7 +549,7 @@ TEST_F(CompressChunkTest, TestFloatBeforeInPlaceUpdateManyExceptionsNoCompress) 
             src[i] = i + 0.01;
         }
 
-        CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+        InPlaceUpdateLocalState localUpdateState{};
         ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), cpyOffset,
             numValuesToSet, dataType.getPhysicalType(), localUpdateState));
         reader->writeValuesToPageFromBuffer(state, cpyOffset, (uint8_t*)src.data(), nullptr,

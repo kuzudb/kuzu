@@ -110,8 +110,13 @@ enum class CompressionType : uint8_t {
     ALP = 4,
 };
 
+struct ExtraMetadata {
+    virtual ~ExtraMetadata() = default;
+    virtual std::unique_ptr<ExtraMetadata> copy() = 0;
+};
+
 // used only for compressing floats/doubles
-struct ALPMetadata {
+struct ALPMetadata : ExtraMetadata {
     ALPMetadata() = default;
     explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType);
 
@@ -119,15 +124,21 @@ struct ALPMetadata {
     uint8_t fac;
     uint32_t exceptionCount;
     uint32_t exceptionCapacity;
+
+    void serialize(common::Serializer& serializer) const;
+    static ALPMetadata deserialize(common::Deserializer& deserializer);
+
+    std::unique_ptr<ExtraMetadata> copy() override;
+};
+
+struct InPlaceUpdateLocalState {
+    struct FloatState {
+        size_t newExceptionCount;
+    } floatState;
 };
 
 // Data statistics used for determining how to handle compressed data
 struct CompressionMetadata {
-    struct InPlaceUpdateLocalState {
-        struct FloatState {
-            size_t newExceptionCount;
-        } floatState;
-    };
 
     // Minimum and maximum are upper and lower bounds for the data.
     // Updates and deletions may cause them to no longer be the exact minimums and maximums,
@@ -137,7 +148,7 @@ struct CompressionMetadata {
 
     CompressionType compression;
 
-    std::optional<ALPMetadata> extraMetadata;
+    std::optional<std::unique_ptr<ExtraMetadata>> extraMetadata;
 
     std::vector<CompressionMetadata> children;
 
@@ -149,19 +160,29 @@ struct CompressionMetadata {
         const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded,
         common::PhysicalTypeID physicalType);
 
+    CompressionMetadata(const CompressionMetadata&);
+    CompressionMetadata& operator=(const CompressionMetadata&);
+
     static size_t getChildCount(CompressionType compressionType);
 
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
     const CompressionMetadata& getChild(common::offset_t idx) const;
 
     // accessors for additionalMetadata
-    inline const ALPMetadata& floatMetadata() const {
+    inline const ExtraMetadata* getExtraMetadata() const {
         KU_ASSERT(extraMetadata.has_value());
-        return extraMetadata.value();
+        return extraMetadata.value().get();
     }
-    inline ALPMetadata& floatMetadata() {
+    inline ExtraMetadata* getExtraMetadata() {
         KU_ASSERT(extraMetadata.has_value());
-        return extraMetadata.value();
+        return extraMetadata.value().get();
+    }
+    inline const ALPMetadata* floatMetadata() const {
+        return common::ku_dynamic_cast<const ExtraMetadata*, const ALPMetadata*>(
+            getExtraMetadata());
+    }
+    inline ALPMetadata* floatMetadata() {
+        return common::ku_dynamic_cast<ExtraMetadata*, ALPMetadata*>(getExtraMetadata());
     }
 
     void serialize(common::Serializer& serializer) const;

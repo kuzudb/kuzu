@@ -11,7 +11,7 @@
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/column_chunk_metadata.h"
-#include "storage/store/column_read_writer.h"
+#include "storage/store/column_reader_writer.h"
 
 namespace kuzu {
 namespace evaluator {

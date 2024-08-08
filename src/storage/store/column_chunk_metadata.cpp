@@ -103,7 +103,7 @@ alp::state getAlpMetadata(const uint8_t* buffer, uint64_t numValues) {
                 alpMetadata.best_k_combinations, alpMetadata.k_combinations,
                 reinterpret_cast<const T*>(buffer), numValues, alpMetadata.fac, alpMetadata.exp);
         } else {
-            KU_ASSERT(alpMetadata.best_k_combinations.size() >= 1);
+            KU_ASSERT(alpMetadata.best_k_combinations.size() == 1);
             alpMetadata.exp = alpMetadata.best_k_combinations[0].first;
             alpMetadata.fac = alpMetadata.best_k_combinations[0].second;
         }
@@ -176,18 +176,17 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
     std::span<const T> castedBuffer{reinterpret_cast<const T*>(buffer), numValues};
     const auto compMeta = createFloatMetadata(alg->getCompressionType(), physicalType, castedBuffer,
         alpMetadata, min, max);
-    const auto& floatMetadata = compMeta.floatMetadata();
-    const auto exceptionCount = floatMetadata.exceptionCount;
+    const auto* floatMetadata = compMeta.floatMetadata();
+    const auto exceptionCount = floatMetadata->exceptionCount;
 
-    static constexpr size_t MAX_EXCEPTION_FACTOR = 4;
-    if (exceptionCount * MAX_EXCEPTION_FACTOR >= numValues) {
+    if (exceptionCount * FloatCompression<T>::MAX_EXCEPTION_FACTOR >= numValues) {
         return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
     }
 
     const auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     const auto numPagesForEncoded = ceilDiv(capacity, numValuesPerPage);
     const auto numPagesForExceptions =
-        EncodeException<T>::numPagesFromExceptions(floatMetadata.exceptionCapacity);
+        EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity);
     return ColumnChunkMetadata(INVALID_PAGE_IDX, numPagesForEncoded + numPagesForExceptions,
         numValues, compMeta);
 }

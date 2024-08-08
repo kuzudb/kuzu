@@ -88,11 +88,31 @@ ALPMetadata::ALPMetadata(const alp::state& alpState, common::PhysicalTypeID phys
         physicalTypeSize;
 }
 
+void ALPMetadata::serialize(common::Serializer& serializer) const {
+    serializer.write(exp);
+    serializer.write(fac);
+    serializer.write(exceptionCount);
+    serializer.write(exceptionCapacity);
+}
+
+ALPMetadata ALPMetadata::deserialize(common::Deserializer& deserializer) {
+    ALPMetadata ret;
+    deserializer.deserializeValue(ret.exp);
+    deserializer.deserializeValue(ret.fac);
+    deserializer.deserializeValue(ret.exceptionCount);
+    deserializer.deserializeValue(ret.exceptionCapacity);
+    return ret;
+}
+
+std::unique_ptr<ExtraMetadata> ALPMetadata::copy() {
+    return std::make_unique<ALPMetadata>(*this);
+}
+
 CompressionMetadata::CompressionMetadata(StorageValue min, StorageValue max,
     CompressionType compression, const alp::state& state, StorageValue minEncoded,
     StorageValue maxEncoded, common::PhysicalTypeID physicalType)
     : min(min), max(max), compression(compression),
-      extraMetadata(ALPMetadata{state, physicalType}) {
+      extraMetadata(std::make_unique<ALPMetadata>(state, physicalType)) {
     if (compression == CompressionType::ALP) {
         children.emplace_back(minEncoded, maxEncoded,
             minEncoded == maxEncoded ? CompressionType::CONSTANT :
@@ -105,13 +125,32 @@ const CompressionMetadata& CompressionMetadata::getChild(offset_t idx) const {
     return children[idx];
 }
 
+CompressionMetadata::CompressionMetadata(const CompressionMetadata& o) {
+    *this = o;
+}
+
+CompressionMetadata& CompressionMetadata::operator=(const CompressionMetadata& o) {
+    if (this != &o) {
+        min = o.min;
+        max = o.max;
+        compression = o.compression;
+        if (o.extraMetadata.has_value()) {
+            extraMetadata = o.extraMetadata.value()->copy();
+        } else {
+            extraMetadata = {};
+        }
+        children = o.children;
+    }
+    return *this;
+}
+
 void CompressionMetadata::serialize(Serializer& serializer) const {
     serializer.write(min);
     serializer.write(max);
     serializer.write(compression);
 
     if (compression == CompressionType::ALP) {
-        serializer.write(floatMetadata());
+        floatMetadata()->serialize(serializer);
     }
 
     KU_ASSERT(children.size() == getChildCount(compression));
@@ -131,9 +170,8 @@ CompressionMetadata CompressionMetadata::deserialize(common::Deserializer& deser
     CompressionMetadata ret(min, max, compressionType);
 
     if (compressionType == CompressionType::ALP) {
-        ALPMetadata alpMetadata;
-        deserializer.deserializeValue(alpMetadata);
-        ret.extraMetadata = alpMetadata;
+        auto alpMetadata = std::make_unique<ALPMetadata>(ALPMetadata::deserialize(deserializer));
+        ret.extraMetadata = std::move(alpMetadata);
     }
 
     for (size_t i = 0; i < getChildCount(compressionType); ++i) {
@@ -407,7 +445,7 @@ std::string CompressionMetadata::toString(const PhysicalTypeID physicalType) con
             },
             [](auto) -> uint8_t { KU_UNREACHABLE; });
         return stringFormat("FLOAT_COMPRESSION[{}], {} Exceptions", bitWidth,
-            floatMetadata().exceptionCount);
+            floatMetadata()->exceptionCount);
     }
     case CompressionType::INTEGER_BITPACKING: {
         uint8_t bitWidth = TypeUtils::visit(

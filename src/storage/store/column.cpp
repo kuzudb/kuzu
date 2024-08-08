@@ -411,7 +411,7 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
         return true;
     }
 
-    CompressionMetadata::InPlaceUpdateLocalState localUpdateState{};
+    InPlaceUpdateLocalState localUpdateState{};
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         auto& chunkData = chunkCheckpointState.chunkData;
         KU_ASSERT(chunkData->getNumValues() == chunkCheckpointState.numRows);
