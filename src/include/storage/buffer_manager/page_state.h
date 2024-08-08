@@ -2,6 +2,8 @@
 
 #include <atomic>
 
+#include "common/assert.h"
+
 namespace kuzu {
 namespace storage {
 

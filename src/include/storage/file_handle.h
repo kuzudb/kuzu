@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <shared_mutex>
