@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/copy/bound_copy_from.h"
-#include "common/column_data_format.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -9,12 +8,9 @@ namespace planner {
 
 struct LogicalPartitioningInfo {
     common::idx_t keyIdx;
-    common::ColumnDataFormat dataFormat;
 
-    LogicalPartitioningInfo(common::idx_t keyIdx, common::ColumnDataFormat dataFormat)
-        : keyIdx{keyIdx}, dataFormat{dataFormat} {}
-    LogicalPartitioningInfo(const LogicalPartitioningInfo& other)
-        : keyIdx{other.keyIdx}, dataFormat{other.dataFormat} {}
+    explicit LogicalPartitioningInfo(common::idx_t keyIdx) : keyIdx{keyIdx} {}
+    LogicalPartitioningInfo(const LogicalPartitioningInfo& other) : keyIdx{other.keyIdx} {}
 
     EXPLICIT_COPY_METHOD(LogicalPartitioningInfo);
 };

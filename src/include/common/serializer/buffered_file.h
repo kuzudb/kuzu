@@ -23,7 +23,6 @@ public:
 
     // Note: this function is reseting next file offset to be written. Make sure buffer is empty.
     void setFileOffset(uint64_t fileOffset) {
-        // KU_ASSERT(bufferOffset == 0);
         this->fileOffset = fileOffset;
     }
     uint64_t getFileOffset() const { return fileOffset; }

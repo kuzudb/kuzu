@@ -76,7 +76,7 @@ void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkDat
     deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
 }
 
-void StructChunkData::flush(BMFileHandle& dataFH) {
+void StructChunkData::flush(FileHandle& dataFH) {
     ColumnChunkData::flush(dataFH);
     for (const auto& childChunk : childChunks) {
         childChunk->flush(dataFH);

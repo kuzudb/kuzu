@@ -289,7 +289,7 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
 }
 
 void ChunkedNodeGroup::addColumn(Transaction*, const TableAddColumnState& addColumnState,
-    bool enableCompression, BMFileHandle* dataFH) {
+    bool enableCompression, FileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& property = addColumnState.property;
     chunks.push_back(std::make_unique<ColumnChunk>(property.getDataType().copy(), capacity,
@@ -336,7 +336,7 @@ void ChunkedNodeGroup::finalize() const {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, BMFileHandle& dataFH) const {
+    Transaction* transaction, FileHandle& dataFH) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
@@ -350,7 +350,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
     return flushedChunkedGroup;
 }
 
-void ChunkedNodeGroup::flush(BMFileHandle& dataFH) {
+void ChunkedNodeGroup::flush(FileHandle& dataFH) {
     for (auto i = 0u; i < getNumColumns(); i++) {
         getColumnChunk(i).getData().flush(dataFH);
     }

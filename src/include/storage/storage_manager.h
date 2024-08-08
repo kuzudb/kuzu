@@ -39,8 +39,8 @@ public:
 
     WAL& getWAL() const;
     ShadowFile& getShadowFile() const;
-    BMFileHandle* getDataFH() const { return dataFH; }
-    BMFileHandle* getMetadataFH() const { return metadataFH; }
+    FileHandle* getDataFH() const { return dataFH; }
+    FileHandle* getMetadataFH() const { return metadataFH; }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
@@ -48,7 +48,7 @@ public:
     uint64_t getEstimatedMemoryUsage();
 
 private:
-    BMFileHandle* initFileHandle(const std::string& fileName, common::VirtualFileSystem* vfs,
+    FileHandle* initFileHandle(const std::string& fileName, common::VirtualFileSystem* vfs,
         main::ClientContext* context) const;
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
@@ -67,8 +67,8 @@ private:
     std::mutex mtx;
     std::string databasePath;
     bool readOnly;
-    BMFileHandle* dataFH;
-    BMFileHandle* metadataFH;
+    FileHandle* dataFH;
+    FileHandle* metadataFH;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;

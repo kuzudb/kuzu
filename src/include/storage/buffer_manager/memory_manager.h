@@ -21,7 +21,7 @@ class VirtualFileSystem;
 namespace storage {
 
 class MemoryAllocator;
-class BMFileHandle;
+class FileHandle;
 class BufferManager;
 
 class MemoryBuffer {
@@ -52,7 +52,7 @@ private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
 
 private:
-    BMFileHandle* fh;
+    FileHandle* fh;
     BufferManager* bm;
     common::page_offset_t pageSize;
     std::stack<common::page_idx_t> freePages;
@@ -62,11 +62,11 @@ private:
 /*
  * The Memory Manager (MM) is used for allocating/reclaiming intermediate memory blocks.
  * It can allocate a memory buffer of size PAGE_256KB from the buffer manager backed by a
- * BMFileHandle with temp in-mem file.
+ * FileHandle with temp in-mem file.
  *
- * Internally, MM uses a MemoryAllocator. The MemoryAllocator is holding the BMFileHandle backed by
+ * Internally, MM uses a MemoryAllocator. The MemoryAllocator is holding the FileHandle backed by
  * a temp in-mem file, and responsible for allocating/reclaiming memory buffers of its size class
- * from the buffer manager. The MemoryAllocator keeps track of free pages in the BMFileHandle, so
+ * from the buffer manager. The MemoryAllocator keeps track of free pages in the FileHandle, so
  * that it can reuse those freed pages without allocating new pages. The MemoryAllocator is
  * thread-safe, so that multiple threads can allocate/reclaim memory blocks with the same size class
  * at the same time.
