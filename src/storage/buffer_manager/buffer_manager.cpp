@@ -13,6 +13,8 @@
 #include <exception>
 
 #include <eh.h>
+#include <errhandlingapi.h>
+#include <memoryapi.h>
 #include <windows.h>
 #include <winnt.h>
 #endif
@@ -288,6 +290,18 @@ bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
     if (!reserve(pageSizeToClaim)) {
         return false;
     }
+#ifdef _WIN32
+    // We need to commit memory explicitly on Windows.
+    // Committing in this context means reserving physical memory/page file space for a segment of
+    // virtual memory. On Linux/Unix this is automatic when you write to the memory address.
+    auto result =
+        VirtualAlloc(getFrame(fileHandle, pageIdx), pageSizeToClaim, MEM_COMMIT, PAGE_READWRITE);
+    if (result == NULL) {
+        throw BufferManagerException(
+            stringFormat("VirtualAlloc MEM_COMMIT failed with error code {}: {}.", GetLastError(),
+                std::system_category().message(GetLastError())));
+    }
+#endif
     cachePageIntoFrame(fileHandle, pageIdx, pageReadPolicy);
     return true;
 }
@@ -373,7 +387,8 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutLock(file_idx_t fileIdx,
     const uint8_t* newPage, page_idx_t pageIdx) {
     KU_ASSERT(fileIdx < fileHandles.size());
     auto& fileHandle = *fileHandles[fileIdx];
-    if (fileHandle.getPageState(pageIdx)) {
+    auto state = fileHandle.getPageState(pageIdx);
+    if (state && state->getState() != PageState::EVICTED) {
         memcpy(getFrame(fileHandle, pageIdx), newPage, BufferPoolConstants::PAGE_4KB_SIZE);
     }
 }
