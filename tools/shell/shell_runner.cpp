@@ -57,7 +57,8 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history",
         {'p', "path_history"});
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
-    args::ValueFlag<std::string> mode(parser, "mode", "Set the output mode of the shell", {'m', "mode"});
+    args::ValueFlag<std::string> mode(parser, "mode", "Set the output mode of the shell",
+        {'m', "mode"});
 
     std::vector<std::string> lCaseArgsStrings;
     for (auto i = 0; i < argc; ++i) {

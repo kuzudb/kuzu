@@ -283,7 +283,8 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
     return 0;
 }
 
-EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn, ShellConfig& shellConfig) {
+EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn,
+    ShellConfig& shellConfig) {
     path_to_history = shellConfig.path_to_history;
     linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
@@ -452,49 +453,49 @@ void EmbeddedShell::setMode(const std::string& modeString) {
         return;
     }
     switch (PrintTypeUtils::fromString(modeString)) {
-        case PrintType::BOX:
-            drawingCharacters = std::make_unique<BoxDrawingCharacters>();
-            break;
-        case PrintType::TABLE:
-            drawingCharacters = std::make_unique<TableDrawingCharacters>();
-            break;
-        case PrintType::CSV:
-            drawingCharacters = std::make_unique<CSVDrawingCharacters>();
-            break;
-        case PrintType::TSV:
-            drawingCharacters = std::make_unique<TSVDrawingCharacters>();
-            break;
-        case PrintType::MARKDOWN:
-            drawingCharacters = std::make_unique<MarkdownDrawingCharacters>();
-            break;
-        case PrintType::COLUMN:
-            drawingCharacters = std::make_unique<ColumnDrawingCharacters>();
-            break;
-        case PrintType::LIST:
-            drawingCharacters = std::make_unique<ListDrawingCharacters>();
-            break;
-        case PrintType::TRASH:
-            drawingCharacters = std::make_unique<TrashDrawingCharacters>();
-            break;
-        case PrintType::JSON:
-            drawingCharacters = std::make_unique<JSONDrawingCharacters>();
-            break;
-        case PrintType::JSONLINES:
-            drawingCharacters = std::make_unique<JSONLinesDrawingCharacters>();
-            break;
-        case PrintType::HTML:
-            drawingCharacters = std::make_unique<HTMLDrawingCharacters>();
-            break;
-        case PrintType::LATEX:
-            drawingCharacters = std::make_unique<LatexDrawingCharacters>();
-            break;
-        case PrintType::LINE:
-            drawingCharacters = std::make_unique<LineDrawingCharacters>();
-            break;
-        default:
-            printf("Cannot parse '%s' as output mode.\n\n", modeString.c_str());
-            printModeInfo();
-            break;
+    case PrintType::BOX:
+        drawingCharacters = std::make_unique<BoxDrawingCharacters>();
+        break;
+    case PrintType::TABLE:
+        drawingCharacters = std::make_unique<TableDrawingCharacters>();
+        break;
+    case PrintType::CSV:
+        drawingCharacters = std::make_unique<CSVDrawingCharacters>();
+        break;
+    case PrintType::TSV:
+        drawingCharacters = std::make_unique<TSVDrawingCharacters>();
+        break;
+    case PrintType::MARKDOWN:
+        drawingCharacters = std::make_unique<MarkdownDrawingCharacters>();
+        break;
+    case PrintType::COLUMN:
+        drawingCharacters = std::make_unique<ColumnDrawingCharacters>();
+        break;
+    case PrintType::LIST:
+        drawingCharacters = std::make_unique<ListDrawingCharacters>();
+        break;
+    case PrintType::TRASH:
+        drawingCharacters = std::make_unique<TrashDrawingCharacters>();
+        break;
+    case PrintType::JSON:
+        drawingCharacters = std::make_unique<JSONDrawingCharacters>();
+        break;
+    case PrintType::JSONLINES:
+        drawingCharacters = std::make_unique<JSONLinesDrawingCharacters>();
+        break;
+    case PrintType::HTML:
+        drawingCharacters = std::make_unique<HTMLDrawingCharacters>();
+        break;
+    case PrintType::LATEX:
+        drawingCharacters = std::make_unique<LatexDrawingCharacters>();
+        break;
+    case PrintType::LINE:
+        drawingCharacters = std::make_unique<LineDrawingCharacters>();
+        break;
+    default:
+        printf("Cannot parse '%s' as output mode.\n\n", modeString.c_str());
+        printModeInfo();
+        break;
     }
 }
 
@@ -518,7 +519,9 @@ void EmbeddedShell::printHelp() {
 
 std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
-    auto jsonDrawingCharacters = common::ku_dynamic_cast<DrawingCharacters*, JSONDrawingCharacters*>(drawingCharacters.get());
+    auto jsonDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, JSONDrawingCharacters*>(
+            drawingCharacters.get());
     bool jsonLines = jsonDrawingCharacters->printType == PrintType::JSONLINES;
     std::string printString = "";
     if (!jsonLines) {
@@ -556,7 +559,9 @@ std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) co
 
 std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
-    auto htmlDrawingCharacters = common::ku_dynamic_cast<DrawingCharacters*, HTMLDrawingCharacters*>(drawingCharacters.get());
+    auto htmlDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, HTMLDrawingCharacters*>(
+            drawingCharacters.get());
     std::string printString = htmlDrawingCharacters->TableOpen;
     printString += "\n";
     printString += htmlDrawingCharacters->RowOpen;
@@ -587,7 +592,9 @@ std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) co
 
 std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
-    auto latexDrawingCharacters = common::ku_dynamic_cast<DrawingCharacters*, LatexDrawingCharacters*>(drawingCharacters.get());
+    auto latexDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, LatexDrawingCharacters*>(
+            drawingCharacters.get());
     std::string printString = latexDrawingCharacters->TableOpen;
     printString += latexDrawingCharacters->AlignOpen;
     for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
@@ -655,7 +662,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         return;
     }
     std::string printString = "";
-    if (drawingCharacters->printType == PrintType::JSON || drawingCharacters->printType == PrintType::JSONLINES) {
+    if (drawingCharacters->printType == PrintType::JSON ||
+        drawingCharacters->printType == PrintType::JSONLINES) {
         printString = printJsonExecutionResult(queryResult);
     } else if (drawingCharacters->printType == PrintType::HTML) {
         printString = printHtmlExecutionResult(queryResult);
@@ -673,7 +681,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printString += "\n";
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
-            printString += tuple->toString(std::vector<uint32_t>(queryResult.getNumColumns(), 0), drawingCharacters->TupleDelimiter, UINT32_MAX);
+            printString += tuple->toString(std::vector<uint32_t>(queryResult.getNumColumns(), 0),
+                drawingCharacters->TupleDelimiter, UINT32_MAX);
             printString += "\n";
         }
     }
@@ -693,7 +702,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
 }
 
 void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) const {
-    auto tableDrawingCharacters = common::ku_dynamic_cast<DrawingCharacters*, BaseTableDrawingCharacters*>(drawingCharacters.get());
+    auto tableDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, BaseTableDrawingCharacters*>(
+            drawingCharacters.get());
     auto querySummary = queryResult.getQuerySummary();
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
@@ -779,7 +790,7 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
 
         while (sum > sumGoal) {
             uint32_t truncationValue = ((sum - sumGoal) / maxValueIndex.size()) +
-                                    ((sum - sumGoal) % maxValueIndex.size() != 0);
+                                       ((sum - sumGoal) % maxValueIndex.size() != 0);
             uint32_t newValue = 0;
             if (truncationValue < colsWidth[maxValueIndex[0]]) {
                 newValue = colsWidth[maxValueIndex[0]] - truncationValue;
@@ -887,7 +898,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             for (auto i = 0u; i < k; i++) {
                 std::string columnName = queryResult.getColumnNames()[i];
                 if (columnName.length() > colsWidth[i] - 2) {
-                    columnName = columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+                    columnName =
+                        columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
                 printString += " ";
                 printString += columnName;
@@ -905,7 +917,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 std::string columnName = queryResult.getColumnNames()[i];
                 if (columnName.length() > colsWidth[i] - 2) {
-                    columnName = columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+                    columnName =
+                        columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
                 printString += tableDrawingCharacters->Vertical;
                 printString += " ";
@@ -919,7 +932,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
                 for (auto i = 0u; i < k; i++) {
                     std::string columnType = queryResult.getColumnDataTypes()[i].toString();
                     if (columnType.length() > colsWidth[i] - 2) {
-                        columnType = columnType.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+                        columnType = columnType.substr(0, colsWidth[i] - 5) +
+                                     tableDrawingCharacters->Truncation;
                     }
                     printString += " ";
                     printString += columnType;
@@ -935,7 +949,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
                 for (auto i = j + 1; i < colsWidth.size(); i++) {
                     std::string columnType = queryResult.getColumnDataTypes()[i].toString();
                     if (columnType.length() > colsWidth[i] - 2) {
-                        columnType = columnType.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+                        columnType = columnType.substr(0, colsWidth[i] - 5) +
+                                     tableDrawingCharacters->Truncation;
                     }
                     printString += tableDrawingCharacters->Vertical;
                     printString += " ";
@@ -1026,7 +1041,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
                 continue;
             }
             auto tuple = queryResult.getNext();
-            auto result = tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
+            auto result =
+                tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
             std::string printString;
             uint64_t startPos = 0;
             std::vector<std::string> colResults;

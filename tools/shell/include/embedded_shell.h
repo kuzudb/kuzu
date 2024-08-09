@@ -22,8 +22,8 @@ struct ShellConfig {
 class EmbeddedShell {
 
 public:
-    EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn, 
-    ShellConfig& shellConfig);
+    EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn,
+        ShellConfig& shellConfig);
 
     void run();
 
