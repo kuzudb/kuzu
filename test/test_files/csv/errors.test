@@ -5,34 +5,34 @@
 -CASE Errors
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv"(escape='\\') RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv on line 2: escape at end of file.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv on line 2: escape at end of file. Line containing the error: '"abc\'
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/quote-then-eof.csv" RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/quote-then-eof.csv on line 2: unterminated quotes.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/quote-then-eof.csv on line 2: unterminated quotes. Line containing the error: '"abc'
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv"(escape='\\') RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv on line 2: neither QUOTE nor ESCAPE is proceeded by ESCAPE.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv on line 2: neither QUOTE nor ESCAPE is proceeded by ESCAPE. Line containing the error: '"abc\6...'
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv" RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv on line 1: expected 6 values per row, but got 1
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv on line 1: expected 6 values per row, but got 1. Line containing the error: 'a'
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-few-values.csv" RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-few-values.csv on line 2: expected 2 values per row, but got 1
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-few-values.csv on line 2: expected 2 values per row, but got 1. Line containing the error: 'a'
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv" RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv on line 1: expected 3 values per row, but got 1
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv on line 1: expected 3 values per row, but got 1. Line containing the error: 'a'
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv" (HEADER=TRUE) RETURN *
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv on line 2: Conversion exception: Could not convert to union type UNION(u UINT8, s INT8): a.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv on line 2: Conversion exception: Could not convert to union type UNION(u UINT8, s INT8): a. Line containing the error: 'a'
 
 # Test that errors in serial mode don't hang the database.
 # File is large so the window for the race is large enough.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv" (HEADER=TRUE, PARALLEL=FALSE) RETURN *
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv on line 1002: Conversion exception: Cast failed. Could not convert "a" to INT64.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv on line 1002: Conversion exception: Cast failed. Could not convert "a" to INT64. Line containing the error: 'a'

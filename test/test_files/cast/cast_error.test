@@ -582,73 +582,73 @@ Conversion exception: Cast failed. [[231|4324] is not in INT64[][] range.
 -CASE CastStringToNestedError
 -STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/delim_error.csv" (DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/delim_error.csv on line 1: Conversion exception: Cast failed. "[[hello],[bdfadf],]" is not in STRING[][] range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/delim_error.csv on line 1: Conversion exception: Cast failed. "[[hello],[bdfadf],]" is not in STRING[][] range. Line containing the error: '"[[hello],[bdfadf],]"'
 -STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv" (DELIM="|", ESCAPE="~") RETURN * ;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv on line 1: Conversion exception: Cast failed. [[] is not in STRING[][] range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/bracket_error.csv on line 1: Conversion exception: Cast failed. [[] is not in STRING[][] range. Line containing the error: '"[[]"'
 -STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv on line 1: Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote.csv on line 1: Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range. Line containing the error: '"['fdsfdsfe werw]"'
 -STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv on line 1: Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_quote2.csv on line 1: Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range. Line containing the error: '"[[' this is a signle quote]]"'
 -STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_struct_bracket.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_struct_bracket.csv on line 1: Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/single_struct_bracket.csv on line 1: Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range. Line containing the error: '"[{32, 32]"'
 -STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/conversion_error.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/conversion_error.csv on line 1: Conversion exception: Cast failed. Could not convert "432412" to UINT8.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/conversion_error.csv on line 1: Conversion exception: Cast failed. Could not convert "432412" to UINT8. Line containing the error: '"[432412, 34234, 23424]"'
 -STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv on line 1: Conversion exception: Cast failed. {a: {b: fsdf is not in STRUCT(a STRUCT(b STRING)) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv on line 1: Conversion exception: Cast failed. {a: {b: fsdf is not in STRUCT(a STRUCT(b STRING)) range. Line containing the error: '"{a: {b: fsdf"'
 -STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error2.csv on line 1: Conversion exception: Cast failed. {a: {b: fds} is not in STRUCT(a STRUCT(b STRING)) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error2.csv on line 1: Conversion exception: Cast failed. {a: {b: fds} is not in STRUCT(a STRUCT(b STRING)) range. Line containing the error: '"{a: {b: fds}"'
 -STATEMENT LOAD WITH HEADERS (a STRUCT(c STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_close_error.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_close_error.csv on line 1: Conversion exception: Cast failed. { c : 423 } c: 479, is not in STRUCT(c STRING) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_close_error.csv on line 1: Conversion exception: Cast failed. { c : 423 } c: 479, is not in STRUCT(c STRING) range. Line containing the error: '"{ c : 423 } c: 479,"'
 -STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/invalid_field_name.csv" RETURN *;
 ---- error
 Parser exception: Invalid struct field name: d
 -STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_no_field_name.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_no_field_name.csv on line 1: Conversion exception: Cast failed. {c 3423} is not in STRUCT(c INT32) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_no_field_name.csv on line 1: Conversion exception: Cast failed. {c 3423} is not in STRUCT(c INT32) range. Line containing the error: '"{c 3423}"'
 -STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_quote_error.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_quote_error.csv on line 1: Conversion exception: Cast failed. { c: 'fdsfs } is not in STRUCT(c INT32) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_quote_error.csv on line 1: Conversion exception: Cast failed. { c: 'fdsfs } is not in STRUCT(c INT32) range. Line containing the error: '"{ c: 'fdsfs }"'
 -STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_noclose.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_noclose.csv on line 1: Conversion exception: Cast failed. { is not in STRUCT(c INT32) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_noclose.csv on line 1: Conversion exception: Cast failed. { is not in STRUCT(c INT32) range. Line containing the error: '{'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_incorrect_type.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_incorrect_type.csv on line 1: Conversion exception: Cast failed. Could not convert "-3" to UINT8.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_incorrect_type.csv on line 1: Conversion exception: Cast failed. Could not convert "-3" to UINT8. Line containing the error: '"{234=-3}"'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_val.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_val.csv on line 1: Conversion exception: Cast failed. {4324} is not in MAP(UINT8, UINT8) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_val.csv on line 1: Conversion exception: Cast failed. {4324} is not in MAP(UINT8, UINT8) range. Line containing the error: '"{4324}"'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing1.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing1.csv on line 1: Conversion exception: Cast failed. {10=10, 20=20, is not in MAP(UINT8, UINT8) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing1.csv on line 1: Conversion exception: Cast failed. {10=10, 20=20, is not in MAP(UINT8, UINT8) range. Line containing the error: '"{10=10, 20=20,"'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv on line 1: Conversion exception: Cast failed. { is not in MAP(UINT8, UINT8) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv on line 1: Conversion exception: Cast failed. { is not in MAP(UINT8, UINT8) range. Line containing the error: '"{"'
  -STATEMENT LOAD WITH HEADERS (a MAP(STRING, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv"(escape='\\') RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv on line 1: Conversion exception: Cast failed. {324="} is not in MAP(STRING, UINT8) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv on line 1: Conversion exception: Cast failed. {324="} is not in MAP(STRING, UINT8) range. Line containing the error: '"{324=\"}"'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing3.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing3.csv on line 1: Conversion exception: Cast failed. {{3=3} is not in MAP(UINT8, UINT8) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing3.csv on line 1: Conversion exception: Cast failed. {{3=3} is not in MAP(UINT8, UINT8) range. Line containing the error: '"{{3=3}"'
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT16, UINT16[])) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv on line 1: Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16, UINT16[]) range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv on line 1: Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16, UINT16[]) range. Line containing the error: '"{432=[432,432}"'
 -STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv" RETURN *;
 ---- error
 Copy exception: Each array should have fixed number of elements. Expected: 4, Actual: 2.
 -STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv on line 1: Conversion exception: Cast failed. Could not convert "4324234543543534534524" to INT16.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv on line 1: Conversion exception: Cast failed. Could not convert "4324234543543534534524" to INT16. Line containing the error: '"[4324234543543534534524]"'
 -STATEMENT LOAD WITH HEADERS (a INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion2.csv on line 1: Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion2.csv on line 1: Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range. Line containing the error: '"[4324, 432] fewrew"'
 -STATEMENT LOAD WITH HEADERS (array INT64[0]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/zero_ele.csv" RETURN *;
 ---- error
 Binder exception: The number of elements in an array must be greater than 0. Given: 0.
@@ -657,7 +657,7 @@ Binder exception: The number of elements in an array must be greater than 0. Giv
 Copy exception: Invalid UTF8-encoded string.
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv on line 1: Conversion exception: Could not convert to union type UNION(v1 INT64, v2 INT32): fdsaf.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv on line 1: Conversion exception: Could not convert to union type UNION(v1 INT64, v2 INT32): fdsaf. Line containing the error: 'fdsaf'
 -STATEMENT RETURN cast("[-32769]", "INT16[1]");
 ---- error
 Conversion exception: Cast failed. Could not convert "-32769" to INT16.

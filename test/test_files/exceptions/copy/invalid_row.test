@@ -26,4 +26,123 @@ Runtime exception: Unable to find primary key value 5.
 ---- ok
 -STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv"
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line containing the error: 'id...'
+
+-CASE ParallelSkipInvalidNodeTableRowsCastingError
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+---- ok
+-STATEMENT MATCH (p:person) return p.ID, p.gender;
+---- 5
+0|4
+3|5
+4|1
+6|8
+7|1
+-STATEMENT CREATE (a:person {ID: 2, gender: 3})
+---- ok
+-STATEMENT MATCH (p:person) return p.*;
+---- 6
+0|4
+2|3
+3|5
+4|1
+6|8
+7|1
+
+-CASE ParallelSkipInvalidNodeTableRowsMixed
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT MATCH (m:movie) return m.*;
+---- 5
+1|312|movieB
+3|102|movieD
+5|93|movieE
+7|1|a
+9|98|vb12
+
+-CASE ParallelSkipInvalidRelMixed
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT MATCH (a:person)-[l:likes]->(b:movie) return a.ID, b.ID, l.score, l.comment;
+---- 3
+0|3|8|good
+4|9|10|vgood
+6|1|1|vbad
+
+-CASE ParallelSkipInvalidNodeTableRowsMultipleFilesSomeEmpty
+-STATEMENT CALL threads=2
+---- ok
+-STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv"] (HEADER=true, IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT MATCH (m:movie) return m.*;
+---- 5
+1|312|movieB
+3|102|movieD
+5|93|movieE
+7|1|a
+9|98|vb12
+
+-CASE ParallelSkipInvalidNodeTableRowsMultipleFiles
+-STATEMENT CALL threads=2
+---- ok
+-STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT MATCH (m:movie) return COUNT(*);
+---- 1
+20
+
+-CASE ParallelInvalidNodeTableRowsMultipleFiles
+-STATEMENT CALL threads=2
+---- ok
+# casting errors are not detected during CSV sniffing so the first error that is detected is actually on line 4 (instead of line 2)
+-STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv"] (HEADER=true, ESCAPE="~")
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 4: neither QUOTE nor ESCAPE is proceeded by ESCAPE. Line containing the error: '4,1,"ab~c...'
+
+-CASE SerialSkipInvalidNodeTableRowsCastingError
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)
+---- ok
+-STATEMENT MATCH (p:person) return p.ID, p.gender;
+---- 5
+0|4
+3|5
+4|1
+6|8
+7|1
+-STATEMENT CREATE (a:person {ID: 2, gender: 3})
+---- ok
+-STATEMENT MATCH (p:person) return p.*;
+---- 6
+0|4
+2|3
+3|5
+4|1
+6|8
+7|1
+
+-CASE SerialSkipInvalidNodeTableRowsMixed
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
+---- ok
+-STATEMENT MATCH (m:movie) return m.*;
+---- 4
+1|312|movieB
+3|102|movieD
+5|93|movieE
+9|98|vb12
+
+-CASE SerialSkipInvalidRelMixed
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+---- ok
+-STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
+---- ok
+-STATEMENT MATCH (a:person)-[l:likes]->(b:movie) return a.ID, b.ID, l.score, l.comment;
+---- 3
+0|3|8|good
+4|9|10|vgood
+6|1|1|vbad

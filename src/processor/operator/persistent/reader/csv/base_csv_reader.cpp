@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/system_message.h"
@@ -16,9 +15,10 @@ namespace kuzu {
 namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
-    uint64_t numColumns, main::ClientContext* context)
-    : option{std::move(option)}, numColumns{numColumns}, buffer{nullptr}, bufferSize{0},
-      position{0}, osFileOffset{0}, rowEmpty{false}, context{context} {
+    uint64_t numColumns, main::ClientContext* context, CSVErrorHandler* errorHandler)
+    : option{std::move(option)}, numColumns{numColumns}, currentBlockIdx(0), rowNum(0),
+      numErrors(0), buffer{nullptr}, bufferIdx(0), bufferSize{0}, position{0}, lineContext(),
+      osFileOffset{0}, errorHandler(errorHandler), rowEmpty{false}, context{context} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         O_RDONLY
 #ifdef _WIN32
@@ -119,7 +119,7 @@ uint64_t BaseCSVReader::getFileSize() {
 }
 
 template<typename Driver>
-void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t columnIdx,
+bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t columnIdx,
     std::string_view strVal, std::vector<uint64_t>& escapePositions) {
     // insert the line number into the chunk
     if (!escapePositions.empty()) {
@@ -133,9 +133,9 @@ void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
         }
         newVal += strVal.substr(prevPos, strVal.size() - prevPos);
         escapePositions.clear();
-        driver.addValue(rowNum, columnIdx, newVal);
+        return driver.addValue(rowNum, columnIdx, newVal);
     } else {
-        driver.addValue(rowNum, columnIdx, strVal);
+        return driver.addValue(rowNum, columnIdx, strVal);
     }
 }
 
@@ -143,20 +143,22 @@ struct SkipRowDriver {
     explicit SkipRowDriver(uint64_t skipNum) : skipNum{skipNum} {}
     bool done(uint64_t rowNum) const { return rowNum >= skipNum; }
     bool addRow(uint64_t, column_id_t) { return true; }
-    void addValue(uint64_t, column_id_t, std::string_view) {}
+    bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
 
     uint64_t skipNum;
 };
 
-void BaseCSVReader::handleFirstBlock() {
+uint64_t BaseCSVReader::handleFirstBlock() {
+    uint64_t numRowsRead = 0;
     readBOM();
     if (option.skipNum > 0) {
         SkipRowDriver driver{option.skipNum};
-        parseCSV(driver);
+        numRowsRead += parseCSV(driver);
     }
     if (option.hasHeader) {
-        readHeader();
+        numRowsRead += readHeader();
     }
+    return numRowsRead;
 }
 
 void BaseCSVReader::readBOM() {
@@ -172,12 +174,12 @@ void BaseCSVReader::readBOM() {
 struct HeaderDriver {
     bool done(uint64_t) { return true; }
     bool addRow(uint64_t, column_id_t) { return true; }
-    void addValue(uint64_t, column_id_t, std::string_view) {}
+    bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
 };
 
-void BaseCSVReader::readHeader() {
+uint64_t BaseCSVReader::readHeader() {
     HeaderDriver driver;
-    parseCSV(driver);
+    return parseCSV(driver);
 }
 
 bool BaseCSVReader::readBuffer(uint64_t* start) {
@@ -205,8 +207,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     auto readCount = fileInfo->readFile(buffer.get() + remaining, bufferReadSize);
     if (readCount == -1) {
         // LCOV_EXCL_START
-        throw CopyException(
-            stringFormat("Could not read from file {}: {}", fileInfo->path, posixErrMessage()));
+        handleCopyException(stringFormat("Could not read from file: {}", posixErrMessage()), true);
         // LCOV_EXCL_STOP
     }
     osFileOffset += readCount;
@@ -217,21 +218,77 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
         *start = 0;
     }
     position = remaining;
+    ++bufferIdx;
     return readCount > 0;
 }
 
+std::string BaseCSVReader::reconstructLine(uint64_t startPosition, uint64_t endPosition) {
+    KU_ASSERT(endPosition >= startPosition);
+
+    if (-1 == fileInfo->seek(startPosition, SEEK_SET)) {
+        return "";
+    }
+
+    std::string res;
+    res.resize(endPosition - startPosition);
+
+    (void)fileInfo->readFile(res.data(), res.size());
+
+    [[maybe_unused]] const auto reseekSuccess = fileInfo->seek(osFileOffset, SEEK_SET);
+    KU_ASSERT(-1 != reseekSuccess);
+
+    return res;
+}
+
+void BaseCSVReader::skipUntilNextLine() {
+    do {
+        for (; position < bufferSize; ++position) {
+            if (isNewLine(buffer[position])) {
+                ++position;
+                return;
+            }
+        }
+    } while (maybeReadBuffer(nullptr));
+    return;
+}
+
 template<typename Driver>
-uint64_t BaseCSVReader::parseCSV(Driver& driver) {
+uint64_t BaseCSVReader::skipRowAndRestartParse(Driver& driver) {
+    skipUntilNextLine();
+    return parseCSV(driver, false);
+}
+
+void BaseCSVReader::handleCopyException(const std::string& message, bool mustThrow) {
+    CSVError error{.message = message,
+        .filePath = fileInfo->path,
+        .errorLine = lineContext,
+        .blockIdx = currentBlockIdx,
+        .numRowsReadInBlock = getNumRowsReadInBlock() + rowNum + numErrors};
+    if (!error.errorLine.isCompleteLine) {
+        error.errorLine.endByteOffset = getFileOffset();
+    }
+    errorHandler->handleError(this, error, mustThrow);
+
+    // if we reach here it means we are ignoring the error
+    ++numErrors;
+}
+
+template<typename Driver>
+uint64_t BaseCSVReader::parseCSV(Driver& driver, bool resetRowNum) {
     // used for parsing algorithm
-    uint64_t rowNum = 0;
+    if (resetRowNum) {
+        rowNum = 0;
+        numErrors = 0;
+    }
     column_id_t column = 0;
     uint64_t start = position;
     bool hasQuotes = false;
     std::vector<uint64_t> escapePositions;
+    lineContext.setNewLine(getFileOffset());
 
     // read values into the buffer (if any)
     if (!maybeReadBuffer(&start)) {
-        return 0;
+        return rowNum;
     }
 
     // start parsing the first value
@@ -275,8 +332,11 @@ add_value:
     // We get here after we have a delimiter.
     KU_ASSERT(buffer[position] == option.delimiter);
     // Trim one character if we have quotes.
-    addValue(driver, rowNum, column,
-        std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
+    if (!addValue(driver, rowNum, column,
+            std::string_view(buffer.get() + start, position - start - hasQuotes),
+            escapePositions)) {
+        return skipRowAndRestartParse(driver);
+    }
     column++;
 
     // Move past the delimiter.
@@ -292,17 +352,23 @@ add_value:
 add_row: {
     // We get here after we have a newline.
     KU_ASSERT(isNewLine(buffer[position]));
+    lineContext.setEndOfLine(getFileOffset());
     bool isCarriageReturn = buffer[position] == '\r';
-    addValue(driver, rowNum, column,
-        std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
+    if (!addValue(driver, rowNum, column,
+            std::string_view(buffer.get() + start, position - start - hasQuotes),
+            escapePositions)) {
+        return skipRowAndRestartParse(driver);
+    }
     column++;
 
+    // if we are ignoring errors and there is one in the current row skip it
     rowNum += driver.addRow(rowNum, column);
 
     column = 0;
     position++;
     // Adjust start for ReadBuffer.
     start = position;
+    lineContext.setNewLine(getFileOffset());
     if (!maybeReadBuffer(&start)) {
         // File ends right after newline, go to final state.
         goto final_state;
@@ -330,14 +396,16 @@ in_quotes:
                 escapePositions.push_back(position - start);
                 goto handle_escape;
             } else if (isNewLine(buffer[position])) {
-                [[unlikely]] handleQuotedNewline();
+                [[unlikely]] if (!handleQuotedNewline()) { return skipRowAndRestartParse(driver); }
             }
         }
     } while (readBuffer(&start));
     [[unlikely]]
     // still in quoted state at the end of the file, error:
-    throw CopyException(stringFormat("Error in file {} on line {}: unterminated quotes.",
-        fileInfo->path, getLineNumber()));
+    lineContext.setEndOfLine(getFileOffset());
+    handleCopyException("unterminated quotes.");
+    // we are ignoring this error, skip current row and restart state machine
+    return skipRowAndRestartParse(driver);
 unquote:
     KU_ASSERT(hasQuotes && buffer[position] == option.quoteChar);
     // this state handles the state directly after we unquote
@@ -361,25 +429,24 @@ unquote:
     } else if (isNewLine(buffer[position])) {
         goto add_row;
     } else {
-        [[unlikely]] throw CopyException(
-            stringFormat("Error in file {} on line {}: quote should be followed by "
-                         "end of file, end of value, end of "
-                         "row or another quote.",
-                fileInfo->path, getLineNumber()));
+        [[unlikely]] handleCopyException("quote should be followed by "
+                                         "end of file, end of value, end of "
+                                         "row or another quote.");
+        return skipRowAndRestartParse(driver);
     }
 handle_escape:
     /* state: handle_escape */
     // escape should be followed by a quote or another escape character
     position++;
     if (!maybeReadBuffer(&start)) {
-        [[unlikely]] throw CopyException(
-            stringFormat("Error in file {} on line {}: escape at end of file.", fileInfo->path,
-                getLineNumber()));
+        [[unlikely]] lineContext.setEndOfLine(getFileOffset());
+        handleCopyException("escape at end of file.");
+        return skipRowAndRestartParse(driver);
     }
     if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
-        [[unlikely]] throw CopyException(stringFormat(
-            "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
-            fileInfo->path, getLineNumber()));
+        ++position; // consume the invalid char
+        [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+        return skipRowAndRestartParse(driver);
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
@@ -405,10 +472,14 @@ carriage_return:
 final_state:
     // We get here when the file ends.
     // If we were mid-value, add the remaining value to the chunk.
+    lineContext.setEndOfLine(getFileOffset());
     if (position > start) {
         // Add remaining value to chunk.
-        addValue(driver, rowNum, column,
-            std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
+        if (!addValue(driver, rowNum, column,
+                std::string_view(buffer.get() + start, position - start - hasQuotes),
+                escapePositions)) {
+            return skipRowAndRestartParse(driver);
+        }
         column++;
     }
     if (column > 0) {
@@ -417,50 +488,14 @@ final_state:
     return rowNum;
 }
 
-template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
-template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
-template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
+template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&, bool);
+template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&, bool);
+template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&,
+    bool);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     KU_ASSERT(osFileOffset >= bufferSize);
     return osFileOffset - bufferSize + position;
-}
-
-uint64_t BaseCSVReader::getLineNumber() {
-    uint64_t offset = getFileOffset();
-    uint64_t lineNumber = 1;
-    const uint64_t BUF_SIZE = 4096;
-    char buf[BUF_SIZE];
-    if (fileInfo->seek(0, SEEK_SET) == -1) {
-        // LCOV_EXCL_START
-        throw CopyException(stringFormat("Could not seek to beginning of file {}: {}",
-            fileInfo->path, posixErrMessage()));
-        // LCOV_EXCL_STOP
-    }
-
-    bool carriageReturn = false;
-    uint64_t totalBytes = 0;
-    do {
-        auto bytesRead = fileInfo->readFile(buf, std::min(BUF_SIZE, offset - totalBytes));
-        if (bytesRead == -1) {
-            // LCOV_EXCL_START
-            throw CopyException(
-                stringFormat("Could not read from file {}: {}", fileInfo->path, posixErrMessage()));
-            // LCOV_EXCL_STOP
-        }
-        totalBytes += bytesRead;
-
-        for (uint64_t i = 0; i < (uint64_t)bytesRead; i++) {
-            if (buf[i] == '\n' || carriageReturn) {
-                lineNumber++;
-                carriageReturn = false;
-            }
-            if (buf[i] == '\r') {
-                carriageReturn = true;
-            }
-        }
-    } while (totalBytes < offset);
-    return lineNumber + carriageReturn;
 }
 
 } // namespace processor

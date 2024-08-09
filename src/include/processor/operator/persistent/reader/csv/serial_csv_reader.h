@@ -12,14 +12,18 @@ namespace processor {
 class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        main::ClientContext* context);
+        main::ClientContext* context, CSVErrorHandler* errorHandler);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
 
 protected:
-    void handleQuotedNewline() override {}
+    bool handleQuotedNewline() override { return true; }
+    uint64_t getNumRowsReadInBlock() final;
+
+private:
+    uint64_t numRowsReadInBlock;
 };
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
@@ -27,13 +31,10 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     uint64_t numColumns;
     uint64_t totalReadSizeByFile;
     common::CSVReaderConfig csvReaderConfig;
+    CSVErrorHandler errorHandler;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-        uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context)
-        : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-          totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)} {
-        initReader(context);
-    }
+        uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context);
 
     void read(common::DataChunk& outputChunk);
 

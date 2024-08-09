@@ -200,8 +200,17 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->globalIndexBuilder) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
-    auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-        sharedState->getNumRows(), info->tableEntry->getName());
+    for (auto& child : children) {
+        child->finalize(context);
+    }
+    auto& warningMsgs = context->clientContext->getWarningMessages();
+    for (auto& warningMsg : warningMsgs) {
+        FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
+            context->clientContext->getMemoryManager());
+    }
+    auto outputMsg = stringFormat(
+        "{} tuples have been copied to the {} table. Skipped {} tuples due to copy errors",
+        sharedState->getNumRows(), info->tableEntry->getName(), warningMsgs.size());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
 }

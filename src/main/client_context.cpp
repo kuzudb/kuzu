@@ -534,6 +534,14 @@ void ClientContext::removeScalarFunction(std::string name) {
     runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), std::move(name)); });
 }
 
+void ClientContext::setWarningMessages(const std::vector<std::string>& messages) {
+    warningMessages = messages;
+}
+
+std::vector<std::string>& ClientContext::getWarningMessages() {
+    return warningMessages;
+}
+
 bool ClientContext::canExecuteWriteQuery() {
     if (dbConfig.readOnly) {
         return false;

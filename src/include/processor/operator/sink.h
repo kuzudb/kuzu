@@ -30,8 +30,6 @@ public:
         metrics->executionTime.stop();
     }
 
-    virtual void finalize(ExecutionContext* /*context*/) {};
-
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
 protected:

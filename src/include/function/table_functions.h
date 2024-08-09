@@ -1,11 +1,17 @@
 #pragma once
 
+#include <optional>
+
 #include "common/data_chunk/data_chunk.h"
 #include "function.h"
 
 namespace kuzu {
 namespace main {
 class ClientContext;
+}
+
+namespace processor {
+struct ExecutionContext;
 }
 
 namespace function {
@@ -74,6 +80,8 @@ using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalStat
     TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
 using table_func_can_parallel_t = std::function<bool()>;
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
+using table_func_finalize_t =
+    std::function<void(processor::ExecutionContext*, TableFuncSharedState*)>;
 
 struct KUZU_API TableFunction : public Function {
     table_func_t tableFunc;
@@ -82,6 +90,7 @@ struct KUZU_API TableFunction : public Function {
     table_func_init_local_t initLocalStateFunc;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
     table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
+    table_func_finalize_t finalizeFunc = [](auto, auto) {};
 
     TableFunction()
         : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
@@ -94,10 +103,15 @@ struct KUZU_API TableFunction : public Function {
           initLocalStateFunc{initLocalFunc} {}
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
-        table_func_progress_t progressFunc, std::vector<common::LogicalTypeID> inputTypes)
+        table_func_progress_t progressFunc, std::vector<common::LogicalTypeID> inputTypes,
+        std::optional<table_func_finalize_t> finalizeFunc = {})
         : Function{std::move(name), std::move(inputTypes)}, tableFunc{tableFunc},
           bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
-          initLocalStateFunc{initLocalFunc}, progressFunc{progressFunc} {}
+          initLocalStateFunc{initLocalFunc}, progressFunc(progressFunc) {
+        if (finalizeFunc.has_value()) {
+            this->finalizeFunc = finalizeFunc.value();
+        }
+    }
 
     std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);

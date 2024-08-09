@@ -13,6 +13,7 @@ struct CSVOption {
     char delimiter;
     char quoteChar;
     bool hasHeader;
+    bool ignoreErrors;
     uint64_t skipNum;
     uint64_t sampleSize;
 
@@ -21,8 +22,10 @@ struct CSVOption {
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
           quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
+          ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
           skipNum{CopyConstants::DEFAULT_CSV_SKIP_NUM},
           sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE} {}
+
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.

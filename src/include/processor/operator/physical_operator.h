@@ -136,6 +136,8 @@ public:
 
     bool getNextTuple(ExecutionContext* context);
 
+    virtual void finalize(ExecutionContext* /*context*/) {};
+
     std::unordered_map<std::string, std::string> getProfilerKeyValAttributes(
         common::Profiler& profiler) const;
     std::vector<std::string> getProfilerAttributes(common::Profiler& profiler) const;
