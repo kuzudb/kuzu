@@ -34,7 +34,7 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     // Check for sip
     auto ratio = probePlan.getCardinality() / buildPlan.getCardinality();
     if (ratio > PlannerKnobs::SIP_RATIO) {
-        hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
+        hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
     }
     // Update cost
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
