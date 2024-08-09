@@ -29,17 +29,9 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& in
     auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
     lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
     listLambdaBindData->rootEvaluator->evaluate();
-    auto& listInputSelVector = inputVector->state->getSelVector();
-    // NOTE: the following can be done with a memcpy. But I think soon we will need to change
-    // to handle cases like
-    // MATCH (a:person) RETURN LIST_TRANSFORM([1,2,3], x->x + a.ID)
-    // So I'm leaving it in the naive form.
     KU_ASSERT(input.size() == 2);
     ListVector::setDataVector(&result, input[1]);
-    for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
-        auto pos = listInputSelVector[i];
-        result.setValue(pos, inputVector->getValue<list_entry_t>(pos));
-    }
+    ListVector::copyListEntryAndBufferMetaData(result, *inputVector);
 }
 
 function_set ListTransformFunction::getFunctionSet() {

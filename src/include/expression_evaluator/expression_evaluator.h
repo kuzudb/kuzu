@@ -43,8 +43,6 @@ public:
     EvaluatorType getEvaluatorType() const { return type; }
 
     std::shared_ptr<binder::Expression> getExpression() const { return expression; }
-    const common::LogicalType& getResultDataType() const { return expression->getDataType(); }
-    void setResultFlat(bool val) { isResultFlat_ = val; }
     bool isResultFlat() const { return isResultFlat_; }
 
     const evaluator_vector_t& getChildren() const { return children; }
