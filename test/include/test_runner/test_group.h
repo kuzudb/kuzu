@@ -79,7 +79,7 @@ struct TestGroup {
     uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;
     std::unordered_map<std::string, std::set<std::string>> testCasesConnNames;
 
-    enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET, TURTLE, KUZU };
+    enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET, TURTLE, KUZU, JSON, CSV_TO_JSON };
     DatasetType datasetType;
 
     bool isValid() const { return !group.empty() && !dataset.empty(); }

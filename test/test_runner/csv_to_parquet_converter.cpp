@@ -118,7 +118,7 @@ void CSVToParquetConverter::readCopyCommandsFromCSVDataset() {
         auto path = std::filesystem::path(extractPath(tokens[3], '"'));
         auto table = tableNameMap[tokens[1]];
         table->csvFilePath = TestHelper::appendKuzuRootPath(path.string());
-        auto parquetFileName = path.stem().string() + ".parquet";
+        auto parquetFileName = path.stem().string() + fileExtension;
         table->parquetFilePath = parquetDatasetPath + "/" + parquetFileName;
     }
 }
@@ -131,6 +131,9 @@ void CSVToParquetConverter::createCopyFile() {
     if (!outfile.is_open()) {
         throw TestException(
             stringFormat("Error opening file: {}, errno: {}.", parquetCopyFile, errno));
+    }
+    if (fileExtension == ".json") {
+        outfile << "load extension \"extension/json/build/libjson.kuzu_extension\"\n";
     }
     for (auto table : tables) {
         auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name, table->parquetFilePath);
@@ -148,6 +151,9 @@ void CSVToParquetConverter::convertCSVFilesToParquet() {
         *tempConn);
 
     spdlog::set_level(spdlog::level::info);
+    if (fileExtension == ".json") {
+        tempConn->query("load extension \"extension/json/build/libjson.kuzu_extension\"\n");
+    }
     for (auto table : tables) {
         spdlog::info("Converting: {} to {}", table->csvFilePath, table->parquetFilePath);
         auto cmd = table->getConverterQuery();

@@ -12,9 +12,9 @@ namespace testing {
 class CSVToParquetConverter {
 public:
     explicit CSVToParquetConverter(std::string csvDatasetPath, std::string parquetDatasetPath,
-        uint64_t bufferPoolSize)
+        uint64_t bufferPoolSize, std::string fileExtension)
         : csvDatasetPath{csvDatasetPath}, parquetDatasetPath{parquetDatasetPath},
-          bufferPoolSize{bufferPoolSize} {}
+          bufferPoolSize{bufferPoolSize}, fileExtension{fileExtension} {}
 
     void convertCSVDatasetToParquet();
 
@@ -53,6 +53,7 @@ private:
     std::vector<std::shared_ptr<TableInfo>> tables;
     std::unordered_map<std::string, std::shared_ptr<TableInfo>> tableNameMap;
     uint64_t bufferPoolSize;
+    std::string fileExtension;
     std::unique_ptr<main::SystemConfig> systemConfig;
     std::unique_ptr<main::Database> tempDb;
     std::unique_ptr<main::Connection> tempConn;

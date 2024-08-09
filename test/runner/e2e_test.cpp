@@ -53,14 +53,24 @@ public:
     }
 
     void setUpDataset() {
-        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
+        switch (datasetType) {
+        case TestGroup::DatasetType::CSV_TO_PARQUET: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-            parquetTempDatasetPath = generateParquetTempDatasetPath();
-            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize);
+            parquetTempDatasetPath = generateTempDatasetPath();
+            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize, ".parquet");
             converter.convertCSVDatasetToParquet();
             dataset = parquetTempDatasetPath;
-        } else {
+        } break;
+        case TestGroup::DatasetType::CSV_TO_JSON: {
+            auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+            parquetTempDatasetPath = generateTempDatasetPath();
+            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize, ".json");
+            converter.convertCSVDatasetToParquet();
+            dataset = parquetTempDatasetPath;
+        } break;
+        default: {
             dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+        }
         }
     }
 
@@ -69,6 +79,8 @@ public:
         BaseGraphTest::removeIEDBPath();
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
             std::filesystem::remove_all(parquetTempDatasetPath);
+        } else if (datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
+            //std::filesystem::remove_all(parquetTempDatasetPath);
         }
     }
 
@@ -84,7 +96,7 @@ private:
     std::vector<std::unique_ptr<TestStatement>> testStatements;
     std::set<std::string> connNames;
 
-    std::string generateParquetTempDatasetPath() {
+    std::string generateTempDatasetPath() {
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());
