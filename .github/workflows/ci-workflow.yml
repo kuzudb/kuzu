@@ -123,12 +123,22 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Build
-        run: make all
-
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test
+
+      - name: Test in mem
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test
+
+      - name: Test checkpoint at threshold 0
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
           make test
 
       - name: Python test
@@ -169,6 +179,11 @@ jobs:
         run: sudo apt-get install -y lcov
 
       - name: Test with coverage
+        run: make lcov NUM_THREADS=$(nproc)
+
+      - name: Test with coverage in mem
+        env:
+          IN_MEM_MODE: true
         run: make lcov NUM_THREADS=$(nproc)
 
       - name: Generate coverage report
@@ -269,7 +284,7 @@ jobs:
           ASAN_OPTIONS: "detect_leaks=1"
 
   clang-build-test:
-    name: clang build and test
+    name: clang build & test
     needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
     runs-on: kuzu-self-hosted-testing
     env:
@@ -303,9 +318,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Build
-        run: make all
 
       - name: Test
         run: |
@@ -376,6 +388,14 @@ jobs:
 
       - name: Test
         shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make test
+
+      - name: Test in mem
+        shell: cmd
+        env:
+          IN_MEM_MODE: true
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make test
@@ -592,13 +612,23 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Build
-        run: make all
-
       - name: Test
         run: |
           ulimit -n 10240
           ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test
+
+      - name: Test in mem
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test
+
+      - name: Test checkpoint at threshold 0
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
           make test
 
       - name: Python test
@@ -684,9 +714,6 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Build
-        run: make all
-
       - name: Test
         run: |
           ulimit -n 10240
@@ -724,97 +751,6 @@ jobs:
           ulimit -n 10240
           source /Users/runner/.cargo/env
           cargo build --locked --features arrow
-
-  clang-auto-checkpoint-build-test:
-    name: clang auto checkpoint build and test
-    needs: [clang-build-test]
-    runs-on: kuzu-self-hosted-testing
-    env:
-      NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
-      TEST_JOBS: 16
-      CC: clang
-      CXX: clang++
-      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
-      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
-      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-      RUN_ID: "$(hostname)-$(date +%s)"
-      HTTP_CACHE_FILE: TRUE
-      AUTO_CHECKPOINT: true
-      CHECKPOINT_THRESHOLD: 0
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        with:
-          name: binary-demo
-          path: dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
-      - name: Build
-        run: make all
-
-      - name: Test
-        run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make test
-
-  clang-in-mem-build-test:
-    name: clang in-mem build and test
-    needs: [clang-build-test]
-    runs-on: kuzu-self-hosted-testing
-    env:
-      NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
-      TEST_JOBS: 16
-      CC: clang
-      CXX: clang++
-      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
-      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
-      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-      RUN_ID: "$(hostname)-$(date +%s)"
-      HTTP_CACHE_FILE: TRUE
-      IN_MEM_MODE: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        with:
-          name: binary-demo
-          path: dataset/binary-demo
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
-      - name: Build
-        run: make all
-
-      - name: Test
-        run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make test
 
   shell-test:
     name: shell test
