@@ -89,6 +89,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "re2",
         "brotli",
         "serd",
+        "alp",
         "fastpfor",
         "miniparquet",
         "zstd",
@@ -116,6 +117,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         build_dir.join("build/src"),
         kuzu_root.join("third_party/nlohmann_json"),
         kuzu_root.join("third_party/fastpfor"),
+        kuzu_root.join("third_party/alp/include"),
     ])
 }
 

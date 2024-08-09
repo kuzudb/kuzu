@@ -1,0 +1,35 @@
+-DATASET CSV empty
+
+--
+
+-CASE DoubleColumnInsertionsAndUpdatesLarge
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE test(id SERIAL, value DOUBLE, PRIMARY KEY(id));
+---- ok
+-STATEMENT UNWIND range(0, 1000) AS i
+           CREATE (a:test {value: 0});
+---- ok
+# With 4KB pages, we can store 341 ALP exceptions per page
+-STATEMENT UNWIND range(1001, 1340) AS i
+           CREATE (a:test {value: 1010101010.1});
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+# We should surpass the ALP exception capacity by adding 2 new exceptions
+-STATEMENT CREATE (a:test {value:1010101010.2})
+---- ok
+-STATEMENT MATCH (a:test) WHERE a.id = 0 SET a.value = 1010101010.3
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT MATCH (a:test) WHERE a.value = 0 RETURN COUNT(*)
+---- 1
+1000
+-STATEMENT MATCH (a:test) WHERE a.value = 1010101010.1 RETURN COUNT(*)
+---- 1
+340
+-STATEMENT MATCH (a:test) WHERE a.value <> 0 AND a.value <> 1010101010.1 RETURN a.id, a.value
+---- 2
+0|1010101010.300000
+1341|1010101010.200000

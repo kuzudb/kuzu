@@ -28,14 +28,16 @@ struct NullColumnFunc {
     }
 
     static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata) {
+        uint32_t posInVector, offset_t numValuesToWrite, const CompressionMetadata& metadata) {
         if (metadata.isConstant()) {
             // Value to write is identical to the constant value
             return;
         }
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
-        NullMask::setNull((uint64_t*)frame, posInFrame, vector->isNull(posInVector));
+        for (size_t i = 0; i < numValuesToWrite; ++i) {
+            NullMask::setNull((uint64_t*)frame, posInFrame + i, vector->isNull(posInVector));
+        }
     }
 };
 

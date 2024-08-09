@@ -19,6 +19,7 @@ START_POINT = MAIN_HEADER_PATH / "kuzu.h"
 JSON_HEADER_PATH = (
     SCRIPT_PATH / "../../third_party/nlohmann_json/json_fwd.hpp"
 ).resolve()
+ALP_HEADERS_PATH = (SCRIPT_PATH / "../../third_party/alp/include").resolve()
 OUTPUT_PATH = "kuzu.hpp"
 
 logging.debug("HEADER_BASE_PATH: %s", HEADER_BASE_PATH)
@@ -38,6 +39,10 @@ def resolve_include(source_header: Path, include_path: str) -> Optional[Path]:
     main_directory_include = HEADER_BASE_PATH / include_path
     if main_directory_include.exists():
         return main_directory_include
+
+    alp_directory_include = ALP_HEADERS_PATH / include_path
+    if alp_directory_include.exists():
+        return alp_directory_include
 
     return None
 
