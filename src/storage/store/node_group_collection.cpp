@@ -1,7 +1,7 @@
 #include "storage/store/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
-#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/file_handle.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
 
@@ -12,7 +12,7 @@ namespace kuzu {
 namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    const bool enableCompression, BMFileHandle* dataFH, Deserializer* deSer)
+    const bool enableCompression, FileHandle* dataFH, Deserializer* deSer)
     : enableCompression{enableCompression}, numRows{0}, types{LogicalType::copy(types)},
       dataFH{dataFH} {
     if (deSer) {

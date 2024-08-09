@@ -50,7 +50,7 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
     return true;
 }
 
-ListColumn::ListColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+ListColumn::ListColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
     : Column{name, std::move(dataType), dataFH, bufferManager, shadowFile, enableCompression,
           true /* requireNullColumn */} {
@@ -68,7 +68,7 @@ ListColumn::ListColumn(std::string name, LogicalType dataType, BMFileHandle* dat
 }
 
 std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkData& chunk,
-    BMFileHandle& dataFH) {
+    FileHandle& dataFH) {
     auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
     auto& listChunk = chunk.cast<ListChunkData>();
     auto& flushedListChunk = flushedChunk->cast<ListChunkData>();

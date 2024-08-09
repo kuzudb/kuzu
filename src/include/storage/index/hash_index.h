@@ -26,7 +26,7 @@ enum class TransactionType : uint8_t;
 } // namespace transaction
 namespace storage {
 
-class BMFileHandle;
+class FileHandle;
 class BufferManager;
 class OverflowFileHandle;
 template<typename T>
@@ -67,7 +67,7 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
+    HashIndex(const DBFileIDAndName& dbFileIDAndName, FileHandle* fileHandle,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
         ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
         HashIndexHeader& indexHeaderForWriteTrx);
@@ -147,7 +147,7 @@ public:
     void prepareRollback() override;
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
-    inline BMFileHandle* getFileHandle() const { return fileHandle; }
+    inline FileHandle* getFileHandle() const { return fileHandle; }
 
 private:
     bool lookupInPersistentIndex(const transaction::Transaction* transaction, Key key,
@@ -276,7 +276,7 @@ private:
     DBFileIDAndName dbFileIDAndName;
     ShadowFile* shadowFile;
     uint64_t headerPageIdx;
-    BMFileHandle* fileHandle;
+    FileHandle* fileHandle;
     std::unique_ptr<DiskArray<Slot<T>>> pSlots;
     std::unique_ptr<DiskArray<Slot<T>>> oSlots;
     OverflowFileHandle* overflowFileHandle;
@@ -377,7 +377,7 @@ public:
 
     void checkpointInMemory();
     void checkpoint();
-    BMFileHandle* getFileHandle() const { return fileHandle; }
+    FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
     common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
@@ -386,7 +386,7 @@ public:
 
 private:
     common::PhysicalTypeID keyDataTypeID;
-    BMFileHandle* fileHandle;
+    FileHandle* fileHandle;
     std::unique_ptr<OverflowFile> overflowFile;
     std::vector<std::unique_ptr<OnDiskHashIndex>> hashIndices;
     std::vector<HashIndexHeader> hashIndexHeadersForReadTrx;

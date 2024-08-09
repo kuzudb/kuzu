@@ -18,7 +18,7 @@ struct CSRHeaderColumns {
 
 class RelTableData {
 public:
-    RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
+    RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
         bool enableCompression, common::Deserializer* deSer);
 
@@ -95,7 +95,7 @@ private:
     }
 
 private:
-    BMFileHandle* dataFH;
+    FileHandle* dataFH;
     common::table_id_t tableID;
     std::string tableName;
     MemoryManager* mm;

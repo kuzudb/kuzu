@@ -23,7 +23,7 @@ MemoryAllocator::MemoryAllocator(BufferManager* bm, VirtualFileSystem* vfs,
     main::ClientContext* context)
     : bm{bm} {
     pageSize = BufferPoolConstants::PAGE_256KB_SIZE;
-    fh = bm->getBMFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, context, PAGE_256KB);
+    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, context, PAGE_256KB);
 }
 
 MemoryAllocator::~MemoryAllocator() = default;

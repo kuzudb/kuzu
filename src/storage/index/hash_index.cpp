@@ -9,7 +9,6 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/index/hash_index_header.h"
@@ -17,6 +16,7 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/local_storage/local_hash_index.h"
+#include "storage/shadow_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/disk_array_collection.h"
 #include "storage/storage_structure/overflow_file.h"
@@ -30,7 +30,7 @@ namespace kuzu {
 namespace storage {
 
 template<typename T>
-HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, BMFileHandle* fileHandle,
+HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, FileHandle* fileHandle,
     OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
     ShadowFile* shadowFile, const HashIndexHeader& headerForReadTrx,
     HashIndexHeader& headerForWriteTrx)
@@ -427,7 +427,7 @@ template class HashIndex<ku_string_t>;
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
     bool inMemMode, PhysicalTypeID keyDataType, BufferManager& bufferManager,
     ShadowFile* shadowFile, VirtualFileSystem* vfs, main::ClientContext* context)
-    : keyDataTypeID(keyDataType), fileHandle{bufferManager.getBMFileHandle(dbFileIDAndName.fName,
+    : keyDataTypeID(keyDataType), fileHandle{bufferManager.getFileHandle(dbFileIDAndName.fName,
                                       inMemMode ? FileHandle::O_PERSISTENT_FILE_IN_MEM :
                                       readOnly  ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                                                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
@@ -559,7 +559,7 @@ void PrimaryKeyIndex::checkpointInMemory() {
 void PrimaryKeyIndex::writeHeaders() {
     size_t headerIdx = 0;
     for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
-        DBFileUtils::updatePage(*fileHandle, dbFileIDAndName.dbFileID, headerPageIdx,
+        ShadowUtils::updatePage(*fileHandle, dbFileIDAndName.dbFileID, headerPageIdx,
             true /*writing all the data to the page; no need to read original*/, shadowFile,
             [&](auto* frame) {
                 auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);

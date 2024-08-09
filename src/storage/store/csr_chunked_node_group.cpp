@@ -227,7 +227,7 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    transaction::Transaction* transaction, BMFileHandle& dataFH) const {
+    transaction::Transaction* transaction, FileHandle& dataFH) const {
     auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
         Column::flushChunkData(csrHeader.offset->getData(), dataFH));
     auto csrLength = std::make_unique<ColumnChunk>(csrHeader.length->isCompressionEnabled(),
@@ -246,7 +246,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
     return flushedChunkedGroup;
 }
 
-void ChunkedCSRNodeGroup::flush(BMFileHandle& dataFH) {
+void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
     csrHeader.offset->getData().flush(dataFH);
     csrHeader.length->getData().flush(dataFH);
     for (auto i = 0u; i < getNumColumns(); i++) {

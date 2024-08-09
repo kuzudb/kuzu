@@ -11,7 +11,7 @@ namespace storage {
 
 class BufferManager;
 class WAL;
-class BMFileHandle;
+class FileHandle;
 
 class DiskArrayCollection {
     struct HeaderPage {
@@ -31,7 +31,7 @@ class DiskArrayCollection {
     static_assert(std::has_unique_object_representations_v<HeaderPage>);
 
 public:
-    DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile,
+    DiskArrayCollection(FileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile,
         common::page_idx_t firstHeaderPage = 0, bool bypassShadowing = false);
 
     void checkpoint();
@@ -57,7 +57,7 @@ public:
     size_t addDiskArray();
 
 private:
-    BMFileHandle& fileHandle;
+    FileHandle& fileHandle;
     DBFileID dbFileID;
     ShadowFile& shadowFile;
     bool bypassShadowing;

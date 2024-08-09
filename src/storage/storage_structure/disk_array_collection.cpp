@@ -2,15 +2,15 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/storage_structure/db_file_utils.h"
+#include "storage//file_handle.h"
+#include "storage/shadow_utils.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-DiskArrayCollection::DiskArrayCollection(BMFileHandle& fileHandle, DBFileID dbFileID,
+DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, DBFileID dbFileID,
     ShadowFile& shadowFile, page_idx_t firstHeaderPage, bool bypassShadowing)
     : fileHandle{fileHandle}, dbFileID{dbFileID}, shadowFile{shadowFile},
       bypassShadowing{bypassShadowing}, headerPageIndices{firstHeaderPage}, numHeaders{0} {
@@ -51,7 +51,7 @@ void DiskArrayCollection::checkpoint() {
         KU_ASSERT(indexInMemory < headersForWriteTrx.size());
         if (indexInMemory >= headerPagesOnDisk ||
             *headersForWriteTrx[indexInMemory] != *headersForReadTrx[indexInMemory]) {
-            DBFileUtils::updatePage(fileHandle, dbFileID, *headerPageIdx,
+            ShadowUtils::updatePage(fileHandle, dbFileID, *headerPageIdx,
                 true /*writing full page*/, shadowFile, [&](auto* frame) {
                     memcpy(frame, headersForWriteTrx[indexInMemory].get(), sizeof(HeaderPage));
                     if constexpr (sizeof(HeaderPage) < BufferPoolConstants::PAGE_4KB_SIZE) {
