@@ -18,8 +18,8 @@ void Planner::appendOptionalCrossProduct(std::shared_ptr<Expression> mark,
     appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);
 }
 
-void Planner::appendAccOptionalCrossProduct(std::shared_ptr<Expression> mark, LogicalPlan& probePlan,
-    const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+void Planner::appendAccOptionalCrossProduct(std::shared_ptr<Expression> mark,
+    LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     KU_ASSERT(probePlan.hasUpdate());
     tryAppendAccumulate(probePlan);
     appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);

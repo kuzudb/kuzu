@@ -9,7 +9,7 @@ namespace planner {
 
 void Planner::tryAppendAccumulate(LogicalPlan& plan) {
     if (plan.getLastOperator()->getOperatorType() == LogicalOperatorType::ACCUMULATE) {
-        return ;
+        return;
     }
     appendAccumulate(plan);
 }

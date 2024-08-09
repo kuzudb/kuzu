@@ -18,7 +18,7 @@ bool CrossProduct::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     if (localState.startIdx == table->getNumTuples()) { // no more to scan from right
-        if (!children[0]->getNextTuple(context)) {       // fetch a new left tuple
+        if (!children[0]->getNextTuple(context)) {      // fetch a new left tuple
             return false;
         }
         localState.startIdx = 0; // reset right table scanning for a new left tuple

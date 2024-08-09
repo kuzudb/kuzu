@@ -30,7 +30,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
         outVecPos.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
-    auto info =CrossProductInfo(std::move(outVecPos), std::move(colIndicesToScan));
+    auto info = CrossProductInfo(std::move(outVecPos), std::move(colIndicesToScan));
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto localState = CrossProductLocalState(table, maxMorselSize);
