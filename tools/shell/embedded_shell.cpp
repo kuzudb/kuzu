@@ -50,7 +50,8 @@ struct ShellCommand {
     const char* MAX_WIDTH = ":max_width";
     const char* MODE = ":mode";
     const char* STATS = ":stats";
-    const std::array<const char*, 7> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE, STATS};
+    const std::array<const char*, 7> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -507,15 +508,15 @@ void EmbeddedShell::setMode(const std::string& modeString) {
 void EmbeddedShell::setStats(const std::string& statsString) {
     std::string statsStringLower = statsString;
     std::transform(statsStringLower.begin(), statsStringLower.end(), statsStringLower.begin(),
-		[](unsigned char c) { return std::tolower(c); });
+        [](unsigned char c) { return std::tolower(c); });
     if (statsStringLower == "on") {
-		stats = true;
+        stats = true;
     } else if (statsStringLower == "off") {
-		stats = false;
-	} else {
-		printf("Cannot parse '%s' to toggle stats. Expect 'on' or 'off'.\n", statsString.c_str());
+        stats = false;
+    } else {
+        printf("Cannot parse '%s' to toggle stats. Expect 'on' or 'off'.\n", statsString.c_str());
         return;
-	}
+    }
     printf("stats set as %s\n", stats ? "on" : "off");
 }
 
