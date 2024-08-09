@@ -43,14 +43,8 @@ static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t output
     // Get src and dst primary key
     auto srcTableEntry = catalog->getTableCatalogEntry(context->getTx(), srcTableID);
     auto dstTableEntry = catalog->getTableCatalogEntry(context->getTx(), dstTableID);
-    auto srcTablePrimaryKey =
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(srcTableEntry)
-            ->getPrimaryKey()
-            ->getName();
-    auto dstTablePrimaryKey =
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(dstTableEntry)
-            ->getPrimaryKey()
-            ->getName();
+    auto srcTablePrimaryKey = srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
+    auto dstTablePrimaryKey = dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     // Write result to dataChunk
     outputDataChunk.getValueVector(0)->setValue(outputPos, srcTableName);
     outputDataChunk.getValueVector(1)->setValue(outputPos, dstTableName);

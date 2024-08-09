@@ -60,10 +60,11 @@ static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
     auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
     auto tableName = entry->getName();
     std::string columns;
-    for (auto i = 0u; i < entry->getNumProperties(); i++) {
-        auto& prop = entry->getPropertiesRef()[i];
+    auto numProperties = entry->getNumProperties();
+    for (auto i = 0u; i < numProperties; i++) {
+        auto& prop = entry->getProperty(i);
         columns += prop.getName();
-        columns += i == entry->getNumProperties() - 1 ? "" : ",";
+        columns += i == numProperties - 1 ? "" : ",";
     }
     ss << stringFormat("COPY {} ( {} ) FROM \"{}.{}\" {};\n", tableName, columns, tableName,
         fileTypeStr, csvConfig.option.toCypher());

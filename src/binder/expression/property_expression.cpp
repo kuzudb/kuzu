@@ -16,7 +16,8 @@ std::unique_ptr<PropertyExpression> PropertyExpression::construct(LogicalType ty
     // Assign an invalid property id for virtual property.
     common::table_id_map_t<SingleLabelPropertyInfo> infos;
     for (auto& tableID : patternExpr.getTableIDs()) {
-        infos.insert({tableID, SingleLabelPropertyInfo(false, INVALID_PROPERTY_ID)});
+        infos.insert(
+            {tableID, SingleLabelPropertyInfo(false /* exists */, false /* isPrimaryKey */)});
     }
     return std::make_unique<PropertyExpression>(std::move(type), propertyName, uniqueName,
         variableName, std::move(infos));
@@ -38,18 +39,13 @@ bool PropertyExpression::isPrimaryKey(common::table_id_t tableID) const {
     return infos.at(tableID).isPrimaryKey;
 }
 
-bool PropertyExpression::hasPropertyID(common::table_id_t tableID) const {
+bool PropertyExpression::hasProperty(common::table_id_t tableID) const {
     // For RDF, we mock the existence of iri on resource triples table. So we cannot assert infos
     // always contain tableID.
     if (!infos.contains(tableID)) {
         return false;
     }
-    return infos.at(tableID).id != INVALID_PROPERTY_ID;
-}
-
-common::property_id_t PropertyExpression::getPropertyID(common::table_id_t tableID) const {
-    KU_ASSERT(infos.contains(tableID));
-    return infos.at(tableID).id;
+    return infos.at(tableID).exists;
 }
 
 } // namespace binder

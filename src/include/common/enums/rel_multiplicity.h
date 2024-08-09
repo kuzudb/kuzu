@@ -7,9 +7,11 @@ namespace kuzu {
 namespace common {
 
 enum class RelMultiplicity : uint8_t { MANY, ONE };
+
 struct RelMultiplicityUtils {
-    static RelMultiplicity getFwd(const std::string& multiplicityStr);
-    static RelMultiplicity getBwd(const std::string& multiplicityStr);
+    static RelMultiplicity getFwd(const std::string& str);
+    static RelMultiplicity getBwd(const std::string& str);
+    static std::string toString(RelMultiplicity multiplicity);
 };
 
 } // namespace common

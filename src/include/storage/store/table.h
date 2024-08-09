@@ -120,12 +120,12 @@ struct TableDeleteState {
 };
 
 struct TableAddColumnState final {
-    const catalog::Property& property;
+    const binder::PropertyDefinition& propertyDefinition;
     evaluator::ExpressionEvaluator& defaultEvaluator;
 
-    TableAddColumnState(const catalog::Property& property,
+    TableAddColumnState(const binder::PropertyDefinition& propertyDefinition,
         evaluator::ExpressionEvaluator& defaultEvaluator)
-        : property{property}, defaultEvaluator{defaultEvaluator} {}
+        : propertyDefinition{propertyDefinition}, defaultEvaluator{defaultEvaluator} {}
     ~TableAddColumnState() = default;
 };
 

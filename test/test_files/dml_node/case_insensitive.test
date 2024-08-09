@@ -1,0 +1,22 @@
+-DATASET CSV empty
+
+--
+
+-CASE CaseInsentivePropertyUpdate
+-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {ID: 1, NAME:'A'})
+---- ok
+-STATEMENT MATCH (a:test {iD:1}) SET a.Name = 'B';
+---- ok
+-STATEMENT MATCH (a:TEST) RETURN a.*;
+---- 1
+1|B
+-STATEMENT MERGE (a:test {ID:2}) ON CREATE SET a.NAME = 'C';
+---- ok
+-STATEMENT MERGE (a:test {Id:1}) ON MATCH SET a.namE = 'D';
+---- ok
+-STATEMENT MATCH (a:TEST) RETURN a.*;
+---- 2
+1|D
+2|C

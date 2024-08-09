@@ -22,9 +22,7 @@ namespace binder {
 
 static std::string getPrimaryKeyName(table_id_t tableId, const Catalog& catalog, Transaction* tx) {
     auto tableEntry = catalog.getTableCatalogEntry(tx, tableId);
-    auto primaryProperty =
-        ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(tableEntry)->getPrimaryKey();
-    return primaryProperty->getName();
+    return tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
 }
 
 static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Transaction* tx,
@@ -55,12 +53,7 @@ FileTypeInfo getFileType(std::unordered_map<std::string, common::Value>& options
 }
 
 static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery) {
-    exportQuery = stringFormat("match (a:{}) return ", entry.getName());
-    for (auto i = 0u; i < entry.getNumProperties(); i++) {
-        auto& prop = entry.getPropertiesRef()[i];
-        exportQuery += stringFormat("a.{}", prop.getName());
-        exportQuery += i == entry.getNumProperties() - 1 ? " " : ",";
-    }
+    exportQuery = stringFormat("match (a:{}) return a.*", entry.getName());
 }
 
 static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,

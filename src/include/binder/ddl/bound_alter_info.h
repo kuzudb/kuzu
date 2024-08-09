@@ -1,8 +1,8 @@
 #pragma once
 
+#include "binder/ddl/property_definition.h"
 #include "binder/expression/expression.h"
 #include "common/enums/alter_type.h"
-#include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace binder {
@@ -52,19 +52,14 @@ struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
 };
 
 struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
-    std::string propertyName;
-    common::LogicalType dataType;
-    std::unique_ptr<parser::ParsedExpression> defaultValue;
+    PropertyDefinition propertyDefinition;
     std::shared_ptr<Expression> boundDefault;
 
-    BoundExtraAddPropertyInfo(std::string propertyName, common::LogicalType dataType,
-        std::unique_ptr<parser::ParsedExpression> defaultValue,
+    BoundExtraAddPropertyInfo(const PropertyDefinition& definition,
         std::shared_ptr<Expression> boundDefault)
-        : propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
-          defaultValue{std::move(defaultValue)}, boundDefault{std::move(boundDefault)} {}
+        : propertyDefinition{definition.copy()}, boundDefault{std::move(boundDefault)} {}
     BoundExtraAddPropertyInfo(const BoundExtraAddPropertyInfo& other)
-        : propertyName{other.propertyName}, dataType{other.dataType.copy()},
-          defaultValue{other.defaultValue->copy()}, boundDefault{other.boundDefault} {}
+        : propertyDefinition{other.propertyDefinition.copy()}, boundDefault{other.boundDefault} {}
 
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraAddPropertyInfo>(*this);
@@ -72,13 +67,11 @@ struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
 };
 
 struct BoundExtraDropPropertyInfo : public BoundExtraAlterInfo {
-    common::property_id_t propertyID;
     std::string propertyName;
 
-    explicit BoundExtraDropPropertyInfo(common::property_id_t propertyID, std::string propertyName)
-        : propertyID{propertyID}, propertyName{propertyName} {}
+    explicit BoundExtraDropPropertyInfo(std::string propertyName) : propertyName{propertyName} {}
     BoundExtraDropPropertyInfo(const BoundExtraDropPropertyInfo& other)
-        : propertyID{other.propertyID}, propertyName{other.propertyName} {}
+        : propertyName{other.propertyName} {}
 
     inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraDropPropertyInfo>(*this);
@@ -86,16 +79,14 @@ struct BoundExtraDropPropertyInfo : public BoundExtraAlterInfo {
 };
 
 struct BoundExtraRenamePropertyInfo : public BoundExtraAlterInfo {
-    common::property_id_t propertyID;
     std::string newName;
     std::string oldName;
 
-    BoundExtraRenamePropertyInfo(common::property_id_t propertyID, std::string newName,
-        std::string oldName)
-        : propertyID{propertyID}, newName{std::move(newName)}, oldName{std::move(oldName)} {}
+    BoundExtraRenamePropertyInfo(std::string newName, std::string oldName)
+        : newName{std::move(newName)}, oldName{std::move(oldName)} {}
     BoundExtraRenamePropertyInfo(const BoundExtraRenamePropertyInfo& other)
-        : propertyID{other.propertyID}, newName{other.newName}, oldName{other.oldName} {}
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+        : newName{other.newName}, oldName{other.oldName} {}
+    std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraRenamePropertyInfo>(*this);
     }
 };

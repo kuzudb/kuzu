@@ -44,11 +44,7 @@ void RelTableData::initCSRHeaderColumns() {
 
 void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
     // Columns (nbrID + properties).
-    auto& properties = tableEntry->getPropertiesRef();
-    const auto maxColumnID =
-        std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
-            return a.getColumnID() < b.getColumnID();
-        })->getColumnID();
+    const auto maxColumnID = tableEntry->getMaxColumnID();
     // The first column is reserved for NBR_ID, which is not a property.
     columns.resize(maxColumnID + 2);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
@@ -57,14 +53,14 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
         shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     // Property columns.
-    for (auto i = 0u; i < properties.size(); i++) {
-        auto& property = properties[i];
-        const auto columnID = property.getColumnID() + 1; // Skip NBR_ID column.
+    for (auto i = 0u; i < tableEntry->getNumProperties(); i++) {
+        auto& property = tableEntry->getProperty(i);
+        const auto columnID = tableEntry->getColumnID(property.getName());
         const auto colName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
-        columns[columnID] = ColumnFactory::createColumn(colName, property.getDataType().copy(),
-            dataFH, bufferManager, shadowFile, enableCompression);
+        columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
+            bufferManager, shadowFile, enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
     const auto nbrTableID = tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(direction);
@@ -108,8 +104,8 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
 }
 
 void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    auto& property = addColumnState.property;
-    columns.push_back(ColumnFactory::createColumn(property.getName(), property.getDataType().copy(),
+    auto& definition = addColumnState.propertyDefinition;
+    columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
         dataFH, bufferManager, shadowFile, enableCompression));
     nodeGroups->addColumn(transaction, addColumnState);
 }

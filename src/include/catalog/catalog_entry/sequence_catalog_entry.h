@@ -3,10 +3,13 @@
 #include <mutex>
 
 #include "binder/ddl/bound_create_sequence_info.h"
-#include "catalog/property.h"
 #include "catalog_entry.h"
 
 namespace kuzu {
+namespace common {
+class ValueVector;
+}
+
 namespace binder {
 struct BoundExtraCreateCatalogEntryInfo;
 struct BoundAlterInfo;

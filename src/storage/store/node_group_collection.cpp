@@ -170,7 +170,7 @@ void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnStat
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         nodeGroup->addColumn(transaction, addColumnState, dataFH);
     }
-    types.push_back(addColumnState.property.getDataType().copy());
+    types.push_back(addColumnState.propertyDefinition.getType().copy());
 }
 
 uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {

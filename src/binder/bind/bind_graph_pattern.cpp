@@ -127,7 +127,7 @@ static std::vector<std::string> getPropertyNames(const std::vector<TableCatalogE
     std::vector<std::string> result;
     std::unordered_set<std::string> propertyNamesSet;
     for (auto& entry : entries) {
-        for (auto& property : entry->getPropertiesRef()) {
+        for (auto& property : entry->getProperties()) {
             if (propertyNamesSet.contains(property.getName())) {
                 continue;
             }
@@ -144,19 +144,18 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
     common::table_id_map_t<SingleLabelPropertyInfo> infos;
     std::vector<LogicalType> dataTypes;
     for (auto& entry : entries) {
-        // Bind property id
-        auto propertyID = INVALID_PROPERTY_ID;
-        if (entry->containProperty(propertyName)) {
-            propertyID = entry->getPropertyID(propertyName);
-            dataTypes.push_back(entry->getProperty(propertyID)->getDataType().copy());
+        bool exists = false;
+        if (entry->containsProperty(propertyName)) {
+            exists = true;
+            dataTypes.push_back(entry->getProperty(propertyName).getType().copy());
         }
         // Bind isPrimaryKey
         auto isPrimaryKey = false;
         if (entry->getTableType() == common::TableType::NODE) {
             auto nodeEntry = entry->constPtrCast<NodeTableCatalogEntry>();
-            isPrimaryKey = nodeEntry->getPrimaryKeyPID() == propertyID;
+            isPrimaryKey = nodeEntry->getPrimaryKeyName() == propertyName;
         }
-        auto info = SingleLabelPropertyInfo(isPrimaryKey, propertyID);
+        auto info = SingleLabelPropertyInfo(exists, isPrimaryKey);
         infos.insert({entry->getTableID(), std::move(info)});
     }
     // Validate property under the same name has the same type.

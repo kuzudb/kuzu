@@ -212,7 +212,7 @@ row_idx_t NodeGroup::getNumDeletedRows(const Transaction* transaction) {
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
     BMFileHandle* dataFH) {
-    dataTypes.push_back(addColumnState.property.getDataType().copy());
+    dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
