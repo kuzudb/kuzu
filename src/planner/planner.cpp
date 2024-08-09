@@ -54,7 +54,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     auto plan = std::make_unique<LogicalPlan>();
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
-        plan = getBestPlan(planQuery(statement));
+        plan = getBestPlan(planQuery(statement)); // not here
     } break;
     case StatementType::CREATE_TABLE: {
         appendCreateTable(statement, *plan);

@@ -6,11 +6,28 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalCreateMacroPrintInfo final : OPPrintInfo {
+    std::string macroName;
+
+    explicit LogicalCreateMacroPrintInfo(std::string macroName) : macroName(std::move(macroName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalCreateMacroPrintInfo>(new LogicalCreateMacroPrintInfo(*this));
+    }
+
+private:
+    LogicalCreateMacroPrintInfo(const LogicalCreateMacroPrintInfo& other)
+        : OPPrintInfo(other), macroName(other.macroName) {}
+};
+
 class LogicalCreateMacro : public LogicalOperator {
 public:
     LogicalCreateMacro(std::shared_ptr<binder::Expression> outputExpression, std::string macroName,
-        std::unique_ptr<function::ScalarMacroFunction> macro)
-        : LogicalOperator{LogicalOperatorType::CREATE_MACRO},
+        std::unique_ptr<function::ScalarMacroFunction> macro,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::CREATE_MACRO, std::move(printInfo)},
           outputExpression{std::move(outputExpression)}, macroName{std::move(macroName)},
           macro{std::move(macro)} {}
 
@@ -28,7 +45,8 @@ public:
     inline std::string getExpressionsForPrinting() const override { return macroName; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalCreateMacro>(outputExpression, macroName, macro->copy());
+        return std::make_unique<LogicalCreateMacro>(outputExpression, macroName, macro->copy(),
+            printInfo->copy());
     }
 
 private:

@@ -5,6 +5,16 @@
 namespace kuzu {
 namespace planner {
 
+std::string LogicalCopyToPrintInfo::toString() const {
+    std::string result = "";
+    result += "Export: ";
+    for (auto& name : columnNames) {
+        result += name + ", ";
+    }
+    result += "To: " + fileName;
+    return result;
+}
+
 void LogicalCopyTo::computeFactorizedSchema() {
     copyChildSchema(0);
 }

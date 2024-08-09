@@ -21,8 +21,9 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
+        probePlan.getLastOperator(), buildPlan.getLastOperator(), std::move(printInfo));
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
     appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
@@ -50,8 +51,9 @@ void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, JoinType::MARK, mark,
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
+        probePlan.getLastOperator(), buildPlan.getLastOperator(), std::move(printInfo));
     // Apply flattening to probe side
     appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
     hashJoin->setChild(0, probePlan.getLastOperator());
@@ -74,8 +76,9 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
         keyNodeIDs.push_back(boundNodeIDs[i]);
         buildChildren.push_back(buildPlans[i]->getLastOperator());
     }
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto intersect = make_shared<LogicalIntersect>(intersectNodeID, std::move(keyNodeIDs),
-        probePlan.getLastOperator(), std::move(buildChildren));
+        probePlan.getLastOperator(), std::move(buildChildren), std::move(printInfo));
     appendFlattens(intersect->getGroupsPosToFlattenOnProbeSide(), probePlan);
     intersect->setChild(0, probePlan.getLastOperator());
     for (auto i = 0u; i < buildPlans.size(); ++i) {

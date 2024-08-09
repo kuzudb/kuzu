@@ -10,8 +10,8 @@ namespace planner {
 class LogicalProjection : public LogicalOperator {
 public:
     explicit LogicalProjection(binder::expression_vector expressions,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::PROJECTION, std::move(child)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::PROJECTION, std::move(child), std::move(printInfo)},
           expressions{std::move(expressions)} {}
 
     void computeFactorizedSchema() override;
@@ -26,7 +26,7 @@ public:
     std::unordered_set<uint32_t> getDiscardedGroupsPos() const;
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalProjection>(expressions, children[0]->copy());
+        return make_unique<LogicalProjection>(expressions, children[0]->copy(), printInfo->copy());
     }
 
 private:

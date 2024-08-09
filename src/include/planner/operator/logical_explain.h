@@ -12,8 +12,9 @@ class LogicalExplain : public LogicalOperator {
 public:
     LogicalExplain(std::shared_ptr<LogicalOperator> child,
         std::shared_ptr<binder::Expression> outputExpression, common::ExplainType explainType,
-        binder::expression_vector outputExpressionsToExplain)
-        : LogicalOperator{LogicalOperatorType::EXPLAIN, std::move(child)},
+        binder::expression_vector outputExpressionsToExplain,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::EXPLAIN, std::move(child), std::move(printInfo)},
           outputExpression{std::move(outputExpression)}, explainType{explainType},
           outputExpressionsToExplain{std::move(outputExpressionsToExplain)} {}
 
@@ -35,7 +36,7 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalExplain>(children[0], outputExpression, explainType,
-            outputExpressionsToExplain);
+            outputExpressionsToExplain, printInfo->copy());
     }
 
 private:

@@ -11,6 +11,7 @@ void LogicalExplain::computeSchema() {
         copyChildSchema(0);
         break;
     case ExplainType::PHYSICAL_PLAN:
+    case ExplainType::LOGICAL_PLAN:
         createEmptySchema();
         break;
     default:

@@ -5,7 +5,8 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendEmptyResult(LogicalPlan& plan) {
-    auto op = std::make_shared<LogicalEmptyResult>(*plan.getSchema());
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto op = std::make_shared<LogicalEmptyResult>(*plan.getSchema(), std::move(printInfo));
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }

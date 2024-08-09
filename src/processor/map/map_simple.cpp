@@ -48,7 +48,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto detachDatabase = logicalOperator->constPtrCast<LogicalDetachDatabase>();
-    auto printInfo = std::make_unique<OPPrintInfo>(detachDatabase->getExpressionsForPrinting());
+    auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<DetachDatabase>(detachDatabase->getDBName(),
         getOutputPos(detachDatabase), getOperatorID(), std::move(printInfo));
 }

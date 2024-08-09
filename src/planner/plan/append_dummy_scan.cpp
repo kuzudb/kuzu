@@ -6,7 +6,8 @@ namespace planner {
 
 void Planner::appendDummyScan(LogicalPlan& plan) {
     KU_ASSERT(plan.isEmpty());
-    auto dummyScan = std::make_shared<LogicalDummyScan>();
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto dummyScan = std::make_shared<LogicalDummyScan>(std::move(printInfo));
     dummyScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(dummyScan));
 }

@@ -12,8 +12,9 @@ class LogicalIntersect : public LogicalOperator {
 public:
     LogicalIntersect(std::shared_ptr<binder::Expression> intersectNodeID,
         binder::expression_vector keyNodeIDs, std::shared_ptr<LogicalOperator> probeChild,
-        std::vector<std::shared_ptr<LogicalOperator>> buildChildren)
-        : LogicalOperator{type_, std::move(probeChild)},
+        std::vector<std::shared_ptr<LogicalOperator>> buildChildren,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type_, std::move(probeChild), std::move(printInfo)},
           intersectNodeID{std::move(intersectNodeID)}, keyNodeIDs{std::move(keyNodeIDs)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
