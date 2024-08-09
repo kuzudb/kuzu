@@ -67,7 +67,7 @@ struct DrawingCharacters {
     const char* TupleDelimiter = " ";
 
 protected:
-    DrawingCharacters(PrintType pt) : printType(pt) {}
+    explicit DrawingCharacters(PrintType pt) : printType(pt) {}
 };
 
 struct BaseTableDrawingCharacters : public DrawingCharacters {
@@ -89,7 +89,7 @@ struct BaseTableDrawingCharacters : public DrawingCharacters {
     bool Types = true;
 
 protected:
-    BaseTableDrawingCharacters(PrintType pt) : DrawingCharacters(pt){};
+    explicit BaseTableDrawingCharacters(PrintType pt) : DrawingCharacters(pt) {};
 };
 
 struct BoxDrawingCharacters : public BaseTableDrawingCharacters {
@@ -188,7 +188,7 @@ struct JSONDrawingCharacters : public DrawingCharacters {
     JSONDrawingCharacters() : DrawingCharacters(PrintType::JSON) { TupleDelimiter = ","; }
 
 protected:
-    JSONDrawingCharacters(PrintType pt) : DrawingCharacters(pt) {}
+    explicit JSONDrawingCharacters(PrintType pt) : DrawingCharacters(pt) {}
 };
 
 struct JSONLinesDrawingCharacters : public JSONDrawingCharacters {
