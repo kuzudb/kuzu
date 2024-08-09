@@ -6,60 +6,49 @@
 namespace kuzu {
 namespace processor {
 
-class CrossProduct;
-class CrossProductLocalState {
-    friend class CrossProduct;
-
-public:
-    CrossProductLocalState(std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize)
-        : table{std::move(table)}, maxMorselSize{maxMorselSize}, startIdx{0} {}
-
-    void init() { startIdx = table->getNumTuples(); }
-
-    inline std::unique_ptr<CrossProductLocalState> copy() const {
-        return std::make_unique<CrossProductLocalState>(table, maxMorselSize);
-    }
-
-private:
+struct CrossProductLocalState {
     std::shared_ptr<FactorizedTable> table;
     uint64_t maxMorselSize;
     uint64_t startIdx = 0u;
-};
 
-class CrossProductInfo {
-    friend class CrossProduct;
+    CrossProductLocalState(std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize)
+        : table{std::move(table)}, maxMorselSize{maxMorselSize}, startIdx{0} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CrossProductLocalState);
 
-public:
-    CrossProductInfo(std::vector<DataPos> outVecPos, std::vector<ft_col_idx_t> colIndicesToScan)
-        : outVecPos{std::move(outVecPos)}, colIndicesToScan{std::move(colIndicesToScan)} {}
-    CrossProductInfo(const CrossProductInfo& other)
-        : outVecPos{other.outVecPos}, colIndicesToScan{other.colIndicesToScan} {}
-
-    inline std::unique_ptr<CrossProductInfo> copy() const {
-        return std::make_unique<CrossProductInfo>(*this);
-    }
+    void init() { startIdx = table->getNumTuples(); }
 
 private:
+    CrossProductLocalState(const CrossProductLocalState& other)
+        : table{other.table}, maxMorselSize{other.maxMorselSize}, startIdx{other.startIdx} {}
+};
+
+struct CrossProductInfo {
     std::vector<DataPos> outVecPos;
     std::vector<ft_col_idx_t> colIndicesToScan;
+
+    CrossProductInfo(std::vector<DataPos> outVecPos, std::vector<ft_col_idx_t> colIndicesToScan)
+        : outVecPos{std::move(outVecPos)}, colIndicesToScan{std::move(colIndicesToScan)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CrossProductInfo);
+
+private:
+    CrossProductInfo(const CrossProductInfo& other)
+        : outVecPos{other.outVecPos}, colIndicesToScan{other.colIndicesToScan} {}
 };
 
 class CrossProduct : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CROSS_PRODUCT;
 
 public:
-    CrossProduct(std::unique_ptr<CrossProductInfo> info,
-        std::unique_ptr<CrossProductLocalState> localState,
+    CrossProduct(CrossProductInfo info, CrossProductLocalState localState,
         std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(probeChild), std::move(buildChild), id,
               std::move(printInfo)},
           info{std::move(info)}, localState{std::move(localState)} {}
 
-    // Clone only.
-    CrossProduct(std::unique_ptr<CrossProductInfo> info,
-        std::unique_ptr<CrossProductLocalState> localState, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+    CrossProduct(CrossProductInfo info, CrossProductLocalState localState,
+        std::unique_ptr<PhysicalOperator> child, physical_op_id id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, localState{std::move(localState)} {}
 
@@ -68,13 +57,13 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CrossProduct>(info->copy(), localState->copy(),
-            children[0]->clone(), id, printInfo->copy());
+        return std::make_unique<CrossProduct>(info.copy(), localState.copy(), children[0]->clone(),
+            id, printInfo->copy());
     }
 
 private:
-    std::unique_ptr<CrossProductInfo> info;
-    std::unique_ptr<CrossProductLocalState> localState;
+    CrossProductInfo info;
+    CrossProductLocalState localState;
     std::vector<common::ValueVector*> vectorsToScan;
 };
 

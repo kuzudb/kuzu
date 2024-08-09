@@ -30,15 +30,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
         outVecPos.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
-    auto info =
-        std::make_unique<CrossProductInfo>(std::move(outVecPos), std::move(colIndicesToScan));
+    auto info = CrossProductInfo(std::move(outVecPos), std::move(colIndicesToScan));
     auto table = resultCollector->getResultFactorizedTable();
     auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
-    auto localState = std::make_unique<CrossProductLocalState>(table, maxMorselSize);
+    auto localState = CrossProductLocalState(table, maxMorselSize);
     auto printInfo = std::make_unique<OPPrintInfo>();
-    return make_unique<CrossProduct>(std::move(info), std::move(localState),
+    auto crossProduct = std::make_unique<CrossProduct>(std::move(info), std::move(localState),
         std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
         std::move(printInfo));
+    if (logicalCrossProduct.getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
+        mapSIPJoin(crossProduct.get());
+    }
+    return crossProduct;
 }
 
 } // namespace processor

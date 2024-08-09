@@ -29,11 +29,11 @@
 ---- 1
 9
 -STATEMENT CREATE (a:person {ID:201, fName:'test'}) WITH a OPTIONAL MATCH (b:person) WHERE b.ID > a.ID RETURN COUNT(b);
----- error
-Runtime exception: Optional match after update is not supported. Missing right outer join implementation.
+---- 1
+0
 -STATEMENT CREATE (a:person {ID:202, fName:'test'}) WITH a OPTIONAL MATCH (a)-[]->(b) RETURN COUNT(*);
----- error
-Runtime exception: Optional match after update is not supported. Missing right outer join implementation.
+---- 1
+1
 
 -CASE CreateNodeRead2
 -STATEMENT MATCH (a:person) WHERE a.ID < 3 CREATE (b:person {ID: a.ID + 11, fName: 'new', age:a.age * 2})

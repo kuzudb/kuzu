@@ -264,6 +264,9 @@ public:
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
         LogicalPlan& resultPlan);
+    void appendAccHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+        LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
         LogicalPlan& buildPlan);
@@ -273,14 +276,19 @@ public:
 
     void appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
         LogicalPlan& resultPlan);
+    // Optional cross product produce at least one tuple for each probe tuple
     void appendOptionalCrossProduct(std::shared_ptr<binder::Expression> mark,
         const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendAccOptionalCrossProduct(std::shared_ptr<binder::Expression> mark,
+        LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendCrossProduct(common::AccumulateType accumulateType,
         std::shared_ptr<binder::Expression> mark, const LogicalPlan& probePlan,
         const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
 
     /* Append accumulate */
 
+    // Skip if plan has been accumulated.
+    void tryAppendAccumulate(LogicalPlan& plan);
     // Accumulate everything.
     void appendAccumulate(LogicalPlan& plan);
     // Accumulate everything. Append

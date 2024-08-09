@@ -7,6 +7,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
+void Planner::tryAppendAccumulate(LogicalPlan& plan) {
+    if (plan.getLastOperator()->getOperatorType() == LogicalOperatorType::ACCUMULATE) {
+        return;
+    }
+    appendAccumulate(plan);
+}
+
 void Planner::appendAccumulate(LogicalPlan& plan) {
     appendAccumulate(AccumulateType::REGULAR, expression_vector{}, nullptr /* offset */,
         nullptr /* mark */, plan);
