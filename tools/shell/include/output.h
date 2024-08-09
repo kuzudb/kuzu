@@ -89,7 +89,7 @@ struct BaseTableDrawingCharacters : public DrawingCharacters {
     bool Types = true;
 
 protected:
-    explicit BaseTableDrawingCharacters(PrintType pt) : DrawingCharacters(pt) {};
+    explicit BaseTableDrawingCharacters(PrintType pt) : DrawingCharacters(pt){};
 };
 
 struct BoxDrawingCharacters : public BaseTableDrawingCharacters {
