@@ -9,6 +9,7 @@ enum class SemiMaskPosition : uint8_t {
     NONE = 0,
     ON_BUILD = 1,
     ON_PROBE = 2,
+    // TODO(Xiyang): we should differentiate build to probe and probe to build.
     PROHIBIT = 3,
 };
 
