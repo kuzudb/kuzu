@@ -7,7 +7,7 @@ namespace function {
 
 struct TernaryFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+    static void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
         void* /*aValueVector*/, void* /*resultValueVector*/, void* /*dataPtr*/) {
         OP::operation(a, b, c, result);
     }
@@ -15,24 +15,24 @@ struct TernaryFunctionWrapper {
 
 struct TernaryStringFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+    static void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
         void* /*aValueVector*/, void* resultValueVector, void* /*dataPtr*/) {
-        OP::operation(a, b, c, result, *(common::ValueVector*)resultValueVector);
+        OP::operation(a, b, c, result, *static_cast<common::ValueVector*>(resultValueVector));
     }
 };
 
 struct TernaryListFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
-        void* aValueVector, void* resultValueVector, void* /*dataPtr*/) {
-        OP::operation(a, b, c, result, *(common::ValueVector*)aValueVector,
-            *(common::ValueVector*)resultValueVector);
+    static void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result, void* aValueVector,
+        void* resultValueVector, void* /*dataPtr*/) {
+        OP::operation(a, b, c, result, *static_cast<common::ValueVector*>(aValueVector),
+            *static_cast<common::ValueVector*>(resultValueVector));
     }
 };
 
 struct TernaryUDFFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+    static void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
         void* /*aValueVector*/, void* /*resultValueVector*/, void* dataPtr) {
         OP::operation(a, b, c, result, dataPtr);
     }
@@ -44,10 +44,11 @@ struct TernaryFunctionExecutor {
     static void executeOnValue(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result, uint64_t aPos, uint64_t bPos,
         uint64_t cPos, uint64_t resPos, void* dataPtr) {
-        auto resValues = (RESULT_TYPE*)result.getData();
+        auto resValues = static_cast<RESULT_TYPE*>(result.getData());
         OP_WRAPPER::template operation<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-            ((A_TYPE*)a.getData())[aPos], ((B_TYPE*)b.getData())[bPos],
-            ((C_TYPE*)c.getData())[cPos], resValues[resPos], (void*)&a, (void*)&result, dataPtr);
+            static_cast<A_TYPE*>(a.getData())[aPos], static_cast<B_TYPE*>(b.getData())[bPos],
+            static_cast<C_TYPE*>(c.getData())[cPos], resValues[resPos], static_cast<void*>(&a),
+            static_cast<void*>(&result), dataPtr);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC,
