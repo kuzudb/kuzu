@@ -49,7 +49,8 @@ struct ShellCommand {
     const char* MAX_ROWS = ":max_rows";
     const char* MAX_WIDTH = ":max_width";
     const char* MODE = ":mode";
-    const std::array<const char*, 6> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE};
+    const char* STATS = ":stats";
+    const std::array<const char*, 7> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE, STATS};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -276,6 +277,8 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setMaxWidth(arg);
     } else if (command == shellCommand.MODE) {
         setMode(arg);
+    } else if (command == shellCommand.STATS) {
+        setStats(arg);
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -295,6 +298,7 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     maxRowSize = shellConfig.maxRowSize;
     maxPrintWidth = shellConfig.maxPrintWidth;
     drawingCharacters = std::move(shellConfig.drawingCharacters);
+    stats = shellConfig.stats;
     updateTableNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
@@ -495,8 +499,24 @@ void EmbeddedShell::setMode(const std::string& modeString) {
     default:
         printf("Cannot parse '%s' as output mode.\n\n", modeString.c_str());
         printModeInfo();
-        break;
+        return;
     }
+    printf("mode set as %s\n", modeString.c_str());
+}
+
+void EmbeddedShell::setStats(const std::string& statsString) {
+    std::string statsStringLower = statsString;
+    std::transform(statsStringLower.begin(), statsStringLower.end(), statsStringLower.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+    if (statsStringLower == "on") {
+		stats = true;
+    } else if (statsStringLower == "off") {
+		stats = false;
+	} else {
+		printf("Cannot parse '%s' to toggle stats. Expect 'on' or 'off'.\n", statsString.c_str());
+        return;
+	}
+    printf("stats set as %s\n", stats ? "on" : "off");
 }
 
 void EmbeddedShell::printHelp() {
@@ -508,6 +528,7 @@ void EmbeddedShell::printHelp() {
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
         shellCommand.MAX_WIDTH, TAB);
     printf("%s%s [mode] %sset output mode (default: box).\n", TAB, shellCommand.MODE, TAB);
+    printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);
@@ -649,9 +670,6 @@ std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) co
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
-    if (drawingCharacters->printType == PrintType::TRASH) {
-        return;
-    }
     auto querySummary = queryResult.getQuerySummary();
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
@@ -671,7 +689,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printString = printLatexExecutionResult(queryResult);
     } else if (drawingCharacters->printType == PrintType::LINE) {
         printString = printLineExecutionResult(queryResult);
-    } else {
+    } else if (drawingCharacters->printType != PrintType::TRASH) {
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
             printString += queryResult.getColumnNames()[i];
             if (i != queryResult.getNumColumns() - 1) {
@@ -687,18 +705,20 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         }
     }
     printf("%s", printString.c_str());
-    if (queryResult.getNumTuples() == 1) {
-        printf("(1 tuple)\n");
-    } else {
-        printf("(%" PRIu64 " tuples)\n", queryResult.getNumTuples());
+    if (stats) {
+        if (queryResult.getNumTuples() == 1) {
+            printf("(1 tuple)\n");
+        } else {
+            printf("(%" PRIu64 " tuples)\n", queryResult.getNumTuples());
+        }
+        if (queryResult.getNumColumns() == 1) {
+            printf("(1 column)\n");
+        } else {
+            printf("(%" PRIu64 " columns)\n", queryResult.getNumColumns());
+        }
+        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
+            querySummary->getExecutionTime());
     }
-    if (queryResult.getNumColumns() == 1) {
-        printf("(1 column)\n");
-    } else {
-        printf("(%" PRIu64 " columns)\n", queryResult.getNumColumns());
-    }
-    printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
-        querySummary->getExecutionTime());
 }
 
 void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) const {
@@ -1111,26 +1131,28 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
         }
 
         // print query result (numFlatTuples & tuples)
-        if (numTuples == 1) {
-            printf("(1 tuple)\n");
-        } else {
-            printf("(%" PRIu64 " tuples", numTuples);
-            if (rowTruncated) {
-                printf(", %" PRIu64 " shown", maxRowSize);
+        if (stats) {
+            if (numTuples == 1) {
+                printf("(1 tuple)\n");
+            } else {
+                printf("(%" PRIu64 " tuples", numTuples);
+                if (rowTruncated) {
+                    printf(", %" PRIu64 " shown", maxRowSize);
+                }
+                printf(")\n");
             }
-            printf(")\n");
-        }
-        if (colsWidth.size() == 1) {
-            printf("(1 column)\n");
-        } else {
-            printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
-            if (colTruncated) {
-                printf(", %" PRIu64 " shown", colsPrinted);
+            if (colsWidth.size() == 1) {
+                printf("(1 column)\n");
+            } else {
+                printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
+                if (colTruncated) {
+                    printf(", %" PRIu64 " shown", colsPrinted);
+                }
+                printf(")\n");
             }
-            printf(")\n");
+            printf("Time: %.2fms (compiling), %.2fms (executing)\n",
+                querySummary->getCompilingTime(), querySummary->getExecutionTime());
         }
-        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
-            querySummary->getExecutionTime());
     }
 }
 

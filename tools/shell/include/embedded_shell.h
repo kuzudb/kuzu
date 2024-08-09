@@ -14,6 +14,7 @@ struct ShellConfig {
     uint64_t maxRowSize = defaultMaxRows;
     uint32_t maxPrintWidth = 0;
     std::unique_ptr<DrawingCharacters> drawingCharacters = std::make_unique<BoxDrawingCharacters>();
+    bool stats = true;
 };
 
 /**
@@ -54,6 +55,8 @@ private:
 
     void setMode(const std::string& modeString);
 
+    void setStats(const std::string& statsString);
+
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> conn;
@@ -61,6 +64,7 @@ private:
     uint64_t maxRowSize;
     uint32_t maxPrintWidth;
     std::unique_ptr<DrawingCharacters> drawingCharacters;
+    bool stats;
 };
 
 } // namespace main

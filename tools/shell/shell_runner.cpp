@@ -59,6 +59,7 @@ int main(int argc, char* argv[]) {
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
     args::ValueFlag<std::string> mode(parser, "mode", "Set the output mode of the shell",
         {'m', "mode"});
+    args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
 
     std::vector<std::string> lCaseArgsStrings;
     for (auto i = 0; i < argc; ++i) {
@@ -130,6 +131,9 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+    if (stats) {
+		shellConfig.stats = false;
+	}
 
     auto databasePath = args::get(inputDirFlag);
     std::shared_ptr<Database> database;
