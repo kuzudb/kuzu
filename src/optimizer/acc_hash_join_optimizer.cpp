@@ -216,10 +216,10 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(LogicalOperator* op) {
 // TODO(Xiyang): we don't apply SIP from build to probe.
 void HashJoinSIPOptimizer::visitIntersect(LogicalOperator* op) {
     auto& intersect = op->cast<LogicalIntersect>();
-    switch (intersect.getSIPInfo().position) { 
+    switch (intersect.getSIPInfo().position) {
     case SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD:
     case SemiMaskPosition::PROHIBIT:
-        return ;
+        return;
     default:
         break;
     }
@@ -256,7 +256,7 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     switch (pathPropertyProbe.getSIPInfo().position) {
     case SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD:
     case SemiMaskPosition::PROHIBIT:
-        return ;
+        return;
     default:
         break;
     }
