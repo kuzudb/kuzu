@@ -9,7 +9,8 @@ enum class SemiMaskPosition : uint8_t {
     NONE = 0,
     ON_BUILD = 1,
     ON_PROBE = 2,
-    PROHIBIT = 3,
+    PROHIBIT_PROBE_TO_BUILD = 3,
+    PROHIBIT = 4,
 };
 
 /*

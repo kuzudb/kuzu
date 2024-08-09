@@ -100,8 +100,8 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     KU_ASSERT(scanState.source != TableScanSource::NONE &&
               scanState.columns.size() == scanState.outputVectors.size());
     for (const auto& outputVector : scanState.outputVectors) {
-        (void)outputVector;
         KU_ASSERT(outputVector->state == scanState.IDVector->state);
+        KU_UNUSED(outputVector);
     }
     const auto scanResult = scanState.nodeGroup->scan(transaction, scanState);
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {

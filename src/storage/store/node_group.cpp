@@ -92,30 +92,9 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
-void NodeGroup::initializeScanState(Transaction*, TableScanState& state) {
-    auto& nodeGroupScanState = *state.nodeGroupScanState;
-    nodeGroupScanState.chunkedGroupIdx = 0;
-    nodeGroupScanState.nextRowToScan = 0;
-    ChunkedNodeGroup* firstChunkedGroup;
-    {
-        const auto lock = chunkedGroups.lock();
-        firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
-    }
-    if (firstChunkedGroup != nullptr &&
-        firstChunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
-        for (auto i = 0u; i < state.columnIDs.size(); i++) {
-            KU_ASSERT(i < state.columnIDs.size());
-            KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
-            const auto columnID = state.columnIDs[i];
-            if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
-                continue;
-            }
-            auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
-            chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-            // TODO: Not a good way to initialize column for chunkState here.
-            nodeGroupScanState.chunkStates[i].column = state.columns[i];
-        }
-    }
+void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) {
+    const auto lock = chunkedGroups.lock();
+    initializeScanState(transaction, lock, state);
 }
 
 void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableScanState& state) {
@@ -161,11 +140,20 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     KU_ASSERT(rowIdxInChunkToScan < chunkedGroupToScan.getNumRows());
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
+    if (state.source == TableScanSource::COMMITTED && state.semiMask &&
+        state.semiMask->isEnabled()) {
+        const auto startNodeOffset = nodeGroupScanState.nextRowToScan +
+                                     StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
+        if (!state.semiMask->isMasked(startNodeOffset, startNodeOffset + numRowsToScan - 1)) {
+            state.IDVector->state->getSelVectorUnsafe().setSelSize(0);
+            nodeGroupScanState.nextRowToScan += numRowsToScan;
+            return NodeGroupScanResult{nodeGroupScanState.nextRowToScan, 0};
+        }
+    }
     chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
         numRowsToScan);
     const auto startRow = nodeGroupScanState.nextRowToScan;
     nodeGroupScanState.nextRowToScan += numRowsToScan;
-    // TODO(Guodong): numRowsToScan should be changed to selVector.size
     return NodeGroupScanResult{startRow, numRowsToScan};
 }
 

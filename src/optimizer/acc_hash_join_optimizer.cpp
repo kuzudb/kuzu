@@ -134,6 +134,9 @@ void HashJoinSIPOptimizer::visitHashJoin(LogicalOperator* op) {
     if (tryBuildToProbeHJSIP(op)) { // Try build to probe SIP first.
         return;
     }
+    if (hashJoin.getSIPInfo().position == SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD) {
+        return;
+    }
     tryProbeToBuildHJSIP(op);
 }
 
@@ -213,8 +216,12 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(LogicalOperator* op) {
 // TODO(Xiyang): we don't apply SIP from build to probe.
 void HashJoinSIPOptimizer::visitIntersect(LogicalOperator* op) {
     auto& intersect = op->cast<LogicalIntersect>();
-    if (intersect.getSIPInfo().position == SemiMaskPosition::PROHIBIT) {
+    switch (intersect.getSIPInfo().position) {
+    case SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD:
+    case SemiMaskPosition::PROHIBIT:
         return;
+    default:
+        break;
     }
     if (!isProbeSideQualified(op->getChild(0).get())) {
         return;
@@ -246,8 +253,12 @@ void HashJoinSIPOptimizer::visitIntersect(LogicalOperator* op) {
 
 void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto& pathPropertyProbe = op->cast<LogicalPathPropertyProbe>();
-    if (pathPropertyProbe.getSIPInfo().position == SemiMaskPosition::PROHIBIT) {
+    switch (pathPropertyProbe.getSIPInfo().position) {
+    case SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD:
+    case SemiMaskPosition::PROHIBIT:
         return;
+    default:
+        break;
     }
     if (pathPropertyProbe.getJoinType() == RecursiveJoinType::TRACK_NONE) {
         return;
