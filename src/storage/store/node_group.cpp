@@ -1,6 +1,7 @@
 #include "storage/store/node_group.h"
 
 #include "common/utils.h"
+#include "storage/storage_utils.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
