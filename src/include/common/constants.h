@@ -144,8 +144,9 @@ struct CopyConstants {
     static constexpr const char* ROW_IDX_COLUMN_NAME = "ROW_IDX";
     static constexpr uint64_t PANDAS_PARTITION_COUNT = 50 * DEFAULT_VECTOR_CAPACITY;
 
-    static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP"};
+    static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP", "SAMPLE_SIZE"};
     static constexpr uint64_t DEFAULT_CSV_SKIP_NUM = 0;
+    static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 2048;
 };
 
 struct RdfConstants {

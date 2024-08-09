@@ -387,7 +387,8 @@ void Interval::tryGetDatePartSpecifier(std::string specifier, DatePartSpecifier&
                specifier == "c") {
         result = DatePartSpecifier::CENTURY;
     } else if (specifier == "millennium" || specifier == "mil" || specifier == "millenniums" ||
-               specifier == "millennia" || specifier == "mils" || specifier == "millenium") {
+               specifier == "millennia" || specifier == "mils" || specifier == "millenium" ||
+               specifier == "milleniums") {
         result = DatePartSpecifier::MILLENNIUM;
     } else if (specifier == "microseconds" || specifier == "microsecond" || specifier == "us" ||
                specifier == "usec" || specifier == "usecs" || specifier == "usecond" ||

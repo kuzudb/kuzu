@@ -95,7 +95,7 @@ def test_row_truncation(temp_db, csv_path) -> None:
     test = ShellTest().add_argument(temp_db).statement(f'LOAD FROM "{csv_path}" (HEADER=true) RETURN id;')
     result = test.run()
     result.check_stdout("(21 tuples, 20 shown)")
-    result.check_stdout(["\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502", "\u2502   \u00B7    \u2502"])
+    result.check_stdout(["\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502", "\u2502  \u00B7    \u2502"])
 
 
 def test_column_truncation(temp_db, csv_path) -> None:

@@ -1,5 +1,10 @@
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 
+#include "common/constants.h"
+#include "common/types/timestamp_t.h"
+#include "function/cast/functions/numeric_limits.h"
+#include "re2.h"
+
 namespace kuzu {
 namespace function {
 
@@ -81,6 +86,152 @@ bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(const char* input, uint6
     }
     result = Timestamp::getEpochSeconds(result);
     return true;
+}
+
+static bool isDate(const std::string& str) {
+    return RE2::FullMatch(str, "\\d{4}/\\d{1,2}/\\d{1,2}") ||
+           RE2::FullMatch(str, "\\d{4}-\\d{1,2}-\\d{1,2}") ||
+           RE2::FullMatch(str, "\\d{4} \\d{1,2} \\d{1,2}") ||
+           RE2::FullMatch(str, "\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
+}
+
+static bool isUUID(const std::string& str) {
+    return RE2::FullMatch(str, "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
+}
+
+static bool isInterval(const std::string& str) {
+    static constexpr auto pattern =
+        "((0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*";
+    static constexpr auto pattern2 = "\\d+:\\d{2}:\\d{2}";
+    return RE2::FullMatch(str, pattern2) || RE2::FullMatch(str, pattern);
+}
+
+static LogicalType inferMapOrStruct(const std::string& str) {
+    auto split = StringUtils::split(str.substr(1, str.size() - 2), ",", false);
+    bool isMap = true, isStruct = true; // Default match to map if both are true
+    for (auto& ele : split) {
+        if (isMap && ele.find("=") == std::string::npos) {
+            isMap = false;
+        }
+        if (isStruct && ele.find(":") == std::string::npos) {
+            isStruct = false;
+        }
+    }
+    if (isMap) {
+        auto childKeyType = LogicalType::ANY();
+        auto childValueType = LogicalType::ANY();
+        for (auto& ele : split) {
+            auto splitEle = StringUtils::split(ele, "=", false);
+            if (splitEle.size() != 2) {
+                // invalid map; give string
+                return LogicalType::STRING();
+            }
+            childKeyType = LogicalTypeUtils::combineTypes(childKeyType,
+                inferMinimalTypeFromString(splitEle[0]));
+            childValueType = LogicalTypeUtils::combineTypes(childValueType,
+                inferMinimalTypeFromString(splitEle[1]));
+        }
+        return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
+    } else if (isStruct) {
+        std::vector<StructField> fields;
+        for (auto& ele : split) {
+            auto splitEle = StringUtils::split(ele, ":", false);
+            if (splitEle.size() != 2) {
+                return LogicalType::STRING();
+            }
+            auto fieldKey = StringUtils::ltrim(StringUtils::rtrim(splitEle[0]));
+            auto fieldType = inferMinimalTypeFromString(splitEle[1]);
+            fields.emplace_back(fieldKey, std::move(fieldType));
+        }
+        return LogicalType::STRUCT(std::move(fields));
+    } else {
+        return LogicalType::STRING();
+    }
+}
+
+LogicalType inferMinimalTypeFromString(const std::string& str) {
+    constexpr char array_begin = common::CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR;
+    constexpr char array_end = common::CopyConstants::DEFAULT_CSV_LIST_END_CHAR;
+    auto cpy = StringUtils::ltrim(StringUtils::rtrim(str));
+    StringUtils::toUpper(cpy);
+    if (cpy.size() == 0) {
+        return LogicalType::ANY();
+    }
+    // Boolean
+    if (cpy == "TRUE" || cpy == "FALSE") {
+        return LogicalType::BOOL();
+    }
+    // the reason we're not going to try to match to a minimal width integer
+    // is because if we're infering the type of integer from a sequence of
+    // increasing integers, we're bound to underestimate the width
+    // if we only sniff the first few elements
+    // integer
+    if (RE2::FullMatch(cpy, "(-?0)|(-?[1-9]\\d*)")) {
+        if (cpy.size() >= 1 + NumericLimits<int128_t>::digits()) {
+            return LogicalType::DOUBLE();
+        }
+        int128_t val;
+        if (!trySimpleInt128Cast(cpy.c_str(), cpy.length(), val)) {
+            return LogicalType::STRING();
+        }
+        if (NumericLimits<int64_t>::isInBounds(val)) {
+            return LogicalType::INT64();
+        }
+        return LogicalType::INT128();
+    }
+    // Real value checking
+    if (RE2::FullMatch(cpy, "(\\+|-)?(0|[1-9]\\d*)?\\.(\\d*)")) {
+        if (cpy[0] == '-') {
+            cpy.erase(cpy.begin());
+        }
+        if (cpy.size() <= DECIMAL_PRECISION_LIMIT) {
+            auto decimalPoint = cpy.find('.');
+            KU_ASSERT(decimalPoint != std::string::npos);
+            return LogicalType::DECIMAL(cpy.size() - 1, cpy.size() - decimalPoint - 1);
+        } else {
+            return LogicalType::DOUBLE();
+        }
+    }
+    // date
+    if (isDate(cpy)) {
+        return LogicalType::DATE();
+    }
+    // it might just be quicker to try cast to timestamp
+    timestamp_t tmp;
+    if (common::Timestamp::tryConvertTimestamp(cpy.c_str(), cpy.length(), tmp)) {
+        return LogicalType::TIMESTAMP();
+    }
+
+    // UUID
+    if (isUUID(cpy)) {
+        return LogicalType::UUID();
+    }
+
+    // interval checking
+    if (isInterval(cpy)) {
+        return LogicalType::INTERVAL();
+    }
+
+    if (cpy.front() == array_begin && cpy.back() == array_end) {
+        auto split = StringUtils::split(cpy.substr(1, cpy.size() - 2), ",", false);
+        auto childType = LogicalType::ANY();
+        for (auto& ele : split) {
+            childType = LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
+        }
+        return LogicalType::LIST(std::move(childType));
+    }
+
+    if (cpy.front() == '{' && cpy.back() == '}') {
+        return inferMapOrStruct(cpy);
+    }
+
+    return LogicalType::STRING();
 }
 
 } // namespace function

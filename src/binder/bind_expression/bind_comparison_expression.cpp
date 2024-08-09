@@ -52,6 +52,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             childrenAfterCast.push_back(children[i]);
         }
     }
+    if (function->bindFunc) {
+        // Resolve exec and select function if necessary
+        // Only used for decimal at the moment
+        function->bindFunc({childrenAfterCast, function, nullptr});
+    }
     auto bindData =
         std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
     auto uniqueExpressionName =

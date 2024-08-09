@@ -52,7 +52,7 @@
 ---- ok
 -STATEMENT COPY Transfer FROM (
                    LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/transfer_demo/transfer.csv' (header = true)
-                   RETURN CAST(source, "INT64"), CAST(target, "INT64"), CAST(amount, "DOUBLE"), transaction_id
+                   RETURN CAST(source, "INT64"), CAST(target, "INT64"), CAST(amount, "DOUBLE"), cast(transaction_id, "STRING")
                )
 ---- ok
 -STATEMENT MATCH (a1:Account)-[t*1..3]->(a2:Account)<-[o2:Owns]-(p2:Person)

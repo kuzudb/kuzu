@@ -1,0 +1,4 @@
+basicStruct,unionOfFields,notStruct
+"{a:1,b:2}","{a:1}","{a=1}"
+"{a:-1,b:0}","{b:2}","{}"
+"{a:1293812,b:38293839}","{c:3}",
