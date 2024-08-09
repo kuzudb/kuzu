@@ -13,7 +13,6 @@ public:
     void visitOperator(planner::LogicalOperator* op);
 
 private:
-    void visitExtend(planner::LogicalOperator* op) override;
     void visitRecursiveExtend(planner::LogicalOperator* op) override;
     void visitHashJoin(planner::LogicalOperator* op) override;
     void visitIntersect(planner::LogicalOperator* op) override;

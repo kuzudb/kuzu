@@ -112,9 +112,13 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // States at the node group level. Cached during scan over all csr lists within the same node
     // group. State for reading from checkpointed node group.
     std::unique_ptr<ChunkedCSRHeader> csrHeader;
-    csr_list_t persistentCSRList;
+    std::vector<csr_list_t> persistentCSRLists;
     NodeCSRIndex inMemCSRList;
+    // position in vector of csr list vector
+    uint32_t nextCSRToScan;
 
+    bool persistentInitialized = false;
+    common::sel_t prevCSREndOffset;
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
@@ -127,7 +131,18 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
         NodeGroupScanState::resetState();
         csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
-        persistentCSRList = csr_list_t();
+        persistentCSRLists.clear();
+        nextCSRToScan = 0;
+    }
+
+    common::sel_t getGap(common::offset_t offsetInGroup) {
+        common::sel_t result = 0;
+        if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+            auto curCSRStartOffset = csrHeader->getStartCSROffset(offsetInGroup);
+            result = curCSRStartOffset - prevCSREndOffset;
+            prevCSREndOffset = curCSRStartOffset + csrHeader->getCSRLength(offsetInGroup);
+        }
+        return result;
     }
 };
 
@@ -177,6 +192,8 @@ public:
     void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
     NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
 
+    common::length_t getCSRLength(CSRNodeGroupScanState& state, common::offset_t offsetInGroup);
+
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
         ChunkedCSRNodeGroup& chunkedGroup);
     void append(const transaction::Transaction* transaction, common::offset_t boundOffsetInGroup,
@@ -207,6 +224,7 @@ public:
 private:
     void initializePersistentCSRHeader(transaction::Transaction* transaction,
         RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
+    void initializeInMemScanState(TableScanState& state);
 
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
