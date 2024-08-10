@@ -37,7 +37,7 @@ int setConfigOutputMode(const std::string mode, ShellConfig& shell) {
     } else if (mode == "line") {
         shell.drawingCharacters = std::make_unique<LineDrawingCharacters>();
     } else {
-        std::cerr << "Invalid output mode: " << mode << '\n';
+        std::cerr << "Cannot parse '" << mode << "' as output mode." << '\n';
         return 1;
     }
     return 0;

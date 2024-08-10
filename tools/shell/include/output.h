@@ -194,7 +194,9 @@ protected:
 };
 
 struct JSONLinesDrawingCharacters : public JSONDrawingCharacters {
-    JSONLinesDrawingCharacters() : JSONDrawingCharacters(PrintType::JSONLINES) {}
+    JSONLinesDrawingCharacters() : JSONDrawingCharacters(PrintType::JSONLINES) {
+        TupleDelimiter = ",";
+    }
 };
 
 struct HTMLDrawingCharacters : public DrawingCharacters {

@@ -528,7 +528,7 @@ void EmbeddedShell::printHelp() {
         shellCommand.MAX_ROWS, TAB);
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
         shellCommand.MAX_WIDTH, TAB);
-    printf("%s%s [mode] %sset output mode (default: box).\n", TAB, shellCommand.MODE, TAB);
+    printf("%s%s [mode] %sset output mode (default: box)\n", TAB, shellCommand.MODE, TAB);
     printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
@@ -593,6 +593,7 @@ std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) co
         printString += colNames[i];
         printString += htmlDrawingCharacters->HeaderClose;
     }
+    printString += "\n";
     printString += htmlDrawingCharacters->RowClose;
     printString += "\n";
     while (queryResult.hasNext()) {
