@@ -153,8 +153,6 @@ public:
     void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
 
-    uint64_t getEstimatedMemoryUsage() const override;
-
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();
     }

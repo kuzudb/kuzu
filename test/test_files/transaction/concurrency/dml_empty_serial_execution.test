@@ -20,7 +20,7 @@
  ]
 
 -CASE WWConflictNodeCopyUpdate
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
 -CREATE_CONNECTION conn2
@@ -35,7 +35,7 @@
 Runtime exception: Write-write conflict of updating the same row.
 
 -CASE WWConflictNodeCopyDelete
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
 -CREATE_CONNECTION conn2
@@ -50,7 +50,7 @@ Runtime exception: Write-write conflict of updating the same row.
 Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
 
 -CASE WWConflictRelCopyUpdate
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_KNOWS
@@ -66,7 +66,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 Runtime exception: Write-write conflict of updating the same row.
 
 -CASE WWConflictRelCopyDelete
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_KNOWS
@@ -82,7 +82,7 @@ Runtime exception: Write-write conflict of updating the same row.
 Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
 
 -CASE WWConflictNodeInsertUpdate
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -CREATE_DATASET_SCHEMA tinysnb
 -INSERT_DATASET_BY_ROW tinysnb
@@ -98,7 +98,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 Runtime exception: Write-write conflict of updating the same row.
 
 -CASE WWConflictNodeInsertDelete
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -CREATE_DATASET_SCHEMA tinysnb
 -INSERT_DATASET_BY_ROW tinysnb
@@ -114,7 +114,7 @@ Runtime exception: Write-write conflict of updating the same row.
 Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
 
 -CASE WWConflictRelInsertUpdate
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -CREATE_DATASET_SCHEMA tinysnb
 -INSERT_DATASET_BY_ROW tinysnb
@@ -130,7 +130,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 Runtime exception: Write-write conflict of updating the same row.
 
 -CASE WWConflictRelInsertDelete
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -CREATE_DATASET_SCHEMA tinysnb
 -INSERT_DATASET_BY_ROW tinysnb
@@ -146,7 +146,7 @@ Runtime exception: Write-write conflict of updating the same row.
 Runtime exception: Write-write conflict: deleting a row that is already deleted by another transaction.
 
 -CASE MultiTransactionNodeInsert
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
@@ -200,7 +200,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 10
 
 -CASE MultiTransactionRelInsert
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok
@@ -275,7 +275,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 
 -CASE MultiTransactionNodeCopy
 -SKIP
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
@@ -324,7 +324,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 
 -CASE MultiTransactionRelCopy
 -SKIP
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);
@@ -391,7 +391,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 
 -CASE MixedMultiTransactionRelCopyInsert
 -SKIP
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
 -STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY);

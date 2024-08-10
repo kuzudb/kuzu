@@ -17,9 +17,9 @@ Cannot start a new write transaction in the system. Only one write transaction a
 0|a|INT32|True
 1|b|INT32|False
 
-# Test CALL ENABLE_MULTI_WRITES=true
+# Test CALL debug_enable_multi_writes=true
 -CASE EnableMultiWrites
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -77,7 +77,7 @@ Catalog exception: t does not exist in catalog.
 
 # Test W-W conflict
 -CASE CreateTableWriteWriteConflict
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -158,7 +158,7 @@ Catalog exception: t does not exist in catalog.
 1|b|INT32|False
 
 -CASE CreateAndDropMultiConnections
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -206,7 +206,7 @@ Binder exception: Table t does not exist.
 1|b|INT32|False
 
 -CASE RenameTable
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
@@ -243,7 +243,7 @@ Catalog exception: t does not exist in catalog.
 1|b|INT32|False
 
 -CASE RenameColumn
--STATEMENT CALL ENABLE_MULTI_WRITES=true;
+-STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -STATEMENT CALL auto_checkpoint=false;
 ---- ok

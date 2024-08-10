@@ -125,6 +125,15 @@ bool LocalRelTable::addColumn(Transaction* transaction, TableAddColumnState& add
     return true;
 }
 
+uint64_t LocalRelTable::getEstimatedMemUsage() {
+    // Esimation of fwdIndex and bwdIndex is rough.
+    if (!localNodeGroup) {
+        return 0;
+    }
+    return localNodeGroup->getEstimatedMemoryUsage() + fwdIndex.size() * sizeof(offset_t) +
+           bwdIndex.size() * sizeof(offset_t);
+}
+
 void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
     KU_ASSERT(srcNodeIDVector->state->isFlat());
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];

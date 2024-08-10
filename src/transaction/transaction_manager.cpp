@@ -139,8 +139,7 @@ bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientCont
         // Recovery transactions are not allowed to trigger auto checkpoint.
         return false;
     }
-    const auto expectedSize =
-        clientContext.getStorageManager()->getEstimatedMemoryUsage() + wal.getFileSize();
+    const auto expectedSize = clientContext.getTx()->getEstimatedMemUsage() + wal.getFileSize();
     return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
 }
 

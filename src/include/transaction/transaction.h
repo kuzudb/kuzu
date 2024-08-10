@@ -77,6 +77,7 @@ public:
     void commit(storage::WAL* wal) const;
     void rollback(storage::WAL* wal) const;
 
+    uint64_t getEstimatedMemUsage() const;
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
     bool hasNewlyInsertedNodes(common::table_id_t tableID) const {
         return maxCommittedNodeOffsets.contains(tableID);

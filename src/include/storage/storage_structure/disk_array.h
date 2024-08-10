@@ -357,6 +357,10 @@ public:
     // memory and not on disk (nor on the wal).
     uint8_t* operator[](uint64_t idx);
 
+    uint64_t getMemUsage() const {
+        return inMemArrayPages.size() * common::BufferPoolConstants::PAGE_4KB_SIZE;
+    }
+
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
         inMemArrayPages.emplace_back(
@@ -398,6 +402,8 @@ public:
     static constexpr uint32_t getAlignedElementSize() {
         return DiskArray<U>::getAlignedElementSize();
     }
+
+    uint64_t getMemUsage() const { return vector.getMemUsage(); }
 
 private:
     BlockVectorInternal vector;

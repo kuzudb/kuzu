@@ -51,6 +51,10 @@ void Transaction::rollback(storage::WAL* wal) const {
     }
 }
 
+uint64_t Transaction::getEstimatedMemUsage() const {
+    return localStorage->getEstimatedMemUsage() + undoBuffer->getMemUsage();
+}
+
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
     bool skipLoggingToWAL) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);

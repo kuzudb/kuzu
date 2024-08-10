@@ -145,6 +145,7 @@ public:
 
     uint64_t numPrimarySlots() const { return pSlots->size(); }
     uint64_t numOverflowSlots() const { return oSlots->size(); }
+    uint64_t getEstimatedMemUsage() const { return pSlots->getMemUsage() + oSlots->getMemUsage(); }
 
     const HashIndexHeader& getIndexHeader() const { return indexHeader; }
 

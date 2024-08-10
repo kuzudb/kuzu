@@ -167,8 +167,6 @@ public:
     void rollback(LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser) override;
 
-    uint64_t getEstimatedMemoryUsage() const override { return 0; }
-
     common::row_idx_t getNumRows() override { return nextRelOffset; }
 
     RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
