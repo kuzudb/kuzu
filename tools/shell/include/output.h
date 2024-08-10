@@ -66,6 +66,8 @@ struct DrawingCharacters {
     const PrintType printType;
     const char* TupleDelimiter = " ";
 
+    virtual ~DrawingCharacters() = default;
+
 protected:
     explicit DrawingCharacters(PrintType pt) : printType(pt) {}
 };
