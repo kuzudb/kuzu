@@ -73,17 +73,17 @@ protected:
 };
 
 struct BaseTableDrawingCharacters : public DrawingCharacters {
-    const char* DownAndRight;
-    const char* Horizontal;
-    const char* DownAndHorizontal;
-    const char* DownAndLeft;
-    const char* Vertical;
-    const char* VerticalAndRight;
-    const char* VerticalAndHorizontal;
-    const char* VerticalAndLeft;
-    const char* UpAndRight;
-    const char* UpAndHorizontal;
-    const char* UpAndLeft;
+    const char* DownAndRight = "";
+    const char* Horizontal = "";
+    const char* DownAndHorizontal = "";
+    const char* DownAndLeft = "";
+    const char* Vertical = "";
+    const char* VerticalAndRight = "";
+    const char* VerticalAndHorizontal = "";
+    const char* VerticalAndLeft = "";
+    const char* UpAndRight = "";
+    const char* UpAndHorizontal = "";
+    const char* UpAndLeft = "";
     const char* MiddleDot = ".";
     const char* Truncation = "...";
     bool TopLine = true;
