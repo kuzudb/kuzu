@@ -1,13 +1,12 @@
-#include "planner/operator/ddl/logical_alter.h"
+#include "planner/operator/ddl/base_alter.h"
 
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
-namespace planner {
 
-std::string LogicalAlterPrintInfo::toString() const {
+std::string BaseAlterPrintInfo::toString() const {
     std::string result = "Operation: ";
     switch (alterType) {
     case common::AlterType::RENAME_TABLE: {
@@ -45,5 +44,4 @@ std::string LogicalAlterPrintInfo::toString() const {
     return result;
 }
 
-} // namespace planner
 } // namespace kuzu

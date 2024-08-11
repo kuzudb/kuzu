@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_alter_info.h"
+#include "planner/operator/ddl/logical_alter.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/ddl/ddl.h"
 
@@ -8,15 +9,12 @@ namespace kuzu {
 namespace processor {
 
 struct AlterPrintInfo final : OPPrintInfo {
-    common::AlterType alterType;
-    std::string tableName;
-    binder::BoundExtraAlterInfo* info;
+    std::unique_ptr<BaseAlterPrintInfo> base;
 
-    AlterPrintInfo(common::AlterType alterType, std::string tableName,
-        binder::BoundExtraAlterInfo* info)
-        : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{info} {}
-
-    std::string toString() const override;
+    AlterPrintInfo(std::unique_ptr<BaseAlterPrintInfo> base)
+        : base(std::move(base)) {}
+    
+    std::string toString() const override {return base->toString();};
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<AlterPrintInfo>(new AlterPrintInfo(*this));
@@ -24,8 +22,7 @@ struct AlterPrintInfo final : OPPrintInfo {
 
 private:
     AlterPrintInfo(const AlterPrintInfo& other)
-        : OPPrintInfo{other}, alterType{other.alterType}, tableName{other.tableName},
-          info{other.info} {}
+        : OPPrintInfo{other}, base(std::make_unique<BaseAlterPrintInfo>(*other.base)){}
 };
 
 class Alter : public DDL {

@@ -1,4 +1,4 @@
-#include "planner/operator/ddl/logical_create_table.h"
+#include "planner/operator/ddl/base_create_table.h"
 
 #include "binder/expression/function_expression.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -6,9 +6,8 @@
 using namespace kuzu::common;
 
 namespace kuzu {
-namespace planner {
 
-std::string LogicalCreateTablePrintInfo::toString() const {
+std::string BaseCreateTablePrintInfo::toString() const {
     std::string result = "";
     auto* tableInfo = info->ptrCast<binder::BoundExtraCreateTableInfo>();
     switch (tableType) {
@@ -69,5 +68,4 @@ std::string LogicalCreateTablePrintInfo::toString() const {
     return result;
 }
 
-} // namespace planner
 } // namespace kuzu
