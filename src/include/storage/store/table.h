@@ -167,8 +167,6 @@ public:
     virtual void rollback(LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser) = 0;
 
-    virtual uint64_t getEstimatedMemoryUsage() const = 0;
-
     virtual common::row_idx_t getNumRows() = 0;
 
     void setHasChanges() { hasChanges = true; }

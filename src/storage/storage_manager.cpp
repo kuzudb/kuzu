@@ -207,15 +207,6 @@ ShadowFile& StorageManager::getShadowFile() const {
     return *shadowFile;
 }
 
-uint64_t StorageManager::getEstimatedMemoryUsage() {
-    std::lock_guard lck{mtx};
-    uint64_t totalMemoryUsage = 0;
-    for (const auto& [tableID, table] : tables) {
-        totalMemoryUsage += table->getEstimatedMemoryUsage();
-    }
-    return totalMemoryUsage;
-}
-
 void StorageManager::checkpoint(main::ClientContext& clientContext) {
     if (main::DBConfig::isDBPathInMemory(databasePath)) {
         return;

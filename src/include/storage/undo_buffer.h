@@ -95,6 +95,8 @@ public:
     void commit(common::transaction_t commitTS) const;
     void rollback();
 
+    uint64_t getMemUsage() const;
+
 private:
     uint8_t* createUndoRecord(uint64_t size);
 

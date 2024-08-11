@@ -35,8 +35,11 @@ public:
     virtual std::string getInputDir() = 0;
 
     void TearDown() override {
+        conn.reset();
+        connMap.clear();
+        database.reset();
         if (!inMemMode) {
-            removeDir(databasePath);
+            std::filesystem::remove_all(databasePath);
         }
     }
 

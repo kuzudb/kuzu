@@ -399,10 +399,6 @@ void NodeTable::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
 }
 
-uint64_t NodeTable::getEstimatedMemoryUsage() const {
-    return nodeGroups->getEstimatedMemoryUsage();
-}
-
 bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);

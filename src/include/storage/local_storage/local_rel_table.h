@@ -26,6 +26,7 @@ public:
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
     bool addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
+    uint64_t getEstimatedMemUsage() override;
 
     void checkIfNodeHasRels(common::ValueVector* srcNodeIDVector) const;
 
