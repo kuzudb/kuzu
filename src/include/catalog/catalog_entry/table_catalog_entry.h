@@ -24,12 +24,14 @@ class CatalogSet;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
     TableCatalogEntry() = default;
-    TableCatalogEntry(CatalogSet* set, CatalogEntryType catalogType, std::string name,
-        common::table_id_t tableID)
-        : CatalogEntry{catalogType, std::move(name)}, set{set}, tableID{tableID} {}
+    TableCatalogEntry(CatalogSet* set, CatalogEntryType catalogType, std::string name)
+        : CatalogEntry{catalogType, std::move(name)}, set{set} {}
     TableCatalogEntry& operator=(const TableCatalogEntry&) = delete;
 
-    common::table_id_t getTableID() const { return tableID; }
+    common::table_id_t getTableID() const { return oid; }
+
+    std::unique_ptr<TableCatalogEntry> alter(const binder::BoundAlterInfo& alterInfo) const;
+
     virtual bool isParent(common::table_id_t /*tableID*/) { return false; };
     virtual common::TableType getTableType() const = 0;
 
@@ -38,7 +40,6 @@ public:
 
     virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
 
-    std::unique_ptr<TableCatalogEntry> alter(const binder::BoundAlterInfo& alterInfo);
     binder::BoundAlterInfo* getAlterInfo() const { return alterInfo.get(); }
     void resetAlterInfo() { alterInfo = nullptr; }
     void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) {
@@ -76,7 +77,6 @@ protected:
 
 protected:
     CatalogSet* set;
-    common::table_id_t tableID;
     std::string comment;
     PropertyDefinitionCollection propertyCollection;
     std::unique_ptr<binder::BoundAlterInfo> alterInfo;

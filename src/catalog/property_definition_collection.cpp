@@ -98,17 +98,24 @@ std::string PropertyDefinitionCollection::toCypher() const {
 }
 
 void PropertyDefinitionCollection::serialize(Serializer& serializer) const {
+    serializer.writeDebuggingInfo("nextColumnID");
     serializer.serializeValue(nextColumnID);
+    serializer.writeDebuggingInfo("definitions");
     serializer.serializeVector(definitions);
+    serializer.writeDebuggingInfo("columnIDs");
     serializer.serializeVector(columnIDs);
 }
 
 PropertyDefinitionCollection PropertyDefinitionCollection::deserialize(Deserializer& deserializer) {
+    std::string debuggingInfo;
     common::column_id_t nextColumnID;
+    deserializer.validateDebuggingInfo(debuggingInfo, "nextColumnID");
     deserializer.deserializeValue(nextColumnID);
     std::vector<PropertyDefinition> definitions;
+    deserializer.validateDebuggingInfo(debuggingInfo, "definitions");
     deserializer.deserializeVector(definitions);
     std::vector<column_id_t> columnIDs;
+    deserializer.validateDebuggingInfo(debuggingInfo, "columnIDs");
     deserializer.deserializeVector(columnIDs);
     auto collection = PropertyDefinitionCollection();
     for (auto i = 0u; i < definitions.size(); ++i) {

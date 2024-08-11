@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/column_evaluate_type.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
@@ -9,7 +8,6 @@
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/operator/table_function_call.h"
 #include "storage/store/chunked_node_group.h"
-#include "storage/store/node_table.h"
 
 namespace kuzu {
 namespace transaction {

@@ -168,7 +168,6 @@ void AlterTableEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(alterInfo->alterType);
     serializer.write(alterInfo->tableName);
-    serializer.write(alterInfo->tableID);
     auto extraInfo = alterInfo->extraInfo.get();
     switch (alterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
@@ -202,10 +201,8 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
     Deserializer& deserializer) {
     AlterType alterType;
     std::string tableName;
-    table_id_t tableID;
     deserializer.deserializeValue(alterType);
     deserializer.deserializeValue(tableName);
-    deserializer.deserializeValue(tableID);
     std::unique_ptr<BoundExtraAlterInfo> extraInfo;
     switch (alterType) {
     case AlterType::ADD_PROPERTY: {
@@ -241,7 +238,7 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
     }
     auto retval = std::make_unique<AlterTableEntryRecord>();
     retval->ownedAlterInfo =
-        std::make_unique<BoundAlterInfo>(alterType, tableName, tableID, std::move(extraInfo));
+        std::make_unique<BoundAlterInfo>(alterType, tableName, std::move(extraInfo));
     return retval;
 }
 

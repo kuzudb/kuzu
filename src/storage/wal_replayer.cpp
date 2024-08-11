@@ -196,13 +196,12 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
         defaultValueEvaluator->init(ResultSet(0) /* dummy ResultSet */, &clientContext);
         const auto schema = clientContext.getCatalog()->getTableCatalogEntry(clientContext.getTx(),
-            alterEntryRecord.ownedAlterInfo->tableID);
+            alterEntryRecord.ownedAlterInfo->tableName);
         const auto& addedProp = schema->getProperty(addInfo->propertyDefinition.getName());
         TableAddColumnState state{addedProp, *defaultValueEvaluator};
         KU_ASSERT(clientContext.getStorageManager());
         const auto storageManager = clientContext.getStorageManager();
-        storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
-            ->addColumn(clientContext.getTx(), state);
+        storageManager->getTable(schema->getTableID())->addColumn(clientContext.getTx(), state);
     }
 }
 

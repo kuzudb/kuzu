@@ -7,7 +7,6 @@
 
 #include "common/cast.h"
 #include "common/type_utils.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "hash_index_header.h"

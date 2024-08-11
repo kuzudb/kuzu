@@ -25,18 +25,16 @@ struct BoundExtraAlterInfo {
 struct BoundAlterInfo {
     common::AlterType alterType;
     std::string tableName;
-    common::table_id_t tableID;
     std::unique_ptr<BoundExtraAlterInfo> extraInfo;
 
-    BoundAlterInfo(common::AlterType alterType, std::string tableName, common::table_id_t tableID,
+    BoundAlterInfo(common::AlterType alterType, std::string tableName,
         std::unique_ptr<BoundExtraAlterInfo> extraInfo)
-        : alterType{alterType}, tableName{std::move(tableName)}, tableID{tableID},
-          extraInfo{std::move(extraInfo)} {}
+        : alterType{alterType}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundAlterInfo);
 
 private:
     BoundAlterInfo(const BoundAlterInfo& other)
-        : alterType{other.alterType}, tableName{other.tableName}, tableID{other.tableID},
+        : alterType{other.alterType}, tableName{other.tableName},
           extraInfo{other.extraInfo->copy()} {}
 };
 

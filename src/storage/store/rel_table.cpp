@@ -32,18 +32,15 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     main::ClientContext*) {
     std::string key;
     table_id_t tableID;
-    std::string tableName;
     offset_t nextRelOffset;
     deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
-    deSer.validateDebuggingInfo(key, "table_name");
-    deSer.deserializeValue<std::string>(tableName);
     deSer.validateDebuggingInfo(key, "next_rel_offset");
     deSer.deserializeValue<offset_t>(nextRelOffset);
     auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
     if (!catalogEntry) {
         throw RuntimeException(
-            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableName));
+            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
     }
     auto relTable = std::make_unique<RelTable>(catalogEntry->ptrCast<RelTableCatalogEntry>(),
         storageManager, memoryManager, &deSer);

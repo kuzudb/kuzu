@@ -39,21 +39,30 @@ table_id_t RelTableCatalogEntry::getNbrTableID(RelDataDirection relDirection) co
 
 void RelTableCatalogEntry::serialize(Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
+    serializer.writeDebuggingInfo("srcMultiplicity");
     serializer.write(srcMultiplicity);
+    serializer.writeDebuggingInfo("dstMultiplicity");
     serializer.write(dstMultiplicity);
+    serializer.writeDebuggingInfo("srcTableID");
     serializer.write(srcTableID);
+    serializer.writeDebuggingInfo("dstTableID");
     serializer.write(dstTableID);
 }
 
 std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     Deserializer& deserializer) {
+    std::string debuggingInfo;
     RelMultiplicity srcMultiplicity;
     RelMultiplicity dstMultiplicity;
     table_id_t srcTableID;
     table_id_t dstTableID;
+    deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
     deserializer.deserializeValue(srcMultiplicity);
+    deserializer.validateDebuggingInfo(debuggingInfo, "dstMultiplicity");
     deserializer.deserializeValue(dstMultiplicity);
+    deserializer.validateDebuggingInfo(debuggingInfo, "srcTableID");
     deserializer.deserializeValue(srcTableID);
+    deserializer.validateDebuggingInfo(debuggingInfo, "dstTableID");
     deserializer.deserializeValue(dstTableID);
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>();
     relTableEntry->srcMultiplicity = srcMultiplicity;

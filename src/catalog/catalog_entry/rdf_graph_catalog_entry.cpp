@@ -11,9 +11,9 @@ namespace kuzu {
 namespace catalog {
 
 RDFGraphCatalogEntry::RDFGraphCatalogEntry(CatalogSet* set, std::string name,
-    common::table_id_t rdfID, common::table_id_t resourceTableID, common::table_id_t literalTabelID,
+    common::table_id_t resourceTableID, common::table_id_t literalTabelID,
     common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID)
-    : TableCatalogEntry{set, CatalogEntryType::RDF_GRAPH_ENTRY, std::move(name), rdfID},
+    : TableCatalogEntry{set, CatalogEntryType::RDF_GRAPH_ENTRY, std::move(name)},
       resourceTableID{resourceTableID}, literalTableID{literalTabelID},
       resourceTripleTableID{resourceTripleTableID}, literalTripleTableID{literalTripleTableID} {}
 
@@ -49,21 +49,30 @@ std::string RDFGraphCatalogEntry::getLiteralTripleTableName(const std::string& g
 
 void RDFGraphCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
+    serializer.writeDebuggingInfo("resourceTableID");
     serializer.write(resourceTableID);
+    serializer.writeDebuggingInfo("literalTableID");
     serializer.write(literalTableID);
+    serializer.writeDebuggingInfo("resourceTripleTableID");
     serializer.write(resourceTripleTableID);
+    serializer.writeDebuggingInfo("literalTripleTableID");
     serializer.write(literalTripleTableID);
 }
 
 std::unique_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
+    std::string debuggingInfo;
     common::table_id_t resourceTableID;
     common::table_id_t literalTableID;
     common::table_id_t resourceTripleTableID;
     common::table_id_t literalTripleTableID;
+    deserializer.validateDebuggingInfo(debuggingInfo, "resourceTableID");
     deserializer.deserializeValue(resourceTableID);
+    deserializer.validateDebuggingInfo(debuggingInfo, "literalTableID");
     deserializer.deserializeValue(literalTableID);
+    deserializer.validateDebuggingInfo(debuggingInfo, "resourceTripleTableID");
     deserializer.deserializeValue(resourceTripleTableID);
+    deserializer.validateDebuggingInfo(debuggingInfo, "literalTripleTableID");
     deserializer.deserializeValue(literalTripleTableID);
     auto rdfGraphEntry = std::make_unique<RDFGraphCatalogEntry>();
     rdfGraphEntry->resourceTableID = resourceTableID;

@@ -4,7 +4,6 @@
 #include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -47,15 +46,12 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     main::ClientContext* context) {
     std::string key;
     table_id_t tableID;
-    std::string tableName;
     deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
-    deSer.validateDebuggingInfo(key, "table_name");
-    deSer.deserializeValue<std::string>(tableName);
     const auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
     if (!catalogEntry) {
         throw RuntimeException(
-            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableName));
+            stringFormat("Load table failed: table {} doesn't exist in catalog.", tableID));
     }
     return std::make_unique<NodeTable>(storageManager,
         catalogEntry->ptrCast<NodeTableCatalogEntry>(), memoryManager, vfs, context, &deSer);

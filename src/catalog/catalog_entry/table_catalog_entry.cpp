@@ -13,28 +13,28 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo& info) {
+std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo& alterInfo) const {
     KU_ASSERT(!deleted);
     auto newEntry = copy();
-    switch (info.alterType) {
+    switch (alterInfo.alterType) {
     case AlterType::RENAME_TABLE: {
-        auto& renameTableInfo = *info.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
+        auto& renameTableInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         newEntry->rename(renameTableInfo.newName);
     } break;
     case AlterType::RENAME_PROPERTY: {
-        auto& renamePropInfo = *info.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
+        auto& renamePropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
         newEntry->renameProperty(renamePropInfo.oldName, renamePropInfo.newName);
     } break;
     case AlterType::ADD_PROPERTY: {
-        auto& addPropInfo = *info.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        auto& addPropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
         newEntry->addProperty(addPropInfo.propertyDefinition);
     } break;
     case AlterType::DROP_PROPERTY: {
-        auto& dropPropInfo = *info.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
+        auto& dropPropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
         newEntry->dropProperty(dropPropInfo.propertyName);
     } break;
     case AlterType::COMMENT: {
-        auto& commentInfo = *info.extraInfo->constPtrCast<BoundExtraCommentInfo>();
+        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraCommentInfo>();
         newEntry->setComment(commentInfo.comment);
     } break;
     default: {
@@ -91,17 +91,19 @@ void TableCatalogEntry::renameProperty(const std::string& propertyName,
 
 void TableCatalogEntry::serialize(Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
-    serializer.write(tableID);
+    serializer.writeDebuggingInfo("comment");
     serializer.write(comment);
+    serializer.writeDebuggingInfo("properties");
     propertyCollection.serialize(serializer);
 }
 
 std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
     common::Deserializer& deserializer, CatalogEntryType type) {
-    common::table_id_t tableID;
+    std::string debuggingInfo;
     std::string comment;
-    deserializer.deserializeValue(tableID);
+    deserializer.validateDebuggingInfo(debuggingInfo, "comment");
     deserializer.deserializeValue(comment);
+    deserializer.validateDebuggingInfo(debuggingInfo, "properties");
     auto propertyCollection = PropertyDefinitionCollection::deserialize(deserializer);
     std::unique_ptr<TableCatalogEntry> result;
     switch (type) {
@@ -120,7 +122,6 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
     default:
         KU_UNREACHABLE;
     }
-    result->tableID = tableID;
     result->comment = std::move(comment);
     result->propertyCollection = std::move(propertyCollection);
     return result;
@@ -130,12 +131,11 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
     CatalogEntry::copyFrom(other);
     auto& otherTable = ku_dynamic_cast<const CatalogEntry&, const TableCatalogEntry&>(other);
     set = otherTable.set;
-    tableID = otherTable.tableID;
     comment = otherTable.comment;
     propertyCollection = otherTable.propertyCollection.copy();
 }
 
-binder::BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
+BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
     transaction::Transaction* transaction) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
     return BoundCreateTableInfo(getTableType(), name, ConflictAction::ON_CONFLICT_THROW,

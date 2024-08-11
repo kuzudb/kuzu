@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"

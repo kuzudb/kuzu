@@ -3,7 +3,6 @@
 #include <map>
 
 #include "common/enums/table_type.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/store/table.h"
 

@@ -3,14 +3,11 @@
 #include <memory>
 
 #include "common/assert.h"
-// #include "common/cast.h"
-#include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table.h"
-// #include "storage/store/rel_table_data.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;

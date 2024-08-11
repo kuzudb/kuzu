@@ -44,29 +44,27 @@ struct SequenceData {
 };
 
 class CatalogSet;
-class KUZU_API SequenceCatalogEntry : public CatalogEntry {
+class KUZU_API SequenceCatalogEntry final : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
     SequenceCatalogEntry() = default;
-    SequenceCatalogEntry(CatalogSet* set, common::sequence_id_t sequenceID,
-        const binder::BoundCreateSequenceInfo& sequenceInfo)
+    SequenceCatalogEntry(CatalogSet* set, const binder::BoundCreateSequenceInfo& sequenceInfo)
         : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)},
-          set{set}, sequenceID{sequenceID}, sequenceData{SequenceData(sequenceInfo)} {}
+          set{set}, sequenceData{SequenceData(sequenceInfo)} {}
 
     //===--------------------------------------------------------------------===//
     // getter & setter
     //===--------------------------------------------------------------------===//
-    common::sequence_id_t getSequenceID() const { return sequenceID; }
     SequenceData getSequenceData();
 
     //===--------------------------------------------------------------------===//
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-    void nextKVal(transaction::Transaction* transaction, const uint64_t& count);
-    void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
+    void nextKVal(const transaction::Transaction* transaction, const uint64_t& count);
+    void nextKVal(const transaction::Transaction* transaction, const uint64_t& count,
         common::ValueVector& resultVector);
     void rollbackVal(const uint64_t& usageCount, const int64_t& currVal);
 
@@ -80,12 +78,10 @@ public:
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
 
 private:
-    void copyFrom(const CatalogEntry& other) override;
     void nextValNoLock();
 
 private:
     CatalogSet* set;
-    common::sequence_id_t sequenceID;
     std::mutex mtx;
     SequenceData sequenceData;
 };

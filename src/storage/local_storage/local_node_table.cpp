@@ -2,7 +2,7 @@
 
 #include "common/cast.h"
 #include "common/exception/message.h"
-#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
 

@@ -12,10 +12,10 @@ class RelTableCatalogEntry final : public TableCatalogEntry {
 
 public:
     RelTableCatalogEntry() = default;
-    RelTableCatalogEntry(CatalogSet* set, std::string name, common::table_id_t tableID,
+    RelTableCatalogEntry(CatalogSet* set, std::string name,
         common::RelMultiplicity srcMultiplicity, common::RelMultiplicity dstMultiplicity,
         common::table_id_t srcTableID, common::table_id_t dstTableID)
-        : TableCatalogEntry{set, entryType_, std::move(name), tableID},
+        : TableCatalogEntry{set, entryType_, std::move(name)},
           srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity},
           srcTableID{srcTableID}, dstTableID{dstTableID} {}
 

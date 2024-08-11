@@ -11,12 +11,15 @@ namespace catalog {
 
 void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
+    serializer.writeDebuggingInfo("primaryKeyName");
     serializer.write(primaryKeyName);
 }
 
 std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
+    std::string debuggingInfo;
     std::string primaryKeyName;
+    deserializer.validateDebuggingInfo(debuggingInfo, "primaryKeyName");
     deserializer.deserializeValue(primaryKeyName);
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>();
     nodeTableEntry->primaryKeyName = primaryKeyName;

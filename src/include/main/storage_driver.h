@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/types/internal_id_t.h"
 #include "database.h"
 
 namespace kuzu {

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "common/types/types.h"
 #include "function/hash/hash_functions.h"
-#include "internal_id_t.h"
 
 namespace kuzu {
 namespace common {

@@ -3,7 +3,6 @@
 #include "common/types/date_t.h"              // IWYU pragma: export
 #include "common/types/dtime_t.h"             // IWYU pragma: export
 #include "common/types/int128_t.h"            // IWYU pragma: export
-#include "common/types/internal_id_t.h"       // IWYU pragma: export
 #include "common/types/interval_t.h"          // IWYU pragma: export
 #include "common/types/timestamp_t.h"         // IWYU pragma: export
 #include "common/types/types.h"               // IWYU pragma: export

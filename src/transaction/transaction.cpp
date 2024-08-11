@@ -61,7 +61,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     if (!shouldLogToWAL() || skipLoggingToWAL) {
         return;
     }
-    auto wal = clientContext->getWAL();
+    const auto wal = clientContext->getWAL();
     KU_ASSERT(wal);
     const auto newCatalogEntry = catalogEntry.getNext();
     switch (newCatalogEntry->getType()) {
@@ -120,9 +120,8 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             }
         } break;
         case CatalogEntryType::SEQUENCE_ENTRY: {
-            auto sequenceCatalogEntry = catalogEntry.constPtrCast<SequenceCatalogEntry>();
-            wal->logDropCatalogEntryRecord(sequenceCatalogEntry->getSequenceID(),
-                catalogEntry.getType());
+            const auto sequenceCatalogEntry = catalogEntry.constPtrCast<SequenceCatalogEntry>();
+            wal->logDropCatalogEntryRecord(sequenceCatalogEntry->getOID(), catalogEntry.getType());
         } break;
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persistent function entries.
@@ -151,7 +150,7 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
     const SequenceRollbackData& data) const {
     undoBuffer->createSequenceChange(*sequenceEntry, data);
     if (clientContext->getTx()->shouldLogToWAL()) {
-        clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getSequenceID(), kCount);
+        clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getOID(), kCount);
     }
 }
 

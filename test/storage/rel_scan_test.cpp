@@ -1,7 +1,6 @@
 #include <random>
 
 #include "catalog/catalog.h"
-#include "common/types/internal_id_t.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "graph_test/base_graph_test.h"

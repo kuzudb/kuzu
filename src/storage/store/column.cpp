@@ -5,7 +5,6 @@
 
 #include "common/assert.h"
 #include "common/null_mask.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/compression.h"

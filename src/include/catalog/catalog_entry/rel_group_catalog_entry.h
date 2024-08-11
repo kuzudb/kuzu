@@ -11,13 +11,13 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     RelGroupCatalogEntry() = default;
-    RelGroupCatalogEntry(CatalogSet* set, std::string tableName, common::table_id_t tableID,
+    RelGroupCatalogEntry(CatalogSet* set, std::string tableName,
         std::vector<common::table_id_t> relTableIDs);
 
     //===--------------------------------------------------------------------===//
     // getter & setter
     //===--------------------------------------------------------------------===//
-    bool isParent(common::table_id_t tableID) override;
+    bool isParent(common::table_id_t childID) override;
     common::TableType getTableType() const override { return common::TableType::REL_GROUP; }
     const std::vector<common::table_id_t>& getRelTableIDs() const { return relTableIDs; }
 
