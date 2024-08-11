@@ -533,9 +533,29 @@ void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_
     }
 }
 
+void ListVector::copyListEntryAndBufferMetaData(ValueVector& vector, const ValueVector& other) {
+    auto& selVector = vector.state->getSelVector();
+    auto& otherSelVector = other.state->getSelVector();
+    KU_ASSERT(selVector.getSelSize() == otherSelVector.getSelSize());
+    // Copy list entries
+    for (auto i = 0u; i < otherSelVector.getSelSize(); ++i) {
+        auto pos = selVector[i];
+        auto otherPos = otherSelVector[i];
+        if (other.isNull(otherPos)) {
+            vector.setNull(pos, true);
+        } else {
+            vector.setValue(pos, other.getValue<list_entry_t>(otherPos));
+        }
+    }
+    // Copy buffer metadata
+    auto& buffer = getAuxBufferUnsafe(vector);
+    auto& otherBuffer = getAuxBuffer(other);
+    buffer.size = otherBuffer.size;
+    buffer.capacity = otherBuffer.capacity;
+}
+
 void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
-    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-              vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
+    KU_ASSERT(validateType(*vector));
     auto& srcKuList = *(ku_list_t*)rowData;
     auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
     auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
@@ -593,8 +613,8 @@ void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
     }
 }
 
-void ListVector::appendDataVector(kuzu::common::ValueVector* dstVector,
-    kuzu::common::ValueVector* srcDataVector, uint64_t numValuesToAppend) {
+void ListVector::appendDataVector(ValueVector* dstVector, ValueVector* srcDataVector,
+    uint64_t numValuesToAppend) {
     auto offset = getDataVectorSize(dstVector);
     resizeDataVector(dstVector, offset + numValuesToAppend);
     auto dstDataVector = getDataVector(dstVector);
