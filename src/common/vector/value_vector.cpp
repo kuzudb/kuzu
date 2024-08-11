@@ -613,8 +613,8 @@ void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
     }
 }
 
-void ListVector::appendDataVector(ValueVector* dstVector,
-    ValueVector* srcDataVector, uint64_t numValuesToAppend) {
+void ListVector::appendDataVector(ValueVector* dstVector, ValueVector* srcDataVector,
+    uint64_t numValuesToAppend) {
     auto offset = getDataVectorSize(dstVector);
     resizeDataVector(dstVector, offset + numValuesToAppend);
     auto dstDataVector = getDataVector(dstVector);
