@@ -152,8 +152,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     }
     if (functionName == CollectFunction::name && parsedExpression.hasAlias() &&
         children[0]->getDataType().getLogicalTypeID() == LogicalTypeID::NODE) {
-        auto node = ku_dynamic_cast<Expression*, NodeExpression*>(children[0].get());
-        binder->scope.memorizeTableIDs(parsedExpression.getAlias(), node->getTableIDs());
+        auto& node = children[0]->constCast<NodeExpression>();
+        binder->scope.memorizeTableEntries(parsedExpression.getAlias(), node.getEntries());
     }
     auto uniqueExpressionName =
         AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
@@ -261,7 +261,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             return createLiteralExpression("");
         }
         if (!node.isMultiLabeled()) {
-            auto labelName = catalog->getTableName(context->getTx(), node.getSingleTableID());
+            auto labelName = catalog->getTableName(context->getTx(), node.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
         auto nodeTableIDs = catalog->getNodeTableIDs(context->getTx());
@@ -276,7 +276,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             return createLiteralExpression("");
         }
         if (!rel.isMultiLabeled()) {
-            auto labelName = catalog->getTableName(context->getTx(), rel.getSingleTableID());
+            auto labelName = catalog->getTableName(context->getTx(), rel.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
         auto relTableIDs = catalog->getRelTableIDs(context->getTx());

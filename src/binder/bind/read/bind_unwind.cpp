@@ -33,8 +33,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     }
     std::shared_ptr<Expression> idExpr = nullptr;
     if (scope.hasMemorizedTableIDs(boundExpression->getAlias())) {
-        auto tableIDs = scope.getMemorizedTableIDs(boundExpression->getAlias());
-        auto node = createQueryNode(aliasName, tableIDs);
+        auto entries = scope.getMemorizedTableEntries(boundExpression->getAlias());
+        auto node = createQueryNode(aliasName, entries);
         idExpr = node->getInternalID();
         scope.addNodeReplacement(node);
     }

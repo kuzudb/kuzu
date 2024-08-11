@@ -8,9 +8,9 @@ namespace binder {
 class NodeExpression : public NodeOrRelExpression {
 public:
     NodeExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
-        std::vector<common::table_id_t> tableIDs)
+        std::vector<catalog::TableCatalogEntry*> entries)
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
-              std::move(tableIDs)} {}
+              std::move(entries)} {}
 
     void setInternalID(std::unique_ptr<Expression> expression) {
         internalID = std::move(expression);

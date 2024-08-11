@@ -7,7 +7,6 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/join_type.h"
 #include "common/exception/runtime.h"
-#include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -24,22 +23,20 @@ namespace kuzu {
 namespace planner {
 
 static std::unordered_set<table_id_t> getBoundNodeTableIDSet(const RelExpression& rel,
-    ExtendDirection extendDirection, const main::ClientContext& clientContext) {
+    ExtendDirection extendDirection) {
     std::unordered_set<table_id_t> result;
-    auto catalog = clientContext.getCatalog();
-    for (auto tableID : rel.getTableIDs()) {
-        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-            catalog->getTableCatalogEntry(clientContext.getTx(), tableID));
+    for (auto entry : rel.getEntries()) {
+        auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(relTableEntry->getBoundTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry.getBoundTableID(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(relTableEntry->getBoundTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry.getBoundTableID(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(relTableEntry->getBoundTableID(RelDataDirection::FWD));
-            result.insert(relTableEntry->getBoundTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry.getBoundTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry.getBoundTableID(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;
@@ -49,22 +46,20 @@ static std::unordered_set<table_id_t> getBoundNodeTableIDSet(const RelExpression
 }
 
 static std::unordered_set<table_id_t> getNbrNodeTableIDSet(const RelExpression& rel,
-    ExtendDirection extendDirection, const main::ClientContext& clientContext) {
+    ExtendDirection extendDirection) {
     std::unordered_set<table_id_t> result;
-    auto catalog = clientContext.getCatalog();
-    for (auto tableID : rel.getTableIDs()) {
-        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-            catalog->getTableCatalogEntry(clientContext.getTx(), tableID));
+    for (auto entry : rel.getEntries()) {
+        auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
         switch (extendDirection) {
         case ExtendDirection::FWD: {
-            result.insert(relTableEntry->getNbrTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry.getNbrTableID(RelDataDirection::FWD));
         } break;
         case ExtendDirection::BWD: {
-            result.insert(relTableEntry->getNbrTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry.getNbrTableID(RelDataDirection::BWD));
         } break;
         case ExtendDirection::BOTH: {
-            result.insert(relTableEntry->getNbrTableID(RelDataDirection::FWD));
-            result.insert(relTableEntry->getNbrTableID(RelDataDirection::BWD));
+            result.insert(relTableEntry.getNbrTableID(RelDataDirection::FWD));
+            result.insert(relTableEntry.getNbrTableID(RelDataDirection::BWD));
         } break;
         default:
             KU_UNREACHABLE;
@@ -106,8 +101,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     validatePropertiesContainRelID(*rel, properties);
     // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
     // cannot be done at binding time because the pruning is affected by extend direction.
-    auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, *clientContext);
-    if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
+    auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction);
+    if (boundNode->getNumEntries() > boundNodeTableIDSet.size()) {
         appendNodeLabelFilter(boundNode->getInternalID(), boundNodeTableIDSet, plan);
     }
     auto properties_ = properties;
@@ -130,8 +125,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);
     plan.setLastOperator(std::move(extend));
-    auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, *clientContext);
-    if (nbrNodeTableIDSet.size() > nbrNode->getNumTableIDs()) {
+    auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction);
+    if (nbrNodeTableIDSet.size() > nbrNode->getNumEntries()) {
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
     if (iri) {
@@ -157,7 +152,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     bool extendFromSource = *boundNode == *rel->getSrcNode();
     createRecursivePlan(*recursiveInfo, direction, extendFromSource, *recursivePlan);
     // Create recursive extend
-    if (boundNode->getNumTableIDs() > recursiveInfo->node->getNumTableIDs()) {
+    if (boundNode->getNumEntries() > recursiveInfo->node->getNumEntries()) {
         appendNodeLabelFilter(boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(),
             plan);
     }
