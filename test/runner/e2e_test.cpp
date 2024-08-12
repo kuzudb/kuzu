@@ -57,14 +57,16 @@ public:
         case TestGroup::DatasetType::CSV_TO_PARQUET: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
             parquetTempDatasetPath = generateTempDatasetPath();
-            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize, ".parquet");
+            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize,
+                ".parquet");
             converter.convertCSVDatasetToParquet();
             dataset = parquetTempDatasetPath;
         } break;
         case TestGroup::DatasetType::CSV_TO_JSON: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
             parquetTempDatasetPath = generateTempDatasetPath();
-            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize, ".json");
+            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize,
+                ".json");
             converter.convertCSVDatasetToParquet();
             dataset = parquetTempDatasetPath;
         } break;

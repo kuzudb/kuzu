@@ -133,7 +133,8 @@ void CSVToParquetConverter::createCopyFile() {
             stringFormat("Error opening file: {}, errno: {}.", parquetCopyFile, errno));
     }
     if (fileExtension == ".json") {
-        outfile << "load extension \"" + TestHelper::appendKuzuRootPath("extension/json/build/libjson.kuzu_extension\"\n");
+        outfile << "load extension \"" + TestHelper::appendKuzuRootPath(
+                                             "extension/json/build/libjson.kuzu_extension\"\n");
     }
     for (auto table : tables) {
         auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name, table->parquetFilePath);
@@ -152,7 +153,9 @@ void CSVToParquetConverter::convertCSVFilesToParquet() {
 
     spdlog::set_level(spdlog::level::info);
     if (fileExtension == ".json") {
-        auto result = tempConn->query("load extension \"" + TestHelper::appendKuzuRootPath("extension/json/build/libjson.kuzu_extension\""));
+        auto result = tempConn->query(
+            "load extension \"" +
+            TestHelper::appendKuzuRootPath("extension/json/build/libjson.kuzu_extension\""));
         if (!result->isSuccess()) {
             spdlog::error(result->getErrorMessage());
         }
@@ -192,7 +195,8 @@ std::string CSVToParquetConverter::NodeTableInfo::getConverterQuery() const {
 }
 
 std::string CSVToParquetConverter::RelTableInfo::getConverterQuery() const {
-    return stringFormat("COPY (MATCH (a)-[e:{}]->(b) RETURN a.{} AS `from`, b.{} AS `to`, e.*) TO \"{}\";", name,
+    return stringFormat(
+        "COPY (MATCH (a)-[e:{}]->(b) RETURN a.{} AS `from`, b.{} AS `to`, e.*) TO \"{}\";", name,
         fromTable->primaryKey, toTable->primaryKey, parquetFilePath);
 }
 
