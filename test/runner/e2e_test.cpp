@@ -80,7 +80,7 @@ public:
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
             std::filesystem::remove_all(parquetTempDatasetPath);
         } else if (datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
-            //std::filesystem::remove_all(parquetTempDatasetPath);
+            std::filesystem::remove_all(parquetTempDatasetPath);
         }
     }
 
