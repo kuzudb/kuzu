@@ -1808,9 +1808,7 @@ LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
         return LogicalType::STRING();
     }
     if (isSemanticallyNested(lft.getLogicalTypeID()) &&
-        isSemanticallyNested(rit.getLogicalTypeID())) {
-        
-    }
+        isSemanticallyNested(rit.getLogicalTypeID())) {}
     if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
         lft.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         std::vector<StructField> resultingFields;

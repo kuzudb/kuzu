@@ -402,7 +402,7 @@ public:
     StructField(std::string name, LogicalType type)
         : name{std::move(name)}, type{std::move(type)} {};
 
-std::string getName() const { return name; }
+    std::string getName() const { return name; }
 
     const LogicalType& getType() const { return type; }
 

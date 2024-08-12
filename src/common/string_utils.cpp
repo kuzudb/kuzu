@@ -44,7 +44,7 @@ std::vector<std::string> StringUtils::smartSplit(const std::string& input, char 
     }
     std::vector<std::string> result(1);
     std::vector<char> stk;
-    for (char c: input) {
+    for (char c : input) {
         if (c == splitChar && stk.size() == 0u) {
             result.emplace_back();
         } else if (c == '{' || c == '(' || c == '[') {

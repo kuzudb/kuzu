@@ -130,10 +130,10 @@ static LogicalType inferMapOrStruct(const std::string& str) {
             auto split = StringUtils::smartSplit(ele, '=');
             auto& key = split[0];
             auto& value = split[1];
-            childKeyType = LogicalTypeUtils::combineTypes(childKeyType,
-                inferMinimalTypeFromString(key));
-            childValueType = LogicalTypeUtils::combineTypes(childValueType,
-                inferMinimalTypeFromString(value));
+            childKeyType =
+                LogicalTypeUtils::combineTypes(childKeyType, inferMinimalTypeFromString(key));
+            childValueType =
+                LogicalTypeUtils::combineTypes(childValueType, inferMinimalTypeFromString(value));
         }
         return LogicalType::MAP(std::move(childKeyType), std::move(childValueType));
     } else if (isStruct) {
