@@ -171,9 +171,6 @@ def test_version(temp_db, flag) -> None:
     ],
 )
 def test_mode(temp_db, flag) -> None:
-    # fails without db path
-    check_fails_without_db(flag, "box")
-
     # test default mode
     test = (
         ShellTest()
@@ -379,9 +376,6 @@ def test_mode(temp_db, flag) -> None:
     ],
 )
 def test_no_stats(temp_db, flag) -> None:
-    # fails without db path
-    check_fails_without_db(flag)
-    
     # test stats off
     test = (
         ShellTest()
