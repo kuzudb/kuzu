@@ -40,7 +40,7 @@ MAP(STRING, INT64)|MAP(INT64, STRING)|MAP(STRING, STRING)|MAP(INT64, INT64)
 -CASE SniffStruct
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/struct.csv" (header=true) return typeof(basicStruct), typeof(unionOfFields), typeof(notStruct) LIMIT 1
 ---- 1
-STRUCT(A INT64, B INT64)|STRUCT(A INT64, B INT64, C INT64)|STRING
+STRUCT(A INT64, B INT64)|STRUCT(A INT64, B INT64, C INT64)|MAP(STRING, INT64)
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/sample-size.csv" (header=false,sample_size=3) RETURN typeof(column0) LIMIT 1
 ---- 1
