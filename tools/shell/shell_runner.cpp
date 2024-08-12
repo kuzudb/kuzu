@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     if (DBConfig::isDBPathInMemory(databasePath)) {
-        std::cout << "Opened the database under in in-memory mode." << '\n';
+        std::cout << "Opened the database under in-memory mode." << '\n';
     } else {
         std::cout << "Opened the database at path: " << databasePath << " in "
                   << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';

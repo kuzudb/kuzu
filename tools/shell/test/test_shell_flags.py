@@ -10,7 +10,7 @@ def test_database_path(temp_db) -> None:
     # no database path
     test = ShellTest()
     result = test.run()
-    result.check_stdout("Opened the database under in in-memory mode.")
+    result.check_stdout("Opened the database under in-memory mode.")
 
     # valid database path
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a;')
