@@ -28,7 +28,7 @@ DATE|TIMESTAMP|STRING|STRING|INTERVAL
 UUID|STRING|STRING|STRING|STRING
 
 -CASE SniffList
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/list.csv" (header=true) RETURN typeof(isIntArray), typeof(isDecimalArray), typeof(isStringArray1), typeof(isStringArray2), typeof(isIntArrayArray), typeof(isEmptyArray), typeof(isEtmpyArrayArrayArray) LIMIT 1
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/list.csv" (header=true) RETURN typeof(isIntArray), typeof(isDecimalArray), typeof(isStringArray1), typeof(isStringArray2), typeof(isIntArrayArray), typeof(isEmptyArray), typeof(isEmptyArrayArrayArray) LIMIT 1
 ---- 1
 INT64[]|DECIMAL(2, 1)[]|STRING[]|STRING[]|INT64[][]|STRING[]|STRING[][][]
 
