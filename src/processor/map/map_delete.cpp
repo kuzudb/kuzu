@@ -14,10 +14,12 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(table_id_t tableID, DataPos pkPos) const {
+NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& entry,
+    DataPos pkPos) const {
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
+    auto tableID = entry.getTableID();
     auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
     std::unordered_set<RelTable*> fwdRelTables;
     std::unordered_set<RelTable*> bwdRelTables;
@@ -41,15 +43,16 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
     }
     if (node.isMultiLabeled()) {
         common::table_id_map_t<NodeTableDeleteInfo> tableInfos;
-        for (auto id : node.getTableIDs()) {
-            auto pkPos = getDataPos(*node.getPrimaryKey(id), schema);
-            tableInfos.insert({id, getNodeTableDeleteInfo(id, pkPos)});
+        for (auto entry : node.getEntries()) {
+            auto tableID = entry->getTableID();
+            auto pkPos = getDataPos(*node.getPrimaryKey(tableID), schema);
+            tableInfos.insert({tableID, getNodeTableDeleteInfo(*entry, pkPos)});
         }
         return std::make_unique<MultiLabelNodeDeleteExecutor>(std::move(info),
             std::move(tableInfos));
     }
-    auto pkPos = getDataPos(*node.getPrimaryKey(node.getSingleTableID()), schema);
-    auto extraInfo = getNodeTableDeleteInfo(node.getSingleTableID(), pkPos);
+    auto pkPos = getDataPos(*node.getPrimaryKey(node.getSingleEntry()->getTableID()), schema);
+    auto extraInfo = getNodeTableDeleteInfo(*node.getSingleEntry(), pkPos);
     return std::make_unique<SingleLabelNodeDeleteExecutor>(std::move(info), std::move(extraInfo));
 }
 
@@ -98,14 +101,15 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     }
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
-        for (auto tableID : rel.getTableIDs()) {
+        for (auto entry : rel.getEntries()) {
+            auto tableID = entry->getTableID();
             auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelRelDeleteExecutor>(std::move(tableIDToTableMap),
             std::move(info));
     }
-    auto table = storageManager->getTable(rel.getSingleTableID())->ptrCast<RelTable>();
+    auto table = storageManager->getTable(rel.getSingleEntry()->getTableID())->ptrCast<RelTable>();
     return std::make_unique<SingleLabelRelDeleteExecutor>(table, std::move(info));
 }
 

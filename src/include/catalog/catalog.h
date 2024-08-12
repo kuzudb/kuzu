@@ -66,6 +66,8 @@ public:
     std::string getTableName(transaction::Transaction* transaction,
         common::table_id_t tableID) const;
     TableCatalogEntry* getTableCatalogEntry(transaction::Transaction* transaction,
+        const std::string& tableName) const;
+    TableCatalogEntry* getTableCatalogEntry(transaction::Transaction* transaction,
         common::table_id_t tableID) const;
     std::vector<NodeTableCatalogEntry*> getNodeTableEntries(
         transaction::Transaction* transaction) const;
@@ -152,12 +154,7 @@ private:
     // ----------------------------- Functions ----------------------------
     void registerBuiltInFunctions();
 
-    bool containMacro(const std::string& macroName) const;
-
     // ----------------------------- Table entries ----------------------------
-    uint64_t getNumTables(transaction::Transaction* transaction) const {
-        return tables->getEntries(transaction).size();
-    }
 
     void iterateCatalogEntries(transaction::Transaction* transaction,
         std::function<void(CatalogEntry*)> func) const {

@@ -175,8 +175,8 @@ void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
         for (auto& info : infos) {
             auto& node = info.pattern->constCast<NodeExpression>();
             collectExpressionsInUse(node.getInternalID());
-            for (auto id : node.getTableIDs()) {
-                collectExpressionsInUse(node.getPrimaryKey(id));
+            for (auto entry : node.getEntries()) {
+                collectExpressionsInUse(node.getPrimaryKey(entry->getTableID()));
             }
         }
     } break;

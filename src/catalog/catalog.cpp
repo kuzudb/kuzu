@@ -66,9 +66,7 @@ bool Catalog::containsTable(Transaction* transaction, const std::string& tableNa
 }
 
 table_id_t Catalog::getTableID(Transaction* transaction, const std::string& tableName) const {
-    auto entry = tables->getEntry(transaction, tableName);
-    KU_ASSERT(entry);
-    return ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry)->getTableID();
+    return getTableCatalogEntry(transaction, tableName)->getTableID();
 }
 
 std::vector<table_id_t> Catalog::getNodeTableIDs(Transaction* transaction) const {
@@ -113,6 +111,18 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction,
     }
     // LCOV_EXCL_STOP
     return result;
+}
+
+TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction,
+    const std::string& tableName) const {
+    auto entry = tables->getEntry(transaction, tableName);
+    // LCOV_EXCL_START
+    if (entry == nullptr) {
+        throw RuntimeException(
+            stringFormat("Cannot find table catalog entry with name {}.", tableName));
+    }
+    // LCOV_EXCL_STOP
+    return entry->ptrCast<TableCatalogEntry>();
 }
 
 std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(Transaction* transaction) const {
@@ -491,10 +501,6 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
 
 void Catalog::registerBuiltInFunctions() {
     function::BuiltInFunctionsUtils::createFunctions(&DUMMY_TRANSACTION, functions.get());
-}
-
-bool Catalog::containMacro(const std::string& macroName) const {
-    return functions->containsEntry(&DUMMY_TRANSACTION, macroName);
 }
 
 void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* tableEntry,

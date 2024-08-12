@@ -34,8 +34,8 @@ NodeInsertExecutor PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* bo
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = NodeInsertInfo(nodeIDPos, columnsPos, boundInfo->conflictAction);
     auto storageManager = clientContext->getStorageManager();
-    auto nodeTableID = node.getSingleTableID();
-    auto table = storageManager->getTable(nodeTableID)->ptrCast<NodeTable>();
+    auto table =
+        storageManager->getTable(node.getSingleEntry()->getTableID())->ptrCast<NodeTable>();
     evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&inSchema);
     for (auto& expr : boundInfo->columnDataExprs) {
@@ -55,8 +55,7 @@ RelInsertExecutor PlanMapper::getRelInsertExecutor(const LogicalInsertInfo* boun
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = RelInsertInfo(srcNodeIDPos, dstNodeIDPos, std::move(columnsPos));
     auto storageManager = clientContext->getStorageManager();
-    auto relTableID = rel.getSingleTableID();
-    auto table = storageManager->getTable(relTableID)->ptrCast<RelTable>();
+    auto table = storageManager->getTable(rel.getSingleEntry()->getTableID())->ptrCast<RelTable>();
     evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&outSchema);
     for (auto& expr : boundInfo->columnDataExprs) {

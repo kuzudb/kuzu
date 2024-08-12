@@ -1,5 +1,6 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/gds/gds.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -25,18 +26,28 @@ static std::shared_ptr<LogicalOperator> appendAccumulate(std::shared_ptr<Logical
     return accumulate;
 }
 
+static table_id_vector_t getTableIDs(const std::vector<catalog::TableCatalogEntry*>& entries) {
+    table_id_vector_t result;
+    for (auto& entry : entries) {
+        result.push_back(entry->getTableID());
+    }
+    return result;
+}
+
 static std::vector<table_id_t> getTableIDs(LogicalOperator* op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return op->constCast<LogicalScanNodeTable>().getTableIDs();
     }
     case LogicalOperatorType::RECURSIVE_EXTEND: {
-        return op->constCast<LogicalRecursiveExtend>().getNbrNode()->getTableIDs();
+        auto node = op->constCast<LogicalRecursiveExtend>().getNbrNode();
+        return getTableIDs(node->getEntries());
     }
     case LogicalOperatorType::GDS_CALL: {
         auto bindData = op->constCast<LogicalGDSCall>().getInfo().getBindData();
         KU_ASSERT(bindData->hasNodeInput());
-        return bindData->getNodeInput()->constCast<NodeExpression>().getTableIDs();
+        auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
+        return getTableIDs(node.getEntries());
     }
     default:
         KU_UNREACHABLE;

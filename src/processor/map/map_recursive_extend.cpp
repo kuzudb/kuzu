@@ -10,10 +10,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
-    const binder::NodeExpression& nbrNode, const main::ClientContext& context) {
+static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExpression& nbrNode,
+    const main::ClientContext& context) {
     std::vector<std::unique_ptr<common::NodeOffsetLevelSemiMask>> semiMasks;
-    for (auto tableID : nbrNode.getTableIDs()) {
+    for (auto entry : nbrNode.getEntries()) {
+        auto tableID = entry->getTableID();
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
         semiMasks.push_back(
             std::make_unique<common::NodeOffsetLevelSemiMask>(tableID, table->getNumRows()));

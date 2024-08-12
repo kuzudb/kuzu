@@ -20,7 +20,7 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
     const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates) {
     auto relTableID = tableCatalogEntry.getTableID();
     std::vector<column_id_t> columnIDs;
-    // We alawys should scan nbrID from relTable. This is not a property in the schema label, so
+    // We always should scan nbrID from relTable. This is not a property in the schema label, so
     // cannot be bound to a column in the front-end.
     columnIDs.push_back(NBR_ID_COLUMN_ID);
     for (auto& expr : properties) {
@@ -41,12 +41,10 @@ static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t bo
     const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates,
     const main::ClientContext& clientContext) {
     std::vector<ScanRelTableInfo> scanInfos;
-    auto catalog = clientContext.getCatalog();
     auto storageManager = clientContext.getStorageManager();
-    for (auto relTableID : rel.getTableIDs()) {
-        auto entry = catalog->getTableCatalogEntry(clientContext.getTx(), relTableID);
+    for (auto entry : rel.getEntries()) {
         auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
-        auto relTable = storageManager->getTable(relTableID)->ptrCast<RelTable>();
+        auto relTable = storageManager->getTable(entry->getTableID())->ptrCast<RelTable>();
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             if (relTableEntry.getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
@@ -102,20 +100,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     }
     auto scanInfo = ScanTableInfo(relIDPos, outVectorsPos);
     std::vector<std::string> tableNames;
-    for (auto relTableID : rel->getTableIDs()) {
-        auto relTable =
-            clientContext->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
+    auto storageManager = clientContext->getStorageManager();
+    for (auto entry : rel->getEntries()) {
+        auto relTable = storageManager->getTable(entry->getTableID())->ptrCast<RelTable>();
         tableNames.push_back(relTable->getTableName());
     }
     auto printInfo = std::make_unique<ScanRelTablePrintInfo>(tableNames, extend->getProperties(),
         boundNode, rel, nbrNode, extendDirection);
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
-        auto relTableID = rel->getSingleTableID();
-        auto entry =
-            clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), relTableID);
+        auto entry = rel->getSingleEntry();
         auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
-        auto relTable =
-            clientContext->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
+        auto relTable = storageManager->getTable(entry->getTableID())->ptrCast<RelTable>();
         auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, inNodeIDPos, relTable,
             extend->getProperties(), extend->getPropertyPredicates());
         return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),

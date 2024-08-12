@@ -1,29 +1,47 @@
 #include "binder/expression/node_rel_expression.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/runtime.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
 
-void NodeOrRelExpression::addTableIDs(const table_id_vector_t& tableIDsToAdd) {
+table_id_vector_t NodeOrRelExpression::getTableIDs() const {
+    table_id_vector_t result;
+    for (auto& entry : entries) {
+        result.push_back(entry->getTableID());
+    }
+    return result;
+}
+
+table_id_set_t NodeOrRelExpression::getTableIDsSet() const {
+    table_id_set_t result;
+    for (auto& entry : entries) {
+        result.insert(entry->getTableID());
+    }
+    return result;
+}
+
+void NodeOrRelExpression::addEntries(const std::vector<TableCatalogEntry*> entries_) {
     auto tableIDsSet = getTableIDsSet();
-    for (auto tableID : tableIDsToAdd) {
-        if (!tableIDsSet.contains(tableID)) {
-            tableIDs.push_back(tableID);
+    for (auto& entry : entries_) {
+        if (!tableIDsSet.contains(entry->getTableID())) {
+            entries.push_back(entry);
         }
     }
 }
 
-common::table_id_t NodeOrRelExpression::getSingleTableID() const {
+TableCatalogEntry* NodeOrRelExpression::getSingleEntry() const {
     // LCOV_EXCL_START
-    if (tableIDs.empty()) {
+    if (entries.empty()) {
         throw RuntimeException(
             "Trying to access table id in an empty node. This should never happen");
     }
     // LCOV_EXCL_STOP
-    return tableIDs[0];
+    return entries[0];
 }
 
 void NodeOrRelExpression::addPropertyExpression(const std::string& propertyName,
