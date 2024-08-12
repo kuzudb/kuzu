@@ -38,18 +38,21 @@ static char openingBracket(char c) {
     return c;
 }
 
-std::vector<std::string> StringUtils::splitComma(const std::string& input) {
+std::vector<std::string> StringUtils::smartSplit(const std::string& input, char splitChar) {
+    if (input.size() == 0) {
+        return {};
+    }
     std::vector<std::string> result(1);
     std::vector<char> stk;
     for (char c: input) {
-        if (c == ',' && stk.size() == 0u) {
+        if (c == splitChar && stk.size() == 0u) {
             result.emplace_back();
         } else if (c == '{' || c == '(' || c == '[') {
             stk.push_back(c);
         } else if (stk.size() > 0u && openingBracket(c) == stk.back()) {
             stk.pop_back();
         }
-        if (c != ',' || stk.size() > 0u) {
+        if (c != splitChar || stk.size() > 0u) {
             result.back().push_back(c);
         }
     }

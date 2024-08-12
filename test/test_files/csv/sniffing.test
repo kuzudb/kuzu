@@ -28,9 +28,9 @@ DATE|TIMESTAMP|STRING|STRING|INTERVAL
 UUID|STRING|STRING|STRING|STRING
 
 -CASE SniffList
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/list.csv" (header=true) RETURN typeof(isIntArray), typeof(isDecimalArray), typeof(isStringArray1), typeof(isStringArray2) LIMIT 1
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/list.csv" (header=true) RETURN typeof(isIntArray), typeof(isDecimalArray), typeof(isStringArray1), typeof(isStringArray2), typeof(isIntArrayArray), typeof(isEmptyArray), typeof(isEtmpyArrayArrayArray) LIMIT 1
 ---- 1
-INT64[]|DECIMAL(2, 1)[]|STRING[]|STRING[]
+INT64[]|DECIMAL(2, 1)[]|STRING[]|STRING[]|INT64[][]|STRING[]|STRING[][][]
 
 -CASE SniffMap
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/map.csv" (header=true) RETURN typeof(keytest), typeof(valuetest), typeof(bothtest), typeof(intint) LIMIT 1
@@ -51,3 +51,7 @@ INT64
 ---- 1
 INT64|BOOL|INT128|DATE|STRING
 
+-CASE ExtremeNest
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/nested.csv" (header=true) RETURN typeof(isStructArray), typeof(isArrayStruct), typeof(isMapStringStruct), typeof(isMapListStructList) LIMIT 1
+---- 1
+STRUCT(A INT64)[]|STRUCT(ARR INT64[])|MAP(STRING, STRUCT(A INT64))|MAP(INT64[], STRUCT(A STRUCT(ARR INT64[]), B STRUCT(BARR STRING[])))

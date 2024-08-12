@@ -1807,6 +1807,10 @@ LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
         rit.getLogicalTypeID() == LogicalTypeID::STRING) {
         return LogicalType::STRING();
     }
+    if (isSemanticallyNested(lft.getLogicalTypeID()) &&
+        isSemanticallyNested(rit.getLogicalTypeID())) {
+        
+    }
     if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
         lft.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         std::vector<StructField> resultingFields;
@@ -1832,6 +1836,14 @@ LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
         const auto& lftChild = ListType::getChildType(lft);
         const auto& ritChild = ListType::getChildType(rit);
         return LogicalType::LIST(combineTypes(lftChild, ritChild));
+    }
+    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
+        lft.getLogicalTypeID() == LogicalTypeID::MAP) {
+        const auto& lftKey = MapType::getKeyType(lft);
+        const auto& lftValue = MapType::getValueType(lft);
+        const auto& ritKey = MapType::getKeyType(rit);
+        const auto& ritValue = MapType::getValueType(rit);
+        return LogicalType::MAP(combineTypes(lftKey, ritKey), combineTypes(lftValue, ritValue));
     }
     common::LogicalType result;
     if (!tryGetMaxLogicalType(lft, rit, result)) {

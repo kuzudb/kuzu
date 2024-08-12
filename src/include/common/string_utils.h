@@ -12,7 +12,7 @@ namespace common {
 class KUZU_API StringUtils {
 public:
     static std::vector<std::string> splitFirstComma(const std::string& input);
-    static std::vector<std::string> splitComma(const std::string& input);
+    static std::vector<std::string> smartSplit(const std::string& input, char splitChar);
     static std::vector<std::string> split(const std::string& input, const std::string& delimiter,
         bool ignoreEmptyStringParts = true);
     static std::vector<std::string> splitBySpace(const std::string& input);
