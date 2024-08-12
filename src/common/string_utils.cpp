@@ -38,7 +38,8 @@ static char openingBracket(char c) {
     return c;
 }
 
-std::vector<std::string> StringUtils::smartSplit(const std::string& input, char splitChar, uint64_t maxNumEle) {
+std::vector<std::string> StringUtils::smartSplit(const std::string& input, char splitChar,
+    uint64_t maxNumEle) {
     if (input.size() == 0) {
         return {};
     }
