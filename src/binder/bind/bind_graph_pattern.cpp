@@ -14,6 +14,7 @@
 #include "common/string_format.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"
+#include "common/distinct_vector.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -124,18 +125,13 @@ std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
 }
 
 static std::vector<std::string> getPropertyNames(const std::vector<TableCatalogEntry*>& entries) {
-    std::vector<std::string> result;
-    std::unordered_set<std::string> propertyNamesSet;
+    auto distinctVector = DistinctVector<std::string>();
     for (auto& entry : entries) {
         for (auto& property : entry->getProperties()) {
-            if (propertyNamesSet.contains(property.getName())) {
-                continue;
-            }
-            propertyNamesSet.insert(property.getName());
-            result.push_back(property.getName());
+            distinctVector.add(property.getName());
         }
     }
-    return result;
+    return distinctVector.values;
 }
 
 static std::unique_ptr<Expression> createPropertyExpression(const std::string& propertyName,
@@ -286,23 +282,19 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
                 "PropertyGraph in one pattern is currently not supported.",
                 parsedName, relTableName, rdfGraphName));
         }
-        common::table_id_vector_t resourceTableIDs;
+        std::vector<catalog::TableCatalogEntry*> resourceEntries;
         for (auto& tableID : rdfGraphTableIDSet) {
             auto entry = catalog->getTableCatalogEntry(transaction, tableID);
             auto& rdfGraphEntry = entry->constCast<RDFGraphCatalogEntry>();
-            resourceTableIDs.push_back(rdfGraphEntry.getResourceTableID());
+            resourceEntries.push_back(catalog->getTableCatalogEntry(transaction, rdfGraphEntry.getResourceTableID()));
         }
         auto pID =
             expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
-        auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceTableIDs, std::move(pID));
+        auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceEntries, std::move(pID));
         queryRel->setRdfPredicateInfo(std::move(rdfInfo));
-        std::vector<TableCatalogEntry*> resourceTableSchemas;
-        for (auto tableID : resourceTableIDs) {
-            resourceTableSchemas.push_back(catalog->getTableCatalogEntry(transaction, tableID));
-        }
         // Mock existence of pIRI property.
         auto pIRI =
-            createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceTableSchemas);
+            createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceEntries);
         queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
     }
     std::vector<StructField> fields;
@@ -592,6 +584,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
     }
     auto extraInfo = std::make_unique<StructTypeInfo>(fieldNames, fieldTypes);
     queryNode->setExtraTypeInfo(std::move(extraInfo));
+    bindExternalTableEntry(*queryNode);
     return queryNode;
 }
 
@@ -686,7 +679,8 @@ std::vector<TableCatalogEntry*> Binder::getTableEntries(
 
 std::vector<TableCatalogEntry*> Binder::getNodeTableEntries(TableCatalogEntry* entry) const {
     switch (entry->getTableType()) {
-    case TableType::NODE: {
+    case TableType::NODE:
+    case TableType::EXTERNAL_NODE: {
         return {entry};
     }
     default:

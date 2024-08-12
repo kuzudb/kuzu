@@ -30,15 +30,27 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     CypherParser::KU_CreateNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     std::string pkName;
-    if (ctx.kU_CreateNodeConstraint()) {
-        pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
+    if (ctx.kU_PrimaryKey()) {
+        pkName = transformPrimaryKey(*ctx.kU_PrimaryKey());
     }
-    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName,
-        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
-                               common::ConflictAction::ON_CONFLICT_THROW);
+    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName);
+    if (ctx.kU_IfNotExists()) {
+        createTableInfo.onConflict = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
     createTableInfo.propertyDefinitions =
         transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(CypherParser::KU_CreateExternalNodeTableContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
+    auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_NODE, tableName);
+    auto dbName = transformSchemaName(*ctx.oC_SchemaName(1));
+    auto externalTableName = transformSchemaName(*ctx.kU_TableLookup()->oC_SchemaName());
+    auto primaryKeyName = transformPrimaryKey(*ctx.kU_PrimaryKey());
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(
+        dbName, externalTableName, primaryKeyName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
@@ -281,7 +293,7 @@ std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx
     return ctx.getText();
 }
 
-std::string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx) {
+std::string Transformer::transformPrimaryKey(CypherParser::KU_PrimaryKeyContext& ctx) {
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
 }
 

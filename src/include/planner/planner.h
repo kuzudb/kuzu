@@ -26,6 +26,7 @@ class BoundProjectionBody;
 namespace planner {
 
 struct LogicalInsertInfo;
+struct LogicalNodeTableScanInfo;
 
 enum class SubqueryType : uint8_t {
     NONE = 0,
@@ -233,9 +234,14 @@ public:
 
     // Append scan operators
     void appendExpressionsScan(const binder::expression_vector& expressions, LogicalPlan& plan);
+    void appendScanNodeTable(const binder::Expression& node,
+        const binder::expression_vector& properties, LogicalPlan& plan);
     void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> tableIDs, const binder::expression_vector& properties,
-        LogicalPlan& plan);
+        const binder::expression_vector& properties,
+        const std::vector<catalog::TableCatalogEntry*>& entries, LogicalPlan& plan);
+    void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
+        const binder::expression_vector& properties,
+        const std::vector<LogicalNodeTableScanInfo>& tableScanInfos, LogicalPlan& plan);
 
     // Append extend operators
     void appendNonRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
@@ -259,6 +265,9 @@ public:
         std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
 
     // Append Join operators
+    void appendHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+        common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,

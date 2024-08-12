@@ -14,9 +14,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* logicalOperator) {
-    auto catalog = clientContext->getCatalog();
     auto storageManager = clientContext->getStorageManager();
-    auto transaction = clientContext->getTx();
     auto& scan = logicalOperator->constCast<LogicalScanNodeTable>();
     const auto outSchema = scan.getSchema();
     auto nodeIDPos = getDataPos(*scan.getNodeID(), *outSchema);
@@ -25,32 +23,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         outVectorsPos.emplace_back(getDataPos(*expression, *outSchema));
     }
     auto scanInfo = ScanTableInfo(nodeIDPos, outVectorsPos);
-    const auto tableIDs = scan.getTableIDs();
     std::vector<ScanNodeTableInfo> tableInfos;
     std::vector<std::string> tableNames;
-    for (const auto& tableID : tableIDs) {
-        std::vector<column_id_t> columnIDs;
-        for (auto& expression : scan.getProperties()) {
-            auto& property = expression->constCast<PropertyExpression>();
-            if (!property.hasProperty(tableID)) {
-                columnIDs.push_back(UINT32_MAX);
-            } else {
-                auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
-                columnIDs.push_back(tableEntry->getColumnID(property.getPropertyName()));
-            }
-        }
+    std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
+    for (auto& info : scan.getTableScanInfos()) {
+        auto tableID = info.tableID;
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
-        tableInfos.emplace_back(table, std::move(columnIDs),
+        tableInfos.emplace_back(table, std::move(info.columnIDs),
             copyVector(scan.getPropertyPredicates()));
         tableNames.push_back(table->getTableName());
-    }
-    std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
-    for (auto& tableID : tableIDs) {
-        auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
         auto semiMask = std::make_unique<NodeVectorLevelSemiMask>(tableID, table->getNumRows());
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>(std::move(semiMask)));
     }
-
     switch (scan.getScanType()) {
     case LogicalScanNodeTableType::SCAN: {
         auto printInfo = std::make_unique<ScanNodeTablePrintInfo>(tableNames, scan.getProperties());

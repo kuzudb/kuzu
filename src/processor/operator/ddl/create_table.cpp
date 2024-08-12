@@ -81,7 +81,7 @@ void CreateTable::executeDDLInternal(ExecutionContext* context) {
     default:
         break;
     }
-    auto newTableID = catalog->createTableSchema(context->clientContext->getTx(), info);
+    auto newTableID = catalog->createTableEntry(context->clientContext->getTx(), info);
     tableCreated = true;
     auto storageManager = context->clientContext->getStorageManager();
     storageManager->createTable(newTableID, catalog, context->clientContext);

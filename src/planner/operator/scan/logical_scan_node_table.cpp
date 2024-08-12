@@ -5,11 +5,19 @@ namespace planner {
 
 LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
     : LogicalOperator{type_}, scanType{other.scanType}, nodeID{other.nodeID},
-      nodeTableIDs{other.nodeTableIDs}, properties{other.properties},
+       properties{other.properties}, tableScanInfos{other.tableScanInfos},
       propertyPredicates{copyVector(other.propertyPredicates)} {
     if (other.extraInfo != nullptr) {
         setExtraInfo(other.extraInfo->copy());
     }
+}
+
+std::vector<common::table_id_t> LogicalScanNodeTable::getTableIDs() const {
+    std::vector<common::table_id_t> tableIDs;
+    for (auto& info : tableScanInfos) {
+        tableIDs.push_back(info.tableID);
+    }
+    return tableIDs;
 }
 
 void LogicalScanNodeTable::computeFactorizedSchema() {

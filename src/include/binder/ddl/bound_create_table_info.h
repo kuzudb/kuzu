@@ -93,6 +93,32 @@ struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
         common::Deserializer& deserializer);
 };
 
+struct BoundExtraCreateExternalNodeTableInfo : public BoundExtraCreateTableInfo {
+    std::string primaryKeyName;
+    std::string externalDBName;
+    std::string externalTableName;
+    BoundCreateTableInfo physicalInfo;
+
+    BoundExtraCreateExternalNodeTableInfo(std::string primaryKeyName, std::string externalDBName,
+        std::string externalTableName, BoundCreateTableInfo physicalInfo,
+        std::vector<PropertyDefinition> definitions)
+        : BoundExtraCreateTableInfo{std::move(definitions)},
+          primaryKeyName{std::move(primaryKeyName)}, externalDBName{std::move(externalDBName)},
+          externalTableName{std::move(externalTableName)}, physicalInfo{std::move(physicalInfo)} {}
+    BoundExtraCreateExternalNodeTableInfo(const BoundExtraCreateExternalNodeTableInfo& other)
+        : BoundExtraCreateTableInfo{other}, primaryKeyName{other.primaryKeyName},
+          externalDBName{other.externalDBName}, externalTableName{other.externalTableName},
+          physicalInfo{other.physicalInfo.copy()} {}
+
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
+        return std::make_unique<BoundExtraCreateExternalNodeTableInfo>(*this);
+    }
+
+    void serialize(common::Serializer &serializer) const override;
+    static std::unique_ptr<BoundExtraCreateExternalNodeTableInfo> deserialize(
+        common::Deserializer& deserializer);
+};
+
 struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;

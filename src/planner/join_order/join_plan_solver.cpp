@@ -58,8 +58,7 @@ LogicalPlan JoinPlanSolver::solveNodeScanTreeNode(const JoinTreeNode& treeNode) 
     auto& nodeInfo = *extraInfo.nodeInfo;
     auto boundNode = std::static_pointer_cast<NodeExpression>(nodeInfo.nodeOrRel);
     auto plan = LogicalPlan();
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(),
-        nodeInfo.properties, plan);
+    planner->appendScanNodeTable(boundNode->getInternalID(), nodeInfo.properties, boundNode->getEntries(), plan);
     planner->appendFilters(nodeInfo.predicates, plan);
     for (auto& relInfo : extraInfo.relInfos) {
         auto rel = std::static_pointer_cast<RelExpression>(relInfo.nodeOrRel);
@@ -100,8 +99,7 @@ LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode,
     }
     auto direction = getExtendDirection(*rel, *boundNode);
     auto plan = LogicalPlan();
-    planner->appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(),
-        expression_vector{}, plan);
+    planner->appendScanNodeTable(boundNode->getInternalID(), expression_vector{}, boundNode->getEntries(), plan);
     planner->appendExtend(boundNode, nbrNode, rel, direction, relInfo.properties, plan);
     planner->appendFilters(relInfo.predicates, plan);
     return plan;

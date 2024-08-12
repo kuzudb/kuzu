@@ -28,8 +28,10 @@ struct CreateTableInfo {
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
     common::ConflictAction onConflict;
 
-    CreateTableInfo(common::TableType tableType, std::string tableName,
-        common::ConflictAction onConflict)
+    CreateTableInfo(common::TableType tableType, std::string tableName)
+        : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
+          onConflict{common::ConflictAction::ON_CONFLICT_THROW} {}
+    CreateTableInfo(common::TableType tableType, std::string tableName, common::ConflictAction onConflict)
         : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
           onConflict{onConflict} {}
     DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);
@@ -39,6 +41,15 @@ struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {
     std::string pKName;
 
     explicit ExtraCreateNodeTableInfo(std::string pKName) : pKName{std::move(pKName)} {}
+};
+
+struct ExtraCreateExternalNodeTableInfo : public ExtraCreateTableInfo {
+    std::string dbName;
+    std::string tableName;
+    std::string pkName;
+
+    ExtraCreateExternalNodeTableInfo(std::string dbName, std::string tableName, std::string pkName)
+        : dbName{std::move(dbName)}, tableName{std::move(tableName)}, pkName{std::move(pkName)} {}
 };
 
 struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {

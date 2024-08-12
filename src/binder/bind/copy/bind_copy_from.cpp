@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -39,6 +40,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     case TableType::NODE: {
         auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
         return bindCopyNodeFrom(statement, nodeTableEntry);
+    }
+    case TableType::EXTERNAL_NODE: {
+        auto externalEntry = tableEntry->ptrCast<ExternalNodeTableCatalogEntry>();
+        auto physicalEntry = externalEntry->getPhysicalEntry()->ptrCast<NodeTableCatalogEntry>();
+        return bindCopyNodeFrom(statement, physicalEntry);
     }
     case TableType::REL: {
         auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();

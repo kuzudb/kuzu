@@ -37,6 +37,7 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     std::unique_ptr<CatalogEntry> entry;
     switch (type) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY:
     case CatalogEntryType::RDF_GRAPH_ENTRY: {

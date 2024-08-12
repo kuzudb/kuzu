@@ -6,33 +6,40 @@
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
+#include "catalog/catalog_entry/external_table_catalog_entry.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace planner {
 
+static uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
+
 void CardinalityEstimator::initNodeIDDom(const QueryGraph& queryGraph, Transaction*) {
     for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
         auto node = queryGraph.getQueryNode(i).get();
-        addNodeIDDom(*node->getInternalID(), node->getTableIDs());
+        addNodeIDDom(*node);
     }
     for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
         auto rel = queryGraph.getQueryRel(i);
         if (QueryRelTypeUtils::isRecursive(rel->getRelType())) {
-            auto node = rel->getRecursiveInfo()->node.get();
-            addNodeIDDom(*node->getInternalID(), node->getTableIDs());
+            addNodeIDDom(*rel->getRecursiveInfo()->node);
         }
     }
 }
 
-void CardinalityEstimator::addNodeIDDom(const binder::Expression& nodeID,
-    const std::vector<common::table_id_t>& tableIDs) {
+void CardinalityEstimator::addNodeIDDom(const NodeExpression& node) {
+    addNodeIDDom(*node.getInternalID(), node.getEntries());
+}
+
+void CardinalityEstimator::addNodeIDDom(const Expression& nodeID,
+    const std::vector<TableCatalogEntry*>& entries) {
     auto key = nodeID.getUniqueName();
     if (!nodeIDName2dom.contains(key)) {
-        nodeIDName2dom.insert({key, getNumNodes(tableIDs)});
+        nodeIDName2dom.insert({key, getNumNodes(entries)});
     }
 }
 
@@ -106,26 +113,30 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
     }
 }
 
-uint64_t CardinalityEstimator::getNumNodes(const std::vector<table_id_t>& tableIDs) {
+uint64_t CardinalityEstimator::getNumNodes(const std::vector<TableCatalogEntry*>& entries) {
     auto numNodes = 1u;
-    for (auto& tableID : tableIDs) {
+    for (auto entry : entries) {
+        auto tableID = entry->getTableID();
+        if (entry->getType() == CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY) {
+            tableID = entry->constCast<ExternalTableCatalogEntry>().getPhysicalEntry()->getTableID();
+        }
         numNodes += context->getStorageManager()->getTable(tableID)->getNumRows();
     }
     return atLeastOne(numNodes);
 }
 
-uint64_t CardinalityEstimator::getNumRels(const std::vector<table_id_t>& tableIDs) {
+uint64_t CardinalityEstimator::getNumRels(const std::vector<TableCatalogEntry*>& entries) {
     auto numRels = 1u;
-    for (auto tableID : tableIDs) {
-        numRels += context->getStorageManager()->getTable(tableID)->getNumRows();
+    for (auto entry : entries) {
+        numRels += context->getStorageManager()->getTable(entry->getTableID())->getNumRows();
     }
     return atLeastOne(numRels);
 }
 
 double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     const NodeExpression& boundNode) {
-    auto numBoundNodes = (double)getNumNodes(boundNode.getTableIDs());
-    auto numRels = (double)getNumRels(rel.getTableIDs());
+    auto numBoundNodes = (double)getNumNodes(boundNode.getEntries());
+    auto numRels = (double)getNumRels(rel.getEntries());
     auto oneHopExtensionRate = numRels / numBoundNodes;
     switch (rel.getRelType()) {
     case QueryRelType::NON_RECURSIVE: {

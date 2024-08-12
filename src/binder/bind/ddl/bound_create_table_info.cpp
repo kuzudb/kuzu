@@ -86,6 +86,26 @@ std::unique_ptr<BoundExtraCreateNodeTableInfo> BoundExtraCreateNodeTableInfo::de
         std::vector<PropertyDefinition>());
 }
 
+void BoundExtraCreateExternalNodeTableInfo::serialize(Serializer& serializer) const {
+    BoundExtraCreateTableInfo::serialize(serializer);
+    serializer.serializeValue(primaryKeyName);
+    serializer.serializeValue(externalDBName);
+    serializer.serializeValue(externalTableName);
+    physicalInfo.serialize(serializer);
+}
+
+std::unique_ptr<BoundExtraCreateExternalNodeTableInfo> BoundExtraCreateExternalNodeTableInfo::deserialize(Deserializer& deserializer) {
+    std::string primaryKeyName;
+    std::string externalDBName;
+    std::string externalTableName;
+    deserializer.deserializeValue(primaryKeyName);
+    deserializer.deserializeValue(externalDBName);
+    deserializer.deserializeValue(externalTableName);
+    BoundCreateTableInfo physicalInfo = BoundCreateTableInfo::deserialize(deserializer);
+    return std::make_unique<BoundExtraCreateExternalNodeTableInfo>(primaryKeyName, externalDBName,
+        externalTableName, std::move(physicalInfo), std::vector<PropertyDefinition>());
+}
+
 void BoundExtraCreateRelTableInfo::serialize(Serializer& serializer) const {
     BoundExtraCreateTableInfo::serialize(serializer);
     serializer.serializeValue(srcMultiplicity);

@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/external_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
 using namespace kuzu::binder;
@@ -76,6 +77,12 @@ column_id_t TableCatalogEntry::getColumnID(const std::string& propertyName) cons
     return propertyCollection.getColumnID(propertyName);
 }
 
+void TableCatalogEntry::addProperties(const std::vector<binder::PropertyDefinition>& propertyDefinitions) {
+    for (auto& definition : propertyDefinitions) {
+        propertyCollection.add(definition);
+    }
+}
+
 void TableCatalogEntry::addProperty(const PropertyDefinition& propertyDefinition) {
     propertyCollection.add(propertyDefinition);
 }
@@ -107,18 +114,21 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
     auto propertyCollection = PropertyDefinitionCollection::deserialize(deserializer);
     std::unique_ptr<TableCatalogEntry> result;
     switch (type) {
-    case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
         result = NodeTableCatalogEntry::deserialize(deserializer);
-        break;
-    case CatalogEntryType::REL_TABLE_ENTRY:
+    } break;
+    case CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY: {
+        result = ExternalTableCatalogEntry::deserialize(deserializer, type);
+    } break ;
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         result = RelTableCatalogEntry::deserialize(deserializer);
-        break;
-    case CatalogEntryType::REL_GROUP_ENTRY:
+    } break;
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         result = RelGroupCatalogEntry::deserialize(deserializer);
-        break;
-    case CatalogEntryType::RDF_GRAPH_ENTRY:
+    } break;
+    case CatalogEntryType::RDF_GRAPH_ENTRY: {
         result = RDFGraphCatalogEntry::deserialize(deserializer);
-        break;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -129,7 +139,7 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
 
 void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
     CatalogEntry::copyFrom(other);
-    auto& otherTable = ku_dynamic_cast<const CatalogEntry&, const TableCatalogEntry&>(other);
+    auto& otherTable = other.constCast<TableCatalogEntry>();
     set = otherTable.set;
     comment = otherTable.comment;
     propertyCollection = otherTable.propertyCollection.copy();

@@ -58,6 +58,7 @@ public:
     const binder::PropertyDefinition& getProperty(const std::string& propertyName) const;
     const binder::PropertyDefinition& getProperty(common::idx_t idx) const;
     virtual common::column_id_t getColumnID(const std::string& propertyName) const;
+    void addProperties(const std::vector<binder::PropertyDefinition>& propertyDefinitions);
     void addProperty(const binder::PropertyDefinition& propertyDefinition);
     void dropProperty(const std::string& propertyName);
     void renameProperty(const std::string& propertyName, const std::string& newName);

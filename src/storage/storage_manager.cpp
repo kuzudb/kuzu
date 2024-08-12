@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
@@ -172,6 +173,11 @@ void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
     case TableType::NODE: {
         createNodeTable(tableID, tableEntry->ptrCast<NodeTableCatalogEntry>(), context);
     } break;
+    case TableType::EXTERNAL_NODE: {
+        auto externalEntry = tableEntry->ptrCast<ExternalNodeTableCatalogEntry>();
+        auto nodeEntry = externalEntry->getPhysicalEntry()->ptrCast<NodeTableCatalogEntry>();
+        createNodeTable(nodeEntry->getTableID(), nodeEntry, context);
+    } break ;
     case TableType::REL: {
         createRelTable(tableID, tableEntry->ptrCast<RelTableCatalogEntry>(), catalog,
             context->getTx());
@@ -189,12 +195,10 @@ void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
     }
 }
 
-PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
+Table* StorageManager::getTable(table_id_t tableID) {
     std::lock_guard lck{mtx};
     KU_ASSERT(tables.contains(tableID));
-    KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
-    const auto table = ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
-    return table->getPKIndex();
+    return tables.at(tableID).get();
 }
 
 WAL& StorageManager::getWAL() const {

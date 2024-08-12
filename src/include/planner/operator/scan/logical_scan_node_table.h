@@ -47,15 +47,23 @@ struct PrimaryKeyScanInfo final : ExtraScanNodeTableInfo {
     }
 };
 
+struct LogicalNodeTableScanInfo {
+    common::table_id_t tableID;
+    std::vector<common::column_id_t> columnIDs;
+
+    LogicalNodeTableScanInfo(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
+        : tableID{tableID}, columnIDs{std::move(columnIDs)} {}
+};
+
 class LogicalScanNodeTable final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::SCAN_NODE_TABLE;
     static constexpr LogicalScanNodeTableType defaultScanType = LogicalScanNodeTableType::SCAN;
 
 public:
     LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
+        binder::expression_vector properties, std::vector<LogicalNodeTableScanInfo> tableScanInfos)
         : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
-          nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
+          properties{std::move(properties)}, tableScanInfos{std::move(tableScanInfos)} {}
     LogicalScanNodeTable(const LogicalScanNodeTable& other);
 
     void computeFactorizedSchema() override;
@@ -69,7 +77,11 @@ public:
     void setScanType(LogicalScanNodeTableType scanType_) { scanType = scanType_; }
 
     std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
-    std::vector<common::table_id_t> getTableIDs() const { return nodeTableIDs; }
+
+    const std::vector<LogicalNodeTableScanInfo>& getTableScanInfos() const {
+        return tableScanInfos;
+    }
+    std::vector<common::table_id_t> getTableIDs() const;
 
     binder::expression_vector getProperties() const { return properties; }
     void setPropertyPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
@@ -88,8 +100,8 @@ public:
 private:
     LogicalScanNodeTableType scanType;
     std::shared_ptr<binder::Expression> nodeID;
-    std::vector<common::table_id_t> nodeTableIDs;
     binder::expression_vector properties;
+    std::vector<LogicalNodeTableScanInfo> tableScanInfos;
     std::vector<storage::ColumnPredicateSet> propertyPredicates;
     std::unique_ptr<ExtraScanNodeTableInfo> extraInfo;
 };

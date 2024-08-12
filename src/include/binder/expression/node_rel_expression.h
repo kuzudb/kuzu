@@ -38,12 +38,21 @@ public:
     void addEntries(const std::vector<catalog::TableCatalogEntry*> entries_);
     catalog::TableCatalogEntry* getSingleEntry() const;
 
+    void setExternalEntry(catalog::TableCatalogEntry* entry) {
+        externalEntry = entry;
+    }
+    bool hasExternalEntry() const {
+        return externalEntry != nullptr;
+    }
+    catalog::TableCatalogEntry* getExternalEntry() const {
+        return externalEntry;
+    }
+
     void addPropertyExpression(const std::string& propertyName,
         std::unique_ptr<Expression> property);
     bool hasPropertyExpression(const std::string& propertyName) const {
         return propertyNameToIdx.contains(propertyName);
     }
-    // Deep copy expression.
     std::shared_ptr<Expression> getPropertyExpression(const std::string& propertyName) const;
     const std::vector<std::unique_ptr<Expression>>& getPropertyExprsRef() const {
         return propertyExprs;
@@ -77,6 +86,8 @@ protected:
     std::string variableName;
     // A pattern may bind to multiple tables.
     std::vector<catalog::TableCatalogEntry*> entries;
+    // A pattern may refers to an external extry.
+    catalog::TableCatalogEntry* externalEntry = nullptr;
     // Index over propertyExprs on property name.
     common::case_insensitive_map_t<common::idx_t> propertyNameToIdx;
     // Property expressions with order (aligned with catalog).
