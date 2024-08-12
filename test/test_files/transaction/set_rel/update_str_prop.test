@@ -38,7 +38,7 @@ kitchener
 -CASE UpdateStrPropCommitRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -93,7 +93,7 @@ kitchener
 -CASE UpdateStrPropRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok

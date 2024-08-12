@@ -201,7 +201,8 @@ kU_Transaction
     : BEGIN SP TRANSACTION
         | BEGIN SP TRANSACTION SP READ SP ONLY
         | COMMIT
-        | ROLLBACK;
+        | ROLLBACK
+        | CHECKPOINT;
 
 kU_Extension
     : kU_LoadExtension
@@ -674,6 +675,7 @@ kU_NonReservedKeywords
         | BEGIN
         | BY
         | CALL
+        | CHECKPOINT
         | COMMENT
         | COMMIT
         | CONTAINS

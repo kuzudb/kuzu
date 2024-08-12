@@ -22,6 +22,9 @@ std::unique_ptr<Statement> Transformer::transformTransaction(
     if (ctx.ROLLBACK()) {
         return std::make_unique<TransactionStatement>(TransactionAction::ROLLBACK);
     }
+    if (ctx.CHECKPOINT()) {
+        return std::make_unique<TransactionStatement>(TransactionAction::CHECKPOINT);
+    }
     KU_UNREACHABLE;
 }
 

@@ -7,7 +7,7 @@ namespace planner {
 
 class LogicalDummyScan : public LogicalOperator {
 public:
-    LogicalDummyScan(std::unique_ptr<OPPrintInfo> printInfo)
+    explicit LogicalDummyScan(std::unique_ptr<OPPrintInfo> printInfo)
         : LogicalOperator{LogicalOperatorType::DUMMY_SCAN, std::move(printInfo)} {}
 
     void computeFactorizedSchema() final;

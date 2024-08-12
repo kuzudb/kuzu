@@ -100,7 +100,8 @@ common::LogicalType PandasAnalyzer::innerAnalyze(py::object column, bool& canCon
     }
     auto row = column.attr("__getitem__");
     common::LogicalType itemType = getItemType(findFirstNonNull(row, numRows), canConvert);
-    for (auto i = 1u; i < numRows; i += 1) {
+    auto sampleSize = numRows > 1000u ? 1000u : numRows;
+    for (auto i = 1u; i < sampleSize; i += 1) {
         auto obj = row(i);
         auto curItemType = getItemType(obj, canConvert);
         if (!canConvert || !upgradeType(itemType, curItemType)) {

@@ -403,11 +403,8 @@ uint64_t NodeTable::getEstimatedMemoryUsage() const {
 
 bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
-    auto* nodeGroup = getNodeGroup(nodeGroupIdx);
-    if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
-        return false;
-    }
-    return nodeGroup->isInserted(transaction, offsetInGroup);
+    auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
+    return nodeGroup->isVisible(transaction, offsetInGroup);
 }
 
 bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector, uint64_t vectorPos,

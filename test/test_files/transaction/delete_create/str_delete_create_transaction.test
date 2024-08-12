@@ -50,7 +50,7 @@
 -CASE IndexScanAfterDeletionCommitRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
@@ -147,7 +147,7 @@
 -CASE IndexScanAfterDeletionRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -LOG Index Scan After Deletion Rollback Recovery
 -CREATE_CONNECTION conn_read
@@ -223,7 +223,7 @@
 -CASE DeleteAllNodesCommitRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write
@@ -276,7 +276,7 @@
 -CASE DeleteAllNodesRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -CREATE_CONNECTION conn_read
 -CREATE_CONNECTION conn_write

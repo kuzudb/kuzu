@@ -38,7 +38,7 @@ class OpProfileTree {
 public:
     OpProfileTree(processor::PhysicalOperator* opProfileBoxes, common::Profiler& profiler);
 
-    OpProfileTree(std::shared_ptr<planner::LogicalOperator> opProfileBoxes);
+    explicit OpProfileTree(std::shared_ptr<planner::LogicalOperator> opProfileBoxes);
 
     std::ostringstream printPlanToOstream() const;
 
@@ -94,6 +94,7 @@ private:
     uint32_t opProfileBoxWidth;
     static constexpr uint32_t INDENT_WIDTH = 3u;
     static constexpr uint32_t BOX_FRAME_WIDTH = 1u;
+    static constexpr uint32_t MIN_LOGICAL_BOX_WIDTH = 22u;
 };
 
 class PlanPrinter {
@@ -121,7 +122,7 @@ private:
 
 class LogicalPlanPrinter {
 public:
-    LogicalPlanPrinter(planner::LogicalPlan* logicalPlan) : logicalPlan{logicalPlan} {};
+    explicit LogicalPlanPrinter(planner::LogicalPlan* logicalPlan) : logicalPlan{logicalPlan} {};
 
     nlohmann::json printPlanToJson();
 

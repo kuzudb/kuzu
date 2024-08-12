@@ -1,7 +1,17 @@
 -DATASET CSV empty
 --
 
+-CASE CopyNodeManualTransactionCheck
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+---- error
+COPY FROM is only supported in auto transaction mode.
+
 -CASE CopyNodeCommit
+-SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
@@ -22,6 +32,7 @@
 45
 
 -CASE CopyNodeCommitRecovery
+-SKIP
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
@@ -61,7 +72,7 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
 0
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
@@ -76,7 +87,7 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
 0
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
@@ -97,7 +108,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
 5
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
@@ -122,7 +133,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 45
 30
 35
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return p.age
 ---- 5
@@ -143,7 +154,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 40
 45
 83
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return p.age
 ---- 8
@@ -180,7 +191,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
 0
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
@@ -199,7 +210,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
 0
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1

@@ -26,13 +26,6 @@ static void toJsonExecFunc(const std::vector<std::shared_ptr<ValueVector>>& para
     }
 }
 
-function_set ToJsonFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRING, toJsonExecFunc));
-    return result;
-}
-
 static void jsonMergeFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();

@@ -34,7 +34,7 @@
 -STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(e);
 ---- 1
 0
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(e);
 ---- 1

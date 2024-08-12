@@ -57,7 +57,7 @@
 ---- ok
 -STATEMENT CREATE (a:test {id:10})
 ---- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (a:test) RETURN a.id
 ---- 11
@@ -90,7 +90,7 @@
 ---- ok
 -STATEMENT CREATE (a:test {id:5})
 ---- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (a:test) RETURN a.id
 ---- 6
@@ -110,7 +110,7 @@
 ---- ok
 -STATEMENT CREATE (a:test {id:10})
 ---- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT MATCH (a:test) RETURN a.id
 ---- 11

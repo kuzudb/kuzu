@@ -2,6 +2,7 @@
 
 #include "common/exception/transaction_manager.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -20,20 +21,23 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     hasExecuted = true;
-    auto transactionContext = context->clientContext->getTransactionContext();
-    validateActiveTransaction(*transactionContext);
+    auto clientContext = context->clientContext;
+    validateActiveTransaction(*clientContext->getTransactionContext());
     switch (transactionAction) {
     case TransactionAction::BEGIN_READ: {
-        transactionContext->beginReadTransaction();
+        clientContext->getTransactionContext()->beginReadTransaction();
     } break;
     case TransactionAction::BEGIN_WRITE: {
-        transactionContext->beginWriteTransaction();
+        clientContext->getTransactionContext()->beginWriteTransaction();
     } break;
     case TransactionAction::COMMIT: {
-        transactionContext->commit();
+        clientContext->getTransactionContext()->commit();
     } break;
     case TransactionAction::ROLLBACK: {
-        transactionContext->rollback();
+        clientContext->getTransactionContext()->rollback();
+    } break;
+    case TransactionAction::CHECKPOINT: {
+        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -53,14 +57,17 @@ void Transaction::validateActiveTransaction(const TransactionContext& context) c
                 "connections.");
         }
     } break;
-    case TransactionAction::COMMIT: {
-        if (!context.hasActiveTransaction()) {
-            throw TransactionManagerException("No active transaction for COMMIT.");
-        }
-    } break;
+    case TransactionAction::COMMIT:
     case TransactionAction::ROLLBACK: {
         if (!context.hasActiveTransaction()) {
-            throw TransactionManagerException("No active transaction for ROLLBACK.");
+            throw TransactionManagerException(stringFormat("No active transaction for {}.",
+                TransactionActionUtils::toString(transactionAction)));
+        }
+    } break;
+    case TransactionAction::CHECKPOINT: {
+        if (context.hasActiveTransaction()) {
+            throw TransactionManagerException(stringFormat("Found active transaction for {}.",
+                TransactionActionUtils::toString(transactionAction)));
         }
     } break;
     default: {

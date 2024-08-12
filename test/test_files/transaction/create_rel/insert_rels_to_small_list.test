@@ -33,7 +33,7 @@
 -CASE insertRelsToSmallListCommitRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -70,7 +70,7 @@
 -CASE insertRelsToSmallListRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
--STATEMENT CALL checkpoint() RETURN *;
+-STATEMENT CHECKPOINT;
 ---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok

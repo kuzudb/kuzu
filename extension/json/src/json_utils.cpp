@@ -581,7 +581,7 @@ void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t p
 }
 
 std::string jsonToString(const JsonWrapper& wrapper) {
-    auto tmp = yyjson_write(wrapper.ptr, 0, nullptr);
+    auto tmp = yyjson_write(wrapper.ptr, 0 /* flg */, nullptr /* len */);
     std::string str(tmp ? tmp : "");
     free(tmp); // call free to avoid alloc-dealloc mismatch
     return str;
@@ -603,24 +603,27 @@ JsonWrapper stringToJson(const std::string& str) {
 }
 
 JsonWrapper stringToJsonNoError(const std::string& str) {
-    return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0));
+    return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0 /* flg */));
 }
 
-static JsonWrapper fileToJsonArrayFormatted(char* buffer, uint64_t fileSize) {
-    auto json = yyjson_read(buffer, fileSize, 0);
+static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
+    auto json = yyjson_read_opts(reinterpret_cast<char*>(buffer.get()), fileSize,
+        YYJSON_READ_INSITU, nullptr /* alc */, nullptr /* err */);
     if (json == nullptr) {
         throw RuntimeException("Invalid json input");
     }
-    return JsonWrapper(json);
+    return JsonWrapper(json, buffer);
 }
 
-static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSize) {
+static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffer,
+    uint64_t fileSize) {
     JsonMutWrapper result;
     auto root = yyjson_mut_arr(result.ptr);
     yyjson_mut_doc_set_root(result.ptr, root);
     auto filePos = 0u;
     while (true) {
-        auto curDoc = yyjson_read(buffer + filePos, fileSize - filePos, YYJSON_READ_STOP_WHEN_DONE);
+        auto curDoc = yyjson_read_opts(buffer.get() + filePos, fileSize - filePos,
+            YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, nullptr);
         if (curDoc == nullptr) {
             break;
         }
@@ -628,7 +631,7 @@ static JsonWrapper fileToJsonUnstructuredFormatted(char* buffer, uint64_t fileSi
         yyjson_mut_arr_append(root, yyjson_val_mut_copy(result.ptr, yyjson_doc_get_root(curDoc)));
         yyjson_doc_free(curDoc);
     }
-    return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
+    return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr), buffer);
 }
 
 JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
@@ -636,16 +639,15 @@ JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
 
     auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
     auto fileSize = file->getFileSize();
-    std::unique_ptr<char[]> buffer(new char[fileSize + 4]());
+    auto buffer = std::make_shared<char[]>(fileSize + 9);
+    memset(buffer.get() + fileSize, 0 /* valueToSet */, 9 /* len */);
     file->readFile(buffer.get(), fileSize);
 
     switch (format) {
     case JsonScanFormat::ARRAY:
-        return fileToJsonArrayFormatted(buffer.get(), fileSize);
-        break;
+        return fileToJsonArrayFormatted(buffer, fileSize);
     case JsonScanFormat::UNSTRUCTURED:
-        return fileToJsonUnstructuredFormatted(buffer.get(), fileSize);
-        break;
+        return fileToJsonUnstructuredFormatted(buffer, fileSize);
     default:
         KU_UNREACHABLE;
     }
@@ -655,7 +657,7 @@ JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B) {
     JsonMutWrapper ret;
     auto root = yyjson_merge_patch(ret.ptr, yyjson_doc_get_root(A.ptr), yyjson_doc_get_root(B.ptr));
     yyjson_mut_doc_set_root(ret.ptr, root);
-    return JsonWrapper(yyjson_mut_doc_imut_copy(ret.ptr, nullptr));
+    return JsonWrapper(yyjson_mut_doc_imut_copy(ret.ptr, nullptr /* alc */), nullptr /* buffer */);
 }
 
 std::string jsonExtractToString(const JsonWrapper& wrapper, uint64_t pos) {
@@ -665,18 +667,27 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, uint64_t pos) {
 std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
     std::vector<std::string> actualPath;
     for (auto i = 0u, prvDelim = 0u; i <= path.size(); i++) {
-        if (i == path.size() || path[i] == '/') {
+        if (i == path.size() || path[i] == '/' || path[i] == '.') {
             actualPath.push_back(path.substr(prvDelim, i - prvDelim));
             prvDelim = i + 1;
         }
     }
     yyjson_val* ptr = yyjson_doc_get_root(wrapper.ptr);
     for (const auto& item : actualPath) {
+        if (&item == &actualPath.front() && item == "$") {
+            continue;
+        }
         if (yyjson_get_type(ptr) == YYJSON_TYPE_OBJ) {
             ptr = yyjson_obj_get(ptr, item.c_str());
         } else {
-            auto idx = std::stoi(item);
+            int32_t idx = -1;
+            if (!function::trySimpleIntegerCast(item.c_str(), item.length(), idx)) {
+                return "";
+            }
             ptr = yyjson_arr_get(ptr, idx);
+        }
+        if (ptr == nullptr) {
+            return "";
         }
     }
     return jsonToString(ptr);

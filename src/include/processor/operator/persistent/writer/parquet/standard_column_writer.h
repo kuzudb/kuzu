@@ -73,7 +73,7 @@ public:
         : BasicColumnWriter(writer, schemaIdx, std::move(schemaPath), maxRepeat, maxDefine,
               canHaveNulls) {}
 
-    inline std::unique_ptr<ColumnWriterStatistics> initializeStatsState() override {
+    std::unique_ptr<ColumnWriterStatistics> initializeStatsState() override {
         return OP::template initializeStats<SRC, TGT>();
     }
 
@@ -89,13 +89,13 @@ public:
         }
     }
 
-    inline void writeVector(common::Serializer& bufferedSerializer, ColumnWriterStatistics* stats,
+    void writeVector(common::Serializer& bufferedSerializer, ColumnWriterStatistics* stats,
         ColumnWriterPageState* /*pageState*/, common::ValueVector* vector, uint64_t chunkStart,
         uint64_t chunkEnd) override {
         templatedWritePlain(vector, stats, chunkStart, chunkEnd, bufferedSerializer);
     }
 
-    inline uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
+    uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
         BasicColumnWriterState& /*state*/) override {
         return sizeof(TGT);
     }

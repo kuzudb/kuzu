@@ -8,8 +8,9 @@ No active transaction for COMMIT.
 -CASE CommitAfterCheckPoint
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT CALL CHECKPOINT() RETURN *;
----- ok
+-STATEMENT CHECKPOINT;
+---- error
+Found active transaction for CHECKPOINT.
 -STATEMENT COMMIT;
 ---- error
 No active transaction for COMMIT.
@@ -56,7 +57,7 @@ Alice
 ---- ok
 -STATEMENT [conn2] COMMIT
 ---- ok
--STATEMENT [conn2] CALL CHECKPOINT() RETURN *;
+-STATEMENT [conn2] CHECKPOINT;
 ---- error
 Timeout waiting for active transactions to leave the system before checkpointing. If you have an open transaction, please close it and try again.
 -STATEMENT [conn1] MATCH (a:person) WHERE a.ID=0 RETURN a.age;

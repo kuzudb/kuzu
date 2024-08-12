@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/cast.h"
+#include "planner/operator/operator_print_info.h"
 #include "planner/operator/schema.h"
 
 namespace kuzu {
@@ -65,15 +66,6 @@ struct LogicalOperatorUtils {
     static std::string logicalOperatorTypeToString(LogicalOperatorType type);
     static bool isUpdate(LogicalOperatorType type);
     static bool isAccHashJoin(const LogicalOperator& op);
-};
-
-struct OPPrintInfo {
-    OPPrintInfo() {}
-    virtual ~OPPrintInfo() = default;
-
-    virtual std::string toString() const { return std::string(); }
-
-    virtual std::unique_ptr<OPPrintInfo> copy() const { return std::make_unique<OPPrintInfo>(); }
 };
 
 class LogicalOperator {

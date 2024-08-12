@@ -186,7 +186,8 @@ static void trimRightWhitespace(const char* input, const char*& end) {
 
 static void trimQuotes(const char*& keyStart, const char*& keyEnd) {
     // Skip quotations on struct keys.
-    if (keyStart[0] == '\'' && (keyEnd - 1)[0] == '\'') {
+    if ((keyStart[0] == '\'' && (keyEnd - 1)[0] == '\'') ||
+        (keyStart[0] == '\"' && (keyEnd - 1)[0] == '\"')) {
         keyStart++;
         keyEnd--;
     }
@@ -779,16 +780,22 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
     auto& type = vector->dataType;
     union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
 
-    for (auto i = 0u; i < UnionType::getNumFields(type); i++) {
+    auto i = 0u;
+    for (; i < UnionType::getNumFields(type); i++) {
         auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
         auto fieldVector = StructVector::getFieldVector(vector, internalFieldIdx).get();
         if (tryCastUnionField(fieldVector, rowToAdd, input, len)) {
             fieldVector->setNull(rowToAdd, false /* isNull */);
             selectedFieldIdx = i;
+            i++;
             break;
         } else {
             fieldVector->setNull(rowToAdd, true /* isNull */);
         }
+    }
+    for (; i < UnionType::getNumFields(type); i++) {
+        auto fieldVector = UnionVector::getValVector(vector, i);
+        fieldVector->setNull(rowToAdd, true /* isNull */);
     }
 
     if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
