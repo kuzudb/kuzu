@@ -2,26 +2,28 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "logical_ddl.h"
-#include "planner/operator/ddl/base_alter.h"
+#include "planner/operator/ddl/logical_ddl.h"
 
 namespace kuzu {
 namespace planner {
 
 struct LogicalAlterPrintInfo final : OPPrintInfo {
-    std::unique_ptr<BaseAlterPrintInfo> base;
+    common::AlterType alterType;
+    std::string tableName;
+    binder::BoundExtraAlterInfo* info;
 
-    LogicalAlterPrintInfo(std::unique_ptr<BaseAlterPrintInfo> base)
-        : base(std::move(base)) {}
+    LogicalAlterPrintInfo(common::AlterType alterType, std::string tableName,
+        binder::BoundExtraAlterInfo* info)
+        : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{info} {}
 
-    std::string toString() const override {return base->toString();};
+    std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<LogicalAlterPrintInfo>(new LogicalAlterPrintInfo(*this));
     }
 
-private:
     LogicalAlterPrintInfo(const LogicalAlterPrintInfo& other)
-        : OPPrintInfo{other}, base(std::make_unique<BaseAlterPrintInfo>(*other.base)){}
+        : alterType{other.alterType}, tableName{other.tableName}, info{other.info} {}
 };
 
 class LogicalAlter : public LogicalDDL {

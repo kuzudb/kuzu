@@ -2,18 +2,18 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "processor/operator/ddl/ddl.h"
-#include "planner/operator/ddl/base_create_table.h"
+#include "planner/operator/ddl/logical_create_table.h"
 
 namespace kuzu {
 namespace processor {
 
 struct CreateTablePrintInfo final : OPPrintInfo {
-    std::unique_ptr<BaseCreateTablePrintInfo> base;
+    planner::LogicalCreateTablePrintInfo info;
 
-    CreateTablePrintInfo(std::unique_ptr<BaseCreateTablePrintInfo> base)
-        : base(std::move(base)) {}
+    CreateTablePrintInfo(planner::LogicalCreateTablePrintInfo info)
+        : info(std::move(info)) {}
 
-    std::string toString() const override {return base->toString();};
+    std::string toString() const override {return info.toString();};
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<CreateTablePrintInfo>(new CreateTablePrintInfo(*this));
@@ -21,7 +21,7 @@ struct CreateTablePrintInfo final : OPPrintInfo {
 
 private:
     CreateTablePrintInfo(const CreateTablePrintInfo& other)
-        : OPPrintInfo{other}, base(std::make_unique<BaseCreateTablePrintInfo>(*other.base)) {}
+        : OPPrintInfo{other}, info(other.info) {}
 };
 
 class CreateTable : public DDL {

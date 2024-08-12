@@ -1,20 +1,20 @@
 #pragma once
 
 #include "binder/ddl/bound_alter_info.h"
+#include "processor/operator/ddl/ddl.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "processor/operator/ddl/ddl.h"
 
 namespace kuzu {
 namespace processor {
 
 struct AlterPrintInfo final : OPPrintInfo {
-    std::unique_ptr<BaseAlterPrintInfo> base;
+    planner::LogicalAlterPrintInfo info;
 
-    AlterPrintInfo(std::unique_ptr<BaseAlterPrintInfo> base)
-        : base(std::move(base)) {}
+    AlterPrintInfo(planner::LogicalAlterPrintInfo info)
+        : info(std::move(info)) {}
     
-    std::string toString() const override {return base->toString();};
+    std::string toString() const override {return info.toString();};
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<AlterPrintInfo>(new AlterPrintInfo(*this));
@@ -22,7 +22,7 @@ struct AlterPrintInfo final : OPPrintInfo {
 
 private:
     AlterPrintInfo(const AlterPrintInfo& other)
-        : OPPrintInfo{other}, base(std::make_unique<BaseAlterPrintInfo>(*other.base)){}
+        : OPPrintInfo{other}, info(other.info) {}
 };
 
 class Alter : public DDL {

@@ -2,26 +2,29 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "processor/operator/ddl/ddl.h"
-#include "planner/operator/ddl/base_create_table.h"
+#include "planner/operator/ddl/logical_ddl.h"
 
 namespace kuzu {
 namespace planner {
 
 struct LogicalCreateTablePrintInfo final : OPPrintInfo{
-    std::unique_ptr<BaseCreateTablePrintInfo> base;
+    common::TableType tableType;
+    std::string tableName;
+    binder::BoundExtraCreateCatalogEntryInfo* info;
 
-    LogicalCreateTablePrintInfo(std::unique_ptr<BaseCreateTablePrintInfo> base)
-        : base(std::move(base)) {}
+    LogicalCreateTablePrintInfo(common::TableType tableType, std::string tableName,
+        binder::BoundExtraCreateCatalogEntryInfo* info)
+        : tableType{std::move(tableType)}, tableName{std::move(tableName)}, info{info} {}
 
-    std::string toString() const override {return base->toString();};
+    std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<LogicalCreateTablePrintInfo>(new LogicalCreateTablePrintInfo(*this));
     }
-    
-private:
+
     LogicalCreateTablePrintInfo(const LogicalCreateTablePrintInfo& other)
-        : OPPrintInfo{other}, base(std::make_unique<BaseCreateTablePrintInfo>(*other.base)) {}
+        : tableType{other.tableType}, tableName{other.tableName}, info{other.info} {}
+
 };
 
 class LogicalCreateTable : public LogicalDDL {
