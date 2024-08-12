@@ -8,15 +8,12 @@ namespace kuzu {
 namespace planner {
 
 struct LogicalAlterPrintInfo final : OPPrintInfo {
-    common::AlterType alterType;
-    std::string tableName;
-    binder::BoundExtraAlterInfo* info;
+    std::unique_ptr<BaseAlterPrintInfo> base;
 
-    LogicalAlterPrintInfo(common::AlterType alterType, std::string tableName,
-        binder::BoundExtraAlterInfo* info)
-        : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{info} {}
+    LogicalAlterPrintInfo(std::unique_ptr<BaseAlterPrintInfo> base)
+        : base(std::move(base)) {}
 
-    std::string toString() const override;
+    std::string toString() const override {return base->toString();};
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<LogicalAlterPrintInfo>(new LogicalAlterPrintInfo(*this));
@@ -24,6 +21,7 @@ struct LogicalAlterPrintInfo final : OPPrintInfo {
 
     LogicalAlterPrintInfo(const LogicalAlterPrintInfo& other)
         : alterType{other.alterType}, tableName{other.tableName}, info{other.info} {}
+
 };
 
 class LogicalAlter : public LogicalDDL {

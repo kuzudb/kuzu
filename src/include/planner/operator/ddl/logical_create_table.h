@@ -4,6 +4,7 @@
 #include "processor/operator/ddl/ddl.h"
 #include "planner/operator/ddl/logical_ddl.h"
 
+
 namespace kuzu {
 namespace planner {
 
@@ -12,16 +13,15 @@ struct LogicalCreateTablePrintInfo final : OPPrintInfo{
     std::string tableName;
     binder::BoundExtraCreateCatalogEntryInfo* info;
 
-    LogicalCreateTablePrintInfo(common::TableType tableType, std::string tableName,
-        binder::BoundExtraCreateCatalogEntryInfo* info)
-        : tableType{std::move(tableType)}, tableName{std::move(tableName)}, info{info} {}
+    LogicalCreateTablePrintInfo(std::unique_ptr<BaseCreateTablePrintInfo> base)
+        : base(std::move(base)) {}
 
-    std::string toString() const override;
+    std::string toString() const override {return base->toString();};
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<LogicalCreateTablePrintInfo>(new LogicalCreateTablePrintInfo(*this));
     }
-
+  
     LogicalCreateTablePrintInfo(const LogicalCreateTablePrintInfo& other)
         : tableType{other.tableType}, tableName{other.tableName}, info{other.info} {}
 
