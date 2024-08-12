@@ -11,7 +11,7 @@ ProgressBar::ProgressBar() {
     numPipelinesFinished = 0;
     queryTimer = std::make_unique<TimeMetric>(true);
     showProgressAfter = 1000;
-    trackProgress = false;
+    trackProgress = true;
 }
 
 std::shared_ptr<ProgressBarDisplay> ProgressBar::DefaultProgressBarDisplay() {
