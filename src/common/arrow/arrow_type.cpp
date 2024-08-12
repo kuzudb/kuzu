@@ -60,7 +60,7 @@ LogicalType ArrowConverter::fromArrowSchema(const ArrowSchema* schema) {
         }
 
     case 'd': {
-        auto split = StringUtils::splitComma(std::string(arrowType + 2));
+        auto split = StringUtils::splitFirstComma(std::string(arrowType + 2));
         if (split.size() > 2 && split[2] != "128") {
             throw NotImplementedException("Decimal bitwidths other than 128 are not implemented");
         }

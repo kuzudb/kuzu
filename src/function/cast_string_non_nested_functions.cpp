@@ -113,7 +113,7 @@ static bool isInterval(const std::string& str) {
 }
 
 static LogicalType inferMapOrStruct(const std::string& str) {
-    auto split = StringUtils::split(str.substr(1, str.size() - 2), ",", false);
+    auto split = StringUtils::splitComma(str.substr(1, str.size() - 2));
     bool isMap = true, isStruct = true; // Default match to map if both are true
     for (auto& ele : split) {
         if (isMap && ele.find("=") == std::string::npos) {
@@ -146,6 +146,12 @@ static LogicalType inferMapOrStruct(const std::string& str) {
                 return LogicalType::STRING();
             }
             auto fieldKey = StringUtils::ltrim(StringUtils::rtrim(splitEle[0]));
+            if (fieldKey.front() == '\'') {
+                fieldKey.erase(fieldKey.begin());
+            }
+            if (fieldKey.back() == '\'') {
+                fieldKey.pop_back();
+            }
             auto fieldType = inferMinimalTypeFromString(splitEle[1]);
             fields.emplace_back(fieldKey, std::move(fieldType));
         }
@@ -167,10 +173,11 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     if (cpy == "TRUE" || cpy == "FALSE") {
         return LogicalType::BOOL();
     }
-    // the reason we're not going to try to match to a minimal width integer
+    // The reason we're not going to try to match to a minimal width integer
     // is because if we're infering the type of integer from a sequence of
     // increasing integers, we're bound to underestimate the width
-    // if we only sniff the first few elements
+    // if we only sniff the first few elements; a rather common occurrence.
+
     // integer
     if (RE2::FullMatch(cpy, "(-?0)|(-?[1-9]\\d*)")) {
         if (cpy.size() >= 1 + NumericLimits<int128_t>::digits()) {
@@ -202,7 +209,7 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     if (isDate(cpy)) {
         return LogicalType::DATE();
     }
-    // it might just be quicker to try cast to timestamp
+    // It might just be quicker to try cast to timestamp.
     timestamp_t tmp;
     if (common::Timestamp::tryConvertTimestamp(cpy.c_str(), cpy.length(), tmp)) {
         return LogicalType::TIMESTAMP();
@@ -218,8 +225,9 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
         return LogicalType::INTERVAL();
     }
 
+    // array_begin and array_end are constants
     if (cpy.front() == array_begin && cpy.back() == array_end) {
-        auto split = StringUtils::split(cpy.substr(1, cpy.size() - 2), ",", false);
+        auto split = StringUtils::splitComma(cpy.substr(1, cpy.size() - 2));
         auto childType = LogicalType::ANY();
         for (auto& ele : split) {
             childType = LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));

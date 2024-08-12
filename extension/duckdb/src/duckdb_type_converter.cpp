@@ -70,7 +70,7 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
         auto leftBracketPos = typeStr.find('(');
         auto rightBracketPos = typeStr.find_last_of(')');
         auto mapTypeStr = typeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-        auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
+        auto keyValueTypes = StringUtils::splitFirstComma(mapTypeStr);
         return LogicalType::MAP(convertDuckDBType(keyValueTypes[0]),
             convertDuckDBType(keyValueTypes[1]));
     } else if (typeStr.ends_with(']')) {

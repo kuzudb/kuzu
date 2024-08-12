@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace common {
 
-std::vector<std::string> StringUtils::splitComma(const std::string& input) {
+std::vector<std::string> StringUtils::splitFirstComma(const std::string& input) {
     auto result = std::vector<std::string>();
     auto currentPos = 0u;
     auto lvl = 0u;
@@ -22,6 +22,37 @@ std::vector<std::string> StringUtils::splitComma(const std::string& input) {
     }
     result.push_back(input.substr(0, currentPos));
     result.push_back(input.substr(currentPos == input.length() ? input.length() : currentPos + 1));
+    return result;
+}
+
+static char openingBracket(char c) {
+    if (c == ')') {
+        return '(';
+    }
+    if (c == ']') {
+        return '[';
+    }
+    if (c == '}') {
+        return '{';
+    }
+    return c;
+}
+
+std::vector<std::string> StringUtils::splitComma(const std::string& input) {
+    std::vector<std::string> result(1);
+    std::vector<char> stk;
+    for (char c: input) {
+        if (c == ',' && stk.size() == 0u) {
+            result.emplace_back();
+        } else if (c == '{' || c == '(' || c == '[') {
+            stk.push_back(c);
+        } else if (stk.size() > 0u && openingBracket(c) == stk.back()) {
+            stk.pop_back();
+        }
+        if (c != ',' || stk.size() > 0u) {
+            result.back().push_back(c);
+        }
+    }
     return result;
 }
 
