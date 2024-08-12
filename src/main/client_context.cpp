@@ -298,8 +298,8 @@ std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
     for (auto& statement : parsedStatements) {
         auto preparedStatement = prepareNoLock(statement,
             enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
-        auto currentQueryResult = executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0u,
-            false /*requiredNexTx*/, queryID);
+        auto currentQueryResult =
+            executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0u, queryID);
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);
@@ -442,7 +442,7 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
     auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement, false, "",
         false, preparedStatement->parameterMap);
-    return executeAndAutoCommitIfNecessaryNoLock(rebindPreparedStatement.get(), 0u, false, queryID);
+    return executeAndAutoCommitIfNecessaryNoLock(rebindPreparedStatement.get(), 0u, queryID);
 }
 
 void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
@@ -461,12 +461,11 @@ void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLock(
-    PreparedStatement* preparedStatement, uint32_t planIdx, bool requiredNexTx,
-    std::optional<uint64_t> queryID) {
+    PreparedStatement* preparedStatement, uint32_t planIdx, std::optional<uint64_t> queryID) {
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
-    if (preparedStatement->parsedStatement->requireTx() && requiredNexTx && getTx() == nullptr) {
+    if (preparedStatement->parsedStatement->requireTx() && getTx() == nullptr) {
         this->transactionContext->beginAutoTransaction(preparedStatement->isReadOnly());
     }
     this->resetActiveQuery();
@@ -586,7 +585,7 @@ void ClientContext::runQuery(std::string query) {
         for (auto& statement : parsedStatements) {
             auto preparedStatement = prepareNoLock(statement, false, "", false);
             auto currentQueryResult =
-                executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0u, false);
+                executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), 0u);
             if (!currentQueryResult->isSuccess()) {
                 throw ConnectionException(currentQueryResult->errMsg);
             }
