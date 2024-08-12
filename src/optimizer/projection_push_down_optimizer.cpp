@@ -175,8 +175,8 @@ void ProjectionPushDownOptimizer::visitDelete(planner::LogicalOperator* op) {
         for (auto& info : infos) {
             auto& node = info.pattern->constCast<NodeExpression>();
             collectExpressionsInUse(node.getInternalID());
-            for (auto id : node.getTableIDs()) {
-                collectExpressionsInUse(node.getPrimaryKey(id));
+            for (auto entry : node.getEntries()) {
+                collectExpressionsInUse(node.getPrimaryKey(entry->getTableID()));
             }
         }
     } break;
@@ -306,6 +306,10 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
 
 void ProjectionPushDownOptimizer::preAppendProjection(planner::LogicalOperator* op,
     uint32_t childIdx, binder::expression_vector expressions) {
+    if (expressions.empty()) {
+        // We don't have a way to handle
+        return;
+    }
     auto projection =
         std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
     projection->computeFlatSchema();

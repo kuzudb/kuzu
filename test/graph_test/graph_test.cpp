@@ -57,8 +57,11 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
             continue;
         }
         if (statement->reloadDBFlag) {
-            createDB(checkpointWaitTimeout);
-            createConns(connNames);
+            // For in-mem mode, we skip reload.
+            if (!inMemMode) {
+                createDB(checkpointWaitTimeout);
+                createConns(connNames);
+            }
             continue;
         }
         if (statement->connectionsStatusFlag == ConcurrentStatusFlag::BEGIN) {

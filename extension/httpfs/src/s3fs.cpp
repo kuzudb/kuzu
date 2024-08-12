@@ -17,6 +17,7 @@ void AWSEnvironmentCredentialsProvider::setOptionValue(main::ClientContext* cont
     auto accessKeyID = context->getEnvVariable(S3_ACCESS_KEY_ENV_VAR);
     auto secretAccessKey = context->getEnvVariable(S3_SECRET_KEY_ENV_VAR);
     auto endpoint = context->getEnvVariable(S3_ENDPOINT_ENV_VAR);
+    auto urlStyle = context->getEnvVariable(S3_URL_STYLE_ENV_VAR);
     auto region = context->getEnvVariable(S3_REGION_ENV_VAR);
     if (accessKeyID != "") {
         context->setExtensionOption("s3_access_key_id", Value::createValue(accessKeyID));
@@ -26,6 +27,9 @@ void AWSEnvironmentCredentialsProvider::setOptionValue(main::ClientContext* cont
     }
     if (endpoint != "") {
         context->setExtensionOption("s3_endpoint", Value::createValue(endpoint));
+    }
+    if (urlStyle != "") {
+        context->setExtensionOption("s3_url_style", Value::createValue(urlStyle));
     }
     if (region != "") {
         context->setExtensionOption("s3_region", Value::createValue(region));

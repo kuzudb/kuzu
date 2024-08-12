@@ -87,7 +87,7 @@ void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
             }
             auto src = queryRel->getSrcNode();
             auto dst = queryRel->getDstNode();
-            auto newDst = createQueryNode(dst->getVariableName(), dst->getTableIDs());
+            auto newDst = createQueryNode(dst->getVariableName(), dst->getEntries());
             queryGraph->addQueryNode(newDst);
             queryRel->setDstNode(newDst);
             auto predicate = expressionBinder.createEqualityComparisonExpression(

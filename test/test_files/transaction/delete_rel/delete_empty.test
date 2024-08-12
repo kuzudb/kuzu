@@ -1,6 +1,10 @@
 -DATASET CSV empty
 --
 
+-CASE DeleteRelEmptyDB
+-STATEMENT MATCH ()-[e]->() DELETE e;
+---- ok
+
 -CASE RelDeleteCheckpoint
 -STATEMENT CREATE NODE TABLE person (ID INT64, PRIMARY KEY (ID));
 ---- ok

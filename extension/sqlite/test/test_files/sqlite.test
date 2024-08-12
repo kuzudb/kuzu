@@ -59,7 +59,7 @@ Catalog exception: person1 does not exist in catalog.
 Attached database successfully.
 -STATEMENT LOAD FROM flextype.person RETURN *
 ---- error
-Runtime exception: Failed to execute query due to error: Mismatch Type Error: Invalid type in column "id": column was declared as integer, found "abc" of type "text" instead.
+Mismatch Type Error: Invalid type in column "id": column was declared as integer, found "abc" of type "text" instead.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 6
 movies|ATTACHED|tinysnb(SQLITE)|

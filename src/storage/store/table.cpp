@@ -1,6 +1,7 @@
 #include "storage/store/table.h"
 
 #include "common/serializer/deserializer.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"

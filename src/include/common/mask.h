@@ -7,7 +7,7 @@
 #include "common/types/internal_id_t.h"
 
 namespace kuzu {
-namespace processor {
+namespace common {
 
 // Note: Classes in this file are NOT thread-safe.
 struct MaskUtil {
@@ -52,7 +52,15 @@ public:
         maskData = std::make_unique<MaskData>(maxOffset + 1);
     }
 
-    bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
+    // Return true if any offset between [startOffset, endOffset] is masked. Otherwise return false.
+    bool isMasked(common::offset_t startOffset, common::offset_t endOffset) const {
+        auto offset = startOffset;
+        auto numMasked = 0u;
+        while (offset <= endOffset) {
+            numMasked += maskData->isMasked(offset++, numMasks);
+        }
+        return numMasked > 0;
+    }
     // Increment mask value for the given nodeOffset if its current mask value is equal to
     // the specified `currentMaskValue`.
     // Note: blindly update mask does not parallelize well, so we minimize write by first checking
@@ -87,7 +95,7 @@ public:
     virtual void init() = 0;
 
     virtual void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) = 0;
-    virtual bool isMasked(common::offset_t nodeOffset) = 0;
+    virtual bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
 
     bool isEnabled() const { return getNumMasks() > 0; }
     uint8_t getNumMasks() const { return maskCollection.getNumMasks(); }
@@ -115,8 +123,8 @@ public:
         maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
-    bool isMasked(common::offset_t nodeOffset) override {
-        return maskCollection.isMasked(nodeOffset);
+    bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        return maskCollection.isMasked(startNodeOffset, endNodeOffset);
     }
 };
 
@@ -136,10 +144,11 @@ public:
         maskCollection.incrementMaskValue(MaskUtil::getVectorIdx(nodeOffset), currentMaskValue);
     }
 
-    bool isMasked(common::offset_t nodeOffset) override {
-        return maskCollection.isMasked(MaskUtil::getVectorIdx(nodeOffset));
+    bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        return maskCollection.isMasked(MaskUtil::getVectorIdx(startNodeOffset),
+            MaskUtil::getVectorIdx(endNodeOffset));
     }
 };
 
-} // namespace processor
+} // namespace common
 } // namespace kuzu

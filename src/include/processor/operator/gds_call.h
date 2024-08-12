@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/mask.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
 #include "graph/graph.h"
-#include "processor/operator/mask.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {
@@ -13,10 +13,11 @@ struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
-    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> inputNodeOffsetMasks;
+    common::table_id_map_t<std::unique_ptr<common::NodeOffsetLevelSemiMask>> inputNodeOffsetMasks;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
-        common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> inputNodeOffsetMasks)
+        common::table_id_map_t<std::unique_ptr<common::NodeOffsetLevelSemiMask>>
+            inputNodeOffsetMasks)
         : fTable{std::move(fTable)}, graph{std::move(graph)},
           inputNodeOffsetMasks{std::move(inputNodeOffsetMasks)} {}
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
@@ -59,7 +60,7 @@ public:
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
-    std::vector<NodeSemiMask*> getSemiMasks() const;
+    std::vector<common::NodeSemiMask*> getSemiMasks() const;
 
     bool isSource() const override { return true; }
 

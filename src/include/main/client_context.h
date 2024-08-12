@@ -31,7 +31,7 @@ struct ExtensionOptions;
 }
 
 namespace main {
-class DBConfig;
+struct DBConfig;
 class Database;
 class DatabaseManager;
 class AttachedKuzuDatabase;
@@ -63,7 +63,7 @@ public:
     const DBConfig* getDBConfig() const { return &dbConfig; }
     DBConfig* getDBConfigUnsafe() { return &dbConfig; }
     common::Value getCurrentSetting(const std::string& optionName);
-    bool isOptionSet(const std::string& name) const;
+    bool isOptionSet(const std::string& optionName) const;
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }

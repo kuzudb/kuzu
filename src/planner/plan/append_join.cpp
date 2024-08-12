@@ -34,7 +34,7 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     // Check for sip
     auto ratio = probePlan.getCardinality() / buildPlan.getCardinality();
     if (ratio > PlannerKnobs::SIP_RATIO) {
-        hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
+        hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
     }
     // Update cost
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
@@ -42,6 +42,16 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     resultPlan.setCardinality(
         cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
     resultPlan.setLastOperator(std::move(hashJoin));
+}
+
+void Planner::appendAccHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
+    KU_ASSERT(probePlan.hasUpdate());
+    tryAppendAccumulate(probePlan);
+    appendHashJoin(joinNodeIDs, joinType, mark, probePlan, buildPlan, resultPlan);
+    auto& sipInfo = probePlan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe();
+    sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
 }
 
 void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,

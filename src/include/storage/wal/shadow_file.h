@@ -40,7 +40,7 @@ public:
 
     void replayShadowPageRecords(main::ClientContext& context) const;
 
-    void flushAll(main::ClientContext& context) const;
+    void flushAll() const;
     void clearAll(main::ClientContext& context);
 
 private:

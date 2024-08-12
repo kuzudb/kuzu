@@ -18,6 +18,15 @@ void Planner::appendOptionalCrossProduct(std::shared_ptr<Expression> mark,
     appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);
 }
 
+void Planner::appendAccOptionalCrossProduct(std::shared_ptr<Expression> mark,
+    LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    KU_ASSERT(probePlan.hasUpdate());
+    tryAppendAccumulate(probePlan);
+    appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);
+    auto& sipInfo = resultPlan.getLastOperator()->cast<LogicalCrossProduct>().getSIPInfoUnsafe();
+    sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
+}
+
 void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<Expression> mark,
     const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     auto crossProduct = make_shared<LogicalCrossProduct>(accumulateType, mark,

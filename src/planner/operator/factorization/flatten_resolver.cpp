@@ -192,7 +192,8 @@ void GroupDependencyAnalyzer::visitNodeOrRel(std::shared_ptr<binder::Expression>
         auto& node = expr->constCast<NodeExpression>();
         visit(node.getInternalID());
     } break;
-    case LogicalTypeID::REL: {
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL: {
         auto& rel = expr->constCast<RelExpression>();
         visit(rel.getSrcNode()->getInternalID());
         visit(rel.getDstNode()->getInternalID());

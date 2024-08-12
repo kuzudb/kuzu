@@ -70,19 +70,19 @@ void BaseGraphTest::createDB() {
     if (database != nullptr) {
         database.reset();
     }
-    database = std::make_unique<main::Database>(databasePath, *systemConfig);
+    database = std::make_unique<Database>(databasePath, *systemConfig);
     spdlog::set_level(spdlog::level::info);
 }
 
 void BaseGraphTest::createConns(const std::set<std::string>& connNames) {
     if (connNames.size() == 0) { // impart a default connName
-        conn = std::make_unique<main::Connection>(database.get());
+        conn = std::make_unique<Connection>(database.get());
     } else {
         for (auto connName : connNames) {
             if (connMap[connName] != nullptr) {
                 connMap[connName].reset();
             }
-            connMap[connName] = std::make_unique<main::Connection>(database.get());
+            connMap[connName] = std::make_unique<Connection>(database.get());
         }
     }
 }
@@ -91,12 +91,12 @@ void BaseGraphTest::createDBAndConn() {
     if (database != nullptr) {
         database.reset();
     }
-    database = std::make_unique<main::Database>(databasePath, *systemConfig);
-    conn = std::make_unique<main::Connection>(database.get());
+    database = std::make_unique<Database>(databasePath, *systemConfig);
+    conn = std::make_unique<Connection>(database.get());
     spdlog::set_level(spdlog::level::info);
 }
 
-void BaseGraphTest::initGraph(std::string datasetDir) {
+void BaseGraphTest::initGraph(const std::string& datasetDir) const {
     if (conn) { // normal conn
         TestHelper::executeScript(datasetDir + TestHelper::SCHEMA_FILE_NAME, *conn);
         TestHelper::executeScript(datasetDir + TestHelper::COPY_FILE_NAME, *conn);

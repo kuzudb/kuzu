@@ -36,11 +36,11 @@ std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     return std::move(testGroup);
 }
 
-void TestParser::genGroupName() {
-    std::size_t subStart =
+void TestParser::genGroupName() const {
+    const std::size_t subStart =
         TestHelper::appendKuzuRootPath(std::string(TestHelper::E2E_TEST_FILES_DIRECTORY)).length() +
         1;
-    std::size_t subEnd = path.find_last_of('.') - 1;
+    const std::size_t subEnd = path.find_last_of('.') - 1;
     std::string relPath = path.substr(subStart, subEnd - subStart + 1);
     std::replace(relPath.begin(), relPath.end(), '/', '~');
     std::replace(relPath.begin(), relPath.end(), '\\', '~');
@@ -100,15 +100,22 @@ void TestParser::parseHeader() {
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
             testGroup->group = "DISABLED_" + testGroup->group;
-            break;
 #endif
             break;
         }
         case TokenType::SKIP_32BIT: {
 #ifdef __32BIT__
             testGroup->group = "DISABLED_" + testGroup->group;
-            break;
 #endif
+            break;
+        }
+        case TokenType::SKIP_IN_MEM: {
+            auto env = TestHelper::getSystemEnv("IN_MEM_MODE");
+            if (!env.empty()) {
+                if (env == "true") {
+                    testGroup->group = "DISABLED_" + testGroup->group;
+                }
+            }
             break;
         }
         case TokenType::SEPARATOR: {
@@ -121,7 +128,7 @@ void TestParser::parseHeader() {
     }
 }
 
-void TestParser::replaceVariables(std::string& str) {
+void TestParser::replaceVariables(std::string& str) const {
     for (auto& variable : variableMap) {
         StringUtils::replaceAll(str, "${" + variable.first + "}", variable.second);
     }
@@ -143,7 +150,7 @@ void TestParser::extractExpectedResults(TestStatement* statement) {
 
 TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder) {
     checkMinimumParams(1);
-    std::string result = currentToken.params[1];
+    const std::string result = currentToken.params[1];
     TestQueryResult queryResult;
     if (result == "ok") {
         queryResult.type = ResultType::OK;
@@ -328,7 +335,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
 }
 
 void TestParser::extractStatementBlock() {
-    std::string blockName = currentToken.params[1];
+    const std::string blockName = currentToken.params[1];
     while (nextLine()) {
         tokenize();
         if (currentToken.type == TokenType::END_OF_STATEMENT_BLOCK) {
@@ -353,7 +360,7 @@ std::string TestParser::parseCommand() {
         checkMinimumParams(4);
         return parseCommandArange();
     }
-    auto params = paramsToString(2);
+    const auto params = paramsToString(2);
     if (params.front() != '"' || params.back() != '"') {
         throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
     }
@@ -361,9 +368,9 @@ std::string TestParser::parseCommand() {
 }
 
 std::string TestParser::parseCommandRepeat() {
-    int times = stoi(currentToken.params[3]);
+    const int times = stoi(currentToken.params[3]);
     std::string result;
-    std::string repeatString = StringUtils::extractStringBetween(paramsToString(4), '"', '"');
+    const std::string repeatString = StringUtils::extractStringBetween(paramsToString(4), '"', '"');
     if (repeatString.empty()) {
         throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
     }
@@ -374,9 +381,10 @@ std::string TestParser::parseCommandRepeat() {
     }
     return result;
 }
-std::string TestParser::parseCommandArange() {
-    int start = stoi(currentToken.params[3]);
-    int end = stoi(currentToken.params[4]);
+
+std::string TestParser::parseCommandArange() const {
+    const int start = stoi(currentToken.params[3]);
+    const int end = stoi(currentToken.params[4]);
     std::string result = "[";
     for (auto i = start; i <= end; i++) {
         result += std::to_string(i);
@@ -420,14 +428,23 @@ void TestParser::parseBody() {
         case TokenType::SKIP_MUSL: {
 #ifdef __MUSL__
             testCaseName = "DISABLED_" + testCaseName;
-            break;
 #endif
+            break;
         }
         case TokenType::SKIP_32BIT: {
 #ifdef __32BIT__
             testCaseName = "DISABLED_" + testCaseName;
-            break;
 #endif
+            break;
+        }
+        case TokenType::SKIP_IN_MEM: {
+            auto env = TestHelper::getSystemEnv("IN_MEM_MODE");
+            if (!env.empty()) {
+                if (env == "true") {
+                    testCaseName = "DISABLED_" + testCaseName;
+                }
+            }
+            break;
         }
         case TokenType::EMPTY: {
             break;
@@ -442,9 +459,9 @@ void TestParser::parseBody() {
     }
 }
 
-void TestParser::addStatementBlock(const std::string& blockName, const std::string& testCaseName) {
-    if (testGroup->testCasesStatementBlocks.find(blockName) !=
-        testGroup->testCasesStatementBlocks.end()) {
+void TestParser::addStatementBlock(const std::string& blockName,
+    const std::string& testCaseName) const {
+    if (testGroup->testCasesStatementBlocks.contains(blockName)) {
         for (const auto& statementPtr : testGroup->testCasesStatementBlocks[blockName]) {
             testGroup->testCases[testCaseName].push_back(
                 std::make_unique<TestStatement>(*statementPtr));
@@ -455,16 +472,15 @@ void TestParser::addStatementBlock(const std::string& blockName, const std::stri
     }
 }
 
-TestStatement* TestParser::addNewStatement(std::string& testGroupName) {
+TestStatement* TestParser::addNewStatement(const std::string& testGroupName) const {
     auto statement = std::make_unique<TestStatement>();
     TestStatement* currentStatement = statement.get();
     testGroup->testCases[testGroupName].push_back(std::move(statement));
-    // testGroup->testCasesConnNames[testGroupName]=std::set<std::string>();
     return currentStatement;
 }
 
 TokenType getTokenType(const std::string& input) {
-    auto iter = tokenMap.find(input);
+    const auto iter = tokenMap.find(input);
     if (iter != tokenMap.end()) {
         return iter->second;
     } else {
@@ -501,7 +517,7 @@ void TestParser::tokenize() {
 }
 
 void TestParser::extractConnName(std::string& query, TestStatement* statement) {
-    std::regex pattern(R"(\[(conn.*?)\]\s*(.*))");
+    const std::regex pattern(R"(\[(conn.*?)\]\s*(.*))");
     std::smatch matches;
     bool statement_status = false;
     if (std::regex_search(query, matches, pattern)) {

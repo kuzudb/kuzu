@@ -16,7 +16,7 @@ class ClientContext;
 struct SystemConfig;
 
 typedef void (*set_context)(ClientContext* context, const common::Value& parameter);
-typedef common::Value (*get_setting)(ClientContext* context);
+typedef common::Value (*get_setting)(const ClientContext* context);
 
 enum class OptionType : uint8_t { CONFIGURATION = 0, EXTENSION = 1 };
 
@@ -50,20 +50,21 @@ struct ExtensionOption final : Option {
           defaultValue{std::move(defaultValue)} {}
 };
 
-class DBConfig {
-public:
-    static ConfigurationOption* getOptionByName(const std::string& optionName);
-
-    explicit DBConfig(const SystemConfig& systemConfig);
-
+struct DBConfig {
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
     bool enableCompression;
     bool readOnly;
     uint64_t maxDBSize;
-    bool enableMultiWrites = false;
+    bool enableMultiWrites;
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
+    bool forceCheckpointOnClose;
+
+    explicit DBConfig(const SystemConfig& systemConfig);
+
+    static ConfigurationOption* getOptionByName(const std::string& optionName);
+    KUZU_API static bool isDBPathInMemory(const std::string& dbPath);
 };
 
 } // namespace main

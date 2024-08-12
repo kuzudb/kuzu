@@ -5,7 +5,9 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -32,6 +34,9 @@ ShadowPageRecord ShadowPageRecord::deserialize(Deserializer& deserializer) {
 
 ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManager& bufferManager,
     VirtualFileSystem* vfs, ClientContext* context) {
+    if (DBConfig::isDBPathInMemory(directory)) {
+        return;
+    }
     shadowingFH = bufferManager.getBMFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
@@ -87,7 +92,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
     }
 }
 
-void ShadowFile::flushAll(ClientContext& context) const {
+void ShadowFile::flushAll() const {
     // Write header page to file.
     ShadowFileHeader header;
     header.numShadowPages = shadowPageRecords.size();
@@ -95,7 +100,7 @@ void ShadowFile::flushAll(ClientContext& context) const {
     memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
     shadowingFH->writePage(headerBuffer.get(), 0);
     // Flush shadow pages to file.
-    context.getMemoryManager()->getBufferManager()->flushAllDirtyPagesInFrames(*shadowingFH);
+    shadowingFH->flushAllDirtyPagesInFrames();
     // Append shadow page records to end of file.
     const auto writer = std::make_shared<BufferedFileWriter>(*shadowingFH->getFileInfo());
     writer->setFileOffset(shadowingFH->getNumPages() * BufferPoolConstants::PAGE_4KB_SIZE);
@@ -104,7 +109,7 @@ void ShadowFile::flushAll(ClientContext& context) const {
     ser.serializeVector(shadowPageRecords);
     writer->flush();
     // Sync the file to disk.
-    shadowingFH->getFileInfo()->syncFile();
+    writer->sync();
 }
 
 void ShadowFile::clearAll(ClientContext& context) {

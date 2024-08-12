@@ -1,4 +1,5 @@
 -DATASET KUZU binary-demo
+-SKIP_IN_MEM
 --
 
 -CASE DemoDBTest

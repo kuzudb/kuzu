@@ -93,5 +93,20 @@ protected:
     std::unique_ptr<binder::BoundAlterInfo> alterInfo;
 };
 
+struct TableCatalogEntryHasher {
+    std::size_t operator()(TableCatalogEntry* entry) const {
+        return std::hash<common::table_id_t>{}(entry->getTableID());
+    }
+};
+
+struct TableCatalogEntryEquality {
+    bool operator()(TableCatalogEntry* left, TableCatalogEntry* right) const {
+        return left->getTableID() == right->getTableID();
+    }
+};
+
+using table_catalog_entry_set_t =
+    std::unordered_set<TableCatalogEntry*, TableCatalogEntryHasher, TableCatalogEntryEquality>;
+
 } // namespace catalog
 } // namespace kuzu

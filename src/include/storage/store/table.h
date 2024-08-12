@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/zone_map_check_result.h"
+#include "common/mask.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/column.h"
 #include "storage/store/node_group.h"
@@ -20,8 +21,9 @@ struct TableScanState {
     common::ValueVector* IDVector;
     std::vector<common::ValueVector*> outputVectors;
     std::vector<common::column_id_t> columnIDs;
+    common::NodeSemiMask* semiMask;
 
-    // Only used when scan from checkpointed data.
+    // Only used when scan from persistent data.
     std::vector<Column*> columns;
 
     TableScanSource source = TableScanSource::NONE;
@@ -33,18 +35,19 @@ struct TableScanState {
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
     explicit TableScanState(std::vector<common::column_id_t> columnIDs)
-        : IDVector(nullptr), columnIDs{std::move(columnIDs)} {
+        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, semiMask{nullptr} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
     TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
         std::vector<ColumnPredicateSet> columnPredicateSets)
-        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, columns{std::move(columns)},
-          columnPredicateSets{std::move(columnPredicateSets)} {
+        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, semiMask{nullptr},
+          columns{std::move(columns)}, columnPredicateSets{std::move(columnPredicateSets)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
     explicit TableScanState(std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns)
-        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, columns{std::move(columns)} {
+        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, semiMask{nullptr},
+          columns{std::move(columns)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
     virtual ~TableScanState() = default;
@@ -163,8 +166,6 @@ public:
     virtual void commit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
     virtual void rollback(LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser) = 0;
-
-    virtual uint64_t getEstimatedMemoryUsage() const = 0;
 
     virtual common::row_idx_t getNumRows() = 0;
 

@@ -5,14 +5,19 @@
 #include "expression.h"
 
 namespace kuzu {
+namespace catalog {
+class TableCatalogEntry;
+}
 namespace binder {
 
 class NodeOrRelExpression : public Expression {
+    static constexpr common::ExpressionType expressionType_ = common::ExpressionType::PATTERN;
+
 public:
     NodeOrRelExpression(common::LogicalType dataType, std::string uniqueName,
-        std::string variableName, std::vector<common::table_id_t> tableIDs)
-        : Expression{common::ExpressionType::PATTERN, std::move(dataType), std::move(uniqueName)},
-          variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
+        std::string variableName, std::vector<catalog::TableCatalogEntry*> entries)
+        : Expression{expressionType_, std::move(dataType), std::move(uniqueName)},
+          variableName(std::move(variableName)), entries{std::move(entries)} {}
 
     // Note: ideally I would try to remove this function. But for now, we have to create type
     // after expression.
@@ -22,17 +27,17 @@ public:
 
     std::string getVariableName() const { return variableName; }
 
-    void setTableIDs(common::table_id_vector_t tableIDs_) { tableIDs = std::move(tableIDs_); }
-    void addTableIDs(const common::table_id_vector_t& tableIDsToAdd);
-
-    bool isEmpty() const { return tableIDs.empty(); }
-    bool isMultiLabeled() const { return tableIDs.size() > 1; }
-    uint32_t getNumTableIDs() const { return tableIDs.size(); }
-    std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }
-    std::unordered_set<common::table_id_t> getTableIDsSet() const {
-        return {tableIDs.begin(), tableIDs.end()};
+    bool isEmpty() const { return entries.empty(); }
+    bool isMultiLabeled() const { return entries.size() > 1; }
+    common::idx_t getNumEntries() const { return entries.size(); }
+    common::table_id_vector_t getTableIDs() const;
+    common::table_id_set_t getTableIDsSet() const;
+    const std::vector<catalog::TableCatalogEntry*>& getEntries() const { return entries; }
+    void setEntries(std::vector<catalog::TableCatalogEntry*> entries_) {
+        entries = std::move(entries_);
     }
-    common::table_id_t getSingleTableID() const;
+    void addEntries(const std::vector<catalog::TableCatalogEntry*> entries_);
+    catalog::TableCatalogEntry* getSingleEntry() const;
 
     void addPropertyExpression(const std::string& propertyName,
         std::unique_ptr<Expression> property);
@@ -46,9 +51,6 @@ public:
     }
     // Deep copy expressions.
     expression_vector getPropertyExprs() const;
-
-    bool hasPrimaryKey() const;
-    std::shared_ptr<Expression> getPrimaryKey() const;
 
     void setLabelExpression(std::shared_ptr<Expression> expression) {
         labelExpression = std::move(expression);
@@ -75,7 +77,7 @@ public:
 protected:
     std::string variableName;
     // A pattern may bind to multiple tables.
-    std::vector<common::table_id_t> tableIDs;
+    std::vector<catalog::TableCatalogEntry*> entries;
     // Index over propertyExprs on property name.
     std::unordered_map<std::string, common::idx_t> propertyNameToIdx;
     // Property expressions with order (aligned with catalog).

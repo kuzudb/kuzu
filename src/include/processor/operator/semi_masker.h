@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/mask.h"
+#include "common/mask.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -12,7 +12,7 @@ class BaseSemiMasker;
 // to indicate the execution sequence of its pipeline. Also, the maskerIdx is used as a flag to
 // indicate if a value in the mask is masked or not, as each masker will increment the selected
 // value in the mask by 1. More details are described in NodeTableSemiMask.
-using mask_with_idx = std::pair<NodeSemiMask*, uint8_t>;
+using mask_with_idx = std::pair<common::NodeSemiMask*, uint8_t>;
 
 class SemiMaskerInfo {
     friend class BaseSemiMasker;

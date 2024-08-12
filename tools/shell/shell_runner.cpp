@@ -5,6 +5,7 @@
 #include "args.hxx"
 #include "common/file_system/local_file_system.h"
 #include "embedded_shell.h"
+#include "main/db_config.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
@@ -45,7 +46,9 @@ int setConfigOutputMode(const std::string mode, ShellConfig& shell) {
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("KuzuDB Shell");
-    args::Positional<std::string> inputDirFlag(parser, "databasePath", "Database path.");
+    args::Positional<std::string> inputDirFlag(parser, "databasePath",
+        "Path to the database. If not given or set to \":memory:\", the database will be opened "
+        "under in-memory mode.");
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes",
@@ -92,11 +95,6 @@ int main(int argc, char* argv[]) {
     if (version) {
         std::cout << "Kuzu " << KUZU_CMAKE_VERSION << '\n';
         return 0;
-    }
-    if (!inputDirFlag) {
-        std::cerr << "Option '" + inputDirFlag.Name() + "' is required" << '\n';
-        std::cerr << parser;
-        return 1;
     }
 
     uint64_t bpSizeInMB = args::get(bpSizeInMBFlag);
@@ -145,8 +143,12 @@ int main(int argc, char* argv[]) {
         std::cerr << e.what() << '\n';
         return 1;
     }
-    std::cout << "Opened the database at path: " << databasePath << " in "
-              << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+    if (DBConfig::isDBPathInMemory(databasePath)) {
+        std::cout << "Opened the database under in in-memory mode." << '\n';
+    } else {
+        std::cout << "Opened the database at path: " << databasePath << " in "
+                  << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+    }
     std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
     try {
         auto shell = EmbeddedShell(database, conn, shellConfig);

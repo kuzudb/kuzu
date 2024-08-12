@@ -3,12 +3,14 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 
 #include "common/concurrent_vector.h"
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/vm_region.h"
+#include "storage/enums/page_read_policy.h"
 #include "storage/file_handle.h"
 
 namespace kuzu {
@@ -32,63 +34,59 @@ public:
 
     PageState() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
 
-    inline uint64_t getState() const { return getState(stateAndVersion.load()); }
-    inline static uint64_t getState(uint64_t stateAndVersion) {
+    uint64_t getState() const { return getState(stateAndVersion.load()); }
+    static uint64_t getState(uint64_t stateAndVersion) {
         return (stateAndVersion & STATE_MASK) >> NUM_BITS_TO_SHIFT_FOR_STATE;
     }
-    inline static uint64_t getVersion(uint64_t stateAndVersion) {
-        return stateAndVersion & VERSION_MASK;
-    }
-    inline static uint64_t updateStateWithSameVersion(uint64_t oldStateAndVersion,
-        uint64_t newState) {
+    static uint64_t getVersion(uint64_t stateAndVersion) { return stateAndVersion & VERSION_MASK; }
+    static uint64_t updateStateWithSameVersion(uint64_t oldStateAndVersion, uint64_t newState) {
         return ((oldStateAndVersion << 8) >> 8) | (newState << NUM_BITS_TO_SHIFT_FOR_STATE);
     }
-    inline static uint64_t updateStateAndIncrementVersion(uint64_t oldStateAndVersion,
-        uint64_t newState) {
+    static uint64_t updateStateAndIncrementVersion(uint64_t oldStateAndVersion, uint64_t newState) {
         return (((oldStateAndVersion << 8) >> 8) + 1) | (newState << NUM_BITS_TO_SHIFT_FOR_STATE);
     }
-    inline void spinLock(uint64_t oldStateAndVersion) {
+    void spinLock(uint64_t oldStateAndVersion) {
         while (true) {
             if (tryLock(oldStateAndVersion)) {
                 return;
             }
         }
     }
-    inline bool tryLock(uint64_t oldStateAndVersion) {
+    bool tryLock(uint64_t oldStateAndVersion) {
         return stateAndVersion.compare_exchange_strong(oldStateAndVersion,
             updateStateWithSameVersion(oldStateAndVersion, LOCKED));
     }
-    inline void unlock() {
+    void unlock() {
         // TODO(Keenan / Guodong): Track down this rare bug and re-enable the assert. Ref #2289.
         // KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion.store(updateStateAndIncrementVersion(stateAndVersion.load(), UNLOCKED));
     }
     // Change page state from Mark to Unlocked.
-    inline bool tryClearMark(uint64_t oldStateAndVersion) {
+    bool tryClearMark(uint64_t oldStateAndVersion) {
         KU_ASSERT(getState(oldStateAndVersion) == MARKED);
         return stateAndVersion.compare_exchange_strong(oldStateAndVersion,
             updateStateWithSameVersion(oldStateAndVersion, UNLOCKED));
     }
-    inline bool tryMark(uint64_t oldStateAndVersion) {
+    bool tryMark(uint64_t oldStateAndVersion) {
         return stateAndVersion.compare_exchange_strong(oldStateAndVersion,
             updateStateWithSameVersion(oldStateAndVersion, MARKED));
     }
 
-    inline void setDirty() {
+    void setDirty() {
         KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion |= DIRTY_MASK;
     }
-    inline void clearDirty() {
+    void clearDirty() {
         KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion &= ~DIRTY_MASK;
     }
     // Meant to be used when flushing in a single thread.
     // Should not be used if other threads are modifying the page state
-    inline void clearDirtyWithoutLock() { stateAndVersion &= ~DIRTY_MASK; }
-    inline bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
+    void clearDirtyWithoutLock() { stateAndVersion &= ~DIRTY_MASK; }
+    bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
     uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
 
-    inline void resetToEvicted() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
+    void resetToEvicted() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
 
 private:
     // Highest 1 bit is dirty bit, and the rest are page state and version bits.
@@ -104,8 +102,14 @@ class BMFileHandle final : public FileHandle {
     friend class BufferManager;
 
 public:
+    uint8_t* pinPage(common::page_idx_t pageIdx, PageReadPolicy readPolicy);
+    void optimisticReadPage(common::page_idx_t pageIdx,
+        const std::function<void(uint8_t*)>& readOp);
+    // The function assumes that the requested page is already pinned.
+    void unpinPage(common::page_idx_t pageIdx);
+
     // This function assumes the page is already LOCKED.
-    inline void setLockedPageDirty(common::page_idx_t pageIdx) {
+    void setLockedPageDirty(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < numPages);
         pageStates[pageIdx].setDirty();
     }
@@ -115,8 +119,18 @@ public:
     // does not hold any of the pages of the file.
     void resetToZeroPagesAndPageCapacity();
     void removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdx);
+    void removePageFromFrameIfNecessary(common::page_idx_t pageIdx);
+    void flushAllDirtyPagesInFrames();
+    void flushPageIfDirtyWithoutLock(common::page_idx_t pageIdx);
 
     common::file_idx_t getFileIndex() const { return fileIndex; }
+
+    uint8_t* getFrame(common::page_idx_t pageIdx);
+
+    PageState* getPageState(common::page_idx_t pageIdx) {
+        // KU_ASSERT(verifyPageIdx(pageIdx));
+        return &pageStates[pageIdx];
+    }
 
 private:
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm, uint32_t fileIndex,
@@ -124,21 +138,18 @@ private:
         main::ClientContext* context);
     // File handles are registered with the buffer manager and must not be moved or copied
     DELETE_COPY_AND_MOVE(BMFileHandle);
-    inline PageState* getPageState(common::page_idx_t pageIdx) {
-        KU_ASSERT(verifyPageIdx(pageIdx));
-        return &pageStates[pageIdx];
-    }
-    inline common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
+
+    common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
         KU_ASSERT(pageIdx < pageCapacity);
         return (frameGroupIdxes[pageIdx >> common::StorageConstants::PAGE_GROUP_SIZE_LOG2]
                    << common::StorageConstants::PAGE_GROUP_SIZE_LOG2) |
                (pageIdx & common::StorageConstants::PAGE_IDX_IN_GROUP_MASK);
     }
-    inline common::PageSizeClass getPageSizeClass() const { return pageSizeClass; }
+    common::PageSizeClass getPageSizeClass() const { return pageSizeClass; }
 
     common::page_idx_t addNewPageWithoutLock() override;
     void addNewPageGroupWithoutLock();
-    inline common::page_group_idx_t getNumPageGroups() const {
+    common::page_group_idx_t getNumPageGroups() const {
         return ceil(static_cast<double>(numPages) / common::StorageConstants::PAGE_GROUP_SIZE);
     }
 

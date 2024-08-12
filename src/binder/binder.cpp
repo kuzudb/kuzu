@@ -94,14 +94,6 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
     return whereExpression;
 }
 
-common::table_id_t Binder::bindTableID(const std::string& tableName) const {
-    auto catalog = clientContext->getCatalog();
-    if (!catalog->containsTable(clientContext->getTx(), tableName)) {
-        throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
-    }
-    return catalog->getTableID(clientContext->getTx(), tableName);
-}
-
 std::shared_ptr<Expression> Binder::createVariable(std::string_view name,
     common::LogicalTypeID typeID) {
     return createVariable(std::string(name), LogicalType{typeID});

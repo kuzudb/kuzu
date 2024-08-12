@@ -9,6 +9,7 @@
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 using namespace kuzu::planner;
 using namespace kuzu::evaluator;
 using namespace kuzu::transaction;
@@ -27,21 +28,19 @@ static column_id_t getColumnID(const catalog::TableCatalogEntry& entry,
     return columnID;
 }
 
-NodeTableSetInfo PlanMapper::getNodeTableSetInfo(table_id_t tableID, const Expression& expr) const {
+NodeTableSetInfo PlanMapper::getNodeTableSetInfo(const TableCatalogEntry& entry,
+    const Expression& expr) const {
     auto storageManager = clientContext->getStorageManager();
-    auto catalog = clientContext->getCatalog();
-    auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
-    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
-    auto columnID = getColumnID(*entry, expr.constCast<PropertyExpression>());
+    auto table = storageManager->getTable(entry.getTableID())->ptrCast<NodeTable>();
+    auto columnID = getColumnID(entry, expr.constCast<PropertyExpression>());
     return NodeTableSetInfo(table, columnID);
 }
 
-RelTableSetInfo PlanMapper::getRelTableSetInfo(table_id_t tableID, const Expression& expr) const {
+RelTableSetInfo PlanMapper::getRelTableSetInfo(const TableCatalogEntry& entry,
+    const Expression& expr) const {
     auto storageManager = clientContext->getStorageManager();
-    auto catalog = clientContext->getCatalog();
-    auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
-    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
-    auto columnID = getColumnID(*entry, expr.constCast<PropertyExpression>());
+    auto table = storageManager->getTable(entry.getTableID())->ptrCast<RelTable>();
+    auto columnID = getColumnID(entry, expr.constCast<PropertyExpression>());
     return RelTableSetInfo(table, columnID);
 }
 
@@ -63,13 +62,14 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
     auto setInfo = NodeSetInfo(nodeIDPos, columnVectorPos, pkVectorPos, std::move(evaluator));
     if (node.isMultiLabeled()) {
         common::table_id_map_t<NodeTableSetInfo> tableInfos;
-        for (auto tableID : node.getTableIDs()) {
+        for (auto entry : node.getEntries()) {
+            auto tableID = entry->getTableID();
             if (boundInfo.updatePk && !property.isPrimaryKey(tableID)) {
                 throw BinderException(stringFormat(
                     "Update primary key column {} for multiple tables is not supported.",
                     property.toString()));
             }
-            auto tableInfo = getNodeTableSetInfo(tableID, property);
+            auto tableInfo = getNodeTableSetInfo(*entry, property);
             if (tableInfo.columnID == INVALID_COLUMN_ID) {
                 continue;
             }
@@ -78,7 +78,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
         return std::make_unique<MultiLabelNodeSetExecutor>(std::move(setInfo),
             std::move(tableInfos));
     }
-    auto tableInfo = getNodeTableSetInfo(node.getSingleTableID(), property);
+    auto tableInfo = getNodeTableSetInfo(*node.getSingleEntry(), property);
     return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(tableInfo));
 }
 
@@ -131,16 +131,16 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
         RelSetInfo(srcNodeIDPos, dstNodeIDPos, relIDPos, columnVectorPos, std::move(evaluator));
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<RelTableSetInfo> tableInfos;
-        for (auto tableID : rel.getTableIDs()) {
-            auto tableInfo = getRelTableSetInfo(tableID, property);
+        for (auto entry : rel.getEntries()) {
+            auto tableInfo = getRelTableSetInfo(*entry, property);
             if (tableInfo.columnID == INVALID_COLUMN_ID) {
                 continue;
             }
-            tableInfos.insert({tableID, std::move(tableInfo)});
+            tableInfos.insert({entry->getTableID(), std::move(tableInfo)});
         }
         return std::make_unique<MultiLabelRelSetExecutor>(std::move(info), std::move(tableInfos));
     }
-    auto tableInfo = getRelTableSetInfo(rel.getSingleTableID(), property);
+    auto tableInfo = getRelTableSetInfo(*rel.getSingleEntry(), property);
     return std::make_unique<SingleLabelRelSetExecutor>(std::move(info), std::move(tableInfo));
 }
 

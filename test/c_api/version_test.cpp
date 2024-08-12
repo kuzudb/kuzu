@@ -27,6 +27,9 @@ TEST_F(CApiVersionTest, GetVersion) {
 
 TEST_F(CApiVersionTest, GetStorageVersion) {
     auto storageVersion = kuzu_get_storage_version();
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
     auto catalog = std::filesystem::path(databasePath) / "catalog.kz";
     std::ifstream catalogFile;
     catalogFile.open(catalog, std::ios::binary);

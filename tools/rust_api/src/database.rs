@@ -131,12 +131,6 @@ mod tests {
     }
 
     #[test]
-    fn create_database_failure() {
-        Database::new("", SystemConfig::default())
-            .expect_err("An empty string should not be a valid database path!");
-    }
-
-    #[test]
     fn test_database_read_only() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
         // Create database first so that it can be opened read-only

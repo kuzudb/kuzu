@@ -45,8 +45,8 @@ void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*) {
     info.init(*resultSet);
     if (info.deleteType == DeleteNodeType::DETACH_DELETE) {
         const auto tempSharedState = std::make_shared<DataChunkState>();
-        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
-        relIDVector = std::make_unique<ValueVector>(LogicalType{LogicalTypeID::INTERNAL_ID});
+        dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
+        relIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
         dstNodeIDVector->setState(tempSharedState);
         relIDVector->setState(tempSharedState);
         detachDeleteState = std::make_unique<RelTableDeleteState>(*info.nodeIDVector,

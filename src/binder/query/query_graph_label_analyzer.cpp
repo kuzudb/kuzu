@@ -2,7 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "common/cast.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 
@@ -36,52 +35,49 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         auto tx = clientContext.getTx();
         if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
             if (isSrcConnect || isDstConnect) {
-                for (auto relTableID : queryRel->getTableIDs()) {
-                    auto relTableSchema = ku_dynamic_cast<CatalogEntry*, RelTableCatalogEntry*>(
-                        catalog->getTableCatalogEntry(tx, relTableID));
-                    auto srcTableID = relTableSchema->getSrcTableID();
-                    auto dstTableID = relTableSchema->getDstTableID();
+                for (auto entry : queryRel->getEntries()) {
+                    auto& relEntry = entry->constCast<RelTableCatalogEntry>();
+                    auto srcTableID = relEntry.getSrcTableID();
+                    auto dstTableID = relEntry.getDstTableID();
                     candidates.insert(srcTableID);
                     candidates.insert(dstTableID);
-                    auto srcTableSchema = catalog->getTableCatalogEntry(tx, srcTableID);
-                    auto dstTableSchema = catalog->getTableCatalogEntry(tx, dstTableID);
-                    candidateNamesSet.insert(srcTableSchema->getName());
-                    candidateNamesSet.insert(dstTableSchema->getName());
+                    auto srcEntry = catalog->getTableCatalogEntry(tx, srcTableID);
+                    auto dstEntry = catalog->getTableCatalogEntry(tx, dstTableID);
+                    candidateNamesSet.insert(srcEntry->getName());
+                    candidateNamesSet.insert(dstEntry->getName());
                 }
             }
         } else {
             if (isSrcConnect) {
-                for (auto relTableID : queryRel->getTableIDs()) {
-                    auto relTableSchema = ku_dynamic_cast<CatalogEntry*, RelTableCatalogEntry*>(
-                        catalog->getTableCatalogEntry(tx, relTableID));
-                    auto srcTableID = relTableSchema->getSrcTableID();
+                for (auto entry : queryRel->getEntries()) {
+                    auto& relEntry = entry->constCast<RelTableCatalogEntry>();
+                    auto srcTableID = relEntry.getSrcTableID();
                     candidates.insert(srcTableID);
-                    auto srcTableSchema = catalog->getTableCatalogEntry(tx, srcTableID);
-                    candidateNamesSet.insert(srcTableSchema->getName());
+                    auto srcEntry = catalog->getTableCatalogEntry(tx, srcTableID);
+                    candidateNamesSet.insert(srcEntry->getName());
                 }
             } else if (isDstConnect) {
-                for (auto relTableID : queryRel->getTableIDs()) {
-                    auto relTableSchema = ku_dynamic_cast<CatalogEntry*, RelTableCatalogEntry*>(
-                        catalog->getTableCatalogEntry(tx, relTableID));
-                    auto dstTableID = relTableSchema->getDstTableID();
+                for (auto entry : queryRel->getEntries()) {
+                    auto& relEntry = entry->constCast<RelTableCatalogEntry>();
+                    auto dstTableID = relEntry.getDstTableID();
                     candidates.insert(dstTableID);
-                    auto dstTableSchema = catalog->getTableCatalogEntry(tx, dstTableID);
-                    candidateNamesSet.insert(dstTableSchema->getName());
+                    auto dstEntry = catalog->getTableCatalogEntry(tx, dstTableID);
+                    candidateNamesSet.insert(dstEntry->getName());
                 }
             }
         }
         if (candidates.empty()) { // No need to prune.
             return;
         }
-        common::table_id_vector_t prunedTableIDs;
-        for (auto tableID : node.getTableIDs()) {
-            if (!candidates.contains(tableID)) {
+        std::vector<TableCatalogEntry*> prunedEntries;
+        for (auto entry : node.getEntries()) {
+            if (!candidates.contains(entry->getTableID())) {
                 continue;
             }
-            prunedTableIDs.push_back(tableID);
+            prunedEntries.push_back(entry);
         }
-        node.setTableIDs(prunedTableIDs);
-        if (prunedTableIDs.empty()) {
+        node.setEntries(prunedEntries);
+        if (prunedEntries.empty()) {
             if (throwOnViolate) {
                 auto candidateNames =
                     std::vector<std::string>{candidateNamesSet.begin(), candidateNamesSet.end()};
@@ -97,49 +93,46 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
     }
 }
 
-void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
-    auto catalog = clientContext.getCatalog();
+void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
     if (rel.isRecursive()) {
         return;
     }
-    common::table_id_vector_t prunedTableIDs;
+    std::vector<TableCatalogEntry*> prunedEntries;
     if (rel.getDirectionType() == RelDirectionType::BOTH) {
-        common::table_id_set_t boundTableIDSet;
-        for (auto tableID : rel.getSrcNode()->getTableIDs()) {
-            boundTableIDSet.insert(tableID);
+        table_id_set_t boundTableIDSet;
+        for (auto entry : rel.getSrcNode()->getEntries()) {
+            boundTableIDSet.insert(entry->getTableID());
         }
-        for (auto tableID : rel.getDstNode()->getTableIDs()) {
-            boundTableIDSet.insert(tableID);
+        for (auto entry : rel.getDstNode()->getEntries()) {
+            boundTableIDSet.insert(entry->getTableID());
         }
-        for (auto& relTableID : rel.getTableIDs()) {
-            auto relTableSchema = ku_dynamic_cast<CatalogEntry*, RelTableCatalogEntry*>(
-                catalog->getTableCatalogEntry(clientContext.getTx(), relTableID));
-            auto srcTableID = relTableSchema->getSrcTableID();
-            auto dstTableID = relTableSchema->getDstTableID();
+        for (auto& entry : rel.getEntries()) {
+            auto& relEntry = entry->constCast<RelTableCatalogEntry>();
+            auto srcTableID = relEntry.getSrcTableID();
+            auto dstTableID = relEntry.getDstTableID();
             if (!boundTableIDSet.contains(srcTableID) || !boundTableIDSet.contains(dstTableID)) {
                 continue;
             }
-            prunedTableIDs.push_back(relTableID);
+            prunedEntries.push_back(entry);
         }
     } else {
         auto srcTableIDSet = rel.getSrcNode()->getTableIDsSet();
         auto dstTableIDSet = rel.getDstNode()->getTableIDsSet();
-        for (auto& relTableID : rel.getTableIDs()) {
-            auto relTableSchema = ku_dynamic_cast<CatalogEntry*, RelTableCatalogEntry*>(
-                catalog->getTableCatalogEntry(clientContext.getTx(), relTableID));
-            auto srcTableID = relTableSchema->getSrcTableID();
-            auto dstTableID = relTableSchema->getDstTableID();
+        for (auto& entry : rel.getEntries()) {
+            auto& relEntry = entry->constCast<RelTableCatalogEntry>();
+            auto srcTableID = relEntry.getSrcTableID();
+            auto dstTableID = relEntry.getDstTableID();
             if (!srcTableIDSet.contains(srcTableID) || !dstTableIDSet.contains(dstTableID)) {
                 continue;
             }
-            prunedTableIDs.push_back(relTableID);
+            prunedEntries.push_back(entry);
         }
     }
-    rel.setTableIDs(prunedTableIDs);
+    rel.setEntries(prunedEntries);
     // Note the pruning for node should guarantee the following exception won't be triggered.
     // For safety (and consistency) reason, we still write the check but skip coverage check.
     // LCOV_EXCL_START
-    if (prunedTableIDs.empty()) {
+    if (prunedEntries.empty()) {
         if (throwOnViolate) {
             throw BinderException(stringFormat("Cannot find a label for relationship {} that "
                                                "connects to all of its neighbour nodes.",

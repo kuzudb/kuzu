@@ -63,11 +63,15 @@ void ChunkedNodeGroup::resetNumRowsFromChunks() {
     }
 }
 
-void ChunkedNodeGroup::resizeChunks(const uint64_t newSize) const {
+void ChunkedNodeGroup::resizeChunks(const uint64_t newSize) {
+    if (newSize <= capacity) {
+        return;
+    }
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (auto& chunk : chunks) {
         chunk->resize(newSize);
     }
+    capacity = newSize;
 }
 
 void ChunkedNodeGroup::resetVersionAndUpdateInfo() {
@@ -91,8 +95,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
     const std::vector<ValueVector*>& columnVectors, row_idx_t startRowInVectors,
     uint64_t numValuesToAppend) {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-    const auto numRowsToAppendInChunk =
-        std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numRows);
+    const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numRows);
     for (auto i = 0u; i < chunks.size(); i++) {
         const auto chunk = chunks[i].get();
         KU_ASSERT(i < columnVectors.size());

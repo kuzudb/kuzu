@@ -244,7 +244,7 @@ listOfString, listOfListOfInt64, structColumn) FROM
 listOfString, listOfListOfInt64, structColumn) FROM
 "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet";
 ---- error
-Binder exception: Expression int64Column has data type DATE but expected INT64. Implicit cast is not supported.
+Conversion exception: Unsupported casting function from DATE to INT64.
 
 -LOG PartialColumnsDefault
 -STATEMENT CREATE NODE TABLE tableOfTypes14 (nullDateColumn DATE DEFAULT date('2022-06-06'), booleanColumn BOOLEAN,

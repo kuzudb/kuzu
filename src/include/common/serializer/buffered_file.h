@@ -19,6 +19,7 @@ public:
     void write(const uint8_t* data, uint64_t size) override;
 
     void flush();
+    void sync();
 
     // Note: this function is reseting next file offset to be written. Make sure buffer is empty.
     void setFileOffset(uint64_t fileOffset) {

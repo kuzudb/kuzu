@@ -1,6 +1,7 @@
 #include "binder/expression/property_expression.h"
 
 #include "binder/expression/node_rel_expression.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 
 using namespace kuzu::common;
 
@@ -15,8 +16,8 @@ std::unique_ptr<PropertyExpression> PropertyExpression::construct(LogicalType ty
     auto uniqueName = patternExpr.getUniqueName();
     // Assign an invalid property id for virtual property.
     common::table_id_map_t<SingleLabelPropertyInfo> infos;
-    for (auto& tableID : patternExpr.getTableIDs()) {
-        infos.insert({tableID, SingleLabelPropertyInfo(false, INVALID_PROPERTY_ID)});
+    for (auto& entry : patternExpr.getEntries()) {
+        infos.insert({entry->getTableID(), SingleLabelPropertyInfo(false, INVALID_PROPERTY_ID)});
     }
     return std::make_unique<PropertyExpression>(std::move(type), propertyName, uniqueName,
         variableName, std::move(infos));

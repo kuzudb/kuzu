@@ -23,7 +23,9 @@ add_library(duckdb_extension
         src/duckdb_type_converter.cpp
         src/duckdb_catalog.cpp
         src/duckdb_table_catalog_entry.cpp
-        src/duckdb_functions.cpp)
+        src/duckdb_functions.cpp
+        src/duckdb_s3_auth.cpp
+        src/duckdb_connector.cpp)
 
 set_target_properties(duckdb_extension
     PROPERTIES

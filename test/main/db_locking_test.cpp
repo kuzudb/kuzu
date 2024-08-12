@@ -13,6 +13,9 @@ class DBLockingTest : public ApiTest {
 };
 
 TEST_F(DBLockingTest, testReadLock) {
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
     uint64_t* count = (uint64_t*)mmap(NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE,
         MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;
@@ -52,6 +55,9 @@ TEST_F(DBLockingTest, testReadLock) {
 }
 
 TEST_F(DBLockingTest, testWriteLock) {
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
     uint64_t* count = (uint64_t*)mmap(NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE,
         MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;
@@ -94,6 +100,9 @@ TEST_F(DBLockingTest, testWriteLock) {
 }
 
 TEST_F(DBLockingTest, testReadOnly) {
+    if (databasePath == "" || databasePath == ":memory:") {
+        return;
+    }
     uint64_t* count = (uint64_t*)mmap(NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE,
         MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;

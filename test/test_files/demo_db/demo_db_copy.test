@@ -8,7 +8,7 @@
 ---- ok
 -STATEMENT Copy User1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
 ---- error
-Binder exception: Expression name has data type STRING but expected INT64. Implicit cast is not supported.
+Conversion exception: Cast failed. Could not convert "Adam" to INT64.
 -STATEMENT CREATE NODE TABLE User2(name STRING, age DOUBLE, PRIMARY KEY (name));
 ---- ok
 -STATEMENT Copy User2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
@@ -23,7 +23,7 @@ Zhang|50.000000
 ---- ok
 -STATEMENT Copy Follows1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet";
 ---- error
-Binder exception: Expression since has data type INT64 but expected INT64[]. Implicit cast is not supported.
+Conversion exception: Unsupported casting function from INT64 to LIST.
 -STATEMENT CREATE REL TABLE Follows2(FROM User2 TO User2, since DOUBLE);
 ---- ok
 -STATEMENT Copy Follows2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet";

@@ -5,7 +5,6 @@
 
 #include "common/enums/rel_direction.h"
 #include "common/serializer/buffered_file.h"
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -25,16 +24,13 @@ struct SequenceRollbackData;
 } // namespace catalog
 
 namespace storage {
-
-using lock_t = std::unique_lock<std::mutex>;
-
 class WALReplayer;
 class WAL {
     friend class WALReplayer;
 
 public:
-    WAL(const std::string& directory, bool readOnly, BufferManager& bufferManager,
-        common::VirtualFileSystem* vfs, main::ClientContext* context);
+    WAL(const std::string& directory, bool readOnly, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
 
     ~WAL();
 
@@ -91,7 +87,6 @@ private:
     std::shared_ptr<common::BufferedFileWriter> bufferedWriter;
     std::string directory;
     std::mutex mtx;
-    BufferManager& bufferManager;
     common::VirtualFileSystem* vfs;
 };
 

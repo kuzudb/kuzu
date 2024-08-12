@@ -1,4 +1,3 @@
-#include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_runner/csv_to_parquet_converter.h"
@@ -66,8 +65,8 @@ public:
     }
 
     void TearDown() override {
-        std::filesystem::remove_all(databasePath);
-        BaseGraphTest::removeIEDBPath();
+        DBTest::TearDown();
+        removeIEDBPath();
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
             std::filesystem::remove_all(parquetTempDatasetPath);
         }

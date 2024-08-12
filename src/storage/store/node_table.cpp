@@ -7,6 +7,7 @@
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
@@ -69,6 +70,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     main::ClientContext* context) {
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
+        main::DBConfig::isDBPathInMemory(databasePath),
         nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager,
         shadowFile, vfs, context);
 }
@@ -98,8 +100,8 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     KU_ASSERT(scanState.source != TableScanSource::NONE &&
               scanState.columns.size() == scanState.outputVectors.size());
     for (const auto& outputVector : scanState.outputVectors) {
-        (void)outputVector;
         KU_ASSERT(outputVector->state == scanState.IDVector->state);
+        KU_UNUSED(outputVector);
     }
     const auto scanResult = scanState.nodeGroup->scan(transaction, scanState);
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
@@ -395,10 +397,6 @@ void NodeTable::checkpoint(Serializer& ser) {
 void NodeTable::serialize(Serializer& serializer) const {
     Table::serialize(serializer);
     nodeGroups->serialize(serializer);
-}
-
-uint64_t NodeTable::getEstimatedMemoryUsage() const {
-    return nodeGroups->getEstimatedMemoryUsage();
 }
 
 bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {

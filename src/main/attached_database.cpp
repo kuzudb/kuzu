@@ -45,6 +45,10 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     std::string dbType, ClientContext* clientContext)
     : AttachedDatabase{std::move(dbName), std::move(dbType), nullptr /* catalog */} {
     auto vfs = clientContext->getVFSUnsafe();
+    if (DBConfig::isDBPathInMemory(dbPath)) {
+        throw common::RuntimeException("Cannot attach an in-memory Kùzu database. Please give a "
+                                       "path to an on-disk Kùzu database directory.");
+    }
     auto path = vfs->expandPath(clientContext, dbPath);
     initCatalog(path, clientContext);
     validateEmptyWAL(path, clientContext);

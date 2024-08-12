@@ -71,8 +71,8 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
     // Read primary key if we are deleting nodes;
     for (auto& info : boundDeleteClause.getNodeInfos()) {
         auto& node = info.pattern->constCast<NodeExpression>();
-        for (auto id : node.getTableIDs()) {
-            properties.insert(node.getPrimaryKey(id));
+        for (auto entry : node.getEntries()) {
+            properties.insert(node.getPrimaryKey(entry->getTableID()));
         }
     }
     // Read rel internal id if we are deleting relationships.
