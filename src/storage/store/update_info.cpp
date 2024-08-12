@@ -106,7 +106,7 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transacti
             // Same transaction.
             KU_ASSERT(current->version >= Transaction::START_TRANSACTION_ID);
             info = current;
-        } else if (current->version >= transaction->getStartTS()) {
+        } else if (current->version > transaction->getStartTS()) {
             // Potentially there can be conflicts. `current` can be uncommitted transaction (version
             // is transaction ID) or committed transaction started after this transaction.
             for (auto i = 0u; i < current->numRowsUpdated; i++) {
