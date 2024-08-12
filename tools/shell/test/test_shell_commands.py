@@ -11,6 +11,8 @@ def test_help(temp_db) -> None:
             "    :quit     exit from shell",
             "    :max_rows [max_rows]     set maximum number of rows for display (default: 20)",
             "    :max_width [max_width]     set maximum width in characters for display",
+            "    :mode [mode]     set output mode (default: box)",
+            "    :stats [on|off]     toggle query stats on or off",
             "",
             "    Note: you can change and see several system configurations, such as num-threads, ",
             "          timeout, and progress_bar using Cypher CALL statements.",
@@ -156,6 +158,260 @@ def test_max_width(temp_db, csv_path) -> None:
     result.check_stdout("\u2502 Table LANGUAGE_CODE has been created. \u2502")
     result.check_not_stdout("\u2502 ... \u2502")
     result.check_stdout("(1 column)")
+
+
+def output_mode_verification(result) -> None:
+    result.check_stdout(
+        [
+            "Available output modes:",
+            "    box (default):    Tables using unicode box-drawing characters",
+            "    column:    Output in columns",
+            "    csv:    Comma-separated values",
+            "    html:    HTML table",
+            "    json:    Results in a JSON array",
+            "    jsonlines:    Results in a NDJSON format",
+            "    latex:    LaTeX tabular environment code",
+            "    line:    One value per line",
+            "    list:    Values delimited by \"|\"",
+            "    markdown:    Markdown table",
+            "    table:    Tables using ASCII characters",
+            "    tsv:    Tab-separated values",
+            "    trash:    No output",
+        ],
+    )
+
+
+def test_set_mode(temp_db) -> None:
+    # test default mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("\u2502 a              \u2502 b            \u2502")
+    result.check_stdout("\u2502 Databases Rule \u2502 kuzu is cool \u2502")
+
+    # test column mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode column")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a                b")
+    result.check_stdout("Databases Rule   kuzu is cool")
+
+    # test csv mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode csv")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a,b")
+    result.check_stdout("Databases Rule,kuzu is cool")
+
+    # test box mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        # box is default so need to switch to another mode first
+        .statement(":mode csv")
+        .statement(":mode box")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("\u2502 a              \u2502 b            \u2502")
+    result.check_stdout("\u2502 Databases Rule \u2502 kuzu is cool \u2502")
+
+    # test html mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode html")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("<table>")
+    result.check_stdout("<tr>")
+    result.check_stdout("<th>a</th><th>b</th>")
+    result.check_stdout("</tr>")
+    result.check_stdout("<tr>")
+    result.check_stdout("<td>Databases Rule</td><td>kuzu is cool</td>")
+    result.check_stdout("</tr>")
+    result.check_stdout("</table>")
+
+    # test json mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode json")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout('[{"a":"Databases Rule","b":"kuzu is cool"}]')
+
+    # test jsonlines mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode jsonlines")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout('{"a":"Databases Rule","b":"kuzu is cool"}')
+
+    # test latex mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode latex")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("\\begin{tabular}{ll}")
+    result.check_stdout("\\hline")
+    result.check_stdout("a&b\\\\")
+    result.check_stdout("\\hline")
+    result.check_stdout("Databases Rule&kuzu is cool\\\\")
+    result.check_stdout("\\hline")
+    result.check_stdout("\\end{tabular}")
+
+    # test line mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode line")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a = Databases Rule")
+    result.check_stdout("b = kuzu is cool")
+    
+    # test list mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode list")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a|b")
+    result.check_stdout("Databases Rule|kuzu is cool")
+
+    # test markdown mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode markdown")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("| a              | b            |")
+    result.check_stdout("| Databases Rule | kuzu is cool |")
+
+    # test table mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode table")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("| a              | b            |")
+    result.check_stdout("| Databases Rule | kuzu is cool |")
+
+    # test tsv mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode tsv")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a\tb")
+    result.check_stdout("Databases Rule\tkuzu is cool")
+
+    # test trash mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode trash")
+        .statement('RETURN RANGE(0, 10) AS a;')
+    )
+    result = test.run()
+    result.check_not_stdout("[0,1,2,3,4,5,6,7,8,9,10]")
+
+    # test mode info
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode invalid")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    output_mode_verification(result)
+
+    # test invalid mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":mode invalid")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("Cannot parse 'invalid' as output mode.")
+    output_mode_verification(result)
+
+
+def test_stats(temp_db) -> None:
+    # test stats default
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "Databases Rule" AS a;')
+    )
+    result = test.run()
+    result.check_stdout("(1 tuple)")
+    result.check_stdout("(1 column)")
+    result.check_stdout("Time: ")
+
+    # test stats off
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":stats off")
+        .statement('RETURN "Databases Rule" AS a;')
+    )
+    result = test.run()
+    result.check_not_stdout("(1 tuple)")
+    result.check_not_stdout("(1 column)")
+    result.check_not_stdout("Time: ")
+
+    # test stats on
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":stats on")
+        .statement('RETURN "Databases Rule" AS a;')
+    )
+    result = test.run()
+    result.check_stdout("(1 tuple)")
+    result.check_stdout("(1 column)")
+    result.check_stdout("Time: ")
+
+    # test stats invalid
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":stats invalid")
+        .statement('RETURN "Databases Rule" AS a;')
+    )
+    result = test.run()
+    result.check_stdout("Cannot parse 'invalid' to toggle stats. Expect 'on' or 'off'.")
 
 
 def test_bad_command(temp_db) -> None:

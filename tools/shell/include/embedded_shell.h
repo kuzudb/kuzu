@@ -2,9 +2,20 @@
 
 #include "linenoise.h"
 #include "main/kuzu.h"
+#include "output.h"
 
 namespace kuzu {
 namespace main {
+
+const int defaultMaxRows = 20;
+
+struct ShellConfig {
+    const char* path_to_history = "";
+    uint64_t maxRowSize = defaultMaxRows;
+    uint32_t maxPrintWidth = 0;
+    std::unique_ptr<DrawingCharacters> drawingCharacters = std::make_unique<BoxDrawingCharacters>();
+    bool stats = true;
+};
 
 /**
  * Embedded shell simulate a session that directly connects to the system.
@@ -13,7 +24,7 @@ class EmbeddedShell {
 
 public:
     EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn,
-        const char* pathToHistory);
+        ShellConfig& shellConfig);
 
     void run();
 
@@ -26,11 +37,25 @@ private:
 
     void printExecutionResult(QueryResult& queryResult) const;
 
+    void printTruncatedExecutionResult(QueryResult& queryResult) const;
+
+    std::string printJsonExecutionResult(QueryResult& queryResult) const;
+
+    std::string printHtmlExecutionResult(QueryResult& queryResult) const;
+
+    std::string printLatexExecutionResult(QueryResult& queryResult) const;
+
+    std::string printLineExecutionResult(QueryResult& queryResult) const;
+
     void updateTableNames();
 
     void setMaxRows(const std::string& maxRowsString);
 
     void setMaxWidth(const std::string& maxWidthString);
+
+    void setMode(const std::string& modeString);
+
+    void setStats(const std::string& statsString);
 
 private:
     std::shared_ptr<Database> database;
@@ -38,6 +63,8 @@ private:
     const char* path_to_history;
     uint64_t maxRowSize;
     uint32_t maxPrintWidth;
+    std::unique_ptr<DrawingCharacters> drawingCharacters;
+    bool stats;
 };
 
 } // namespace main

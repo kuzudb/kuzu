@@ -10,7 +10,7 @@ def test_database_path(temp_db) -> None:
     # no database path
     test = ShellTest()
     result = test.run()
-    result.check_stdout("Opened the database under in in-memory mode.")
+    result.check_stdout("Opened the database under in-memory mode.")
 
     # valid database path
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a;')
@@ -161,6 +161,243 @@ def test_version(temp_db, flag) -> None:
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
     result.check_stdout(KUZU_VERSION)
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "-m",
+        "--mode",
+    ],
+)
+def test_mode(temp_db, flag) -> None:
+    # test default mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("\u2502 a              \u2502 b            \u2502")
+    result.check_stdout("\u2502 Databases Rule \u2502 kuzu is cool \u2502")
+
+    # test column mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("column")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a                b")
+    result.check_stdout("Databases Rule   kuzu is cool")
+
+    # test csv mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("csv")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a,b")
+    result.check_stdout("Databases Rule,kuzu is cool")
+
+    # test box mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("box")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("\u2502 a              \u2502 b            \u2502")
+    result.check_stdout("\u2502 Databases Rule \u2502 kuzu is cool \u2502")
+
+    # test html mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("html")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("<table>")
+    result.check_stdout("<tr>")
+    result.check_stdout("<th>a</th><th>b</th>")
+    result.check_stdout("</tr>")
+    result.check_stdout("<tr>")
+    result.check_stdout("<td>Databases Rule</td><td>kuzu is cool</td>")
+    result.check_stdout("</tr>")
+    result.check_stdout("</table>")
+
+    # test json mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("json")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout('[{"a":"Databases Rule","b":"kuzu is cool"}]')
+
+    # test jsonlines mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("jsonlines")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout('{"a":"Databases Rule","b":"kuzu is cool"}')
+
+    # test latex mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("latex")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("\\begin{tabular}{ll}")
+    result.check_stdout("\\hline")
+    result.check_stdout("a&b\\\\")
+    result.check_stdout("\\hline")
+    result.check_stdout("Databases Rule&kuzu is cool\\\\")
+    result.check_stdout("\\hline")
+    result.check_stdout("\\end{tabular}")
+
+    # test line mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("line")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a = Databases Rule")
+    result.check_stdout("b = kuzu is cool")
+    
+    # test list mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("list")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a|b")
+    result.check_stdout("Databases Rule|kuzu is cool")
+
+    # test markdown mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("markdown")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("| a              | b            |")
+    result.check_stdout("| Databases Rule | kuzu is cool |")
+
+    # test table mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("table")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("| a              | b            |")
+    result.check_stdout("| Databases Rule | kuzu is cool |")
+
+    # test tsv mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("tsv")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stdout("a\tb")
+    result.check_stdout("Databases Rule\tkuzu is cool")
+
+    # test trash mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("trash")
+        .statement('RETURN RANGE(0, 10) AS a;')
+    )
+    result = test.run()
+    result.check_not_stdout("[0,1,2,3,4,5,6,7,8,9,10]")
+
+    # test mode info
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stderr(f"Flag '{flag.replace('-', '')}' requires an argument but received none")
+
+    # test invalid mode
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("invalid")
+        .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
+    )
+    result = test.run()
+    result.check_stderr("Cannot parse 'invalid' as output mode.")
+    
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "-s",
+        "--nostats",
+        "--no_stats",
+    ],
+)
+def test_no_stats(temp_db, flag) -> None:
+    # test stats off
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .statement('RETURN "Databases Rule" AS a;')
+    )
+    result = test.run()
+    result.check_not_stdout("(1 tuple)")
+    result.check_not_stdout("(1 column)")
+    result.check_not_stdout("Time: ")
+
+    # test stats on
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN "Databases Rule" AS a;')
+    )
+    result = test.run()
+    result.check_stdout("(1 tuple)")
+    result.check_stdout("(1 column)")
+    result.check_stdout("Time: ")
 
 
 def test_bad_flag(temp_db) -> None:

@@ -48,7 +48,10 @@ struct ShellCommand {
     const char* QUIT = ":quit";
     const char* MAX_ROWS = ":max_rows";
     const char* MAX_WIDTH = ":max_width";
-    const std::array<const char*, 5> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH};
+    const char* MODE = ":mode";
+    const char* STATS = ":stats";
+    const std::array<const char*, 7> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -66,8 +69,6 @@ std::vector<std::string> relTableNames;
 
 bool continueLine = false;
 std::string currLine;
-
-const int defaultMaxRows = 20;
 
 static Connection* globalConnection;
 
@@ -262,16 +263,23 @@ std::string findClosestCommand(std::string lineStr) {
 }
 
 int EmbeddedShell::processShellCommands(std::string lineStr) {
-    if (lineStr == shellCommand.HELP) {
+    std::istringstream iss(lineStr);
+    std::string command, arg;
+    iss >> command >> arg;
+    if (command == shellCommand.HELP) {
         printHelp();
-    } else if (lineStr == shellCommand.CLEAR) {
+    } else if (command == shellCommand.CLEAR) {
         linenoiseClearScreen();
-    } else if (lineStr == shellCommand.QUIT) {
+    } else if (command == shellCommand.QUIT) {
         return -1;
-    } else if (lineStr.rfind(shellCommand.MAX_ROWS) == 0) {
-        setMaxRows(lineStr.substr(strlen(shellCommand.MAX_ROWS)));
-    } else if (lineStr.rfind(shellCommand.MAX_WIDTH) == 0) {
-        setMaxWidth(lineStr.substr(strlen(shellCommand.MAX_WIDTH)));
+    } else if (command == shellCommand.MAX_ROWS) {
+        setMaxRows(arg);
+    } else if (command == shellCommand.MAX_WIDTH) {
+        setMaxWidth(arg);
+    } else if (command == shellCommand.MODE) {
+        setMode(arg);
+    } else if (command == shellCommand.STATS) {
+        setStats(arg);
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -280,16 +288,18 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
 }
 
 EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr<Connection> conn,
-    const char* pathToHistory) {
-    path_to_history = pathToHistory;
+    ShellConfig& shellConfig) {
+    path_to_history = shellConfig.path_to_history;
     linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHighlightCallback(highlight);
     this->database = database;
     this->conn = conn;
     globalConnection = conn.get();
-    maxRowSize = defaultMaxRows;
-    maxPrintWidth = 0; // Will be determined when printing
+    maxRowSize = shellConfig.maxRowSize;
+    maxPrintWidth = shellConfig.maxPrintWidth;
+    drawingCharacters = std::move(shellConfig.drawingCharacters);
+    stats = shellConfig.stats;
     updateTableNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
@@ -425,6 +435,91 @@ void EmbeddedShell::setMaxWidth(const std::string& maxWidthString) {
     printf("maxWidth set as %d\n", parsedMaxWidth);
 }
 
+void printModeInfo() {
+    printf("Available output modes:\n");
+    printf("%sbox (default):%sTables using unicode box-drawing characters\n", TAB, TAB);
+    printf("%scolumn:%sOutput in columns\n", TAB, TAB);
+    printf("%scsv:%sComma-separated values\n", TAB, TAB);
+    printf("%shtml:%sHTML table\n", TAB, TAB);
+    printf("%sjson:%sResults in a JSON array\n", TAB, TAB);
+    printf("%sjsonlines:%sResults in a NDJSON format\n", TAB, TAB);
+    printf("%slatex:%sLaTeX tabular environment code\n", TAB, TAB);
+    printf("%sline:%sOne value per line\n", TAB, TAB);
+    printf("%slist:%sValues delimited by \"|\"\n", TAB, TAB);
+    printf("%smarkdown:%sMarkdown table\n", TAB, TAB);
+    printf("%stable:%sTables using ASCII characters\n", TAB, TAB);
+    printf("%stsv:%sTab-separated values\n", TAB, TAB);
+    printf("%strash:%sNo output\n", TAB, TAB);
+}
+
+void EmbeddedShell::setMode(const std::string& modeString) {
+    if (modeString.empty()) {
+        printModeInfo();
+        return;
+    }
+    switch (PrintTypeUtils::fromString(modeString)) {
+    case PrintType::BOX:
+        drawingCharacters = std::make_unique<BoxDrawingCharacters>();
+        break;
+    case PrintType::TABLE:
+        drawingCharacters = std::make_unique<TableDrawingCharacters>();
+        break;
+    case PrintType::CSV:
+        drawingCharacters = std::make_unique<CSVDrawingCharacters>();
+        break;
+    case PrintType::TSV:
+        drawingCharacters = std::make_unique<TSVDrawingCharacters>();
+        break;
+    case PrintType::MARKDOWN:
+        drawingCharacters = std::make_unique<MarkdownDrawingCharacters>();
+        break;
+    case PrintType::COLUMN:
+        drawingCharacters = std::make_unique<ColumnDrawingCharacters>();
+        break;
+    case PrintType::LIST:
+        drawingCharacters = std::make_unique<ListDrawingCharacters>();
+        break;
+    case PrintType::TRASH:
+        drawingCharacters = std::make_unique<TrashDrawingCharacters>();
+        break;
+    case PrintType::JSON:
+        drawingCharacters = std::make_unique<JSONDrawingCharacters>();
+        break;
+    case PrintType::JSONLINES:
+        drawingCharacters = std::make_unique<JSONLinesDrawingCharacters>();
+        break;
+    case PrintType::HTML:
+        drawingCharacters = std::make_unique<HTMLDrawingCharacters>();
+        break;
+    case PrintType::LATEX:
+        drawingCharacters = std::make_unique<LatexDrawingCharacters>();
+        break;
+    case PrintType::LINE:
+        drawingCharacters = std::make_unique<LineDrawingCharacters>();
+        break;
+    default:
+        printf("Cannot parse '%s' as output mode.\n\n", modeString.c_str());
+        printModeInfo();
+        return;
+    }
+    printf("mode set as %s\n", modeString.c_str());
+}
+
+void EmbeddedShell::setStats(const std::string& statsString) {
+    std::string statsStringLower = statsString;
+    std::transform(statsStringLower.begin(), statsStringLower.end(), statsStringLower.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    if (statsStringLower == "on") {
+        stats = true;
+    } else if (statsStringLower == "off") {
+        stats = false;
+    } else {
+        printf("Cannot parse '%s' to toggle stats. Expect 'on' or 'off'.\n", statsString.c_str());
+        return;
+    }
+    printf("stats set as %s\n", stats ? "on" : "off");
+}
+
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
@@ -433,6 +528,8 @@ void EmbeddedShell::printHelp() {
         shellCommand.MAX_ROWS, TAB);
     printf("%s%s [max_width] %sset maximum width in characters for display\n", TAB,
         shellCommand.MAX_WIDTH, TAB);
+    printf("%s%s [mode] %sset output mode (default: box)\n", TAB, shellCommand.MODE, TAB);
+    printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);
@@ -442,22 +539,194 @@ void EmbeddedShell::printHelp() {
     printf("%s%s  See: \x1B]8;;%s\x1B\\%s\x1B]8;;\x1B\\\n", TAB, TAB, url, url);
 }
 
-struct BoxDrawingCharacters {
-    static constexpr const char* DownAndRight = "\u250C";
-    static constexpr const char* Horizontal = "\u2500";
-    static constexpr const char* DownAndHorizontal = "\u252C";
-    static constexpr const char* DownAndLeft = "\u2510";
-    static constexpr const char* Vertical = "\u2502";
-    static constexpr const char* VerticalAndRight = "\u251C";
-    static constexpr const char* VerticalAndHorizontal = "\u253C";
-    static constexpr const char* VerticalAndLeft = "\u2524";
-    static constexpr const char* UpAndRight = "\u2514";
-    static constexpr const char* UpAndHorizontal = "\u2534";
-    static constexpr const char* UpAndLeft = "\u2518";
-    static constexpr const char* MiddleDot = "\u00B7";
-};
+std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) const {
+    auto colNames = queryResult.getColumnNames();
+    auto jsonDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, JSONDrawingCharacters*>(
+            drawingCharacters.get());
+    bool jsonLines = jsonDrawingCharacters->printType == PrintType::JSONLINES;
+    std::string printString = "";
+    if (!jsonLines) {
+        printString = jsonDrawingCharacters->ArrayOpen;
+    }
+    while (queryResult.hasNext()) {
+        auto tuple = queryResult.getNext();
+        printString += jsonDrawingCharacters->ObjectOpen;
+        for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+            printString += jsonDrawingCharacters->KeyValue;
+            printString += colNames[i];
+            printString += jsonDrawingCharacters->KeyValue;
+            printString += jsonDrawingCharacters->KeyDelimiter;
+            printString += jsonDrawingCharacters->KeyValue;
+            printString += tuple->getValue(i)->toString();
+            printString += jsonDrawingCharacters->KeyValue;
+            if (i != queryResult.getNumColumns() - 1) {
+                printString += jsonDrawingCharacters->TupleDelimiter;
+            }
+        }
+        printString += jsonDrawingCharacters->ObjectClose;
+        if (queryResult.hasNext()) {
+            if (!jsonLines) {
+                printString += jsonDrawingCharacters->TupleDelimiter;
+            }
+            printString += "\n";
+        }
+    }
+    if (!jsonLines) {
+        printString += jsonDrawingCharacters->ArrayClose;
+    }
+    printString += "\n";
+    return printString;
+}
+
+std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) const {
+    auto colNames = queryResult.getColumnNames();
+    auto htmlDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, HTMLDrawingCharacters*>(
+            drawingCharacters.get());
+    std::string printString = htmlDrawingCharacters->TableOpen;
+    printString += "\n";
+    printString += htmlDrawingCharacters->RowOpen;
+    printString += "\n";
+    for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+        printString += htmlDrawingCharacters->HeaderOpen;
+        printString += colNames[i];
+        printString += htmlDrawingCharacters->HeaderClose;
+    }
+    printString += "\n";
+    printString += htmlDrawingCharacters->RowClose;
+    printString += "\n";
+    while (queryResult.hasNext()) {
+        auto tuple = queryResult.getNext();
+        printString += htmlDrawingCharacters->RowOpen;
+        printString += "\n";
+        for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+            printString += htmlDrawingCharacters->CellOpen;
+            printString += tuple->getValue(i)->toString();
+            printString += htmlDrawingCharacters->CellClose;
+        }
+        printString += htmlDrawingCharacters->RowClose;
+        printString += "\n";
+    }
+    printString += htmlDrawingCharacters->TableClose;
+    printString += "\n";
+    return printString;
+}
+
+std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) const {
+    auto colNames = queryResult.getColumnNames();
+    auto latexDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, LatexDrawingCharacters*>(
+            drawingCharacters.get());
+    std::string printString = latexDrawingCharacters->TableOpen;
+    printString += latexDrawingCharacters->AlignOpen;
+    for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+        printString += latexDrawingCharacters->ColumnAlign;
+    }
+    printString += latexDrawingCharacters->AlignClose;
+    printString += "\n";
+    printString += latexDrawingCharacters->Line;
+    printString += "\n";
+    for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+        printString += colNames[i];
+        if (i != queryResult.getNumColumns() - 1) {
+            printString += latexDrawingCharacters->TupleDelimiter;
+        }
+    }
+    printString += latexDrawingCharacters->EndLine;
+    printString += "\n";
+    printString += latexDrawingCharacters->Line;
+    printString += "\n";
+    while (queryResult.hasNext()) {
+        auto tuple = queryResult.getNext();
+        for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+            printString += tuple->getValue(i)->toString();
+            if (i != queryResult.getNumColumns() - 1) {
+                printString += latexDrawingCharacters->TupleDelimiter;
+            }
+        }
+        printString += latexDrawingCharacters->EndLine;
+        printString += "\n";
+    }
+    printString += latexDrawingCharacters->Line;
+    printString += "\n";
+    printString += latexDrawingCharacters->TableClose;
+    printString += "\n";
+    return printString;
+}
+
+std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) const {
+    auto colNames = queryResult.getColumnNames();
+    std::string printString = "";
+    while (queryResult.hasNext()) {
+        auto tuple = queryResult.getNext();
+        for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+            printString += colNames[i];
+            printString += drawingCharacters->TupleDelimiter;
+            printString += tuple->getValue(i)->toString();
+            printString += "\n";
+        }
+        printString += "\n";
+    }
+    return printString;
+}
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
+    auto querySummary = queryResult.getQuerySummary();
+    if (querySummary->isExplain()) {
+        printf("%s", queryResult.getNext()->toString().c_str());
+        return;
+    }
+    if (PrintTypeUtils::isTableType(drawingCharacters->printType)) {
+        printTruncatedExecutionResult(queryResult);
+        return;
+    }
+    std::string printString = "";
+    if (drawingCharacters->printType == PrintType::JSON ||
+        drawingCharacters->printType == PrintType::JSONLINES) {
+        printString = printJsonExecutionResult(queryResult);
+    } else if (drawingCharacters->printType == PrintType::HTML) {
+        printString = printHtmlExecutionResult(queryResult);
+    } else if (drawingCharacters->printType == PrintType::LATEX) {
+        printString = printLatexExecutionResult(queryResult);
+    } else if (drawingCharacters->printType == PrintType::LINE) {
+        printString = printLineExecutionResult(queryResult);
+    } else if (drawingCharacters->printType != PrintType::TRASH) {
+        for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+            printString += queryResult.getColumnNames()[i];
+            if (i != queryResult.getNumColumns() - 1) {
+                printString += drawingCharacters->TupleDelimiter;
+            }
+        }
+        printString += "\n";
+        while (queryResult.hasNext()) {
+            auto tuple = queryResult.getNext();
+            printString += tuple->toString(std::vector<uint32_t>(queryResult.getNumColumns(), 0),
+                drawingCharacters->TupleDelimiter, UINT32_MAX);
+            printString += "\n";
+        }
+    }
+    printf("%s", printString.c_str());
+    if (stats) {
+        if (queryResult.getNumTuples() == 1) {
+            printf("(1 tuple)\n");
+        } else {
+            printf("(%" PRIu64 " tuples)\n", queryResult.getNumTuples());
+        }
+        if (queryResult.getNumColumns() == 1) {
+            printf("(1 column)\n");
+        } else {
+            printf("(%" PRIu64 " columns)\n", queryResult.getNumColumns());
+        }
+        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
+            querySummary->getExecutionTime());
+    }
+}
+
+void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) const {
+    auto tableDrawingCharacters =
+        common::ku_dynamic_cast<DrawingCharacters*, BaseTableDrawingCharacters*>(
+            drawingCharacters.get());
     auto querySummary = queryResult.getQuerySummary();
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
@@ -614,122 +883,135 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             }
         }
 
-        if (queryResult.getNumColumns() != 0) {
+        if (queryResult.getNumColumns() != 0 && tableDrawingCharacters->TopLine) {
             std::string printString;
-            printString += BoxDrawingCharacters::DownAndRight;
+            printString += tableDrawingCharacters->DownAndRight;
             for (auto i = 0u; i < k; i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += BoxDrawingCharacters::Horizontal;
+                    printString += tableDrawingCharacters->Horizontal;
                 }
                 if (i != colsWidth.size() - 1) {
-                    printString += BoxDrawingCharacters::DownAndHorizontal;
+                    printString += tableDrawingCharacters->DownAndHorizontal;
                 }
             }
             if (j >= k) {
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::DownAndHorizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->DownAndHorizontal;
             }
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += BoxDrawingCharacters::Horizontal;
+                    printString += tableDrawingCharacters->Horizontal;
                 }
                 if (i != colsWidth.size() - 1) {
-                    printString += BoxDrawingCharacters::DownAndHorizontal;
+                    printString += tableDrawingCharacters->DownAndHorizontal;
                 }
             }
-            printString += BoxDrawingCharacters::DownAndLeft;
+            printString += tableDrawingCharacters->DownAndLeft;
             printf("%s\n", printString.c_str());
         }
 
         if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
             std::string printString;
+            printString += tableDrawingCharacters->Vertical;
             for (auto i = 0u; i < k; i++) {
                 std::string columnName = queryResult.getColumnNames()[i];
                 if (columnName.length() > colsWidth[i] - 2) {
-                    columnName = columnName.substr(0, colsWidth[i] - 5) + "...";
+                    columnName =
+                        columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
-                printString += BoxDrawingCharacters::Vertical;
                 printString += " ";
                 printString += columnName;
                 printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+                if (i != k - 1) {
+                    printString += tableDrawingCharacters->Vertical;
+                }
             }
             if (j >= k) {
-                printString += BoxDrawingCharacters::Vertical;
-                printString += " ... ";
+                printString += tableDrawingCharacters->Vertical;
+                printString += " ";
+                printString += tableDrawingCharacters->Truncation;
+                printString += " ";
             }
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 std::string columnName = queryResult.getColumnNames()[i];
                 if (columnName.length() > colsWidth[i] - 2) {
-                    columnName = columnName.substr(0, colsWidth[i] - 5) + "...";
+                    columnName =
+                        columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
-                printString += BoxDrawingCharacters::Vertical;
+                printString += tableDrawingCharacters->Vertical;
                 printString += " ";
                 printString += columnName;
                 printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
             }
-            printString += BoxDrawingCharacters::Vertical;
-            printString += "\n";
-
-            for (auto i = 0u; i < k; i++) {
-                std::string columnType = queryResult.getColumnDataTypes()[i].toString();
-                if (columnType.length() > colsWidth[i] - 2) {
-                    columnType = columnType.substr(0, colsWidth[i] - 5) + "...";
+            printString += tableDrawingCharacters->Vertical;
+            if (tableDrawingCharacters->Types) {
+                printString += "\n";
+                printString += tableDrawingCharacters->Vertical;
+                for (auto i = 0u; i < k; i++) {
+                    std::string columnType = queryResult.getColumnDataTypes()[i].toString();
+                    if (columnType.length() > colsWidth[i] - 2) {
+                        columnType = columnType.substr(0, colsWidth[i] - 5) +
+                                     tableDrawingCharacters->Truncation;
+                    }
+                    printString += " ";
+                    printString += columnType;
+                    printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
+                    if (i != k - 1) {
+                        printString += tableDrawingCharacters->Vertical;
+                    }
                 }
-                printString += BoxDrawingCharacters::Vertical;
-                printString += " ";
-                printString += columnType;
-                printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
-            }
-            if (j >= k) {
-                printString += BoxDrawingCharacters::Vertical;
-                printString += "     ";
-            }
-            for (auto i = j + 1; i < colsWidth.size(); i++) {
-                std::string columnType = queryResult.getColumnDataTypes()[i].toString();
-                if (columnType.length() > colsWidth[i] - 2) {
-                    columnType = columnType.substr(0, colsWidth[i] - 5) + "...";
+                if (j >= k) {
+                    printString += tableDrawingCharacters->Vertical;
+                    printString += "     ";
                 }
-                printString += BoxDrawingCharacters::Vertical;
-                printString += " ";
-                printString += columnType;
-                printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
+                for (auto i = j + 1; i < colsWidth.size(); i++) {
+                    std::string columnType = queryResult.getColumnDataTypes()[i].toString();
+                    if (columnType.length() > colsWidth[i] - 2) {
+                        columnType = columnType.substr(0, colsWidth[i] - 5) +
+                                     tableDrawingCharacters->Truncation;
+                    }
+                    printString += tableDrawingCharacters->Vertical;
+                    printString += " ";
+                    printString += columnType;
+                    printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
+                }
+                printString += tableDrawingCharacters->Vertical;
             }
-            printString += BoxDrawingCharacters::Vertical;
             printf("%s\n", printString.c_str());
         }
 
         if (queryResult.getNumColumns() != 0) {
             std::string printString;
-            printString += BoxDrawingCharacters::VerticalAndRight;
+            printString += tableDrawingCharacters->VerticalAndRight;
             for (auto i = 0u; i < k; i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += BoxDrawingCharacters::Horizontal;
+                    printString += tableDrawingCharacters->Horizontal;
                 }
                 if (i != colsWidth.size() - 1) {
-                    printString += BoxDrawingCharacters::VerticalAndHorizontal;
+                    printString += tableDrawingCharacters->VerticalAndHorizontal;
                 }
             }
             if (j >= k) {
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::VerticalAndHorizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->VerticalAndHorizontal;
             }
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += BoxDrawingCharacters::Horizontal;
+                    printString += tableDrawingCharacters->Horizontal;
                 }
                 if (i != colsWidth.size() - 1) {
-                    printString += BoxDrawingCharacters::VerticalAndHorizontal;
+                    printString += tableDrawingCharacters->VerticalAndHorizontal;
                 }
             }
-            printString += BoxDrawingCharacters::VerticalAndLeft;
+            printString += tableDrawingCharacters->VerticalAndLeft;
             printf("%s\n", printString.c_str());
         }
 
@@ -744,34 +1026,36 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                     rowTruncated = true;
                     for (auto i = 0u; i < 3u; i++) {
                         std::string printString;
-                        printString += BoxDrawingCharacters::Vertical;
+                        printString += tableDrawingCharacters->Vertical;
                         for (auto l = 0u; l < k; l++) {
                             uint32_t spacesToPrint = (colsWidth[l] / 2);
                             printString += std::string(spacesToPrint - 1, ' ');
-                            printString += BoxDrawingCharacters::MiddleDot;
-
+                            printString += tableDrawingCharacters->MiddleDot;
                             if (colsWidth[l] % 2 == 1) {
                                 printString += " ";
                             }
                             printString += std::string(spacesToPrint, ' ');
-                            printString += BoxDrawingCharacters::Vertical;
+                            if (l != k - 1) {
+                                printString += tableDrawingCharacters->Vertical;
+                            }
                         }
                         if (j >= k) {
+                            printString += tableDrawingCharacters->Vertical;
                             printString += "  ";
-                            printString += BoxDrawingCharacters::MiddleDot;
+                            printString += tableDrawingCharacters->MiddleDot;
                             printString += "  ";
-                            printString += BoxDrawingCharacters::Vertical;
                         }
                         for (auto l = j + 1; l < colsWidth.size(); l++) {
                             uint32_t spacesToPrint = (colsWidth[l] / 2);
+                            printString += tableDrawingCharacters->Vertical;
                             printString += std::string(spacesToPrint - 1, ' ');
-                            printString += BoxDrawingCharacters::MiddleDot;
+                            printString += tableDrawingCharacters->MiddleDot;
                             if (colsWidth[l] % 2 == 1) {
                                 printString += " ";
                             }
                             printString += std::string(spacesToPrint, ' ');
-                            printString += BoxDrawingCharacters::Vertical;
                         }
+                        printString += tableDrawingCharacters->Vertical;
                         printf("%s\n", printString.c_str());
                     }
                 }
@@ -779,7 +1063,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 continue;
             }
             auto tuple = queryResult.getNext();
-            auto result = tuple->toString(colsWidth, " ", maxWidth);
+            auto result =
+                tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
+            std::string printString;
             uint64_t startPos = 0;
             std::vector<std::string> colResults;
             for (auto i = 0u; i < colsWidth.size(); i++) {
@@ -793,76 +1079,82 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
                 // new start position is after the | seperating results
                 startPos = chrIter + 1;
             }
-            std::string printString;
-            printString += BoxDrawingCharacters::Vertical;
+            printString += tableDrawingCharacters->Vertical;
             for (auto i = 0u; i < k; i++) {
                 printString += colResults[i];
-                printString += BoxDrawingCharacters::Vertical;
+                if (i != k - 1) {
+                    printString += tableDrawingCharacters->Vertical;
+                }
             }
             if (j >= k) {
-                printString += " ... ";
-                printString += BoxDrawingCharacters::Vertical;
+                printString += tableDrawingCharacters->Vertical;
+                printString += " ";
+                printString += tableDrawingCharacters->Truncation;
+                printString += " ";
             }
             for (auto i = j + 1; i < colResults.size(); i++) {
+                printString += tableDrawingCharacters->Vertical;
                 printString += colResults[i];
-                printString += BoxDrawingCharacters::Vertical;
             }
+            printString += tableDrawingCharacters->Vertical;
             printf("%s\n", printString.c_str());
             rowCount++;
         }
 
-        if (queryResult.getNumColumns() != 0) {
+        if (queryResult.getNumColumns() != 0 && tableDrawingCharacters->BottomLine) {
             std::string printString;
-            printString += BoxDrawingCharacters::UpAndRight;
+            printString += tableDrawingCharacters->UpAndRight;
             for (auto i = 0u; i < k; i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += BoxDrawingCharacters::Horizontal;
+                    printString += tableDrawingCharacters->Horizontal;
                 }
                 if (i != colsWidth.size() - 1) {
-                    printString += BoxDrawingCharacters::UpAndHorizontal;
+                    printString += tableDrawingCharacters->UpAndHorizontal;
                 }
             }
             if (j >= k) {
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::Horizontal;
-                printString += BoxDrawingCharacters::UpAndHorizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->Horizontal;
+                printString += tableDrawingCharacters->UpAndHorizontal;
             }
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += BoxDrawingCharacters::Horizontal;
+                    printString += tableDrawingCharacters->Horizontal;
                 }
                 if (i != colsWidth.size() - 1) {
-                    printString += BoxDrawingCharacters::UpAndHorizontal;
+                    printString += tableDrawingCharacters->UpAndHorizontal;
                 }
             }
-            printString += BoxDrawingCharacters::UpAndLeft;
+            printString += tableDrawingCharacters->UpAndLeft;
             printf("%s\n", printString.c_str());
         }
 
         // print query result (numFlatTuples & tuples)
-        if (numTuples == 1) {
-            printf("(1 tuple)\n");
-        } else {
-            printf("(%" PRIu64 " tuples", numTuples);
-            if (rowTruncated) {
-                printf(", %" PRIu64 " shown", maxRowSize);
+        if (stats) {
+            if (numTuples == 1) {
+                printf("(1 tuple)\n");
+            } else {
+                printf("(%" PRIu64 " tuples", numTuples);
+                if (rowTruncated) {
+                    printf(", %" PRIu64 " shown", maxRowSize);
+                }
+                printf(")\n");
             }
-            printf(")\n");
-        }
-        if (colsWidth.size() == 1) {
-            printf("(1 column)\n");
-        } else {
-            printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
-            if (colTruncated) {
-                printf(", %" PRIu64 " shown", colsPrinted);
+            if (colsWidth.size() == 1) {
+                printf("(1 column)\n");
+            } else {
+                printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
+                if (colTruncated) {
+                    printf(", %" PRIu64 " shown", colsPrinted);
+                }
+                printf(")\n");
             }
-            printf(")\n");
+            printf("Time: %.2fms (compiling), %.2fms (executing)\n",
+                querySummary->getCompilingTime(), querySummary->getExecutionTime());
         }
-        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
-            querySummary->getExecutionTime());
     }
 }
 
