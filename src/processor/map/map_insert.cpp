@@ -34,7 +34,8 @@ NodeInsertExecutor PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* bo
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = NodeInsertInfo(nodeIDPos, columnsPos, boundInfo->conflictAction);
     auto storageManager = clientContext->getStorageManager();
-    auto table = storageManager->getTable(node.getSingleEntry()->getTableID())->ptrCast<NodeTable>();
+    auto table =
+        storageManager->getTable(node.getSingleEntry()->getTableID())->ptrCast<NodeTable>();
     evaluator_vector_t evaluators;
     auto exprMapper = ExpressionMapper(&inSchema);
     for (auto& expr : boundInfo->columnDataExprs) {

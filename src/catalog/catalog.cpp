@@ -113,7 +113,8 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction,
     return result;
 }
 
-TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction, const std::string& tableName) const {
+TableCatalogEntry* Catalog::getTableCatalogEntry(Transaction* transaction,
+    const std::string& tableName) const {
     auto entry = tables->getEntry(transaction, tableName);
     // LCOV_EXCL_START
     if (entry == nullptr) {

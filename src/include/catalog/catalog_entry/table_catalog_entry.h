@@ -105,7 +105,8 @@ struct TableCatalogEntryEquality {
     }
 };
 
-using table_catalog_entry_set_t = std::unordered_set<TableCatalogEntry*, TableCatalogEntryHasher, TableCatalogEntryEquality>;
+using table_catalog_entry_set_t =
+    std::unordered_set<TableCatalogEntry*, TableCatalogEntryHasher, TableCatalogEntryEquality>;
 
 } // namespace catalog
 } // namespace kuzu

@@ -14,7 +14,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& entry, DataPos pkPos) const {
+NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& entry,
+    DataPos pkPos) const {
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();

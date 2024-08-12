@@ -261,7 +261,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             return createLiteralExpression("");
         }
         if (!node.isMultiLabeled()) {
-            auto labelName = catalog->getTableName(context->getTx(), node.getSingleEntry()->getTableID());
+            auto labelName =
+                catalog->getTableName(context->getTx(), node.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
         auto nodeTableIDs = catalog->getNodeTableIDs(context->getTx());
@@ -276,7 +277,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             return createLiteralExpression("");
         }
         if (!rel.isMultiLabeled()) {
-            auto labelName = catalog->getTableName(context->getTx(), rel.getSingleEntry()->getTableID());
+            auto labelName =
+                catalog->getTableName(context->getTx(), rel.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
         auto relTableIDs = catalog->getRelTableIDs(context->getTx());

@@ -32,9 +32,7 @@ public:
     common::idx_t getNumEntries() const { return entries.size(); }
     common::table_id_vector_t getTableIDs() const;
     common::table_id_set_t getTableIDsSet() const;
-    const std::vector<catalog::TableCatalogEntry*>& getEntries() const {
-        return entries;
-    }
+    const std::vector<catalog::TableCatalogEntry*>& getEntries() const { return entries; }
     void setEntries(std::vector<catalog::TableCatalogEntry*> entries_) {
         entries = std::move(entries_);
     }

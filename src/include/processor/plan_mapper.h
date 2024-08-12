@@ -186,7 +186,8 @@ private:
         const planner::Schema& schema) const;
     std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(const binder::BoundDeleteInfo& info,
         const planner::Schema& schema) const;
-    NodeTableDeleteInfo getNodeTableDeleteInfo(const catalog::TableCatalogEntry& entry, DataPos pkPos) const;
+    NodeTableDeleteInfo getNodeTableDeleteInfo(const catalog::TableCatalogEntry& entry,
+        DataPos pkPos) const;
     NodeTableSetInfo getNodeTableSetInfo(const catalog::TableCatalogEntry& entry,
         const binder::Expression& expr) const;
     RelTableSetInfo getRelTableSetInfo(const catalog::TableCatalogEntry& entry,

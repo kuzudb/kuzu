@@ -252,11 +252,13 @@ public:
         const std::shared_ptr<NodeExpression>& leftNode,
         const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph);
     std::shared_ptr<RelExpression> createNonRecursiveQueryRel(const std::string& parsedName,
-        const std::vector<catalog::TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
-        std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
+        const std::vector<catalog::TableCatalogEntry*>& entries,
+        std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+        RelDirectionType directionType);
     std::shared_ptr<RelExpression> createRecursiveQueryRel(const parser::RelPattern& relPattern,
-        const std::vector<catalog::TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
-        std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
+        const std::vector<catalog::TableCatalogEntry*>& entries,
+        std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+        RelDirectionType directionType);
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
     void bindQueryRelProperties(RelExpression& rel);
 
@@ -268,17 +270,23 @@ public:
     void bindQueryNodeProperties(NodeExpression& node);
 
     /*** bind table entries ***/
-    std::vector<catalog::TableCatalogEntry*> bindTableEntries(const std::vector<std::string>& tableNames,
-        bool nodePattern) const;
+    std::vector<catalog::TableCatalogEntry*> bindTableEntries(
+        const std::vector<std::string>& tableNames, bool nodePattern) const;
     catalog::TableCatalogEntry* bindTableEntry(const std::string& tableName) const;
     common::table_id_t bindTableID(const std::string& tableName) const;
-    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(const std::vector<catalog::TableCatalogEntry*>& entries) const;
-    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(const std::vector<catalog::TableCatalogEntry*>& entries) const;
-    std::vector<catalog::TableCatalogEntry*> getTableEntries(const std::vector<catalog::TableCatalogEntry*>& entries, common::TableType tableType) const;
-    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(catalog::TableCatalogEntry* entry) const;
-    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(catalog::TableCatalogEntry* entry) const;
+    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(
+        const std::vector<catalog::TableCatalogEntry*>& entries) const;
+    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(
+        const std::vector<catalog::TableCatalogEntry*>& entries) const;
+    std::vector<catalog::TableCatalogEntry*> getTableEntries(
+        const std::vector<catalog::TableCatalogEntry*>& entries, common::TableType tableType) const;
+    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(
+        catalog::TableCatalogEntry* entry) const;
+    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(
+        catalog::TableCatalogEntry* entry) const;
     // TODO(Xiyang): remove id based table binding logic.
-    std::vector<catalog::TableCatalogEntry*> getTableEntries(const common::table_id_vector_t& tableIDs);
+    std::vector<catalog::TableCatalogEntry*> getTableEntries(
+        const common::table_id_vector_t& tableIDs);
 
     /*** validations ***/
     // E.g. ... RETURN a, b AS a

@@ -241,8 +241,9 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
 }
 
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
-    const std::vector<catalog::TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
-    std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
+    const std::vector<catalog::TableCatalogEntry*>& entries,
+    std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+    RelDirectionType directionType) {
     auto relTableEntries = getRelTableEntries(entries);
     auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
         getUniqueExpressionName(parsedName), parsedName, relTableEntries, std::move(srcNode),
@@ -277,11 +278,9 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     if (!rdfGraphTableIDSet.empty()) {
         if (!nonRdfRelTableIDSet.empty()) {
             auto relTableName =
-                catalog->getTableCatalogEntry(transaction, *nonRdfRelTableIDSet.begin())
-                    ->getName();
+                catalog->getTableCatalogEntry(transaction, *nonRdfRelTableIDSet.begin())->getName();
             auto rdfGraphName =
-                catalog->getTableCatalogEntry(transaction, *rdfGraphTableIDSet.begin())
-                    ->getName();
+                catalog->getTableCatalogEntry(transaction, *rdfGraphTableIDSet.begin())->getName();
             throw BinderException(stringFormat(
                 "Relationship pattern {} contains both PropertyGraph relationship "
                 "label {} and RDFGraph label {}. Mixing relationships tables from an RDFGraph and "
@@ -300,8 +299,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         queryRel->setRdfPredicateInfo(std::move(rdfInfo));
         std::vector<TableCatalogEntry*> resourceTableSchemas;
         for (auto tableID : resourceTableIDs) {
-            resourceTableSchemas.push_back(
-                catalog->getTableCatalogEntry(transaction, tableID));
+            resourceTableSchemas.push_back(catalog->getTableCatalogEntry(transaction, tableID));
         }
         // Mock existence of pIRI property.
         auto pIRI =
@@ -338,8 +336,9 @@ static void bindRecursiveRelProjectionList(const expression_vector& projectionLi
 }
 
 std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::RelPattern& relPattern,
-    const std::vector<catalog::TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
-    std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
+    const std::vector<catalog::TableCatalogEntry*>& entries,
+    std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+    RelDirectionType directionType) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
     auto relTableEntries = getRelTableEntries(entries);
@@ -630,7 +629,9 @@ std::vector<TableCatalogEntry*> Binder::bindTableEntries(const std::vector<std::
     for (auto entry : entrySet) {
         entries.push_back(entry);
     }
-    std::sort(entries.begin(), entries.end(), [](TableCatalogEntry* a, TableCatalogEntry* b){ return a->getTableID() < b->getTableID(); });
+    std::sort(entries.begin(), entries.end(), [](TableCatalogEntry* a, TableCatalogEntry* b) {
+        return a->getTableID() < b->getTableID();
+    });
     return entries;
 }
 
@@ -647,15 +648,18 @@ common::table_id_t Binder::bindTableID(const std::string& tableName) const {
     return bindTableEntry(tableName)->getTableID();
 }
 
-std::vector<TableCatalogEntry*> Binder::getNodeTableEntries(const std::vector<TableCatalogEntry*>& entries) const {
+std::vector<TableCatalogEntry*> Binder::getNodeTableEntries(
+    const std::vector<TableCatalogEntry*>& entries) const {
     return getTableEntries(entries, TableType::NODE);
 }
 
-std::vector<TableCatalogEntry*> Binder::getRelTableEntries(const std::vector<TableCatalogEntry*>& entries) const {
+std::vector<TableCatalogEntry*> Binder::getRelTableEntries(
+    const std::vector<TableCatalogEntry*>& entries) const {
     return getTableEntries(entries, TableType::REL);
 }
 
-std::vector<TableCatalogEntry*> Binder::getTableEntries(const std::vector<TableCatalogEntry*>& entries, TableType tableType) const {
+std::vector<TableCatalogEntry*> Binder::getTableEntries(
+    const std::vector<TableCatalogEntry*>& entries, TableType tableType) const {
     std::vector<TableCatalogEntry*> result;
     table_id_set_t set;
     for (auto& entry : entries) {
@@ -663,10 +667,10 @@ std::vector<TableCatalogEntry*> Binder::getTableEntries(const std::vector<TableC
         switch (tableType) {
         case TableType::NODE: {
             expandedEntries = getNodeTableEntries(entry);
-        } break ;
+        } break;
         case TableType::REL: {
             expandedEntries = getRelTableEntries(entry);
-        } break ;
+        } break;
         default:
             break;
         }
@@ -698,8 +702,10 @@ std::vector<TableCatalogEntry*> Binder::getRelTableEntries(TableCatalogEntry* en
     switch (entry->getTableType()) {
     case TableType::RDF: {
         auto& rdfEntry = entry->constCast<RDFGraphCatalogEntry>();
-        auto rtEntry = catalog->getTableCatalogEntry(transaction, rdfEntry.getResourceTripleTableID());
-        auto ltEntry = catalog->getTableCatalogEntry(transaction, rdfEntry.getLiteralTripleTableID());
+        auto rtEntry =
+            catalog->getTableCatalogEntry(transaction, rdfEntry.getResourceTripleTableID());
+        auto ltEntry =
+            catalog->getTableCatalogEntry(transaction, rdfEntry.getLiteralTripleTableID());
         return {rtEntry, ltEntry};
     }
     case TableType::REL_GROUP: {

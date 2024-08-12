@@ -28,14 +28,16 @@ static column_id_t getColumnID(const catalog::TableCatalogEntry& entry,
     return columnID;
 }
 
-NodeTableSetInfo PlanMapper::getNodeTableSetInfo(const TableCatalogEntry& entry, const Expression& expr) const {
+NodeTableSetInfo PlanMapper::getNodeTableSetInfo(const TableCatalogEntry& entry,
+    const Expression& expr) const {
     auto storageManager = clientContext->getStorageManager();
     auto table = storageManager->getTable(entry.getTableID())->ptrCast<NodeTable>();
     auto columnID = getColumnID(entry, expr.constCast<PropertyExpression>());
     return NodeTableSetInfo(table, columnID);
 }
 
-RelTableSetInfo PlanMapper::getRelTableSetInfo(const TableCatalogEntry& entry, const Expression& expr) const {
+RelTableSetInfo PlanMapper::getRelTableSetInfo(const TableCatalogEntry& entry,
+    const Expression& expr) const {
     auto storageManager = clientContext->getStorageManager();
     auto table = storageManager->getTable(entry.getTableID())->ptrCast<RelTable>();
     auto columnID = getColumnID(entry, expr.constCast<PropertyExpression>());

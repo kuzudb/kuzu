@@ -1,5 +1,6 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/gds/gds.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -9,7 +10,6 @@
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_semi_masker.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

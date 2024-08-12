@@ -20,7 +20,8 @@ public:
     expression_vector getExpressions() const { return expressions; }
     void addExpression(const std::string& varName, std::shared_ptr<Expression> expression);
 
-    void memorizeTableEntries(const std::string& name, std::vector<catalog::TableCatalogEntry*> entries) {
+    void memorizeTableEntries(const std::string& name,
+        std::vector<catalog::TableCatalogEntry*> entries) {
         memorizedNodeNameToEntries.insert({name, entries});
     }
     bool hasMemorizedTableIDs(const std::string& name) const {
@@ -56,7 +57,8 @@ private:
     // A node might be popped out of scope. But we may need to retain its table ID information.
     // E.g. MATCH (a:person) WITH collect(a) AS list_a UNWIND list_a AS new_a MATCH (new_a)-[]->()
     // It will be more performant if we can retain the information that new_a has label person.
-    std::unordered_map<std::string, std::vector<catalog::TableCatalogEntry*>> memorizedNodeNameToEntries;
+    std::unordered_map<std::string, std::vector<catalog::TableCatalogEntry*>>
+        memorizedNodeNameToEntries;
     // A node pattern may not always be bound as a node expression, e.g. in the above query,
     // (new_a) is bound as a variable rather than node expression.
     std::unordered_map<std::string, std::shared_ptr<NodeExpression>> nodeReplacement;

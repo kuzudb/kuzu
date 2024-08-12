@@ -239,8 +239,8 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
     } else {
         auto insertInfo = BoundInsertInfo(TableType::REL, rel);
         insertInfo.columnExprs = rel->getPropertyExprs();
-        insertInfo.columnDataExprs = bindInsertColumnDataExprs(rel->getPropertyDataExprRef(),
-            entry->getPropertiesRef());
+        insertInfo.columnDataExprs =
+            bindInsertColumnDataExprs(rel->getPropertyDataExprRef(), entry->getPropertiesRef());
         infos.push_back(std::move(insertInfo));
     }
 }
