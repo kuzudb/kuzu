@@ -38,15 +38,21 @@ static char openingBracket(char c) {
     return c;
 }
 
-std::vector<std::string> StringUtils::smartSplit(const std::string& input, char splitChar) {
+std::vector<std::string> StringUtils::smartSplit(const std::string& input, char splitChar, uint64_t maxNumEle) {
     if (input.size() == 0) {
         return {};
     }
     std::vector<std::string> result(1);
     std::vector<char> stk;
-    for (char c : input) {
+    for (auto i = 0u; i < input.size(); i++) {
+        char c = input[i];
         if (c == splitChar && stk.size() == 0u) {
-            result.emplace_back();
+            if (result.size() + 1 == maxNumEle) {
+                result.push_back(input.substr(i + 1));
+                break;
+            } else {
+                result.emplace_back();
+            }
         } else if (c == '{' || c == '(' || c == '[') {
             stk.push_back(c);
         } else if (stk.size() > 0u && openingBracket(c) == stk.back()) {

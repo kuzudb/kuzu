@@ -116,10 +116,10 @@ static LogicalType inferMapOrStruct(const std::string& str) {
     auto split = StringUtils::smartSplit(str.substr(1, str.size() - 2), ',');
     bool isMap = true, isStruct = true; // Default match to map if both are true
     for (auto& ele : split) {
-        if (StringUtils::smartSplit(ele, '=').size() != 2) {
+        if (StringUtils::smartSplit(ele, '=', 2).size() != 2) {
             isMap = false;
         }
-        if (StringUtils::smartSplit(ele, ':').size() != 2) {
+        if (StringUtils::smartSplit(ele, ':', 2).size() != 2) {
             isStruct = false;
         }
     }
@@ -127,7 +127,7 @@ static LogicalType inferMapOrStruct(const std::string& str) {
         auto childKeyType = LogicalType::ANY();
         auto childValueType = LogicalType::ANY();
         for (auto& ele : split) {
-            auto split = StringUtils::smartSplit(ele, '=');
+            auto split = StringUtils::smartSplit(ele, '=', 2);
             auto& key = split[0];
             auto& value = split[1];
             childKeyType =
@@ -139,7 +139,7 @@ static LogicalType inferMapOrStruct(const std::string& str) {
     } else if (isStruct) {
         std::vector<StructField> fields;
         for (auto& ele : split) {
-            auto split = StringUtils::smartSplit(ele, ':');
+            auto split = StringUtils::smartSplit(ele, ':', 2);
             auto fieldKey = StringUtils::ltrim(StringUtils::rtrim(split[0]));
             if (fieldKey.front() == '\'') {
                 fieldKey.erase(fieldKey.begin());
