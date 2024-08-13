@@ -94,3 +94,14 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+
+TEST_F(CApiDatabaseTest, DADSAD) {
+    createDBAndConn();
+     printf("%s", conn->query("install postgres;")->toString().c_str());
+     printf("%s", conn->query("load extension postgres;")->toString().c_str());
+//    printf("%s", conn->query("load extension "
+//                             "'/Users/z473chen/Desktop/code/kuzu/extension/httpfs/build/"
+//                             "libhttpfs.kuzu_extension';")
+//                     ->toString()
+//                     .c_str());
+}
