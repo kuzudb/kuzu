@@ -1,8 +1,19 @@
 # Use a copy of the grammar file and compare since last run.
 # This is to make sure clean build from source needn't have Java installed.
 # We can't use checksums because of windows line ending normalization.
+
+
+
 file(READ hash.md5 OLDHASH)
-execute_process(COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4 COMMAND md5sum OUTPUT_VARIABLE NEWHASH)
+execute_process(
+    COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4
+    COMMAND md5sum OUTPUT_VARIABLE NEWHASH
+    RESULTS_VARIABLE RESVAR
+    ERROR_VARIABLE ERRVAR)
+
+if(NOT "${RESVAR}" STREQUAL "0 0")
+    message(DEBUG "${ERRVAR}")
+endif()
 
 if("${HASH}" STREQUAL "${NEWHASH}")
     message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
