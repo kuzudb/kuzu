@@ -45,7 +45,6 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
         throw RuntimeException(
             stringFormat("Load table failed: table {} doesn't exist in catalog.", tableName));
     }
-    KU_ASSERT(catalogEntry->getName() == tableName);
     auto relTable = std::make_unique<RelTable>(catalogEntry->ptrCast<RelTableCatalogEntry>(),
         storageManager, memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
@@ -427,14 +426,17 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction, NodeGro
     }
 }
 
-void RelTable::rollback(LocalTable* localTable) {
-    localTable->clear();
-}
-
-void RelTable::checkpoint(Serializer& ser) {
+void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     if (hasChanges) {
-        fwdRelTableData->checkpoint();
-        bwdRelTableData->checkpoint();
+        // Deleted columns are vaccumed and not checkpointed or serialized.
+        std::vector<column_id_t> columnIDs;
+        columnIDs.push_back(0);
+        for (auto& property : tableEntry->getPropertiesUnsafe()) {
+            columnIDs.push_back(tableEntry->getColumnID(property.getPropertyID()));
+        }
+        fwdRelTableData->checkpoint(columnIDs);
+        bwdRelTableData->checkpoint(columnIDs);
+        tableEntry->resetColumnIDs();
         hasChanges = false;
     }
     Table::serialize(ser);

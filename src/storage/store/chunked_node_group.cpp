@@ -25,6 +25,17 @@ ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chu
     }
 }
 
+ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
+    const std::vector<column_id_t>& selectedColumns)
+    : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
+      capacity{base.capacity}, numRows{base.numRows.load()} {
+    chunks.reserve(selectedColumns.size());
+    for (const auto columnID : selectedColumns) {
+        KU_ASSERT(columnID < base.getNumColumns());
+        chunks.push_back(base.moveColumnChunk(columnID));
+    }
+}
+
 ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
     bool enableCompression, uint64_t capacity, row_idx_t startRowIdx, ResidencyState residencyState,
     NodeGroupDataFormat format)

@@ -264,8 +264,13 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
     NodeGroupCheckpointState& state) {
     const auto firstGroup = chunkedGroups.getFirstGroup(lock);
     const auto numPersistentRows = firstGroup->getNumRows();
+    std::vector<Column*> columnPtrs;
+    columnPtrs.reserve(state.columns.size());
+    for (auto& column : state.columns) {
+        columnPtrs.push_back(column.get());
+    }
     const auto insertChunkedGroup =
-        scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(lock, state.columnIDs, state.columns);
+        scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(lock, state.columnIDs, columnPtrs);
     const auto numInsertedRows = insertChunkedGroup->getNumRows();
     for (auto i = 0u; i < state.columnIDs.size(); i++) {
         const auto columnID = state.columnIDs[i];
@@ -280,7 +285,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
         if (columnHasUpdates) {
             // TODO(Guodong): Optimize this to scan only vectors with updates.
             const auto updateChunk = scanAllInsertedAndVersions<ResidencyState::ON_DISK>(lock,
-                {columnID}, {state.columns[columnID]});
+                {columnID}, {state.columns[columnID].get()});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
             chunkCheckpointStates.push_back(ChunkCheckpointState{
                 updateChunk->getColumnChunk(0).moveData(), 0, updateChunk->getNumRows()});
@@ -295,17 +300,23 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
         state.columns[i]->checkpointColumnChunk(columnCheckpointState);
     }
     // Clear all chunked groups except for the first one.
-    auto persistentChunkedGroup = chunkedGroups.moveGroup(lock, 0);
-    KU_ASSERT(persistentChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
-    persistentChunkedGroup->resetNumRowsFromChunks();
-    return persistentChunkedGroup;
+    auto checkpointedChunkedGroup =
+        std::make_unique<ChunkedNodeGroup>(*chunkedGroups.getGroup(lock, 0), state.columnIDs);
+    KU_ASSERT(checkpointedChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
+    checkpointedChunkedGroup->resetNumRowsFromChunks();
+    return checkpointedChunkedGroup;
 }
 
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(const UniqLock& lock,
     NodeGroupCheckpointState& state) {
     // Flush insertChunkedGroup to persistent one.
+    std::vector<Column*> columnPtrs;
+    columnPtrs.reserve(state.columns.size());
+    for (auto& column : state.columns) {
+        columnPtrs.push_back(column.get());
+    }
     auto insertChunkedGroup =
-        scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(lock, state.columnIDs, state.columns);
+        scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(lock, state.columnIDs, columnPtrs);
     insertChunkedGroup->flush(state.dataFH);
     return insertChunkedGroup;
 }

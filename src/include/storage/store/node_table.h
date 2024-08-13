@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "common/exception/not_implemented.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_group_collection.h"
@@ -115,10 +114,6 @@ public:
 
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
-    void dropColumn(common::column_id_t) override {
-        throw common::NotImplementedException("dropColumn is not implemented yet.");
-    }
-
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
 
     bool lookupPK(const transaction::Transaction* transaction, common::ValueVector* keyVector,
@@ -150,8 +145,7 @@ public:
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void rollback(LocalTable* localTable) override;
-    void checkpoint(common::Serializer& ser) override;
+    void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();

@@ -55,12 +55,11 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.validateDebuggingInfo(key, "table_name");
     deSer.deserializeValue<std::string>(tableName);
-    auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
+    const auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
     if (!catalogEntry) {
         throw RuntimeException(
             stringFormat("Load table failed: table {} doesn't exist in catalog.", tableName));
     }
-    KU_ASSERT(catalogEntry->getName() == tableName);
     return std::make_unique<NodeTable>(storageManager,
         catalogEntry->ptrCast<NodeTableCatalogEntry>(), memoryManager, vfs, context, &deSer);
 }
@@ -373,23 +372,23 @@ void NodeTable::insertPK(const Transaction* transaction, const ValueVector& node
     }
 }
 
-void NodeTable::rollback(LocalTable* localTable) {
-    localTable->clear();
-}
-
-void NodeTable::checkpoint(Serializer& ser) {
+void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     if (hasChanges) {
-        // TODO(Guodong): Should refer to TableCatalogEntry to figure out non-deleted columns.
-        std::vector<Column*> checkpointColumns;
+        // Deleted columns are vaccumed and not checkpointed or serialized.
+        std::vector<std::unique_ptr<Column>> checkpointColumns;
         std::vector<column_id_t> columnIDs;
-        for (auto i = 0u; i < columns.size(); i++) {
-            columnIDs.push_back(i);
-            checkpointColumns.push_back(columns[i].get());
+        for (auto& property : tableEntry->getPropertiesUnsafe()) {
+            auto columnID = tableEntry->getColumnID(property.getPropertyID());
+            checkpointColumns.push_back(std::move(columns[columnID]));
+            columnIDs.push_back(columnID);
         }
-        NodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, memoryManager};
+        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH,
+            memoryManager};
         nodeGroups->checkpoint(state);
         pkIndex->checkpoint();
         hasChanges = false;
+        columns = std::move(state.columns);
+        tableEntry->resetColumnIDs();
     }
     serialize(ser);
 }

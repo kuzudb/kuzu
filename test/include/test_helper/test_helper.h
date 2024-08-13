@@ -50,13 +50,10 @@ public:
 
     static std::unique_ptr<main::SystemConfig> getSystemConfigFromEnv() {
         auto systemConfig = std::make_unique<main::SystemConfig>();
-        auto autoCheckpointEnv = getSystemEnv("AUTO_CHECKPOINT");
         auto bufferPoolSizeEnv = getSystemEnv("BUFFER_POOL_SIZE");
         auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
         auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
         auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
-        systemConfig->autoCheckpoint =
-            autoCheckpointEnv.empty() ? false : std::string(autoCheckpointEnv) == "true";
         systemConfig->bufferPoolSize =
             bufferPoolSizeEnv.empty() ?
                 common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :

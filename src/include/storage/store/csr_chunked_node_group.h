@@ -99,6 +99,9 @@ public:
         : ChunkedNodeGroup{columnTypes, enableCompression, capacity, startOffset, residencyState,
               NodeGroupDataFormat::CSR},
           csrHeader{enableCompression, common::StorageConstants::NODE_GROUP_SIZE, residencyState} {}
+    ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns)
+        : ChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}
     ChunkedCSRNodeGroup(ChunkedCSRHeader csrHeader,
         std::vector<std::unique_ptr<ColumnChunk>> chunks, common::row_idx_t startRowIdx)
         : ChunkedNodeGroup{std::move(chunks), startRowIdx, NodeGroupDataFormat::CSR},

@@ -52,14 +52,14 @@ bool TableCatalogEntry::containProperty(const std::string& propertyName) const {
         [&propertyName](const auto& property) { return property.getName() == propertyName; });
 }
 
-common::property_id_t TableCatalogEntry::getPropertyID(const std::string& propertyName) const {
+property_id_t TableCatalogEntry::getPropertyID(const std::string& propertyName) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyName](const auto& property) { return property.getName() == propertyName; });
     KU_ASSERT(it != properties.end());
     return it->getPropertyID();
 }
 
-const Property* TableCatalogEntry::getProperty(common::property_id_t propertyID) const {
+const Property* TableCatalogEntry::getProperty(property_id_t propertyID) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     KU_ASSERT(it != properties.end());
@@ -73,25 +73,20 @@ uint32_t TableCatalogEntry::getPropertyPos(common::property_id_t propertyID) con
     return it - properties.begin();
 }
 
-common::column_id_t TableCatalogEntry::getColumnID(const common::property_id_t propertyID) const {
+column_id_t TableCatalogEntry::getColumnID(const property_id_t propertyID) const {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     KU_ASSERT(it != properties.end());
     return it->getColumnID();
 }
 
-bool TableCatalogEntry::containPropertyType(const common::LogicalType& logicalType) const {
-    return std::any_of(properties.begin(), properties.end(),
-        [&logicalType](const Property& property) { return property.getDataType() == logicalType; });
-}
-
-void TableCatalogEntry::addProperty(std::string propertyName, common::LogicalType dataType,
+void TableCatalogEntry::addProperty(std::string propertyName, LogicalType dataType,
     std::unique_ptr<parser::ParsedExpression> defaultExpr) {
     properties.emplace_back(std::move(propertyName), std::move(dataType), std::move(defaultExpr),
         nextPID++, nextColumnID++, tableID);
 }
 
-void TableCatalogEntry::dropProperty(common::property_id_t propertyID) {
+void TableCatalogEntry::dropProperty(property_id_t propertyID) {
     properties.erase(std::remove_if(properties.begin(), properties.end(),
                          [propertyID](const Property& property) {
                              return property.getPropertyID() == propertyID;
@@ -99,15 +94,22 @@ void TableCatalogEntry::dropProperty(common::property_id_t propertyID) {
         properties.end());
 }
 
-void TableCatalogEntry::renameProperty(common::property_id_t propertyID,
-    const std::string& newName) {
+void TableCatalogEntry::renameProperty(property_id_t propertyID, const std::string& newName) {
     auto it = std::find_if(properties.begin(), properties.end(),
         [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
     KU_ASSERT(it != properties.end());
     it->rename(newName);
 }
 
-void TableCatalogEntry::serialize(common::Serializer& serializer) const {
+void TableCatalogEntry::resetColumnIDs() {
+    auto columnID = 0u;
+    for (auto& property : properties) {
+        property.setColumnID(columnID++);
+    }
+    nextColumnID = columnID;
+}
+
+void TableCatalogEntry::serialize(Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(tableID);
     serializer.serializeVector(properties);
@@ -116,13 +118,13 @@ void TableCatalogEntry::serialize(common::Serializer& serializer) const {
     serializer.write(nextColumnID);
 }
 
-std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
-    common::Deserializer& deserializer, CatalogEntryType type) {
-    common::table_id_t tableID;
+std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& deserializer,
+    CatalogEntryType type) {
+    table_id_t tableID;
     std::vector<Property> properties;
     std::string comment;
-    common::property_id_t nextPID;
-    common::column_id_t nextColumnID;
+    property_id_t nextPID;
+    column_id_t nextColumnID;
     deserializer.deserializeValue(tableID);
     deserializer.deserializeVector(properties);
     deserializer.deserializeValue(comment);
@@ -167,7 +169,7 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
 binder::BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
     transaction::Transaction* transaction) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
-    return BoundCreateTableInfo(getTableType(), name, common::ConflictAction::ON_CONFLICT_THROW,
+    return BoundCreateTableInfo(getTableType(), name, ConflictAction::ON_CONFLICT_THROW,
         std::move(extraInfo));
 }
 
