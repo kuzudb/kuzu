@@ -12,7 +12,7 @@ namespace common {
 
 class KUZU_API StringUtils {
 public:
-    static std::vector<std::string> splitFirstComma(const std::string& input);
+    static std::vector<std::string> splitComma(const std::string& input);
 
     // Does not split within [], {}, or ().
     // can specify maximum number of elements to split

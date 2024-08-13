@@ -1245,7 +1245,7 @@ LogicalType parseMapType(const std::string& trimmedStr) {
         throw Exception("Cannot parse map type: " + trimmedStr);
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-    auto keyValueTypes = StringUtils::splitFirstComma(mapTypeStr);
+    auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
     return LogicalType::MAP(LogicalType::fromString(keyValueTypes[0]),
         LogicalType::fromString(keyValueTypes[1]));
 }
