@@ -15,7 +15,7 @@ if(NOT "${RESVAR}" STREQUAL "0 0")
     message(DEBUG "${ERRVAR}")
 endif()
 
-if("${HASH}" STREQUAL "${NEWHASH}")
+if("${OLDHASH}" STREQUAL "${NEWHASH}")
     message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
     return() # Exit.
 endif()
