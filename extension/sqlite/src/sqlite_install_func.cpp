@@ -9,7 +9,7 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void install(kuzu::main::ClientContext* context) {
-    kuzu::duckdb::DuckDBInstaller installer{"postgres"};
+    kuzu::duckdb::DuckDBInstaller installer{"sqlite"};
     installer.install(context);
 }
 }

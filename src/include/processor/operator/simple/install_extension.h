@@ -38,10 +38,6 @@ public:
     }
 
 private:
-    std::string tryDownloadExtension();
-
-    void saveExtensionToLocalFile(const std::string& extensionData, main::ClientContext* context);
-
     void installExtension(main::ClientContext* context);
 
 private:
