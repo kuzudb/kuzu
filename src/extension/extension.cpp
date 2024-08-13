@@ -4,6 +4,7 @@
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "function/table_functions.h"
+#include "main/client_context.h"
 #include "main/database.h"
 #include "transaction/transaction.h"
 
@@ -39,25 +40,36 @@ std::string getPlatform() {
     return getOS() + "_" + getArch();
 }
 
-std::string ExtensionUtils::getExtensionPath(const std::string& extensionDir,
-    const std::string& name) {
-    return common::stringFormat("{}/lib{}.kuzu_extension", extensionDir, name);
-}
-
 bool ExtensionUtils::isFullPath(const std::string& extension) {
     return extension.find('.') != std::string::npos || extension.find('/') != std::string::npos ||
            extension.find('\\') != std::string::npos;
 }
 
-ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extension) {
+ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extensionName,
+    const std::string& fileName) {
     auto extensionURL = common::stringFormat(EXTENSION_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
-        common::StringUtils::getLower(extension));
+        extensionName, getExtensionFileName(fileName));
     common::StringUtils::replaceAll(extensionURL, "http://", "");
     auto hostNamePos = extensionURL.find('/');
     auto hostName = extensionURL.substr(0, hostNamePos);
     auto hostURL = "http://" + hostName;
     auto hostPath = extensionURL.substr(hostNamePos);
     return {hostPath, hostURL, extensionURL};
+}
+
+std::string ExtensionUtils::getExtensionFileName(const std::string& name) {
+    return common::stringFormat(EXTENSION_FILE_NAME, common::StringUtils::getLower(name));
+}
+
+std::string ExtensionUtils::getLocalPathForExtension(main::ClientContext* context,
+    const std::string& extensionName, const std::string& fileName) {
+    return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
+        getExtensionFileName(fileName));
+}
+
+std::string ExtensionUtils::getLocalExtensionDir(main::ClientContext* context,
+    const std::string& extensionName) {
+    return common::stringFormat("{}{}", context->getExtensionDir(), extensionName);
 }
 
 void ExtensionUtils::registerTableFunction(main::Database& database,

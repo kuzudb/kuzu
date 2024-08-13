@@ -6,9 +6,6 @@ else()
         set(DuckDB_USE_STATIC_LIBS ON)
 endif()
 find_package(DuckDB REQUIRED)
-if(NOT WIN32)
-        find_library(DuckDB_STATIC REQUIRED NAMES libduckdb_static.a)
-endif()
 
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include

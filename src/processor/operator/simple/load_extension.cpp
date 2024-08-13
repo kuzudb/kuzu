@@ -59,8 +59,14 @@ void* dlsym(void* handle, const char* name) {
 
 void LoadExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
     if (!extension::ExtensionUtils::isFullPath(path)) {
-        path = ExtensionUtils::getExtensionPath(context->clientContext->getExtensionDir(), path);
+        path = ExtensionUtils::getLocalPathForExtension(context->clientContext, path, path);
     }
+    //    auto duckdbHdl =
+    //        dlopen("/Users/z473chen/Desktop/code/kuzu/libduckdb.dylib", RTLD_NOW | RTLD_GLOBAL);
+    //    if (!duckdbHdl) {
+    //        throw common::IOException(
+    //            stringFormat("Duckdb cannot be loaded.\nError: {}", dlErrMessage()));
+    //    }
     auto libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (libHdl == nullptr) {
         throw common::IOException(
