@@ -35,17 +35,29 @@ struct ExtensionRepoInfo {
 };
 
 struct ExtensionUtils {
+    //    static constexpr const char* EXTENSION_REPO =
+    //        "http://extension.kuzudb.com/v{}/{}/{}/lib{}.kuzu_extension";
+
     static constexpr const char* EXTENSION_REPO =
-        "http://extension.kuzudb.com/v{}/{}/lib{}.kuzu_extension";
+        "http://localhost/extension/releases/v{}/{}/{}/{}";
+
+    static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
 
     static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON",
         "SQLITE"};
 
-    static std::string getExtensionPath(const std::string& extensionDir, const std::string& name);
-
     static bool isFullPath(const std::string& extension);
 
-    static ExtensionRepoInfo getExtensionRepoInfo(const std::string& extension);
+    static KUZU_API ExtensionRepoInfo getExtensionRepoInfo(const std::string& extensionName,
+        const std::string& fileName);
+
+    static std::string getExtensionFileName(const std::string& name);
+
+    KUZU_API static std::string getLocalPathForExtension(main::ClientContext* context,
+        const std::string& extensionName, const std::string& fileName);
+
+    KUZU_API static std::string getLocalExtensionDir(main::ClientContext* context,
+        const std::string& extensionName);
 
     KUZU_API static void registerTableFunction(main::Database& database,
         std::unique_ptr<function::TableFunction> function);

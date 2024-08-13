@@ -191,7 +191,7 @@ extension-json-test: extension-json-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs" \
 		-DBUILD_KUZU=FALSE \
 	)
 

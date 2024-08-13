@@ -26,6 +26,10 @@ add_library(httpfs
         src/http_config.cpp
         src/cached_file_manager.cpp)
 
+add_library(httpfs_installer
+        SHARED
+        src/httpfs_installer.cpp)
+
 target_link_libraries(httpfs
         PRIVATE
         mbedtls
@@ -37,11 +41,24 @@ set_target_properties(httpfs PROPERTIES
         SUFFIX ".kuzu_extension"
 )
 
+set_target_properties(httpfs_installer PROPERTIES
+        OUTPUT_NAME httpfs_installer
+        PREFIX "lib"
+        SUFFIX ".kuzu_extension"
+)
+
 set_target_properties(httpfs
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+)
+
+set_target_properties(httpfs_installer
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
 if (WIN32)
@@ -62,10 +79,12 @@ if (WIN32)
         # Future work could make it possible to embed extension into kuzu,
         # which would help fix this problem.
         target_link_libraries(httpfs PRIVATE kuzu)
+        target_link_libraries(httpfs_installer PRIVATE kuzu)
 endif()
 
 if (APPLE)
     set_target_properties(httpfs PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(httpfs_installer PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif ()
 
 if (${BUILD_EXTENSION_TESTS})

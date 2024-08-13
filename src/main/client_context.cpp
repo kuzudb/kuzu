@@ -163,7 +163,7 @@ extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
 }
 
 std::string ClientContext::getExtensionDir() const {
-    return stringFormat("{}/.kuzu/extension/{}/{}", clientConfig.homeDirectory,
+    return stringFormat("{}/.kuzu/extension/{}/{}/", clientConfig.homeDirectory,
         KUZU_EXTENSION_VERSION, kuzu::extension::getPlatform());
 }
 
