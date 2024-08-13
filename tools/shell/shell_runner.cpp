@@ -63,7 +63,8 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<std::string> mode(parser, "", "Set the output mode of the shell",
         {'m', "mode"});
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
-    args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar", {'b', "no_progress_bar", "noprogressbar"});
+    args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
+        {'b', "no_progress_bar", "noprogressbar"});
     args::ValueFlag<uint32_t> maxRowsFlag(parser, "", "Maximum number of rows to display",
         {"max_rows", "maxrows"});
     args::ValueFlag<uint32_t> maxWidthFlag(parser, "", "Maximum width of the output",
