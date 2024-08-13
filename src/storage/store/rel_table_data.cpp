@@ -43,16 +43,13 @@ void RelTableData::initCSRHeaderColumns() {
 }
 
 void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
-    // Columns (nbrID + properties).
     const auto maxColumnID = tableEntry->getMaxColumnID();
-    // The first column is reserved for NBR_ID, which is not a property.
-    columns.resize(maxColumnID + 2);
+    columns.resize(maxColumnID + 1);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
         RelDataDirectionUtils::relDirectionToString(direction));
     auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, bufferManager,
         shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
-    // Property columns.
     for (auto i = 0u; i < tableEntry->getNumProperties(); i++) {
         auto& property = tableEntry->getProperty(i);
         const auto columnID = tableEntry->getColumnID(property.getName());

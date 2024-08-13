@@ -47,7 +47,7 @@ public:
     }
 
     common::column_id_t getMaxColumnID() const;
-    void vacuumColumnIDs();
+    void vacuumColumnIDs(common::column_id_t nextColumnID);
     std::string propertiesToCypher() const;
     const std::vector<binder::PropertyDefinition>& getProperties() const {
         return propertyCollection.getDefinitions();
