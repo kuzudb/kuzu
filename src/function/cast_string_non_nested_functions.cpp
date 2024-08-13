@@ -96,19 +96,19 @@ static bool isDate(const std::string& str) {
 }
 
 static bool isUUID(const std::string& str) {
-    return RE2::FullMatch(str, "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
+    return RE2::FullMatch(str, "(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
 }
 
 static bool isInterval(const std::string& str) {
     static constexpr auto pattern =
-        "((0|[1-9]\\d*) "
+        "(?i)((0|[1-9]\\d*) "
         "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
         "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
         "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
         "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
         "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*";
-    static constexpr auto pattern2 = "\\d+:\\d{2}:\\d{2}";
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?";
+    static constexpr auto pattern2 = "\\d+:\\d{2}:\\d{2}(\\.\\d+)?";
     return RE2::FullMatch(str, pattern2) || RE2::FullMatch(str, pattern);
 }
 
@@ -160,12 +160,11 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     constexpr char array_begin = common::CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR;
     constexpr char array_end = common::CopyConstants::DEFAULT_CSV_LIST_END_CHAR;
     auto cpy = StringUtils::ltrim(StringUtils::rtrim(str));
-    StringUtils::toUpper(cpy);
     if (cpy.size() == 0) {
         return LogicalType::ANY();
     }
     // Boolean
-    if (cpy == "TRUE" || cpy == "FALSE") {
+    if (RE2::FullMatch(cpy, "(?i)(TRUE|FALSE)")) {
         return LogicalType::BOOL();
     }
     // The reason we're not going to try to match to a minimal width integer

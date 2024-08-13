@@ -29,7 +29,7 @@ std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t p
     std::string retval;
     if (positionFromEnd > value.size()) {
         auto greaterBy = positionFromEnd - value.size();
-        retval = ".";
+        retval = "0.";
         for (auto i = 0u; i < greaterBy; i++) {
             retval += "0";
         }
@@ -37,6 +37,9 @@ std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t p
     } else {
         auto lessBy = value.size() - positionFromEnd;
         retval = value.substr(0, lessBy);
+        if (retval == "" || retval == "-") {
+            retval += '0';
+        }
         retval += ".";
         retval += value.substr(lessBy);
     }
