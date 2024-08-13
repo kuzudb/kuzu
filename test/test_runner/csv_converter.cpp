@@ -1,4 +1,4 @@
-#include "test_runner/csv_to_parquet_converter.h"
+#include "test_runner/csv_converter.h"
 
 #include <fstream>
 
@@ -13,21 +13,21 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-void CSVToParquetConverter::copySchemaFile() {
+void CSVConverter::copySchemaFile() {
     LocalFileSystem localFileSystem;
     auto csvSchemaFile =
         localFileSystem.joinPath(csvDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
-    auto parquetSchemaFile =
-        localFileSystem.joinPath(parquetDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
-    if (!localFileSystem.fileOrPathExists(parquetSchemaFile)) {
-        localFileSystem.copyFile(csvSchemaFile, parquetSchemaFile);
+    auto outputSchemaFile =
+        localFileSystem.joinPath(outputDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
+    if (!localFileSystem.fileOrPathExists(outputSchemaFile)) {
+        localFileSystem.copyFile(csvSchemaFile, outputSchemaFile);
     } else {
-        localFileSystem.overwriteFile(csvSchemaFile, parquetSchemaFile);
+        localFileSystem.overwriteFile(csvSchemaFile, outputSchemaFile);
     }
-    createTableInfo(parquetSchemaFile);
+    createTableInfo(outputSchemaFile);
 }
 
-void CSVToParquetConverter::createTableInfo(std::string schemaFile) {
+void CSVConverter::createTableInfo(std::string schemaFile) {
     std::ifstream file(schemaFile);
     if (!file.is_open()) {
         throw TestException(stringFormat("Error opening file: {}, errno: {}.", schemaFile, errno));
@@ -105,7 +105,7 @@ std::string extractPath(std::string& str, char delimiter) {
     return str.substr(posStart + 1, posEnd - posStart - 1);
 }
 
-void CSVToParquetConverter::readCopyCommandsFromCSVDataset() {
+void CSVConverter::readCopyCommandsFromCSVDataset() {
     auto csvCopyFile =
         LocalFileSystem::joinPath(csvDatasetPath, std::string(TestHelper::COPY_FILE_NAME));
     std::ifstream file(csvCopyFile);
@@ -118,31 +118,31 @@ void CSVToParquetConverter::readCopyCommandsFromCSVDataset() {
         auto path = std::filesystem::path(extractPath(tokens[3], '"'));
         auto table = tableNameMap[tokens[1]];
         table->csvFilePath = TestHelper::appendKuzuRootPath(path.string());
-        auto parquetFileName = path.stem().string() + fileExtension;
-        table->parquetFilePath = parquetDatasetPath + "/" + parquetFileName;
+        auto outputFileName = path.stem().string() + fileExtension;
+        table->outputFilePath = outputDatasetPath + "/" + outputFileName;
     }
 }
 
-void CSVToParquetConverter::createCopyFile() {
+void CSVConverter::createCopyFile() {
     readCopyCommandsFromCSVDataset();
-    auto parquetCopyFile =
-        LocalFileSystem::joinPath(parquetDatasetPath, std::string(TestHelper::COPY_FILE_NAME));
-    std::ofstream outfile(parquetCopyFile);
+    auto outputCopyFile =
+        LocalFileSystem::joinPath(outputDatasetPath, std::string(TestHelper::COPY_FILE_NAME));
+    std::ofstream outfile(outputCopyFile);
     if (!outfile.is_open()) {
         throw TestException(
-            stringFormat("Error opening file: {}, errno: {}.", parquetCopyFile, errno));
+            stringFormat("Error opening file: {}, errno: {}.", outputCopyFile, errno));
     }
     if (fileExtension == ".json") {
         outfile << "load extension \"" + TestHelper::appendKuzuRootPath(
                                              "extension/json/build/libjson.kuzu_extension\"\n");
     }
     for (auto table : tables) {
-        auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name, table->parquetFilePath);
+        auto cmd = stringFormat("COPY {} FROM \"{}\";", table->name, table->outputFilePath);
         outfile << cmd << '\n';
     }
 }
 
-void CSVToParquetConverter::convertCSVFilesToParquet() {
+void CSVConverter::convertCSVFiles() {
     // Load CSV Files to temp database
     TestHelper::executeScript(
         LocalFileSystem::joinPath(csvDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME)),
@@ -161,7 +161,7 @@ void CSVToParquetConverter::convertCSVFilesToParquet() {
         }
     }
     for (auto table : tables) {
-        spdlog::info("Converting: {} to {}", table->csvFilePath, table->parquetFilePath);
+        spdlog::info("Converting: {} to {}", table->csvFilePath, table->outputFilePath);
         auto cmd = table->getConverterQuery();
         auto result = tempConn->query(cmd);
         if (!result->isSuccess()) {
@@ -172,32 +172,32 @@ void CSVToParquetConverter::convertCSVFilesToParquet() {
     }
 }
 
-void CSVToParquetConverter::convertCSVDatasetToParquet() {
+void CSVConverter::convertCSVDataset() {
     LocalFileSystem localFileSystem;
-    if (!localFileSystem.fileOrPathExists(parquetDatasetPath)) {
-        localFileSystem.createDir(parquetDatasetPath);
+    if (!localFileSystem.fileOrPathExists(outputDatasetPath)) {
+        localFileSystem.createDir(outputDatasetPath);
     }
 
     copySchemaFile();
     createCopyFile();
 
     systemConfig = std::make_unique<main::SystemConfig>(bufferPoolSize);
-    std::string tempDatabasePath = TestHelper::getTempDir("csv_to_parquet_converter");
+    std::string tempDatabasePath = TestHelper::getTempDir("csv_converter");
     tempDb = std::make_unique<main::Database>(tempDatabasePath, *systemConfig);
     tempConn = std::make_unique<main::Connection>(tempDb.get());
 
-    convertCSVFilesToParquet();
+    convertCSVFiles();
     std::filesystem::remove_all(tempDatabasePath);
 }
 
-std::string CSVToParquetConverter::NodeTableInfo::getConverterQuery() const {
-    return stringFormat("COPY (MATCH (a:{}) RETURN a.*) TO \"{}\";", name, parquetFilePath);
+std::string CSVConverter::NodeTableInfo::getConverterQuery() const {
+    return stringFormat("COPY (MATCH (a:{}) RETURN a.*) TO \"{}\";", name, outputFilePath);
 }
 
-std::string CSVToParquetConverter::RelTableInfo::getConverterQuery() const {
+std::string CSVConverter::RelTableInfo::getConverterQuery() const {
     return stringFormat(
         "COPY (MATCH (a)-[e:{}]->(b) RETURN a.{} AS `from`, b.{} AS `to`, e.*) TO \"{}\";", name,
-        fromTable->primaryKey, toTable->primaryKey, parquetFilePath);
+        fromTable->primaryKey, toTable->primaryKey, outputFilePath);
 }
 
 } // namespace testing

@@ -1,6 +1,6 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
-#include "test_runner/csv_to_parquet_converter.h"
+#include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
 
 using ::testing::Test;
@@ -56,19 +56,19 @@ public:
         switch (datasetType) {
         case TestGroup::DatasetType::CSV_TO_PARQUET: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-            parquetTempDatasetPath = generateTempDatasetPath();
-            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize,
+            tempDatasetPath = generateTempDatasetPath();
+            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize,
                 ".parquet");
-            converter.convertCSVDatasetToParquet();
-            dataset = parquetTempDatasetPath;
+            converter.convertCSVDataset();
+            dataset = tempDatasetPath;
         } break;
         case TestGroup::DatasetType::CSV_TO_JSON: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-            parquetTempDatasetPath = generateTempDatasetPath();
-            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize,
+            tempDatasetPath = generateTempDatasetPath();
+            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize,
                 ".json");
-            converter.convertCSVDatasetToParquet();
-            dataset = parquetTempDatasetPath;
+            converter.convertCSVDataset();
+            dataset = tempDatasetPath;
         } break;
         default: {
             dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
@@ -80,9 +80,9 @@ public:
         std::filesystem::remove_all(databasePath);
         BaseGraphTest::removeIEDBPath();
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            std::filesystem::remove_all(parquetTempDatasetPath);
+            std::filesystem::remove_all(tempDatasetPath);
         } else if (datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
-            std::filesystem::remove_all(parquetTempDatasetPath);
+            std::filesystem::remove_all(tempDatasetPath);
         }
     }
 
@@ -92,7 +92,7 @@ public:
 private:
     TestGroup::DatasetType datasetType;
     std::string dataset;
-    std::string parquetTempDatasetPath;
+    std::string tempDatasetPath;
     uint64_t bufferPoolSize;
     uint64_t checkpointWaitTimeout;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
