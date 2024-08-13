@@ -459,7 +459,10 @@ jobs:
         run: ./scripts/check-no-std-assert.sh src
 
       - name: Ensure generated grammar files are up to date
-        run: cmp src/antlr4/Cypher.g4 scripts/antlr4/Cypher.g4.copy
+        run: |
+          cat src/antlr4/keywords.txt src/antlr4/Cypher.g4 | md5sum > tmphashfile
+          cmp tmphashfile scripts/antlr4/hash.md5
+          rm tmphashfile
 
   clang-format:
     name: clang format
