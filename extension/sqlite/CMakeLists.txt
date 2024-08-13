@@ -6,9 +6,6 @@ else()
         set(DuckDB_USE_STATIC_LIBS ON)
 endif()
 find_package(DuckDB REQUIRED)
-if(NOT WIN32)
-        find_library(DuckDB_STATIC REQUIRED NAMES libduckdb_static.a)
-endif()
 
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
@@ -28,11 +25,34 @@ add_library(sqlite_extension
         src/sqlite_storage.cpp
         src/sqlite_connector.cpp)
 
+add_library(sqlite_extension_installer
+        SHARED
+        src/sqlite_install_func.cpp
+        ../duckdb/src/duckdb_installer.cpp)
+
+add_library(sqlite_extension_loader
+        SHARED
+        ../duckdb/src/duckdb_loader.cpp)
+
 set_target_properties(sqlite_extension
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+)
+
+set_target_properties(sqlite_extension_loader
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+)
+
+set_target_properties(sqlite_extension_installer
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
 target_link_libraries(sqlite_extension
@@ -41,6 +61,18 @@ target_link_libraries(sqlite_extension
 
 set_target_properties(sqlite_extension PROPERTIES
         OUTPUT_NAME sqlite
+        PREFIX "lib"
+        SUFFIX ".kuzu_extension"
+)
+
+set_target_properties(sqlite_extension_loader PROPERTIES
+        OUTPUT_NAME sqlite_loader
+        PREFIX "lib"
+        SUFFIX ".kuzu_extension"
+)
+
+set_target_properties(sqlite_extension_installer PROPERTIES
+        OUTPUT_NAME sqlite_installer
         PREFIX "lib"
         SUFFIX ".kuzu_extension"
 )
@@ -63,8 +95,12 @@ if (WIN32)
         # Future work could make it possible to embed extension into kuzu,
         # which would help fix this problem.
         target_link_libraries(sqlite_extension PRIVATE kuzu)
+        target_link_libraries(sqlite_extension_loader PRIVATE kuzu)
+        target_link_libraries(sqlite_extension_installer PRIVATE kuzu)
 endif()
 
 if (APPLE)
     set_target_properties(sqlite_extension PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(sqlite_extension_loader PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(sqlite_extension_installer PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif ()

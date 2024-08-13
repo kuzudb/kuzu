@@ -1,24 +1,11 @@
 #include "processor/operator/simple/load_extension.h"
 
 #include "common/exception/io.h"
-
-#ifdef _WIN32
-
-#include "windows.h"
-#define RTLD_NOW 0
-#define RTLD_LOCAL 0
-
-#else
-#include <dlfcn.h>
-#endif
-
-#include "common/system_message.h"
+#include "common/file_system/virtual_file_system.h"
 #include "extension/extension.h"
 #include "main/database.h"
 
 using namespace kuzu::common;
-
-typedef void (*ext_init_func_t)(kuzu::main::ClientContext*);
 
 namespace kuzu {
 namespace processor {
@@ -57,28 +44,30 @@ void* dlsym(void* handle, const char* name) {
 }
 #endif
 
+static void executeExtensionLoader(main::ClientContext* context, const std::string& extensionName) {
+    auto loaderPath = ExtensionUtils::getLocalPathForExtensionLoader(context, extensionName);
+    if (context->getVFSUnsafe()->fileOrPathExists(loaderPath)) {
+        auto libLoader = ExtensionLibLoader(extensionName, loaderPath);
+        auto load = libLoader.getLoadFunc();
+        (*load)(context);
+    }
+}
+
 void LoadExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
+    auto fullPath = path;
     if (!extension::ExtensionUtils::isFullPath(path)) {
-        path = ExtensionUtils::getLocalPathForExtension(context->clientContext, path, path);
+        auto localPathForSharedLib =
+            ExtensionUtils::getLocalPathForSharedLib(context->clientContext);
+        if (!context->clientContext->getVFSUnsafe()->fileOrPathExists(localPathForSharedLib)) {
+            context->clientContext->getVFSUnsafe()->createDir(localPathForSharedLib);
+        }
+        executeExtensionLoader(context->clientContext, path);
+        fullPath = ExtensionUtils::getLocalPathForExtensionLib(context->clientContext, path);
     }
-    //    auto duckdbHdl =
-    //        dlopen("/Users/z473chen/Desktop/code/kuzu/libduckdb.dylib", RTLD_NOW | RTLD_GLOBAL);
-    //    if (!duckdbHdl) {
-    //        throw common::IOException(
-    //            stringFormat("Duckdb cannot be loaded.\nError: {}", dlErrMessage()));
-    //    }
-    auto libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
-    if (libHdl == nullptr) {
-        throw common::IOException(
-            stringFormat("Extension \"{}\" could not be loaded.\nError: {}", path, dlErrMessage()));
-    }
-    auto load = (ext_init_func_t)(dlsym(libHdl, "init"));
-    if (load == nullptr) {
-        throw common::IOException(
-            stringFormat("Extension \"{}\" does not have a valid init function.\nError: {}", path,
-                dlErrMessage()));
-    }
-    (*load)(context->clientContext);
+
+    auto libLoader = ExtensionLibLoader(path, fullPath);
+    auto init = libLoader.getInitFunc();
+    (*init)(context->clientContext);
 }
 
 std::string LoadExtension::getOutputMsg() {

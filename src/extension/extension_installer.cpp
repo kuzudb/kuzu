@@ -1,6 +1,7 @@
+#include "extension/extension_installer.h"
+
 #include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
-#include "extension/extension_installer.h"
 #include "httplib.h"
 #include "main/client_context.h"
 
@@ -44,6 +45,10 @@ void ExtensionInstaller::install(main::ClientContext* context) {
         extension::ExtensionUtils::getLocalExtensionDir(context, extensionName);
     if (!vfs->fileOrPathExists(localDirForExtension)) {
         vfs->createDir(localDirForExtension);
+    }
+    auto localDirForSharedLib = extension::ExtensionUtils::getLocalPathForSharedLib(context);
+    if (!vfs->fileOrPathExists(localDirForSharedLib)) {
+        vfs->createDir(localDirForSharedLib);
     }
     auto libFileRepoInfo = extension::ExtensionUtils::getExtensionLibRepoInfo(extensionName);
     auto localLibFilePath =

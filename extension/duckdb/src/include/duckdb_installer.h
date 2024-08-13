@@ -1,16 +1,19 @@
 #pragma once
-#include "extension/extension_downloader.h"
+#include "extension/extension_installer.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace duckdb {
 
-class HttpfsInstaller : public extension::ExtensionInstaller {
+class DuckDBInstaller : public extension::ExtensionInstaller {
+private:
+    static constexpr const char* DEPENDENCY_LIB_FILES[] = {"libduckdb.dylib"};
+
 public:
-    explicit HttpfsInstaller(const std::string extensionName)
+    explicit DuckDBInstaller(const std::string extensionName)
         : ExtensionInstaller{std::move(extensionName)} {}
 
     void install(main::ClientContext* context) override;
 };
 
-} // namespace httpfs
+} // namespace duckdb
 } // namespace kuzu

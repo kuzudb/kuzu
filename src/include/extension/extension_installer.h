@@ -18,11 +18,11 @@ public:
 
     virtual ~ExtensionInstaller() = default;
 
-    virtual void install(main::ClientContext* context) = 0;
+    virtual void install(main::ClientContext* context);
 
 protected:
     void tryDownloadExtensionFile(main::ClientContext* context, const ExtensionRepoInfo& info,
-        const std::string& fileName);
+        const std::string& localFilePath);
 
 protected:
     std::string extensionName;

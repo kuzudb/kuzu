@@ -177,7 +177,7 @@ extension-test: extension-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
 		-DBUILD_KUZU=FALSE \
 	)
 

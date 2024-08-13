@@ -1,12 +1,25 @@
 #include "extension/extension.h"
 
 #include "catalog/catalog.h"
+#include "common/exception/io.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "common/system_message.h"
 #include "function/table_functions.h"
 #include "main/client_context.h"
 #include "main/database.h"
 #include "transaction/transaction.h"
+
+#ifdef _WIN32
+
+#include "windows.h"
+#define RTLD_NOW 0
+#define RTLD_LOCAL 0
+
+#else
+#include <dlfcn.h>
+#endif
 
 namespace kuzu {
 namespace extension {
@@ -45,26 +58,61 @@ bool ExtensionUtils::isFullPath(const std::string& extension) {
            extension.find('\\') != std::string::npos;
 }
 
-ExtensionRepoInfo ExtensionUtils::getExtensionRepoInfo(const std::string& extensionName,
-    const std::string& fileName) {
-    auto extensionURL = common::stringFormat(EXTENSION_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
-        extensionName, getExtensionFileName(fileName));
+static ExtensionRepoInfo getExtensionRepoInfo(std::string& extensionURL) {
     common::StringUtils::replaceAll(extensionURL, "http://", "");
     auto hostNamePos = extensionURL.find('/');
     auto hostName = extensionURL.substr(0, hostNamePos);
     auto hostURL = "http://" + hostName;
     auto hostPath = extensionURL.substr(hostNamePos);
     return {hostPath, hostURL, extensionURL};
+};
+
+ExtensionRepoInfo ExtensionUtils::getExtensionLibRepoInfo(const std::string& extensionName) {
+    auto extensionURL = common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION,
+        getPlatform(), extensionName, getExtensionFileName(extensionName));
+    return getExtensionRepoInfo(extensionURL);
+}
+
+ExtensionRepoInfo ExtensionUtils::getExtensionLoaderRepoInfo(const std::string& extensionName) {
+    auto extensionURL =
+        common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
+            extensionName, getExtensionFileName(extensionName + EXTENSION_LOADER_SUFFIX));
+    return getExtensionRepoInfo(extensionURL);
+}
+
+ExtensionRepoInfo ExtensionUtils::getExtensionInstallerRepoInfo(const std::string& extensionName) {
+    auto extensionURL =
+        common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
+            extensionName, getExtensionFileName(extensionName + EXTENSION_INSTALLER_SUFFIX));
+    return getExtensionRepoInfo(extensionURL);
+}
+
+ExtensionRepoInfo ExtensionUtils::getSharedLibRepoInfo(const std::string& fileName) {
+    auto extensionURL =
+        common::stringFormat(SHARED_LIB_REPO, KUZU_EXTENSION_VERSION, getPlatform(), fileName);
+    return getExtensionRepoInfo(extensionURL);
 }
 
 std::string ExtensionUtils::getExtensionFileName(const std::string& name) {
     return common::stringFormat(EXTENSION_FILE_NAME, common::StringUtils::getLower(name));
 }
 
-std::string ExtensionUtils::getLocalPathForExtension(main::ClientContext* context,
-    const std::string& extensionName, const std::string& fileName) {
+std::string ExtensionUtils::getLocalPathForExtensionLib(main::ClientContext* context,
+    const std::string& extensionName) {
     return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
-        getExtensionFileName(fileName));
+        getExtensionFileName(extensionName));
+}
+
+std::string ExtensionUtils::getLocalPathForExtensionLoader(main::ClientContext* context,
+    const std::string& extensionName) {
+    return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
+        getExtensionFileName(extensionName + EXTENSION_LOADER_SUFFIX));
+}
+
+std::string ExtensionUtils::getLocalPathForExtensionInstaller(main::ClientContext* context,
+    const std::string& extensionName) {
+    return common::stringFormat("{}{}/{}", context->getExtensionDir(), extensionName,
+        getExtensionFileName(extensionName + EXTENSION_INSTALLER_SUFFIX));
 }
 
 std::string ExtensionUtils::getLocalExtensionDir(main::ClientContext* context,
@@ -86,6 +134,15 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
         catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
 }
 
+std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context,
+    const std::string& libName) {
+    return common::stringFormat("{}common/{}", context->getExtensionDir(), libName);
+}
+
+std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context) {
+    return common::stringFormat("{}common/", context->getExtensionDir());
+}
+
 void ExtensionUtils::registerFunctionSet(main::Database& database, std::string name,
     function::function_set functionSet) {
     auto catalog = database.getCatalog();
@@ -105,6 +162,38 @@ bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
         }
     }
     return false;
+}
+
+ExtensionLibLoader::ExtensionLibLoader(const std::string& extensionName, const std::string& path)
+    : extensionName{extensionName} {
+    libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    if (libHdl == nullptr) {
+        throw common::IOException(common::stringFormat(
+            "Failed to load library: {} which is needed by extension: {}.\nError: {}.", path,
+            extensionName, common::dlErrMessage()));
+    }
+}
+
+ext_load_func_t ExtensionLibLoader::getLoadFunc() {
+    return (ext_load_func_t)getDynamicLibFunc(EXTENSION_LOAD_FUNC_NAME);
+}
+
+ext_init_func_t ExtensionLibLoader::getInitFunc() {
+    return (ext_init_func_t)getDynamicLibFunc(EXTENSION_INIT_FUNC_NAME);
+}
+
+ext_install_func_t ExtensionLibLoader::getInstallFunc() {
+    return (ext_install_func_t)getDynamicLibFunc(EXTENSION_INSTALL_FUNC_NAME);
+}
+
+void* ExtensionLibLoader::getDynamicLibFunc(const std::string& funcName) {
+    auto sym = dlsym(libHdl, funcName.c_str());
+    if (sym == nullptr) {
+        throw common::IOException(
+            common::stringFormat("Failed to load {} function in extension {}.\nError: {}", funcName,
+                extensionName, common::dlErrMessage()));
+    }
+    return sym;
 }
 
 void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,

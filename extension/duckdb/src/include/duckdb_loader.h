@@ -1,8 +1,16 @@
-//
-// Created by z473chen on 2024-08-12.
-//
+#pragma once
+#include "extension/extension_installer.h"
 
-#ifndef KUZU_DUCKDB_LOADER_H
-#define KUZU_DUCKDB_LOADER_H
+namespace kuzu {
+namespace duckdb {
 
-#endif //KUZU_DUCKDB_LOADER_H
+class DuckDBLoader {
+private:
+    static constexpr const char* DEPENDENCY_LIB_FILES[] = {"libduckdb.dylib"};
+
+public:
+    void load(main::ClientContext* context);
+};
+
+} // namespace duckdb
+} // namespace kuzu
