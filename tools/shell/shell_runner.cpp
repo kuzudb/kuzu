@@ -60,9 +60,14 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history",
         {'p', "path_history"});
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
-    args::ValueFlag<std::string> mode(parser, "mode", "Set the output mode of the shell",
+    args::ValueFlag<std::string> mode(parser, "", "Set the output mode of the shell",
         {'m', "mode"});
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
+    args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar", {'b', "no_progress_bar", "noprogressbar"});
+    args::ValueFlag<uint32_t> maxRowsFlag(parser, "", "Maximum number of rows to display",
+        {"max_rows", "maxrows"});
+    args::ValueFlag<uint32_t> maxWidthFlag(parser, "", "Maximum width of the output",
+        {"max_width", "maxwidth"});
 
     std::vector<std::string> lCaseArgsStrings;
     for (auto i = 0; i < argc; ++i) {
@@ -132,6 +137,12 @@ int main(int argc, char* argv[]) {
     if (stats) {
         shellConfig.stats = false;
     }
+    if (maxRowsFlag) {
+        shellConfig.maxRowSize = args::get(maxRowsFlag);
+    }
+    if (maxWidthFlag) {
+        shellConfig.maxPrintWidth = args::get(maxWidthFlag);
+    }
 
     auto databasePath = args::get(inputDirFlag);
     std::shared_ptr<Database> database;
@@ -142,6 +153,10 @@ int main(int argc, char* argv[]) {
     } catch (Exception& e) {
         std::cerr << e.what() << '\n';
         return 1;
+    }
+    if (!progress_bar) {
+        conn->getClientContext()->getClientConfigUnsafe()->enableProgressBar = true;
+        conn->getClientContext()->getProgressBar()->toggleProgressBarPrinting(true);
     }
     if (DBConfig::isDBPathInMemory(databasePath)) {
         std::cout << "Opened the database under in-memory mode." << '\n';
