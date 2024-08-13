@@ -1,15 +1,18 @@
 #pragma once
-#include "extension/extension_installer.h"
+#include "extension/extension_loader.h"
 
 namespace kuzu {
 namespace duckdb {
 
-class DuckDBLoader {
+class DuckDBLoader final : public extension::ExtensionLoader {
 private:
     static constexpr const char* DEPENDENCY_LIB_FILES[] = {"libduckdb.dylib"};
 
 public:
-    void load(main::ClientContext* context);
+    explicit DuckDBLoader(std::string extensionName)
+        : extension::ExtensionLoader{std::move(extensionName)} {}
+
+    void loadDependency(main::ClientContext* context) override;
 };
 
 } // namespace duckdb

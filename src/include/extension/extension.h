@@ -39,9 +39,14 @@ struct ExtensionRepoInfo {
 };
 
 struct ExtensionUtils {
-    static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
+    //    static constexpr const char* EXTENSION_REPO =
+    //        "http://extension.kuzudb.com/v{}/{}/{}/lib{}.kuzu_extension";
 
-    static constexpr const char* SHARED_LIB_REPO = "http://extension.kuzudb.com/v{}/{}/common/{}";
+    static constexpr const char* EXTENSION_FILE_REPO =
+        "http://localhost/extension/releases/v{}/{}/{}/{}";
+
+    static constexpr const char* SHARED_LIB_REPO =
+        "http://localhost/extension/releases/v{}/{}/common/{}";
 
     static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
 
@@ -91,7 +96,7 @@ struct ExtensionUtils {
     static bool isOfficialExtension(const std::string& extension);
 };
 
-class ExtensionLibLoader {
+class KUZU_API ExtensionLibLoader {
 public:
     static constexpr const char* EXTENSION_LOAD_FUNC_NAME = "load";
 
