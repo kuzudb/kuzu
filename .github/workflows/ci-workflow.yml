@@ -214,7 +214,7 @@ jobs:
         run: |
           docker run -d --name kuzu-x86 \
                      -v $PWD:/kuzu -w /kuzu \
-                     -e NUM_THREADS=2 -e GEN=Ninja -e CC=gcc -e CXX=g++ \
+                     -e GEN=Ninja -e CC=gcc -e CXX=g++ \
                      i386/debian:stable tail -f /dev/null
 
       - name: Install dependencies
@@ -224,6 +224,7 @@ jobs:
 
       - name: Build & Test
         run: |
+          export NUM_THREADS=$(nproc)
           docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test
 
       - name: Stop Docker container
