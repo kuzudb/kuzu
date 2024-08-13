@@ -39,14 +39,9 @@ struct ExtensionRepoInfo {
 };
 
 struct ExtensionUtils {
-    //    static constexpr const char* EXTENSION_REPO =
-    //        "http://extension.kuzudb.com/v{}/{}/{}/lib{}.kuzu_extension";
+    static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
 
-    static constexpr const char* EXTENSION_FILE_REPO =
-        "http://localhost/extension/releases/v{}/{}/{}/{}";
-
-    static constexpr const char* SHARED_LIB_REPO =
-        "http://localhost/extension/releases/v{}/{}/common/{}";
+    static constexpr const char* SHARED_LIB_REPO = "http://extension.kuzudb.com/v{}/{}/common/{}";
 
     static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
 
