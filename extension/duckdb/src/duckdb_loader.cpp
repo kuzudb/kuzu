@@ -1,7 +1,5 @@
 #include "duckdb_loader.h"
 
-#include "extension/extension.h"
-
 namespace kuzu {
 namespace duckdb {
 
