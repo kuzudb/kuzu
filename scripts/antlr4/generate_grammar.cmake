@@ -7,15 +7,8 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 file(READ hash.md5 OLDHASH)
 
-if(WIN32)
-    execute_process(
-        COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt,${ROOT_DIR}/src/antlr4/Cypher.g4
-        COMMAND ${Python3_EXECUTABLE} hash.py OUTPUT_VARIABLE NEWHASH)
-else()
-    execute_process(
-        COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4
-        COMMAND ${Python3_EXECUTABLE} hash.py OUTPUT_VARIABLE NEWHASH)
-endif()
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} hash.py ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4 OUTPUT_VARIABLE NEWHASH)
 
 if("${OLDHASH}" STREQUAL "${NEWHASH}")
     message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
