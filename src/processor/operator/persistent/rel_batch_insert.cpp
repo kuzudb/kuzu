@@ -200,8 +200,23 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
     if (relInfo->direction == RelDataDirection::BWD) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
+
+        for (auto& child : children) {
+            child->finalize(context);
+        }
+
+        auto& warningMsgs = context->clientContext->getWarningMessages();
+        for (auto& warningMsg : warningMsgs) {
+            FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
+                context->clientContext->getMemoryManager());
+        }
+
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());
+        if (!warningMsgs.empty()) {
+            outputMsg.append(
+                stringFormat(" Skipped {} tuples due to copy errors", warningMsgs.size()));
+        }
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
     }

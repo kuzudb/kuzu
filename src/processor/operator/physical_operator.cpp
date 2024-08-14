@@ -185,6 +185,12 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
     return result;
 }
 
+void PhysicalOperator::finalize(ExecutionContext* context) {
+    for (auto& child : children) {
+        child->finalize(context);
+    }
+}
+
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
     auto executionTime = profiler->registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = profiler->registerNumericMetric(getNumTupleMetricKey());
