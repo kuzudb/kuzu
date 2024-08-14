@@ -25,19 +25,16 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
     MemoryManager* memoryManager, VirtualFileSystem* vfs, main::ClientContext* context,
     Deserializer* deSer)
     : Table{nodeTableEntry, storageManager, memoryManager},
-      pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyPID())} {
-    auto& properties = nodeTableEntry->getPropertiesRef();
-    const auto maxColumnID =
-        std::max_element(properties.begin(), properties.end(), [](auto& a, auto& b) {
-            return a.getColumnID() < b.getColumnID();
-        })->getColumnID();
+      pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())} {
+    const auto maxColumnID = nodeTableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
-    for (auto i = 0u; i < properties.size(); i++) {
-        auto& property = properties[i];
+    for (auto i = 0u; i < nodeTableEntry->getNumProperties(); i++) {
+        auto& property = nodeTableEntry->getProperty(i);
+        auto columnID = nodeTableEntry->getColumnID(property.getName());
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
-        columns[property.getColumnID()] = ColumnFactory::createColumn(columnName,
-            property.getDataType().copy(), dataFH, bufferManager, shadowFile, enableCompression);
+        columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
+            dataFH, bufferManager, shadowFile, enableCompression);
     }
     nodeGroups = std::make_unique<NodeGroupCollection>(getNodeTableColumnTypes(*this),
         enableCompression, storageManager->getDataFH(), deSer);
@@ -70,7 +67,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
         main::DBConfig::isDBPathInMemory(databasePath),
-        nodeTableEntry->getPrimaryKey()->getDataType().getPhysicalType(), *bufferManager,
+        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *bufferManager,
         shadowFile, vfs, context);
 }
 
@@ -265,9 +262,8 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 }
 
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    auto& property = addColumnState.property;
-    KU_ASSERT(property.getColumnID() == columns.size());
-    columns.push_back(ColumnFactory::createColumn(property.getName(), property.getDataType().copy(),
+    auto& definition = addColumnState.propertyDefinition;
+    columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
         dataFH, bufferManager, shadowFile, enableCompression));
     LocalTable* localTable = nullptr;
     if (transaction->getLocalStorage()) {
@@ -377,8 +373,8 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         // Deleted columns are vaccumed and not checkpointed or serialized.
         std::vector<std::unique_ptr<Column>> checkpointColumns;
         std::vector<column_id_t> columnIDs;
-        for (auto& property : tableEntry->getPropertiesUnsafe()) {
-            auto columnID = tableEntry->getColumnID(property.getPropertyID());
+        for (auto& property : tableEntry->getProperties()) {
+            auto columnID = tableEntry->getColumnID(property.getName());
             checkpointColumns.push_back(std::move(columns[columnID]));
             columnIDs.push_back(columnID);
         }
@@ -388,7 +384,7 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         pkIndex->checkpoint();
         hasChanges = false;
         columns = std::move(state.columns);
-        tableEntry->resetColumnIDs();
+        tableEntry->vacuumColumnIDs();
     }
     serialize(ser);
 }

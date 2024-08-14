@@ -1,7 +1,5 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 
-#include <algorithm>
-
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -15,29 +13,28 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo& alterInfo) {
+std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo& info) {
     KU_ASSERT(!deleted);
     auto newEntry = copy();
-    switch (alterInfo.alterType) {
+    switch (info.alterType) {
     case AlterType::RENAME_TABLE: {
-        auto& renameTableInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
+        auto& renameTableInfo = *info.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         newEntry->rename(renameTableInfo.newName);
     } break;
     case AlterType::RENAME_PROPERTY: {
-        auto& renamePropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
-        newEntry->renameProperty(renamePropInfo.propertyID, renamePropInfo.newName);
+        auto& renamePropInfo = *info.extraInfo->constPtrCast<BoundExtraRenamePropertyInfo>();
+        newEntry->renameProperty(renamePropInfo.oldName, renamePropInfo.newName);
     } break;
     case AlterType::ADD_PROPERTY: {
-        auto& addPropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
-        newEntry->addProperty(addPropInfo.propertyName, addPropInfo.dataType.copy(),
-            addPropInfo.defaultValue->copy());
+        auto& addPropInfo = *info.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
+        newEntry->addProperty(addPropInfo.propertyDefinition);
     } break;
     case AlterType::DROP_PROPERTY: {
-        auto& dropPropInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
-        newEntry->dropProperty(dropPropInfo.propertyID);
+        auto& dropPropInfo = *info.extraInfo->constPtrCast<BoundExtraDropPropertyInfo>();
+        newEntry->dropProperty(dropPropInfo.propertyName);
     } break;
     case AlterType::COMMENT: {
-        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraCommentInfo>();
+        auto& commentInfo = *info.extraInfo->constPtrCast<BoundExtraCommentInfo>();
         newEntry->setComment(commentInfo.comment);
     } break;
     default: {
@@ -47,89 +44,65 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo
     return newEntry;
 }
 
-bool TableCatalogEntry::containProperty(const std::string& propertyName) const {
-    return std::any_of(properties.begin(), properties.end(),
-        [&propertyName](const auto& property) { return property.getName() == propertyName; });
+common::column_id_t TableCatalogEntry::getMaxColumnID() const {
+    return propertyCollection.getMaxColumnID();
 }
 
-property_id_t TableCatalogEntry::getPropertyID(const std::string& propertyName) const {
-    auto it = std::find_if(properties.begin(), properties.end(),
-        [&propertyName](const auto& property) { return property.getName() == propertyName; });
-    KU_ASSERT(it != properties.end());
-    return it->getPropertyID();
+void TableCatalogEntry::vacuumColumnIDs() {
+    propertyCollection.vacuumColumnIDs();
 }
 
-const Property* TableCatalogEntry::getProperty(property_id_t propertyID) const {
-    auto it = std::find_if(properties.begin(), properties.end(),
-        [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
-    KU_ASSERT(it != properties.end());
-    return &(*it);
+std::string TableCatalogEntry::propertiesToCypher() const {
+    return propertyCollection.toCypher();
 }
 
-uint32_t TableCatalogEntry::getPropertyPos(common::property_id_t propertyID) const {
-    auto it = std::find_if(properties.begin(), properties.end(),
-        [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
-    KU_ASSERT(it != properties.end());
-    return it - properties.begin();
+bool TableCatalogEntry::containsProperty(const std::string& propertyName) const {
+    return propertyCollection.contains(propertyName);
 }
 
-column_id_t TableCatalogEntry::getColumnID(const property_id_t propertyID) const {
-    auto it = std::find_if(properties.begin(), properties.end(),
-        [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
-    KU_ASSERT(it != properties.end());
-    return it->getColumnID();
+common::idx_t TableCatalogEntry::getPropertyIdx(const std::string& propertyName) const {
+    return propertyCollection.getIdx(propertyName);
 }
 
-void TableCatalogEntry::addProperty(std::string propertyName, LogicalType dataType,
-    std::unique_ptr<parser::ParsedExpression> defaultExpr) {
-    properties.emplace_back(std::move(propertyName), std::move(dataType), std::move(defaultExpr),
-        nextPID++, nextColumnID++, tableID);
+const PropertyDefinition& TableCatalogEntry::getProperty(const std::string& propertyName) const {
+    return propertyCollection.getDefinition(propertyName);
 }
 
-void TableCatalogEntry::dropProperty(property_id_t propertyID) {
-    properties.erase(std::remove_if(properties.begin(), properties.end(),
-                         [propertyID](const Property& property) {
-                             return property.getPropertyID() == propertyID;
-                         }),
-        properties.end());
+const PropertyDefinition& TableCatalogEntry::getProperty(common::idx_t idx) const {
+    return propertyCollection.getDefinition(idx);
 }
 
-void TableCatalogEntry::renameProperty(property_id_t propertyID, const std::string& newName) {
-    auto it = std::find_if(properties.begin(), properties.end(),
-        [&propertyID](const auto& property) { return property.getPropertyID() == propertyID; });
-    KU_ASSERT(it != properties.end());
-    it->rename(newName);
+common::column_id_t TableCatalogEntry::getColumnID(const std::string& propertyName) const {
+    return propertyCollection.getColumnID(propertyName);
 }
 
-void TableCatalogEntry::resetColumnIDs() {
-    auto columnID = 0u;
-    for (auto& property : properties) {
-        property.setColumnID(columnID++);
-    }
-    nextColumnID = columnID;
+void TableCatalogEntry::addProperty(const PropertyDefinition& propertyDefinition) {
+    propertyCollection.add(propertyDefinition);
+}
+
+void TableCatalogEntry::dropProperty(const std::string& propertyName) {
+    propertyCollection.drop(propertyName);
+}
+
+void TableCatalogEntry::renameProperty(const std::string& propertyName,
+    const std::string& newName) {
+    propertyCollection.rename(propertyName, newName);
 }
 
 void TableCatalogEntry::serialize(Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(tableID);
-    serializer.serializeVector(properties);
     serializer.write(comment);
-    serializer.write(nextPID);
-    serializer.write(nextColumnID);
+    propertyCollection.serialize(serializer);
 }
 
-std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& deserializer,
-    CatalogEntryType type) {
-    table_id_t tableID;
-    std::vector<Property> properties;
+std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
+    common::Deserializer& deserializer, CatalogEntryType type) {
+    common::table_id_t tableID;
     std::string comment;
-    property_id_t nextPID;
-    column_id_t nextColumnID;
     deserializer.deserializeValue(tableID);
-    deserializer.deserializeVector(properties);
     deserializer.deserializeValue(comment);
-    deserializer.deserializeValue(nextPID);
-    deserializer.deserializeValue(nextColumnID);
+    auto propertyCollection = PropertyDefinitionCollection::deserialize(deserializer);
     std::unique_ptr<TableCatalogEntry> result;
     switch (type) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -148,10 +121,8 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
         KU_UNREACHABLE;
     }
     result->tableID = tableID;
-    result->properties = std::move(properties);
     result->comment = std::move(comment);
-    result->nextPID = nextPID;
-    result->nextColumnID = nextColumnID;
+    result->propertyCollection = std::move(propertyCollection);
     return result;
 }
 
@@ -161,9 +132,7 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
     set = otherTable.set;
     tableID = otherTable.tableID;
     comment = otherTable.comment;
-    nextPID = otherTable.nextPID;
-    nextColumnID = otherTable.nextColumnID;
-    properties = copyVector(otherTable.properties);
+    propertyCollection = otherTable.propertyCollection.copy();
 }
 
 binder::BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(

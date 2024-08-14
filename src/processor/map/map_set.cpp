@@ -21,9 +21,8 @@ namespace processor {
 static column_id_t getColumnID(const catalog::TableCatalogEntry& entry,
     const PropertyExpression& propertyExpr) {
     auto columnID = INVALID_COLUMN_ID;
-    if (propertyExpr.hasPropertyID(entry.getTableID())) {
-        auto propertyID = propertyExpr.getPropertyID(entry.getTableID());
-        columnID = entry.getColumnID(propertyID);
+    if (propertyExpr.hasProperty(entry.getTableID())) {
+        columnID = entry.getColumnID(propertyExpr.getPropertyName());
     }
     return columnID;
 }
