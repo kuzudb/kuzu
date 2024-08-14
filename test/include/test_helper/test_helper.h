@@ -71,7 +71,7 @@ public:
         return systemConfig;
     }
 
-    static std::string getMillisecondsSuffix();
+    static std::string getTempSuffix();
 
     static std::filesystem::path getTempDir() {
         auto tempDir = std::getenv("RUNNER_TEMP");
@@ -83,7 +83,7 @@ public:
     }
 
     static std::string getTempDir(const std::string& name) {
-        const auto path = getTempDir() / (name + getMillisecondsSuffix());
+        const auto path = getTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
         auto pathStr = path.string();
 #ifdef _WIN32
