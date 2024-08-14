@@ -554,7 +554,7 @@ static bool parseStructFieldValue(const char*& input, const char* end, const CSV
             if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
-        } else if (*input == ',' || *input == option->delimiter || *input == '}') {
+        } else if (*input == option->listDelimiter || *input == '}') {
             if (*input == '}') {
                 closeBrack = true;
             }
