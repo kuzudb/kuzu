@@ -10,7 +10,7 @@ COPY `empty` FROM "dataset/csv-edge-case-tests/empty.csv";
 COPY `empty-with-header` FROM "dataset/csv-edge-case-tests/empty.csv" (HEADER=TRUE);
 COPY `eof-after-unquote` FROM "dataset/csv-edge-case-tests/eof-after-unquote.csv";
 COPY `escapes-in-quote` FROM "dataset/csv-edge-case-tests/escapes-in-quote.csv"(escape='\\');
-COPY `escapes-out-of-quote` FROM "dataset/csv-edge-case-tests/escapes-out-of-quote.csv";
+COPY `escapes-out-of-quote` FROM "dataset/csv-edge-case-tests/escapes-out-of-quote.csv" (sample_size=1);
 COPY `mixed-empty-lines-multiple-columns` FROM "dataset/csv-edge-case-tests/mixed-empty-lines-multiple-columns.csv";
 COPY `mixed-empty-lines-single-column` FROM "dataset/csv-edge-case-tests/mixed-empty-lines-single-column.csv";
 COPY `mixed-newlines` FROM "dataset/csv-edge-case-tests/mixed-newlines.csv";

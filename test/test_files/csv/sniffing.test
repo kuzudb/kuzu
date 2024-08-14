@@ -1,0 +1,62 @@
+-DATASET CSV empty
+
+--
+
+-CASE SniffInt
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/int.csv" (header=true) RETURN typeof(s8), typeof(un8), typeof(s16), typeof(un16), typeof(s32), typeof(un32) LIMIT 1
+---- 1
+INT64|INT64|INT64|INT64|INT64|INT64
+
+-CASE SniffBool
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/bool.csv" (header=true) RETURN typeof(isabool), typeof(notabool) LIMIT 1
+---- 1
+BOOL|STRING
+
+-CASE SniffReal
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/real.csv" (header=true) RETURN typeof(isDouble), typeof(isDecimal_10_2), typeof(isDecimal_10_4), typeof(isString) LIMIT 1
+---- 1
+DOUBLE|DECIMAL(10, 2)|DECIMAL(10, 4)|STRING
+
+-CASE SniffDate
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/date.csv" (header=true) RETURN typeof(isDate), typeof(isTimestamp), typeof(isNeither1), typeof(isNeither2), typeof(isInterval) LIMIT 1
+---- 1
+DATE|TIMESTAMP|STRING|STRING|INTERVAL
+
+-CASE SniffUUID
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/uuid.csv" (HEADER=TRUE) RETURN typeof(isUUID), typeof(isNotUUID1), typeof(isNotUUID2), typeof(isNotUUID3), typeof(isNotUUID4) LIMIT 1
+---- 1
+UUID|STRING|STRING|STRING|STRING
+
+-CASE SniffList
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/list.csv" (header=true) RETURN typeof(isIntArray), typeof(isDecimalArray), typeof(isStringArray1), typeof(isStringArray2), typeof(isIntArrayArray), typeof(isEmptyArray), typeof(isEmptyArrayArrayArray) LIMIT 1
+---- 1
+INT64[]|DECIMAL(2, 1)[]|STRING[]|STRING[]|INT64[][]|STRING[]|STRING[][][]
+
+-CASE SniffMap
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/map.csv" (header=true) RETURN typeof(keytest), typeof(valuetest), typeof(bothtest), typeof(intint) LIMIT 1
+---- 1
+MAP(STRING, INT64)|MAP(INT64, STRING)|MAP(STRING, STRING)|MAP(INT64, INT64)
+
+-CASE SniffStruct
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/struct.csv" (header=true) return typeof(basicStruct), typeof(unionOfFields), typeof(notStruct) LIMIT 1
+---- 1
+STRUCT(a INT64, b INT64)|STRUCT(a INT64, b INT64, c INT64)|MAP(STRING, INT64)
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/sample-size.csv" (header=false,sample_size=3) RETURN typeof(column0) LIMIT 1
+---- 1
+INT64
+
+-CASE HeaderTest
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/header.csv" (header=true,sample_size=3) RETURN typeof(a), typeof(a_1), typeof(a_2), typeof(a_1_1), typeof(e) LIMIT 1
+---- 1
+INT64|BOOL|INT128|DATE|STRING
+
+-CASE ExtremeNest
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/nested.csv" (header=true) RETURN typeof(isStructArray), typeof(isArrayStruct), typeof(isMapStringStruct), typeof(isMapListStructList) LIMIT 1
+---- 1
+STRUCT(a INT64)[]|STRUCT(arr INT64[])|MAP(STRING, STRUCT(a INT64))|MAP(INT64[], STRUCT(A STRUCT(arr INT64[]), B STRUCT(barr STRING[])))
+
+-CASE LargeStruct
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-sniffing-test/path.csv" (header = true) return typeof(p) LIMIT 1;
+---- 1
+STRUCT(_NODES STRUCT(_ID STRING, _LABEL STRING, ID INT64, fName STRING, gender INT64, isStudent BOOL, isWorker BOOL, age INT64, eyeSight DECIMAL(7, 6), birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[], height DECIMAL(7, 6), u UUID)[], _RELS STRUCT(_SRC STRING, _DST STRING, _LABEL STRING, _ID STRING, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes STRING, someMap MAP(STRING, STRING))[])

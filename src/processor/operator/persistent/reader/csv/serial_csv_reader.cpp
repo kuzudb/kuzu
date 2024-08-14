@@ -1,6 +1,5 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
-#include "common/string_format.h"
 #include "function/table/bind_data.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
@@ -17,21 +16,25 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option, 
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
-
-    if (option.hasHeader) {
-        SniffCSVNameAndTypeDriver driver{context};
-        parseCSV(driver);
-        return std::move(driver.columns);
-    } else {
-        SniffCSVColumnCountDriver driver;
-        parseCSV(driver);
-        std::vector<std::pair<std::string, LogicalType>> columns;
-        columns.reserve(driver.numColumns);
-        for (uint64_t i = 0; i < driver.numColumns; i++) {
-            columns.emplace_back(stringFormat("column{}", i), LogicalTypeID::STRING);
+    SniffCSVNameAndTypeDriver driver{context, option, this};
+    parseCSV(driver);
+    // finalize the columns; rename duplicate names
+    std::map<std::string, int32_t> names;
+    for (auto& i : driver.columns) {
+        // Suppose name "col" already exists
+        // Let N be the number of times it exists
+        // rename to "col" + "_{N}"
+        // ideally "col_{N}" shouldn't exist, but if it already exists M times (due to user
+        // declaration), rename to "col_{N}" + "_{M}" repeat until no match exists
+        while (names.contains(i.first)) {
+            names[i.first]++;
+            i.first += "_" + std::to_string(names[i.first]);
         }
-        return columns;
+        names[i.first];
+        // purge null types
+        i.second = LogicalTypeUtils::purgeAny(i.second, LogicalType::STRING());
     }
+    return std::move(driver.columns);
 }
 
 uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChunk) {
@@ -102,6 +105,10 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
+    if (scanInput->expectedColumnTypes.size() > 0) {
+        scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
+            Value((int64_t)0)); // only scan headers
+    }
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
     SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
