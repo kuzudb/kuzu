@@ -338,7 +338,7 @@ void EmbeddedShell::printErrorMessage(std::string input, QueryResult& queryResul
         trimmedinput.erase(0, trimmedinput.find_first_not_of(" \t\n\r\f\v"));
         if (trimmedinput.find(' ') == std::string::npos) {
             printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
-                    "CLI command, e.g., \"%s\"?\n",
+                   "CLI command, e.g., \"%s\"?\n",
                 input.c_str(), findClosestCommand(input).c_str());
         }
     }

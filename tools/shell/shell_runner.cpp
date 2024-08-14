@@ -5,8 +5,8 @@
 #include "args.hxx"
 #include "common/file_system/local_file_system.h"
 #include "embedded_shell.h"
-#include "main/db_config.h"
 #include "linenoise.h"
+#include "main/db_config.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
@@ -64,7 +64,7 @@ void processRunCommands(EmbeddedShell& shell, std::string filename) {
         for (auto& queryResult : queryResults) {
             if (!queryResult->isSuccess()) {
                 shell.printErrorMessage(buf, *queryResult);
-            } 
+            }
         }
     }
     fclose(fp);
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
             std::cout << "Opened the database under in-memory mode." << '\n';
         } else {
             std::cout << "Opened the database at path: " << databasePath << " in "
-                    << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+                      << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
         }
         std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
         shell.run();
