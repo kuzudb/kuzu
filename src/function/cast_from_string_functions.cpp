@@ -341,6 +341,7 @@ static bool splitPossibleUnbracedList(std::string_view input, T& state, const CS
     for (auto& i: split) {
         state.handleValue(i.data(), i.data() + i.length(), option);
     }
+    return true;
 }
 
 template<typename T>
@@ -457,7 +458,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
             }
         } else if (isKey && *input == '=') {
             return state.handleKey(start, input, option);
-        } else if (!isKey && (*input == option->listdelimiter || *input == '}')) {
+        } else if (!isKey && (*input == option->listDelimiter || *input == '}')) {
             state.handleValue(start, input, option);
             if (*input == '}') {
                 closeBracket = true;
