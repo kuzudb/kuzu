@@ -23,5 +23,7 @@ void BaseAggregateScan::writeAggregateResultToVector(ValueVector& vector, uint64
     }
 }
 
+void BaseAggregateScan::finalize(ExecutionContext*) {}
+
 } // namespace processor
 } // namespace kuzu

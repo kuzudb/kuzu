@@ -28,6 +28,8 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
+    void finalize(ExecutionContext* context) override;
+
 protected:
     void writeAggregateResultToVector(common::ValueVector& vector, uint64_t pos,
         function::AggregateState* aggregateState);
