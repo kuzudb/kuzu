@@ -57,16 +57,14 @@ public:
         case TestGroup::DatasetType::CSV_TO_PARQUET: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
             tempDatasetPath = generateTempDatasetPath();
-            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize,
-                ".parquet");
+            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".parquet");
             converter.convertCSVDataset();
             dataset = tempDatasetPath;
         } break;
         case TestGroup::DatasetType::CSV_TO_JSON: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
             tempDatasetPath = generateTempDatasetPath();
-            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize,
-                ".json");
+            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".json");
             converter.convertCSVDataset();
             dataset = tempDatasetPath;
         } break;
