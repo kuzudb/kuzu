@@ -28,6 +28,10 @@ public:
 
     void run();
 
+    std::vector<std::unique_ptr<QueryResult>> processInput(std::string input);
+
+    void printErrorMessage(std::string input, QueryResult& queryResult);
+
     static void interruptHandler(int signal);
 
 private:
