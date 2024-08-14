@@ -76,7 +76,7 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
 }
 
 std::string TestHelper::getTempSuffix() {
-    uint64_t val = std::chrono::system_clock::now().time_since_epoch().count();
+    uint64_t val = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     return std::to_string(val);
 }
 
