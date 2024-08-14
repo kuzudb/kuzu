@@ -11,11 +11,7 @@ class FunctionExpressionEvaluator : public ExpressionEvaluator {
 
 public:
     FunctionExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
-        std::vector<std::unique_ptr<ExpressionEvaluator>> children)
-        : ExpressionEvaluator{type_, std::move(expression), std::move(children)}, execFunc{nullptr},
-          selectFunc{nullptr}, bindData{nullptr} {}
-
-    void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
+        std::vector<std::unique_ptr<ExpressionEvaluator>> children);
 
     void evaluate() override;
 
@@ -30,9 +26,8 @@ protected:
         storage::MemoryManager* memoryManager) override;
 
 private:
-    function::scalar_func_exec_t execFunc;
-    function::scalar_func_select_t selectFunc;
     std::vector<std::shared_ptr<common::ValueVector>> parameters;
+    function::ScalarFunction function;
     std::unique_ptr<function::FunctionBindData> bindData;
 };
 

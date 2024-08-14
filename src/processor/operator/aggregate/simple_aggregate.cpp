@@ -16,10 +16,10 @@ std::string SimpleAggregatePrintInfo::toString() const {
 }
 
 SimpleAggregateSharedState::SimpleAggregateSharedState(
-    const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)
+    const std::vector<AggregateFunction>& aggregateFunctions)
     : BaseAggregateSharedState{aggregateFunctions} {
     for (auto& aggregateFunction : this->aggregateFunctions) {
-        globalAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
+        globalAggregateStates.push_back(aggregateFunction.createInitialNullAggregateState());
     }
 }
 
@@ -29,7 +29,7 @@ void SimpleAggregateSharedState::combineAggregateStates(
     KU_ASSERT(localAggregateStates.size() == globalAggregateStates.size());
     std::unique_lock lck{mtx};
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
-        aggregateFunctions[i]->combineState((uint8_t*)globalAggregateStates[i].get(),
+        aggregateFunctions[i].combineState((uint8_t*)globalAggregateStates[i].get(),
             (uint8_t*)localAggregateStates[i].get(), memoryManager);
     }
 }
@@ -37,7 +37,7 @@ void SimpleAggregateSharedState::combineAggregateStates(
 void SimpleAggregateSharedState::finalizeAggregateStates() {
     std::unique_lock lck{mtx};
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
-        aggregateFunctions[i]->finalizeState((uint8_t*)globalAggregateStates[i].get());
+        aggregateFunctions[i].finalizeState((uint8_t*)globalAggregateStates[i].get());
     }
 }
 
@@ -54,10 +54,10 @@ std::pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
 void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseAggregate::initLocalStateInternal(resultSet, context);
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
-        auto func = aggregateFunctions[i].get();
-        localAggregateStates.push_back(func->createInitialNullAggregateState());
+        auto& func = aggregateFunctions[i];
+        localAggregateStates.push_back(func.createInitialNullAggregateState());
         std::unique_ptr<AggregateHashTable> distinctHT;
-        if (func->isDistinct) {
+        if (func.isDistinct) {
             auto mm = context->clientContext->getMemoryManager();
             distinctHT = AggregateHashTableUtils::createDistinctHashTable(*mm,
                 std::vector<LogicalType>{} /* empty group by keys */,
@@ -73,7 +73,7 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
     auto memoryManager = context->clientContext->getMemoryManager();
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-            auto aggregateFunction = aggregateFunctions[i].get();
+            auto aggregateFunction = &aggregateFunctions[i];
             if (aggregateFunction->isFunctionDistinct()) {
                 computeDistinctAggregate(distinctHashTables[i].get(), aggregateFunction,
                     &aggInputs[i], localAggregateStates[i].get(), memoryManager);

@@ -70,8 +70,7 @@ HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
       dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
 
 void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* context,
-    HashAggregateInfo& info,
-    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+    HashAggregateInfo& info, std::vector<function::AggregateFunction>& aggregateFunctions,
     std::vector<common::LogicalType> types) {
     std::vector<LogicalType> keyDataTypes;
     for (auto& pos : info.flatKeysPos) {

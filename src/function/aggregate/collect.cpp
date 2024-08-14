@@ -114,7 +114,8 @@ function_set CollectFunction::getFunctionSet() {
     for (auto isDistinct : std::vector<bool>{true, false}) {
         result.push_back(std::make_unique<AggregateFunction>(name,
             std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::LIST, initialize,
-            updateAll, updatePos, combine, finalize, isDistinct, bindFunc));
+            updateAll, updatePos, combine, finalize, isDistinct, bindFunc,
+            nullptr /* paramRewriteFunc */));
     }
     return result;
 }

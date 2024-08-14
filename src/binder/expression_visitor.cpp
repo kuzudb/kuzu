@@ -1,11 +1,11 @@
 #include "binder/expression_visitor.h"
 
 #include "binder/expression/case_expression.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression/lambda_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
 #include "function/sequence/sequence_functions.h"
@@ -185,8 +185,8 @@ bool ExpressionVisitor::isRandom(const Expression& expression) {
     if (expression.expressionType != ExpressionType::FUNCTION) {
         return false;
     }
-    auto& funcExpr = expression.constCast<FunctionExpression>();
-    if (funcExpr.getFunctionName() == function::GenRandomUUIDFunction::name) {
+    auto& funcExpr = expression.constCast<ScalarFunctionExpression>();
+    if (funcExpr.getFunction().name == function::GenRandomUUIDFunction::name) {
         return true;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
@@ -294,11 +294,11 @@ bool ConstantExpressionVisitor::isConstant(const Expression& expr) {
 }
 
 bool ConstantExpressionVisitor::visitFunction(const Expression& expr) {
-    auto& funcExpr = expr.constCast<FunctionExpression>();
-    if (funcExpr.getFunctionName() == function::NextValFunction::name) {
+    auto& funcExpr = expr.constCast<ScalarFunctionExpression>();
+    if (funcExpr.getFunction().name == function::NextValFunction::name) {
         return false;
     }
-    if (funcExpr.getFunctionName() == function::GenRandomUUIDFunction::name) {
+    if (funcExpr.getFunction().name == function::GenRandomUUIDFunction::name) {
         return false;
     }
     return visitChildren(expr);

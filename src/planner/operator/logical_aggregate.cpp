@@ -1,6 +1,6 @@
 #include "planner/operator/logical_aggregate.h"
 
-#include "binder/expression/function_expression.h"
+#include "binder/expression/aggregate_function_expression.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {

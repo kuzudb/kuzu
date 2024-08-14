@@ -1,6 +1,5 @@
 #include "pandas/pandas_scan.h"
 
-#include "binder/expression/function_expression.h"
 #include "cached_import/py_cached_import.h"
 #include "common/exception/runtime.h"
 #include "function/table/bind_input.h"
@@ -118,14 +117,11 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(pandasSharedState->numRowsRead) / pandasSharedState->numRows;
 }
 
-static TableFunction getFunction() {
-    return TableFunction(PandasScanFunction::name, tableFunc, bindFunc, initSharedState,
-        initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
-}
-
 function_set PandasScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(getFunction().copy());
+    functionSet.push_back(std::make_unique<TableFunction>(PandasScanFunction::name, tableFunc,
+        bindFunc, initSharedState, initLocalState, progressFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
     return functionSet;
 }
 
@@ -154,7 +150,9 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
         if (isPyArrowBacked(entry)) {
             scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         } else {
-            scanReplacementData->func = getFunction();
+            scanReplacementData->func = TableFunction(PandasScanFunction::name, tableFunc, bindFunc,
+                initSharedState, initLocalState, progressFunc,
+                std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
         }
         auto bindInput = TableFuncBindInput();
         bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));

@@ -77,11 +77,6 @@ struct ExportFunction : public Function {
           sink{std::move(copyToSink)}, combine{std::move(copyToCombine)},
           finalize{std::move(copyToFinalize)} {}
 
-    std::unique_ptr<Function> copy() const override {
-        return std::make_unique<ExportFunction>(name, initLocalState, createSharedState,
-            initSharedState, sink, combine, finalize);
-    }
-
     export_bind_t bind;
     export_init_local_t initLocalState;
     export_create_shared_t createSharedState;

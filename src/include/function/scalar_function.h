@@ -21,11 +21,12 @@ using scalar_func_exec_t = std::function<void(
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 
-struct ScalarFunction final : public BaseScalarFunction {
-    scalar_func_exec_t execFunc;
-    scalar_func_select_t selectFunc;
-    scalar_func_compile_exec_t compileFunc;
+struct ScalarFunction final : public ScalarOrAggregateFunction {
+    scalar_func_exec_t execFunc = nullptr;
+    scalar_func_select_t selectFunc = nullptr;
+    scalar_func_compile_exec_t compileFunc = nullptr;
 
+    ScalarFunction() = default;
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc)
         : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
@@ -47,7 +48,7 @@ struct ScalarFunction final : public BaseScalarFunction {
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc,
         scalar_func_select_t selectFunc, scalar_func_compile_exec_t compileFunc,
         scalar_bind_func bindFunc)
-        : BaseScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+        : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(bindFunc)},
           execFunc{std::move(execFunc)}, selectFunc(std::move(selectFunc)),
           compileFunc{std::move(compileFunc)} {}
@@ -61,6 +62,7 @@ struct ScalarFunction final : public BaseScalarFunction {
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
         : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID, execFunc,
               nullptr /* selectFunc */, bindFunc} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(ScalarFunction);
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
@@ -215,9 +217,8 @@ struct ScalarFunction final : public BaseScalarFunction {
             *params[0], *params[1], result, dataPtr);
     }
 
-    std::unique_ptr<Function> copy() const override {
-        return std::make_unique<ScalarFunction>(*this);
-    }
+private:
+    ScalarFunction(const ScalarFunction& other) = default;
 };
 
 } // namespace function

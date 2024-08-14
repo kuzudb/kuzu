@@ -27,7 +27,7 @@ using aggr_combine_function_t =
     std::function<void(uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager)>;
 using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
-struct AggregateFunction final : public BaseScalarFunction {
+struct AggregateFunction final : public ScalarOrAggregateFunction {
     bool isDistinct;
     aggr_initialize_function_t initializeFunc;
     aggr_update_all_function_t updateAllFunc;
@@ -43,7 +43,7 @@ struct AggregateFunction final : public BaseScalarFunction {
         aggr_update_all_function_t updateAllFunc, aggr_update_pos_function_t updatePosFunc,
         aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc, bool isDistinct,
         scalar_bind_func bindFunc = nullptr, param_rewrite_function_t paramRewriteFunc = nullptr)
-        : BaseScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+        : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(bindFunc)},
           isDistinct{isDistinct}, initializeFunc{std::move(initializeFunc)},
           updateAllFunc{std::move(updateAllFunc)}, updatePosFunc{std::move(updatePosFunc)},
@@ -52,17 +52,11 @@ struct AggregateFunction final : public BaseScalarFunction {
         initialNullAggregateState = createInitialNullAggregateState();
     }
 
-    AggregateFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
-        common::LogicalTypeID returnTypeID, aggr_initialize_function_t initializeFunc,
-        aggr_update_all_function_t updateAllFunc, aggr_update_pos_function_t updatePosFunc,
-        aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc, bool isDistinct,
-        param_rewrite_function_t paramRewriteFunc)
-        : AggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              std::move(initializeFunc), std::move(updateAllFunc), std::move(updatePosFunc),
-              std::move(combineFunc), std::move(finalizeFunc), isDistinct, nullptr /* bindFunc */,
-              std::move(paramRewriteFunc)} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(AggregateFunction);
 
-    uint32_t getAggregateStateSize() const { return initialNullAggregateState->getStateSize(); }
+    common::idx_t getAggregateStateSize() const {
+        return initialNullAggregateState->getStateSize();
+    }
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Returns a non-const pointer.
     AggregateState* getInitialNullAggregateState() { return initialNullAggregateState.get(); }
@@ -90,29 +84,30 @@ struct AggregateFunction final : public BaseScalarFunction {
 
     bool isFunctionDistinct() const { return isDistinct; }
 
-    std::unique_ptr<Function> copy() const override {
-        return std::make_unique<AggregateFunction>(name, parameterTypeIDs, returnTypeID,
-            initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
-            bindFunc, paramRewriteFunc);
-    }
-
-    std::unique_ptr<AggregateFunction> clone() const {
-        return std::make_unique<AggregateFunction>(name, parameterTypeIDs, returnTypeID,
-            initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
-            bindFunc, paramRewriteFunc);
+private:
+    AggregateFunction(const AggregateFunction& other)
+        : ScalarOrAggregateFunction{other.name, other.parameterTypeIDs, other.returnTypeID,
+              other.bindFunc} {
+        isDistinct = other.isDistinct;
+        initializeFunc = other.initializeFunc;
+        updateAllFunc = other.updateAllFunc;
+        updatePosFunc = other.updatePosFunc;
+        combineFunc = other.combineFunc;
+        finalizeFunc = other.finalizeFunc;
+        paramRewriteFunc = other.paramRewriteFunc;
+        initialNullAggregateState = createInitialNullAggregateState();
     }
 };
 
-class AggregateFunctionUtil {
-
-public:
+struct AggregateFunctionUtil {
     template<typename T>
     static std::unique_ptr<AggregateFunction> getAggFunc(std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct,
         param_rewrite_function_t paramRewriteFunc = nullptr) {
         return std::make_unique<AggregateFunction>(std::move(name),
             std::vector<common::LogicalTypeID>{inputType}, resultType, T::initialize, T::updateAll,
-            T::updatePos, T::combine, T::finalize, isDistinct, paramRewriteFunc);
+            T::updatePos, T::combine, T::finalize, isDistinct, nullptr /* bindFunc */,
+            paramRewriteFunc);
     }
     static std::unique_ptr<AggregateFunction> getSumFunc(const std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);

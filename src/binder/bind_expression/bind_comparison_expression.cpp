@@ -1,6 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/function_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
@@ -9,6 +9,7 @@
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
@@ -25,7 +26,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
-    auto functions = context->getCatalog()->getFunctions(binder->clientContext->getTx());
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTx();
+    auto functions = catalog->getFunctions(transaction);
     auto functionName = ExpressionTypeUtil::toString(expressionType);
     LogicalType combinedType(LogicalTypeID::ANY);
     if (!ExpressionUtil::tryCombineDataType(children, combinedType)) {
@@ -41,9 +44,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     for (auto i = 0u; i < children.size(); i++) {
         childrenTypes.push_back(combinedType.copy());
     }
-    auto function = ku_dynamic_cast<function::Function*, function::ScalarFunction*>(
-        function::BuiltInFunctionsUtils::matchFunction(context->getTx(), functionName,
-            childrenTypes, functions));
+    auto function =
+        BuiltInFunctionsUtils::matchFunction(transaction, functionName, childrenTypes, functions)
+            ->ptrCast<ScalarFunction>();
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         if (children[i]->dataType != combinedType) {
@@ -61,9 +64,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
-        std::move(childrenAfterCast), function->execFunc, function->selectFunc,
-        uniqueExpressionName);
+    return std::make_shared<ScalarFunctionExpression>(expressionType, function->copy(),
+        std::move(bindData), std::move(childrenAfterCast), uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createEqualityComparisonExpression(

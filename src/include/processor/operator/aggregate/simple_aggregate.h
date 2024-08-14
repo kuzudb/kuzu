@@ -10,7 +10,7 @@ namespace processor {
 class SimpleAggregateSharedState final : public BaseAggregateSharedState {
 public:
     explicit SimpleAggregateSharedState(
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
+        const std::vector<function::AggregateFunction>& aggregateFunctions);
 
     void combineAggregateStates(
         const std::vector<std::unique_ptr<function::AggregateState>>& localAggregateStates,
@@ -49,7 +49,7 @@ class SimpleAggregate : public BaseAggregate {
 public:
     SimpleAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<SimpleAggregateSharedState> sharedState,
-        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::vector<function::AggregateFunction> aggregateFunctions,
         std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
@@ -66,7 +66,8 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<SimpleAggregate>(resultSetDescriptor->copy(), sharedState,
-            cloneAggFunctions(), copyVector(aggInfos), children[0]->clone(), id, printInfo->copy());
+            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->clone(), id,
+            printInfo->copy());
     }
 
 private:

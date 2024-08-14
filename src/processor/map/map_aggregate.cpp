@@ -1,4 +1,4 @@
-#include "binder/expression/function_expression.h"
+#include "binder/expression/aggregate_function_expression.h"
 #include "planner/operator/logical_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
@@ -65,12 +65,11 @@ static expression_vector getKeyExpressions(const expression_vector& expressions,
     return result;
 }
 
-static std::vector<std::unique_ptr<AggregateFunction>> getAggFunctions(
-    const expression_vector& aggregates) {
-    std::vector<std::unique_ptr<AggregateFunction>> aggregateFunctions;
+static std::vector<AggregateFunction> getAggFunctions(const expression_vector& aggregates) {
+    std::vector<AggregateFunction> aggregateFunctions;
     for (auto& expression : aggregates) {
         auto aggExpr = expression->constPtrCast<AggregateFunctionExpression>();
-        aggregateFunctions.push_back(aggExpr->aggregateFunction->clone());
+        aggregateFunctions.push_back(aggExpr->getFunction().copy());
     }
     return aggregateFunctions;
 }
@@ -100,7 +99,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
 
 static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& flatKeys,
     const expression_vector& unFlatKeys, const expression_vector& payloads,
-    std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions) {
+    std::vector<function::AggregateFunction>& aggregateFunctions) {
     auto isUnFlat = false;
     auto groupID = 0u;
     auto tableSchema = FactorizedTableSchema();
@@ -118,7 +117,7 @@ static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& f
     }
     for (auto& aggregateFunc : aggregateFunctions) {
         tableSchema.appendColumn(
-            ColumnSchema(isUnFlat, groupID, aggregateFunc->getAggregateStateSize()));
+            ColumnSchema(isUnFlat, groupID, aggregateFunc.getAggregateStateSize()));
     }
     tableSchema.appendColumn(ColumnSchema(isUnFlat, groupID, sizeof(hash_t)));
     return tableSchema;

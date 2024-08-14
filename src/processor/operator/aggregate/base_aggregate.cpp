@@ -6,16 +6,12 @@ namespace kuzu {
 namespace processor {
 
 BaseAggregateSharedState::BaseAggregateSharedState(
-    const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)
-    : currentOffset{0} {
-    for (auto& aggregateFunction : aggregateFunctions) {
-        this->aggregateFunctions.push_back(aggregateFunction->clone());
-    }
-}
+    const std::vector<AggregateFunction>& aggregateFunctions)
+    : currentOffset{0}, aggregateFunctions{copyVector(aggregateFunctions)} {}
 
 bool BaseAggregate::containDistinctAggregate() const {
     for (auto& function : aggregateFunctions) {
-        if (function->isFunctionDistinct()) {
+        if (function.isFunctionDistinct()) {
             return true;
         }
     }
@@ -36,15 +32,6 @@ void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
         }
         aggInputs.push_back(std::move(aggregateInput));
     }
-}
-
-std::vector<std::unique_ptr<function::AggregateFunction>> BaseAggregate::cloneAggFunctions() {
-    std::vector<std::unique_ptr<AggregateFunction>> result;
-    result.reserve(aggregateFunctions.size());
-    for (auto& function : aggregateFunctions) {
-        result.push_back(function->clone());
-    }
-    return result;
 }
 
 } // namespace processor

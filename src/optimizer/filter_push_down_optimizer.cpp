@@ -1,8 +1,8 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
-#include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "main/client_context.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/logical_empty_result.h"
@@ -148,8 +148,8 @@ static bool isConstantExpression(const std::shared_ptr<Expression> expression) {
     }
     // TODO(Xiyang): fold parameter expression in binder.
     case ExpressionType::FUNCTION: {
-        auto& func = expression->constCast<FunctionExpression>();
-        if (func.getFunctionName() == "CAST") {
+        auto& func = expression->constCast<ScalarFunctionExpression>();
+        if (func.getFunction().name == "CAST") {
             return isConstantExpression(func.getChild(0));
         } else {
             return false;
