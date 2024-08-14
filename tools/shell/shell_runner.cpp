@@ -58,7 +58,6 @@ void processRunCommands(EmbeddedShell& shell, std::string filename) {
     }
 
     std::cout << "-- Loading resources from " << filename << '\n';
-    std::string result;
     while (fgets(buf, LINENOISE_MAX_LINE, fp) != NULL) {
         auto queryResults = shell.processInput(buf);
         for (auto& queryResult : queryResults) {
@@ -67,7 +66,9 @@ void processRunCommands(EmbeddedShell& shell, std::string filename) {
             }
         }
     }
-    fclose(fp);
+    if (fclose(fp) != 0) {
+		// continue regardless of error
+	}
 }
 
 int main(int argc, char* argv[]) {
