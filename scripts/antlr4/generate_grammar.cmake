@@ -4,15 +4,17 @@
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-file(READ hash.md5 OLDHASH)
-execute_process(
-    COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4
-    COMMAND ${Python3_EXECUTABLE} hash.py OUTPUT_VARIABLE NEWHASH
-    RESULTS_VARIABLE RESVAR
-    ERROR_VARIABLE ERRVAR)
 
-if(NOT "${RESVAR}" STREQUAL "0 0")
-    message(DEBUG "${ERRVAR}")
+file(READ hash.md5 OLDHASH)
+
+if(WIN32)
+    execute_process(
+        COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt,${ROOT_DIR}/src/antlr4/Cypher.g4
+        COMMAND ${Python3_EXECUTABLE} hash.py OUTPUT_VARIABLE NEWHASH)
+else()
+    execute_process(
+        COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4
+        COMMAND ${Python3_EXECUTABLE} hash.py OUTPUT_VARIABLE NEWHASH)
 endif()
 
 if("${OLDHASH}" STREQUAL "${NEWHASH}")
