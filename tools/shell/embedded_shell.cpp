@@ -317,14 +317,14 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
     // process shell commands
     if (!continueLine && input[0] == ':') {
         processShellCommands(input);
-    // process queries
+        // process queries
     } else if (!input.empty() && input.back() == ';') {
         ss.clear();
         ss.str(input);
         while (getline(ss, query, ';')) {
             queryResults.push_back(conn->query(query));
         }
-    // set up multiline query if current query doesn't end with a semicolon
+        // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
         continueLine = true;
         currLine += input + " ";
