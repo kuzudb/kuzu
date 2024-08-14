@@ -70,6 +70,14 @@ void TestParser::extractDataset() {
     } else if (datasetType == "KUZU") {
         testGroup->datasetType = TestGroup::DatasetType::KUZU;
         testGroup->dataset = currentToken.params[2];
+    } else if (datasetType == "JSON") {
+        if (params.starts_with("CSV_TO_JSON(") && params.back() == ')') {
+            testGroup->datasetType = TestGroup::DatasetType::CSV_TO_JSON;
+            testGroup->dataset = params.substr(12, params.length() - 13);
+        } else {
+            testGroup->datasetType = TestGroup::DatasetType::JSON;
+            testGroup->dataset = currentToken.params[2];
+        }
     } else {
         throw TestException(
             "Invalid dataset type `" + currentToken.params[1] + "` [" + path + ":" + line + "].");
