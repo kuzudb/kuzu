@@ -2,18 +2,13 @@
 # This is to make sure clean build from source needn't have Java installed.
 # We can't use checksums because of windows line ending normalization.
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 
 file(READ hash.md5 OLDHASH)
-execute_process(
-    COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4
-    COMMAND md5sum OUTPUT_VARIABLE NEWHASH
-    RESULTS_VARIABLE RESVAR
-    ERROR_VARIABLE ERRVAR)
 
-if(NOT "${RESVAR}" STREQUAL "0 0")
-    message(DEBUG "${ERRVAR}")
-endif()
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} hash.py ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4 OUTPUT_VARIABLE NEWHASH)
 
 if("${OLDHASH}" STREQUAL "${NEWHASH}")
     message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
@@ -35,7 +30,6 @@ endif()
 file(MAKE_DIRECTORY generated)
 
 find_package(Java REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 # use script to generate final Cypher.g4 file and update tools/shell/include/keywords.h
 execute_process(COMMAND ${Python3_EXECUTABLE} keywordhandler.py ${ROOT_DIR}/src/antlr4/Cypher.g4 ${ROOT_DIR}/src/antlr4/keywords.txt Cypher.g4 ${ROOT_DIR}/tools/shell/include/keywords.h)

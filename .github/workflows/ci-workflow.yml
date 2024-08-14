@@ -461,7 +461,7 @@ jobs:
 
       - name: Ensure generated grammar files are up to date
         run: |
-          cat src/antlr4/keywords.txt src/antlr4/Cypher.g4 | md5sum > tmphashfile
+          python3 scripts/antlr4/hash.py src/antlr4/keywords.txt src/antlr4/Cypher.g4 > tmphashfile
           cmp tmphashfile scripts/antlr4/hash.md5
           rm tmphashfile
 
