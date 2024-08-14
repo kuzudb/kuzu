@@ -307,20 +307,24 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
     std::string query;
     std::stringstream ss;
     std::vector<std::unique_ptr<QueryResult>> queryResults;
+    // Append rest of multiline query to current input line
     if (continueLine) {
         input = std::move(currLine) + std::move(input);
         currLine = "";
         continueLine = false;
     }
     input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
+    // process shell commands
     if (!continueLine && input[0] == ':') {
         processShellCommands(input);
+    // process queries
     } else if (!input.empty() && input.back() == ';') {
         ss.clear();
         ss.str(input);
         while (getline(ss, query, ';')) {
             queryResults.push_back(conn->query(query));
         }
+    // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
         continueLine = true;
         currLine += input + " ";

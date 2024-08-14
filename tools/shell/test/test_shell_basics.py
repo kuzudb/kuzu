@@ -163,3 +163,29 @@ def test_kuzurc(temp_db) -> None:
     result.check_stdout("a")
 
     deleteIfExists(".kuzurc")
+
+    # create a .kuzurc file with errors
+    with open(".kuzurc", "w") as f:
+        f.write('RETURN "databases rule" S a;      ;\n')
+        f.write(":max_rows\n")
+        f.write(":mode table\n")
+        f.write("CREATE NODE TABLE b(i STRING, PRIMARY KEY(i));\n")
+
+    # confirm that the file is read on startup
+    test = ShellTest().add_argument(temp_db).statement("CALL show_tables() RETURN *;")
+    result = test.run()
+    result.check_stdout("-- Loading resources from .kuzurc")
+    result.check_stdout(
+        [
+            "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
+            '"RETURN "databases rule" S a"',
+            "                         ^",
+            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, CHECKPOINT, COMMENT, COMMIT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROJECT, RETURN, ROLLBACK, SET, UNWIND, USE, WITH} (line: 1, offset: 6)",
+            '"      "',
+        ],
+    )
+    result.check_stdout("Cannot parse '' as number of rows. Expect integer.")
+    result.check_stdout("mode set as table")
+    result.check_stdout("b")
+
+    deleteIfExists(".kuzurc")
