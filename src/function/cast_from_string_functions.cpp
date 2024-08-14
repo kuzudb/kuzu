@@ -373,7 +373,9 @@ void CastStringHelper::cast(const char* input, uint64_t len, list_entry_t& /*res
 
     // calculate the number of elements in array
     CountPartOperation state;
-    splitCStringList(input, len, state, option);
+    auto validList = option->allowUnbracedList ?
+        splitPossibleUnbracedList(std::string_view(input, len), state, option) :
+        splitCStringList(input, len, state, option);
     if (logicalTypeID == LogicalTypeID::ARRAY) {
         validateNumElementsInArray(state.count, vector->dataType);
     }
