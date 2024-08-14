@@ -67,8 +67,8 @@ void processRunCommands(EmbeddedShell& shell, std::string filename) {
         }
     }
     if (fclose(fp) != 0) {
-		// continue regardless of error
-	}
+        // continue regardless of error
+    }
 }
 
 int main(int argc, char* argv[]) {
