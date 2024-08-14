@@ -6,8 +6,8 @@
 #include "cypher_parser.h"
 #pragma GCC diagnostic pop
 
-#include "statement.h"
 #include "parser/ddl/parsed_property_definition.h"
+#include "statement.h"
 
 namespace kuzu {
 namespace parser {

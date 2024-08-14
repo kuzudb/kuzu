@@ -18,8 +18,8 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
 
     BoundExtraCreateDuckDBTableInfo(std::string catalogName, std::string schemaName,
         std::vector<binder::PropertyDefinition> propertyDefinitions)
-        : BoundExtraCreateTableInfo{std::move(propertyDefinitions)}, catalogName{std::move(catalogName)},
-          schemaName{std::move(schemaName)} {}
+        : BoundExtraCreateTableInfo{std::move(propertyDefinitions)},
+          catalogName{std::move(catalogName)}, schemaName{std::move(schemaName)} {}
     BoundExtraCreateDuckDBTableInfo(const BoundExtraCreateDuckDBTableInfo& other)
         : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
           catalogName{other.catalogName}, schemaName{other.schemaName} {}

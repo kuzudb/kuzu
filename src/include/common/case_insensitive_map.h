@@ -22,7 +22,8 @@ template<typename T>
 using case_insensitive_map_t = std::unordered_map<std::string, T, CaseInsensitiveStringHashFunction,
     CaseInsensitiveStringEquality>;
 
-using case_insensitve_set_t = std::unordered_set<std::string, CaseInsensitiveStringHashFunction, CaseInsensitiveStringEquality>;
+using case_insensitve_set_t = std::unordered_set<std::string, CaseInsensitiveStringHashFunction,
+    CaseInsensitiveStringEquality>;
 
 } // namespace common
 } // namespace kuzu
