@@ -34,7 +34,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         // Generate an empty semi mask which later on picked by SemiMaker.
         auto& node =
             call.getInfo().getBindData()->getNodeInput()->constCast<binder::NodeExpression>();
-        for (auto tableID : node.getTableIDs()) {
+        for (auto entry : node.getEntries()) {
+            auto tableID = entry->getTableID();
             auto nodeTable =
                 clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
             masks.insert({tableID,

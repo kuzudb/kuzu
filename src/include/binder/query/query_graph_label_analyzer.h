@@ -15,7 +15,7 @@ public:
 
 private:
     void pruneNode(const QueryGraph& graph, NodeExpression& node);
-    void pruneRel(RelExpression& rel);
+    void pruneRel(RelExpression& rel) const;
 
 private:
     bool throwOnViolate;

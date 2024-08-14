@@ -8,6 +8,7 @@
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
 #include "graph/graph_entry.h"
+#include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 
@@ -24,7 +25,6 @@ namespace catalog {
 class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RDFGraphCatalogEntry;
-class Property;
 class Catalog;
 } // namespace catalog
 
@@ -54,7 +54,6 @@ struct RdfReaderConfig;
 }
 
 namespace binder {
-struct PropertyInfo;
 struct BoundBaseScanSource;
 struct BoundCreateTableInfo;
 struct BoundInsertInfo;
@@ -96,8 +95,6 @@ public:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
 
-    common::table_id_t bindTableID(const std::string& tableName) const;
-
     std::shared_ptr<Expression> createVariable(std::string_view name, common::LogicalTypeID typeID);
     std::shared_ptr<Expression> createVariable(const std::string& name,
         common::LogicalTypeID typeID);
@@ -120,8 +117,8 @@ public:
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
 
-    std::vector<PropertyInfo> bindPropertyInfo(
-        const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions,
+    std::vector<PropertyDefinition> bindPropertyDefinitions(
+        const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
 
     /*** bind copy ***/
@@ -220,8 +217,8 @@ public:
     void bindInsertNode(std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos);
     void bindInsertRel(std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos);
     expression_vector bindInsertColumnDataExprs(
-        const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
-        const std::vector<catalog::Property>& properties);
+        const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExpr,
+        const std::vector<PropertyDefinition>& propertyDefinitions);
 
     BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* column,
         parser::ParsedExpression* columnData);
@@ -254,11 +251,13 @@ public:
         const std::shared_ptr<NodeExpression>& leftNode,
         const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph);
     std::shared_ptr<RelExpression> createNonRecursiveQueryRel(const std::string& parsedName,
-        const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
-        std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
+        const std::vector<catalog::TableCatalogEntry*>& entries,
+        std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+        RelDirectionType directionType);
     std::shared_ptr<RelExpression> createRecursiveQueryRel(const parser::RelPattern& relPattern,
-        const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
-        std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
+        const std::vector<catalog::TableCatalogEntry*>& entries,
+        std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
+        RelDirectionType directionType);
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
     void bindQueryRelProperties(RelExpression& rel);
 
@@ -266,19 +265,27 @@ public:
         QueryGraph& queryGraph);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
     std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
-        const std::vector<common::table_id_t>& tableIDs);
+        const std::vector<catalog::TableCatalogEntry*>& entries);
     void bindQueryNodeProperties(NodeExpression& node);
 
-    /*** bind table ID ***/
-    // Bind table names to catalog table schemas. The function does NOT validate if the table schema
-    // type matches node or rel pattern.
-    std::vector<common::table_id_t> bindTableIDs(const std::vector<std::string>& tableNames,
-        bool nodePattern);
-    std::vector<common::table_id_t> getNodeTableIDs(
-        const std::vector<common::table_id_t>& tableIDs);
-    std::vector<common::table_id_t> getNodeTableIDs(common::table_id_t tableID);
-    std::vector<common::table_id_t> getRelTableIDs(const std::vector<common::table_id_t>& tableIDs);
-    std::vector<common::table_id_t> getRelTableIDs(common::table_id_t tableID);
+    /*** bind table entries ***/
+    std::vector<catalog::TableCatalogEntry*> bindTableEntries(
+        const std::vector<std::string>& tableNames, bool nodePattern) const;
+    catalog::TableCatalogEntry* bindTableEntry(const std::string& tableName) const;
+    common::table_id_t bindTableID(const std::string& tableName) const;
+    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(
+        const std::vector<catalog::TableCatalogEntry*>& entries) const;
+    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(
+        const std::vector<catalog::TableCatalogEntry*>& entries) const;
+    std::vector<catalog::TableCatalogEntry*> getTableEntries(
+        const std::vector<catalog::TableCatalogEntry*>& entries, common::TableType tableType) const;
+    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(
+        catalog::TableCatalogEntry* entry) const;
+    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(
+        catalog::TableCatalogEntry* entry) const;
+    // TODO(Xiyang): remove id based table binding logic.
+    std::vector<catalog::TableCatalogEntry*> getTableEntries(
+        const common::table_id_vector_t& tableIDs);
 
     /*** validations ***/
     // E.g. ... RETURN a, b AS a

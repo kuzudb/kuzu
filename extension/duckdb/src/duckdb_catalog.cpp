@@ -70,17 +70,16 @@ void DuckDBCatalog::createForeignTable(const std::string& tableName) {
         BoundExtraCreateDuckDBTableInfo*>(info->extraInfo.get());
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
-    for (auto& propertyInfo : extraInfo->propertyInfos) {
-        columnNames.push_back(propertyInfo.name);
-        columnTypes.push_back(propertyInfo.type.copy());
+    for (auto& definition : extraInfo->propertyDefinitions) {
+        columnNames.push_back(definition.getName());
+        columnTypes.push_back(definition.getType().copy());
     }
     DuckDBScanBindData bindData(getQuery(*info), std::move(columnTypes), std::move(columnNames),
         connector);
     auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(tables.get(),
         info->tableName, tableID, getScanFunction(std::move(bindData)));
-    for (auto& propertyInfo : extraInfo->propertyInfos) {
-        tableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
-            propertyInfo.defaultValue->copy());
+    for (auto& definition : extraInfo->propertyDefinitions) {
+        tableEntry->addProperty(definition);
     }
     tables->createEntry(&transaction::DUMMY_TRANSACTION, std::move(tableEntry));
 }
@@ -114,8 +113,8 @@ static bool getTableInfo(const DuckDBConnector& connector, const std::string& ta
     return true;
 }
 
-bool DuckDBCatalog::bindPropertyInfos(const std::string& tableName,
-    std::vector<binder::PropertyInfo>& propertyInfos) {
+bool DuckDBCatalog::bindPropertyDefinitions(const std::string& tableName,
+    std::vector<binder::PropertyDefinition>& propertyDefinitions) {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     if (!getTableInfo(connector, tableName, defaultSchemaName, catalogName, columnTypes,
@@ -123,22 +122,23 @@ bool DuckDBCatalog::bindPropertyInfos(const std::string& tableName,
         return false;
     }
     for (auto i = 0u; i < columnNames.size(); i++) {
-        auto propertyInfo = binder::PropertyInfo(columnNames[i], columnTypes[i].copy());
-        propertyInfos.push_back(std::move(propertyInfo));
+        auto columnDefinition = binder::ColumnDefinition(columnNames[i], columnTypes[i].copy());
+        auto propertyDefinition = binder::PropertyDefinition(std::move(columnDefinition));
+        propertyDefinitions.push_back(std::move(propertyDefinition));
     }
     return true;
 }
 
 std::unique_ptr<binder::BoundCreateTableInfo> DuckDBCatalog::bindCreateTableInfo(
     const std::string& tableName) {
-    std::vector<binder::PropertyInfo> propertyInfos;
-    if (!bindPropertyInfos(tableName, propertyInfos)) {
+    std::vector<binder::PropertyDefinition> propertyDefinitions;
+    if (!bindPropertyDefinitions(tableName, propertyDefinitions)) {
         return nullptr;
     }
     return std::make_unique<binder::BoundCreateTableInfo>(common::TableType::FOREIGN, tableName,
         common::ConflictAction::ON_CONFLICT_THROW,
         std::make_unique<duckdb_extension::BoundExtraCreateDuckDBTableInfo>(catalogName,
-            defaultSchemaName, std::move(propertyInfos)));
+            defaultSchemaName, std::move(propertyDefinitions)));
 }
 
 } // namespace duckdb_extension

@@ -3,9 +3,9 @@
 #include "bfs_state.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
+#include "common/mask.h"
 #include "frontier_scanner.h"
 #include "planner/operator/extend/recursive_join_type.h"
-#include "processor/operator/mask.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -14,10 +14,10 @@ namespace processor {
 class OffsetScanNodeTable;
 
 struct RecursiveJoinSharedState {
-    std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks;
+    std::vector<std::unique_ptr<common::NodeOffsetLevelSemiMask>> semiMasks;
 
     explicit RecursiveJoinSharedState(
-        std::vector<std::unique_ptr<NodeOffsetLevelSemiMask>> semiMasks)
+        std::vector<std::unique_ptr<common::NodeOffsetLevelSemiMask>> semiMasks)
         : semiMasks{std::move(semiMasks)} {}
 };
 
@@ -116,7 +116,7 @@ public:
           info{std::move(info)}, sharedState{std::move(sharedState)},
           recursiveRoot{std::move(recursiveRoot)} {}
 
-    std::vector<NodeSemiMask*> getSemiMask() const;
+    std::vector<common::NodeSemiMask*> getSemiMask() const;
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 

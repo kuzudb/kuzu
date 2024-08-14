@@ -56,9 +56,16 @@ void LocalStorage::commit() {
 
 void LocalStorage::rollback() {
     for (auto& [tableID, localTable] : tables) {
-        const auto table = clientContext.getStorageManager()->getTable(tableID);
-        table->rollback(localTable.get());
+        localTable->clear();
     }
+}
+
+uint64_t LocalStorage::getEstimatedMemUsage() const {
+    uint64_t totalMemUsage = 0;
+    for (const auto& [tableID, localTable] : tables) {
+        totalMemUsage += localTable->getEstimatedMemUsage();
+    }
+    return totalMemUsage;
 }
 
 } // namespace storage

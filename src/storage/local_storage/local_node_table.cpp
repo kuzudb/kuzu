@@ -101,6 +101,10 @@ bool LocalNodeTable::addColumn(Transaction* transaction, TableAddColumnState& ad
     return true;
 }
 
+uint64_t LocalNodeTable::getEstimatedMemUsage() {
+    return nodeGroups.getEstimatedMemoryUsage() + hashIndex->getEstimatedMemUsage();
+}
+
 void LocalNodeTable::clear() {
     auto& nodeTable = ku_dynamic_cast<const Table&, const NodeTable&>(table);
     hashIndex = std::make_unique<LocalHashIndex>(

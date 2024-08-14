@@ -14,6 +14,7 @@
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
 #include "function/built_in_function_utils.h"
+#include "function/cast/functions/numeric_limits.h"
 
 using kuzu::function::BuiltInFunctionsUtils;
 
@@ -28,7 +29,7 @@ std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t p
     std::string retval;
     if (positionFromEnd > value.size()) {
         auto greaterBy = positionFromEnd - value.size();
-        retval = ".";
+        retval = "0.";
         for (auto i = 0u; i < greaterBy; i++) {
             retval += "0";
         }
@@ -36,6 +37,9 @@ std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t p
     } else {
         auto lessBy = value.size() - positionFromEnd;
         retval = value.substr(0, lessBy);
+        if (retval == "" || retval == "-") {
+            retval += '0';
+        }
         retval += ".";
         retval += value.substr(lessBy);
     }
@@ -1668,9 +1672,55 @@ static inline bool tryCombineDecimalTypes(const LogicalType& left, const Logical
     auto resultingPrecision =
         std::max(precisionLeft - scaleLeft, precisionRight - scaleRight) + resultingScale;
     if (resultingPrecision > DECIMAL_PRECISION_LIMIT) {
-        return false;
+        result = LogicalType::DOUBLE();
+        return true;
     }
     result = LogicalType::DECIMAL(resultingPrecision, resultingScale);
+    return true;
+}
+
+static inline bool tryCombineDecimalWithNumeric(const LogicalType& dec, const LogicalType& nonDec,
+    LogicalType& result) {
+    auto precision = DecimalType::getPrecision(dec);
+    auto scale = DecimalType::getScale(dec);
+    uint32_t requiredDigits = 0;
+    // How many digits before the decimal point does result require?
+    switch (nonDec.getLogicalTypeID()) {
+    case LogicalTypeID::INT8:
+        requiredDigits = function::NumericLimits<int8_t>::digits();
+        break;
+    case LogicalTypeID::UINT8:
+        requiredDigits = function::NumericLimits<uint8_t>::digits();
+        break;
+    case LogicalTypeID::INT16:
+        requiredDigits = function::NumericLimits<int16_t>::digits();
+        break;
+    case LogicalTypeID::UINT16:
+        requiredDigits = function::NumericLimits<uint16_t>::digits();
+        break;
+    case LogicalTypeID::INT32:
+        requiredDigits = function::NumericLimits<int32_t>::digits();
+        break;
+    case LogicalTypeID::UINT32:
+        requiredDigits = function::NumericLimits<uint32_t>::digits();
+        break;
+    case LogicalTypeID::INT64:
+        requiredDigits = function::NumericLimits<int64_t>::digits();
+        break;
+    case LogicalTypeID::UINT64:
+        requiredDigits = function::NumericLimits<uint64_t>::digits();
+        break;
+    case LogicalTypeID::INT128:
+        requiredDigits = function::NumericLimits<int128_t>::digits();
+        break;
+    default:
+        requiredDigits = DECIMAL_PRECISION_LIMIT + 1;
+    }
+    if (requiredDigits + scale > DECIMAL_PRECISION_LIMIT) {
+        result = LogicalType::DOUBLE();
+        return true;
+    }
+    result = LogicalType::DECIMAL(std::max(requiredDigits + scale, precision), scale);
     return true;
 }
 
@@ -1694,6 +1744,12 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     }
     if (left.typeID == LogicalTypeID::DECIMAL && right.typeID == LogicalTypeID::DECIMAL) {
         return tryCombineDecimalTypes(left, right, result);
+    }
+    if (left.typeID == LogicalTypeID::DECIMAL && LogicalTypeUtils::isNumerical(right.typeID)) {
+        return tryCombineDecimalWithNumeric(left, right, result);
+    }
+    if (right.typeID == LogicalTypeID::DECIMAL && LogicalTypeUtils::isNumerical(left.typeID)) {
+        return tryCombineDecimalWithNumeric(right, left, result);
     }
     if (isSemanticallyNested(left.typeID) || isSemanticallyNested(right.typeID)) {
         if (left.typeID == LogicalTypeID::LIST && right.typeID == LogicalTypeID::ARRAY) {
@@ -1746,6 +1802,79 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& type
     }
     result = combinedType.copy();
     return true;
+}
+
+LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
+    const common::LogicalType& rit) { // always succeeds
+    if (lft.getLogicalTypeID() == LogicalTypeID::STRING ||
+        rit.getLogicalTypeID() == LogicalTypeID::STRING) {
+        return LogicalType::STRING();
+    }
+    if (isSemanticallyNested(lft.getLogicalTypeID()) &&
+        isSemanticallyNested(rit.getLogicalTypeID())) {}
+    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
+        lft.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+        std::vector<StructField> resultingFields;
+        for (const auto& i : StructType::getFields(lft)) {
+            auto name = i.getName();
+            if (StructType::hasField(rit, name)) {
+                resultingFields.emplace_back(name,
+                    combineTypes(i.getType(), StructType::getFieldType(rit, name)));
+            } else {
+                resultingFields.push_back(i.copy());
+            }
+        }
+        for (const auto& i : StructType::getFields(rit)) {
+            auto name = i.getName();
+            if (!StructType::hasField(lft, name)) {
+                resultingFields.push_back(i.copy());
+            }
+        }
+        return LogicalType::STRUCT(std::move(resultingFields));
+    }
+    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
+        lft.getLogicalTypeID() == LogicalTypeID::LIST) {
+        const auto& lftChild = ListType::getChildType(lft);
+        const auto& ritChild = ListType::getChildType(rit);
+        return LogicalType::LIST(combineTypes(lftChild, ritChild));
+    }
+    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
+        lft.getLogicalTypeID() == LogicalTypeID::MAP) {
+        const auto& lftKey = MapType::getKeyType(lft);
+        const auto& lftValue = MapType::getValueType(lft);
+        const auto& ritKey = MapType::getKeyType(rit);
+        const auto& ritValue = MapType::getValueType(rit);
+        return LogicalType::MAP(combineTypes(lftKey, ritKey), combineTypes(lftValue, ritValue));
+    }
+    common::LogicalType result;
+    if (!tryGetMaxLogicalType(lft, rit, result)) {
+        return LogicalType::STRING();
+    }
+    return result;
+}
+
+LogicalType LogicalTypeUtils::purgeAny(const LogicalType& type, const LogicalType& replacement) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::ANY:
+        return replacement.copy();
+    case LogicalTypeID::LIST:
+        return LogicalType::LIST(purgeAny(ListType::getChildType(type), replacement));
+    case LogicalTypeID::ARRAY:
+        return LogicalType::ARRAY(purgeAny(ArrayType::getChildType(type), replacement),
+            ArrayType::getNumElements(type));
+    case LogicalTypeID::MAP:
+        return LogicalType::MAP(purgeAny(MapType::getKeyType(type), replacement),
+            purgeAny(MapType::getValueType(type), replacement));
+    case LogicalTypeID::STRUCT: {
+        std::vector<StructField> fields;
+        for (const auto& i : StructType::getFields(type)) {
+            fields.emplace_back(i.getName(), purgeAny(i.getType(), replacement));
+        }
+        return LogicalType::STRUCT(std::move(fields));
+    }
+    default:
+        return type.copy();
+    }
 }
 
 } // namespace common

@@ -87,14 +87,15 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     const auto leaveGaps = isNewNodeGroup;
     populateCSRHeaderAndRowIdx(partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
         leaveGaps);
+    const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
+    const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
-    auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
-    auto numGapsAtEnd =
-        csrHeader.getEndCSROffset(numNodes - 1) - localState.chunkedGroup->getNumRows();
+    auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();
+    KU_ASSERT(localState.chunkedGroup->getCapacity() >= maxSize);
     while (numGapsAtEnd > 0) {
         const auto numGapsToFill = std::min(numGapsAtEnd, DEFAULT_VECTOR_CAPACITY);
         localState.dummyAllNullDataChunk->state->getSelVectorUnsafe().setSelSize(numGapsToFill);
@@ -102,11 +103,12 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         for (auto i = 0u; i < relInfo.columnTypes.size(); i++) {
             dummyVectors.push_back(localState.dummyAllNullDataChunk->getValueVector(i).get());
         }
-        localState.chunkedGroup->append(&transaction::DUMMY_TRANSACTION, dummyVectors, 0,
-            numGapsToFill);
-        numGapsAtEnd -= numGapsToFill;
+        const auto numGapsFilled = localState.chunkedGroup->append(&transaction::DUMMY_TRANSACTION,
+            dummyVectors, 0, numGapsToFill);
+        KU_ASSERT(numGapsFilled == numGapsToFill);
+        numGapsAtEnd -= numGapsFilled;
     }
-    KU_ASSERT(localState.chunkedGroup->getNumRows() == csrHeader.getEndCSROffset(numNodes - 1));
+    KU_ASSERT(localState.chunkedGroup->getNumRows() == maxSize);
     localState.chunkedGroup->finalize();
     if (isNewNodeGroup) {
         auto flushedChunkedGroup = localState.chunkedGroup->flushAsNewChunkedNodeGroup(transaction,

@@ -82,7 +82,7 @@ Cannot read from JSON Object to FLOAT
 -STATEMENT LOAD WITH HEADERS (a FLOAT, b BOOL, c DECIMAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/prim-test.json" RETURN *;
 ---- 2
 1.000000|True|5.000
-2.000000|False|.100
+2.000000|False|0.100
 
 -STATEMENT LOAD WITH HEADERS (a DOUBLE, b STRING, c DOUBLE) FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/prim-test.json" RETURN *;
 ---- 2

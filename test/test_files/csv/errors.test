@@ -17,7 +17,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/esc
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv" RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv, on line 7: expected 1 values per row, but got more.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv on line 1: expected 6 values per row, but got 1
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-few-values.csv" RETURN COUNT(*);
 ---- error
@@ -25,7 +25,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv" RETURN COUNT(*);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv, on line 2: expected 1 values per row, but got more.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv on line 1: expected 3 values per row, but got 1
 
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv" (HEADER=TRUE) RETURN *
 ---- error

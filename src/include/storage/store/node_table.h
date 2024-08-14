@@ -3,11 +3,9 @@
 #include <cstdint>
 
 #include "common/types/types.h"
-#include "processor/operator/mask.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_group_collection.h"
 #include "storage/store/table.h"
-#include <common/exception/not_implemented.h>
 
 namespace kuzu {
 namespace evaluator {
@@ -26,25 +24,21 @@ class Transaction;
 namespace storage {
 
 struct NodeTableScanState final : TableScanState {
-    processor::NodeSemiMask* semiMask;
-
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
-        : TableScanState{std::move(columnIDs), {}}, semiMask{nullptr} {
+        : TableScanState{std::move(columnIDs), {}} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 
     NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
         : TableScanState{std::move(columnIDs), std::move(columns),
-              std::vector<ColumnPredicateSet>{}},
-          semiMask{nullptr} {
+              std::vector<ColumnPredicateSet>{}} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
     NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
         std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)},
-          semiMask{nullptr} {
+        : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 };
@@ -120,10 +114,6 @@ public:
 
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
-    void dropColumn(common::column_id_t) override {
-        throw common::NotImplementedException("dropColumn is not implemented yet.");
-    }
-
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
 
     bool lookupPK(const transaction::Transaction* transaction, common::ValueVector* keyVector,
@@ -155,10 +145,7 @@ public:
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void rollback(LocalTable* localTable) override;
-    void checkpoint(common::Serializer& ser) override;
-
-    uint64_t getEstimatedMemoryUsage() const override;
+    void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();

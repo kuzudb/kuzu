@@ -1,7 +1,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
-#include "common/exception/runtime.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/planner.h"
 
@@ -56,7 +55,7 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         // No join condition, apply cross product.
         auto rightPlan = planQueryGraphCollection(queryGraphCollection, info);
         if (leftPlan.hasUpdate()) {
-            appendOptionalCrossProduct(mark, *rightPlan, leftPlan, leftPlan);
+            appendAccOptionalCrossProduct(mark, leftPlan, *rightPlan, leftPlan);
         } else {
             appendOptionalCrossProduct(mark, leftPlan, *rightPlan, leftPlan);
         }
@@ -80,10 +79,10 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
         appendAccumulate(corrExprs, leftPlan);
     }
     if (leftPlan.hasUpdate()) {
-        throw RuntimeException(stringFormat("Optional match after update is not supported. Missing "
-                                            "right outer join implementation."));
+        appendAccHashJoin(corrExprs, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
+    } else {
+        appendHashJoin(corrExprs, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
     }
-    appendHashJoin(corrExprs, JoinType::LEFT, mark, leftPlan, *rightPlan, leftPlan);
 }
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,

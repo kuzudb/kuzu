@@ -146,61 +146,54 @@ struct KUZU_API BlobVector {
     }
 };
 
-// Currently, ListVector is used for both VAR_LIST and ARRAY physical type
+// ListVector is used for both LIST and ARRAY physical type
 class KUZU_API ListVector {
 public:
-    static void setDataVector(const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
-        auto listBuffer =
-            ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-        listBuffer->setDataVector(std::move(dataVector));
+    static const ListAuxiliaryBuffer& getAuxBuffer(const ValueVector& vector) {
+        return vector.auxiliaryBuffer->constCast<ListAuxiliaryBuffer>();
     }
+    static ListAuxiliaryBuffer& getAuxBufferUnsafe(const ValueVector& vector) {
+        return vector.auxiliaryBuffer->cast<ListAuxiliaryBuffer>();
+    }
+    // If you call setDataVector during initialize, there must be a followed up
+    // copyListEntryAndBufferMetaData at runtime.
+    // TODO(Xiyang): try to merge setDataVector & copyListEntryAndBufferMetaData
+    static void setDataVector(const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
+        KU_ASSERT(validateType(*vector));
+        auto& listBuffer = getAuxBufferUnsafe(*vector);
+        listBuffer.setDataVector(std::move(dataVector));
+    }
+    static void copyListEntryAndBufferMetaData(ValueVector& vector, const ValueVector& other);
     static ValueVector* getDataVector(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
-        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
-            ->getDataVector();
+        KU_ASSERT(validateType(*vector));
+        return getAuxBuffer(*vector).getDataVector();
     }
     static std::shared_ptr<ValueVector> getSharedDataVector(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
-        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
-            ->getSharedDataVector();
+        KU_ASSERT(validateType(*vector));
+        return getAuxBuffer(*vector).getSharedDataVector();
     }
     static uint64_t getDataVectorSize(const ValueVector* vector) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
-        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
-            ->getSize();
+        KU_ASSERT(validateType(*vector));
+        return getAuxBuffer(*vector).getSize();
     }
-
     static uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
+        KU_ASSERT(validateType(*vector));
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static uint8_t* getListValuesWithOffset(const ValueVector* vector,
         const list_entry_t& listEntry, offset_t elementOffsetInList) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
+        KU_ASSERT(validateType(*vector));
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
-                  vector->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
-        return ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
-            ->addList(listSize);
+        KU_ASSERT(validateType(*vector));
+        return getAuxBufferUnsafe(*vector).addList(listSize);
     }
     static void resizeDataVector(ValueVector* vector, uint64_t numValues) {
-        ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->resize(numValues);
+        KU_ASSERT(validateType(*vector));
+        getAuxBufferUnsafe(*vector).resize(numValues);
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
@@ -211,6 +204,17 @@ public:
     static void appendDataVector(ValueVector* dstVector, ValueVector* srcDataVector,
         uint64_t numValuesToAppend);
     static void sliceDataVector(ValueVector* vectorToSlice, uint64_t offset, uint64_t numValues);
+
+private:
+    static bool validateType(const ValueVector& vector) {
+        switch (vector.dataType.getPhysicalType()) {
+        case PhysicalTypeID::LIST:
+        case PhysicalTypeID::ARRAY:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 class StructVector {

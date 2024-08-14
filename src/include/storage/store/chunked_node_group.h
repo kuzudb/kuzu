@@ -33,6 +33,8 @@ public:
 
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
+    ChunkedNodeGroup(ChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns);
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
         uint64_t capacity, common::row_idx_t startRowIdx, ResidencyState residencyState,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
@@ -41,6 +43,7 @@ public:
     common::idx_t getNumColumns() const { return chunks.size(); }
     common::row_idx_t getStartRowIdx() const { return startRowIdx; }
     common::row_idx_t getNumRows() const { return numRows; }
+    common::row_idx_t getCapacity() const { return capacity; }
     const ColumnChunk& getColumnChunk(const common::column_id_t columnID) const {
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
@@ -63,7 +66,7 @@ public:
     void resetToAllNull() const;
     void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
-    void resizeChunks(uint64_t newSize) const;
+    void resizeChunks(uint64_t newSize);
     void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
         this->versionInfo = std::move(versionInfo);
     }

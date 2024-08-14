@@ -20,15 +20,16 @@ public:
     expression_vector getExpressions() const { return expressions; }
     void addExpression(const std::string& varName, std::shared_ptr<Expression> expression);
 
-    void memorizeTableIDs(const std::string& name, std::vector<common::table_id_t> tableIDs) {
-        memorizedNodeNameToTableIDs.insert({name, tableIDs});
+    void memorizeTableEntries(const std::string& name,
+        std::vector<catalog::TableCatalogEntry*> entries) {
+        memorizedNodeNameToEntries.insert({name, entries});
     }
     bool hasMemorizedTableIDs(const std::string& name) const {
-        return memorizedNodeNameToTableIDs.contains(name);
+        return memorizedNodeNameToEntries.contains(name);
     }
-    std::vector<common::table_id_t> getMemorizedTableIDs(const std::string& name) {
-        KU_ASSERT(memorizedNodeNameToTableIDs.contains(name));
-        return memorizedNodeNameToTableIDs.at(name);
+    std::vector<catalog::TableCatalogEntry*> getMemorizedTableEntries(const std::string& name) {
+        KU_ASSERT(memorizedNodeNameToEntries.contains(name));
+        return memorizedNodeNameToEntries.at(name);
     }
 
     void addNodeReplacement(std::shared_ptr<NodeExpression> node) {
@@ -47,7 +48,7 @@ public:
 private:
     BinderScope(const BinderScope& other)
         : expressions{other.expressions}, nameToExprIdx{other.nameToExprIdx},
-          memorizedNodeNameToTableIDs{other.memorizedNodeNameToTableIDs} {}
+          memorizedNodeNameToEntries{other.memorizedNodeNameToEntries} {}
 
 private:
     // Expressions in scope. Order should be preserved.
@@ -56,7 +57,8 @@ private:
     // A node might be popped out of scope. But we may need to retain its table ID information.
     // E.g. MATCH (a:person) WITH collect(a) AS list_a UNWIND list_a AS new_a MATCH (new_a)-[]->()
     // It will be more performant if we can retain the information that new_a has label person.
-    std::unordered_map<std::string, std::vector<common::table_id_t>> memorizedNodeNameToTableIDs;
+    std::unordered_map<std::string, std::vector<catalog::TableCatalogEntry*>>
+        memorizedNodeNameToEntries;
     // A node pattern may not always be bound as a node expression, e.g. in the above query,
     // (new_a) is bound as a variable rather than node expression.
     std::unordered_map<std::string, std::shared_ptr<NodeExpression>> nodeReplacement;

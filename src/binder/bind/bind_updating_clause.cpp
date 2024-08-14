@@ -144,13 +144,12 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
 
 static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEntry,
     const NodeExpression& node, const expression_vector& defaultExprs) {
-    auto primaryKey = nodeTableEntry->getPrimaryKey();
-    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyPos());
-    if (!node.hasPropertyDataExpr(primaryKey->getName()) &&
+    auto primaryKeyName = nodeTableEntry->getPrimaryKeyName();
+    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyIdx());
+    if (!node.hasPropertyDataExpr(primaryKeyName) &&
         ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
-        throw BinderException(
-            common::stringFormat("Create node {} expects primary key {} as input.", node.toString(),
-                primaryKey->getName()));
+        throw BinderException(common::stringFormat(
+            "Create node {} expects primary key {} as input.", node.toString(), primaryKeyName));
     }
 }
 
@@ -161,24 +160,22 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto catalog = clientContext->getCatalog();
-    auto tableID = node->getSingleTableID();
-    auto entry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto entry = node->getSingleEntry();
     KU_ASSERT(entry->getTableType() == TableType::NODE);
     auto insertInfo = BoundInsertInfo(TableType::NODE, node);
-    for (auto& e : catalog->getRdfGraphEntries(clientContext->getTx())) {
-        auto rdfEntry = ku_dynamic_cast<CatalogEntry*, RDFGraphCatalogEntry*>(e);
-        if (rdfEntry->isParent(tableID)) {
+    for (auto& rdfEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
+        if (rdfEntry->isParent(entry->getTableID())) {
             insertInfo.conflictAction = ConflictAction::ON_CONFLICT_DO_NOTHING;
         }
     }
     for (auto& expr : node->getPropertyExprs()) {
         auto propertyExpr = expr->constPtrCast<PropertyExpression>();
-        if (propertyExpr->hasPropertyID(tableID)) {
+        if (propertyExpr->hasProperty(entry->getTableID())) {
             insertInfo.columnExprs.push_back(expr);
         }
     }
     insertInfo.columnDataExprs =
-        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), entry->getPropertiesRef());
+        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), entry->getProperties());
     auto nodeEntry = entry->ptrCast<NodeTableCatalogEntry>();
     validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
     infos.push_back(std::move(insertInfo));
@@ -195,13 +192,13 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
         throw BinderException(
             common::stringFormat("Cannot create recursive rel {}.", rel->toString()));
     }
-    rel->setTableIDs(std::vector<common::table_id_t>{rel->getTableIDs()[0]});
-    auto relTableID = rel->getSingleTableID();
+    rel->setEntries(std::vector<TableCatalogEntry*>{rel->getEntries()[0]});
     auto catalog = clientContext->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), relTableID);
+    auto transaction = clientContext->getTx();
+    auto entry = rel->getSingleEntry();
     TableCatalogEntry* parentTableEntry = nullptr;
     for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
-        if (rdfGraphEntry->isParent(relTableID)) {
+        if (rdfGraphEntry->isParent(entry->getTableID())) {
             parentTableEntry = rdfGraphEntry;
         }
     }
@@ -215,8 +212,9 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
         }
         // Insert predicate resource node.
         auto resourceTableID = rdfGraphEntry->getResourceTableID();
+        auto resourceTableEntry = catalog->getTableCatalogEntry(transaction, resourceTableID);
         auto pNode = createQueryNode(rel->getVariableName(),
-            std::vector<common::table_id_t>{resourceTableID});
+            std::vector<TableCatalogEntry*>{resourceTableEntry});
         auto iriData = rel->getPropertyDataExpr(std::string(rdf::IRI));
         iriData = expressionBinder.bindScalarFunctionExpression(
             expression_vector{std::move(iriData)}, function::ValidatePredicateFunction::name);
@@ -228,36 +226,36 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
             expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::IRI));
         // Insert triple rel.
         auto relInsertInfo = BoundInsertInfo(TableType::REL, rel);
-        std::unordered_map<std::string, std::shared_ptr<Expression>> relPropertyRhsExpr;
+        common::case_insensitive_map_t<std::shared_ptr<Expression>> relPropertyRhsExpr;
         relPropertyRhsExpr.insert({std::string(rdf::PID), pNode->getInternalID()});
         relInsertInfo.columnExprs.push_back(expressionBinder.bindNodeOrRelPropertyExpression(*rel,
             std::string(InternalKeyword::ID)));
         relInsertInfo.columnExprs.push_back(
             expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::PID)));
         relInsertInfo.columnDataExprs =
-            bindInsertColumnDataExprs(relPropertyRhsExpr, tableEntry->getPropertiesRef());
+            bindInsertColumnDataExprs(relPropertyRhsExpr, entry->getProperties());
         infos.push_back(std::move(relInsertInfo));
     } else {
         auto insertInfo = BoundInsertInfo(TableType::REL, rel);
         insertInfo.columnExprs = rel->getPropertyExprs();
-        insertInfo.columnDataExprs = bindInsertColumnDataExprs(rel->getPropertyDataExprRef(),
-            tableEntry->getPropertiesRef());
+        insertInfo.columnDataExprs =
+            bindInsertColumnDataExprs(rel->getPropertyDataExprRef(), entry->getProperties());
         infos.push_back(std::move(insertInfo));
     }
 }
 
 expression_vector Binder::bindInsertColumnDataExprs(
-    const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
-    const std::vector<Property>& properties) {
+    const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExprs,
+    const std::vector<PropertyDefinition>& propertyDefinitions) {
     expression_vector result;
-    for (auto& property : properties) {
+    for (auto& definition : propertyDefinitions) {
         std::shared_ptr<Expression> rhs;
-        if (propertyRhsExpr.contains(property.getName())) {
-            rhs = propertyRhsExpr.at(property.getName());
+        if (propertyDataExprs.contains(definition.getName())) {
+            rhs = propertyDataExprs.at(definition.getName());
         } else {
-            rhs = expressionBinder.bindExpression(*property.getDefaultExpr());
+            rhs = expressionBinder.bindExpression(*definition.defaultExpr);
         }
-        rhs = expressionBinder.implicitCastIfNecessary(rhs, property.getDataType());
+        rhs = expressionBinder.implicitCastIfNecessary(rhs, definition.getType());
         result.push_back(std::move(rhs));
     }
     return result;
@@ -289,10 +287,10 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* colum
     // Validate not updating tables belong to RDFGraph.
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
-    for (auto tableID : nodeOrRel.getTableIDs()) {
-        auto tableName = catalog->getTableCatalogEntry(transaction, tableID)->getName();
+    for (auto entry : nodeOrRel.getEntries()) {
+        auto tableName = entry->getName();
         for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(transaction)) {
-            if (rdfGraphEntry->isParent(tableID)) {
+            if (rdfGraphEntry->isParent(entry->getTableID())) {
                 throw BinderException(
                     stringFormat("Cannot set properties of RDFGraph tables. Set {} requires "
                                  "modifying table {} under rdf graph {}.",
@@ -303,8 +301,8 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* colum
     if (isNode) {
         auto info = BoundSetPropertyInfo(TableType::NODE, expr, boundColumn, boundColumnData);
         auto& property = boundSetItem.first->constCast<PropertyExpression>();
-        for (auto id : nodeOrRel.getTableIDs()) {
-            if (property.isPrimaryKey(id)) {
+        for (auto entry : nodeOrRel.getEntries()) {
+            if (property.isPrimaryKey(entry->getTableID())) {
                 info.updatePk = true;
             }
         }
@@ -324,9 +322,9 @@ expression_pair Binder::bindSetItem(parser::ParsedExpression* column,
 
 static void validateRdfResourceDeletion(Expression* pattern, main::ClientContext* context) {
     auto node = ku_dynamic_cast<Expression*, NodeExpression*>(pattern);
-    for (auto& tableID : node->getTableIDs()) {
+    for (auto& entry : node->getEntries()) {
         for (auto& rdfGraphEntry : context->getCatalog()->getRdfGraphEntries(context->getTx())) {
-            if (rdfGraphEntry->isParent(tableID) &&
+            if (rdfGraphEntry->isParent(entry->getTableID()) &&
                 node->hasPropertyExpression(std::string(rdf::IRI))) {
                 throw BinderException(
                     stringFormat("Cannot delete node {} because it references to resource "

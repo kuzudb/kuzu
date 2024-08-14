@@ -357,6 +357,10 @@ Adam|30
 Karissa|40
 Noura|25
 Zhang|50
+-STATEMENT LOAD FROM "dataset/demo-db/csv/user.csv"
+        RETURN typeof(column0), typeof(column1) LIMIT 1;
+---- 1
+STRING|INT64
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet"
         RETURN *;
 ---- 4

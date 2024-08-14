@@ -75,8 +75,8 @@ public:
     }
 
     void TearDown() override {
-        std::filesystem::remove_all(databasePath);
-        BaseGraphTest::removeIEDBPath();
+        DBTest::TearDown();
+        removeIEDBPath();
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET || datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
             std::filesystem::remove_all(tempDatasetPath);
         }

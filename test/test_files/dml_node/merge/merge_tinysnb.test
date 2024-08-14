@@ -2,6 +2,47 @@
 
 --
 
+-CASE MultipleMerge
+-STATEMENT MERGE (a:person {ID:100})
+           MERGE (b:person {ID:101})
+           MERGE (a)-[:knows]->(b)
+           RETURN a.ID, b.ID
+---- 1
+100|101
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID > 50 RETURN a.ID, b.ID
+---- 1
+100|101
+-STATEMENT MERGE (a:person {ID:0})
+           MERGE (b:person {ID:102})
+           MERGE (a)-[e:knows]->(b)
+           ON CREATE SET e.date=date("2024-01-01")
+           RETURN a.ID, b.ID, e.date
+---- 1
+0|102|2024-01-01
+-STATEMENT MATCH (a)-[e:knows]->(b) WHERE a.ID = 0 RETURN b.ID, e.date;
+---- 4
+102|2024-01-01
+2|2021-06-30
+3|2021-06-30
+5|2021-06-30
+-STATEMENT MERGE (a:person {ID:0})
+           MERGE (b:person {ID:102})
+           MERGE (a)-[e:knows]->(b)
+           ON CREATE SET e.date=date("2024-01-02")
+           ON MATCH SET e.date=date("2024-10-10")
+           RETURN a.ID, b.ID, e.date
+---- 1
+0|102|2024-10-10
+-STATEMENT MATCH (a)-[e:knows]->(b) WHERE a.ID = 0 RETURN b.ID, e.date;
+---- 4
+102|2024-10-10
+2|2021-06-30
+3|2021-06-30
+5|2021-06-30
+-STATEMENT MATCH (a:person) RETURN COUNT(*)
+---- 1
+11
+
 -CASE Merge1
 -STATEMENT MERGE (:person {ID:0})
 ---- ok
