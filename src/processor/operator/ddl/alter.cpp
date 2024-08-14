@@ -59,6 +59,9 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         auto storageManager = context->clientContext->getStorageManager();
         storage::TableAddColumnState state{*addedProp, *defaultValueEvaluator};
         storageManager->getTable(info.tableID)->addColumn(context->clientContext->getTx(), state);
+    } else if (info.alterType == common::AlterType::DROP_PROPERTY) {
+        auto storageManager = context->clientContext->getStorageManager();
+        storageManager->getTable(info.tableID)->dropColumn();
     }
 }
 

@@ -62,7 +62,7 @@ public:
         return numRows;
     }
 
-    void checkpoint() const;
+    void checkpoint(const std::vector<common::column_id_t>& columnIDs);
 
     void serialize(common::Serializer& serializer) const;
 

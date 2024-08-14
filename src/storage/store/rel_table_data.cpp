@@ -59,7 +59,7 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
     // Property columns.
     for (auto i = 0u; i < properties.size(); i++) {
         auto& property = properties[i];
-        const auto columnID = property.getColumnID() + 1; // Skip NBR_ID column.
+        const auto columnID = tableEntry->getColumnID(property.getPropertyID());
         const auto colName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
                 RelDataDirectionUtils::relDirectionToString(direction));
@@ -198,16 +198,16 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     }
 }
 
-void RelTableData::checkpoint() const {
-    std::vector<Column*> checkpointColumns;
-    std::vector<column_id_t> columnIDs;
-    for (auto i = 0u; i < columns.size(); i++) {
-        columnIDs.push_back(i);
-        checkpointColumns.push_back(columns[i].get());
+void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
+    std::vector<std::unique_ptr<Column>> checkpointColumns;
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        const auto columnID = columnIDs[i];
+        checkpointColumns.push_back(std::move(columns[columnID]));
     }
-    CSRNodeGroupCheckpointState state{columnIDs, checkpointColumns, *dataFH, mm,
+    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH, mm,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(state);
+    columns = std::move(state.columns);
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

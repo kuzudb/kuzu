@@ -33,12 +33,15 @@ column_id_t RelTableCatalogEntry::getColumnID(property_id_t propertyID) const {
 bool RelTableCatalogEntry::isSingleMultiplicity(RelDataDirection direction) const {
     return getMultiplicity(direction) == RelMultiplicity::ONE;
 }
+
 RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction) const {
     return direction == RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
 }
+
 table_id_t RelTableCatalogEntry::getBoundTableID(RelDataDirection relDirection) const {
     return relDirection == RelDataDirection::FWD ? srcTableID : dstTableID;
 }
+
 table_id_t RelTableCatalogEntry::getNbrTableID(RelDataDirection relDirection) const {
     return relDirection == RelDataDirection::FWD ? dstTableID : srcTableID;
 }

@@ -2,7 +2,6 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
-#include "common/types/value/value.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
@@ -29,6 +28,7 @@ public:
 
     std::string getName() const { return name; }
 
+    void setColumnID(common::column_id_t columnID) { this->columnID = columnID; }
     const common::LogicalType& getDataType() const { return dataType; }
     common::property_id_t getPropertyID() const { return propertyID; }
     common::column_id_t getColumnID() const { return columnID; }
@@ -40,7 +40,7 @@ public:
     void serialize(common::Serializer& serializer) const;
     static Property deserialize(common::Deserializer& deserializer);
 
-    static std::string toCypher(const std::vector<kuzu::catalog::Property>& properties);
+    static std::string toCypher(const std::vector<Property>& properties);
 
 private:
     Property(const Property& other)

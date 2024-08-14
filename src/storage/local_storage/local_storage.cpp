@@ -56,8 +56,7 @@ void LocalStorage::commit() {
 
 void LocalStorage::rollback() {
     for (auto& [tableID, localTable] : tables) {
-        const auto table = clientContext.getStorageManager()->getTable(tableID);
-        table->rollback(localTable.get());
+        localTable->clear();
     }
 }
 
