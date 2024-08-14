@@ -129,14 +129,16 @@ struct CopyConstants {
     // efficiently.
     static constexpr uint64_t PARALLEL_BLOCK_SIZE = INITIAL_BUFFER_SIZE / 2;
 
-    static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL"};
+    static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL", "UNBRACED"};
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
     static constexpr bool DEFAULT_CSV_PARALLEL = true;
 
     // Default configuration for csv file parsing
-    static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {"ESCAPE", "DELIM", "QUOTE"};
+    static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {"ESCAPE", "DELIM", "QUOTE", "LIST_DELIM"};
     static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '"';
     static constexpr char DEFAULT_CSV_DELIMITER = ',';
+    static constexpr char DEFAULT_CSV_LIST_DELIMITER = ',';
+    static constexpr bool DEFAULT_CSV_ALLOW_UNBRACED_LIST = false;
     static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';

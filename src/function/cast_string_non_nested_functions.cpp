@@ -88,18 +88,18 @@ bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(const char* input, uint6
     return true;
 }
 
-static bool isDate(const std::string& str) {
+static bool isDate(std::string_view str) {
     return RE2::FullMatch(str, "\\d{4}/\\d{1,2}/\\d{1,2}") ||
            RE2::FullMatch(str, "\\d{4}-\\d{1,2}-\\d{1,2}") ||
            RE2::FullMatch(str, "\\d{4} \\d{1,2} \\d{1,2}") ||
            RE2::FullMatch(str, "\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
 }
 
-static bool isUUID(const std::string& str) {
+static bool isUUID(std::string_view str) {
     return RE2::FullMatch(str, "(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
 }
 
-static bool isInterval(const std::string& str) {
+static bool isInterval(std::string_view str) {
     static constexpr auto pattern =
         "(?i)((0|[1-9]\\d*) "
         "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
@@ -112,7 +112,7 @@ static bool isInterval(const std::string& str) {
     return RE2::FullMatch(str, pattern2) || RE2::FullMatch(str, pattern);
 }
 
-static LogicalType inferMapOrStruct(const std::string& str) {
+static LogicalType inferMapOrStruct(std::string_view str) {
     auto split = StringUtils::smartSplit(str.substr(1, str.size() - 2), ',');
     bool isMap = true, isStruct = true; // Default match to map if both are true
     for (auto& ele : split) {
@@ -141,14 +141,14 @@ static LogicalType inferMapOrStruct(const std::string& str) {
         for (auto& ele : split) {
             auto split = StringUtils::smartSplit(ele, ':', 2);
             auto fieldKey = StringUtils::ltrim(StringUtils::rtrim(split[0]));
-            if (fieldKey.front() == '\'') {
-                fieldKey.erase(fieldKey.begin());
+            if (fieldKey.size() > 0 && fieldKey.front() == '\'') {
+                fieldKey = fieldKey.substr(1);
             }
-            if (fieldKey.back() == '\'') {
-                fieldKey.pop_back();
+            if (fieldKey.size() > 0 && fieldKey.back() == '\'') {
+                fieldKey = fieldKey.substr(0, fieldKey.size() - 1);
             }
             auto fieldType = inferMinimalTypeFromString(split[1]);
-            fields.emplace_back(fieldKey, std::move(fieldType));
+            fields.emplace_back(std::string(fieldKey), std::move(fieldType));
         }
         return LogicalType::STRUCT(std::move(fields));
     } else {
@@ -157,6 +157,10 @@ static LogicalType inferMapOrStruct(const std::string& str) {
 }
 
 LogicalType inferMinimalTypeFromString(const std::string& str) {
+    return inferMinimalTypeFromString(std::string_view(str));
+}
+
+LogicalType inferMinimalTypeFromString(std::string_view str) {
     constexpr char array_begin = common::CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR;
     constexpr char array_end = common::CopyConstants::DEFAULT_CSV_LIST_END_CHAR;
     auto cpy = StringUtils::ltrim(StringUtils::rtrim(str));
@@ -178,7 +182,7 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
             return LogicalType::DOUBLE();
         }
         int128_t val;
-        if (!trySimpleInt128Cast(cpy.c_str(), cpy.length(), val)) {
+        if (!trySimpleInt128Cast(cpy.data(), cpy.length(), val)) {
             return LogicalType::STRING();
         }
         if (NumericLimits<int64_t>::isInBounds(val)) {
@@ -189,7 +193,7 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     // Real value checking
     if (RE2::FullMatch(cpy, "(\\+|-)?(0|[1-9]\\d*)?\\.(\\d*)")) {
         if (cpy[0] == '-') {
-            cpy.erase(cpy.begin());
+            cpy = cpy.substr(1);
         }
         if (cpy.size() <= DECIMAL_PRECISION_LIMIT) {
             auto decimalPoint = cpy.find('.');
@@ -205,7 +209,7 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     }
     // It might just be quicker to try cast to timestamp.
     timestamp_t tmp;
-    if (common::Timestamp::tryConvertTimestamp(cpy.c_str(), cpy.length(), tmp)) {
+    if (common::Timestamp::tryConvertTimestamp(cpy.data(), cpy.length(), tmp)) {
         return LogicalType::TIMESTAMP();
     }
 

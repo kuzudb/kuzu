@@ -311,7 +311,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
         } else if (ch == '{') {
             uint64_t struct_lvl = 0;
             skipToClose(input, end, struct_lvl, '}', option);
-        } else if (ch == ',' || ch == option->delimiter ||
+        } else if (ch == option->listDelimiter ||
                    ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
             if (ch != CopyConstants::DEFAULT_CSV_LIST_END_CHAR || start_ptr < input || seen_value) {
                 state.handleValue(start_ptr, input, option);
@@ -332,9 +332,24 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
 }
 
 template<typename T>
+static bool splitPossibleUnbracedList(std::string_view input, T& state, const CSVOption* option) {
+    input = StringUtils::ltrim(StringUtils::rtrim(input));
+    auto split = StringUtils::smartSplit(input, option->listDelimiter);
+    if (split.size() == 1 && input.front() == '[' && input.back() == ']') {
+        split = StringUtils::smartSplit(input.substr(1, input.size() - 2), option->listDelimiter);
+    }
+    for (auto& i: split) {
+        state.handleValue(i.data(), i.data() + i.length(), option);
+    }
+}
+
+template<typename T>
 static inline void startListCast(const char* input, uint64_t len, T split, const CSVOption* option,
     ValueVector* vector) {
-    if (!splitCStringList(input, len, split, option)) {
+    auto validList = option->allowUnbracedList ?
+        splitPossibleUnbracedList(std::string_view(input, len), split, option) :
+        splitCStringList(input, len, split, option);
+    if (!validList) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
@@ -440,7 +455,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
             }
         } else if (isKey && *input == '=') {
             return state.handleKey(start, input, option);
-        } else if (!isKey && (*input == ',' || *input == option->delimiter || *input == '}')) {
+        } else if (!isKey && (*input == option->listdelimiter || *input == '}')) {
             state.handleValue(start, input, option);
             if (*input == '}') {
                 closeBracket = true;

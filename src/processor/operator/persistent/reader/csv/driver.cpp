@@ -123,7 +123,7 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         // reading the body
         LogicalType combinedType;
         columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
-            function::inferMinimalTypeFromString(std::string(value)));
+            function::inferMinimalTypeFromString(value));
         if (columns[columnIdx].second.getLogicalTypeID() == LogicalTypeID::STRING) {
             sniffType[columnIdx] = false;
         }
