@@ -213,7 +213,8 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (!warningMsgs.empty()) {
         // TODO implement skip + update this to deal with skip (since warningMsgs.size() will no
         // longer reflect number of skipped tuples)
-        outputMsg.append(stringFormat(" Skipped {} tuples due to copy errors", warningMsgs.size()));
+        outputMsg.append(
+            stringFormat(" Skipped {} tuples due to copy errors.", warningMsgs.size()));
     }
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());

@@ -30,7 +30,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 
 -CASE ParallelSkipInvalidNodeTableRowsCastingError
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
----- ok
+---- 3
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "2147483650" to INT32. Line containing the error: '2,2147483650'
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv on line 5: Conversion exception: Cast failed. Could not convert "01abc" to INT32. Line containing the error: '5,01abc'
+5 tuples have been copied to the person table. Skipped 2 tuples due to copy errors.
 -STATEMENT MATCH (p:person) return p.ID, p.gender;
 ---- 5
 0|4
@@ -49,9 +52,16 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 6|8
 7|1
 
+
 -CASE ParallelSkipInvalidNodeTableRowsMixed
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~")
----- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~")
+---- 6
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 2: Conversion exception: Cast failed. Could not convert "312abc" to INT32. Line containing the error: '0,312abc...'
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 4: neither QUOTE nor ESCAPE is proceeded by ESCAPE. Line containing the error: '4,1,"ab~c...'
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 6: quote should be followed by end of file, end of value, end of row or another quote. Line containing the error: '6,67,"ab"...'
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 8: expected 3 values per row, but got 2. Line containing the error: '8,39'
+Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 10: Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options. Line containing the error: '2,53,"movieC'
+5 tuples have been copied to the movie table. Skipped 5 tuples due to copy errors.
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB

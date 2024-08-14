@@ -215,7 +215,7 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
             sharedState->getNumRows(), info->tableEntry->getName());
         if (!warningMsgs.empty()) {
             outputMsg.append(
-                stringFormat(" Skipped {} tuples due to copy errors", warningMsgs.size()));
+                stringFormat(" Skipped {} tuples due to copy errors.", warningMsgs.size()));
         }
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
