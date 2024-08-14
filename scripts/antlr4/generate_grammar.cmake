@@ -1,18 +1,26 @@
 # Use a copy of the grammar file and compare since last run.
 # This is to make sure clean build from source needn't have Java installed.
 # We can't use checksums because of windows line ending normalization.
-file(READ Cypher.g4.copy COPY_CONTENT)
-file(READ ${ROOT_DIR}/src/antlr4/Cypher.g4 REAL_CONTENT)
-file(READ keywords.txt.copy COPY_KEYWORDS)
-file(READ ${ROOT_DIR}/src/antlr4/keywords.txt REAL_KEYWORDS)
 
-if("${COPY_CONTENT}" STREQUAL "${REAL_CONTENT}" AND "${COPY_KEYWORDS}" STREQUAL "${REAL_KEYWORDS}")
-    message(DEBUG " Not regenerating grammar files as Cypher.g4 is unchanged.")
+
+
+file(READ hash.md5 OLDHASH)
+execute_process(
+    COMMAND cat ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4
+    COMMAND md5sum OUTPUT_VARIABLE NEWHASH
+    RESULTS_VARIABLE RESVAR
+    ERROR_VARIABLE ERRVAR)
+
+if(NOT "${RESVAR}" STREQUAL "0 0")
+    message(DEBUG "${ERRVAR}")
+endif()
+
+if("${OLDHASH}" STREQUAL "${NEWHASH}")
+    message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
     return() # Exit.
 endif()
 
-file(WRITE Cypher.g4.copy "${REAL_CONTENT}")
-file(WRITE keywords.txt.copy "${REAL_KEYWORDS}")
+file(WRITE hash.md5 "${NEWHASH}")
 
 message(INFO " Regenerating grammar files...")
 
