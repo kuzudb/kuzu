@@ -51,7 +51,8 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
         auto& addedProp = entry->getProperty(boundAddPropInfo.propertyDefinition.getName());
         storage::TableAddColumnState state{addedProp, *defaultValueEvaluator};
-        storageManager->getTable(entry->getTableID())->addColumn(context->clientContext->getTx(), state);
+        storageManager->getTable(entry->getTableID())
+            ->addColumn(context->clientContext->getTx(), state);
     } else if (info.alterType == common::AlterType::DROP_PROPERTY) {
         const auto schema = context->clientContext->getCatalog()->getTableCatalogEntry(
             context->clientContext->getTx(), info.tableName);
