@@ -125,11 +125,12 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     const auto scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = &boundNodeIDVector;
+    scanState->nodeOriginalSelVector = scanState->boundNodeIDVector->state->getSelVectorShared();
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->IDVector = scanState->outputVectors[0];
     scanState->rowIdxVector->state = scanState->IDVector->state;
     scanState->source = TableScanSource::COMMITTED;
-    scanState->boundNodeOffset = boundNodeOffset;
+    scanState->totalNodeIdx = 1;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
@@ -137,6 +138,12 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            if (scanState->resetCommitted) {
+                scanState->currNodeIdx = 0;
+                scanState->endNodeIdx = 0;
+                scanState->nodeGroup->initializeScanState(transaction, *scanState);
+                continue;
+            }
             break;
         }
         for (auto i = 0u; i < scanState->IDVector->state->getSelVector().getSelSize(); i++) {
@@ -172,15 +179,22 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     const auto scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = srcNodeIDVector;
+    scanState->nodeOriginalSelVector = scanState->boundNodeIDVector->state->getSelVectorShared();
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->IDVector = scanState->outputVectors[0];
     scanState->source = TableScanSource::COMMITTED;
-    scanState->boundNodeOffset = nodeOffset;
+    scanState->totalNodeIdx = 1;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            if (scanState->resetCommitted) {
+                scanState->currNodeIdx = 0;
+                scanState->endNodeIdx = 0;
+                scanState->nodeGroup->initializeScanState(transaction, *scanState);
+                continue;
+            }
             break;
         }
         if (scanState->outputVectors[0]->state->getSelVector().getSelSize() > 0) {

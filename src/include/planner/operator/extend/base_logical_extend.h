@@ -26,8 +26,6 @@ public:
 
     bool extendFromSourceNode() const { return extendFromSource_; }
 
-    virtual f_group_pos_set getGroupsPosToFlatten() = 0;
-
     std::string getExpressionsForPrinting() const override;
 
 protected:

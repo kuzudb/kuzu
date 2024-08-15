@@ -14,9 +14,21 @@ struct LocalRelTableScanState;
 struct RelTableScanState : TableScanState {
     common::RelDataDirection direction;
     common::ValueVector* boundNodeIDVector;
-    common::offset_t boundNodeOffset;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
+
+    std::shared_ptr<common::SelectionVector> nodeOriginalSelVector;
+    std::shared_ptr<common::SelectionVector> nodeOutputSelVector;
+
+    bool resetCommitted = false;
+    bool resetUncommitted = false;
+    common::sel_t currNodeIdx = 0;
+    common::sel_t endNodeIdx = 0;
+    common::sel_t totalNodeIdx = 0;
+    common::sel_t currentCSRIdx = 0;
+    common::sel_t currentSelIdx = 0;
+    common::offset_t batchSize = 0;
+    common::offset_t versionedBatchSize = 0;
 
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
@@ -24,24 +36,23 @@ struct RelTableScanState : TableScanState {
     explicit RelTableScanState(const std::vector<common::column_id_t>& columnIDs)
         : RelTableScanState(columnIDs, {}, nullptr, nullptr,
               common::RelDataDirection::FWD /* This is a dummy direction */,
-              std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
-    }
+              std::vector<ColumnPredicateSet>{}) {}
     RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction)
         : RelTableScanState(columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
-              std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
-    }
+              std::vector<ColumnPredicateSet>{}) {}
     RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
         const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{columnIDs, columns, std::move(columnPredicateSets)}, direction{direction},
-          boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
-          csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
+          boundNodeIDVector{nullptr}, csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
           localTableScanState{nullptr} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
+        // Can we change the capacity to 1?
+        nodeOutputSelVector =
+            std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
+        nodeOutputSelVector->setToFiltered(1);
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
             this->columnPredicateSets.insert(this->columnPredicateSets.begin(),
@@ -50,8 +61,11 @@ struct RelTableScanState : TableScanState {
     }
 
     void resetState() override {
-        boundNodeOffset = common::INVALID_OFFSET;
+        source = TableScanSource::NONE;
         nodeGroupScanState->resetState();
+        nodeOriginalSelVector = boundNodeIDVector->state->getSelVectorShared();
+        currNodeIdx = 0;
+        endNodeIdx = 0;
     }
 };
 
@@ -70,6 +84,7 @@ struct LocalRelTableScanState final : RelTableScanState {
         IDVector = state.IDVector;
         direction = state.direction;
         boundNodeIDVector = state.boundNodeIDVector;
+        nodeOriginalSelVector = state.nodeOriginalSelVector;
         outputVectors = state.outputVectors;
         // Setting source to UNCOMMITTED is not necessary but just to keep it semantically
         // consistent.
@@ -176,6 +191,8 @@ public:
     }
 
 private:
+    void scanNext(transaction::Transaction* transaction, TableScanState& scanState);
+
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
         NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
         const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);

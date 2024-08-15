@@ -153,10 +153,14 @@ void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
 void LocalRelTable::initializeScan(TableScanState& state) {
     auto& relScanState = state.cast<LocalRelTableScanState>();
     KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
+    relScanState.nextRowToScan = 0;
     relScanState.nodeGroup = localNodeGroup.get();
+    auto& nodeSelVector = *relScanState.nodeOriginalSelVector;
     auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
-    if (index.contains(relScanState.boundNodeOffset)) {
-        relScanState.rowIndices = index[relScanState.boundNodeOffset];
+    offset_t nodeOffset =
+        relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]);
+    if (index.contains(nodeOffset)) {
+        relScanState.rowIndices = index[nodeOffset];
         KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
     } else {
         relScanState.rowIndices.clear();
@@ -182,22 +186,22 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
 }
 
 bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
-    const auto& relScanState = state.cast<RelTableScanState>();
+    auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
-    const auto numToScan = std::min(localScanState.rowIndices.size() - localScanState.nextRowToScan,
-        DEFAULT_VECTOR_CAPACITY);
-    if (numToScan == 0) {
+    relScanState.batchSize = std::min(
+        localScanState.rowIndices.size() - localScanState.nextRowToScan, DEFAULT_VECTOR_CAPACITY);
+    if (relScanState.batchSize == 0) {
         return false;
     }
-    for (auto i = 0u; i < numToScan; i++) {
+    for (auto i = 0u; i < relScanState.batchSize; i++) {
         localScanState.rowIdxVector->setValue<row_idx_t>(i,
             localScanState.rowIndices[localScanState.nextRowToScan + i]);
     }
-    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
+    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(relScanState.batchSize);
     localNodeGroup->lookup(transaction, localScanState);
-    localScanState.nextRowToScan += numToScan;
+    localScanState.nextRowToScan += relScanState.batchSize;
     return true;
 }
 

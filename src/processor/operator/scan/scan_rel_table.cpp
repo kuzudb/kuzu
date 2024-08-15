@@ -80,8 +80,8 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
 
 void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
     ScanTable::initVectors(state, resultSet);
-    state.cast<RelTableScanState>().boundNodeIDVector =
-        resultSet.getValueVector(relInfo.boundNodeIDPos).get();
+    auto& relScanState = state.cast<RelTableScanState>();
+    relScanState.boundNodeIDVector = resultSet.getValueVector(relInfo.boundNodeIDPos).get();
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
@@ -101,6 +101,7 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
+        scanState.resetState();
         relInfo.table->initializeScanState(transaction, scanState);
     }
 }
