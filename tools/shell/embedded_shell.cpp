@@ -10,6 +10,7 @@
 #include <array>
 #include <cctype>
 #include <csignal>
+#include <iomanip>
 #include <regex>
 #include <sstream>
 
@@ -21,7 +22,6 @@
 #include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
-#include <iomanip>
 
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
@@ -544,19 +544,33 @@ std::string escapeJsonString(const std::string& str) {
     std::ostringstream escaped;
     for (char c : str) {
         switch (c) {
-            case '"':  escaped << "\\\""; break;
-            case '\\': escaped << "\\\\"; break;
-            case '\b': escaped << "\\b"; break;
-            case '\f': escaped << "\\f"; break;
-            case '\n': escaped << "\\n"; break;
-            case '\r': escaped << "\\r"; break;
-            case '\t': escaped << "\\t"; break;
-            default:
-                if ('\x00' <= c && c <= '\x1f') {
-                    escaped << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)c;
-                } else {
-                    escaped << c;
-                }
+        case '"':
+            escaped << "\\\"";
+            break;
+        case '\\':
+            escaped << "\\\\";
+            break;
+        case '\b':
+            escaped << "\\b";
+            break;
+        case '\f':
+            escaped << "\\f";
+            break;
+        case '\n':
+            escaped << "\\n";
+            break;
+        case '\r':
+            escaped << "\\r";
+            break;
+        case '\t':
+            escaped << "\\t";
+            break;
+        default:
+            if ('\x00' <= c && c <= '\x1f') {
+                escaped << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)c;
+            } else {
+                escaped << c;
+            }
         }
     }
     return escaped.str();
@@ -606,12 +620,23 @@ std::string escapeHtmlString(const std::string& str) {
     std::ostringstream escaped;
     for (char c : str) {
         switch (c) {
-            case '&':  escaped << "&amp;"; break;
-            case '\"': escaped << "&quot;"; break;
-            case '\'': escaped << "&apos;"; break;
-            case '<':  escaped << "&lt;"; break;
-            case '>':  escaped << "&gt;"; break;
-            default:   escaped << c;
+        case '&':
+            escaped << "&amp;";
+            break;
+        case '\"':
+            escaped << "&quot;";
+            break;
+        case '\'':
+            escaped << "&apos;";
+            break;
+        case '<':
+            escaped << "&lt;";
+            break;
+        case '>':
+            escaped << "&gt;";
+            break;
+        default:
+            escaped << c;
         }
     }
     return escaped.str();
@@ -655,19 +680,44 @@ std::string escapeLatexString(const std::string& str) {
     std::ostringstream escaped;
     for (char c : str) {
         switch (c) {
-            case '&':  escaped << "\\&"; break;
-            case '%':  escaped << "\\%"; break;
-            case '$':  escaped << "\\$"; break;
-            case '#':  escaped << "\\#"; break;
-            case '_':  escaped << "\\_"; break;
-            case '{':  escaped << "\\{"; break;
-            case '}':  escaped << "\\}"; break;
-            case '~':  escaped << "\\textasciitilde{}"; break;
-            case '^':  escaped << "\\textasciicircum{}"; break;
-            case '\\': escaped << "\\textbackslash{}"; break;
-            case '<':  escaped << "\\textless{}"; break;
-            case '>':  escaped << "\\textgreater{}"; break;
-            default:   escaped << c;
+        case '&':
+            escaped << "\\&";
+            break;
+        case '%':
+            escaped << "\\%";
+            break;
+        case '$':
+            escaped << "\\$";
+            break;
+        case '#':
+            escaped << "\\#";
+            break;
+        case '_':
+            escaped << "\\_";
+            break;
+        case '{':
+            escaped << "\\{";
+            break;
+        case '}':
+            escaped << "\\}";
+            break;
+        case '~':
+            escaped << "\\textasciitilde{}";
+            break;
+        case '^':
+            escaped << "\\textasciicircum{}";
+            break;
+        case '\\':
+            escaped << "\\textbackslash{}";
+            break;
+        case '<':
+            escaped << "\\textless{}";
+            break;
+        case '>':
+            escaped << "\\textgreater{}";
+            break;
+        default:
+            escaped << c;
         }
     }
     return escaped.str();
@@ -732,7 +782,8 @@ std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) co
 }
 
 std::string escapeCsvString(const std::string& field, const std::string& delimiter) {
-    bool needsQuoting = field.find_first_of("\"" + delimiter + "\n") != std::string::npos || field.empty();
+    bool needsQuoting =
+        field.find_first_of("\"" + delimiter + "\n") != std::string::npos || field.empty();
     if (!needsQuoting) {
         return field;
     }
@@ -772,7 +823,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printString = printLineExecutionResult(queryResult);
     } else if (drawingCharacters->printType != PrintType::TRASH) {
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
-            printString += escapeCsvString(queryResult.getColumnNames()[i], drawingCharacters->TupleDelimiter);
+            printString +=
+                escapeCsvString(queryResult.getColumnNames()[i], drawingCharacters->TupleDelimiter);
             if (i != queryResult.getNumColumns() - 1) {
                 printString += drawingCharacters->TupleDelimiter;
             }
