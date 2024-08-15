@@ -40,7 +40,6 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
             if (currentTableIdx == relInfos.size()) {
                 return false;
             }
-            relInfos[currentTableIdx].scanState->resetState();
             relInfos[currentTableIdx].table->initializeScanState(transaction,
                 *relInfos[currentTableIdx].scanState);
             nextTableIdx++;

@@ -30,6 +30,9 @@ public:
     bool empty() const { return relInfos.empty(); }
 
     void resetState() {
+        for (auto& rel : relInfos) {
+            rel.scanState->resetState();
+        }
         currentTableIdx = 0;
         nextTableIdx = 0;
     }
