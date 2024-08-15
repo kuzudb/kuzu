@@ -94,10 +94,8 @@ static RE2 datePattern3("\\d{4} \\d{1,2} \\d{1,2}");
 static RE2 datePattern4("\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
 
 static bool isDate(std::string_view str) {
-    return RE2::FullMatch(str, datePattern1) ||
-           RE2::FullMatch(str, datePattern2) ||
-           RE2::FullMatch(str, datePattern3) ||
-           RE2::FullMatch(str, datePattern4);
+    return RE2::FullMatch(str, datePattern1) || RE2::FullMatch(str, datePattern2) ||
+           RE2::FullMatch(str, datePattern3) || RE2::FullMatch(str, datePattern4);
 }
 
 static RE2 UUIDPattern("(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
@@ -106,13 +104,14 @@ static bool isUUID(std::string_view str) {
     return RE2::FullMatch(str, UUIDPattern);
 }
 
-static RE2 intervalPattern("(?i)((0|[1-9]\\d*) "
-        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
-        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
-        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
-        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?");
+static RE2 intervalPattern(
+    "(?i)((0|[1-9]\\d*) "
+    "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+    "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+    "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
+    "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+    "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+    "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?");
 static RE2 intervalPattern2("\\d+:\\d{2}:\\d{2}(\\.\\d+)?");
 
 static bool isInterval(std::string_view str) {
