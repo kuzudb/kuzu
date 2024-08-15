@@ -2,6 +2,25 @@
 
 --
 
+-CASE 4080
+-STATEMENT CREATE NODE TABLE V(id INT, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE links_to(FROM V to V);
+---- ok
+-STATEMENT CREATE REL TABLE parent(FROM V to V);
+---- ok
+-STATEMENT CREATE (:V {id: 1}), (:V {id: 2});
+---- ok
+-STATEMENT MATCH (v1:V {id: 1}), (v2:V {id: 2})
+           CREATE (v1)-[:links_to]->(v2), (v1)-[:parent]->(v2)
+---- ok
+-STATEMENT WITH 2 as parent_id
+           OPTIONAL MATCH (v1:V)-[:links_to*1..]->(:V)
+           WHERE EXISTS {MATCH (v1)-[:parent]->(:V {id: parent_id})}
+            RETURN v1.id;
+---- 1
+1
+
 -CASE listContainsCast
 -STATEMENT CREATE NODE TABLE A(id SERIAL, primary key(id));
 ---- ok
