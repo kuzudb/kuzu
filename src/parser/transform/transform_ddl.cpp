@@ -37,7 +37,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
         ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                common::ConflictAction::ON_CONFLICT_THROW);
     createTableInfo.propertyDefinitions =
-        transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
+        transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
@@ -54,9 +54,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     auto createTableInfo = CreateTableInfo(TableType::REL, tableName,
         ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                common::ConflictAction::ON_CONFLICT_THROW);
-    if (ctx.kU_PropertyDefinitionsDDL()) {
+    if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
-            transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
         std::move(srcTableName), std::move(dstTableName));
@@ -81,9 +81,9 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
     auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName,
         ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                common::ConflictAction::ON_CONFLICT_THROW);
-    if (ctx.kU_PropertyDefinitionsDDL()) {
+    if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
-            transformPropertyDefinitionsDDL(*ctx.kU_PropertyDefinitionsDDL());
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
         std::move(srcDstTablePairs));
@@ -246,36 +246,42 @@ std::unique_ptr<Statement> Transformer::transformCommentOn(CypherParser::KU_Comm
     return std::make_unique<Alter>(std::move(info));
 }
 
-std::vector<PropertyDefinition> Transformer::transformPropertyDefinitions(
-    CypherParser::KU_PropertyDefinitionsContext& ctx) {
-    std::vector<PropertyDefinition> propertyDefns;
-    for (auto property : ctx.kU_PropertyDefinition()) {
-        propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
-            transformDataType(*property->kU_DataType()));
+std::vector<ParsedColumnDefinition> Transformer::transformColumnDefinitions(
+    CypherParser::KU_ColumnDefinitionsContext& ctx) {
+    std::vector<ParsedColumnDefinition> definitions;
+    for (auto& definition : ctx.kU_ColumnDefinition()) {
+        definitions.emplace_back(transformColumnDefinition(*definition));
     }
-    return propertyDefns;
+    return definitions;
 }
 
-std::vector<PropertyDefinitionDDL> Transformer::transformPropertyDefinitionsDDL(
-    CypherParser::KU_PropertyDefinitionsDDLContext& ctx) {
-    std::vector<PropertyDefinitionDDL> propertyDefns;
-    for (auto property : ctx.kU_PropertyDefinitionDDL()) {
-        std::unique_ptr<ParsedExpression> defaultValue;
-        auto dataType = transformDataType(*property->kU_DataType());
-        if (property->kU_Default()) {
-            defaultValue = transformExpression(*property->kU_Default()->oC_Expression());
+ParsedColumnDefinition Transformer::transformColumnDefinition(
+    CypherParser::KU_ColumnDefinitionContext& ctx) {
+    auto propertyName = transformPropertyKeyName(*ctx.oC_PropertyKeyName());
+    auto dataType = transformDataType(*ctx.kU_DataType());
+    return ParsedColumnDefinition(propertyName, dataType);
+}
+
+std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
+    CypherParser::KU_PropertyDefinitionsContext& ctx) {
+    std::vector<ParsedPropertyDefinition> definitions;
+    for (auto& definition : ctx.kU_PropertyDefinition()) {
+        auto columnDefinition = transformColumnDefinition(*definition->kU_ColumnDefinition());
+        std::unique_ptr<ParsedExpression> defaultExpr;
+        if (definition->kU_Default()) {
+            defaultExpr = transformExpression(*definition->kU_Default()->oC_Expression());
         } else {
             LogicalType type;
-            if (!LogicalType::tryConvertFromString(dataType, type)) {
+            if (!LogicalType::tryConvertFromString(columnDefinition.type, type)) {
                 type = LogicalType::ANY();
             }
-            defaultValue = std::make_unique<ParsedLiteralExpression>(
+            defaultExpr = std::make_unique<ParsedLiteralExpression>(
                 Value::createNullValue(std::move(type)), "NULL");
         }
-        propertyDefns.emplace_back(transformPropertyKeyName(*property->oC_PropertyKeyName()),
-            std::move(dataType), std::move(defaultValue));
+        definitions.push_back(
+            ParsedPropertyDefinition(std::move(columnDefinition), std::move(defaultExpr)));
     }
-    return propertyDefns;
+    return definitions;
 }
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {

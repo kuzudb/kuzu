@@ -50,13 +50,10 @@ public:
 
     static std::unique_ptr<main::SystemConfig> getSystemConfigFromEnv() {
         auto systemConfig = std::make_unique<main::SystemConfig>();
-        auto autoCheckpointEnv = getSystemEnv("AUTO_CHECKPOINT");
         auto bufferPoolSizeEnv = getSystemEnv("BUFFER_POOL_SIZE");
         auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
         auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
         auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
-        systemConfig->autoCheckpoint =
-            autoCheckpointEnv.empty() ? false : std::string(autoCheckpointEnv) == "true";
         systemConfig->bufferPoolSize =
             bufferPoolSizeEnv.empty() ?
                 common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
@@ -71,7 +68,7 @@ public:
         return systemConfig;
     }
 
-    static std::string getMillisecondsSuffix();
+    static std::string getTempSuffix();
 
     static std::filesystem::path getTempDir() {
         auto tempDir = std::getenv("RUNNER_TEMP");
@@ -83,7 +80,7 @@ public:
     }
 
     static std::string getTempDir(const std::string& name) {
-        const auto path = getTempDir() / (name + getMillisecondsSuffix());
+        const auto path = getTempDir() / (name + getTempSuffix());
         std::filesystem::create_directories(path);
         auto pathStr = path.string();
 #ifdef _WIN32

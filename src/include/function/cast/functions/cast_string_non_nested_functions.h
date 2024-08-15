@@ -15,6 +15,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+LogicalType inferMinimalTypeFromString(const std::string& str);
+// Infer the type that the string represents.
+// Note: minimal integer width is int64
+// Used for sniffing
+
 // cast string to numerical
 template<typename T>
 struct IntegerCastData {

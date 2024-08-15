@@ -1,12 +1,11 @@
 #pragma once
 
-#include "common/copy_constructors.h"
 #include "common/enums/conflict_action.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
-#include "parser/expression/parsed_literal_expression.h"
+#include "property_definition.h"
 
 namespace kuzu {
 namespace common {
@@ -56,38 +55,14 @@ private:
           hasParent{other.hasParent}, extraInfo{other.extraInfo->copy()} {}
 };
 
-struct PropertyInfo {
-    std::string name;
-    common::LogicalType type;
-    std::unique_ptr<parser::ParsedExpression> defaultValue;
-
-    PropertyInfo() = default;
-    PropertyInfo(std::string name, common::LogicalType type)
-        : PropertyInfo{name, std::move(type),
-              std::make_unique<parser::ParsedLiteralExpression>(common::Value::createNullValue(),
-                  "NULL")} {}
-
-    PropertyInfo(std::string name, common::LogicalType type,
-        std::unique_ptr<parser::ParsedExpression> defaultValue)
-        : name{std::move(name)}, type{std::move(type)}, defaultValue{std::move(defaultValue)} {}
-    EXPLICIT_COPY_DEFAULT_MOVE(PropertyInfo);
-
-    void serialize(common::Serializer& serializer) const;
-    static PropertyInfo deserialize(common::Deserializer& deserializer);
-
-private:
-    PropertyInfo(const PropertyInfo& other)
-        : name{other.name}, type{other.type.copy()}, defaultValue{other.defaultValue->copy()} {}
-};
-
 struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
-    std::vector<PropertyInfo> propertyInfos;
+    std::vector<PropertyDefinition> propertyDefinitions;
 
-    explicit BoundExtraCreateTableInfo(std::vector<PropertyInfo> propertyInfos)
-        : propertyInfos{std::move(propertyInfos)} {}
+    explicit BoundExtraCreateTableInfo(std::vector<PropertyDefinition> propertyDefinitions)
+        : propertyDefinitions{std::move(propertyDefinitions)} {}
 
     BoundExtraCreateTableInfo(const BoundExtraCreateTableInfo& other)
-        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)} {}
+        : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)} {}
     BoundExtraCreateTableInfo& operator=(const BoundExtraCreateTableInfo&) = delete;
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
@@ -100,14 +75,14 @@ struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryI
 };
 
 struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
-    common::property_id_t primaryKeyIdx;
+    std::string primaryKeyName;
 
-    BoundExtraCreateNodeTableInfo(common::property_id_t primaryKeyIdx,
-        std::vector<PropertyInfo> propertyInfos)
-        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, primaryKeyIdx{primaryKeyIdx} {}
+    BoundExtraCreateNodeTableInfo(std::string primaryKeyName,
+        std::vector<PropertyDefinition> definitions)
+        : BoundExtraCreateTableInfo{std::move(definitions)}, primaryKeyName{primaryKeyName} {}
     BoundExtraCreateNodeTableInfo(const BoundExtraCreateNodeTableInfo& other)
-        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)},
-          primaryKeyIdx{other.primaryKeyIdx} {}
+        : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
+          primaryKeyName{other.primaryKeyName} {}
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateNodeTableInfo>(*this);
@@ -125,16 +100,16 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     common::table_id_t dstTableID;
 
     BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::vector<PropertyInfo> propertyInfos)
+        std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
-              srcTableID, dstTableID, std::move(propertyInfos)} {}
+              srcTableID, dstTableID, std::move(definitions)} {}
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, std::vector<PropertyInfo> propertyInfos)
-        : BoundExtraCreateTableInfo{std::move(propertyInfos)}, srcMultiplicity{srcMultiplicity},
+        common::table_id_t dstTableID, std::vector<PropertyDefinition> definitions)
+        : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},
           dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
     BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other)
-        : BoundExtraCreateTableInfo{copyVector(other.propertyInfos)},
+        : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
           srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
           srcTableID{other.srcTableID}, dstTableID{other.dstTableID} {}
 

@@ -205,6 +205,17 @@ def test_mode(temp_db, flag) -> None:
     result.check_stdout("a,b")
     result.check_stdout("Databases Rule,kuzu is cool")
 
+    # test csv escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("csv")
+        .statement('RETURN "This is a \\"test\\", with commas, \\"quotes\\", and\nnewlines.";')
+    )
+    result = test.run()
+    result.check_stdout('"This is a ""test"", with commas, ""quotes"", and newlines."')
+
     # test box mode
     test = (
         ShellTest()
@@ -235,6 +246,24 @@ def test_mode(temp_db, flag) -> None:
     result.check_stdout("</tr>")
     result.check_stdout("</table>")
 
+    # test html escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("html")
+        .statement('RETURN "This is a <test> & \\"example\\" with \'special\' characters." AS a;')
+    )
+    result = test.run()
+    result.check_stdout("<table>")
+    result.check_stdout("<tr>")
+    result.check_stdout("<th>a</th>")
+    result.check_stdout("</tr>")
+    result.check_stdout("<tr>")
+    result.check_stdout("<td>This is a &lt;test&gt; &amp; &quot;example&quot; with &apos;special&apos; characters.</td>")
+    result.check_stdout("</tr>")
+    result.check_stdout("</table>")
+
     # test json mode
     test = (
         ShellTest()
@@ -246,6 +275,17 @@ def test_mode(temp_db, flag) -> None:
     result = test.run()
     result.check_stdout('[{"a":"Databases Rule","b":"kuzu is cool"}]')
 
+    # test json escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("json")
+        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines \n, and tabs \t." AS a;')
+    )
+    result = test.run()
+    result.check_stdout('[{"a":"This is a \\"test\\" with backslashes \\\\, newlines , and tabs \\t."}]')
+
     # test jsonlines mode
     test = (
         ShellTest()
@@ -256,6 +296,17 @@ def test_mode(temp_db, flag) -> None:
     )
     result = test.run()
     result.check_stdout('{"a":"Databases Rule","b":"kuzu is cool"}')
+
+    # test jsonlines escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("jsonlines")
+        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines \n, and tabs \t." AS a;')
+    )
+    result = test.run()
+    result.check_stdout('{"a":"This is a \\"test\\" with backslashes \\\\, newlines , and tabs \\t."}')
 
     # test latex mode
     test = (
@@ -271,6 +322,23 @@ def test_mode(temp_db, flag) -> None:
     result.check_stdout("a&b\\\\")
     result.check_stdout("\\hline")
     result.check_stdout("Databases Rule&kuzu is cool\\\\")
+    result.check_stdout("\\hline")
+    result.check_stdout("\\end{tabular}")
+
+    # test latex escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("latex")
+        .statement('RETURN "This is a test with special characters: %, $, &, #, _, {, }, ~, ^, \\\\, <, and >." AS a;')
+    )
+    result = test.run()
+    result.check_stdout("\\begin{tabular}{l}")
+    result.check_stdout("\\hline")
+    result.check_stdout("a\\\\")
+    result.check_stdout("\\hline")
+    result.check_stdout("This is a test with special characters: \\%, \\$, \\&, \\#, \\_, \\{, \\}, \\textasciitilde{}, \\textasciicircum{}, \\textbackslash{}, \\textless{}, and \\textgreater{}.\\\\")
     result.check_stdout("\\hline")
     result.check_stdout("\\end{tabular}")
 
@@ -297,6 +365,17 @@ def test_mode(temp_db, flag) -> None:
     result = test.run()
     result.check_stdout("a|b")
     result.check_stdout("Databases Rule|kuzu is cool")
+
+    # test list escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("list")
+        .statement('RETURN "This is a \\"test\\", with vertical bars |, \\"quotes\\", and\nnewlines.";')
+    )
+    result = test.run()
+    result.check_stdout('"This is a ""test"", with vertical bars |, ""quotes"", and newlines."')
 
     # test markdown mode
     test = (
@@ -333,6 +412,17 @@ def test_mode(temp_db, flag) -> None:
     result = test.run()
     result.check_stdout("a\tb")
     result.check_stdout("Databases Rule\tkuzu is cool")
+
+    # test tsv escaping
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument("tsv")
+        .statement('RETURN "This is a \\"test\\", with tabs \t, \\"quotes\\", and\nnewlines.";')
+    )
+    result = test.run()
+    result.check_stdout('"This is a ""test"", with tabs \t, ""quotes"", and newlines."')
 
     # test trash mode
     test = (

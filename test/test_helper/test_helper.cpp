@@ -75,11 +75,9 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
     conn.setMaxNumThreadForExec(config->numThreads);
 }
 
-std::string TestHelper::getMillisecondsSuffix() {
-    uint64_t ms = duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch())
-                      .count();
-    return std::to_string(ms);
+std::string TestHelper::getTempSuffix() {
+    uint64_t val = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    return std::to_string(val);
 }
 
 } // namespace testing

@@ -182,45 +182,6 @@ std::vector<JsonWrapper> jsonifyQueryResult(
     return result;
 }
 
-static common::LogicalType combineTypeJsonContext(const common::LogicalType& lft,
-    const common::LogicalType& rit) { // always succeeds
-    if (lft.getLogicalTypeID() == LogicalTypeID::STRING ||
-        rit.getLogicalTypeID() == LogicalTypeID::STRING) {
-        return LogicalType::STRING();
-    }
-    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
-        lft.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-        std::vector<StructField> resultingFields;
-        for (const auto& i : StructType::getFields(lft)) {
-            auto name = i.getName();
-            if (StructType::hasField(rit, name)) {
-                resultingFields.emplace_back(name,
-                    combineTypeJsonContext(i.getType(), StructType::getFieldType(rit, name)));
-            } else {
-                resultingFields.push_back(i.copy());
-            }
-        }
-        for (const auto& i : StructType::getFields(rit)) {
-            auto name = i.getName();
-            if (!StructType::hasField(lft, name)) {
-                resultingFields.push_back(i.copy());
-            }
-        }
-        return LogicalType::STRUCT(std::move(resultingFields));
-    }
-    if (lft.getLogicalTypeID() == rit.getLogicalTypeID() &&
-        lft.getLogicalTypeID() == LogicalTypeID::LIST) {
-        const auto& lftChild = ListType::getChildType(lft);
-        const auto& ritChild = ListType::getChildType(rit);
-        return LogicalType::LIST(combineTypeJsonContext(lftChild, ritChild));
-    }
-    common::LogicalType result;
-    if (!LogicalTypeUtils::tryGetMaxLogicalType(lft, rit, result)) {
-        return LogicalType::STRING();
-    }
-    return result;
-}
-
 common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) {
     if (depth == 0) {
         return LogicalType::STRING();
@@ -233,7 +194,7 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
         auto iter = yyjson_arr_iter_with(val);
         auto sampled = 0u;
         while ((ele = yyjson_arr_iter_next(&iter))) {
-            childType = combineTypeJsonContext(childType, jsonSchema(ele, depth, -1));
+            childType = LogicalTypeUtils::combineTypes(childType, jsonSchema(ele, depth, -1));
             if (breadth != -1 && ++sampled >= breadth) {
                 break;
             }

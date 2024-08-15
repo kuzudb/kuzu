@@ -7,30 +7,30 @@
 namespace kuzu {
 namespace testing {
 
-// Convert an entire CSV dataset directory to parquet.
+// Convert an entire CSV dataset directory to some specified output.
 // The dataset directory must contain schema and copy files.
-class CSVToParquetConverter {
+class CSVConverter {
 public:
-    explicit CSVToParquetConverter(std::string csvDatasetPath, std::string parquetDatasetPath,
-        uint64_t bufferPoolSize)
-        : csvDatasetPath{csvDatasetPath}, parquetDatasetPath{parquetDatasetPath},
-          bufferPoolSize{bufferPoolSize} {}
+    explicit CSVConverter(std::string csvDatasetPath, std::string outputDatasetPath,
+        uint64_t bufferPoolSize, std::string outputFileExtension)
+        : csvDatasetPath{csvDatasetPath}, outputDatasetPath{outputDatasetPath},
+          bufferPoolSize{bufferPoolSize}, fileExtension{outputFileExtension} {}
 
-    void convertCSVDatasetToParquet();
+    void convertCSVDataset();
 
 private:
     void copySchemaFile();
     void createTableInfo(std::string schemaFile);
     void readCopyCommandsFromCSVDataset();
     void createCopyFile();
-    void convertCSVFilesToParquet();
+    void convertCSVFiles();
 
 private:
     struct TableInfo {
         std::string name;
         std::string csvFilePath;
-        std::string parquetFilePath;
-        // get cypher query to convert csv file to parquet file
+        std::string outputFilePath;
+        // get cypher query to convert csv file to output file
         virtual std::string getConverterQuery() const = 0;
     };
 
@@ -49,10 +49,11 @@ private:
 
 private:
     std::string csvDatasetPath;
-    std::string parquetDatasetPath;
+    std::string outputDatasetPath;
     std::vector<std::shared_ptr<TableInfo>> tables;
     std::unordered_map<std::string, std::shared_ptr<TableInfo>> tableNameMap;
     uint64_t bufferPoolSize;
+    std::string fileExtension;
     std::unique_ptr<main::SystemConfig> systemConfig;
     std::unique_ptr<main::Database> tempDb;
     std::unique_ptr<main::Connection> tempConn;

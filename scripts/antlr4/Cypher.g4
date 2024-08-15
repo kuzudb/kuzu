@@ -312,13 +312,13 @@ kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitionsDDL SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
+    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
 
 kU_CreateRelTable
-    : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
-    : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitionsDDL SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
@@ -379,14 +379,13 @@ kU_RenameTable
 kU_RenameProperty
     : RENAME SP oC_PropertyKeyName SP TO SP oC_PropertyKeyName ;
 
-// TODO(Xiyang): Remove/rename kU_PropertyDefinitions & kU_PropertyDefinitionsDDL
+kU_ColumnDefinitions: kU_ColumnDefinition ( SP? ',' SP? kU_ColumnDefinition )* ;
+
+kU_ColumnDefinition : oC_PropertyKeyName SP kU_DataType ;
+
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
-kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ;
-
-kU_PropertyDefinitionsDDL : kU_PropertyDefinitionDDL ( SP? ',' SP? kU_PropertyDefinitionDDL )* ;
-
-kU_PropertyDefinitionDDL : oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
+kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
@@ -395,8 +394,8 @@ DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) (
 kU_DataType
     : oC_SymbolicName
         | kU_DataType kU_ListIdentifiers
-        | UNION SP? '(' SP? kU_PropertyDefinitions SP? ')'
-        | oC_SymbolicName SP? '(' SP? kU_PropertyDefinitions SP? ')'
+        | UNION SP? '(' SP? kU_ColumnDefinitions SP? ')'
+        | oC_SymbolicName SP? '(' SP? kU_ColumnDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')'
         | DECIMAL SP? '(' SP? oC_IntegerLiteral SP? ',' SP? oC_IntegerLiteral SP? ')' ;
 
@@ -481,7 +480,7 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
+    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 kU_InQueryCall
     : ( kU_ProjectGraph SP? )? CALL SP oC_FunctionInvocation (SP? oC_Where)? ;

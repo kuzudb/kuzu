@@ -144,13 +144,12 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
 
 static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEntry,
     const NodeExpression& node, const expression_vector& defaultExprs) {
-    auto primaryKey = nodeTableEntry->getPrimaryKey();
-    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyPos());
-    if (!node.hasPropertyDataExpr(primaryKey->getName()) &&
+    auto primaryKeyName = nodeTableEntry->getPrimaryKeyName();
+    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyIdx());
+    if (!node.hasPropertyDataExpr(primaryKeyName) &&
         ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
-        throw BinderException(
-            common::stringFormat("Create node {} expects primary key {} as input.", node.toString(),
-                primaryKey->getName()));
+        throw BinderException(common::stringFormat(
+            "Create node {} expects primary key {} as input.", node.toString(), primaryKeyName));
     }
 }
 
@@ -171,12 +170,12 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     }
     for (auto& expr : node->getPropertyExprs()) {
         auto propertyExpr = expr->constPtrCast<PropertyExpression>();
-        if (propertyExpr->hasPropertyID(entry->getTableID())) {
+        if (propertyExpr->hasProperty(entry->getTableID())) {
             insertInfo.columnExprs.push_back(expr);
         }
     }
     insertInfo.columnDataExprs =
-        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), entry->getPropertiesRef());
+        bindInsertColumnDataExprs(node->getPropertyDataExprRef(), entry->getProperties());
     auto nodeEntry = entry->ptrCast<NodeTableCatalogEntry>();
     validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
     infos.push_back(std::move(insertInfo));
@@ -227,36 +226,36 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
             expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::IRI));
         // Insert triple rel.
         auto relInsertInfo = BoundInsertInfo(TableType::REL, rel);
-        std::unordered_map<std::string, std::shared_ptr<Expression>> relPropertyRhsExpr;
+        common::case_insensitive_map_t<std::shared_ptr<Expression>> relPropertyRhsExpr;
         relPropertyRhsExpr.insert({std::string(rdf::PID), pNode->getInternalID()});
         relInsertInfo.columnExprs.push_back(expressionBinder.bindNodeOrRelPropertyExpression(*rel,
             std::string(InternalKeyword::ID)));
         relInsertInfo.columnExprs.push_back(
             expressionBinder.bindNodeOrRelPropertyExpression(*rel, std::string(rdf::PID)));
         relInsertInfo.columnDataExprs =
-            bindInsertColumnDataExprs(relPropertyRhsExpr, entry->getPropertiesRef());
+            bindInsertColumnDataExprs(relPropertyRhsExpr, entry->getProperties());
         infos.push_back(std::move(relInsertInfo));
     } else {
         auto insertInfo = BoundInsertInfo(TableType::REL, rel);
         insertInfo.columnExprs = rel->getPropertyExprs();
         insertInfo.columnDataExprs =
-            bindInsertColumnDataExprs(rel->getPropertyDataExprRef(), entry->getPropertiesRef());
+            bindInsertColumnDataExprs(rel->getPropertyDataExprRef(), entry->getProperties());
         infos.push_back(std::move(insertInfo));
     }
 }
 
 expression_vector Binder::bindInsertColumnDataExprs(
-    const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
-    const std::vector<Property>& properties) {
+    const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExprs,
+    const std::vector<PropertyDefinition>& propertyDefinitions) {
     expression_vector result;
-    for (auto& property : properties) {
+    for (auto& definition : propertyDefinitions) {
         std::shared_ptr<Expression> rhs;
-        if (propertyRhsExpr.contains(property.getName())) {
-            rhs = propertyRhsExpr.at(property.getName());
+        if (propertyDataExprs.contains(definition.getName())) {
+            rhs = propertyDataExprs.at(definition.getName());
         } else {
-            rhs = expressionBinder.bindExpression(*property.getDefaultExpr());
+            rhs = expressionBinder.bindExpression(*definition.defaultExpr);
         }
-        rhs = expressionBinder.implicitCastIfNecessary(rhs, property.getDataType());
+        rhs = expressionBinder.implicitCastIfNecessary(rhs, definition.getType());
         result.push_back(std::move(rhs));
     }
     return result;

@@ -31,10 +31,8 @@ using file_idx_t = uint32_t;
 constexpr file_idx_t INVALID_FILE_IDX = UINT32_MAX;
 using page_group_idx_t = uint32_t;
 using frame_group_idx_t = page_group_idx_t;
-using property_id_t = uint32_t;
-constexpr property_id_t INVALID_PROPERTY_ID = UINT32_MAX;
-using column_id_t = property_id_t;
-constexpr column_id_t INVALID_COLUMN_ID = INVALID_PROPERTY_ID;
+using column_id_t = uint32_t;
+constexpr column_id_t INVALID_COLUMN_ID = UINT32_MAX;
 constexpr column_id_t ROW_IDX_COLUMN_ID = INVALID_COLUMN_ID - 1;
 using idx_t = uint32_t;
 constexpr idx_t INVALID_IDX = UINT32_MAX;
@@ -547,6 +545,15 @@ struct KUZU_API LogicalTypeUtils {
     static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
         LogicalType& result);
     static bool tryGetMaxLogicalType(const std::vector<LogicalType>& types, LogicalType& result);
+
+    // Differs from tryGetMaxLogicalType because it treats string as a maximal type, instead of a
+    // minimal type. as such, it will always succeed.
+    // Also combines structs by the union of their fields. As such, currently, it is not guaranteed
+    // for casting to work from input types to resulting types. Ideally this changes
+    static LogicalType combineTypes(const LogicalType& left, const LogicalType& right);
+
+    // makes a copy of the type with any occurences of ANY replaced with replacement
+    static LogicalType purgeAny(const LogicalType& type, const LogicalType& replacement);
 
 private:
     static bool tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,

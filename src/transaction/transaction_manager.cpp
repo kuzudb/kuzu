@@ -156,12 +156,12 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
-    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
     // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
     // disk.
     clientContext.getStorageManager()->checkpoint(clientContext);
+    // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
+    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
+        clientContext.getVFSUnsafe());
     // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and files(
     // snapshots of catalog and metadata) have been written to disk. The part is not done is replace
     // them with the original pages or catalog and metadata files.

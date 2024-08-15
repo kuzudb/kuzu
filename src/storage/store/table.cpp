@@ -47,6 +47,7 @@ void Table::serialize(Serializer& serializer) const {
     serializer.write<TableType>(tableType);
     serializer.writeDebuggingInfo("table_id");
     serializer.write<table_id_t>(tableID);
+    // TODO(Guodong): We should avoid writing table name in the future.
     serializer.writeDebuggingInfo("table_name");
     serializer.write<std::string>(tableName);
 }

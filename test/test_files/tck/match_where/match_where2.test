@@ -8,13 +8,13 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE D(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE NODE TABLE B(id INT64, PRIMARY KEY(id));
+-STATEMENT CREATE NODE TABLE B(idx INT64, PRIMARY KEY(idx));
 ---- ok
--STATEMENT CREATE NODE TABLE C(id INT64, PRIMARY KEY(id));
+-STATEMENT CREATE NODE TABLE C(idx INT64, PRIMARY KEY(idx));
 ---- ok
 -STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM A TO C, FROM A TO D, FROM B TO C, FROM B TO D, FROM C TO D);
 ---- ok
--STATEMENT CREATE (a:A), (b:B {id: 1}), (c:C {id: 2}), (d:D)
+-STATEMENT CREATE (a:A), (b:B {idx: 1}), (c:C {idx: 2}), (d:D)
            CREATE (a)-[:T_A_B]->(b),
                   (a)-[:T_A_C]->(c),
                   (a)-[:T_A_D]->(d),
@@ -23,8 +23,8 @@
                   (c)-[:T_C_D]->(d);
 ---- ok
 -STATEMENT MATCH (a)--(b)--(c)--(d)--(a), (b)--(d)
-           WHERE a.id = 1
-             AND c.id = 2
+           WHERE a.idx = 1
+             AND c.idx = 2
            RETURN d;
 ---- 2
 {_ID: 0:0, _LABEL: A, ID: 0}

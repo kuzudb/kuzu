@@ -231,7 +231,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
                 stringFormat("Checkpoint failed: table {} not found in storage manager.",
                     tableEntry->getName()));
         }
-        tables.at(tableEntry->getTableID())->checkpoint(ser);
+        tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
     for (const auto tableEntry : relTableEntries) {
         if (!tables.contains(tableEntry->getTableID())) {
@@ -239,7 +239,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
                 stringFormat("Checkpoint failed: table {} not found in storage manager.",
                     tableEntry->getName()));
         }
-        tables.at(tableEntry->getTableID())->checkpoint(ser);
+        tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
     writer->flush();
     writer->sync();
