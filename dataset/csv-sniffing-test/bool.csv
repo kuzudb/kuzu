@@ -1,0 +1,5 @@
+isabool,notabool
+True,TRUE
+FALSE,TRUE?
+false,FALSE
+,[]

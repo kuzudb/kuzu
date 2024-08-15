@@ -9,12 +9,9 @@
 -STATEMENT CREATE (a:R_r {iri: "a"})-[e:R_rt {iri: "b"}]->(b:R_r {iri: "c"}) RETURN a.iri, e.iri, b.iri;
 ---- 1
 a|b|c
--STATEMENT MATCH (a)-[e:knows|:R]->(b) RETURN *;
+-STATEMENT MATCH (a:organisation)-[e:knows|:R]->(b:organisation) RETURN *;
 ---- error
 Binder exception: Relationship pattern e contains both PropertyGraph relationship label knows and RDFGraph label R. Mixing relationships tables from an RDFGraph and PropertyGraph in one pattern is currently not supported.
--STATEMENT MATCH (a)-[:marries|:R*]->(b) RETURN *;
----- error
-Binder exception: Relationship pattern  contains both PropertyGraph relationship label marries and RDFGraph label R. Mixing relationships tables from an RDFGraph and PropertyGraph in one pattern is currently not supported.
 -STATEMENT MATCH (a:person:R_r) RETURN a.fName, a.iri;
 ---- 11
 Alice|

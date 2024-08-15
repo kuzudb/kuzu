@@ -8,6 +8,7 @@
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
 #include "graph/graph_entry.h"
+#include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 
@@ -24,7 +25,6 @@ namespace catalog {
 class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RDFGraphCatalogEntry;
-class Property;
 class Catalog;
 } // namespace catalog
 
@@ -54,7 +54,6 @@ struct RdfReaderConfig;
 }
 
 namespace binder {
-struct PropertyInfo;
 struct BoundBaseScanSource;
 struct BoundCreateTableInfo;
 struct BoundInsertInfo;
@@ -118,8 +117,8 @@ public:
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
 
-    std::vector<PropertyInfo> bindPropertyInfo(
-        const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions,
+    std::vector<PropertyDefinition> bindPropertyDefinitions(
+        const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
 
     /*** bind copy ***/
@@ -218,8 +217,8 @@ public:
     void bindInsertNode(std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos);
     void bindInsertRel(std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos);
     expression_vector bindInsertColumnDataExprs(
-        const std::unordered_map<std::string, std::shared_ptr<Expression>>& propertyRhsExpr,
-        const std::vector<catalog::Property>& properties);
+        const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExpr,
+        const std::vector<PropertyDefinition>& propertyDefinitions);
 
     BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* column,
         parser::ParsedExpression* columnData);

@@ -223,9 +223,9 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
         KU_UNREACHABLE;
     }
     auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
-    for (auto& property : tableEntry->getPropertiesRef()) {
-        if (property.getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            auto seqName = genSerialName(tableEntry->getName(), property.getName());
+    for (auto& definition : tableEntry->getProperties()) {
+        if (definition.getType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto seqName = genSerialName(tableEntry->getName(), definition.getName());
             auto seqInfo = BoundCreateSequenceInfo(seqName, 0, 1, 0,
                 std::numeric_limits<int64_t>::max(), false, ConflictAction::ON_CONFLICT_THROW);
             seqInfo.hasParent = true;
@@ -261,13 +261,9 @@ void Catalog::dropTableEntry(Transaction* tx, table_id_t tableID) {
         // DO NOTHING.
     }
     }
-    for (auto& property : tableEntry->getPropertiesRef()) {
-        if (property.getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            auto seqName = std::string(tableEntry->getName())
-                               .append("_")
-                               .append(property.getName())
-                               .append("_")
-                               .append("serial");
+    for (auto& definition : tableEntry->getProperties()) {
+        if (definition.getType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto seqName = genSerialName(tableEntry->getName(), definition.getName());
             dropSequence(tx, seqName);
         }
     }
@@ -545,10 +541,9 @@ std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*, table_
     const BoundCreateTableInfo& info) const {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
-        tableID, extraInfo->primaryKeyIdx);
-    for (auto& propertyInfo : extraInfo->propertyInfos) {
-        nodeTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
-            propertyInfo.defaultValue->copy());
+        tableID, extraInfo->primaryKeyName);
+    for (auto& definition : extraInfo->propertyDefinitions) {
+        nodeTableEntry->addProperty(definition);
     }
     nodeTableEntry->setHasParent(info.hasParent);
     return nodeTableEntry;
@@ -560,9 +555,8 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*, table_i
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         tableID, extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
         extraInfo->dstTableID);
-    for (auto& propertyInfo : extraInfo->propertyInfos) {
-        relTableEntry->addProperty(propertyInfo.name, propertyInfo.type.copy(),
-            propertyInfo.defaultValue->copy());
+    for (auto& definition : extraInfo->propertyDefinitions) {
+        relTableEntry->addProperty(definition);
     }
     relTableEntry->setHasParent(info.hasParent);
     return relTableEntry;

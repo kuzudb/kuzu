@@ -2,8 +2,6 @@
 --
 
 -CASE CreateDropNodeTableRecovery
--STATEMENT CALL auto_checkpoint=false;
----- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id SERIAL, primary key(id));
@@ -25,8 +23,6 @@ test|NODE|local(kuzu)|
 ---- 0
 
 -CASE CreateDropRelTableRecovery
--STATEMENT CALL auto_checkpoint=false;
----- ok
 -STATEMENT CREATE NODE TABLE base(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
@@ -52,8 +48,6 @@ test|REL|local(kuzu)|
 base|NODE|local(kuzu)|
 
 -CASE CreateDropRdfTableRecovery
--STATEMENT CALL auto_checkpoint=false;
----- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE RDFGraph test;
@@ -79,8 +73,6 @@ test|RDFGraph|local(kuzu)|
 ---- 0
 
 -CASE CreateDropRelGroupRecovery
--STATEMENT CALL auto_checkpoint=false;
----- ok
 -STATEMENT CREATE NODE TABLE base1(id SERIAL, primary key(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE base2(id SERIAL, primary key(id));
@@ -110,3 +102,67 @@ test|REL_GROUP|local(kuzu)|
 ---- 2
 base1|NODE|local(kuzu)|
 base2|NODE|local(kuzu)|
+
+-CASE InsertAndDropNodeColumnCheckpointRecovery
+-STATEMENT CREATE NODE TABLE test(id INT64, age INT64, name STRING, prop2 INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id: 0, age: 20, name: 'test', prop2: 1});
+---- ok
+-STATEMENT CREATE (t:test {id: 1, age: 21, name: 'test1', prop2: 2});
+---- ok
+-STATEMENT CREATE (t:test {id: 2, age: 22, name: 'test2', prop2: 3});
+---- ok
+-STATEMENT CREATE (t:test {id: 3, age: 23, name: 'test3', prop2: 4});
+---- ok
+-STATEMENT CREATE (t:test {id: 4, age: 24, name: 'test4', prop2: 5});
+---- ok
+-STATEMENT ALTER TABLE test DROP name;
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (n:test) RETURN n.*;
+---- 5
+0|20|1
+1|21|2
+2|22|3
+3|23|4
+4|24|5
+
+-CASE InsertAndDropRelColumnCheckpointRecovery
+-STATEMENT CREATE NODE TABLE test(id INT64, age INT64, name STRING, prop2 INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE testRel(FROM test TO test, since DATE, prop3 INT64);
+---- ok
+-STATEMENT CREATE (t:test {id: 0, age: 20, name: 'test', prop2: 1});
+---- ok
+-STATEMENT CREATE (t:test {id: 1, age: 21, name: 'test1', prop2: 2});
+---- ok
+-STATEMENT CREATE (t:test {id: 2, age: 22, name: 'test2', prop2: 3});
+---- ok
+-STATEMENT CREATE (t:test {id: 3, age: 23, name: 'test3', prop2: 4});
+---- ok
+-STATEMENT CREATE (t:test {id: 4, age: 24, name: 'test4', prop2: 5});
+---- ok
+-STATEMENT MATCH (t1:test {id: 0}), (t2:test {id: 1}) CREATE (t1)-[r:testRel {since: date('2020-01-01'), prop3: 1}]->(t2);
+---- ok
+-STATEMENT MATCH (t1:test {id: 1}), (t2:test {id: 2}) CREATE (t1)-[r:testRel {since: date('2020-01-01'), prop3: 2}]->(t2);
+---- ok
+-STATEMENT MATCH (t1:test {id: 2}), (t2:test {id: 3}) CREATE (t1)-[r:testRel {since: date('2020-01-01'), prop3: 3}]->(t2);
+---- ok
+-STATEMENT MATCH (t1:test {id: 3}), (t2:test {id: 4}) CREATE (t1)-[r:testRel {since: date('2020-01-01'), prop3: 4}]->(t2);
+---- ok
+-STATEMENT ALTER TABLE testRel DROP since;
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH ()-[k:testRel]->() RETURN k.since;
+---- error
+Binder exception: Cannot find property since for k.
+-STATEMENT MATCH (:test)-[k:testRel]->(:test) RETURN k.prop3;
+---- 4
+1
+2
+3
+4

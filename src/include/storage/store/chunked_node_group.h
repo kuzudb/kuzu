@@ -33,6 +33,8 @@ public:
 
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
+    ChunkedNodeGroup(ChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns);
     ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
         uint64_t capacity, common::row_idx_t startRowIdx, ResidencyState residencyState,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);

@@ -51,6 +51,13 @@ static void bindIntParsingOption(CSVReaderConfig& config, const std::string& opt
             throw RuntimeException{"Skip number must be a non-negative integer"};
         }
         config.option.skipNum = optionValue;
+    } else if (optionName == "SAMPLE_SIZE") {
+        if (optionValue < 0) {
+            // technically impossible at the moment since negative values aren't supported
+            // in parameters
+            throw RuntimeException{"Sample size must be a non-negative integer"};
+        }
+        config.option.sampleSize = optionValue;
     } else {
         KU_UNREACHABLE;
     }

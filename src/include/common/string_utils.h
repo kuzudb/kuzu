@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/api.h"
+#include "function/cast/functions/numeric_limits.h"
 
 namespace kuzu {
 namespace common {
@@ -12,6 +13,12 @@ namespace common {
 class KUZU_API StringUtils {
 public:
     static std::vector<std::string> splitComma(const std::string& input);
+
+    // Does not split within [], {}, or ().
+    // can specify maximum number of elements to split
+    static std::vector<std::string> smartSplit(const std::string& input, char splitChar,
+        uint64_t maxNumEle = function::NumericLimits<uint64_t>::maximum());
+
     static std::vector<std::string> split(const std::string& input, const std::string& delimiter,
         bool ignoreEmptyStringParts = true);
     static std::vector<std::string> splitBySpace(const std::string& input);

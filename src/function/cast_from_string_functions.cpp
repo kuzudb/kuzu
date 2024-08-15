@@ -311,7 +311,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
         } else if (ch == '{') {
             uint64_t struct_lvl = 0;
             skipToClose(input, end, struct_lvl, '}', option);
-        } else if (ch == option->delimiter ||
+        } else if (ch == ',' || ch == option->delimiter ||
                    ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
             if (ch != CopyConstants::DEFAULT_CSV_LIST_END_CHAR || start_ptr < input || seen_value) {
                 state.handleValue(start_ptr, input, option);
@@ -440,7 +440,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
             }
         } else if (isKey && *input == '=') {
             return state.handleKey(start, input, option);
-        } else if (!isKey && (*input == option->delimiter || *input == '}')) {
+        } else if (!isKey && (*input == ',' || *input == option->delimiter || *input == '}')) {
             state.handleValue(start, input, option);
             if (*input == '}') {
                 closeBracket = true;
@@ -539,7 +539,7 @@ static bool parseStructFieldValue(const char*& input, const char* end, const CSV
             if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
-        } else if (*input == option->delimiter || *input == '}') {
+        } else if (*input == ',' || *input == option->delimiter || *input == '}') {
             if (*input == '}') {
                 closeBrack = true;
             }

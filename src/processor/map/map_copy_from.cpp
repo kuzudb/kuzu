@@ -66,10 +66,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto nodeTable = storageManager->getTable(nodeTableEntry->getTableID());
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    const auto pk = nodeTableEntry->getPrimaryKey();
-    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable,
-        nodeTableEntry->getColumnID(pk->getPropertyID()), pk->getDataType().copy(), fTable,
-        &storageManager->getWAL());
+    const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
+    auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
+    auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable, pkColumnID,
+        pkDefinition.getType().copy(), fTable, &storageManager->getWAL());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
@@ -169,8 +169,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     // TODO(Xiyang): Move binding of column types to binder.
     std::vector<LogicalType> columnTypes;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
-    for (auto& property : relTableEntry.getPropertiesRef()) {
-        columnTypes.push_back(property.getDataType().copy());
+    for (auto& property : relTableEntry.getProperties()) {
+        columnTypes.push_back(property.getType().copy());
     }
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());

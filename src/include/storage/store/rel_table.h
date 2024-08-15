@@ -138,11 +138,6 @@ public:
 
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
-    void dropColumn(common::column_id_t) override {
-        // TODO(Guodong): Rework this.
-        // fwdRelTableData->dropColumn(columnID);
-        // bwdRelTableData->dropColumn(columnID);
-    }
     Column* getCSROffsetColumn(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
                                                             bwdRelTableData->getCSROffsetColumn();
@@ -164,8 +159,7 @@ public:
         common::RelDataDirection direction) const;
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
-    void rollback(LocalTable* localTable) override;
-    void checkpoint(common::Serializer& ser) override;
+    void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
     common::row_idx_t getNumRows() override { return nextRelOffset; }
 

@@ -10,6 +10,7 @@
 #include <array>
 #include <cctype>
 #include <csignal>
+#include <iomanip>
 #include <regex>
 #include <sstream>
 
@@ -218,7 +219,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     }
     // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
     // the length.
-    constexpr uint64_t LINENOISE_MAX_LINE = 4096;
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
@@ -304,12 +304,57 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
 
-void EmbeddedShell::run() {
-    char* line;
+std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
     std::string query;
     std::stringstream ss;
+    std::vector<std::unique_ptr<QueryResult>> queryResults;
+    // Append rest of multiline query to current input line
+    if (continueLine) {
+        input = std::move(currLine) + std::move(input);
+        currLine = "";
+        continueLine = false;
+    }
+    input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
+    // process shell commands
+    if (!continueLine && input[0] == ':') {
+        processShellCommands(input);
+        // process queries
+    } else if (!input.empty() && input.back() == ';') {
+        ss.clear();
+        ss.str(input);
+        while (getline(ss, query, ';')) {
+            queryResults.push_back(conn->query(query));
+        }
+        // set up multiline query if current query doesn't end with a semicolon
+    } else if (!input.empty() && input[0] != ':') {
+        continueLine = true;
+        currLine += input + " ";
+    }
+    updateTableNames();
+    return queryResults;
+}
+
+void EmbeddedShell::printErrorMessage(std::string input, QueryResult& queryResult) {
+    input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
+    std::string errMsg = queryResult.getErrorMessage();
+    printf("Error: %s\n", errMsg.c_str());
+    if (errMsg.find(ParserException::ERROR_PREFIX) == 0) {
+        std::string trimmedinput = input;
+        trimmedinput.erase(0, trimmedinput.find_first_not_of(" \t\n\r\f\v"));
+        if (trimmedinput.find(' ') == std::string::npos) {
+            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
+                   "CLI command, e.g., \"%s\"?\n",
+                input.c_str(), findClosestCommand(input).c_str());
+        }
+    }
+}
+
+void EmbeddedShell::run() {
+    char* line;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
+    continueLine = false;
+    currLine = "";
 
 #ifndef _WIN32
     struct termios raw;
@@ -349,41 +394,23 @@ void EmbeddedShell::run() {
             continue;
         }
         numCtrlC = 0;
-        if (continueLine) {
-            lineStr = std::move(currLine) + std::move(lineStr);
-            currLine = "";
-            continueLine = false;
-        }
-        if (!continueLine && lineStr[0] == ':' && processShellCommands(lineStr) < 0) {
-            free(line);
-            break;
-        } else if (!lineStr.empty() && lineStr.back() == ';') {
-            ss.clear();
-            ss.str(lineStr);
-            while (getline(ss, query, ';')) {
-                auto queryResult = conn->query(query);
-                if (queryResult->isSuccess()) {
-                    printExecutionResult(*queryResult);
-                } else {
-                    std::string errMsg = queryResult->getErrorMessage();
-                    printf("Error: %s\n", errMsg.c_str());
-                    if (errMsg.find(ParserException::ERROR_PREFIX) == 0) {
-                        std::string trimmedLineStr = lineStr;
-                        trimmedLineStr.erase(0, trimmedLineStr.find_first_not_of(" \t\n\r\f\v"));
-                        if (trimmedLineStr.find(' ') == std::string::npos) {
-                            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
-                                   "CLI command, e.g., \"%s\"?\n",
-                                lineStr.c_str(), findClosestCommand(lineStr).c_str());
-                        }
-                    }
-                }
+        auto queryResults = processInput(lineStr);
+        if (queryResults.empty()) {
+            std::istringstream iss(lineStr);
+            std::string command;
+            iss >> command;
+            if (command == shellCommand.QUIT) {
+                free(line);
+                break;
             }
-        } else if (!lineStr.empty() && lineStr[0] != ':') {
-            continueLine = true;
-            currLine += lineStr + " ";
         }
-        updateTableNames();
-
+        for (auto& queryResult : queryResults) {
+            if (queryResult->isSuccess()) {
+                printExecutionResult(*queryResult);
+            } else {
+                printErrorMessage(lineStr, *queryResult);
+            }
+        }
         if (!continueLine) {
             linenoiseHistoryAdd(lineStr.c_str());
         }
@@ -539,6 +566,42 @@ void EmbeddedShell::printHelp() {
     printf("%s%s  See: \x1B]8;;%s\x1B\\%s\x1B]8;;\x1B\\\n", TAB, TAB, url, url);
 }
 
+std::string escapeJsonString(const std::string& str) {
+    std::ostringstream escaped;
+    for (char c : str) {
+        switch (c) {
+        case '"':
+            escaped << "\\\"";
+            break;
+        case '\\':
+            escaped << "\\\\";
+            break;
+        case '\b':
+            escaped << "\\b";
+            break;
+        case '\f':
+            escaped << "\\f";
+            break;
+        case '\n':
+            escaped << "\\n";
+            break;
+        case '\r':
+            escaped << "\\r";
+            break;
+        case '\t':
+            escaped << "\\t";
+            break;
+        default:
+            if ('\x00' <= c && c <= '\x1f') {
+                escaped << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)c;
+            } else {
+                escaped << c;
+            }
+        }
+    }
+    return escaped.str();
+}
+
 std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
     auto jsonDrawingCharacters =
@@ -554,11 +617,11 @@ std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) co
         printString += jsonDrawingCharacters->ObjectOpen;
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
             printString += jsonDrawingCharacters->KeyValue;
-            printString += colNames[i];
+            printString += escapeJsonString(colNames[i]);
             printString += jsonDrawingCharacters->KeyValue;
             printString += jsonDrawingCharacters->KeyDelimiter;
             printString += jsonDrawingCharacters->KeyValue;
-            printString += tuple->getValue(i)->toString();
+            printString += escapeJsonString(tuple->getValue(i)->toString());
             printString += jsonDrawingCharacters->KeyValue;
             if (i != queryResult.getNumColumns() - 1) {
                 printString += jsonDrawingCharacters->TupleDelimiter;
@@ -579,6 +642,32 @@ std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) co
     return printString;
 }
 
+std::string escapeHtmlString(const std::string& str) {
+    std::ostringstream escaped;
+    for (char c : str) {
+        switch (c) {
+        case '&':
+            escaped << "&amp;";
+            break;
+        case '\"':
+            escaped << "&quot;";
+            break;
+        case '\'':
+            escaped << "&apos;";
+            break;
+        case '<':
+            escaped << "&lt;";
+            break;
+        case '>':
+            escaped << "&gt;";
+            break;
+        default:
+            escaped << c;
+        }
+    }
+    return escaped.str();
+}
+
 std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
     auto htmlDrawingCharacters =
@@ -590,7 +679,7 @@ std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) co
     printString += "\n";
     for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
         printString += htmlDrawingCharacters->HeaderOpen;
-        printString += colNames[i];
+        printString += escapeHtmlString(colNames[i]);
         printString += htmlDrawingCharacters->HeaderClose;
     }
     printString += "\n";
@@ -602,7 +691,7 @@ std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) co
         printString += "\n";
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
             printString += htmlDrawingCharacters->CellOpen;
-            printString += tuple->getValue(i)->toString();
+            printString += escapeHtmlString(tuple->getValue(i)->toString());
             printString += htmlDrawingCharacters->CellClose;
         }
         printString += htmlDrawingCharacters->RowClose;
@@ -611,6 +700,53 @@ std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) co
     printString += htmlDrawingCharacters->TableClose;
     printString += "\n";
     return printString;
+}
+
+std::string escapeLatexString(const std::string& str) {
+    std::ostringstream escaped;
+    for (char c : str) {
+        switch (c) {
+        case '&':
+            escaped << "\\&";
+            break;
+        case '%':
+            escaped << "\\%";
+            break;
+        case '$':
+            escaped << "\\$";
+            break;
+        case '#':
+            escaped << "\\#";
+            break;
+        case '_':
+            escaped << "\\_";
+            break;
+        case '{':
+            escaped << "\\{";
+            break;
+        case '}':
+            escaped << "\\}";
+            break;
+        case '~':
+            escaped << "\\textasciitilde{}";
+            break;
+        case '^':
+            escaped << "\\textasciicircum{}";
+            break;
+        case '\\':
+            escaped << "\\textbackslash{}";
+            break;
+        case '<':
+            escaped << "\\textless{}";
+            break;
+        case '>':
+            escaped << "\\textgreater{}";
+            break;
+        default:
+            escaped << c;
+        }
+    }
+    return escaped.str();
 }
 
 std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) const {
@@ -628,7 +764,7 @@ std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) c
     printString += latexDrawingCharacters->Line;
     printString += "\n";
     for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
-        printString += colNames[i];
+        printString += escapeLatexString(colNames[i]);
         if (i != queryResult.getNumColumns() - 1) {
             printString += latexDrawingCharacters->TupleDelimiter;
         }
@@ -640,7 +776,7 @@ std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) c
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
-            printString += tuple->getValue(i)->toString();
+            printString += escapeLatexString(tuple->getValue(i)->toString());
             if (i != queryResult.getNumColumns() - 1) {
                 printString += latexDrawingCharacters->TupleDelimiter;
             }
@@ -671,6 +807,26 @@ std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) co
     return printString;
 }
 
+std::string escapeCsvString(const std::string& field, const std::string& delimiter) {
+    bool needsQuoting =
+        field.find_first_of("\"" + delimiter + "\n") != std::string::npos || field.empty();
+    if (!needsQuoting) {
+        return field;
+    }
+
+    std::ostringstream quotedField;
+    quotedField << '"';
+    for (char c : field) {
+        if (c == '"') {
+            quotedField << "\"\"";
+        } else {
+            quotedField << c;
+        }
+    }
+    quotedField << '"';
+    return quotedField.str();
+}
+
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
     if (querySummary->isExplain()) {
@@ -693,7 +849,8 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printString = printLineExecutionResult(queryResult);
     } else if (drawingCharacters->printType != PrintType::TRASH) {
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
-            printString += queryResult.getColumnNames()[i];
+            printString +=
+                escapeCsvString(queryResult.getColumnNames()[i], drawingCharacters->TupleDelimiter);
             if (i != queryResult.getNumColumns() - 1) {
                 printString += drawingCharacters->TupleDelimiter;
             }
@@ -701,8 +858,13 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         printString += "\n";
         while (queryResult.hasNext()) {
             auto tuple = queryResult.getNext();
-            printString += tuple->toString(std::vector<uint32_t>(queryResult.getNumColumns(), 0),
-                drawingCharacters->TupleDelimiter, UINT32_MAX);
+            for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
+                std::string field = tuple->getValue(i)->toString();
+                printString += escapeCsvString(field, drawingCharacters->TupleDelimiter);
+                if (i != queryResult.getNumColumns() - 1) {
+                    printString += drawingCharacters->TupleDelimiter;
+                }
+            }
             printString += "\n";
         }
     }

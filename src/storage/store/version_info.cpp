@@ -1,5 +1,7 @@
 #include "storage/store/version_info.h"
 
+#include <algorithm>
+
 #include "common/exception/runtime.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"

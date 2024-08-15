@@ -345,6 +345,12 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         // No csr regions need to be checkpointed, meaning nothing is updated or deleted.
         // We should reset the version and update info of the persistent chunked group.
         persistentChunkGroup->resetVersionAndUpdateInfo();
+        if (csrState.columnIDs.size() != persistentChunkGroup->getNumColumns()) {
+            // The column set of the node group has changed. We need to re-create the persistent
+            // chunked group.
+            persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
+                persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState.columnIDs);
+        }
         return;
     }
     if (regionsToCheckpoint.size() == 1 &&
@@ -353,9 +359,7 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         redistributeCSRRegions(csrState, leafRegions);
     } else {
         for (auto& region : regionsToCheckpoint) {
-            // if (region.hasDeletionsOrInsertions()) {
             csrState.newHeader->populateRegionCSROffsets(region, *csrState.oldHeader);
-            // }
             // The left node offset of a region should always maintain stable across length and
             // offset changes.
             KU_ASSERT(csrState.oldHeader->getStartCSROffset(region.leftNodeOffset) ==
@@ -367,6 +371,8 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
         checkpointColumn(lock, columnID, csrState, regionsToCheckpoint);
     }
     checkpointCSRHeaderColumns(csrState);
+    persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
+        persistentChunkGroup->cast<ChunkedCSRNodeGroup>(), csrState.columnIDs);
     finalizeCheckpoint(lock);
 }
 
@@ -429,7 +435,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
         numOldRowsInRegion, false, ResidencyState::IN_MEMORY);
     ChunkState chunkState;
     const auto& persistentChunk = persistentChunkGroup->getColumnChunk(columnID);
-    chunkState.column = csrState.columns[columnID];
+    chunkState.column = csrState.columns[columnID].get();
     persistentChunk.initializeScanState(chunkState);
     persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
         chunkState, *oldChunkWithUpdates, leftCSROffset, numOldRowsInRegion);

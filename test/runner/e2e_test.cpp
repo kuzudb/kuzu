@@ -1,6 +1,6 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
-#include "test_runner/csv_to_parquet_converter.h"
+#include "test_runner/csv_converter.h"
 #include "test_runner/test_parser.h"
 
 using ::testing::Test;
@@ -53,22 +53,33 @@ public:
     }
 
     void setUpDataset() {
-        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
+        switch (datasetType) {
+        case TestGroup::DatasetType::CSV_TO_PARQUET: {
             auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-            parquetTempDatasetPath = generateParquetTempDatasetPath();
-            CSVToParquetConverter converter(csvDatasetPath, parquetTempDatasetPath, bufferPoolSize);
-            converter.convertCSVDatasetToParquet();
-            dataset = parquetTempDatasetPath;
-        } else {
+            tempDatasetPath = generateTempDatasetPath();
+            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".parquet");
+            converter.convertCSVDataset();
+            dataset = tempDatasetPath;
+        } break;
+        case TestGroup::DatasetType::CSV_TO_JSON: {
+            auto csvDatasetPath = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+            tempDatasetPath = generateTempDatasetPath();
+            CSVConverter converter(csvDatasetPath, tempDatasetPath, bufferPoolSize, ".json");
+            converter.convertCSVDataset();
+            dataset = tempDatasetPath;
+        } break;
+        default: {
             dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+        }
         }
     }
 
     void TearDown() override {
         DBTest::TearDown();
         removeIEDBPath();
-        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            std::filesystem::remove_all(parquetTempDatasetPath);
+        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET ||
+            datasetType == TestGroup::DatasetType::CSV_TO_JSON) {
+            std::filesystem::remove_all(tempDatasetPath);
         }
     }
 
@@ -78,13 +89,13 @@ public:
 private:
     TestGroup::DatasetType datasetType;
     std::string dataset;
-    std::string parquetTempDatasetPath;
+    std::string tempDatasetPath;
     uint64_t bufferPoolSize;
     uint64_t checkpointWaitTimeout;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
     std::set<std::string> connNames;
 
-    std::string generateParquetTempDatasetPath() {
+    std::string generateTempDatasetPath() {
         std::string datasetName = dataset;
         std::replace(datasetName.begin(), datasetName.end(), '/', '_');
         return TestHelper::getTempDir(datasetName + "_parquet_" + getTestGroupAndName());

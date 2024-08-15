@@ -85,51 +85,52 @@ BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
 
-bool SniffCSVNameAndTypeDriver::done(uint64_t) {
-    return true;
+bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
+    return (csvOptions.hasHeader ? 1 : 0) + csvOptions.sampleSize <= rowNum;
 }
 
-void SniffCSVNameAndTypeDriver::addValue(uint64_t, common::column_id_t, std::string_view value) {
-    std::string columnName(value);
-    LogicalType columnType(LogicalTypeID::STRING);
-    auto it = value.rfind(':');
-    if (it != std::string_view::npos) {
-        try {
-            columnType =
-                context->getCatalog()->getType(context->getTx(), std::string(value.substr(it + 1)));
-            columnName = std::string(value.substr(0, it));
-        } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
-                                     // This is how we check for a suitable
-                                     // datatype name.
-            // Didn't parse, just use the whole name.
+void SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
+    std::string_view value) {
+    if (columns.size() < columnIdx + 1 && csvOptions.hasHeader && rowNum > 0) {
+        throw CopyException(
+            stringFormat("Error in file {}, on line {}: expected {} values per row, but got more.",
+                reader->fileInfo->path, reader->getLineNumber(), columns.size()));
+    }
+    while (columns.size() < columnIdx + 1) {
+        columns.emplace_back(stringFormat("column{}", columns.size()), LogicalType::ANY());
+        sniffType.push_back(true);
+    }
+    if (rowNum == 0 && csvOptions.hasHeader) {
+        // reading the header
+        std::string columnName(value);
+        LogicalType columnType(LogicalTypeID::ANY);
+        auto it = value.rfind(':');
+        if (it != std::string_view::npos) {
+            try {
+                columnType = context->getCatalog()->getType(context->getTx(),
+                    std::string(value.substr(it + 1)));
+                columnName = std::string(value.substr(0, it));
+                sniffType[columnIdx] = false;
+            } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
+                                         // This is how we check for a suitable
+                                         // datatype name.
+                // Didn't parse, just use the whole name.
+            }
+        }
+        columns[columnIdx].first = columnName;
+        columns[columnIdx].second = std::move(columnType);
+    } else if (sniffType[columnIdx]) {
+        // reading the body
+        LogicalType combinedType;
+        columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
+            function::inferMinimalTypeFromString(std::string(value)));
+        if (columns[columnIdx].second.getLogicalTypeID() == LogicalTypeID::STRING) {
+            sniffType[columnIdx] = false;
         }
     }
-    columns.emplace_back(columnName, std::move(columnType));
 }
 
 bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {
-    return true;
-}
-
-bool SniffCSVColumnCountDriver::done(uint64_t) const {
-    return !emptyRow;
-}
-
-void SniffCSVColumnCountDriver::addValue(uint64_t, common::column_id_t columnIdx,
-    std::string_view value) {
-    if (value != "" || columnIdx > 0) {
-        emptyRow = false;
-    }
-    numColumns++;
-}
-
-bool SniffCSVColumnCountDriver::addRow(uint64_t, common::column_id_t) {
-    if (emptyRow) {
-        // If this is the last row, we just return zero: we don't know how many columns there are
-        // supposed to be.
-        numColumns = 0;
-        return false;
-    }
     return true;
 }
 

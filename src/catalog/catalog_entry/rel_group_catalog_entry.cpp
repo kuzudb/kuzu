@@ -72,25 +72,32 @@ RelGroupCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction* transact
     return std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
 }
 
+static std::string getFromToStr(common::table_id_t tableID, ClientContext* context) {
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTx();
+    auto& entry =
+        catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
+    auto srcTableName = catalog->getTableName(transaction, entry.getSrcTableID());
+    auto dstTableName = catalog->getTableName(transaction, entry.getDstTableID());
+    return stringFormat("FROM {} TO {}", srcTableName, dstTableName);
+}
+
 std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     std::stringstream ss;
-    auto catalog = clientContext->getCatalog();
     ss << stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
-    std::string prop;
-    for (auto relTableID : relTableIDs) {
-        auto relTableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), relTableID)
-                                 ->constPtrCast<RelTableCatalogEntry>();
-        if (prop.empty())
-            prop = Property::toCypher(relTableEntry->getPropertiesRef());
-        auto srcTableName =
-            catalog->getTableName(clientContext->getTx(), relTableEntry->getSrcTableID());
-        auto dstTableName =
-            catalog->getTableName(clientContext->getTx(), relTableEntry->getDstTableID());
-        ss << stringFormat("FROM {} TO {}, ", srcTableName, dstTableName);
+    KU_ASSERT(!relTableIDs.empty());
+    ss << getFromToStr(relTableIDs[0], clientContext);
+    for (auto i = 1u; i < relTableIDs.size(); ++i) {
+        ss << stringFormat(", {}", getFromToStr(relTableIDs[i], clientContext));
     }
-    if (!prop.empty())
-        prop.resize(prop.size() - 1);
-    ss << prop << ");";
+    auto childRelEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), relTableIDs[0]);
+    if (childRelEntry->getNumProperties() > 0) {
+        auto propertyStr = stringFormat(", {}", childRelEntry->propertiesToCypher());
+        propertyStr.resize(propertyStr.size() - 1);
+        ss << propertyStr;
+    }
+    ss << ");";
     return ss.str();
 }
 

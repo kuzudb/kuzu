@@ -25,6 +25,17 @@ ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chu
     }
 }
 
+ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
+    const std::vector<column_id_t>& selectedColumns)
+    : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
+      capacity{base.capacity}, numRows{base.numRows.load()} {
+    chunks.reserve(selectedColumns.size());
+    for (const auto columnID : selectedColumns) {
+        KU_ASSERT(columnID < base.getNumColumns());
+        chunks.push_back(base.moveColumnChunk(columnID));
+    }
+}
+
 ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
     bool enableCompression, uint64_t capacity, row_idx_t startRowIdx, ResidencyState residencyState,
     NodeGroupDataFormat format)
@@ -294,9 +305,9 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
 void ChunkedNodeGroup::addColumn(Transaction*, const TableAddColumnState& addColumnState,
     bool enableCompression, BMFileHandle* dataFH) {
     auto numRows = getNumRows();
-    auto& property = addColumnState.property;
-    chunks.push_back(std::make_unique<ColumnChunk>(property.getDataType().copy(), capacity,
-        enableCompression, ResidencyState::IN_MEMORY));
+    auto& dataType = addColumnState.propertyDefinition.getType();
+    chunks.push_back(std::make_unique<ColumnChunk>(dataType, capacity, enableCompression,
+        ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
     if (residencyState == ResidencyState::ON_DISK) {
