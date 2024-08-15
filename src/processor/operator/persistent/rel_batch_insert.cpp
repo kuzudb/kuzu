@@ -211,7 +211,7 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
             context->clientContext->getMemoryManager());
 
         auto& warningTable = context->getWarningTable();
-        if (warningTable->getNumTuples() > 0) {
+        if (warningTable && warningTable->getNumTuples() > 0) {
             const std::string warningsHitLimitStr =
                 (warningTable->getNumTuples() >= context->getWarningLimit()) ? "+" : "";
             auto warningMsg =

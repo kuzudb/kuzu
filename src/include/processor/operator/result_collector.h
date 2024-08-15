@@ -14,8 +14,7 @@ struct CollectedQueryResult {
 
 class ResultCollectorSharedState {
 public:
-    explicit ResultCollectorSharedState(std::shared_ptr<FactorizedTable> table)
-        : table{std::move(table)} {}
+    explicit ResultCollectorSharedState(std::shared_ptr<FactorizedTable> table);
 
     void mergeLocalTable(FactorizedTable& localTable) {
         std::unique_lock lck{mtx};

@@ -67,6 +67,9 @@ uint64_t QueryResult::getNumTuples() const {
 }
 
 uint64_t QueryResult::getNumWarnings() const {
+    if (!warningTable) {
+        return 0;
+    }
     return warningTable->getTotalNumFlatTuples();
 }
 
@@ -79,7 +82,9 @@ void QueryResult::resetIterator() {
 }
 
 void QueryResult::resetWarningIterator() {
-    warningIterator->resetState();
+    if (warningIterator) {
+        warningIterator->resetState();
+    }
 }
 
 void QueryResult::initResultTableAndIterator(
@@ -114,8 +119,10 @@ void QueryResult::initResultTableAndIterator(
     }
 
     iterator = std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
-    warningIterator =
-        std::make_unique<FlatTupleIterator>(*warningTable, std::move(warningsToCollect));
+    if (warningTable) {
+        warningIterator =
+            std::make_unique<FlatTupleIterator>(*warningTable, std::move(warningsToCollect));
+    }
 }
 
 bool QueryResult::hasNext() const {
@@ -125,6 +132,9 @@ bool QueryResult::hasNext() const {
 
 bool QueryResult::hasNextWarning() const {
     validateQuerySucceed();
+    if (!warningIterator) {
+        return false;
+    }
     return warningIterator->hasNextFlatTuple();
 }
 

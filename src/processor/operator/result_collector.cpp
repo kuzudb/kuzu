@@ -8,6 +8,9 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+ResultCollectorSharedState::ResultCollectorSharedState(std::shared_ptr<FactorizedTable> table)
+    : table{std::move(table)} {}
+
 void ResultCollectorSharedState::setWarningTable(std::shared_ptr<FactorizedTable> warningTable) {
     this->warningTable = std::move(warningTable);
 }
