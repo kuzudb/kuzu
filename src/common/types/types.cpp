@@ -14,6 +14,7 @@
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
 #include "function/built_in_function_utils.h"
+#include "function/cast/functions/numeric_limits.h"
 
 using kuzu::function::BuiltInFunctionsUtils;
 
@@ -1668,9 +1669,55 @@ static inline bool tryCombineDecimalTypes(const LogicalType& left, const Logical
     auto resultingPrecision =
         std::max(precisionLeft - scaleLeft, precisionRight - scaleRight) + resultingScale;
     if (resultingPrecision > DECIMAL_PRECISION_LIMIT) {
-        return false;
+        result = LogicalType::DOUBLE();
+        return true;
     }
     result = LogicalType::DECIMAL(resultingPrecision, resultingScale);
+    return true;
+}
+
+static inline bool tryCombineDecimalWithNumeric(const LogicalType& dec, const LogicalType& nonDec,
+    LogicalType& result) {
+    auto precision = DecimalType::getPrecision(dec);
+    auto scale = DecimalType::getScale(dec);
+    uint32_t requiredDigits = 0;
+    // How many digits before the decimal point does result require?
+    switch (nonDec.getLogicalTypeID()) {
+    case LogicalTypeID::INT8:
+        requiredDigits = function::NumericLimits<int8_t>::digits();
+        break;
+    case LogicalTypeID::UINT8:
+        requiredDigits = function::NumericLimits<uint8_t>::digits();
+        break;
+    case LogicalTypeID::INT16:
+        requiredDigits = function::NumericLimits<int16_t>::digits();
+        break;
+    case LogicalTypeID::UINT16:
+        requiredDigits = function::NumericLimits<uint16_t>::digits();
+        break;
+    case LogicalTypeID::INT32:
+        requiredDigits = function::NumericLimits<int32_t>::digits();
+        break;
+    case LogicalTypeID::UINT32:
+        requiredDigits = function::NumericLimits<uint32_t>::digits();
+        break;
+    case LogicalTypeID::INT64:
+        requiredDigits = function::NumericLimits<int64_t>::digits();
+        break;
+    case LogicalTypeID::UINT64:
+        requiredDigits = function::NumericLimits<uint64_t>::digits();
+        break;
+    case LogicalTypeID::INT128:
+        requiredDigits = function::NumericLimits<int128_t>::digits();
+        break;
+    default:
+        requiredDigits = DECIMAL_PRECISION_LIMIT + 1;
+    }
+    if (requiredDigits + scale > DECIMAL_PRECISION_LIMIT) {
+        result = LogicalType::DOUBLE();
+        return true;
+    }
+    result = LogicalType::DECIMAL(std::max(requiredDigits + scale, precision), scale);
     return true;
 }
 
@@ -1694,6 +1741,12 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
     }
     if (left.typeID == LogicalTypeID::DECIMAL && right.typeID == LogicalTypeID::DECIMAL) {
         return tryCombineDecimalTypes(left, right, result);
+    }
+    if (left.typeID == LogicalTypeID::DECIMAL && LogicalTypeUtils::isNumerical(right.typeID)) {
+        return tryCombineDecimalWithNumeric(left, right, result);
+    }
+    if (right.typeID == LogicalTypeID::DECIMAL && LogicalTypeUtils::isNumerical(left.typeID)) {
+        return tryCombineDecimalWithNumeric(right, left, result);
     }
     if (isSemanticallyNested(left.typeID) || isSemanticallyNested(right.typeID)) {
         if (left.typeID == LogicalTypeID::LIST && right.typeID == LogicalTypeID::ARRAY) {
