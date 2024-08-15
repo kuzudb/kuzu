@@ -338,7 +338,7 @@ static bool splitPossibleUnbracedList(std::string_view input, T& state, const CS
     if (split.size() == 1 && input.front() == '[' && input.back() == ']') {
         split = StringUtils::smartSplit(input.substr(1, input.size() - 2), option->listDelimiter);
     }
-    for (auto& i: split) {
+    for (auto& i : split) {
         state.handleValue(i.data(), i.data() + i.length(), option);
     }
     return true;
@@ -348,8 +348,8 @@ template<typename T>
 static inline void startListCast(const char* input, uint64_t len, T split, const CSVOption* option,
     ValueVector* vector) {
     auto validList = option->allowUnbracedList ?
-        splitPossibleUnbracedList(std::string_view(input, len), split, option) :
-        splitCStringList(input, len, split, option);
+                         splitPossibleUnbracedList(std::string_view(input, len), split, option) :
+                         splitCStringList(input, len, split, option);
     if (!validList) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   vector->dataType.toString() + " range.");
