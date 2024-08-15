@@ -12,15 +12,13 @@ jobs:
         run: make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: /opt/python/cp310-cp310/bin/python scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86_64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-linux-extensions-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
@@ -32,15 +30,13 @@ jobs:
         run: make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: /opt/python/cp310-cp310/bin/python scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-aarch64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-linux-extensions-x86:
     runs-on: ubuntu-latest
@@ -66,8 +62,7 @@ jobs:
 
       - name: Collect built artifacts
         run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+          python3 scripts/collect-extensions.py
           sudo chown -R $USER:$USER extension-artifacts
           sudo chmod -R 755 extension-artifacts
 
@@ -75,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
       - name: Stop Docker container
         run: docker stop kuzu-x86
@@ -92,15 +87,13 @@ jobs:
           CMAKE_OSX_ARCHITECTURES: "arm64"
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: python3 scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_osx-arm64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-mac-extensions-x86_64:
     runs-on: self-hosted-mac-x64
@@ -114,15 +107,13 @@ jobs:
           CMAKE_OSX_ARCHITECTURES: "x86_64"
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: python3 scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_osx-x86_64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-windows-extensions-x86_64:
     runs-on: self-hosted-windows
@@ -138,15 +129,13 @@ jobs:
           make extension-release
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          Get-ChildItem -Path .\extension -Recurse -Filter "*.kuzu_extension" | ForEach-Object {Copy-Item $_.FullName -Destination extension-artifacts -Force}
+        run: python scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_win-x86_64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   update-extensions-repo:
     runs-on: ubuntu-latest
