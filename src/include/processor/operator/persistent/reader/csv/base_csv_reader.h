@@ -61,12 +61,9 @@ protected:
     void handleCopyException(const std::string& message, bool mustThrow = false);
 
     template<typename Driver>
-    uint64_t parseCSV(Driver&, bool resetRowNum = true);
+    uint64_t parseCSV(Driver&);
 
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
-
-    template<typename Driver>
-    uint64_t skipRowAndRestartParse(Driver& driver);
 
 protected:
     virtual bool handleQuotedNewline() = 0;

@@ -249,13 +249,6 @@ void BaseCSVReader::skipUntilNextLine() {
             }
         }
     } while (maybeReadBuffer(nullptr));
-    return;
-}
-
-template<typename Driver>
-uint64_t BaseCSVReader::skipRowAndRestartParse(Driver& driver) {
-    skipUntilNextLine();
-    return parseCSV(driver, false);
 }
 
 void BaseCSVReader::handleCopyException(const std::string& message, bool mustThrow) {
@@ -274,226 +267,231 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
 }
 
 template<typename Driver>
-uint64_t BaseCSVReader::parseCSV(Driver& driver, bool resetRowNum) {
+uint64_t BaseCSVReader::parseCSV(Driver& driver) {
     KU_ASSERT(nullptr != errorHandler);
 
     // used for parsing algorithm
-    if (resetRowNum) {
-        rowNum = 0;
-        numErrors = 0;
-    }
-    column_id_t column = 0;
-    uint64_t start = position;
-    bool hasQuotes = false;
-    std::vector<uint64_t> escapePositions;
-    lineContext.setNewLine(getFileOffset());
+    rowNum = 0;
+    numErrors = 0;
 
-    // read values into the buffer (if any)
-    if (!maybeReadBuffer(&start)) {
-        return rowNum;
-    }
+    while (true) {
+        column_id_t column = 0;
+        uint64_t start = position;
+        bool hasQuotes = false;
+        std::vector<uint64_t> escapePositions;
+        lineContext.setNewLine(getFileOffset());
 
-    // start parsing the first value
-    goto value_start;
-value_start:
-    /* state: value_start */
-    // this state parses the first character of a value
-    if (buffer[position] == option.quoteChar) {
-        [[unlikely]]
-        // quote: actual value starts in the next position
-        // move to in_quotes state
-        start = position + 1;
-        hasQuotes = true;
-        goto in_quotes;
-    } else {
-        // no quote, move to normal parsing state
-        start = position;
-        hasQuotes = false;
-        goto normal;
-    }
-normal:
-    /* state: normal parsing state */
-    // this state parses the remainder of a non-quoted value until we reach a delimiter or
-    // newline
-    do {
-        for (; position < bufferSize; position++) {
-            if (buffer[position] == option.delimiter) {
-                // delimiter: end the value and add it to the chunk
-                goto add_value;
-            } else if (isNewLine(buffer[position])) {
-                // newline: add row
-                goto add_row;
-            }
-        }
-    } while (readBuffer(&start));
-
-    [[unlikely]]
-    // file ends during normal scan: go to end state
-    goto final_state;
-add_value:
-    // We get here after we have a delimiter.
-    KU_ASSERT(buffer[position] == option.delimiter);
-    // Trim one character if we have quotes.
-    if (!addValue(driver, rowNum, column,
-            std::string_view(buffer.get() + start, position - start - hasQuotes),
-            escapePositions)) {
-        return skipRowAndRestartParse(driver);
-    }
-    column++;
-
-    // Move past the delimiter.
-    ++position;
-    // Adjust start for MaybeReadBuffer.
-    start = position;
-    if (!maybeReadBuffer(&start)) {
-        [[unlikely]]
-        // File ends right after delimiter, go to final state
-        goto final_state;
-    }
-    goto value_start;
-add_row: {
-    // We get here after we have a newline.
-    KU_ASSERT(isNewLine(buffer[position]));
-    lineContext.setEndOfLine(getFileOffset());
-    bool isCarriageReturn = buffer[position] == '\r';
-    if (!addValue(driver, rowNum, column,
-            std::string_view(buffer.get() + start, position - start - hasQuotes),
-            escapePositions)) {
-        return skipRowAndRestartParse(driver);
-    }
-    column++;
-
-    // if we are ignoring errors and there is one in the current row skip it
-    rowNum += driver.addRow(rowNum, column);
-
-    column = 0;
-    position++;
-    // Adjust start for ReadBuffer.
-    start = position;
-    lineContext.setNewLine(getFileOffset());
-    if (!maybeReadBuffer(&start)) {
-        // File ends right after newline, go to final state.
-        goto final_state;
-    }
-    if (isCarriageReturn) {
-        // \r newline, go to special state that parses an optional \n afterwards
-        goto carriage_return;
-    } else {
-        if (driver.done(rowNum)) {
+        // read values into the buffer (if any)
+        if (!maybeReadBuffer(&start)) {
             return rowNum;
         }
+
+        // start parsing the first value
         goto value_start;
-    }
-}
-in_quotes:
-    // this state parses the remainder of a quoted value.
-    position++;
-    do {
-        for (; position < bufferSize; position++) {
-            if (buffer[position] == option.quoteChar) {
-                // quote: move to unquoted state
-                goto unquote;
-            } else if (buffer[position] == option.escapeChar) {
-                // escape: store the escaped position and move to handle_escape state
-                escapePositions.push_back(position - start);
-                goto handle_escape;
-            } else if (isNewLine(buffer[position])) {
-                [[unlikely]] if (!handleQuotedNewline()) { return skipRowAndRestartParse(driver); }
+    value_start:
+        /* state: value_start */
+        // this state parses the first character of a value
+        if (buffer[position] == option.quoteChar) {
+            [[unlikely]]
+            // quote: actual value starts in the next position
+            // move to in_quotes state
+            start = position + 1;
+            hasQuotes = true;
+            goto in_quotes;
+        } else {
+            // no quote, move to normal parsing state
+            start = position;
+            hasQuotes = false;
+            goto normal;
+        }
+    normal:
+        /* state: normal parsing state */
+        // this state parses the remainder of a non-quoted value until we reach a delimiter or
+        // newline
+        do {
+            for (; position < bufferSize; position++) {
+                if (buffer[position] == option.delimiter) {
+                    // delimiter: end the value and add it to the chunk
+                    goto add_value;
+                } else if (isNewLine(buffer[position])) {
+                    // newline: add row
+                    goto add_row;
+                }
             }
-        }
-    } while (readBuffer(&start));
-    [[unlikely]]
-    // still in quoted state at the end of the file, error:
-    lineContext.setEndOfLine(getFileOffset());
-    handleCopyException("unterminated quotes.");
-    // we are ignoring this error, skip current row and restart state machine
-    return skipRowAndRestartParse(driver);
-unquote:
-    KU_ASSERT(hasQuotes && buffer[position] == option.quoteChar);
-    // this state handles the state directly after we unquote
-    // in this state we expect either another quote (entering the quoted state again, and
-    // escaping the quote) or a delimiter/newline, ending the current value and moving on to the
-    // next value
-    position++;
-    if (!maybeReadBuffer(&start)) {
-        // file ends right after unquote, go to final state
+        } while (readBuffer(&start));
+
+        [[unlikely]]
+        // file ends during normal scan: go to end state
         goto final_state;
-    }
-    if (buffer[position] == option.quoteChar &&
-        (!option.escapeChar || option.escapeChar == option.quoteChar)) {
-        // escaped quote, return to quoted state and store escape position
-        escapePositions.push_back(position - start);
-        goto in_quotes;
-    } else if (buffer[position] == option.delimiter ||
-               buffer[position] == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) {
-        // delimiter, add value
-        goto add_value;
-    } else if (isNewLine(buffer[position])) {
-        goto add_row;
-    } else {
-        [[unlikely]] handleCopyException("quote should be followed by "
-                                         "end of file, end of value, end of "
-                                         "row or another quote.");
-        return skipRowAndRestartParse(driver);
-    }
-handle_escape:
-    /* state: handle_escape */
-    // escape should be followed by a quote or another escape character
-    position++;
-    if (!maybeReadBuffer(&start)) {
-        [[unlikely]] lineContext.setEndOfLine(getFileOffset());
-        handleCopyException("escape at end of file.");
-        return skipRowAndRestartParse(driver);
-    }
-    if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
-        ++position; // consume the invalid char
-        [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
-        return skipRowAndRestartParse(driver);
-    }
-    // escape was followed by quote or escape, go back to quoted state
-    goto in_quotes;
-carriage_return:
-    // this stage optionally skips a newline (\n) character, which allows \r\n to be interpreted
-    // as a single line
-
-    // position points to the character after the carriage return.
-    if (buffer[position] == '\n') {
-        // newline after carriage return: skip
-        // increase position by 1 and move start to the new position
-        start = ++position;
-        if (!maybeReadBuffer(&start)) {
-            // file ends right after newline, go to final state
-            goto final_state;
-        }
-    }
-    if (driver.done(rowNum)) {
-        return rowNum;
-    }
-
-    goto value_start;
-final_state:
-    // We get here when the file ends.
-    // If we were mid-value, add the remaining value to the chunk.
-    lineContext.setEndOfLine(getFileOffset());
-    if (position > start) {
-        // Add remaining value to chunk.
+    add_value:
+        // We get here after we have a delimiter.
+        KU_ASSERT(buffer[position] == option.delimiter);
+        // Trim one character if we have quotes.
         if (!addValue(driver, rowNum, column,
                 std::string_view(buffer.get() + start, position - start - hasQuotes),
                 escapePositions)) {
-            return skipRowAndRestartParse(driver);
+            goto ignore_error;
         }
         column++;
-    }
-    if (column > 0) {
+
+        // Move past the delimiter.
+        ++position;
+        // Adjust start for MaybeReadBuffer.
+        start = position;
+        if (!maybeReadBuffer(&start)) {
+            [[unlikely]]
+            // File ends right after delimiter, go to final state
+            goto final_state;
+        }
+        goto value_start;
+    add_row: {
+        // We get here after we have a newline.
+        KU_ASSERT(isNewLine(buffer[position]));
+        lineContext.setEndOfLine(getFileOffset());
+        bool isCarriageReturn = buffer[position] == '\r';
+        if (!addValue(driver, rowNum, column,
+                std::string_view(buffer.get() + start, position - start - hasQuotes),
+                escapePositions)) {
+            goto ignore_error;
+        }
+        column++;
+
+        // if we are ignoring errors and there is one in the current row skip it
         rowNum += driver.addRow(rowNum, column);
+
+        column = 0;
+        position++;
+        // Adjust start for ReadBuffer.
+        start = position;
+        lineContext.setNewLine(getFileOffset());
+        if (!maybeReadBuffer(&start)) {
+            // File ends right after newline, go to final state.
+            goto final_state;
+        }
+        if (isCarriageReturn) {
+            // \r newline, go to special state that parses an optional \n afterwards
+            goto carriage_return;
+        } else {
+            if (driver.done(rowNum)) {
+                return rowNum;
+            }
+            goto value_start;
+        }
     }
-    return rowNum;
+    in_quotes:
+        // this state parses the remainder of a quoted value.
+        position++;
+        do {
+            for (; position < bufferSize; position++) {
+                if (buffer[position] == option.quoteChar) {
+                    // quote: move to unquoted state
+                    goto unquote;
+                } else if (buffer[position] == option.escapeChar) {
+                    // escape: store the escaped position and move to handle_escape state
+                    escapePositions.push_back(position - start);
+                    goto handle_escape;
+                } else if (isNewLine(buffer[position])) {
+                    [[unlikely]] if (!handleQuotedNewline()) { goto ignore_error; }
+                }
+            }
+        } while (readBuffer(&start));
+        [[unlikely]]
+        // still in quoted state at the end of the file, error:
+        lineContext.setEndOfLine(getFileOffset());
+        handleCopyException("unterminated quotes.");
+        // we are ignoring this error, skip current row and restart state machine
+        goto ignore_error;
+    unquote:
+        KU_ASSERT(hasQuotes && buffer[position] == option.quoteChar);
+        // this state handles the state directly after we unquote
+        // in this state we expect either another quote (entering the quoted state again, and
+        // escaping the quote) or a delimiter/newline, ending the current value and moving on to the
+        // next value
+        position++;
+        if (!maybeReadBuffer(&start)) {
+            // file ends right after unquote, go to final state
+            goto final_state;
+        }
+        if (buffer[position] == option.quoteChar &&
+            (!option.escapeChar || option.escapeChar == option.quoteChar)) {
+            // escaped quote, return to quoted state and store escape position
+            escapePositions.push_back(position - start);
+            goto in_quotes;
+        } else if (buffer[position] == option.delimiter ||
+                   buffer[position] == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) {
+            // delimiter, add value
+            goto add_value;
+        } else if (isNewLine(buffer[position])) {
+            goto add_row;
+        } else {
+            [[unlikely]] handleCopyException("quote should be followed by "
+                                             "end of file, end of value, end of "
+                                             "row or another quote.");
+            goto ignore_error;
+        }
+    handle_escape:
+        /* state: handle_escape */
+        // escape should be followed by a quote or another escape character
+        position++;
+        if (!maybeReadBuffer(&start)) {
+            [[unlikely]] lineContext.setEndOfLine(getFileOffset());
+            handleCopyException("escape at end of file.");
+            goto ignore_error;
+        }
+        if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
+            ++position; // consume the invalid char
+            [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+            goto ignore_error;
+        }
+        // escape was followed by quote or escape, go back to quoted state
+        goto in_quotes;
+    carriage_return:
+        // this stage optionally skips a newline (\n) character, which allows \r\n to be interpreted
+        // as a single line
+
+        // position points to the character after the carriage return.
+        if (buffer[position] == '\n') {
+            // newline after carriage return: skip
+            // increase position by 1 and move start to the new position
+            start = ++position;
+            if (!maybeReadBuffer(&start)) {
+                // file ends right after newline, go to final state
+                goto final_state;
+            }
+        }
+        if (driver.done(rowNum)) {
+            return rowNum;
+        }
+
+        goto value_start;
+    final_state:
+        // We get here when the file ends.
+        // If we were mid-value, add the remaining value to the chunk.
+        lineContext.setEndOfLine(getFileOffset());
+        if (position > start) {
+            // Add remaining value to chunk.
+            if (!addValue(driver, rowNum, column,
+                    std::string_view(buffer.get() + start, position - start - hasQuotes),
+                    escapePositions)) {
+                return rowNum;
+            }
+            column++;
+        }
+        if (column > 0) {
+            rowNum += driver.addRow(rowNum, column);
+        }
+        return rowNum;
+    ignore_error:
+        // we skip the current row then restart the state machine to continue parsing
+        skipUntilNextLine();
+        continue;
+    }
+    KU_UNREACHABLE;
 }
 
-template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&, bool);
-template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&, bool);
-template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&,
-    bool);
+template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
+template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
+template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     KU_ASSERT(osFileOffset >= bufferSize);

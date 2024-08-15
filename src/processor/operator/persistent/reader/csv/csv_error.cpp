@@ -80,7 +80,8 @@ void CSVErrorHandler::handleCachedErrors(BaseCSVReader* reader) {
     }
 }
 
-void CSVErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader, bool mustThrow) const {
+void CSVErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader,
+    [[maybe_unused]] bool mustThrow) const {
     if (ignoreErrors || cachedErrors.empty()) {
         return;
     }
