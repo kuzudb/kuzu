@@ -190,7 +190,7 @@ int main(int argc, char* argv[]) {
             std::cout << "Opened the database under in-memory mode." << '\n';
         } else {
             std::cout << "Opened the database at path: " << databasePath << " in "
-                        << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+                      << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
         }
         std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
         shell.run();
