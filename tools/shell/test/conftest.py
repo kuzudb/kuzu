@@ -187,3 +187,8 @@ def history_path():
 @pytest.fixture()
 def csv_path():
     return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "vPerson.csv")
+
+
+@pytest.fixture()
+def init_path():
+    return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "start.cypher")

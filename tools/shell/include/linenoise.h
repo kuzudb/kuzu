@@ -45,6 +45,8 @@ extern "C" {
 
 #include <stddef.h>
 
+#define LINENOISE_MAX_LINE 16384
+
 typedef struct linenoiseCompletions {
     size_t len;
     char** cvec;

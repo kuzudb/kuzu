@@ -219,7 +219,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
     }
     // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
     // the length.
-    constexpr uint64_t LINENOISE_MAX_LINE = 4096;
     strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
@@ -305,12 +304,57 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
 
-void EmbeddedShell::run() {
-    char* line;
+std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
     std::string query;
     std::stringstream ss;
+    std::vector<std::unique_ptr<QueryResult>> queryResults;
+    // Append rest of multiline query to current input line
+    if (continueLine) {
+        input = std::move(currLine) + std::move(input);
+        currLine = "";
+        continueLine = false;
+    }
+    input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
+    // process shell commands
+    if (!continueLine && input[0] == ':') {
+        processShellCommands(input);
+        // process queries
+    } else if (!input.empty() && input.back() == ';') {
+        ss.clear();
+        ss.str(input);
+        while (getline(ss, query, ';')) {
+            queryResults.push_back(conn->query(query));
+        }
+        // set up multiline query if current query doesn't end with a semicolon
+    } else if (!input.empty() && input[0] != ':') {
+        continueLine = true;
+        currLine += input + " ";
+    }
+    updateTableNames();
+    return queryResults;
+}
+
+void EmbeddedShell::printErrorMessage(std::string input, QueryResult& queryResult) {
+    input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
+    std::string errMsg = queryResult.getErrorMessage();
+    printf("Error: %s\n", errMsg.c_str());
+    if (errMsg.find(ParserException::ERROR_PREFIX) == 0) {
+        std::string trimmedinput = input;
+        trimmedinput.erase(0, trimmedinput.find_first_not_of(" \t\n\r\f\v"));
+        if (trimmedinput.find(' ') == std::string::npos) {
+            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
+                   "CLI command, e.g., \"%s\"?\n",
+                input.c_str(), findClosestCommand(input).c_str());
+        }
+    }
+}
+
+void EmbeddedShell::run() {
+    char* line;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
+    continueLine = false;
+    currLine = "";
 
 #ifndef _WIN32
     struct termios raw;
@@ -350,41 +394,23 @@ void EmbeddedShell::run() {
             continue;
         }
         numCtrlC = 0;
-        if (continueLine) {
-            lineStr = std::move(currLine) + std::move(lineStr);
-            currLine = "";
-            continueLine = false;
-        }
-        if (!continueLine && lineStr[0] == ':' && processShellCommands(lineStr) < 0) {
-            free(line);
-            break;
-        } else if (!lineStr.empty() && lineStr.back() == ';') {
-            ss.clear();
-            ss.str(lineStr);
-            while (getline(ss, query, ';')) {
-                auto queryResult = conn->query(query);
-                if (queryResult->isSuccess()) {
-                    printExecutionResult(*queryResult);
-                } else {
-                    std::string errMsg = queryResult->getErrorMessage();
-                    printf("Error: %s\n", errMsg.c_str());
-                    if (errMsg.find(ParserException::ERROR_PREFIX) == 0) {
-                        std::string trimmedLineStr = lineStr;
-                        trimmedLineStr.erase(0, trimmedLineStr.find_first_not_of(" \t\n\r\f\v"));
-                        if (trimmedLineStr.find(' ') == std::string::npos) {
-                            printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
-                                   "CLI command, e.g., \"%s\"?\n",
-                                lineStr.c_str(), findClosestCommand(lineStr).c_str());
-                        }
-                    }
-                }
+        auto queryResults = processInput(lineStr);
+        if (queryResults.empty()) {
+            std::istringstream iss(lineStr);
+            std::string command;
+            iss >> command;
+            if (command == shellCommand.QUIT) {
+                free(line);
+                break;
             }
-        } else if (!lineStr.empty() && lineStr[0] != ':') {
-            continueLine = true;
-            currLine += lineStr + " ";
         }
-        updateTableNames();
-
+        for (auto& queryResult : queryResults) {
+            if (queryResult->isSuccess()) {
+                printExecutionResult(*queryResult);
+            } else {
+                printErrorMessage(lineStr, *queryResult);
+            }
+        }
         if (!continueLine) {
             linenoiseHistoryAdd(lineStr.c_str());
         }
