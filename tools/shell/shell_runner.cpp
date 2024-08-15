@@ -87,9 +87,11 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<std::string> historyPathFlag(parser, "", "Path to directory for shell history",
         {'p', "path_history"});
     args::Flag version(parser, "version", "Display current database version", {'v', "version"});
-    args::ValueFlag<std::string> mode(parser, "mode", "Set the output mode of the shell",
+    args::ValueFlag<std::string> mode(parser, "", "Set the output mode of the shell",
         {'m', "mode"});
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
+    args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
+        {'b', "no_progress_bar", "noprogressbar"});
     args::ValueFlag<std::string> init(parser, "", "Path to file with script to run on startup",
         {'i', "init"});
 
@@ -172,6 +174,11 @@ int main(int argc, char* argv[]) {
         std::cerr << e.what() << '\n';
         return 1;
     }
+    if (!progress_bar) {
+        conn->getClientContext()->getClientConfigUnsafe()->enableProgressBar = true;
+        conn->getClientContext()->getProgressBar()->toggleProgressBarPrinting(true);
+    }
+
     std::string initFile = ".kuzurc";
     if (init) {
         initFile = args::get(init);

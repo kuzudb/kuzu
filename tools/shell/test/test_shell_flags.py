@@ -493,6 +493,37 @@ def test_no_stats(temp_db, flag) -> None:
 @pytest.mark.parametrize(
     "flag",
     [
+        "-b",
+        "--no_progress_bar",
+        "--noprogressbar"
+    ],
+)
+def test_no_progress_bar(temp_db, flag) -> None:
+    # progress bar on by default
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement("CALL current_setting('progress_bar') RETURN *;")
+    )
+    result = test.run()
+    result.check_stdout("True")
+
+    # progress bar off
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .statement("CALL current_setting('progress_bar') RETURN *;")
+    )
+    result = test.run()
+    print(result.stdout)
+    print(result.stderr)
+    result.check_stdout("False")
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
         "-i",
         "--init",
     ],
@@ -535,18 +566,18 @@ def test_init(temp_db, init_path, flag) -> None:
 
 def test_bad_flag(temp_db) -> None:
     # without database path
-    test = ShellTest().add_argument("-b")
+    test = ShellTest().add_argument("-a")
     result = test.run()
-    result.check_stderr("Flag could not be matched: 'b'")
+    result.check_stderr("Flag could not be matched: 'a'")
 
     test = ShellTest().add_argument("--badflag")
     result = test.run()
     result.check_stderr("Flag could not be matched: badflag")
 
     # with database path
-    test = ShellTest().add_argument(temp_db).add_argument("-b")
+    test = ShellTest().add_argument(temp_db).add_argument("-a")
     result = test.run()
-    result.check_stderr("Flag could not be matched: 'b'")
+    result.check_stderr("Flag could not be matched: 'a'")
 
     test = ShellTest().add_argument(temp_db).add_argument("--badflag")
     result = test.run()
