@@ -45,6 +45,9 @@ void Intersect::probeHTs() {
     for (auto i = 0u; i < probeKeyVectors.size(); i++) {
         KU_ASSERT(probeKeyVectors[i]->state->isFlat());
         probedFlatTuples[i].clear();
+        if (sharedHTs[i]->getHashTable()->getNumTuples() == 0) {
+            continue;
+        }
         auto key =
             probeKeyVectors[i]->getValue<nodeID_t>(probeKeyVectors[i]->state->getSelVector()[0]);
         function::Hash::operation<nodeID_t>(key, false, hashVal);
