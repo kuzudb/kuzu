@@ -191,24 +191,24 @@ int main(int argc, char* argv[]) {
 
     try {
         auto shell = EmbeddedShell(database, conn, shellConfig);
-    std::string initFile = ".kuzurc";
-    if (init) {
-        initFile = args::get(init);
-    }
-    try {
-        auto shell = EmbeddedShell(database, conn, shellConfig);
-        processRunCommands(shell, initFile);
-        if (DBConfig::isDBPathInMemory(databasePath)) {
-            std::cout << "Opened the database under in-memory mode." << '\n';
-        } else {
-            std::cout << "Opened the database at path: " << databasePath << " in "
-                      << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+        std::string initFile = ".kuzurc";
+        if (init) {
+            initFile = args::get(init);
         }
-        std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
-        shell.run();
-    } catch (std::exception& e) {
-        std::cerr << e.what() << '\n';
-        return 1;
+        try {
+            auto shell = EmbeddedShell(database, conn, shellConfig);
+            processRunCommands(shell, initFile);
+            if (DBConfig::isDBPathInMemory(databasePath)) {
+                std::cout << "Opened the database under in-memory mode." << '\n';
+            } else {
+                std::cout << "Opened the database at path: " << databasePath << " in "
+                          << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+            }
+            std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
+            shell.run();
+        } catch (std::exception& e) {
+            std::cerr << e.what() << '\n';
+            return 1;
+        }
+        return 0;
     }
-    return 0;
-}
