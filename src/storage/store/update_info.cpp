@@ -1,5 +1,7 @@
 #include "storage/store/update_info.h"
 
+#include <algorithm>
+
 #include "common/exception/runtime.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
