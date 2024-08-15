@@ -92,10 +92,6 @@ int main(int argc, char* argv[]) {
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
     args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
         {'b', "no_progress_bar", "noprogressbar"});
-    args::ValueFlag<uint32_t> maxRowsFlag(parser, "", "Maximum number of rows to display",
-        {"max_rows", "maxrows"});
-    args::ValueFlag<uint32_t> maxWidthFlag(parser, "", "Maximum width of the output",
-        {"max_width", "maxwidth"});
     args::ValueFlag<std::string> init(parser, "", "Path to file with script to run on startup",
         {'i', "init"});
 
@@ -167,12 +163,6 @@ int main(int argc, char* argv[]) {
     if (stats) {
         shellConfig.stats = false;
     }
-    if (maxRowsFlag) {
-        shellConfig.maxRowSize = args::get(maxRowsFlag);
-    }
-    if (maxWidthFlag) {
-        shellConfig.maxPrintWidth = args::get(maxWidthFlag);
-    }
 
     auto databasePath = args::get(inputDirFlag);
     std::shared_ptr<Database> database;
@@ -189,26 +179,24 @@ int main(int argc, char* argv[]) {
         conn->getClientContext()->getProgressBar()->toggleProgressBarPrinting(true);
     }
 
+    std::string initFile = ".kuzurc";
+    if (init) {
+        initFile = args::get(init);
+    }
     try {
         auto shell = EmbeddedShell(database, conn, shellConfig);
-        std::string initFile = ".kuzurc";
-        if (init) {
-            initFile = args::get(init);
+        processRunCommands(shell, initFile);
+        if (DBConfig::isDBPathInMemory(databasePath)) {
+            std::cout << "Opened the database under in-memory mode." << '\n';
+        } else {
+            std::cout << "Opened the database at path: " << databasePath << " in "
+                        << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
         }
-        try {
-            auto shell = EmbeddedShell(database, conn, shellConfig);
-            processRunCommands(shell, initFile);
-            if (DBConfig::isDBPathInMemory(databasePath)) {
-                std::cout << "Opened the database under in-memory mode." << '\n';
-            } else {
-                std::cout << "Opened the database at path: " << databasePath << " in "
-                          << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
-            }
-            std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
-            shell.run();
-        } catch (std::exception& e) {
-            std::cerr << e.what() << '\n';
-            return 1;
-        }
-        return 0;
+        std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
+        shell.run();
+    } catch (std::exception& e) {
+        std::cerr << e.what() << '\n';
+        return 1;
     }
+    return 0;
+}
