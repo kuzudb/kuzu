@@ -128,9 +128,10 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(common::ReaderConfig read
     uint64_t numRows, uint64_t numColumns, main::ClientContext* context,
     common::CSVReaderConfig csvReaderConfig)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-      numBlocksReadByFiles{0}, csvReaderConfig{std::move(csvReaderConfig)},
+      numBlocksReadByFiles{0}, csvReaderConfig{std::move(csvReaderConfig)}, warningCounter(),
       errorHandlers(this->readerConfig.getNumFiles(),
-          CSVErrorHandler{&lock, this->csvReaderConfig.option.ignoreErrors}) {}
+          CSVErrorHandler{&lock, this->csvReaderConfig.option.warningLimit, &warningCounter,
+              this->csvReaderConfig.option.ignoreErrors}) {}
 
 void ParallelCSVScanSharedState::setFileComplete(uint64_t completedFileIdx) {
     std::lock_guard<std::mutex> guard{lock};
@@ -261,7 +262,8 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         warningMessages.insert(warningMessages.end(), cachedErrors.begin(), cachedErrors.end());
     }
 
-    ctx->setWarningMessages(warningMessages);
+    KU_ASSERT(warningMessages.size() <= state->csvReaderConfig.option.warningLimit);
+    ctx->setWarningMessages(warningMessages, state->csvReaderConfig.option.warningLimit);
 }
 
 function_set ParallelCSVScan::getFunctionSet() {

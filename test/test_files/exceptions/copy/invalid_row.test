@@ -59,7 +59,20 @@ Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_R
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
 quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
 expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
-Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|10|2,53,"movieC
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+-STATEMENT MATCH (m:movie) return m.*;
+---- 5
+1|312|movieB
+3|102|movieD
+5|93|movieE
+7|1|a
+9|98|vb12
+
+-CASE ParallelSkipInvalidNodeTableRowsMixedLimitWarnings
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", WARNING_LIMIT=2)
+---- warning 2
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB
@@ -133,19 +146,38 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 7|1
 
 -CASE SerialSkipInvalidNodeTableRowsMixed
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
----- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false, HEADER=true)
+---- warning 5
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 -STATEMENT MATCH (m:movie) return m.*;
----- 4
+---- 5
 1|312|movieB
 3|102|movieD
 5|93|movieE
+7|1|a
+9|98|vb12
+
+-CASE SerialSkipInvalidNodeTableRowsMixedLimitWarnings
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", WARNING_LIMIT=2, PARALLEL=false, HEADER=true)
+---- warning 2
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+-STATEMENT MATCH (m:movie) return m.*;
+---- 5
+1|312|movieB
+3|102|movieD
+5|93|movieE
+7|1|a
 9|98|vb12
 
 -CASE SerialSkipInvalidRelMixed
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true)
 ---- ok
 -STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
 ---- ok

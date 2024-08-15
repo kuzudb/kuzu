@@ -66,10 +66,11 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
     uint64_t numRows, uint64_t numColumns, common::CSVReaderConfig csvReaderConfig,
     main::ClientContext* context)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-      totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)},
+      totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)}, warningCounter(),
       errorHandlers(this->readerConfig.getNumFiles(),
           CSVErrorHandler(nullptr, // locking is handled external to the error handler
                                    // since we are scanning serially
+              this->csvReaderConfig.option.warningLimit, &warningCounter,
               this->csvReaderConfig.option.ignoreErrors)) {
     initReader(context);
 }
@@ -108,8 +109,9 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
-    std::mutex errorHandlerMtx;
-    CSVErrorHandler errorHandler{&errorHandlerMtx, csvConfig.option.ignoreErrors};
+    WarningCounter warningCounter;
+    CSVErrorHandler errorHandler{nullptr, csvConfig.option.warningLimit, &warningCounter,
+        csvConfig.option.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
         0 /* numColumns */, bindInput->context, &errorHandler);
     auto sniffedColumns = csvReader.sniffCSV();
@@ -192,7 +194,8 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         warningMessages.insert(warningMessages.end(), cachedWarnings.begin(), cachedWarnings.end());
     }
 
-    ctx->setWarningMessages(warningMessages);
+    KU_ASSERT(warningMessages.size() <= state->csvReaderConfig.option.warningLimit);
+    ctx->setWarningMessages(warningMessages, state->csvReaderConfig.option.warningLimit);
 }
 
 function_set SerialCSVScan::getFunctionSet() {

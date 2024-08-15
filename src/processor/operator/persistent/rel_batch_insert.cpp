@@ -205,18 +205,21 @@ void RelBatchInsert::finalize(ExecutionContext* context) {
             child->finalize(context);
         }
 
-        auto& warningTable = context->getWarningTable();
-
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());
-        if (warningTable->getNumTuples() == 0) {
-            // TODO implement skip + update this to deal with skip (since warningMsgs.size() will no
-            // longer reflect number of skipped tuples)
-            outputMsg.append(stringFormat(" Skipped {} tuples due to copy errors.",
-                warningTable->getNumTuples()));
-        }
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
+
+        auto& warningTable = context->getWarningTable();
+        if (warningTable->getNumTuples() > 0) {
+            const std::string warningsHitLimitStr =
+                (warningTable->getNumTuples() >= context->getWarningLimit()) ? "+" : "";
+            auto warningMsg =
+                stringFormat("{}{} tuples have been skipped in the {} table due to warnings.",
+                    warningTable->getNumTuples(), warningsHitLimitStr, info->tableEntry->getName());
+            FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
+                context->clientContext->getMemoryManager());
+        }
     }
     sharedState->numRows.store(0);
     sharedState->table->cast<RelTable>().setHasChanges();

@@ -26,8 +26,10 @@ bool CSVError::operator<(const CSVError& o) const {
     return blockIdx < o.blockIdx;
 }
 
-CSVErrorHandler::CSVErrorHandler(std::mutex* sharedMtx, bool ignoreErrors)
-    : mtx(sharedMtx), ignoreErrors(ignoreErrors), headerNumRows(0) {}
+CSVErrorHandler::CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
+    WarningCounter* sharedWarningCounter, bool ignoreErrors)
+    : mtx(sharedMtx), maxCachedErrorCount(maxCachedErrorCount), ignoreErrors(ignoreErrors),
+      headerNumRows(0), sharedWarningCounter(sharedWarningCounter) {}
 
 void CSVErrorHandler::reset() {
     auto lockGuard = lock();
@@ -48,6 +50,13 @@ std::vector<PopulatedCSVError> CSVErrorHandler::getCachedErrors(BaseCSVReader* r
     return errorMessages;
 }
 
+void CSVErrorHandler::tryCacheError(const CSVError& error) {
+    if (sharedWarningCounter->count < maxCachedErrorCount) {
+        cachedErrors.insert(error);
+        ++sharedWarningCounter->count;
+    }
+}
+
 void CSVErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error, bool mustThrow) {
     auto lockGuard = lock();
 
@@ -57,7 +66,7 @@ void CSVErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error, 
     ++linesPerBlock[error.blockIdx].invalidLines;
 
     if (!mustThrow && (ignoreErrors || !canGetLineNumber(error.blockIdx))) {
-        cachedErrors.insert(error);
+        tryCacheError(error);
         return;
     }
     const auto lineNumber = getLineNumber(error.blockIdx, error.numRowsReadInBlock);

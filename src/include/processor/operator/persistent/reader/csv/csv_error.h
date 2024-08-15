@@ -20,6 +20,9 @@ struct LineContext {
     void setEndOfLine(uint64_t end);
 };
 
+// If parsing in parallel during parsing we may not be able to determine line numbers
+// Thus we have additional fields that can be used to determine line numbers + reconstruct lines
+// After parsing this will be used to populate a PopulatedCSVError instance
 struct CSVError {
     std::string message;
     std::string filePath;
@@ -38,9 +41,14 @@ struct PopulatedCSVError {
     uint64_t lineNumber;
 };
 
+struct WarningCounter {
+    uint64_t count;
+};
+
 class CSVErrorHandler {
 public:
-    explicit CSVErrorHandler(std::mutex* sharedMtx, bool ignoreErrors);
+    explicit CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
+        WarningCounter* sharedWarningCounter, bool ignoreErrors);
 
     void reset();
 
@@ -70,13 +78,16 @@ private:
         uint64_t lineNumber);
     void throwError(BaseCSVReader* reader, const CSVError& error, uint64_t lineNumber) const;
     bool canGetLineNumber(uint64_t blockIdx) const;
+    void tryCacheError(const CSVError& error);
     uint64_t getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const;
 
-    std::mutex* mtx; // can be nullptr, in which case locking is handled by the caller
+    std::mutex* mtx; // can be nullptr, in which case mutual exclusion is guaranteed by the caller
     std::vector<LinesPerBlock> linesPerBlock;
     std::set<CSVError> cachedErrors;
 
+    uint64_t maxCachedErrorCount;
     bool ignoreErrors;
     uint64_t headerNumRows;
+    WarningCounter* sharedWarningCounter;
 };
 } // namespace kuzu::processor

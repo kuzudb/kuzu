@@ -301,7 +301,8 @@ std::vector<std::string> TestRunner::convertResultToString(Fetcher& queryResult,
     }
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();
-        actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
+        actualOutput.push_back(
+            StringUtils::rtrim(tuple->toString(std::vector<uint32_t>(tuple->len(), 0))));
     }
     if (!checkOutputOrder) {
         sort(actualOutput.begin(), actualOutput.end());

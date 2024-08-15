@@ -34,8 +34,10 @@ ExecutionContext::ExecutionContext(common::Profiler* profiler, main::ClientConte
 
 // marking this function with const would be misleading here
 // NOLINTNEXTLINE(readability-make-member-function-const)
-void ExecutionContext::setWarningMessages(const std::vector<PopulatedCSVError>& messages) {
+void ExecutionContext::setWarningMessages(const std::vector<PopulatedCSVError>& messages,
+    uint64_t messageLimit) {
     common::UniqLock lock{mtx};
+    warningLimit = messageLimit;
     for (const auto& error : messages) {
         auto lineVec =
             std::make_shared<ValueVector>(LogicalType::UINT64(), clientContext->getMemoryManager());
@@ -53,6 +55,10 @@ void ExecutionContext::setWarningMessages(const std::vector<PopulatedCSVError>& 
             {messageVec.get(), pathVec.get(), lineVec.get(), reconstructedLineVec.get()}};
         warningTable->append(vecs);
     }
+}
+
+uint64_t ExecutionContext::getWarningLimit() const {
+    return warningLimit;
 }
 
 std::shared_ptr<FactorizedTable>& ExecutionContext::getWarningTable() {
