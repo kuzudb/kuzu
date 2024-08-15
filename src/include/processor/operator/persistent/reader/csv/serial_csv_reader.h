@@ -31,7 +31,7 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     uint64_t numColumns;
     uint64_t totalReadSizeByFile;
     common::CSVReaderConfig csvReaderConfig;
-    CSVErrorHandler errorHandler;
+    std::vector<CSVErrorHandler> errorHandlers;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context);

@@ -14,7 +14,7 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads);
 }
 
-std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalPlan,
+CollectedQueryResult QueryProcessor::execute(PhysicalPlan* physicalPlan,
     ExecutionContext* context) {
     auto lastOperator = physicalPlan->lastOperator.get();
     auto resultCollector = ku_dynamic_cast<PhysicalOperator*, ResultCollector*>(lastOperator);
@@ -28,7 +28,7 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
     context->clientContext->getProgressBar()->startProgress(context->queryID);
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
     context->clientContext->getProgressBar()->endProgress(context->queryID);
-    return resultCollector->getResultFactorizedTable();
+    return resultCollector->getResult();
 }
 
 void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,

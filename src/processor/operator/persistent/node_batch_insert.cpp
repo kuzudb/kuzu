@@ -203,18 +203,14 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     for (auto& child : children) {
         child->finalize(context);
     }
-    auto& warningMsgs = context->clientContext->getWarningMessages();
-    for (auto& warningMsg : warningMsgs) {
-        FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
-            context->clientContext->getMemoryManager());
-    }
+    auto& warningTable = context->getWarningTable();
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());
-    if (!warningMsgs.empty()) {
+    if (warningTable->getNumTuples() == 0) {
         // TODO implement skip + update this to deal with skip (since warningMsgs.size() will no
         // longer reflect number of skipped tuples)
         outputMsg.append(
-            stringFormat(" Skipped {} tuples due to copy errors.", warningMsgs.size()));
+            stringFormat(" Skipped {} tuples due to copy errors.", warningTable->getNumTuples()));
     }
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());

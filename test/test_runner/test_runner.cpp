@@ -6,6 +6,7 @@
 #include "common/md5.h"
 #include "common/string_utils.h"
 #include "gtest/gtest.h"
+#include "main/query_result_fetcher.h"
 #include "planner/operator/logical_plan.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
@@ -138,6 +139,19 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
         spdlog::info("INCORRECT ERROR: {}", actualError);
         break;
     }
+    case ResultType::WARNING_MSG: {
+        if (!preparedStatement->success) {
+            spdlog::info("Query compilation failed with error: {}",
+                preparedStatement->getErrorMessage());
+            return false;
+        }
+        auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
+        auto resultFetcher = QueryResultWarningFetcher{*result};
+        if (checkPlanResult(resultFetcher, statement, resultIdx, planStr, planIdx)) {
+            return true;
+        }
+        break;
+    }
     default: {
         if (!preparedStatement->success) {
             spdlog::info("Query compilation failed with error: {}",
@@ -145,7 +159,8 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
             return false;
         }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        if (checkPlanResult(result, statement, resultIdx, planStr, planIdx)) {
+        auto resultFetcher = QueryResultFetcher{*result};
+        if (checkPlanResult(resultFetcher, statement, resultIdx, planStr, planIdx)) {
             return true;
         }
         break;
@@ -154,8 +169,9 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     return false;
 }
 
-bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
-    size_t resultIdx, const std::string& planStr, uint32_t planIdx) {
+template<typename Fetcher>
+bool TestRunner::checkPlanResult(Fetcher& result, TestStatement* statement, size_t resultIdx,
+    const std::string& planStr, uint32_t planIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
     if (testAnswer.type == ResultType::CSV_FILE) {
         std::ifstream expectedTuplesFile(testAnswer.expectedResult[0]);
@@ -179,19 +195,19 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
         }
     }
-    std::vector<std::string> resultTuples = TestRunner::convertResultToString(*result,
+    std::vector<std::string> resultTuples = TestRunner::convertResultToString(result,
         statement->checkOutputOrder, statement->checkColumnNames);
-    uint64_t actualNumTuples = result->getNumTuples();
+    uint64_t actualNumTuples = result.getNumTuples();
     if (statement->checkColumnNames) {
         actualNumTuples++;
     }
     if (testAnswer.type == ResultType::HASH) {
-        std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
+        std::string resultHash = TestRunner::convertResultToMD5Hash(result,
             statement->checkOutputOrder, statement->checkColumnNames);
         if (resultTuples.size() == actualNumTuples && resultHash == testAnswer.expectedResult[0] &&
             resultTuples.size() == testAnswer.numTuples) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-                result->getQuerySummary()->getExecutionTime());
+                result.getQuerySummary()->getExecutionTime());
             return true;
         } else {
             spdlog::error("PLAN{} NOT PASSED.", planIdx);
@@ -212,15 +228,15 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             return false;
         }
         if (resultTuples.size() == actualNumTuples && resultTuples.size() == testAnswer.numTuples &&
-            TestRunner::checkResultNumeric(*result, statement, resultIdx)) {
+            TestRunner::checkResultNumeric(result, statement, resultIdx)) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-                result->getQuerySummary()->getExecutionTime());
+                result.getQuerySummary()->getExecutionTime());
             return true;
         }
     } else {
         if (resultTuples.size() == actualNumTuples && resultTuples == testAnswer.expectedResult) {
             spdlog::info("PLAN{} PASSED in {}ms.", planIdx,
-                result->getQuerySummary()->getExecutionTime());
+                result.getQuerySummary()->getExecutionTime());
             return true;
         }
     }
@@ -233,7 +249,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     return false;
 }
 
-bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* statement,
+template<typename Fetcher>
+bool TestRunner::checkResultNumeric(Fetcher& queryResult, TestStatement* statement,
     size_t resultIdx) {
     queryResult.resetIterator();
     std::vector<LogicalType> dataTypes = queryResult.getColumnDataTypes();
@@ -249,13 +266,15 @@ bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* sta
             auto curValue = actualTuple->getValue(i);
             switch (dataTypes[i].getLogicalTypeID()) {
             case LogicalTypeID::FLOAT: {
-                if (!precisionEqual(curValue->getValue<float>(), std::stof(testTuple[i]))) {
+                if (!precisionEqual(curValue->template getValue<float>(),
+                        std::stof(testTuple[i]))) {
                     return false;
                 }
                 break;
             }
             case LogicalTypeID::DOUBLE: {
-                if (!precisionEqual(curValue->getValue<double>(), std::stod(testTuple[i]))) {
+                if (!precisionEqual(curValue->template getValue<double>(),
+                        std::stod(testTuple[i]))) {
                     return false;
                 }
                 break;
@@ -273,7 +292,8 @@ bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* sta
     return true;
 }
 
-std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryResult,
+template<typename Fetcher>
+std::vector<std::string> TestRunner::convertResultToString(Fetcher& queryResult,
     bool checkOutputOrder, bool checkColumnNames) {
     std::vector<std::string> actualOutput;
     if (checkColumnNames) {
@@ -292,7 +312,8 @@ std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryRes
     return actualOutput;
 }
 
-std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool checkOutputOrder,
+template<typename Fetcher>
+std::string TestRunner::convertResultToMD5Hash(Fetcher& queryResult, bool checkOutputOrder,
     bool checkColumnNames) {
     queryResult.resetIterator();
     MD5 hasher;
@@ -306,7 +327,8 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     return std::string(hasher.finishMD5());
 }
 
-std::string TestRunner::convertResultColumnsToString(main::QueryResult& queryResult) {
+template<typename Fetcher>
+std::string TestRunner::convertResultColumnsToString(Fetcher& queryResult) {
     std::string columnsString;
     std::vector<std::string> columnNames = queryResult.getColumnNames();
     for (auto i = 0ul; i < columnNames.size(); i++) {

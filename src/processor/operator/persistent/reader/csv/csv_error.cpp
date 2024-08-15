@@ -39,11 +39,11 @@ uint64_t CSVErrorHandler::getCachedErrorCount() {
     return cachedErrors.size();
 }
 
-std::vector<std::string> CSVErrorHandler::getCachedErrorStrings(BaseCSVReader* reader) {
-    std::vector<std::string> errorMessages;
+std::vector<PopulatedCSVError> CSVErrorHandler::getCachedErrors(BaseCSVReader* reader) {
+    std::vector<PopulatedCSVError> errorMessages;
     for (const auto& error : cachedErrors) {
         const auto lineNumber = getLineNumber(error.blockIdx, error.numRowsReadInBlock);
-        errorMessages.push_back(getErrorMessage(reader, error, lineNumber));
+        errorMessages.push_back(getPopulatedError(reader, error, lineNumber));
     }
     return errorMessages;
 }
@@ -93,6 +93,17 @@ std::string CSVErrorHandler::getErrorMessage(BaseCSVReader* reader, const CSVErr
         error.filePath, lineNumber, error.message,
         reader->reconstructLine(error.errorLine.startByteOffset, error.errorLine.endByteOffset),
         incompleteLineSuffix);
+}
+
+PopulatedCSVError CSVErrorHandler::getPopulatedError(BaseCSVReader* reader, const CSVError& error,
+    uint64_t lineNumber) {
+    const char* incompleteLineSuffix = error.errorLine.isCompleteLine ? "" : "...";
+    return {.message = error.message,
+        .filePath = error.filePath,
+        .reconstructedLine = reader->reconstructLine(error.errorLine.startByteOffset,
+                                 error.errorLine.endByteOffset) +
+                             incompleteLineSuffix,
+        .lineNumber = lineNumber};
 }
 
 void CSVErrorHandler::throwError(BaseCSVReader* reader, const CSVError& error,

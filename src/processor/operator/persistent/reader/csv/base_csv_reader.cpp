@@ -275,6 +275,8 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
 
 template<typename Driver>
 uint64_t BaseCSVReader::parseCSV(Driver& driver, bool resetRowNum) {
+    KU_ASSERT(nullptr != errorHandler);
+
     // used for parsing algorithm
     if (resetRowNum) {
         rowNum = 0;

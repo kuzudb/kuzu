@@ -477,7 +477,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     profiler->enabled = preparedStatement->isProfile();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
-    std::shared_ptr<FactorizedTable> resultFT;
+    processor::CollectedQueryResult resultFT;
     try {
         if (preparedStatement->isTransactionStatement()) {
             resultFT =
@@ -497,8 +497,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->initResultTableAndIterator(std::move(resultFT),
-        preparedStatement->statementResult->getColumns());
+    queryResult->initResultTableAndIterator(std::move(resultFT.resultTable),
+        std::move(resultFT.warningTable), preparedStatement->statementResult->getColumns());
     return queryResult;
 }
 
@@ -532,14 +532,6 @@ void ClientContext::addScalarFunction(std::string name, function::function_set d
 
 void ClientContext::removeScalarFunction(std::string name) {
     runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), std::move(name)); });
-}
-
-void ClientContext::setWarningMessages(const std::vector<std::string>& messages) {
-    warningMessages = messages;
-}
-
-std::vector<std::string>& ClientContext::getWarningMessages() {
-    return warningMessages;
 }
 
 bool ClientContext::canExecuteWriteQuery() {

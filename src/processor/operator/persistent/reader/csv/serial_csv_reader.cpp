@@ -44,6 +44,8 @@ uint64_t SerialCSVReader::getNumRowsReadInBlock() {
 }
 
 uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChunk) {
+    KU_ASSERT(nullptr != errorHandler);
+
     if (blockIdx != currentBlockIdx) {
         numRowsReadInBlock = 0;
     }
@@ -65,16 +67,17 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
     main::ClientContext* context)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
       totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)},
-      errorHandler(nullptr, // locking is handled external to the error handler
-                            // since we are scanning serially
-          this->csvReaderConfig.option.ignoreErrors) {
+      errorHandlers(this->readerConfig.getNumFiles(),
+          CSVErrorHandler(nullptr, // locking is handled external to the error handler
+                                   // since we are scanning serially
+              this->csvReaderConfig.option.ignoreErrors)) {
     initReader(context);
 }
 
 void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
     std::lock_guard<std::mutex> mtx{lock};
     do {
-        if (fileIdx > readerConfig.getNumFiles()) {
+        if (fileIdx >= readerConfig.getNumFiles()) {
             return;
         }
         uint64_t numRows = reader->parseBlock(reader->getFileOffset() == 0 ? 0 : 1, outputChunk);
@@ -82,9 +85,8 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
             return;
         }
         totalReadSizeByFile += reader->getFileSize();
+        errorHandlers[fileIdx].handleCachedErrors(reader.get());
         fileIdx++;
-        errorHandler.handleCachedErrors(reader.get());
-        errorHandler.reset();
         initReader(context);
     } while (true);
 }
@@ -92,7 +94,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
 void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
     if (fileIdx < readerConfig.getNumFiles()) {
         reader = std::make_unique<SerialCSVReader>(readerConfig.filePaths[fileIdx],
-            csvReaderConfig.option.copy(), numColumns, context, &errorHandler);
+            csvReaderConfig.option.copy(), numColumns, context, &errorHandlers[fileIdx]);
     }
 }
 
@@ -156,7 +158,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     for (auto filePath : sharedState->readerConfig.filePaths) {
         auto reader =
             std::make_unique<SerialCSVReader>(filePath, sharedState->csvReaderConfig.option.copy(),
-                sharedState->numColumns, sharedState->context, &sharedState->errorHandler);
+                sharedState->numColumns, sharedState->context, nullptr);
         sharedState->totalSize += reader->getFileSize();
     }
     return sharedState;
@@ -179,12 +181,18 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
-    KU_ASSERT(nullptr != state->reader);
-    state->errorHandler.handleCachedErrors(state->reader.get());
+    std::vector<PopulatedCSVError> warningMessages;
 
-    ctx->clientContext->setWarningMessages(
-        state->errorHandler.getCachedErrorStrings(state->reader.get()));
+    auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
+    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
+        state->fileIdx = i;
+        state->initReader(ctx->clientContext);
+        state->errorHandlers[i].handleCachedErrors(state->reader.get());
+        auto cachedWarnings = state->errorHandlers[i].getCachedErrors(state->reader.get());
+        warningMessages.insert(warningMessages.end(), cachedWarnings.begin(), cachedWarnings.end());
+    }
+
+    ctx->setWarningMessages(warningMessages);
 }
 
 function_set SerialCSVScan::getFunctionSet() {

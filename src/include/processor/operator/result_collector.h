@@ -7,6 +7,11 @@
 namespace kuzu {
 namespace processor {
 
+struct CollectedQueryResult {
+    std::shared_ptr<FactorizedTable> resultTable;
+    std::shared_ptr<FactorizedTable> warningTable;
+};
+
 class ResultCollectorSharedState {
 public:
     explicit ResultCollectorSharedState(std::shared_ptr<FactorizedTable> table)
@@ -18,10 +23,13 @@ public:
     }
 
     std::shared_ptr<FactorizedTable> getTable() { return table; }
+    std::shared_ptr<FactorizedTable> getWarningTable();
+    void setWarningTable(std::shared_ptr<FactorizedTable> warningTable);
 
 private:
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> table;
+    std::shared_ptr<FactorizedTable> warningTable;
 };
 
 struct ResultCollectorInfo {
@@ -75,6 +83,7 @@ public:
     void finalize(ExecutionContext* context) final;
 
     std::shared_ptr<FactorizedTable> getResultFactorizedTable() { return sharedState->getTable(); }
+    CollectedQueryResult getResult();
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return make_unique<ResultCollector>(resultSetDescriptor->copy(), info.copy(), sharedState,

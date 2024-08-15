@@ -24,14 +24,7 @@ enum class ManualUseDatasetFlag {
     INSERT,
 };
 
-enum class ResultType {
-    OK,
-    HASH,
-    TUPLES,
-    CSV_FILE,
-    ERROR_MSG,
-    ERROR_REGEX,
-};
+enum class ResultType { OK, HASH, TUPLES, CSV_FILE, ERROR_MSG, ERROR_REGEX, WARNING_MSG };
 
 struct TestQueryResult {
     ResultType type;

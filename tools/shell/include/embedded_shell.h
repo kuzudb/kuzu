@@ -42,6 +42,8 @@ private:
     void printExecutionResult(QueryResult& queryResult) const;
 
     void printTruncatedExecutionResult(QueryResult& queryResult) const;
+    template<typename Fetcher>
+    void printTruncatedExecutionResultImpl(Fetcher queryResult, QuerySummary* querySummary) const;
 
     std::string printJsonExecutionResult(QueryResult& queryResult) const;
 
@@ -49,6 +51,8 @@ private:
 
     std::string printLatexExecutionResult(QueryResult& queryResult) const;
 
+    template<typename Fetcher>
+    std::string printLineExecutionResultImpl(Fetcher queryResult) const;
     std::string printLineExecutionResult(QueryResult& queryResult) const;
 
     void updateTableNames();

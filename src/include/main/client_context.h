@@ -127,9 +127,6 @@ public:
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
 
-    void setWarningMessages(const std::vector<std::string>& messages);
-    std::vector<std::string>& getWarningMessages();
-
     void cleanUP();
 
 private:
@@ -190,8 +187,6 @@ private:
     AttachedKuzuDatabase* remoteDatabase;
     // Progress bar.
     std::unique_ptr<common::ProgressBar> progressBar;
-    // warnings
-    std::vector<std::string> warningMessages;
     std::mutex mtx;
 };
 

@@ -21,15 +21,21 @@ private:
         TestStatement* statement, size_t resultIdx, main::Connection& conn);
     static bool checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, size_t resultIdx, main::Connection& conn, uint32_t planIdx);
-    static bool checkResultNumeric(main::QueryResult& resultTuples, TestStatement* statement,
+    template<typename Fetcher>
+    static bool checkResultNumeric(Fetcher& resultTuples, TestStatement* statement,
         size_t resultIdx);
-    static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
+
+    template<typename Fetcher>
+    static std::vector<std::string> convertResultToString(Fetcher& queryResult,
         bool checkOutputOrder = false, bool checkColumnNames = false);
-    static std::string convertResultToMD5Hash(main::QueryResult& queryResult, bool checkOutputOrder,
+    template<typename Fetcher>
+    static std::string convertResultToMD5Hash(Fetcher& queryResult, bool checkOutputOrder,
         bool checkColumnNames); // returns hash and number of values hashed
-    static std::string convertResultColumnsToString(main::QueryResult& queryResult);
-    static bool checkPlanResult(std::unique_ptr<main::QueryResult>& result,
-        TestStatement* statement, size_t resultIdx, const std::string& planStr, uint32_t planIdx);
+    template<typename Fetcher>
+    static std::string convertResultColumnsToString(Fetcher& queryResult);
+    template<typename Fetcher>
+    static bool checkPlanResult(Fetcher& result, TestStatement* statement, size_t resultIdx,
+        const std::string& planStr, uint32_t planIdx);
 };
 
 } // namespace testing

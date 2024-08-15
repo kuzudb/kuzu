@@ -31,6 +31,13 @@ struct CSVError {
     bool operator<(const CSVError& o) const;
 };
 
+struct PopulatedCSVError {
+    std::string message;
+    std::string filePath;
+    std::string reconstructedLine;
+    uint64_t lineNumber;
+};
+
 class CSVErrorHandler {
 public:
     explicit CSVErrorHandler(std::mutex* sharedMtx, bool ignoreErrors);
@@ -44,8 +51,7 @@ public:
     void setHeaderNumRows(uint64_t numRows);
 
     uint64_t getCachedErrorCount();
-
-    std::vector<std::string> getCachedErrorStrings(BaseCSVReader* reader);
+    std::vector<PopulatedCSVError> getCachedErrors(BaseCSVReader* reader);
 
 private:
     struct LinesPerBlock {
@@ -60,6 +66,8 @@ private:
 
     std::string getErrorMessage(BaseCSVReader* reader, const CSVError& error,
         uint64_t lineNumber) const;
+    PopulatedCSVError getPopulatedError(BaseCSVReader* reader, const CSVError& error,
+        uint64_t lineNumber);
     void throwError(BaseCSVReader* reader, const CSVError& error, uint64_t lineNumber) const;
     bool canGetLineNumber(uint64_t blockIdx) const;
     uint64_t getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const;
