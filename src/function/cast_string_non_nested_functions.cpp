@@ -88,34 +88,55 @@ bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(const char* input, uint6
     return true;
 }
 
-static RE2 datePattern1("\\d{4}/\\d{1,2}/\\d{1,2}");
-static RE2 datePattern2("\\d{4}-\\d{1,2}-\\d{1,2}");
-static RE2 datePattern3("\\d{4} \\d{1,2} \\d{1,2}");
-static RE2 datePattern4("\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
+static RE2& datePattern1() {
+    static RE2 retval("\\d{4}/\\d{1,2}/\\d{1,2}");
+    return retval;
+}
+static RE2& datePattern2() {
+    static RE2 retval("\\d{4}-\\d{1,2}-\\d{1,2}");
+    return retval;
+}
+static RE2& datePattern3() {
+    static RE2 retval("\\d{4} \\d{1,2} \\d{1,2}");
+    return retval;
+}
+static RE2& datePattern4() {
+    static RE2 retval("\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
+    return retval;
+}
 
 static bool isDate(std::string_view str) {
-    return RE2::FullMatch(str, datePattern1) || RE2::FullMatch(str, datePattern2) ||
-           RE2::FullMatch(str, datePattern3) || RE2::FullMatch(str, datePattern4);
+    return RE2::FullMatch(str, datePattern1()) || RE2::FullMatch(str, datePattern2()) ||
+           RE2::FullMatch(str, datePattern3()) || RE2::FullMatch(str, datePattern4());
 }
 
-static RE2 UUIDPattern("(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
+static RE2& UUIDPattern() {
+    static RE2 retval("(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
+    return retval;
+}
 
 static bool isUUID(std::string_view str) {
-    return RE2::FullMatch(str, UUIDPattern);
+    return RE2::FullMatch(str, UUIDPattern());
 }
 
-static RE2 intervalPattern(
-    "(?i)((0|[1-9]\\d*) "
-    "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
-    "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-    "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
-    "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
-    "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-    "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?");
-static RE2 intervalPattern2("\\d+:\\d{2}:\\d{2}(\\.\\d+)?");
+static RE2& intervalPattern() {
+    static RE2 retval(
+        "(?i)((0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?");
+    return retval;
+}
+static RE2& intervalPattern2() {
+    static RE2 retval("\\d+:\\d{2}:\\d{2}(\\.\\d+)?");
+    return retval;
+}
 
 static bool isInterval(std::string_view str) {
-    return RE2::FullMatch(str, intervalPattern) || RE2::FullMatch(str, intervalPattern2);
+    return RE2::FullMatch(str, intervalPattern()) || RE2::FullMatch(str, intervalPattern2());
 }
 
 static LogicalType inferMapOrStruct(std::string_view str) {
@@ -166,9 +187,18 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
     return inferMinimalTypeFromString(std::string_view(str));
 }
 
-static RE2 boolPattern("(?i)(TRUE|FALSE)");
-static RE2 intPattern("(-?0)|(-?[1-9]\\d*)");
-static RE2 realPattern("(\\+|-)?(0|[1-9]\\d*)?\\.(\\d*)");
+static RE2& boolPattern() {
+    static RE2 retval("(?i)(TRUE|FALSE)");
+    return retval;
+}
+static RE2& intPattern() {
+    static RE2 retval("(-?0)|(-?[1-9]\\d*)");
+    return retval;
+}
+static RE2& realPattern() {
+    static RE2 retval("(\\+|-)?(0|[1-9]\\d*)?\\.(\\d*)");
+    return retval;
+}
 
 LogicalType inferMinimalTypeFromString(std::string_view str) {
     constexpr char array_begin = common::CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR;
@@ -178,7 +208,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         return LogicalType::ANY();
     }
     // Boolean
-    if (RE2::FullMatch(cpy, boolPattern)) {
+    if (RE2::FullMatch(cpy, boolPattern())) {
         return LogicalType::BOOL();
     }
     // The reason we're not going to try to match to a minimal width integer
@@ -187,7 +217,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
     // if we only sniff the first few elements; a rather common occurrence.
 
     // integer
-    if (RE2::FullMatch(cpy, intPattern)) {
+    if (RE2::FullMatch(cpy, intPattern())) {
         if (cpy.size() >= 1 + NumericLimits<int128_t>::digits()) {
             return LogicalType::DOUBLE();
         }
@@ -201,7 +231,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         return LogicalType::INT128();
     }
     // Real value checking
-    if (RE2::FullMatch(cpy, realPattern)) {
+    if (RE2::FullMatch(cpy, realPattern())) {
         if (cpy[0] == '-') {
             cpy = cpy.substr(1);
         }
