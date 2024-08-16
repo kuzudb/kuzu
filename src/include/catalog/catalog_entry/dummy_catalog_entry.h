@@ -5,12 +5,13 @@
 namespace kuzu {
 namespace catalog {
 
-class DummyCatalogEntry : public CatalogEntry {
+class DummyCatalogEntry final : public CatalogEntry {
 public:
-    explicit DummyCatalogEntry(std::string name)
+    explicit DummyCatalogEntry(std::string name, common::oid_t oid)
         : CatalogEntry{CatalogEntryType::DUMMY_ENTRY, std::move(name)} {
         setDeleted(true);
         setTimestamp(0);
+        setOID(oid);
     }
 
     void serialize(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }

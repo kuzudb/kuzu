@@ -12,12 +12,11 @@ class RelTableCatalogEntry final : public TableCatalogEntry {
 
 public:
     RelTableCatalogEntry() = default;
-    RelTableCatalogEntry(CatalogSet* set, std::string name, common::table_id_t tableID,
-        common::RelMultiplicity srcMultiplicity, common::RelMultiplicity dstMultiplicity,
-        common::table_id_t srcTableID, common::table_id_t dstTableID)
-        : TableCatalogEntry{set, entryType_, std::move(name), tableID},
-          srcMultiplicity{srcMultiplicity}, dstMultiplicity{dstMultiplicity},
-          srcTableID{srcTableID}, dstTableID{dstTableID} {}
+    RelTableCatalogEntry(CatalogSet* set, std::string name, common::RelMultiplicity srcMultiplicity,
+        common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID)
+        : TableCatalogEntry{set, entryType_, std::move(name)}, srcMultiplicity{srcMultiplicity},
+          dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
 
     bool isParent(common::table_id_t tableID) override;
     common::TableType getTableType() const override { return common::TableType::REL; }

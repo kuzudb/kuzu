@@ -43,18 +43,20 @@ std::string AlterPrintInfo::toString() const {
 void Alter::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     auto transaction = context->clientContext->getTx();
+    const auto storageManager = context->clientContext->getStorageManager();
     catalog->alterTableEntry(transaction, info);
     if (info.alterType == common::AlterType::ADD_PROPERTY) {
         auto& boundAddPropInfo = info.extraInfo->constCast<BoundExtraAddPropertyInfo>();
         KU_ASSERT(defaultValueEvaluator);
-        auto entry = catalog->getTableCatalogEntry(transaction, info.tableID);
+        auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
         auto& addedProp = entry->getProperty(boundAddPropInfo.propertyDefinition.getName());
-        auto storageManager = context->clientContext->getStorageManager();
         storage::TableAddColumnState state{addedProp, *defaultValueEvaluator};
-        storageManager->getTable(info.tableID)->addColumn(context->clientContext->getTx(), state);
+        storageManager->getTable(entry->getTableID())
+            ->addColumn(context->clientContext->getTx(), state);
     } else if (info.alterType == common::AlterType::DROP_PROPERTY) {
-        auto storageManager = context->clientContext->getStorageManager();
-        storageManager->getTable(info.tableID)->dropColumn();
+        const auto schema = context->clientContext->getCatalog()->getTableCatalogEntry(
+            context->clientContext->getTx(), info.tableName);
+        storageManager->getTable(schema->getTableID())->dropColumn();
     }
 }
 

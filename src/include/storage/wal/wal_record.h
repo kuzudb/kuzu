@@ -8,7 +8,6 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "common/enums/table_type.h"
-#include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

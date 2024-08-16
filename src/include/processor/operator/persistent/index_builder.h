@@ -7,7 +7,6 @@
 #include "common/mpsc_queue.h"
 #include "common/static_vector.h"
 #include "common/types/int128_t.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "processor/execution_context.h"
 #include "storage/index/hash_index.h"

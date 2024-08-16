@@ -5,10 +5,8 @@ from datetime import date, datetime, timedelta  # noqa: TCH003
 import pandas as pd
 import pyarrow as pa
 import pytest
-from datetime import date, datetime, timedelta  # noqa: TCH003
-
-import kuzu
 from kuzu import Type
+
 from type_aliases import ConnDB
 
 
@@ -204,10 +202,10 @@ def test_udf_remove(conn_db_readwrite: ConnDB) -> None:
 
     conn.create_function("myfunction", myfunction)
 
-    with pytest.raises(RuntimeError, match="Catalog exception: function notmyfunction doesn't exist."):
+    with pytest.raises(RuntimeError, match="Catalog exception: notmyfunction does not exist in catalog."):
         conn.remove_function("notmyfunction")
 
     conn.remove_function("myfunction")
 
-    with pytest.raises(RuntimeError, match="Catalog exception: function list_create doesn't exist."):
+    with pytest.raises(RuntimeError, match="Catalog exception: list_create does not exist in catalog."):
         conn.remove_function("list_create")

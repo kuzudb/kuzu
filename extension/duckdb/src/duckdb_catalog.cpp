@@ -61,7 +61,6 @@ static std::string getQuery(const binder::BoundCreateTableInfo& info) {
 }
 
 void DuckDBCatalog::createForeignTable(const std::string& tableName) {
-    auto tableID = tables->assignNextOID();
     auto info = bindCreateTableInfo(tableName);
     if (info == nullptr) {
         return;
@@ -77,7 +76,7 @@ void DuckDBCatalog::createForeignTable(const std::string& tableName) {
     DuckDBScanBindData bindData(getQuery(*info), std::move(columnTypes), std::move(columnNames),
         connector);
     auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(tables.get(),
-        info->tableName, tableID, getScanFunction(std::move(bindData)));
+        info->tableName, getScanFunction(std::move(bindData)));
     for (auto& definition : extraInfo->propertyDefinitions) {
         tableEntry->addProperty(definition);
     }

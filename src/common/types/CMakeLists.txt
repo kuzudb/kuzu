@@ -5,7 +5,6 @@ add_library(kuzu_common_types
         blob.cpp
         date_t.cpp
         dtime_t.cpp
-        internal_id_t.cpp
         interval_t.cpp
         ku_list.cpp
         ku_string.cpp

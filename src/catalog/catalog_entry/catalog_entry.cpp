@@ -10,17 +10,29 @@ namespace kuzu {
 namespace catalog {
 
 void CatalogEntry::serialize(common::Serializer& serializer) const {
-    serializer.write(static_cast<uint8_t>(type));
+    serializer.writeDebuggingInfo("type");
+    serializer.write(type);
+    serializer.writeDebuggingInfo("name");
     serializer.write(name);
+    serializer.writeDebuggingInfo("oid");
+    serializer.write(oid);
+    serializer.writeDebuggingInfo("hasParent_");
     serializer.write(hasParent_);
 }
 
 std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& deserializer) {
+    std::string debuggingInfo;
     CatalogEntryType type;
     std::string name;
+    common::oid_t oid;
     bool hasParent_;
+    deserializer.validateDebuggingInfo(debuggingInfo, "type");
     deserializer.deserializeValue(type);
+    deserializer.validateDebuggingInfo(debuggingInfo, "name");
     deserializer.deserializeValue(name);
+    deserializer.validateDebuggingInfo(debuggingInfo, "oid");
+    deserializer.deserializeValue(oid);
+    deserializer.validateDebuggingInfo(debuggingInfo, "hasParent_");
     deserializer.deserializeValue(hasParent_);
     std::unique_ptr<CatalogEntry> entry;
     switch (type) {
@@ -44,6 +56,7 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     }
     entry->type = type;
     entry->name = std::move(name);
+    entry->oid = oid;
     entry->hasParent_ = hasParent_;
     return entry;
 }
@@ -51,6 +64,7 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
 void CatalogEntry::copyFrom(const CatalogEntry& other) {
     type = other.type;
     name = other.name;
+    oid = other.oid;
     timestamp = other.timestamp;
     deleted = other.deleted;
     hasParent_ = other.hasParent_;

@@ -11,9 +11,9 @@ public:
     // constructors
     //===--------------------------------------------------------------------===//
     RDFGraphCatalogEntry() = default;
-    RDFGraphCatalogEntry(CatalogSet* set, std::string name, common::table_id_t rdfID,
-        common::table_id_t resourceTableID, common::table_id_t literalTabelID,
-        common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
+    RDFGraphCatalogEntry(CatalogSet* set, std::string name, common::table_id_t resourceTableID,
+        common::table_id_t literalTabelID, common::table_id_t resourceTripleTableID,
+        common::table_id_t literalTripleTableID);
 
     //===--------------------------------------------------------------------===//
     // getter & setter

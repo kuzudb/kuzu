@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/types/internal_id_t.h"
 #include "common/vector/value_vector.h"
 #include "graph.h"
 #include "graph_entry.h"

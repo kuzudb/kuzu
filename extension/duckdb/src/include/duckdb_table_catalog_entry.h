@@ -11,7 +11,7 @@ public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
-    DuckDBTableCatalogEntry(CatalogSet* set, std::string name, common::table_id_t tableID,
+    DuckDBTableCatalogEntry(CatalogSet* set, std::string name,
         function::TableFunction scanFunction);
 
     //===--------------------------------------------------------------------===//

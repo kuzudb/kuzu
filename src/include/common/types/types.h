@@ -3,12 +3,12 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "common/api.h"
 #include "common/cast.h"
 #include "common/copy_constructors.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
 
 namespace kuzu {
@@ -51,11 +51,45 @@ constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 using length_t = uint64_t;
 using list_size_t = uint32_t;
 using sequence_id_t = uint64_t;
+using oid_t = uint64_t;
+constexpr oid_t INVALID_OID = UINT64_MAX;
 
 using transaction_t = uint64_t;
 constexpr transaction_t INVALID_TRANSACTION = UINT64_MAX;
 using executor_id_t = uint64_t;
 using executor_info = std::unordered_map<executor_id_t, uint64_t>;
+
+// table id type alias
+using table_id_t = oid_t;
+using table_id_vector_t = std::vector<table_id_t>;
+using table_id_set_t = std::unordered_set<table_id_t>;
+template<typename T>
+using table_id_map_t = std::unordered_map<table_id_t, T>;
+constexpr table_id_t INVALID_TABLE_ID = INVALID_OID;
+// offset type alias
+using offset_t = uint64_t;
+constexpr offset_t INVALID_OFFSET = UINT64_MAX;
+// internal id type alias
+struct internalID_t;
+using nodeID_t = internalID_t;
+using relID_t = internalID_t;
+
+// System representation for internalID.
+struct KUZU_API internalID_t {
+    offset_t offset;
+    table_id_t tableID;
+
+    internalID_t();
+    internalID_t(offset_t offset, table_id_t tableID);
+
+    // comparison operators
+    bool operator==(const internalID_t& rhs) const;
+    bool operator!=(const internalID_t& rhs) const;
+    bool operator>(const internalID_t& rhs) const;
+    bool operator>=(const internalID_t& rhs) const;
+    bool operator<(const internalID_t& rhs) const;
+    bool operator<=(const internalID_t& rhs) const;
+};
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

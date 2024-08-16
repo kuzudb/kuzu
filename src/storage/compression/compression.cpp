@@ -10,7 +10,6 @@
 #include "common/exception/storage.h"
 #include "common/null_mask.h"
 #include "common/type_utils.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"

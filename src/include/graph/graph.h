@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include <span>
 
 namespace kuzu {

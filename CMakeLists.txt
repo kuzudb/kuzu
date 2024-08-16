@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.5.1.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.5.1.2 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -155,6 +155,10 @@ if(${ENABLE_RUNTIME_CHECKS})
     add_compile_definitions(KUZU_RUNTIME_CHECKS)
 endif()
 
+if (${ENABLE_DESER_DEBUG})
+    add_compile_definitions(KUZU_DESER_DEBUG)
+endif()
+
 if(${ENABLE_LTO})
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
@@ -250,7 +254,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.5.1.5")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.5.1.7")
 
 include_directories(src/include)
 

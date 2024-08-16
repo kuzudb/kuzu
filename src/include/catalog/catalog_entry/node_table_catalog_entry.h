@@ -15,9 +15,8 @@ class NodeTableCatalogEntry final : public TableCatalogEntry {
 
 public:
     NodeTableCatalogEntry() = default;
-    NodeTableCatalogEntry(CatalogSet* set, std::string name, common::table_id_t tableID,
-        std::string primaryKeyName)
-        : TableCatalogEntry{set, entryType_, std::move(name), tableID},
+    NodeTableCatalogEntry(CatalogSet* set, std::string name, std::string primaryKeyName)
+        : TableCatalogEntry{set, entryType_, std::move(name)},
           primaryKeyName{std::move(primaryKeyName)} {}
 
     bool isParent(common::table_id_t /*tableID*/) override { return false; }

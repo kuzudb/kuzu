@@ -6,7 +6,6 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/int128_t.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"

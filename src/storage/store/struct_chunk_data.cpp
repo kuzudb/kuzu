@@ -3,7 +3,6 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"

@@ -16,24 +16,27 @@ namespace kuzu {
 namespace catalog {
 
 RelGroupCatalogEntry::RelGroupCatalogEntry(CatalogSet* set, std::string tableName,
-    common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs)
-    : TableCatalogEntry{set, CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName), tableID},
+    std::vector<table_id_t> relTableIDs)
+    : TableCatalogEntry{set, CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName)},
       relTableIDs{std::move(relTableIDs)} {}
 
-bool RelGroupCatalogEntry::isParent(common::table_id_t childID) {
-    auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
-        [&](common::table_id_t relTableID) { return relTableID == childID; });
+bool RelGroupCatalogEntry::isParent(table_id_t childID) {
+    const auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
+        [&](table_id_t relTableID) { return relTableID == childID; });
     return it != relTableIDs.end();
 }
 
-void RelGroupCatalogEntry::serialize(common::Serializer& serializer) const {
+void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
+    serializer.writeDebuggingInfo("relTableIDs");
     serializer.serializeVector(relTableIDs);
 }
 
 std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
-    common::Deserializer& deserializer) {
-    std::vector<common::table_id_t> relTableIDs;
+    Deserializer& deserializer) {
+    std::string debuggingInfo;
+    std::vector<table_id_t> relTableIDs;
+    deserializer.validateDebuggingInfo(debuggingInfo, "relTableIDs");
     deserializer.deserializeVector(relTableIDs);
     auto relGroupEntry = std::make_unique<RelGroupCatalogEntry>();
     relGroupEntry->relTableIDs = std::move(relTableIDs);
@@ -48,10 +51,9 @@ std::unique_ptr<TableCatalogEntry> RelGroupCatalogEntry::copy() const {
 }
 
 static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTable(
-    transaction::Transaction* transaction, const CatalogEntrySet& entries,
-    common::table_id_t tableID) {
+    transaction::Transaction* transaction, const CatalogEntrySet& entries, table_id_t tableID) {
     for (auto& [name, entry] : entries) {
-        auto current = common::ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        auto current = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
         if (current->getTableID() == tableID) {
             auto boundInfo = current->getBoundCreateTableInfo(transaction);
             return boundInfo;

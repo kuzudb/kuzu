@@ -8,7 +8,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"

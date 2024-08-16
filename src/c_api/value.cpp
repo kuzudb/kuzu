@@ -2,7 +2,6 @@
 
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
-#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"

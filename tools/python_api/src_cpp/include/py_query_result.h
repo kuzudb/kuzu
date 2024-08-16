@@ -5,7 +5,6 @@
 
 #include "arrow_array.h"
 #include "common/arrow/arrow.h"
-#include "common/types/internal_id_t.h"
 #include "main/kuzu.h"
 #include "pybind_include.h"
 

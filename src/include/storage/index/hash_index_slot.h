@@ -7,7 +7,7 @@
 
 #include "common/assert.h"
 #include "common/constants.h"
-#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include <bit>
 
 namespace kuzu {
