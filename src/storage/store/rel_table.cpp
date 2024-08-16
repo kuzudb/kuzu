@@ -91,6 +91,9 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
         return;
     }
     relScanState.source = TableScanSource::NONE;
+    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+        return;
+    }
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
                                  fwdRelTableData->getNodeGroup(nodeGroupIdx) :
