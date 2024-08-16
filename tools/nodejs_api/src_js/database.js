@@ -19,7 +19,7 @@ class Database {
    * address space limit some environment.
    */
   constructor(
-    databasePath,
+    databasePath = "",
     bufferManagerSize = 0,
     enableCompression = true,
     readOnly = false,
