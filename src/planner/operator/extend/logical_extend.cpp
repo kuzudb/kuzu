@@ -5,6 +5,8 @@ namespace planner {
 
 void LogicalExtend::computeFactorizedSchema() {
     copyChildSchema(0);
+    auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
+    schema->flattenGroup(boundGroupPos);
     uint32_t nbrGroupPos = 0u;
     nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);

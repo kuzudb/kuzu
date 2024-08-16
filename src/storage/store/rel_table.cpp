@@ -124,6 +124,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     KU_ASSERT(relScanState.nodeOriginalSelVector);
     auto& nodeIDSelVector = *relScanState.nodeOriginalSelVector;
     relScanState.boundNodeIDVector->state->setSelVector(relScanState.nodeOriginalSelVector);
+    relScanState.boundNodeIDVector->state->setToUnflat();
     // We reinitialize per node for in memory and local table data
     if (relScanState.currNodeIdx == relScanState.endNodeIdx) {
         initializeScanState(transaction, relScanState);
@@ -168,6 +169,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     relScanState.nodeOutputSelVector->getMultableBuffer()[0] =
         nodeIDSelVector[relScanState.currNodeIdx];
     relScanState.boundNodeIDVector->state->setSelVector(relScanState.nodeOutputSelVector);
+    relScanState.boundNodeIDVector->state->setToFlat();
     if (relScanState.source == TableScanSource::COMMITTED) {
         // Accommodate for gaps in persistent data scan
         auto& csrNodeGroupScanState =
