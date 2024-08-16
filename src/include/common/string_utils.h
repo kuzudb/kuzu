@@ -36,6 +36,7 @@ public:
     static bool CharacterIsSpace(char c) {
         return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
     }
+    static bool CharacterIsNewLine(char c) { return c == '\n' || c == '\r'; }
     static bool CharacterIsDigit(char c) { return c >= '0' && c <= '9'; }
 
     static std::string ltrim(const std::string& input) {
@@ -47,6 +48,14 @@ public:
     static std::string rtrim(const std::string& input) {
         auto s = input;
         s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !isspace(ch); }).base(),
+            s.end());
+        return s;
+    }
+    static std::string rtrimNewlines(const std::string& input) {
+        auto s = input;
+        s.erase(
+            find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !CharacterIsNewLine(ch); })
+                .base(),
             s.end());
         return s;
     }

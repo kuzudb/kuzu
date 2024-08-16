@@ -150,7 +150,7 @@ struct CopyConstants {
         "WARNING_LIMIT"};
     static constexpr uint64_t DEFAULT_CSV_SKIP_NUM = 0;
     static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 2048;
-    static constexpr uint64_t DEFAULT_CSV_WARNING_LIMIT = 4 * 1024;
+    static constexpr uint64_t DEFAULT_CSV_WARNING_LIMIT = 8 * 1024;
 };
 
 struct RdfConstants {
