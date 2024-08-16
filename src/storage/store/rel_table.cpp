@@ -342,6 +342,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     initializeScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
+    relReadState->boundNodeIDVector->state->setToFlat();
     if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
