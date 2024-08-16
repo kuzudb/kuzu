@@ -45,6 +45,12 @@ public:
             find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
         return s;
     }
+    static std::string ltrimNewlines(const std::string& input) {
+        auto s = input;
+        s.erase(s.begin(),
+            find_if(s.begin(), s.end(), [](unsigned char ch) { return !CharacterIsNewLine(ch); }));
+        return s;
+    }
     static std::string rtrim(const std::string& input) {
         auto s = input;
         s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !isspace(ch); }).base(),

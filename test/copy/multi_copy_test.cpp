@@ -152,8 +152,11 @@ TEST_F(MultiCopyTest, WarningsArePopulated) {
     std::vector<uint64_t> values(10, 1LL << 60);
     std::vector<processor::PopulatedCSVError> expectedWarnings;
     auto tempDir = TestHelper::getTempDir(getTestGroupAndName());
-    const auto filePath = common::LocalFileSystem::joinPath(tempDir, "tmp.csv");
     std::filesystem::create_directories(tempDir);
+    auto filePath = common::LocalFileSystem::joinPath(tempDir, "tmp.csv");
+#if defined(_WIN32)
+    std::replace(filePath.begin(), filePath.end(), '\\', '/');
+#endif
     for (size_t i = 0; i < values.size(); ++i) {
         expectedWarnings.push_back({
             .message = "Conversion exception: Cast failed. Could not convert "
