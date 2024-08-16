@@ -834,7 +834,7 @@ std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) co
         return "Warnings:\n" + printLineExecutionResultImpl(FetchQueryResults{queryResult}) +
                printLineExecutionResultImpl(FetchQueryWarnings{queryResult});
     } else {
-        return printLineExecutionResultImpl(FetchQueryWarnings{queryResult});
+        return printLineExecutionResultImpl(FetchQueryResults{queryResult});
     }
 }
 

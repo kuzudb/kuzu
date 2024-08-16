@@ -41,7 +41,6 @@ def test_quit(temp_db) -> None:
 
 
 def test_warnings(temp_db, warning_csv_path) -> None:
-    # test all rows shown
     test = (
         ShellTest()
         .add_argument(temp_db)
