@@ -192,7 +192,7 @@ std::string QueryResult::toString() {
     return result;
 }
 
-std::string QueryResult::getWarningString() {
+std::string QueryResult::toWarningString() {
     std::string result;
     if (isSuccess()) {
         // print header

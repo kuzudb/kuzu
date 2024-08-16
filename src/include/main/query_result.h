@@ -129,7 +129,7 @@ public:
     /**
      * @return string summarizing all warnings in first query result.
      */
-    KUZU_API std::string getWarningString();
+    KUZU_API std::string toWarningString();
 
     /**
      * @brief Resets the result tuple iterator.
