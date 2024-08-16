@@ -224,8 +224,7 @@ jobs:
 
       - name: Build & Test
         run: |
-          export NUM_THREADS=$(nproc)
-          docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test
+          docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test NUM_THREADS=$(nproc)
 
       - name: Stop Docker container
         run: docker stop kuzu-x86
