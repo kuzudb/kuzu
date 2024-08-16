@@ -172,7 +172,7 @@ std::string translate(const std::string &pattern) {
 
 static inline 
 bool fnmatch(const fs::path &name, const std::string &pattern) {
-  return RE2::FullMatch(name.string(), pattern);
+  return RE2::FullMatch(name.string(), translate(pattern));
 }
 
 static inline 
