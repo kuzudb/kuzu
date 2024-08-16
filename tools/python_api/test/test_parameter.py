@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 import kuzu
 
+
 def test_struct_param_access(conn_db_readwrite: ConnDB) -> None:
     conn, _ = conn_db_readwrite
     batch = \
@@ -45,6 +46,7 @@ def test_struct_param_access(conn_db_readwrite: ConnDB) -> None:
         parameters={"batch": batch}
     )
 
+
 def test_array_binding(conn_db_readwrite: ConnDB) -> None:
     conn, _ = conn_db_readwrite
     conn.execute("CREATE NODE TABLE node(id STRING, embedding DOUBLE[3], PRIMARY KEY(id))")
@@ -65,7 +67,8 @@ def test_array_binding(conn_db_readwrite: ConnDB) -> None:
     #         """, {"emb": [4.3, 5.2, 6.7], "emb1": [2.2, 3.3, 5.5]}
     #     )
     # assert str(err.value) == "Binder exception: Left and right type are both ANY, which is not currently supported."
-    
+
+
 def test_bool_param(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
     result = conn.execute(

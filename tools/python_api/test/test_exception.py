@@ -4,7 +4,6 @@ import sys
 
 import kuzu
 import pytest
-
 from type_aliases import ConnDB
 
 

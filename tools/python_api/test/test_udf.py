@@ -6,7 +6,6 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 from kuzu import Type
-
 from type_aliases import ConnDB
 
 
@@ -89,7 +88,7 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
             'x': (pointA['x'] - pointB['x']) ** 2,
             'y': (pointA['y'] - pointB['y']) ** 2
         }
-    
+
     distanceArgs = ["UDFDist", distancePrimer, ["STRUCT(x INT32, y INT32)", "STRUCT(x INT32, y INT32)"], "STRUCT(x INT32, y INT32)"]
 
     conn.create_function(*add5IntArgs)
