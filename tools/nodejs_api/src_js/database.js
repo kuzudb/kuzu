@@ -20,13 +20,16 @@ class Database {
    * address space limit some environment.
    */
   constructor(
-    databasePath = "",
+    databasePath,
     bufferManagerSize = 0,
     enableCompression = true,
     readOnly = false,
     maxDBSize = 0
   ) {
-    if (typeof databasePath !== "string") {
+    if (!databasePath) {
+      databasePath = ":memory:";
+    }
+    else if (typeof databasePath !== "string") {
       throw new Error("Database path must be a string.");
     }
     if (typeof bufferManagerSize !== "number" || bufferManagerSize < 0) {

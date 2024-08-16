@@ -41,4 +41,14 @@ public class DatabaseTest extends TestBase {
             fail("DBCreationAndDestroyWithPathOnly failed");
         }
     }
+
+    @Test
+    void DBCreationAndDestroyWithNoParam(){
+        try {
+            KuzuDatabase database = new KuzuDatabase();
+            database.destroy();
+        } catch (Exception e) {
+            fail("DBCreationAndDestroyWithNoParam failed");
+        }
+    }
 }

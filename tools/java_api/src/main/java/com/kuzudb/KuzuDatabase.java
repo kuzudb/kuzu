@@ -13,6 +13,13 @@ public class KuzuDatabase {
     boolean readOnly = false;
 
     /**
+     * Creates a database object. The database will be created in memory with default settings.
+     */
+    public KuzuDatabase() {
+        this("");
+    }
+
+    /**
      * Creates a database object.
      * @param databasePath: Database path. If the database does not already exist, it will be created.
      */

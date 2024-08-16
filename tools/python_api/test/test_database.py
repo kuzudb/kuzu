@@ -80,7 +80,7 @@ def test_database_context_manager(tmp_path: Path, build_dir: Path) -> None:
 
 
 def test_in_mem_database_memory_db_path() -> None:
-    with kuzu.Database(database_path=":memory:") as db:
+        db = kuzu.Database(database_path=":memory:")
         assert not db.is_closed
         assert db._database is not None
 
@@ -89,12 +89,12 @@ def test_in_mem_database_memory_db_path() -> None:
         conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
         conn.execute("CREATE (:person {name: 'Alice', age: 30});")
         conn.execute("CREATE (:person {name: 'Bob', age: 40});")
-        with conn.execute("MATCH (p:person) RETURN p.*") as result:
-            assert result.get_num_tuples() == 2
+        result = conn.execute("MATCH (p:person) RETURN p.*")
+        assert result.get_num_tuples() == 2
 
 
 def test_in_mem_database_empty_db_path() -> None:
-    with kuzu.Database(database_path="") as db:
+        db = kuzu.Database()
         assert not db.is_closed
         assert db._database is not None
 
@@ -103,8 +103,8 @@ def test_in_mem_database_empty_db_path() -> None:
         conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
         conn.execute("CREATE (:person {name: 'Alice', age: 30});")
         conn.execute("CREATE (:person {name: 'Bob', age: 40});")
-        with conn.execute("MATCH (p:person) RETURN p.*") as result:
-            assert result.get_num_tuples() == 2
+        result = conn.execute("MATCH (p:person) RETURN p.*")
+        assert result.get_num_tuples() == 2
 
 
 def test_in_mem_database_no_db_path() -> None:
