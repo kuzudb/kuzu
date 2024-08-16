@@ -144,7 +144,14 @@ fn build_ffi(
     println!("cargo:rerun-if-env-changed=KUZU_SHARED");
 
     println!("cargo:rerun-if-changed=include/kuzu_rs.h");
-    println!("cargo:rerun-if-changed=include/kuzu_rs.cpp");
+    println!("cargo:rerun-if-changed=src/kuzu_rs.cpp");
+    // Note that this should match the kuzu-src/* entries in the package.include list in Cargo.toml
+    // Unfortunately they appear to need to be specified individually since the symlink is
+    // considered to be changed each time.
+    println!("cargo:rerun-if-changed=kuzu-src/src");
+    println!("cargo:rerun-if-changed=kuzu-src/third_party");
+    println!("cargo:rerun-if-changed=kuzu-src/CMakeLists.txt");
+    println!("cargo:rerun-if-changed=kuzu-src/tools/CMakeLists.txt");
 
     if cfg!(windows) {
         build.flag("/std:c++20");

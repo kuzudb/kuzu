@@ -14,9 +14,10 @@ include = [
     "build.rs",
     "/src",
     "/include",
+# If more files are added to kuzu-src, they should also be added to the rerun-if-changed
+# instructions in build.rs so that rebuilds are detected properly
     "/kuzu-src/src",
     "/kuzu-src/third_party",
-    "/kuzu-src/Makefile",
     "/kuzu-src/CMakeLists.txt",
     "/kuzu-src/tools/CMakeLists.txt",
 ]
