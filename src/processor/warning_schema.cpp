@@ -4,7 +4,7 @@ namespace kuzu {
 namespace processor {
 
 std::vector<std::string> WarningSchema::getColumnNames() {
-    static constexpr std::initializer_list<std::string_view> names = {"Message", "File Path",
+    static constexpr std::initializer_list<const char*> names = {"Message", "File Path",
         "Line Number", "Reconstructed Line"};
     static_assert(getNumColumns() == names.size());
     std::vector<std::string> ret;

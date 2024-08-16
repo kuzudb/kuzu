@@ -151,7 +151,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 5 tuples have been copied to the person table.
 2 tuples have been skipped in the person table due to warnings.
 
--CASE ParallelCopyFromMultipleLargeFiles
+-CASE ParallelCopyFromMultipleLargeFilesSkipInvalid
 -STATEMENT CALL threads=2
 ---- ok
 -STATEMENT CREATE NODE TABLE someTable(ID serial, A INT64, B INT64, PRIMARY KEY(ID))
@@ -163,6 +163,14 @@ Conversion exception: Cast failed. Could not convert "abc" to INT64.|${KUZU_ROOT
 -STATEMENT MATCH (s:someTable) RETURN COUNT(*)
 ---- 1
 151042
+
+-CASE SkipInvalidAtEOF
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv" (IGNORE_ERRORS=true)
+---- warning 1
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv|2|2,2147483650
+-STATEMENT MATCH (p:person) RETURN p.*
+---- 1
+0|4
 
 -CASE SerialSkipInvalidNodeTableRowsCastingError
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)

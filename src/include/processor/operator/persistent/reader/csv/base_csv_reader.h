@@ -26,7 +26,6 @@ public:
 
     virtual uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) = 0;
 
-    uint64_t countRows();
     bool isEOF() const;
     uint64_t getFileSize();
     // Get the file offset of the current buffer position.
