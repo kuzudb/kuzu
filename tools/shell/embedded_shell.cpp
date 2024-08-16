@@ -830,8 +830,12 @@ std::string escapeCsvString(const std::string& field, const std::string& delimit
 }
 
 std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) const {
-    return printLineExecutionResultImpl(FetchQueryResults{queryResult}) +
-           printLineExecutionResultImpl(FetchQueryWarnings{queryResult});
+    if (queryResult.hasNextWarning()) {
+        return "Warnings:\n" + printLineExecutionResultImpl(FetchQueryResults{queryResult}) +
+               printLineExecutionResultImpl(FetchQueryWarnings{queryResult});
+    } else {
+        return printLineExecutionResultImpl(FetchQueryWarnings{queryResult});
+    }
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
@@ -897,14 +901,41 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
-        printTruncatedExecutionResultImpl(FetchQueryWarnings{queryResult}, querySummary);
-        printTruncatedExecutionResultImpl(FetchQueryResults{queryResult}, querySummary);
+        if (queryResult.hasNextWarning()) {
+            printf("Warnings:\n");
+            printTruncatedExecutionResultImpl(FetchQueryWarnings{queryResult});
+        }
+        const auto printResult = printTruncatedExecutionResultImpl(FetchQueryResults{queryResult});
+
+        // print query result (numFlatTuples & tuples)
+        if (stats) {
+            if (printResult.numTuples == 1) {
+                printf("(1 tuple)\n");
+            } else {
+                printf("(%" PRIu64 " tuples", printResult.numTuples);
+                if (printResult.rowTruncated) {
+                    printf(", %" PRIu64 " shown", maxRowSize);
+                }
+                printf(")\n");
+            }
+            if (printResult.colsWidth.size() == 1) {
+                printf("(1 column)\n");
+            } else {
+                printf("(%" PRIu64 " columns", (uint64_t)printResult.colsWidth.size());
+                if (printResult.colTruncated) {
+                    printf(", %" PRIu64 " shown", printResult.colsPrinted);
+                }
+                printf(")\n");
+            }
+            printf("Time: %.2fms (compiling), %.2fms (executing)\n",
+                querySummary->getCompilingTime(), querySummary->getExecutionTime());
+        }
     }
 }
 
 template<QueryResultFetcher Fetcher>
-void EmbeddedShell::printTruncatedExecutionResultImpl(Fetcher queryResult,
-    QuerySummary* querySummary) const {
+EmbeddedShell::PrintResult EmbeddedShell::printTruncatedExecutionResultImpl(
+    Fetcher queryResult) const {
     auto tableDrawingCharacters =
         common::ku_dynamic_cast<DrawingCharacters*, BaseTableDrawingCharacters*>(
             drawingCharacters.get());
@@ -1307,29 +1338,11 @@ void EmbeddedShell::printTruncatedExecutionResultImpl(Fetcher queryResult,
         printf("%s\n", printString.c_str());
     }
 
-    // print query result (numFlatTuples & tuples)
-    if (stats) {
-        if (numTuples == 1) {
-            printf("(1 tuple)\n");
-        } else {
-            printf("(%" PRIu64 " tuples", numTuples);
-            if (rowTruncated) {
-                printf(", %" PRIu64 " shown", maxRowSize);
-            }
-            printf(")\n");
-        }
-        if (colsWidth.size() == 1) {
-            printf("(1 column)\n");
-        } else {
-            printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
-            if (colTruncated) {
-                printf(", %" PRIu64 " shown", colsPrinted);
-            }
-            printf(")\n");
-        }
-        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
-            querySummary->getExecutionTime());
-    }
+    return {.numTuples = numTuples,
+        .rowTruncated = rowTruncated,
+        .colTruncated = colTruncated,
+        .colsWidth = colsWidth,
+        .colsPrinted = colsPrinted};
 }
 
 } // namespace main

@@ -29,10 +29,33 @@ def test_clear(temp_db) -> None:
 
 
 def test_quit(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db).statement(":quit").statement("RETURN RANGE(0,10) AS a;")
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":quit")
+        .statement("RETURN RANGE(0,10) AS a;")
+    )
     result = test.run()
     # check to make sure the return query did not execute
     result.check_not_stdout("[0,1,2,3,4,5,6,7,8,9,10]")
+
+
+def test_warnings(temp_db, warning_csv_path) -> None:
+    # test all rows shown
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(
+            "create node table person (ID INt64, fName StRING, PRIMARY KEY (ID));"
+        )
+        .statement(
+            f'COPY person FROM "{warning_csv_path}" (HEADER=true, IGNORE_ERRORS=true);'
+        )
+    )
+    result = test.run()
+    result.check_stdout("Warnings:")
+    result.check_stdout("Conversion")
+    result.check_stdout("1 tuples have been skipped")
 
 
 def test_max_rows(temp_db, csv_path) -> None:

@@ -36,6 +36,14 @@ public:
     static void interruptHandler(int signal);
 
 private:
+    struct PrintResult {
+        uint64_t numTuples;
+        bool rowTruncated;
+        bool colTruncated;
+        std::vector<uint32_t> colsWidth;
+        uint64_t colsPrinted;
+    };
+
     int processShellCommands(std::string lineStr);
 
     static void printHelp();
@@ -44,7 +52,7 @@ private:
 
     void printTruncatedExecutionResult(QueryResult& queryResult) const;
     template<QueryResultFetcher Fetcher>
-    void printTruncatedExecutionResultImpl(Fetcher queryResult, QuerySummary* querySummary) const;
+    PrintResult printTruncatedExecutionResultImpl(Fetcher queryResult) const;
 
     std::string printJsonExecutionResult(QueryResult& queryResult) const;
 
