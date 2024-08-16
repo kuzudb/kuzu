@@ -10,7 +10,8 @@ class Database {
    * executed. To initialize the database immediately, call the `init()`
    * function on the returned object.
    *
-   * @param {String} databasePath path to the database file.
+   * @param {String} databasePath path to the database file. If the path is not specified, or empty, or equal to
+   `:memory:`, the database will be created in memory.
    * @param {Number} bufferManagerSize size of the buffer manager in bytes.
    * @param {Boolean} enableCompression whether to enable compression.
    * @param {Boolean} readOnly if true, database will be opened in read-only mode.

@@ -40,7 +40,8 @@ class Database:
         Parameters
         ----------
         database_path : str, Path
-            The path to database files
+            The path to database files. If the path is not specified, or empty, or equal to `:memory:`, the database
+            will be created in memory.
 
         buffer_pool_size : int
             The maximum size of buffer pool in bytes. Defaults to ~80% of system memory.
