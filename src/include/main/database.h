@@ -91,7 +91,8 @@ class Database {
 public:
     /**
      * @brief Creates a database object.
-     * @param databasePath Database path.
+     * @param databasePath Database path. If left empty, or :memory: is specified, this will create
+     *        an in-memory database.
      * @param systemConfig System configurations (buffer pool size and max num threads).
      */
     KUZU_API explicit Database(std::string_view databasePath,
