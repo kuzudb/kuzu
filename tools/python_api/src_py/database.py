@@ -27,7 +27,7 @@ class Database:
 
     def __init__(
         self,
-        database_path: str | Path = "",
+        database_path: str | Path | None = None,
         *,
         buffer_pool_size: int = 0,
         max_num_threads: int = 0,
@@ -40,7 +40,8 @@ class Database:
         Parameters
         ----------
         database_path : str, Path
-            The path to database files
+            The path to database files. If the path is not specified, or empty, or equal to `:memory:`, the database
+            will be created in memory.
 
         buffer_pool_size : int
             The maximum size of buffer pool in bytes. Defaults to ~80% of system memory.
@@ -73,6 +74,8 @@ class Database:
              environment and 1GB under 32-bit one.
 
         """
+        if database_path is None:
+            database_path = ":memory:"
         if isinstance(database_path, Path):
             database_path = str(database_path)
 

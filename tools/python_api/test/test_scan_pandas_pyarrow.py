@@ -1,8 +1,8 @@
 import math
-from decimal import Decimal
 import random
 import struct
 from datetime import datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import kuzu
@@ -633,6 +633,7 @@ def test_pyarrow_map_offset(conn_db_readonly: ConnDB) -> None:
         idx += 1
 
     assert idx == 48
+
 
 def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite

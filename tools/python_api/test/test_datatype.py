@@ -7,7 +7,6 @@ from uuid import UUID
 import numpy as np
 import pandas as pd
 import pytz
-
 from type_aliases import ConnDB
 
 
@@ -100,6 +99,7 @@ def test_double(conn_db_readonly: ConnDB) -> None:
     assert not result.has_next()
     result.close()
 
+
 def test_decimal(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     res = conn.execute("UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES")
@@ -126,6 +126,7 @@ def test_decimal(conn_db_readonly: ConnDB) -> None:
         Decimal('24.9'),
         Decimal('8.7'),
     ])
+
 
 def test_string(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly

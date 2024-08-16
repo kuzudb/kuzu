@@ -268,7 +268,7 @@ class Connection:
         parsed_params_type = [x if type(x) is str else x.value for x in params_type]
         if type(return_type) is not str:
             return_type = return_type.value
-        
+
         self._connection.create_function(
             name=name,
             udf=udf,
