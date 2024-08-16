@@ -132,7 +132,9 @@ def init_rdf(conn: kuzu.Connection) -> None:
                 if line := line.strip():
                     conn.execute(line)
 
+
 _POOL_SIZE_: int = 256 * 1024 * 1024
+
 
 def init_db(path: Path) -> Path:
     if Path(path).exists():

@@ -1,11 +1,11 @@
 import datetime
 import re
 from pathlib import Path
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
 import pytest
-from uuid import UUID
 
 try:
     from zoneinfo import ZoneInfo
@@ -399,6 +399,7 @@ def test_copy_from_pandas_object(tmp_path: Path) -> None:
     assert result.get_next() == ["Karissa", '40']
     assert result.has_next() is False
 
+
 def test_copy_from_pandas_date(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
@@ -406,9 +407,10 @@ def test_copy_from_pandas_date(tmp_path: Path) -> None:
     conn.execute("CREATE NODE TABLE Person(id INT16, d TIMESTAMP, PRIMARY KEY (id));")
     conn.execute("COPY Person FROM df;")
     result = conn.execute("match (p:Person) return p.*")
-    assert result.get_next() == [1, datetime.datetime(2024,1,3)]
-    assert result.get_next() == [2, datetime.datetime(2023,10,10)]
+    assert result.get_next() == [1, datetime.datetime(2024, 1, 3)]
+    assert result.get_next() == [2, datetime.datetime(2023, 10, 10)]
     assert result.has_next() is False
+
 
 def test_scan_string_to_nested(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
@@ -417,6 +419,6 @@ def test_scan_string_to_nested(tmp_path: Path) -> None:
     conn.execute("CREATE NODE TABLE tab(id INT64, lstcol INT64[], mapcol MAP(STRING, INT64), structcol STRUCT(a INT64, b INT64), lstlstcol INT64[][], PRIMARY KEY(id))")
     conn.execute("COPY tab from df")
     result = conn.execute("match (t:tab) return t.*")
-    assert result.get_next() == [1, [1,2,3], {"'a'": 1, "'b'": 2}, {"a": 1, "b": 2}, [[],[1,2,3],[4,5,6]]]
+    assert result.get_next() == [1, [1, 2, 3], {"'a'": 1, "'b'": 2}, {"a": 1, "b": 2}, [[], [1, 2, 3], [4, 5, 6]]]
     assert not result.has_next()
-    
+

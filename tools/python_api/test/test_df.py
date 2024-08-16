@@ -545,6 +545,7 @@ def test_get_df_unicode(conn_db_readonly: ConnDB) -> None:
         "Roma",
     ]
 
+
 def test_get_df_decimal(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     res = conn.execute("UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B RETURN CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD").get_as_df()

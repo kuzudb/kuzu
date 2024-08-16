@@ -189,6 +189,48 @@ describe("Database constructor", function () {
       assert.equal(e.message, "Max DB size must be a positive integer.");
     }
   });
+
+  it("should create an in-memory database when no path is provided", async function () {
+    const testDb = new kuzu.Database();
+    const conn = new kuzu.Connection(testDb);
+    let res = await conn.query("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));"); 
+    res.close();
+    res = await conn.query("CREATE (:person {name: 'Alice', age: 30});");
+    res.close();
+    res = await conn.query("CREATE (:person {name: 'Bob', age: 40});");
+    res.close();
+    res = await conn.query("MATCH (p:person) RETURN p.*;");
+    const result = await res.getAll();
+    assert.equal(result.length, 2);
+    assert.deepEqual(result, [
+      { 'p.name': 'Alice', 'p.age': 30 },
+      { 'p.name': 'Bob', 'p.age': 40 }
+    ]);
+    res.close();
+    conn.close();
+    testDb.close();
+  });
+
+  it("should create an in-memory database when empty path is provided", async function () {
+    const testDb = new kuzu.Database("", 1 << 28 /* 256MB */);
+    const conn = new kuzu.Connection(testDb);
+    let res = await conn.query("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));");
+    res.close();
+    res = await conn.query("CREATE (:person {name: 'Alice', age: 30});");
+    res.close();
+    res = await conn.query("CREATE (:person {name: 'Bob', age: 40});");
+    res.close();
+    res = await conn.query("MATCH (p:person) RETURN p.*;");
+    const result = await res.getAll();
+    assert.equal(result.length, 2);
+    assert.deepEqual(result, [
+      { 'p.name': 'Alice', 'p.age': 30 },
+      { 'p.name': 'Bob', 'p.age': 40 }
+    ]);
+    res.close();
+    conn.close();
+    testDb.close();
+  });
 });
 
 describe("Database close", function () {

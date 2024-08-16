@@ -13,6 +13,13 @@ public class KuzuDatabase {
     boolean readOnly = false;
 
     /**
+     * Creates a database object. The database will be created in memory with default settings.
+     */
+    public KuzuDatabase() {
+        this("");
+    }
+
+    /**
      * Creates a database object.
      * @param databasePath: Database path. If the database does not already exist, it will be created.
      */
@@ -25,7 +32,8 @@ public class KuzuDatabase {
 
     /**
     * Creates a database object.
-    * @param databasePath: Database path. If the database does not already exist, it will be created.
+    * @param databasePath: Database path. If the path is empty, or equal to `:memory:`, the database will be created in
+    * memory.
     * @param bufferPoolSize: Max size of the buffer pool in bytes.
     * @param enableCompression: Enable compression in storage.
     * @param readOnly: Open the database in READ_ONLY mode.

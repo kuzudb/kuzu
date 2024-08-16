@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-import random
-
-import kuzu
-import torch
-from test_helper import KUZU_ROOT
-from type_aliases import ConnDB
-
 TINY_SNB_KNOWS_GROUND_TRUTH = {
     0: [2, 3, 5],
     2: [0, 3, 5],
