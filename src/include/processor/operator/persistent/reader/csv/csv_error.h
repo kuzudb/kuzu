@@ -50,8 +50,6 @@ public:
     explicit CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
         WarningCounter* sharedWarningCounter, bool ignoreErrors);
 
-    void reset();
-
     void handleError(BaseCSVReader* reader, const CSVError& error, bool mustThrow);
     void handleCachedErrors(BaseCSVReader* reader);
 

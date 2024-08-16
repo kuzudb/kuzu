@@ -792,7 +792,7 @@ std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) c
     return printString;
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 std::string EmbeddedShell::printLineExecutionResultImpl(Fetcher queryResult) const {
     auto colNames = queryResult.getColumnNames();
     std::string printString = "";
@@ -830,8 +830,8 @@ std::string escapeCsvString(const std::string& field, const std::string& delimit
 }
 
 std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) const {
-    return printLineExecutionResultImpl(QueryResultFetcher{queryResult}) +
-           printLineExecutionResultImpl(QueryResultWarningFetcher{queryResult});
+    return printLineExecutionResultImpl(FetchQueryResults{queryResult}) +
+           printLineExecutionResultImpl(FetchQueryWarnings{queryResult});
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
@@ -897,12 +897,12 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
     if (querySummary->isExplain()) {
         printf("%s", queryResult.getNext()->toString().c_str());
     } else {
-        printTruncatedExecutionResultImpl(QueryResultWarningFetcher{queryResult}, querySummary);
-        printTruncatedExecutionResultImpl(QueryResultFetcher{queryResult}, querySummary);
+        printTruncatedExecutionResultImpl(FetchQueryWarnings{queryResult}, querySummary);
+        printTruncatedExecutionResultImpl(FetchQueryResults{queryResult}, querySummary);
     }
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 void EmbeddedShell::printTruncatedExecutionResultImpl(Fetcher queryResult,
     QuerySummary* querySummary) const {
     auto tableDrawingCharacters =

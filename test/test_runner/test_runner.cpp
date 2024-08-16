@@ -146,7 +146,7 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
             return false;
         }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        auto resultFetcher = QueryResultWarningFetcher{*result};
+        auto resultFetcher = FetchQueryWarnings{*result};
         if (checkPlanResult(resultFetcher, statement, resultIdx, planStr, planIdx)) {
             return true;
         }
@@ -159,7 +159,7 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
             return false;
         }
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        auto resultFetcher = QueryResultFetcher{*result};
+        auto resultFetcher = FetchQueryResults{*result};
         if (checkPlanResult(resultFetcher, statement, resultIdx, planStr, planIdx)) {
             return true;
         }
@@ -169,7 +169,7 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     return false;
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 bool TestRunner::checkPlanResult(Fetcher& result, TestStatement* statement, size_t resultIdx,
     const std::string& planStr, uint32_t planIdx) {
     TestQueryResult& testAnswer = statement->result[resultIdx];
@@ -249,7 +249,7 @@ bool TestRunner::checkPlanResult(Fetcher& result, TestStatement* statement, size
     return false;
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 bool TestRunner::checkResultNumeric(Fetcher& queryResult, TestStatement* statement,
     size_t resultIdx) {
     queryResult.resetIterator();
@@ -292,7 +292,7 @@ bool TestRunner::checkResultNumeric(Fetcher& queryResult, TestStatement* stateme
     return true;
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 std::vector<std::string> TestRunner::convertResultToString(Fetcher& queryResult,
     bool checkOutputOrder, bool checkColumnNames) {
     std::vector<std::string> actualOutput;
@@ -313,7 +313,7 @@ std::vector<std::string> TestRunner::convertResultToString(Fetcher& queryResult,
     return actualOutput;
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 std::string TestRunner::convertResultToMD5Hash(Fetcher& queryResult, bool checkOutputOrder,
     bool checkColumnNames) {
     queryResult.resetIterator();
@@ -328,7 +328,7 @@ std::string TestRunner::convertResultToMD5Hash(Fetcher& queryResult, bool checkO
     return std::string(hasher.finishMD5());
 }
 
-template<typename Fetcher>
+template<QueryResultFetcher Fetcher>
 std::string TestRunner::convertResultColumnsToString(Fetcher& queryResult) {
     std::string columnsString;
     std::vector<std::string> columnNames = queryResult.getColumnNames();

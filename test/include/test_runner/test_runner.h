@@ -1,6 +1,7 @@
 #pragma once
 
 #include "main/connection.h"
+#include "main/query_result_fetcher.h"
 #include "test_runner/test_group.h"
 
 namespace kuzu {
@@ -21,19 +22,19 @@ private:
         TestStatement* statement, size_t resultIdx, main::Connection& conn);
     static bool checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, size_t resultIdx, main::Connection& conn, uint32_t planIdx);
-    template<typename Fetcher>
+    template<main::QueryResultFetcher Fetcher>
     static bool checkResultNumeric(Fetcher& resultTuples, TestStatement* statement,
         size_t resultIdx);
 
-    template<typename Fetcher>
+    template<main::QueryResultFetcher Fetcher>
     static std::vector<std::string> convertResultToString(Fetcher& queryResult,
         bool checkOutputOrder = false, bool checkColumnNames = false);
-    template<typename Fetcher>
+    template<main::QueryResultFetcher Fetcher>
     static std::string convertResultToMD5Hash(Fetcher& queryResult, bool checkOutputOrder,
         bool checkColumnNames); // returns hash and number of values hashed
-    template<typename Fetcher>
+    template<main::QueryResultFetcher Fetcher>
     static std::string convertResultColumnsToString(Fetcher& queryResult);
-    template<typename Fetcher>
+    template<main::QueryResultFetcher Fetcher>
     static bool checkPlanResult(Fetcher& result, TestStatement* statement, size_t resultIdx,
         const std::string& planStr, uint32_t planIdx);
 };

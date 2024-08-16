@@ -2,6 +2,7 @@
 
 #include "linenoise.h"
 #include "main/kuzu.h"
+#include "main/query_result_fetcher.h"
 #include "output.h"
 
 namespace kuzu {
@@ -42,7 +43,7 @@ private:
     void printExecutionResult(QueryResult& queryResult) const;
 
     void printTruncatedExecutionResult(QueryResult& queryResult) const;
-    template<typename Fetcher>
+    template<QueryResultFetcher Fetcher>
     void printTruncatedExecutionResultImpl(Fetcher queryResult, QuerySummary* querySummary) const;
 
     std::string printJsonExecutionResult(QueryResult& queryResult) const;
@@ -51,7 +52,7 @@ private:
 
     std::string printLatexExecutionResult(QueryResult& queryResult) const;
 
-    template<typename Fetcher>
+    template<QueryResultFetcher Fetcher>
     std::string printLineExecutionResultImpl(Fetcher queryResult) const;
     std::string printLineExecutionResult(QueryResult& queryResult) const;
 

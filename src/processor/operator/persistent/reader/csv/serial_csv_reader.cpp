@@ -189,8 +189,11 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
         state->fileIdx = i;
         state->initReader(ctx->clientContext);
-        state->errorHandlers[i].handleCachedErrors(state->reader.get());
         auto cachedWarnings = state->errorHandlers[i].getCachedErrors(state->reader.get());
+
+        // The serial CSV reader should always be able to throw immediately if not ignoring errors
+        KU_ASSERT(state->csvReaderConfig.option.ignoreErrors || cachedWarnings.empty());
+
         warningMessages.insert(warningMessages.end(), cachedWarnings.begin(), cachedWarnings.end());
     }
 

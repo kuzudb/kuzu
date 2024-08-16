@@ -119,7 +119,7 @@ public:
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
     /**
-     * @return next flat tuple in the query result.
+     * @return next warning in the query result as a flat tuple.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNextWarning();
     /**

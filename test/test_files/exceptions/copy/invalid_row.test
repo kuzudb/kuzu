@@ -22,11 +22,11 @@
 Runtime exception: Unable to find primary key value 5.
 
 -CASE InvalidHeader
--STATEMENT create node table tableOfTypes (id INT16, int64Column INT16, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT16[], PRIMARY KEY (id));
+-STATEMENT create node table tableOfTypes (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64[], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv"
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT16. Line containing the error: 'id...'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line containing the error: 'id...'
 
 -CASE ParallelSkipInvalidNodeTableRowsCastingErrorCheckNumTuples
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)

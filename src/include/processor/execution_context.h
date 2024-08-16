@@ -2,11 +2,11 @@
 
 #include "common/profiler.h"
 #include "main/client_context.h"
-#include "processor/result/factorized_table.h"
 
 namespace kuzu {
 namespace processor {
 
+class FactorizedTable;
 struct PopulatedCSVError;
 
 struct ExecutionContext {

@@ -226,7 +226,7 @@ std::string BaseCSVReader::reconstructLine(uint64_t startPosition, uint64_t endP
     KU_ASSERT(endPosition >= startPosition);
 
     if (-1 == fileInfo->seek(startPosition, SEEK_SET)) {
-        return "";
+        return "Unable to reconstruct line";
     }
 
     std::string res;
@@ -244,7 +244,9 @@ void BaseCSVReader::skipUntilNextLine() {
     do {
         for (; position < bufferSize; ++position) {
             if (isNewLine(buffer[position])) {
-                ++position;
+                while (position < bufferSize && isNewLine(buffer[position])) {
+                    ++position;
+                }
                 return;
             }
         }
@@ -356,7 +358,6 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         }
         column++;
 
-        // if we are ignoring errors and there is one in the current row skip it
         rowNum += driver.addRow(rowNum, column);
 
         column = 0;

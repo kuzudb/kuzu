@@ -2,6 +2,7 @@
 
 #include "processor/operator/persistent/reader/csv/csv_error.h"
 #include "processor/result/factorized_table_util.h"
+#include "processor/warning_schema.h"
 
 namespace kuzu {
 using namespace common;
@@ -12,21 +13,11 @@ ExecutionContext::ExecutionContext(common::Profiler* profiler, main::ClientConte
     : queryID{queryID}, profiler{profiler}, clientContext{clientContext} {
     FactorizedTableSchema tableSchema;
 
-    // message
-    tableSchema.appendColumn(
-        ColumnSchema{false, 0, LogicalTypeUtils::getRowLayoutSize(LogicalType::STRING())});
-
-    // file path
-    tableSchema.appendColumn(
-        ColumnSchema{false, 1, LogicalTypeUtils::getRowLayoutSize(LogicalType::STRING())});
-
-    // line number
-    tableSchema.appendColumn(
-        ColumnSchema{false, 2, LogicalTypeUtils::getRowLayoutSize(LogicalType::UINT64())});
-
-    // reconstructed line
-    tableSchema.appendColumn(
-        ColumnSchema{false, 3, LogicalTypeUtils::getRowLayoutSize(LogicalType::STRING())});
+    const auto dataTypes = WarningSchema::getColumnDataTypes();
+    for (idx_t i = 0; i < WarningSchema::getNumColumns(); ++i) {
+        tableSchema.appendColumn(
+            ColumnSchema{false, i, LogicalTypeUtils::getRowLayoutSize(dataTypes[i])});
+    }
 
     warningTable = std::make_unique<FactorizedTable>(this->clientContext->getMemoryManager(),
         std::move(tableSchema));
@@ -38,6 +29,7 @@ void ExecutionContext::setWarningMessages(const std::vector<PopulatedCSVError>& 
     uint64_t messageLimit) {
     common::UniqLock lock{mtx};
     warningLimit = messageLimit;
+
     for (const auto& error : messages) {
         auto lineVec =
             std::make_shared<ValueVector>(LogicalType::UINT64(), clientContext->getMemoryManager());

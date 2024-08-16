@@ -31,12 +31,6 @@ CSVErrorHandler::CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorC
     : mtx(sharedMtx), maxCachedErrorCount(maxCachedErrorCount), ignoreErrors(ignoreErrors),
       headerNumRows(0), sharedWarningCounter(sharedWarningCounter) {}
 
-void CSVErrorHandler::reset() {
-    auto lockGuard = lock();
-    linesPerBlock.clear();
-    cachedErrors.clear();
-}
-
 uint64_t CSVErrorHandler::getCachedErrorCount() {
     return cachedErrors.size();
 }
@@ -88,11 +82,11 @@ void CSVErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader,
     const auto error = *cachedErrors.cbegin();
 
     const bool errorIsThrowable = canGetLineNumber(error.blockIdx);
-    KU_ASSERT(!mustThrow || errorIsThrowable);
-
     if (errorIsThrowable) {
         const auto lineNumber = getLineNumber(error.blockIdx, error.numRowsReadInBlock);
         throwError(reader, error, lineNumber);
+    } else if (mustThrow) {
+        throwError(reader, error, 0);
     }
 }
 

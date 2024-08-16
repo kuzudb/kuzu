@@ -1,12 +1,25 @@
 #pragma once
 
 #include "main/query_result.h"
+#include <concepts>
 
 namespace kuzu {
 namespace main {
 
-struct QueryResultWarningFetcher {
-    explicit QueryResultWarningFetcher(QueryResult& result) : queryResult(result) {}
+template<typename T>
+concept QueryResultFetcher = requires(T fetcher) {
+    { fetcher.getNumTuples() } -> std::convertible_to<uint64_t>;
+    { fetcher.getNumColumns() } -> std::convertible_to<uint64_t>;
+    { fetcher.getColumnNames() } -> std::same_as<std::vector<std::string>>;
+    { fetcher.getColumnDataTypes() } -> std::same_as<std::vector<common::LogicalType>>;
+    { fetcher.hasNext() } -> std::same_as<bool>;
+    { fetcher.getNext() } -> std::same_as<std::shared_ptr<processor::FlatTuple>>;
+    { fetcher.resetIterator() };
+    { fetcher.getQuerySummary() } -> std::convertible_to<QuerySummary*>;
+};
+
+struct FetchQueryWarnings {
+    explicit FetchQueryWarnings(QueryResult& result) : queryResult(result) {}
 
     uint64_t getNumTuples() const { return queryResult.getNumWarnings(); }
     uint64_t getNumColumns() const { return queryResult.getNumWarningColumns(); }
@@ -21,9 +34,10 @@ struct QueryResultWarningFetcher {
 
     QueryResult& queryResult;
 };
+static_assert(QueryResultFetcher<FetchQueryWarnings>);
 
-struct QueryResultFetcher {
-    explicit QueryResultFetcher(QueryResult& result) : queryResult(result) {}
+struct FetchQueryResults {
+    explicit FetchQueryResults(QueryResult& result) : queryResult(result) {}
 
     uint64_t getNumTuples() const { return queryResult.getNumTuples(); }
     uint64_t getNumColumns() const { return queryResult.getNumColumns(); }
@@ -38,6 +52,8 @@ struct QueryResultFetcher {
 
     QueryResult& queryResult;
 };
+
+static_assert(QueryResultFetcher<FetchQueryResults>);
 
 } // namespace main
 } // namespace kuzu

@@ -67,7 +67,7 @@ TEST_F(CApiQueryResultTest, GetNumWarningsColumns) {
         &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    ASSERT_EQ(kuzu_query_result_get_num_warning_columns(&result), 4);
+    ASSERT_EQ(4, kuzu_query_result_get_num_warning_columns(&result));
     kuzu_query_result_destroy(&result);
 }
 
@@ -89,22 +89,22 @@ TEST_F(CApiQueryResultTest, GetWarningColumnName) {
     auto connection = getConnection();
     state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
         &result);
-    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_EQ(KuzuSuccess, state);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     char* columnName;
-    ASSERT_EQ(kuzu_query_result_get_warning_column_name(&result, 0, &columnName), KuzuSuccess);
-    ASSERT_EQ(std::string(columnName), "Message");
+    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 0, &columnName));
+    ASSERT_EQ("Message", std::string(columnName));
     kuzu_destroy_string(columnName);
-    ASSERT_EQ(kuzu_query_result_get_warning_column_name(&result, 1, &columnName), KuzuSuccess);
-    ASSERT_EQ(std::string(columnName), "File Path");
+    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 1, &columnName));
+    ASSERT_EQ("File Path", std::string(columnName));
     kuzu_destroy_string(columnName);
-    ASSERT_EQ(kuzu_query_result_get_warning_column_name(&result, 2, &columnName), KuzuSuccess);
-    ASSERT_EQ(std::string(columnName), "Line Number");
+    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 2, &columnName));
+    ASSERT_EQ("Line Number", std::string(columnName));
     kuzu_destroy_string(columnName);
-    ASSERT_EQ(kuzu_query_result_get_warning_column_name(&result, 3, &columnName), KuzuSuccess);
-    ASSERT_EQ(std::string(columnName), "Reconstructed Line");
+    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 3, &columnName));
+    ASSERT_EQ("Reconstructed Line", std::string(columnName));
     kuzu_destroy_string(columnName);
-    ASSERT_EQ(kuzu_query_result_get_warning_column_name(&result, 222, &columnName), KuzuError);
+    ASSERT_EQ(KuzuError, kuzu_query_result_get_warning_column_name(&result, 222, &columnName));
     kuzu_query_result_destroy(&result);
 }
 
@@ -289,7 +289,7 @@ TEST_F(CApiQueryResultTest, ResetWarningIterator) {
     state = kuzu_query_result_get_next_warning(&result, &row);
     ASSERT_EQ(state, KuzuError);
 
-    kuzu_query_result_reset_iterator(&result);
+    kuzu_query_result_reset_warning_iterator(&result);
 
     ASSERT_FALSE(kuzu_query_result_has_next_warning(&result));
     state = kuzu_query_result_get_next_warning(&result, &row);

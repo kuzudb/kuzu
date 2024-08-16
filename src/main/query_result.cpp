@@ -7,6 +7,7 @@
 #include "common/types/value/rel.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
+#include "processor/warning_schema.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -38,7 +39,7 @@ size_t QueryResult::getNumColumns() const {
 }
 
 size_t QueryResult::getNumWarningColumns() const {
-    return 4;
+    return WarningSchema::getNumColumns();
 }
 
 std::vector<std::string> QueryResult::getColumnNames() const {
@@ -46,7 +47,7 @@ std::vector<std::string> QueryResult::getColumnNames() const {
 }
 
 std::vector<std::string> QueryResult::getWarningColumnNames() const {
-    return {"Message", "File Path", "Line Number", "Reconstructed Line"};
+    return WarningSchema::getColumnNames();
 }
 
 std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
@@ -54,12 +55,7 @@ std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
 }
 
 std::vector<LogicalType> QueryResult::getWarningColumnDataTypes() const {
-    std::vector<LogicalType> types;
-    types.push_back(LogicalType::STRING());
-    types.push_back(LogicalType::STRING());
-    types.push_back(LogicalType::UINT64());
-    types.push_back(LogicalType::STRING());
-    return LogicalType::copy(types);
+    return WarningSchema::getColumnDataTypes();
 }
 
 uint64_t QueryResult::getNumTuples() const {
@@ -109,11 +105,9 @@ void QueryResult::initResultTableAndIterator(
     }
 
     std::vector<Value*> warningsToCollect;
-    const auto warningTypes = {LogicalType::STRING(), LogicalType::STRING(), LogicalType::UINT64(),
-        LogicalType::STRING()};
-    for (auto& warningType : warningTypes) {
+    for (const auto& warningType : WarningSchema::getColumnDataTypes()) {
         std::unique_ptr<Value> value =
-            std::make_unique<Value>(Value::createDefaultValue(warningType.copy()));
+            std::make_unique<Value>(Value::createDefaultValue(warningType));
         warningsToCollect.push_back(value.get());
         warning->addValue(std::move(value));
     }
@@ -196,8 +190,7 @@ std::string QueryResult::toWarningString() {
     std::string result;
     if (isSuccess()) {
         // print header
-        const std::vector<std::string> columnNames{
-            {"Message", "File Path", "Line Number", "Reconstructed Line"}};
+        const std::vector<std::string> columnNames = WarningSchema::getColumnNames();
         for (auto i = 0u; i < columnNames.size(); ++i) {
             if (i != 0) {
                 result += "|";

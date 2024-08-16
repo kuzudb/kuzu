@@ -257,7 +257,10 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         SerialCSVReader reader{state->readerConfig.filePaths[i],
             state->csvReaderConfig.option.copy(), state->numColumns, state->context,
             &state->errorHandlers[i]};
+
+        // throw any cached errors if we are not ignoring them
         state->errorHandlers[i].handleCachedErrors(&reader);
+
         const auto cachedErrors = (state->errorHandlers[i].getCachedErrors(&reader));
         warningMessages.insert(warningMessages.end(), cachedErrors.begin(), cachedErrors.end());
     }
