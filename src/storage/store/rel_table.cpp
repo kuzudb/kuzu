@@ -134,13 +134,11 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     }
     offset_t curNodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeIDSelVector[relScanState.currNodeIdx]);
-    row_idx_t posInLastCSR = 0;
     row_idx_t currCSRSize = INVALID_OFFSET;
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
         auto& csrNodeGroupScanState =
             relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
-        posInLastCSR = csrNodeGroupScanState.nextRowToScan;
         if (csrNodeGroupScanState.source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
             currCSRSize = csrNodeGroupScanState.persistentCSRLists[relScanState.currNodeIdx].length;
         } else {
@@ -149,7 +147,6 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         }
     } break;
     case TableScanSource::UNCOMMITTED: {
-        posInLastCSR = relScanState.localTableScanState->nextRowToScan;
         auto localTable = relScanState.localTableScanState->localRelTable;
         auto& index = relScanState.direction == RelDataDirection::FWD ? localTable->getFWDIndex() :
                                                                         localTable->getBWDIndex();
@@ -178,7 +175,8 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
         relScanState.currentCSRIdx += csrNodeGroupScanState.getGap(relScanState.currNodeIdx);
     }
     if (relScanState.currentCSRIdx == 0) {
-        currCSRSize -= posInLastCSR;
+        KU_ASSERT(currCSRSize >= relScanState.posInLastCSR);
+        currCSRSize -= relScanState.posInLastCSR;
     }
     auto spaceLeft = relScanState.batchSize - relScanState.currentCSRIdx;
     if (currCSRSize > spaceLeft) {
@@ -213,12 +211,15 @@ void RelTable::scanNext(Transaction* transaction, TableScanState& scanState) {
     relScanState.IDVector->state->getSelVectorUnsafe().setToUnfiltered();
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
+        relScanState.posInLastCSR =
+            relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>().nextRowToScan;
         const auto scanResult = relScanState.nodeGroup->scan(transaction, scanState);
         relScanState.batchSize = scanResult.numRows;
     } break;
     case TableScanSource::UNCOMMITTED: {
         const auto localScanState = relScanState.localTableScanState.get();
         KU_ASSERT(localScanState && localScanState->localRelTable);
+        relScanState.posInLastCSR = localScanState->nextRowToScan;
         localScanState->localRelTable->scan(transaction, scanState);
     } break;
     default: {

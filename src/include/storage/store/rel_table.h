@@ -27,6 +27,7 @@ struct RelTableScanState : TableScanState {
     common::sel_t totalNodeIdx = 0;
     common::sel_t currentCSRIdx = 0;
     common::sel_t currentSelIdx = 0;
+    common::offset_t posInLastCSR = 0;
     common::offset_t batchSize = 0;
     common::offset_t versionedBatchSize = 0;
 
