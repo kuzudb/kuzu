@@ -104,6 +104,7 @@ lcov:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
 	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
+	cd tools/shell/test && python3 -m pytest -v
 
 
 # Language APIs
