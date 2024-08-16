@@ -27,7 +27,7 @@ class Database:
 
     def __init__(
         self,
-        database_path: str | Path,
+        database_path: str | Path = "",
         *,
         buffer_pool_size: int = 0,
         max_num_threads: int = 0,
