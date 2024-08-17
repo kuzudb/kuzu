@@ -1,6 +1,5 @@
 #include "processor/operator/filter.h"
 
-#include "common/exception/runtime.h"
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -12,32 +11,29 @@ std::string FilterPrintInfo::toString() const {
 
 void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     expressionEvaluator->init(*resultSet, context->clientContext);
-    // LCOV_EXCL_START
     if (dataChunkToSelectPos == INVALID_DATA_CHUNK_POS) {
-        throw RuntimeException(stringFormat("Trying to evaluate constant expression {} at runtime. "
-                                            "This should be done at compile time.",
-            expressionEvaluator->getExpression()->toString()));
+        // Filter a constant expression. Ideally we should fold all such expression at compile time.
+        // But there are many edge cases, so we keep this code path for robustness.
+        state = DataChunkState::getSingleValueDataChunkState();
+    } else {
+        state = resultSet->dataChunks[dataChunkToSelectPos]->state;
     }
-    // LCOV_EXCL_STOP
-    dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 
 bool Filter::getNextTuplesInternal(ExecutionContext* context) {
     bool hasAtLeastOneSelectedValue;
     do {
-        restoreSelVector(*dataChunkToSelect->state);
+        restoreSelVector(*state);
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        saveSelVector(*dataChunkToSelect->state);
-        hasAtLeastOneSelectedValue =
-            expressionEvaluator->select(dataChunkToSelect->state->getSelVectorUnsafe());
-        if (!dataChunkToSelect->state->isFlat() &&
-            dataChunkToSelect->state->getSelVector().isUnfiltered()) {
-            dataChunkToSelect->state->getSelVectorUnsafe().setToFiltered();
+        saveSelVector(*state);
+        hasAtLeastOneSelectedValue = expressionEvaluator->select(state->getSelVectorUnsafe());
+        if (!state->isFlat() && state->getSelVector().isUnfiltered()) {
+            state->getSelVectorUnsafe().setToFiltered();
         }
     } while (!hasAtLeastOneSelectedValue);
-    metrics->numOutputTuple.increase(dataChunkToSelect->state->getSelVector().getSelSize());
+    metrics->numOutputTuple.increase(state->getSelVector().getSelSize());
     return true;
 }
 

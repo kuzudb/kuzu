@@ -47,7 +47,7 @@ public:
 private:
     std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator;
     uint32_t dataChunkToSelectPos;
-    std::shared_ptr<common::DataChunk> dataChunkToSelect;
+    std::shared_ptr<common::DataChunkState> state;
 };
 
 struct NodeLabelFilterInfo {
