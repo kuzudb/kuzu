@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "common/types/types.h"
-#include "storage/file_handle.h"
 #include "storage/enums/page_read_policy.h"
+#include "storage/file_handle.h"
 
 namespace kuzu {
 namespace storage {
