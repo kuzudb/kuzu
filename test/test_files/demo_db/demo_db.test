@@ -3,6 +3,17 @@
 --
 
 -CASE DemoDBTest
+
+-LOG ConstantLambda
+-STATEMENT MATCH (n: User)
+            WHERE size(list_filter(['12name'], x->x STARTS WITH '12')) > 0
+            RETURN n.*
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+
 -LOG UndirectedRecursivePattern
 -STATEMENT MATCH p = (u:User {name: 'Adam'})-[e*1..3]-(c:User {name: 'Adam'})
            HINT (u JOIN e) JOIN c
