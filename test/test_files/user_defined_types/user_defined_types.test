@@ -119,9 +119,9 @@ Binder exception: Duplicated type name: DESCRIPTION.
 ---- ok
 -STATEMENT CREATE TYPE HEIGHT AS INT32;
 ---- ok
--STATEMENT CREATE TYPE PERSON (name string, info struct(h HEIGHT, l length), primary key(name));
+-STATEMENT CREATE TYPE PERSON AS p (name string, info struct(h HEIGHT, l length), primary key(name));
 ---- ok
--STATEMENT CREATE TYPE PERSON1 (name string, info HEIGHT[], primary key(name));
+-STATEMENT CREATE TYPE PERSON1 AS p1 (name string, info HEIGHT[], primary key(name));
 ---- ok
--STATEMENT CREATE TYPE PERSON2 (name string, info MAP(HEIGHT, LENGTH), primary key(name));
+-STATEMENT CREATE TYPE PERSON2 AS p2 (name string, info MAP(HEIGHT, LENGTH), primary key(name));
 ---- ok
