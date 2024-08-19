@@ -13,8 +13,7 @@ namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option, uint64_t numColumns,
     main::ClientContext* context, CSVErrorHandler* errorHandler)
-    : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler},
-      numRowsReadInBlock(0) {}
+    : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler} {}
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
@@ -39,15 +38,11 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     return std::move(driver.columns);
 }
 
-uint64_t SerialCSVReader::getNumRowsReadInBlock() {
-    return numRowsReadInBlock;
-}
-
 uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChunk) {
     KU_ASSERT(nullptr != errorHandler);
 
     if (blockIdx != currentBlockIdx) {
-        numRowsReadInBlock = 0;
+        resetNumRowsInCurrentBlock();
     }
     currentBlockIdx = blockIdx;
     if (blockIdx == 0) {
@@ -58,7 +53,7 @@ uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChun
     auto numRowsRead = parseCSV(driver);
     errorHandler->reportFinishedBlock(this, blockIdx, numRowsRead);
     resultChunk.state->getSelVectorUnsafe().setSelSize(numRowsRead);
-    numRowsReadInBlock += numRowsRead;
+    increaseNumRowsInCurrentBlock(numRowsRead);
     return numRowsRead;
 }
 
@@ -183,6 +178,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
+    uint64_t totalWarningCount = 0;
 
     auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
@@ -193,8 +189,24 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         // The serial CSV reader should always be able to throw immediately if not ignoring errors
         KU_ASSERT(state->csvReaderConfig.option.ignoreErrors || cachedWarnings.empty());
 
-        ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings,
-            state->csvReaderConfig.option.warningLimit, ctx->queryID);
+        totalWarningCount += cachedWarnings.size();
+
+        ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings, ctx->queryID);
+    }
+
+    KU_ASSERT(totalWarningCount <= state->csvReaderConfig.option.warningLimit);
+    if (totalWarningCount == state->csvReaderConfig.option.warningLimit) {
+        ctx->clientContext->getWarningContext().appendWarningMessages(
+            std::vector<PopulatedCSVError>{1,
+                PopulatedCSVError{
+                    .message = stringFormat(
+                        "Reached warning limit of {}, any further warnings will not be reported.",
+                        totalWarningCount),
+                    .filePath = "",
+                    .reconstructedLine = "",
+                    .lineNumber = 0,
+                }},
+            ctx->queryID);
     }
 }
 

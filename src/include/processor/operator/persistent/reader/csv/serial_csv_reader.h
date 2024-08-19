@@ -20,10 +20,6 @@ public:
 
 protected:
     bool handleQuotedNewline() override { return true; }
-    uint64_t getNumRowsReadInBlock() final;
-
-private:
-    uint64_t numRowsReadInBlock;
 };
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {

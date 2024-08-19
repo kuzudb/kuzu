@@ -17,9 +17,10 @@ namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
     uint64_t numColumns, main::ClientContext* context, CSVErrorHandler* errorHandler)
-    : option{std::move(option)}, numColumns{numColumns}, currentBlockIdx(0), rowNum(0),
-      numErrors(0), buffer{nullptr}, bufferIdx(0), bufferSize{0}, position{0}, lineContext(),
-      osFileOffset{0}, errorHandler(errorHandler), rowEmpty{false}, context{context} {
+    : option{std::move(option)}, numColumns{numColumns}, currentBlockIdx(0),
+      numRowsInCurrentBlock(0), rowNum(0), numErrors(0), buffer{nullptr}, bufferIdx(0),
+      bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, errorHandler(errorHandler),
+      rowEmpty{false}, context{context} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         O_RDONLY
 #ifdef _WIN32
@@ -95,6 +96,18 @@ struct HeaderDriver {
     bool addRow(uint64_t, column_id_t) { return true; }
     bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
 };
+
+void BaseCSVReader::resetNumRowsInCurrentBlock() {
+    numRowsInCurrentBlock = 0;
+}
+
+void BaseCSVReader::increaseNumRowsInCurrentBlock(uint64_t numRows) {
+    numRowsInCurrentBlock += numRows;
+}
+
+uint64_t BaseCSVReader::getNumRowsInCurrentBlock() const {
+    return numRowsInCurrentBlock;
+}
 
 uint64_t BaseCSVReader::readHeader() {
     HeaderDriver driver;
@@ -177,7 +190,7 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
         .filePath = fileInfo->path,
         .errorLine = lineContext,
         .blockIdx = currentBlockIdx,
-        .numRowsReadInBlock = getNumRowsReadInBlock() + rowNum + numErrors};
+        .numRowsReadInBlock = numRowsInCurrentBlock + rowNum + numErrors};
     if (!error.errorLine.isCompleteLine) {
         error.errorLine.endByteOffset = getFileOffset();
     }
@@ -197,7 +210,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
 
     while (true) {
         column_id_t column = 0;
-        uint64_t start = position;
+        auto start = position;
         bool hasQuotes = false;
         std::vector<uint64_t> escapePositions;
         lineContext.setNewLine(getFileOffset());
@@ -210,7 +223,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         // start parsing the first value
         goto value_start;
     value_start:
-        /* state: value_start */
+        // state: value_start
         // this state parses the first character of a value
         if (buffer[position] == option.quoteChar) {
             [[unlikely]]
@@ -226,7 +239,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             goto normal;
         }
     normal:
-        /* state: normal parsing state */
+        // state: normal parsing state
         // this state parses the remainder of a non-quoted value until we reach a delimiter or
         // newline
         do {
@@ -350,7 +363,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             goto ignore_error;
         }
     handle_escape:
-        /* state: handle_escape */
+        // state: handle_escape
         // escape should be followed by a quote or another escape character
         position++;
         if (!maybeReadBuffer(&start)) {

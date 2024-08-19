@@ -28,11 +28,8 @@ protected:
     bool handleQuotedNewline() override;
 
 private:
-    uint64_t getNumRowsReadInBlock() final;
     bool finishedBlock() const;
     void seekToBlockStart();
-
-    uint64_t rowsInCurrentBlock;
 };
 
 struct ParallelCSVLocalState final : public function::TableFuncLocalState {

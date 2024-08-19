@@ -44,8 +44,10 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     TableFuncBindInput*) {
-    std::vector<std::string> columnNames = processor::WarningSchema::getColumnNames();
-    std::vector<LogicalType> columnTypes = processor::WarningSchema::getColumnDataTypes();
+    std::vector<std::string> columnNames{WarningConstants::WARNING_TABLE_COLUMN_NAMES.begin(),
+        WarningConstants::WARNING_TABLE_COLUMN_NAMES.end()};
+    std::vector<LogicalType> columnTypes{WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
+        WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.end()};
     std::vector<processor::WarningInfo> warningInfos;
     for (const auto& warning : context->getWarningContext().warnings) {
         warningInfos.emplace_back(warning);

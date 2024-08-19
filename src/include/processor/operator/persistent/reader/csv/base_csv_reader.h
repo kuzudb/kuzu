@@ -66,9 +66,12 @@ protected:
 
 protected:
     virtual bool handleQuotedNewline() = 0;
-    virtual uint64_t getNumRowsReadInBlock() = 0;
 
     void skipCurrentLine();
+
+    void resetNumRowsInCurrentBlock();
+    void increaseNumRowsInCurrentBlock(uint64_t numRows);
+    uint64_t getNumRowsInCurrentBlock() const;
 
 protected:
     common::CSVOption option;
@@ -77,6 +80,7 @@ protected:
     std::unique_ptr<common::FileInfo> fileInfo;
 
     common::block_idx_t currentBlockIdx;
+    uint64_t numRowsInCurrentBlock;
 
     uint64_t rowNum;
     uint64_t numErrors;
