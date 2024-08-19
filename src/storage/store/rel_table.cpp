@@ -206,7 +206,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
             outSelVector.getMultableBuffer()[numRels] = numRels + relScanState.currentCSRIdx;
         }
     }
-    KU_ASSERT(!outSelVector.isUnfiltered() || numRels == currCSRSize);
+    KU_ASSERT(checkVersion || numRels == currCSRSize);
     relScanState.currentCSRIdx += currCSRSize;
     outSelVector.setToFiltered(numRels);
     return true;
