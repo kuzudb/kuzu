@@ -96,6 +96,9 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
             stringFormat("Error in file {}, on line {}: expected {} values per row, but got more.",
                 reader->fileInfo->path, reader->getLineNumber(), columns.size()));
     }
+    if (csvOptions.sampleSize == 0 && !csvOptions.hasHeader) {
+        return; // if we're not supposed to sniff, don't return any columns
+    }
     while (columns.size() < columnIdx + 1) {
         columns.emplace_back(stringFormat("column{}", columns.size()), LogicalType::ANY());
         sniffType.push_back(true);
