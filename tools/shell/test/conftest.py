@@ -192,10 +192,3 @@ def csv_path():
 @pytest.fixture()
 def init_path():
     return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "start.cypher")
-
-
-@pytest.fixture()
-def warning_csv_path():
-    return os.path.join(
-        KUZU_ROOT, "tools", "shell", "test", "files", "vPersonWarnings.csv"
-    )
