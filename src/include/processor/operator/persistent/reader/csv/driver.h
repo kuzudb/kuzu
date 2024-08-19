@@ -5,7 +5,6 @@
 #include "common/copier_config/csv_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
 #include "function/table/bind_input.h"
-#include "function/table/scan_functions.h"
 
 namespace kuzu {
 namespace main {
