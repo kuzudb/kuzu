@@ -188,7 +188,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     KU_ASSERT(numNodesAppended == localNodeGroup->getNumRows());
 }
 
-void NodeBatchInsert::finalize(ExecutionContext* context) {
+void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     if (nodeSharedState->sharedNodeGroup) {
@@ -200,18 +200,15 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     if (nodeSharedState->globalIndexBuilder) {
         nodeSharedState->globalIndexBuilder->finalize(context);
     }
-    for (auto& child : children) {
-        child->finalize(context);
-    }
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
 
-    auto& warningTable = context->getWarningTable();
+    auto& warningTable = context->warningContext.warningTable;
     if (warningTable && warningTable->getNumTuples() > 0) {
         const std::string warningsHitLimitStr =
-            (warningTable->getNumTuples() >= context->getWarningLimit()) ? "+" : "";
+            (warningTable->getNumTuples() >= context->warningContext.warningLimit) ? "+" : "";
         auto warningMsg =
             stringFormat("{}{} tuples have been skipped in the {} table due to warnings.",
                 warningTable->getNumTuples(), warningsHitLimitStr, info->tableEntry->getName());

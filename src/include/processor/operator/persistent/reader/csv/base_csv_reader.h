@@ -68,7 +68,7 @@ protected:
     virtual bool handleQuotedNewline() = 0;
     virtual uint64_t getNumRowsReadInBlock() = 0;
 
-    void skipUntilNextLine();
+    void skipCurrentLine();
 
 protected:
     common::CSVOption option;

@@ -7,7 +7,7 @@
 #include "common/types/value/rel.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
-#include "processor/warning_schema.h"
+#include "processor/warning_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;

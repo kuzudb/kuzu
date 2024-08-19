@@ -111,7 +111,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* context) override;
+    void finalizeInternal(ExecutionContext* context) override;
 
     double getProgress(ExecutionContext* context) const override;
 

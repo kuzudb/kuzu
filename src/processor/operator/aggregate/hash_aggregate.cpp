@@ -120,7 +120,7 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
     sharedState->appendAggregateHashTable(std::move(localState.aggregateHashTable));
 }
 
-void HashAggregate::finalize(ExecutionContext* context) {
+void HashAggregate::finalizeInternal(ExecutionContext* context) {
     sharedState->combineAggregateHashTable(*context->clientContext->getMemoryManager());
     sharedState->finalizeAggregateHashTable();
 }

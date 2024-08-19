@@ -64,8 +64,8 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
     }
 }
 
-void ResultCollector::finalize(ExecutionContext* context) {
-    sharedState->setWarningTable(std::move(context->getWarningTable()));
+void ResultCollector::finalizeInternal(ExecutionContext* context) {
+    sharedState->setWarningTable(std::move(context->warningContext.warningTable));
     switch (info.accumulateType) {
     case AccumulateType::OPTIONAL_: {
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to

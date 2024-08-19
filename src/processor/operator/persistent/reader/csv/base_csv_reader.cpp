@@ -159,7 +159,7 @@ std::string BaseCSVReader::reconstructLine(uint64_t startPosition, uint64_t endP
     return StringUtils::ltrimNewlines(StringUtils::rtrimNewlines(res));
 }
 
-void BaseCSVReader::skipUntilNextLine() {
+void BaseCSVReader::skipCurrentLine() {
     do {
         for (; position < bufferSize; ++position) {
             if (isNewLine(buffer[position])) {
@@ -403,7 +403,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         return rowNum;
     ignore_error:
         // we skip the current row then restart the state machine to continue parsing
-        skipUntilNextLine();
+        skipCurrentLine();
         continue;
     }
     KU_UNREACHABLE;

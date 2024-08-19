@@ -72,7 +72,7 @@ public:
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
-    void finalize(ExecutionContext* context) override;
+    void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,

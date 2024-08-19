@@ -186,9 +186,12 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
 }
 
 void PhysicalOperator::finalize(ExecutionContext* context) {
-    for (auto& child : children) {
-        child->finalize(context);
+    if (!isSource()) {
+        for (auto& child : children) {
+            child->finalize(context);
+        }
     }
+    finalizeInternal(context);
 }
 
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {

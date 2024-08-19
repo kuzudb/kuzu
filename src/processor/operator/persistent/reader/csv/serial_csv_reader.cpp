@@ -198,7 +198,8 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
     }
 
     KU_ASSERT(warningMessages.size() <= state->csvReaderConfig.option.warningLimit);
-    ctx->setWarningMessages(warningMessages, state->csvReaderConfig.option.warningLimit);
+    ctx->warningContext.appendWarningMessages(warningMessages,
+        state->csvReaderConfig.option.warningLimit);
 }
 
 function_set SerialCSVScan::getFunctionSet() {

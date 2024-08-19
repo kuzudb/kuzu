@@ -195,25 +195,21 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
     }
 }
 
-void RelBatchInsert::finalize(ExecutionContext* context) {
+void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     if (relInfo->direction == RelDataDirection::BWD) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
-
-        for (auto& child : children) {
-            child->finalize(context);
-        }
 
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
 
-        auto& warningTable = context->getWarningTable();
+        auto& warningTable = context->warningContext.warningTable;
         if (warningTable && warningTable->getNumTuples() > 0) {
             const std::string warningsHitLimitStr =
-                (warningTable->getNumTuples() >= context->getWarningLimit()) ? "+" : "";
+                (warningTable->getNumTuples() >= context->warningContext.warningLimit) ? "+" : "";
             auto warningMsg =
                 stringFormat("{}{} tuples have been skipped in the {} table due to warnings.",
                     warningTable->getNumTuples(), warningsHitLimitStr, info->tableEntry->getName());
