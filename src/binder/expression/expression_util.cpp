@@ -79,6 +79,17 @@ std::string ExpressionUtil::toString(const expression_pair& expressionPair) {
     return expressionPair.first->toString() + "=" + expressionPair.second->toString();
 }
 
+std::string ExpressionUtil::getUniqueName(const expression_vector& expressions) {
+    if (expressions.empty()) {
+        return std::string();
+    }
+    auto result = expressions[0]->getUniqueName();
+    for (auto i = 1u; i < expressions.size(); ++i) {
+        result += "," + expressions[i]->getUniqueName();
+    }
+    return result;
+}
+
 expression_vector ExpressionUtil::excludeExpression(const expression_vector& exprs,
     const Expression& exprToExclude) {
     expression_vector result;

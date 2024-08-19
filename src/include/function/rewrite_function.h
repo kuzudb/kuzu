@@ -20,12 +20,11 @@ struct RewriteFunction final : public Function {
     RewriteFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         rewrite_func_rewrite_t rewriteFunc)
         : Function{name, std::move(parameterTypeIDs)}, rewriteFunc{rewriteFunc} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(RewriteFunction)
+
+private:
     RewriteFunction(const RewriteFunction& other)
         : Function{other}, rewriteFunc{other.rewriteFunc} {}
-
-    std::unique_ptr<Function> copy() const override {
-        return std::make_unique<RewriteFunction>(*this);
-    }
 };
 
 } // namespace function

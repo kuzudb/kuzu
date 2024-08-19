@@ -33,10 +33,9 @@ enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MARK_HASH_TABLE =
  *
  */
 class AggregateHashTable;
-using update_agg_function_t =
-    std::function<void(AggregateHashTable*, const std::vector<common::ValueVector*>&,
-        const std::vector<common::ValueVector*>&, std::unique_ptr<function::AggregateFunction>&,
-        common::ValueVector*, uint64_t, uint32_t, uint32_t)>;
+using update_agg_function_t = std::function<void(AggregateHashTable*,
+    const std::vector<common::ValueVector*>&, const std::vector<common::ValueVector*>&,
+    function::AggregateFunction&, common::ValueVector*, uint64_t, uint32_t, uint32_t)>;
 
 class AggregateHashTable : public BaseHashTable {
 public:
@@ -46,13 +45,13 @@ public:
         FactorizedTableSchema tableSchema)
         : AggregateHashTable(memoryManager, common::LogicalType::copy(keyTypes),
               common::LogicalType::copy(payloadTypes),
-              std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
+              std::vector<function::AggregateFunction>{} /* empty aggregates */,
               std::vector<common::LogicalType>{} /* empty distinct agg key*/, numEntriesToAllocate,
               std::move(tableSchema)) {}
 
     AggregateHashTable(storage::MemoryManager& memoryManager,
         std::vector<common::LogicalType> keyTypes, std::vector<common::LogicalType> payloadTypes,
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+        const std::vector<function::AggregateFunction>& aggregateFunctions,
         const std::vector<common::LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
         FactorizedTableSchema tableSchema);
 
@@ -112,8 +111,7 @@ protected:
         common::DataChunkState* leadingState);
 
 private:
-    void initializeFT(
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+    void initializeFT(const std::vector<function::AggregateFunction>& aggregateFunctions,
         FactorizedTableSchema tableSchema);
 
     void initializeHashTable(uint64_t numEntriesToAllocate);
@@ -142,15 +140,13 @@ private:
 
     void updateDistinctAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggregateVector, uint64_t multiplicity, uint32_t colIdx,
-        uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggregateVector,
+        uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset);
 
     void updateAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggVector, uint64_t multiplicity, uint32_t colIdx,
-        uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
+        uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset);
 
     void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
@@ -175,34 +171,34 @@ private:
 
     void updateNullAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction, uint64_t multiplicity,
+        function::AggregateFunction& aggregateFunction, uint64_t multiplicity,
         uint32_t aggStateOffset);
 
     void updateBothFlatAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
+        uint64_t multiplicity, uint32_t aggStateOffset);
 
     void updateFlatUnFlatKeyFlatAggVectorState(
         const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
+        uint64_t multiplicity, uint32_t aggStateOffset);
 
     void updateFlatKeyUnFlatAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
+        uint64_t multiplicity, uint32_t aggStateOffset);
 
     void updateBothUnFlatSameDCAggVectorState(
         const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
+        uint64_t multiplicity, uint32_t aggStateOffset);
 
     void updateBothUnFlatDifferentDCAggVectorState(
         const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        std::unique_ptr<function::AggregateFunction>& aggregateFunction,
-        common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
+        function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
+        uint64_t multiplicity, uint32_t aggStateOffset);
 
 protected:
     uint32_t hashColIdxInFT;
@@ -213,7 +209,7 @@ protected:
 
 private:
     std::vector<common::LogicalType> payloadTypes;
-    std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;
+    std::vector<function::AggregateFunction> aggregateFunctions;
 
     //! special handling of distinct aggregate
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;

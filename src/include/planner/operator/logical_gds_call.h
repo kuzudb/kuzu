@@ -18,7 +18,7 @@ public:
 
     const binder::BoundGDSCallInfo& getInfo() const { return info; }
 
-    std::string getExpressionsForPrinting() const override { return info.func->name; }
+    std::string getExpressionsForPrinting() const override { return info.func.name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalGDSCall>(info.copy());

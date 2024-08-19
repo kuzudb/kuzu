@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/expression/function_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "expression_evaluator.h"
 
 namespace kuzu {
@@ -40,7 +40,7 @@ class ListLambdaEvaluator : public ExpressionEvaluator {
 public:
     ListLambdaEvaluator(std::shared_ptr<binder::Expression> expression, evaluator_vector_t children)
         : ExpressionEvaluator{type_, expression, std::move(children)} {
-        execFunc = expression->constCast<binder::ScalarFunctionExpression>().execFunc;
+        execFunc = expression->constCast<binder::ScalarFunctionExpression>().getFunction().execFunc;
     }
 
     void setLambdaRootEvaluator(std::unique_ptr<ExpressionEvaluator> evaluator) {

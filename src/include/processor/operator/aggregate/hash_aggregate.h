@@ -11,7 +11,7 @@ class HashAggregateSharedState final : public BaseAggregateSharedState {
 
 public:
     explicit HashAggregateSharedState(
-        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions)
+        const std::vector<function::AggregateFunction>& aggregateFunctions)
         : BaseAggregateSharedState{aggregateFunctions} {}
 
     void appendAggregateHashTable(std::unique_ptr<AggregateHashTable> aggregateHashTable);
@@ -52,7 +52,7 @@ struct HashAggregateLocalState {
     std::unique_ptr<AggregateHashTable> aggregateHashTable;
 
     void init(ResultSet& resultSet, main::ClientContext* context, HashAggregateInfo& info,
-        std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
+        std::vector<function::AggregateFunction>& aggregateFunctions,
         std::vector<common::LogicalType> types);
     void append(const std::vector<AggregateInput>& aggregateInputs, uint64_t multiplicity) const;
 };
@@ -79,7 +79,7 @@ class HashAggregate : public BaseAggregate {
 public:
     HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<HashAggregateSharedState> sharedState, HashAggregateInfo hashInfo,
-        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::vector<function::AggregateFunction> aggregateFunctions,
         std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
@@ -94,7 +94,8 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState, hashInfo,
-            cloneAggFunctions(), copyVector(aggInfos), children[0]->clone(), id, printInfo->copy());
+            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->clone(), id,
+            printInfo->copy());
     }
 
 private:

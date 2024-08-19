@@ -1,5 +1,5 @@
 #include "binder/expression/case_expression.h"
-#include "binder/expression/function_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
 #include "function/rewrite_function.h"
 #include "function/utility/vector_utility_functions.h"

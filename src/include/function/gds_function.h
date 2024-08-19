@@ -11,9 +11,10 @@ struct GDSFunction : public Function {
 
     GDSFunction(std::string name, std::unique_ptr<GDSAlgorithm> gds)
         : Function{std::move(name), gds->getParameterTypeIDs()}, gds{std::move(gds)} {}
-    GDSFunction(const GDSFunction& other) : Function{other}, gds{other.gds->copy()} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(GDSFunction);
 
-    std::unique_ptr<Function> copy() const override { return std::make_unique<GDSFunction>(*this); }
+private:
+    GDSFunction(const GDSFunction& other) : Function{other}, gds{other.gds->copy()} {}
 };
 
 } // namespace function

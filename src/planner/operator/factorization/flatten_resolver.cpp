@@ -1,10 +1,10 @@
 #include "planner/operator/factorization/flatten_resolver.h"
 
 #include "binder/expression/case_expression.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression/lambda_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
 #include "function/list/vector_list_functions.h"
@@ -157,8 +157,8 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
 }
 
 void GroupDependencyAnalyzer::visitFunction(std::shared_ptr<binder::Expression> expr) {
-    auto& funcExpr = expr->constCast<FunctionExpression>();
-    auto functionName = funcExpr.getFunctionName();
+    auto& funcExpr = expr->constCast<ScalarFunctionExpression>();
+    auto functionName = funcExpr.getFunction().name;
     for (auto& child : expr->getChildren()) {
         visit(child);
     }

@@ -102,10 +102,6 @@ struct KUZU_API TableFunction : public Function {
     std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);
     }
-
-    std::unique_ptr<Function> copy() const override {
-        return std::make_unique<TableFunction>(*this);
-    }
 };
 
 } // namespace function

@@ -1,5 +1,5 @@
 #include "binder/binder.h"
-#include "binder/expression/function_expression.h"
+#include "binder/expression/aggregate_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
@@ -39,9 +39,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
     auto function = BuiltInFunctionsUtils::matchAggregateFunction(CountStarFunction::name,
         std::vector<LogicalType>{}, false, functions);
     auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));
-    auto countStarExpr = std::make_shared<AggregateFunctionExpression>(CountStarFunction::name,
-        std::move(bindData), expression_vector{}, function->clone(),
-        binder->getUniqueExpressionName(CountStarFunction::name));
+    auto countStarExpr =
+        std::make_shared<AggregateFunctionExpression>(function->copy(), std::move(bindData),
+            expression_vector{}, binder->getUniqueExpressionName(CountStarFunction::name));
     boundSubqueryExpr->setCountStarExpr(countStarExpr);
     std::shared_ptr<Expression> projectionExpr;
     switch (subqueryType) {

@@ -37,6 +37,8 @@ enum class ExpressionType : uint8_t {
 
     PARAMETER = 100,
 
+    // At parsing stage, both aggregate and scalar functions have type FUNCTION.
+    // After binding, only scalar function have type FUNCTION.
     FUNCTION = 110,
 
     AGGREGATE_FUNCTION = 130,

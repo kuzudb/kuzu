@@ -15,7 +15,7 @@ void PatternCreationInfo::updateID(common::executor_id_t executorID,
 PatternCreationInfoTable::PatternCreationInfoTable(storage::MemoryManager& memoryManager,
     std::vector<common::LogicalType> keyTypes, FactorizedTableSchema tableSchema)
     : AggregateHashTable{memoryManager, copyVector(keyTypes), std::vector<common::LogicalType>{},
-          std::vector<std::unique_ptr<function::AggregateFunction>>{} /* empty aggregates */,
+          std::vector<function::AggregateFunction>{} /* empty aggregates */,
           std::vector<common::LogicalType>{} /* empty distinct agg key*/,
           0 /* numEntriesToAllocate */, tableSchema.copy()},
       idColOffset{tableSchema.getColOffset(keyTypes.size())} {}
