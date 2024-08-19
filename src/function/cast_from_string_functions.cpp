@@ -460,7 +460,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
             }
         } else if (isKey && *input == '=') {
             return state.handleKey(start, input, option);
-        } else if (!isKey && (*input == option->listDelimiter || *input == '}')) {
+        } else if (!isKey && (*input == ',' || *input == '}')) {
             state.handleValue(start, input, option);
             if (*input == '}') {
                 closeBracket = true;
@@ -559,7 +559,7 @@ static bool parseStructFieldValue(const char*& input, const char* end, const CSV
             if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
-        } else if (*input == option->listDelimiter || *input == '}') {
+        } else if (*input == ',' || *input == '}') {
             if (*input == '}') {
                 closeBrack = true;
             }
