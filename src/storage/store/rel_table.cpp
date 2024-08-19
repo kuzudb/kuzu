@@ -139,12 +139,15 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     offset_t curNodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeIDSelVector[relScanState.currNodeIdx]);
     row_idx_t currCSRSize = INVALID_OFFSET;
+    bool needRescan = relScanState.currentCSRIdx >= relScanState.batchSize;
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
         auto& csrNodeGroupScanState =
             relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
         if (csrNodeGroupScanState.source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
             currCSRSize = csrNodeGroupScanState.persistentCSRLists[relScanState.currNodeIdx].length;
+            needRescan =
+                needRescan && relScanState.currNodeIdx == csrNodeGroupScanState.nextCSRToScan;
         } else {
             KU_ASSERT(csrNodeGroupScanState.source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
             currCSRSize = csrNodeGroupScanState.inMemCSRList.getNumRows();
@@ -165,7 +168,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     }
     KU_ASSERT(currCSRSize != INVALID_OFFSET);
     // We rescan after last batch is all processed (max 2048 tuples)
-    if (relScanState.currentCSRIdx >= relScanState.batchSize) {
+    if (needRescan) {
         scanNext(transaction, relScanState);
     }
     // This assumes nodeIDVector is initially unfiltered
