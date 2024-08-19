@@ -2,7 +2,6 @@
 
 #include "linenoise.h"
 #include "main/kuzu.h"
-#include "main/query_result_fetcher.h"
 #include "output.h"
 
 namespace kuzu {
@@ -36,14 +35,6 @@ public:
     static void interruptHandler(int signal);
 
 private:
-    struct PrintResult {
-        uint64_t numTuples;
-        bool rowTruncated;
-        bool colTruncated;
-        std::vector<uint32_t> colsWidth;
-        uint64_t colsPrinted;
-    };
-
     int processShellCommands(std::string lineStr);
 
     static void printHelp();
@@ -51,8 +42,6 @@ private:
     void printExecutionResult(QueryResult& queryResult) const;
 
     void printTruncatedExecutionResult(QueryResult& queryResult) const;
-    template<QueryResultFetcher Fetcher>
-    PrintResult printTruncatedExecutionResultImpl(Fetcher queryResult) const;
 
     std::string printJsonExecutionResult(QueryResult& queryResult) const;
 
@@ -60,8 +49,6 @@ private:
 
     std::string printLatexExecutionResult(QueryResult& queryResult) const;
 
-    template<QueryResultFetcher Fetcher>
-    std::string printLineExecutionResultImpl(Fetcher queryResult) const;
     std::string printLineExecutionResult(QueryResult& queryResult) const;
 
     void updateTableNames();

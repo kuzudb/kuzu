@@ -1,7 +1,6 @@
 #pragma once
 
 #include "main/connection.h"
-#include "main/query_result_fetcher.h"
 #include "test_runner/test_group.h"
 
 namespace kuzu {
@@ -22,21 +21,15 @@ private:
         TestStatement* statement, size_t resultIdx, main::Connection& conn);
     static bool checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, size_t resultIdx, main::Connection& conn, uint32_t planIdx);
-    template<main::QueryResultFetcher Fetcher>
-    static bool checkResultNumeric(Fetcher& resultTuples, TestStatement* statement,
+    static bool checkResultNumeric(main::QueryResult& resultTuples, TestStatement* statement,
         size_t resultIdx);
-
-    template<main::QueryResultFetcher Fetcher>
-    static std::vector<std::string> convertResultToString(Fetcher& queryResult,
+    static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false, bool checkColumnNames = false);
-    template<main::QueryResultFetcher Fetcher>
-    static std::string convertResultToMD5Hash(Fetcher& queryResult, bool checkOutputOrder,
+    static std::string convertResultToMD5Hash(main::QueryResult& queryResult, bool checkOutputOrder,
         bool checkColumnNames); // returns hash and number of values hashed
-    template<main::QueryResultFetcher Fetcher>
-    static std::string convertResultColumnsToString(Fetcher& queryResult);
-    template<main::QueryResultFetcher Fetcher>
-    static bool checkPlanResult(Fetcher& result, TestStatement* statement, size_t resultIdx,
-        const std::string& planStr, uint32_t planIdx);
+    static std::string convertResultColumnsToString(main::QueryResult& queryResult);
+    static bool checkPlanResult(std::unique_ptr<main::QueryResult>& result,
+        TestStatement* statement, size_t resultIdx, const std::string& planStr, uint32_t planIdx);
 };
 
 } // namespace testing

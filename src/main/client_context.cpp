@@ -477,7 +477,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     profiler->enabled = preparedStatement->isProfile();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
-    processor::CollectedQueryResult resultFT;
+    std::shared_ptr<FactorizedTable> resultFT;
     try {
         if (preparedStatement->isTransactionStatement()) {
             resultFT =
@@ -497,8 +497,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->initResultTableAndIterator(std::move(resultFT.resultTable),
-        std::move(resultFT.warningTable), preparedStatement->statementResult->getColumns());
+    queryResult->initResultTableAndIterator(std::move(resultFT),
+        preparedStatement->statementResult->getColumns());
     return queryResult;
 }
 

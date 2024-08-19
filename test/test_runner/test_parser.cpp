@@ -18,7 +18,6 @@
 #include <filesystem>
 
 #include "common/string_utils.h"
-#include "main/query_result_fetcher.h"
 #include "test_helper/test_helper.h"
 
 using namespace kuzu::common;
@@ -171,19 +170,6 @@ TestQueryResult TestParser::extractExpectedResultFromToken(bool checkOutputOrder
         queryResult.type = ResultType::ERROR_REGEX;
         queryResult.expectedResult.push_back(extractTextBeforeNextStatement());
         replaceVariables(queryResult.expectedResult[0]);
-    } else if (result == "warning") {
-        checkMinimumParams(2);
-        queryResult.type = ResultType::WARNING_MSG;
-        queryResult.numTuples = stoi(currentToken.params[2]);
-
-        for (auto i = 0u; i < queryResult.numTuples; i++) {
-            nextLine();
-            replaceVariables(line);
-            queryResult.expectedResult.push_back(line);
-        }
-        if (!checkOutputOrder) { // order is not important for result
-            sort(queryResult.expectedResult.begin(), queryResult.expectedResult.end());
-        }
     } else if (result.substr(0, 4) == "hash") {
         queryResult.type = ResultType::HASH;
         checkMinimumParams(1);

@@ -33,19 +33,6 @@ TEST_F(CApiQueryResultTest, GetErrorMessage) {
     kuzu_destroy_string(errorMessage);
 }
 
-TEST_F(CApiQueryResultTest, ToWarningString) {
-    kuzu_query_result result;
-    kuzu_state state;
-    auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN COUNT(*)", &result);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    char* str_repr = kuzu_query_result_to_warning_string(&result);
-    ASSERT_EQ(state, KuzuSuccess);
-    kuzu_destroy_string(str_repr);
-    kuzu_query_result_destroy(&result);
-}
-
 TEST_F(CApiQueryResultTest, ToString) {
     kuzu_query_result result;
     kuzu_state state;
@@ -59,18 +46,6 @@ TEST_F(CApiQueryResultTest, ToString) {
     kuzu_query_result_destroy(&result);
 }
 
-TEST_F(CApiQueryResultTest, GetNumWarningsColumns) {
-    kuzu_query_result result;
-    kuzu_state state;
-    auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
-        &result);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    ASSERT_EQ(4, kuzu_query_result_get_num_warning_columns(&result));
-    kuzu_query_result_destroy(&result);
-}
-
 TEST_F(CApiQueryResultTest, GetNumColumns) {
     kuzu_query_result result;
     kuzu_state state;
@@ -80,31 +55,6 @@ TEST_F(CApiQueryResultTest, GetNumColumns) {
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_EQ(kuzu_query_result_get_num_columns(&result), 3);
-    kuzu_query_result_destroy(&result);
-}
-
-TEST_F(CApiQueryResultTest, GetWarningColumnName) {
-    kuzu_query_result result;
-    kuzu_state state;
-    auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
-        &result);
-    ASSERT_EQ(KuzuSuccess, state);
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    char* columnName;
-    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 0, &columnName));
-    ASSERT_EQ("Message", std::string(columnName));
-    kuzu_destroy_string(columnName);
-    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 1, &columnName));
-    ASSERT_EQ("File Path", std::string(columnName));
-    kuzu_destroy_string(columnName);
-    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 2, &columnName));
-    ASSERT_EQ("Line Number", std::string(columnName));
-    kuzu_destroy_string(columnName);
-    ASSERT_EQ(KuzuSuccess, kuzu_query_result_get_warning_column_name(&result, 3, &columnName));
-    ASSERT_EQ("Reconstructed Line", std::string(columnName));
-    kuzu_destroy_string(columnName);
-    ASSERT_EQ(KuzuError, kuzu_query_result_get_warning_column_name(&result, 222, &columnName));
     kuzu_query_result_destroy(&result);
 }
 
@@ -127,39 +77,6 @@ TEST_F(CApiQueryResultTest, GetColumnName) {
     ASSERT_EQ(std::string(columnName), "a.height");
     kuzu_destroy_string(columnName);
     ASSERT_EQ(kuzu_query_result_get_column_name(&result, 222, &columnName), KuzuError);
-    kuzu_query_result_destroy(&result);
-}
-
-TEST_F(CApiQueryResultTest, GetWarningColumnDataType) {
-    kuzu_query_result result;
-    kuzu_state state;
-    auto connection = getConnection();
-    state = kuzu_connection_query(connection, "MATCH (a:person) RETURN a.fName, a.age, a.height",
-        &result);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    kuzu_logical_type type;
-
-    ASSERT_EQ(kuzu_query_result_get_warning_column_data_type(&result, 0, &type), KuzuSuccess);
-    auto typeCpp = (LogicalType*)(type._data_type);
-    ASSERT_EQ(typeCpp->getLogicalTypeID(), LogicalTypeID::STRING);
-    kuzu_data_type_destroy(&type);
-
-    ASSERT_EQ(kuzu_query_result_get_warning_column_data_type(&result, 1, &type), KuzuSuccess);
-    typeCpp = (LogicalType*)(type._data_type);
-    ASSERT_EQ(typeCpp->getLogicalTypeID(), LogicalTypeID::STRING);
-    kuzu_data_type_destroy(&type);
-
-    ASSERT_EQ(kuzu_query_result_get_warning_column_data_type(&result, 2, &type), KuzuSuccess);
-    typeCpp = (LogicalType*)(type._data_type);
-    ASSERT_EQ(typeCpp->getLogicalTypeID(), LogicalTypeID::UINT64);
-    kuzu_data_type_destroy(&type);
-
-    ASSERT_EQ(kuzu_query_result_get_warning_column_data_type(&result, 3, &type), KuzuSuccess);
-    typeCpp = (LogicalType*)(type._data_type);
-    ASSERT_EQ(typeCpp->getLogicalTypeID(), LogicalTypeID::STRING);
-    kuzu_data_type_destroy(&type);
-
     kuzu_query_result_destroy(&result);
 }
 
@@ -224,23 +141,6 @@ TEST_F(CApiQueryResultTest, GetQuerySummary) {
     kuzu_query_result_destroy(&result);
 }
 
-TEST_F(CApiQueryResultTest, GetNextWarning) {
-    kuzu_query_result result;
-    kuzu_flat_tuple row;
-    kuzu_state state;
-    auto connection = getConnection();
-    state = kuzu_connection_query(connection,
-        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName", &result);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
-
-    ASSERT_EQ(0, kuzu_query_result_get_num_warnings(&result));
-    ASSERT_FALSE(kuzu_query_result_has_next_warning(&result));
-    state = kuzu_query_result_get_next_warning(&result, &row);
-    ASSERT_EQ(state, KuzuError);
-    kuzu_query_result_destroy(&result);
-}
-
 TEST_F(CApiQueryResultTest, GetNext) {
     kuzu_query_result result;
     kuzu_flat_tuple row;
@@ -272,29 +172,6 @@ TEST_F(CApiQueryResultTest, GetNext) {
     ASSERT_FALSE(kuzu_query_result_has_next(&result));
     state = kuzu_query_result_get_next(&result, &row);
     ASSERT_EQ(state, KuzuError);
-    kuzu_query_result_destroy(&result);
-}
-
-TEST_F(CApiQueryResultTest, ResetWarningIterator) {
-    kuzu_query_result result;
-    kuzu_flat_tuple row;
-    kuzu_state state;
-    auto connection = getConnection();
-    state = kuzu_connection_query(connection,
-        "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName", &result);
-    ASSERT_EQ(state, KuzuSuccess);
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
-
-    ASSERT_FALSE(kuzu_query_result_has_next_warning(&result));
-    state = kuzu_query_result_get_next_warning(&result, &row);
-    ASSERT_EQ(state, KuzuError);
-
-    kuzu_query_result_reset_warning_iterator(&result);
-
-    ASSERT_FALSE(kuzu_query_result_has_next_warning(&result));
-    state = kuzu_query_result_get_next_warning(&result, &row);
-    ASSERT_EQ(state, KuzuError);
-
     kuzu_query_result_destroy(&result);
 }
 

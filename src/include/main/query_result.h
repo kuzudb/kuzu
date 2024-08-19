@@ -64,33 +64,17 @@ public:
      */
     KUZU_API size_t getNumColumns() const;
     /**
-     * @return number of columns in the warning table in the query result.
-     */
-    KUZU_API size_t getNumWarningColumns() const;
-    /**
      * @return name of each column in query result.
      */
     KUZU_API std::vector<std::string> getColumnNames() const;
-    /**
-     * @return name of each column in the warning table in the query result.
-     */
-    KUZU_API std::vector<std::string> getWarningColumnNames() const;
     /**
      * @return dataType of each column in query result.
      */
     KUZU_API std::vector<common::LogicalType> getColumnDataTypes() const;
     /**
-     * @return dataType of each column in the warning table in the query result.
-     */
-    KUZU_API std::vector<common::LogicalType> getWarningColumnDataTypes() const;
-    /**
      * @return num of tuples in query result.
      */
     KUZU_API uint64_t getNumTuples() const;
-    /**
-     * @return num of warnings in query result.
-     */
-    KUZU_API uint64_t getNumWarnings() const;
     /**
      * @return query summary which stores the execution time, compiling time, plan and query
      * options.
@@ -100,10 +84,6 @@ public:
      * @return whether there are more tuples to read.
      */
     KUZU_API bool hasNext() const;
-    /**
-     * @return whether there are more warnings to read.
-     */
-    KUZU_API bool hasNextWarning() const;
     /**
      * @return whether there are more query results to read.
      */
@@ -119,26 +99,14 @@ public:
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
     /**
-     * @return next warning in the query result as a flat tuple.
-     */
-    KUZU_API std::shared_ptr<processor::FlatTuple> getNextWarning();
-    /**
      * @return string of first query result.
      */
     KUZU_API std::string toString();
-    /**
-     * @return string summarizing all warnings in first query result.
-     */
-    KUZU_API std::string toWarningString();
 
     /**
      * @brief Resets the result tuple iterator.
      */
     KUZU_API void resetIterator();
-    /**
-     * @brief Resets the warning tuple iterator.
-     */
-    KUZU_API void resetWarningIterator();
 
     processor::FactorizedTable* getTable() { return factorizedTable.get(); }
 
@@ -166,7 +134,6 @@ public:
 
 private:
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,
-        std::shared_ptr<processor::FactorizedTable> warningTable_,
         const std::vector<std::shared_ptr<binder::Expression>>& columns);
     void validateQuerySucceed() const;
 
@@ -180,11 +147,8 @@ private:
     std::vector<common::LogicalType> columnDataTypes;
     // data
     std::shared_ptr<processor::FactorizedTable> factorizedTable;
-    std::shared_ptr<processor::FactorizedTable> warningTable;
     std::unique_ptr<processor::FlatTupleIterator> iterator;
-    std::unique_ptr<processor::FlatTupleIterator> warningIterator;
     std::shared_ptr<processor::FlatTuple> tuple;
-    std::shared_ptr<processor::FlatTuple> warning;
 
     // execution statistics
     std::unique_ptr<QuerySummary> querySummary;

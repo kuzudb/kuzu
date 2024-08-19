@@ -7,7 +7,6 @@
 #include "common/types/value/rel.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
-#include "processor/warning_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -38,35 +37,16 @@ size_t QueryResult::getNumColumns() const {
     return columnDataTypes.size();
 }
 
-size_t QueryResult::getNumWarningColumns() const {
-    return WarningSchema::getNumColumns();
-}
-
 std::vector<std::string> QueryResult::getColumnNames() const {
     return columnNames;
-}
-
-std::vector<std::string> QueryResult::getWarningColumnNames() const {
-    return WarningSchema::getColumnNames();
 }
 
 std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
     return LogicalType::copy(columnDataTypes);
 }
 
-std::vector<LogicalType> QueryResult::getWarningColumnDataTypes() const {
-    return WarningSchema::getColumnDataTypes();
-}
-
 uint64_t QueryResult::getNumTuples() const {
     return factorizedTable->getTotalNumFlatTuples();
-}
-
-uint64_t QueryResult::getNumWarnings() const {
-    if (!warningTable) {
-        return 0;
-    }
-    return warningTable->getTotalNumFlatTuples();
 }
 
 QuerySummary* QueryResult::getQuerySummary() const {
@@ -77,20 +57,11 @@ void QueryResult::resetIterator() {
     iterator->resetState();
 }
 
-void QueryResult::resetWarningIterator() {
-    if (warningIterator) {
-        warningIterator->resetState();
-    }
-}
-
 void QueryResult::initResultTableAndIterator(
     std::shared_ptr<processor::FactorizedTable> factorizedTable_,
-    std::shared_ptr<processor::FactorizedTable> warningTable_,
     const binder::expression_vector& columns) {
     factorizedTable = std::move(factorizedTable_);
-    warningTable = std::move(warningTable_);
     tuple = std::make_shared<FlatTuple>();
-    warning = std::make_shared<FlatTuple>();
     std::vector<Value*> valuesToCollect;
     for (auto i = 0u; i < columns.size(); ++i) {
         auto column = columns[i].get();
@@ -103,33 +74,12 @@ void QueryResult::initResultTableAndIterator(
         valuesToCollect.push_back(value.get());
         tuple->addValue(std::move(value));
     }
-
-    std::vector<Value*> warningsToCollect;
-    for (const auto& warningType : WarningSchema::getColumnDataTypes()) {
-        std::unique_ptr<Value> value =
-            std::make_unique<Value>(Value::createDefaultValue(warningType));
-        warningsToCollect.push_back(value.get());
-        warning->addValue(std::move(value));
-    }
-
     iterator = std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
-    if (warningTable) {
-        warningIterator =
-            std::make_unique<FlatTupleIterator>(*warningTable, std::move(warningsToCollect));
-    }
 }
 
 bool QueryResult::hasNext() const {
     validateQuerySucceed();
     return iterator->hasNextFlatTuple();
-}
-
-bool QueryResult::hasNextWarning() const {
-    validateQuerySucceed();
-    if (!warningIterator) {
-        return false;
-    }
-    return warningIterator->hasNextFlatTuple();
 }
 
 bool QueryResult::hasNextQueryResult() const {
@@ -154,16 +104,6 @@ std::shared_ptr<FlatTuple> QueryResult::getNext() {
     return tuple;
 }
 
-std::shared_ptr<FlatTuple> QueryResult::getNextWarning() {
-    if (!hasNextWarning()) {
-        throw RuntimeException("No more warnings in QueryResult, Please check hasNextWarning() "
-                               "before calling getNextWarning().");
-    }
-    validateQuerySucceed();
-    warningIterator->getNextFlatTuple();
-    return warning;
-}
-
 std::string QueryResult::toString() {
     std::string result;
     if (isSuccess()) {
@@ -179,29 +119,6 @@ std::string QueryResult::toString() {
         while (hasNext()) {
             getNext();
             result += tuple->toString();
-        }
-    } else {
-        result = errMsg;
-    }
-    return result;
-}
-
-std::string QueryResult::toWarningString() {
-    std::string result;
-    if (isSuccess()) {
-        // print header
-        const std::vector<std::string> columnNames = WarningSchema::getColumnNames();
-        for (auto i = 0u; i < columnNames.size(); ++i) {
-            if (i != 0) {
-                result += "|";
-            }
-            result += columnNames[i];
-        }
-        result += "\n";
-        resetWarningIterator();
-        while (hasNextWarning()) {
-            getNextWarning();
-            result += warning->toString();
         }
     } else {
         result = errMsg;

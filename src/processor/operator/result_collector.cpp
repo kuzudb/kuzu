@@ -8,17 +8,6 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-ResultCollectorSharedState::ResultCollectorSharedState(std::shared_ptr<FactorizedTable> table)
-    : table{std::move(table)} {}
-
-void ResultCollectorSharedState::setWarningTable(std::shared_ptr<FactorizedTable> warningTable) {
-    this->warningTable = std::move(warningTable);
-}
-
-std::shared_ptr<FactorizedTable> ResultCollectorSharedState::getWarningTable() {
-    return warningTable;
-}
-
 std::string ResultCollectorPrintInfo::toString() const {
     std::string result = "";
     if (accumulateType == AccumulateType::OPTIONAL_) {
@@ -27,10 +16,6 @@ std::string ResultCollectorPrintInfo::toString() const {
     result += ",Expressions: ";
     result += binder::ExpressionUtil::toString(expressions);
     return result;
-}
-
-CollectedQueryResult ResultCollector::getResult() {
-    return {sharedState->getTable(), sharedState->getWarningTable()};
 }
 
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -64,8 +49,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
     }
 }
 
-void ResultCollector::finalize(ExecutionContext* context) {
-    sharedState->setWarningTable(std::move(context->warningContext.warningTable));
+void ResultCollector::finalize(ExecutionContext* /*context*/) {
     switch (info.accumulateType) {
     case AccumulateType::OPTIONAL_: {
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to

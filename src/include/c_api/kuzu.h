@@ -629,24 +629,10 @@ KUZU_C_API bool kuzu_query_result_is_success(kuzu_query_result* query_result);
  */
 KUZU_C_API char* kuzu_query_result_get_error_message(kuzu_query_result* query_result);
 /**
- * @brief Returns the number of columns in the warning table of the query result.
- * @param query_result The query result instance to return.
- */
-KUZU_C_API uint64_t kuzu_query_result_get_num_warning_columns(kuzu_query_result* query_result);
-/**
  * @brief Returns the number of columns in the query result.
  * @param query_result The query result instance to return.
  */
 KUZU_C_API uint64_t kuzu_query_result_get_num_columns(kuzu_query_result* query_result);
-/**
- * @brief Returns the column name at the given index in the warning table of the query result.
- * @param query_result The query result instance to return.
- * @param index The index of the column to return name.
- * @param[out] out_column_name The output parameter that will hold the column name.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_query_result_get_warning_column_name(kuzu_query_result* query_result,
-    uint64_t index, char** out_column_name);
 /**
  * @brief Returns the column name at the given index.
  * @param query_result The query result instance to return.
@@ -657,16 +643,6 @@ KUZU_C_API kuzu_state kuzu_query_result_get_warning_column_name(kuzu_query_resul
 KUZU_C_API kuzu_state kuzu_query_result_get_column_name(kuzu_query_result* query_result,
     uint64_t index, char** out_column_name);
 /**
- * @brief Returns the data type of the column at the given index in the warning table of the query
- * result.
- * @param query_result The query result instance to return.
- * @param index The index of the column to return data type.
- * @param[out] out_column_data_type The output parameter that will hold the column data type.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_query_result_get_warning_column_data_type(
-    kuzu_query_result* query_result, uint64_t index, kuzu_logical_type* out_column_data_type);
-/**
  * @brief Returns the data type of the column at the given index.
  * @param query_result The query result instance to return.
  * @param index The index of the column to return data type.
@@ -675,11 +651,6 @@ KUZU_C_API kuzu_state kuzu_query_result_get_warning_column_data_type(
  */
 KUZU_C_API kuzu_state kuzu_query_result_get_column_data_type(kuzu_query_result* query_result,
     uint64_t index, kuzu_logical_type* out_column_data_type);
-/**
- * @brief Returns the number of warnings in the query result.
- * @param query_result The query result instance to return.
- */
-KUZU_C_API uint64_t kuzu_query_result_get_num_warnings(kuzu_query_result* query_result);
 /**
  * @brief Returns the number of tuples in the query result.
  * @param query_result The query result instance to return.
@@ -694,24 +665,10 @@ KUZU_C_API uint64_t kuzu_query_result_get_num_tuples(kuzu_query_result* query_re
 KUZU_C_API kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* query_result,
     kuzu_query_summary* out_query_summary);
 /**
- * @brief Returns true if we have not consumed all warnings in the query result, false otherwise.
- * @param query_result The query result instance to check.
- */
-KUZU_C_API bool kuzu_query_result_has_next_warning(kuzu_query_result* query_result);
-/**
  * @brief Returns true if we have not consumed all tuples in the query result, false otherwise.
  * @param query_result The query result instance to check.
  */
 KUZU_C_API bool kuzu_query_result_has_next(kuzu_query_result* query_result);
-/**
- * @brief Returns the next warning as a flat tuple. Throws an exception if there
- * is no more tuple.
- * @param query_result The query result instance to return.
- * @param[out] out_flat_tuple The output parameter that will hold the next tuple.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_query_result_get_next_warning(kuzu_query_result* query_result,
-    kuzu_flat_tuple* out_flat_tuple);
 /**
  * @brief Returns the next tuple in the query result. Throws an exception if there is no more tuple.
  * @param query_result The query result instance to return.
@@ -737,22 +694,11 @@ KUZU_C_API kuzu_state kuzu_query_result_get_next_query_result(kuzu_query_result*
     kuzu_query_result* out_next_query_result);
 
 /**
- * @brief Returns the warnings in the query result as a string.
- * @param query_result The query result instance to return.
- * @return The query result as a string.
- */
-KUZU_C_API char* kuzu_query_result_to_warning_string(kuzu_query_result* query_result);
-/**
  * @brief Returns the query result as a string.
  * @param query_result The query result instance to return.
  * @return The query result as a string.
  */
 KUZU_C_API char* kuzu_query_result_to_string(kuzu_query_result* query_result);
-/**
- * @brief Resets the warning iterator of the query result to the beginning of the query result.
- * @param query_result The query result instance to reset iterator.
- */
-KUZU_C_API void kuzu_query_result_reset_warning_iterator(kuzu_query_result* query_result);
 /**
  * @brief Resets the iterator of the query result to the beginning of the query result.
  * @param query_result The query result instance to reset iterator.
