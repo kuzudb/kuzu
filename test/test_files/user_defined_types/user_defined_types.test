@@ -113,3 +113,26 @@ Binder exception: Duplicated type name: DESCRIPTION.
 ---- ok
 -STATEMENT CREATE NODE TABLE STUDENT (ID BIGINT, HEIGHT LENGTH, PRIMARY KEY(ID));
 ---- ok
+
+-CASE UDTInNestedType
+-STATEMENT CREATE TYPE LENGTH AS INT64;
+---- ok
+-STATEMENT CREATE TYPE HEIGHT AS INT32;
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON (name string, info struct(h HEIGHT, l length), primary key(name));
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON1 (name string, info HEIGHT[], primary key(name));
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON3 (name string, info HEIGHT[5], info1 LENGTH[3], primary key(name));
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON2 (name string, info MAP(HEIGHT, LENGTH), primary key(name));
+---- ok
+-STATEMENT CREATE TYPE person_info as struct (l length, h height)
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON_INFO (NAME STRING, information person_info, primary key(NAME))
+---- ok
+-STATEMENT CREATE (:PERSON_INFO {NAME: 'abc', information: {l: 5, h: 32}})
+---- ok
+-STATEMENT MATCH (p:PERSON_INFO) RETURN p.*;
+---- 1
+abc|{l: 5, h: 32}

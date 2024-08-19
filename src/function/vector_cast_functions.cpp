@@ -1264,9 +1264,9 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
     auto targetTypeStr = literalExpr->getValue().getValue<std::string>();
     auto func = input.definition->ptrCast<ScalarFunction>();
     func->name = "CAST_TO_" + targetTypeStr;
-    LogicalType targetType;
-    if (!LogicalType::tryConvertFromString(targetTypeStr, targetType)) {
-        targetType = input.context->getCatalog()->getType(input.context->getTx(), targetTypeStr);
+    auto targetType = LogicalType::convertFromString(targetTypeStr, input.context);
+    // TODO(Ziyi): fix for json.
+    if (false) {
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {

@@ -93,7 +93,7 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
     if (!bindExportQuery(exportQuery, entry, catalog, tx)) {
         return false;
     }
-    auto parsedStatement = Parser::parseQuery(exportQuery);
+    auto parsedStatement = Parser::parseQuery(exportQuery, clientContext);
     KU_ASSERT(parsedStatement.size() == 1);
     auto parsedQuery = parsedStatement[0]->constPtrCast<RegularQuery>();
     auto query = bindQuery(*parsedQuery);

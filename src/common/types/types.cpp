@@ -4,7 +4,6 @@
 #include "common/constants.h"
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
-#include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -15,6 +14,7 @@
 #include "common/types/ku_string.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "main/client_context.h"
 
 using kuzu::function::BuiltInFunctionsUtils;
 
@@ -625,27 +625,29 @@ std::string LogicalType::toString() const {
 
 static bool tryGetIDFromString(const std::string& trimmedStr, LogicalTypeID& id);
 static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-static LogicalType parseListType(const std::string& trimmedStr);
-static LogicalType parseArrayType(const std::string& trimmedStr);
-static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr);
-static LogicalType parseStructType(const std::string& trimmedStr);
-static LogicalType parseMapType(const std::string& trimmedStr);
-static LogicalType parseUnionType(const std::string& trimmedStr);
+static LogicalType parseListType(const std::string& trimmedStr, main::ClientContext* context);
+static LogicalType parseArrayType(const std::string& trimmedStr, main::ClientContext* context);
+static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
+    main::ClientContext* context);
+static LogicalType parseStructType(const std::string& trimmedStr, main::ClientContext* context);
+static LogicalType parseMapType(const std::string& trimmedStr, main::ClientContext* context);
+static LogicalType parseUnionType(const std::string& trimmedStr, main::ClientContext* context);
 static LogicalType parseDecimalType(const std::string& trimmedStr);
 
-bool LogicalType::tryConvertFromString(const std::string& str, LogicalType& type) {
+LogicalType LogicalType::convertFromString(const std::string& str, main::ClientContext* context) {
+    LogicalType type;
     auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
     auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
     if (upperDataTypeString.ends_with("[]")) {
-        type = parseListType(trimmedStr);
+        type = parseListType(trimmedStr, context);
     } else if (upperDataTypeString.ends_with("]")) {
-        type = parseArrayType(trimmedStr);
+        type = parseArrayType(trimmedStr, context);
     } else if (upperDataTypeString.starts_with("STRUCT")) {
-        type = parseStructType(trimmedStr);
+        type = parseStructType(trimmedStr, context);
     } else if (upperDataTypeString.starts_with("MAP")) {
-        type = parseMapType(trimmedStr);
+        type = parseMapType(trimmedStr, context);
     } else if (upperDataTypeString.starts_with("UNION")) {
-        type = parseUnionType(trimmedStr);
+        type = parseUnionType(trimmedStr, context);
     } else if (upperDataTypeString.starts_with("DECIMAL") ||
                upperDataTypeString.starts_with("NUMERIC")) {
         type = parseDecimalType(trimmedStr);
@@ -654,15 +656,7 @@ bool LogicalType::tryConvertFromString(const std::string& str, LogicalType& type
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else {
-        return false;
-    }
-    return true;
-}
-
-LogicalType LogicalType::fromString(const std::string& str) {
-    LogicalType type;
-    if (!tryConvertFromString(str, type)) {
-        throw NotImplementedException(common::stringFormat("Cannot parse dataTypeID: {}", str));
+        type = context->getCatalog()->getType(context->getTx(), upperDataTypeString);
     }
     return type;
 }
@@ -727,10 +721,10 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     switch (typeID) {
     case LogicalTypeID::ANY: {
         return PhysicalTypeID::ANY;
-    } break;
+    }
     case LogicalTypeID::BOOL: {
         return PhysicalTypeID::BOOL;
-    } break;
+    }
     case LogicalTypeID::TIMESTAMP_MS:
     case LogicalTypeID::TIMESTAMP_NS:
     case LogicalTypeID::TIMESTAMP_TZ:
@@ -739,39 +733,39 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         return PhysicalTypeID::INT64;
-    } break;
+    }
     case LogicalTypeID::DATE:
     case LogicalTypeID::INT32: {
         return PhysicalTypeID::INT32;
-    } break;
+    }
     case LogicalTypeID::INT16: {
         return PhysicalTypeID::INT16;
-    } break;
+    }
     case LogicalTypeID::INT8: {
         return PhysicalTypeID::INT8;
-    } break;
+    }
     case LogicalTypeID::UINT64: {
         return PhysicalTypeID::UINT64;
-    } break;
+    }
     case LogicalTypeID::UINT32: {
         return PhysicalTypeID::UINT32;
-    } break;
+    }
     case LogicalTypeID::UINT16: {
         return PhysicalTypeID::UINT16;
-    } break;
+    }
     case LogicalTypeID::UINT8: {
         return PhysicalTypeID::UINT8;
-    } break;
+    }
     case LogicalTypeID::UUID:
     case LogicalTypeID::INT128: {
         return PhysicalTypeID::INT128;
-    } break;
+    }
     case LogicalTypeID::DOUBLE: {
         return PhysicalTypeID::DOUBLE;
-    } break;
+    }
     case LogicalTypeID::FLOAT: {
         return PhysicalTypeID::FLOAT;
-    } break;
+    }
     case LogicalTypeID::DECIMAL: {
         if (extraTypeInfo == nullptr) {
             throw BinderException(getIncompleteTypeErrMsg(typeID));
@@ -789,24 +783,24 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
         } else {
             throw BinderException("Precision of decimal must be no greater than 38");
         }
-    } break;
+    }
     case LogicalTypeID::INTERVAL: {
         return PhysicalTypeID::INTERVAL;
-    } break;
+    }
     case LogicalTypeID::INTERNAL_ID: {
         return PhysicalTypeID::INTERNAL_ID;
-    } break;
+    }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         return PhysicalTypeID::STRING;
-    } break;
+    }
     case LogicalTypeID::MAP:
     case LogicalTypeID::LIST: {
         return PhysicalTypeID::LIST;
-    } break;
+    }
     case LogicalTypeID::ARRAY: {
         return PhysicalTypeID::ARRAY;
-    } break;
+    }
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
@@ -814,10 +808,10 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
         return PhysicalTypeID::STRUCT;
-    } break;
+    }
     case LogicalTypeID::POINTER: {
         return PhysicalTypeID::POINTER;
-    } break;
+    }
     default:
         KU_UNREACHABLE;
     }
@@ -1226,14 +1220,16 @@ std::vector<std::string> parseStructFields(const std::string& structTypeStr) {
     return structFieldsStr;
 }
 
-LogicalType parseListType(const std::string& trimmedStr) {
-    return LogicalType::LIST(LogicalType::fromString(trimmedStr.substr(0, trimmedStr.size() - 2)));
+LogicalType parseListType(const std::string& trimmedStr, main::ClientContext* context) {
+    return LogicalType::LIST(
+        LogicalType::convertFromString(trimmedStr.substr(0, trimmedStr.size() - 2), context));
 }
 
-LogicalType parseArrayType(const std::string& trimmedStr) {
+LogicalType parseArrayType(const std::string& trimmedStr, main::ClientContext* context) {
     auto leftBracketPos = trimmedStr.find_last_of('[');
     auto rightBracketPos = trimmedStr.find_last_of(']');
-    auto childType = LogicalType(LogicalType::fromString(trimmedStr.substr(0, leftBracketPos)));
+    auto childType =
+        LogicalType(LogicalType::convertFromString(trimmedStr.substr(0, leftBracketPos), context));
     auto numElements = std::strtoll(
         trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
         nullptr, 0 /* base */);
@@ -1246,7 +1242,8 @@ LogicalType parseArrayType(const std::string& trimmedStr) {
     return LogicalType::ARRAY(std::move(childType), numElements);
 }
 
-std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr) {
+std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
+    main::ClientContext* context) {
     auto leftBracketPos = structTypeStr.find('(');
     auto rightBracketPos = structTypeStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -1261,16 +1258,17 @@ std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr) {
         auto pos = structFieldStr.find(' ');
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
-        structFields.emplace_back(fieldName, LogicalType(LogicalType::fromString(fieldTypeString)));
+        LogicalType fieldType = LogicalType::convertFromString(fieldTypeString, context);
+        structFields.emplace_back(fieldName, std::move(fieldType));
     }
     return structFields;
 }
 
-LogicalType parseStructType(const std::string& trimmedStr) {
-    return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr));
+LogicalType parseStructType(const std::string& trimmedStr, main::ClientContext* context) {
+    return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr, context));
 }
 
-LogicalType parseMapType(const std::string& trimmedStr) {
+LogicalType parseMapType(const std::string& trimmedStr, main::ClientContext* context) {
     auto leftBracketPos = trimmedStr.find('(');
     auto rightBracketPos = trimmedStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -1278,12 +1276,12 @@ LogicalType parseMapType(const std::string& trimmedStr) {
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
     auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
-    return LogicalType::MAP(LogicalType::fromString(keyValueTypes[0]),
-        LogicalType::fromString(keyValueTypes[1]));
+    return LogicalType::MAP(LogicalType::convertFromString(keyValueTypes[0], context),
+        LogicalType::convertFromString(keyValueTypes[1], context));
 }
 
-LogicalType parseUnionType(const std::string& trimmedStr) {
-    return LogicalType::UNION(parseStructTypeInfo(trimmedStr));
+LogicalType parseUnionType(const std::string& trimmedStr, main::ClientContext* context) {
+    return LogicalType::UNION(parseStructTypeInfo(trimmedStr, context));
 }
 
 LogicalType parseDecimalType(const std::string& trimmedStr) {

@@ -320,10 +320,6 @@ void Catalog::createType(Transaction* transaction, std::string name, LogicalType
 }
 
 LogicalType Catalog::getType(const Transaction* transaction, const std::string& name) const {
-    LogicalType type;
-    if (LogicalType::tryConvertFromString(name, type)) {
-        return type;
-    }
     if (!types->containsEntry(transaction, name)) {
         throw CatalogException{
             stringFormat("{} is neither an internal type nor a user defined type.", name)};

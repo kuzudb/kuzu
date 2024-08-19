@@ -118,15 +118,12 @@ public:
         std::optional<uint64_t> queryID = std::nullopt);
     void runQuery(std::string query);
 
-    // TODO(Jiamin): should remove after supporting ddl in manual tx
-    std::unique_ptr<PreparedStatement> prepareTest(std::string_view query);
     // only use for test framework
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase();
 
-    void runFuncInTransaction(const std::function<void(void)>& fun);
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
 
@@ -163,11 +160,12 @@ private:
     void bindParametersNoLock(PreparedStatement* preparedStatement,
         const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
 
-    std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
-        PreparedStatement* preparedStatement, uint32_t planIdx = 0u,
-        std::optional<uint64_t> queryID = std::nullopt);
+    std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
+        uint32_t planIdx = 0u, std::optional<uint64_t> queryID = std::nullopt);
 
     bool canExecuteWriteQuery();
+
+    void runFuncInTransaction(const std::function<void(void)>& fun);
 
     // Client side configurable settings.
     ClientConfig clientConfig;

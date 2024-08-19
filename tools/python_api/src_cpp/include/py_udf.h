@@ -9,10 +9,16 @@
 using kuzu::common::LogicalTypeID;
 using kuzu::function::function_set;
 
+namespace kuzu {
+namespace main {
+class ClientContext;
+} // namespace main
+} // namespace kuzu
+
 class PyUDF {
 
 public:
     static function_set toFunctionSet(const std::string& name, const py::function& udf,
         const py::list& paramTypes, const std::string& resultType, bool defaultNull,
-        bool catchExceptions);
+        bool catchExceptions, kuzu::main::ClientContext* context);
 };

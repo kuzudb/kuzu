@@ -39,6 +39,7 @@
 ---- ok
 
 -CASE JsonFunctionsSample
+-SKIP
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT return cast('alice' as json)

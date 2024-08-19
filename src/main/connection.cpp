@@ -88,7 +88,7 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
-    return clientContext->executeAndAutoCommitIfNecessaryNoLock(preparedStatement, planIdx);
+    return clientContext->executeNoLock(preparedStatement, planIdx);
 }
 
 void Connection::addScalarFunction(std::string name, function::function_set definitions) {

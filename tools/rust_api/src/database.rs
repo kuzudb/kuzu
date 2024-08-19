@@ -155,7 +155,7 @@ mod tests {
 
         assert_eq!(
             result.to_string(),
-            "Query execution failed: Cannot execute write operations in a read-only database!"
+            "Query execution failed: Connection exception: Cannot execute write operations in a read-only database!"
         );
         Ok(())
     }

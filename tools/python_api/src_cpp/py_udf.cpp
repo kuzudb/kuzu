@@ -24,10 +24,10 @@ struct PyUDFSignature {
     // copy constructible so it can be captured in a function enclosure
 };
 
-static std::vector<LogicalType> pyListToParams(const py::list& lst) {
+static std::vector<LogicalType> pyListToParams(const py::list& lst, main::ClientContext* context) {
     std::vector<LogicalType> params;
     for (const auto& _ : lst) {
-        params.push_back(LogicalType::fromString(py::cast<std::string>(_)));
+        params.push_back(LogicalType::convertFromString(py::cast<std::string>(_), context));
     }
     return params;
 }
@@ -177,9 +177,9 @@ static scalar_bind_func getUDFBindFunc(const PyUDFSignature& signature) {
 
 function_set PyUDF::toFunctionSet(const std::string& name, const py::function& udf,
     const py::list& paramTypes, const std::string& resultType, bool defaultNull,
-    bool catchExceptions) {
+    bool catchExceptions, main::ClientContext* context) {
     auto pySignature = analyzeSignature(udf);
-    auto explicitParamTypes = pyListToParams(paramTypes);
+    auto explicitParamTypes = pyListToParams(paramTypes, context);
     if (explicitParamTypes.size() > 0) {
         if (explicitParamTypes.size() != pySignature.paramTypes.size()) {
             throw RuntimeException(
@@ -196,7 +196,7 @@ function_set PyUDF::toFunctionSet(const std::string& name, const py::function& u
         paramIDTypes.push_back(paramType.getLogicalTypeID());
     }
     if (resultType != "") {
-        pySignature.resultType = LogicalType::fromString(resultType);
+        pySignature.resultType = LogicalType::convertFromString(resultType, context);
     }
     if (pySignature.resultType.getLogicalTypeID() == LogicalTypeID::ANY) {
         throw RuntimeException(

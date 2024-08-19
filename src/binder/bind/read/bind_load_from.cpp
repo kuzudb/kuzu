@@ -3,7 +3,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "common/exception/binder.h"
-#include "main/database.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/scan_source.h"
 
@@ -23,7 +22,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     std::vector<LogicalType> columnTypes;
     for (auto& [name, type] : loadFrom.getColumnDefinitions()) {
         columnNames.push_back(name);
-        columnTypes.push_back(clientContext->getCatalog()->getType(clientContext->getTx(), type));
+        columnTypes.push_back(LogicalType::convertFromString(type, clientContext));
     }
     switch (source->type) {
     case ScanSourceType::OBJECT: {

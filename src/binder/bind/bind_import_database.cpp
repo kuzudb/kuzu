@@ -48,7 +48,7 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
     auto copyQuery =
         getQueryFromFile(fs, boundFilePath, ImportDBConstants::COPY_NAME, clientContext);
     if (!copyQuery.empty()) {
-        auto parsedStatements = Parser::parseQuery(copyQuery);
+        auto parsedStatements = Parser::parseQuery(copyQuery, clientContext);
         for (auto& parsedStatement : parsedStatements) {
             KU_ASSERT(parsedStatement->getStatementType() == StatementType::COPY_FROM);
             auto copyFromStatement =

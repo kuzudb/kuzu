@@ -5,7 +5,7 @@
 -CASE MissingStructFieldType
 -STATEMENT create node table test1(ID INT64, description STRUCT(name INT64, age INT35), PRIMARY KEY(ID))
 ---- error
-Cannot parse dataTypeID: INT35
+Catalog exception: INT35 is neither an internal type nor a user defined type.
 
 -CASE MissingStructFields
 -STATEMENT create node table test1(ID INT64, description STRUCT, PRIMARY KEY(ID))

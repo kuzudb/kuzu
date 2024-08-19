@@ -95,7 +95,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(
     const Expression& child, const std::string& propertyName) {
-    auto& nodeOrRel = ku_dynamic_cast<const Expression&, const NodeOrRelExpression&>(child);
+    auto& nodeOrRel = child.constCast<NodeOrRelExpression>();
     // TODO(Xiyang): we should be able to remove l97-l100 after removing propertyDataExprs from node
     // & rel expression.
     if (propertyName == InternalKeyword::ID &&

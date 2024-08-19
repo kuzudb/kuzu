@@ -52,8 +52,7 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     const std::vector<ParsedPropertyDefinition>& parsedDefinitions, const std::string& tableName) {
     std::vector<PropertyDefinition> definitions;
     for (auto& parsedDefinition : parsedDefinitions) {
-        auto type = clientContext->getCatalog()->getType(clientContext->getTx(),
-            parsedDefinition.getType());
+        auto type = LogicalType::convertFromString(parsedDefinition.getType(), clientContext);
         auto expr = parsedDefinition.defaultExpr->copy();
         // This will check the type correctness of the default value expression
         auto boundExpr = expressionBinder.implicitCastIfNecessary(
@@ -201,11 +200,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) {
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
-    LogicalType type;
-    if (!LogicalType::tryConvertFromString(createType->getDataType(), type)) {
-        type =
-            clientContext->getCatalog()->getType(clientContext->getTx(), createType->getDataType());
-    }
+    LogicalType type = LogicalType::convertFromString(createType->getDataType(), clientContext);
     if (clientContext->getCatalog()->containsType(clientContext->getTx(), name)) {
         throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
     }
@@ -476,12 +471,11 @@ static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
 
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->ptrCast<ExtraAddPropertyInfo>();
     auto tableName = info->tableName;
-    auto dataType = catalog->getType(transaction, extraInfo->dataType);
+    auto dataType = LogicalType::convertFromString(extraInfo->dataType, clientContext);
     if (extraInfo->defaultValue == nullptr) {
         extraInfo->defaultValue =
             std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");

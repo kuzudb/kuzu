@@ -107,7 +107,7 @@ TEST_F(ApiTest, MultipleQueryExplain) {
 
 TEST_F(ApiTest, MultipleQuery) {
     auto result = conn->query("");
-    ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
+    ASSERT_EQ(result->getErrorMessage(), "Connection exception: Query is empty.");
 
     result = conn->query("MATCH (a:A)\n"
                          "            MATCH (a)-[:LIKES..]->(c)\n"
@@ -140,7 +140,7 @@ TEST_F(ApiTest, SingleQueryHasNextQueryResult) {
 
 TEST_F(ApiTest, Prepare) {
     auto result = conn->prepare("");
-    ASSERT_EQ(result->getErrorMessage(), "Connection Exception: Query is empty.");
+    ASSERT_EQ(result->getErrorMessage(), "Connection exception: Query is empty.");
 
     result =
         conn->prepare("CREATE NODE TABLE N(ID INT64, PRIMARY KEY(ID));CREATE REL TABLE E(FROM N TO "

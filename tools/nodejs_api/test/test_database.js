@@ -119,7 +119,7 @@ describe("Database constructor", function () {
     } catch (e) {
       assert.equal(
         e.message,
-        "Cannot execute write operations in a read-only database!"
+        "Connection exception: Cannot execute write operations in a read-only database!"
       );
     }
   });

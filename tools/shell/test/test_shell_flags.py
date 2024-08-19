@@ -100,7 +100,7 @@ def test_read_only(temp_db, flag) -> None:
     result.check_stdout(f"Opened the database at path: {temp_db} in read-only mode.")
     result.check_stdout("databases rule")
     result.check_stdout(
-        "Error: Cannot execute write operations in a read-only database!",
+        "Error: Connection exception: Cannot execute write operations in a read-only database!",
     )
     result.check_stdout("kuzu is cool")
 
