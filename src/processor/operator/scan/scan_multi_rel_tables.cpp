@@ -87,7 +87,7 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
             resetState();
             return false;
         }
-        const auto currentIdx = IDVector->state->getSelVector()[0];
+        const auto currentIdx = boundNodeIDVector->state->getSelVector()[0];
         if (boundNodeIDVector->isNull(currentIdx)) {
             outState->getSelVectorUnsafe().setSelSize(0);
             continue;
