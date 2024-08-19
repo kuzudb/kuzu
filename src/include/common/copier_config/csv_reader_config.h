@@ -16,7 +16,6 @@ struct CSVOption {
     bool ignoreErrors;
     uint64_t skipNum;
     uint64_t sampleSize;
-    uint64_t warningLimit;
 
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
@@ -25,8 +24,7 @@ struct CSVOption {
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
           ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
           skipNum{CopyConstants::DEFAULT_CSV_SKIP_NUM},
-          sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
-          warningLimit(CopyConstants::DEFAULT_CSV_WARNING_LIMIT) {}
+          sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE} {}
 
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 

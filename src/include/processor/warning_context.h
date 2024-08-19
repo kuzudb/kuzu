@@ -25,7 +25,10 @@ struct WarningInfo {
 
 struct WarningContext {
     std::vector<WarningInfo> warnings;
+    uint64_t* warningLimit;
     std::mutex mtx;
+
+    explicit WarningContext(uint64_t* warningLimit) : warningLimit(warningLimit) {}
 
     void appendWarningMessages(const std::vector<PopulatedCSVError>& messages, uint64_t queryID);
 };

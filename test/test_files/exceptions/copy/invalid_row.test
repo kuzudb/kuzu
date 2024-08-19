@@ -79,7 +79,9 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 9|98|vb12
 
 -CASE ParallelSkipInvalidNodeTableRowsMixedLimitWarnings
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", WARNING_LIMIT=2)
+-STATEMENT CALL warning_limit=2
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~")
 ---- ok
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 3
@@ -93,6 +95,19 @@ Reached warning limit of 2, any further warnings will not be reported.||0|
 5|93|movieE
 7|1|a
 9|98|vb12
+
+-CASE ParallelSkipInvalidNodeTableRowsMixedLimitWarningsMultipleQueries
+-STATEMENT CALL warning_limit=2
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+---- 3
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+Reached warning limit of 2, any further warnings will not be reported.||0|
 
 -CASE ParallelSkipInvalidRelMixed
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
@@ -240,7 +255,9 @@ unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row
 9|98|vb12
 
 -CASE SerialSkipInvalidNodeTableRowsMixedLimitWarnings
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", WARNING_LIMIT=2, PARALLEL=false)
+-STATEMENT CALL warning_limit=2
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", PARALLEL=false)
 ---- ok
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 3

@@ -125,7 +125,7 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(common::ReaderConfig read
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
       numBlocksReadByFiles{0}, csvReaderConfig{std::move(csvReaderConfig)}, warningCounter(),
       errorHandlers(this->readerConfig.getNumFiles(),
-          CSVErrorHandler{&lock, this->csvReaderConfig.option.warningLimit, &warningCounter,
+          CSVErrorHandler{&lock, context->getClientConfig()->warningLimit, &warningCounter,
               this->csvReaderConfig.option.ignoreErrors}) {}
 
 void ParallelCSVScanSharedState::setFileComplete(uint64_t completedFileIdx) {
@@ -263,20 +263,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings, ctx->queryID);
     }
 
-    KU_ASSERT(totalWarningCount <= state->csvReaderConfig.option.warningLimit);
-    if (totalWarningCount == state->csvReaderConfig.option.warningLimit) {
-        ctx->clientContext->getWarningContext().appendWarningMessages(
-            std::vector<PopulatedCSVError>{1,
-                PopulatedCSVError{
-                    .message = stringFormat(
-                        "Reached warning limit of {}, any further warnings will not be reported.",
-                        totalWarningCount),
-                    .filePath = "",
-                    .reconstructedLine = "",
-                    .lineNumber = 0,
-                }},
-            ctx->queryID);
-    }
+    KU_ASSERT(totalWarningCount <= ctx->clientContext->getClientConfig()->warningLimit);
 }
 
 function_set ParallelCSVScan::getFunctionSet() {

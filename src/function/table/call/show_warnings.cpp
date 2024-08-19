@@ -1,5 +1,4 @@
 #include "function/table/call_functions.h"
-#include "processor/operator/persistent/reader/csv/csv_error.h"
 #include "processor/warning_context.h"
 
 using namespace kuzu::common;

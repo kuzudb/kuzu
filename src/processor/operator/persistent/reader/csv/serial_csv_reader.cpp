@@ -65,7 +65,7 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
       errorHandlers(this->readerConfig.getNumFiles(),
           CSVErrorHandler(nullptr, // locking is handled external to the error handler
                                    // since we are scanning serially
-              this->csvReaderConfig.option.warningLimit, &warningCounter,
+              context->getClientConfig()->warningLimit, &warningCounter,
               this->csvReaderConfig.option.ignoreErrors)) {
     initReader(context);
 }
@@ -105,8 +105,8 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
     warning_counter_t warningCounter;
-    CSVErrorHandler errorHandler{nullptr, csvConfig.option.warningLimit, &warningCounter,
-        csvConfig.option.ignoreErrors};
+    CSVErrorHandler errorHandler{nullptr, bindInput->context->getClientConfig()->warningLimit,
+        &warningCounter, csvConfig.option.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
         0 /* numColumns */, bindInput->context, &errorHandler);
     auto sniffedColumns = csvReader.sniffCSV();
@@ -194,20 +194,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings, ctx->queryID);
     }
 
-    KU_ASSERT(totalWarningCount <= state->csvReaderConfig.option.warningLimit);
-    if (totalWarningCount == state->csvReaderConfig.option.warningLimit) {
-        ctx->clientContext->getWarningContext().appendWarningMessages(
-            std::vector<PopulatedCSVError>{1,
-                PopulatedCSVError{
-                    .message = stringFormat(
-                        "Reached warning limit of {}, any further warnings will not be reported.",
-                        totalWarningCount),
-                    .filePath = "",
-                    .reconstructedLine = "",
-                    .lineNumber = 0,
-                }},
-            ctx->queryID);
-    }
+    KU_ASSERT(totalWarningCount <= ctx->clientContext->getClientConfig()->warningLimit);
 }
 
 function_set SerialCSVScan::getFunctionSet() {

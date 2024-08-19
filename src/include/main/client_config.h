@@ -31,6 +31,8 @@ struct ClientConfig {
     common::PathSemantic recursivePatternSemantic;
     // Scale factor for recursive pattern cardinality estimation.
     uint32_t recursivePatternCardinalityScaleFactor;
+    // maximum number of cached warnings
+    uint64_t warningLimit;
     bool disableMapKeyCheck;
 };
 
@@ -45,6 +47,7 @@ struct ClientConfigDefault {
     static constexpr common::PathSemantic RECURSIVE_PATTERN_SEMANTIC = common::PathSemantic::WALK;
     static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 1;
     static constexpr bool DISABLE_MAP_KEY_CHECK = true;
+    static constexpr uint64_t WARNING_LIMIT = 8 * 1024;
 };
 
 } // namespace main

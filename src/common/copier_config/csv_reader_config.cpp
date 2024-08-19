@@ -60,11 +60,6 @@ static void bindIntParsingOption(CSVReaderConfig& config, const std::string& opt
             throw RuntimeException{"Sample size must be a non-negative integer"};
         }
         config.option.sampleSize = optionValue;
-    } else if (optionName == "WARNING_LIMIT") {
-        if (optionValue < 0) {
-            throw RuntimeException{"Warning limit must be a non-negative integer"};
-        }
-        config.option.warningLimit = optionValue;
     } else {
         KU_UNREACHABLE;
     }

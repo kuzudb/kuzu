@@ -43,7 +43,8 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database)
-    : dbConfig{database->dbConfig}, localDatabase{database} {
+    : dbConfig{database->dbConfig}, localDatabase{database},
+      warningContext(&clientConfig.warningLimit) {
     progressBar = std::make_unique<ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();

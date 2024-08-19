@@ -20,6 +20,18 @@ struct ThreadsSetting {
     }
 };
 
+struct WarningLimitSetting {
+    static constexpr auto name = "warning_limit";
+    static constexpr auto inputType = common::LogicalTypeID::INT64;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->warningLimit = parameter.getValue<int64_t>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value(context->getClientConfig()->warningLimit);
+    }
+};
+
 struct TimeoutSetting {
     static constexpr auto name = "timeout";
     static constexpr auto inputType = common::LogicalTypeID::INT64;
