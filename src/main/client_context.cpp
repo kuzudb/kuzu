@@ -271,8 +271,7 @@ std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
     for (auto& statement : parsedStatements) {
         auto preparedStatement = prepareNoLock(statement,
             enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
-        auto currentQueryResult =
-            executeNoLock(preparedStatement.get(), 0u, queryID);
+        auto currentQueryResult = executeNoLock(preparedStatement.get(), 0u, queryID);
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);
@@ -447,8 +446,8 @@ void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
     }
 }
 
-std::unique_ptr<QueryResult> ClientContext::executeNoLock(
-    PreparedStatement* preparedStatement, uint32_t planIdx, std::optional<uint64_t> queryID) {
+std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* preparedStatement,
+    uint32_t planIdx, std::optional<uint64_t> queryID) {
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
