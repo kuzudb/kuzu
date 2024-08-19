@@ -3,10 +3,6 @@
 #include "common/constants.h"
 #include "common/types/timestamp_t.h"
 #include "function/cast/functions/numeric_limits.h"
-
-#ifdef _WIN32
-#define __has_include(x) 1
-#endif
 #include "re2.h"
 
 namespace kuzu {

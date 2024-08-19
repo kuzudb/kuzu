@@ -35,9 +35,7 @@
 #include <iosfwd>
 #include <iterator>
 #include <string>
-#if __has_include(<string_view>) && __cplusplus >= 201703L
 #include <string_view>
-#endif
 
 namespace kuzu {
 namespace regex {
@@ -62,9 +60,7 @@ public:
     // in a "const char*" or a "string" wherever a "StringPiece" is
     // expected.
     StringPiece() : data_(NULL), size_(0) {}
-#if __has_include(<string_view>) && __cplusplus >= 201703L
     StringPiece(const std::string_view& str) : data_(str.data()), size_(str.size()) {}
-#endif
     StringPiece(const std::string& str) : data_(str.data()), size_(str.size()) {}
     StringPiece(const char* str) : data_(str), size_(str == NULL ? 0 : strlen(str)) {}
     StringPiece(const char* str, size_type len) : data_(str), size_(len) {}
