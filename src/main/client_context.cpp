@@ -388,7 +388,7 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     try {
         statements = Parser::parseQuery(query, this);
     } catch (std::exception& exception) {
-        if (startNewTrx) { // TODO(Guodong): think if we need to rollback readonly transaction?
+        if (startNewTrx) {
             transactionContext->rollback();
         }
         throw;
