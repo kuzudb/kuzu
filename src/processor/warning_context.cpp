@@ -31,11 +31,13 @@ std::vector<common::LogicalType> WarningSchema::getColumnDataTypes() {
 }
 
 void WarningContext::appendWarningMessages(const std::vector<PopulatedCSVError>& messages,
-    uint64_t messageLimit) {
+    uint64_t messageLimit, uint64_t queryID) {
     common::UniqLock lock{mtx};
     warningLimit = messageLimit;
 
-    warnings.insert(warnings.end(), messages.begin(), messages.end());
+    for (const auto& message : messages) {
+        warnings.emplace_back(message, queryID);
+    }
 
     KU_ASSERT(warnings.size() <= warningLimit);
 }

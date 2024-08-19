@@ -7,19 +7,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct WarningInfo {
-    uint64_t queryID;
-    processor::PopulatedCSVError warning;
-
-    explicit WarningInfo(processor::PopulatedCSVError warning)
-        : queryID(0), warning(std::move(warning)) {}
-};
-
 struct ShowWarningsBindData : public CallTableFuncBindData {
-    std::vector<WarningInfo> warnings;
+    std::vector<processor::WarningInfo> warnings;
 
-    ShowWarningsBindData(std::vector<WarningInfo> warnings, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, offset_t maxOffset)
+    ShowWarningsBindData(std::vector<processor::WarningInfo> warnings,
+        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+        offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           warnings{std::move(warnings)} {}
 
@@ -53,7 +46,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     TableFuncBindInput*) {
     std::vector<std::string> columnNames = processor::WarningSchema::getColumnNames();
     std::vector<LogicalType> columnTypes = processor::WarningSchema::getColumnDataTypes();
-    std::vector<WarningInfo> warningInfos;
+    std::vector<processor::WarningInfo> warningInfos;
     for (const auto& warning : context->getWarningContext().warnings) {
         warningInfos.emplace_back(warning);
     }

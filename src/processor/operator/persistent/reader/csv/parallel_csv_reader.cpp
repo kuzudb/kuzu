@@ -262,7 +262,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
 
         const auto cachedErrors = (state->errorHandlers[i].getCachedErrors(&reader));
         ctx->clientContext->getWarningContext().appendWarningMessages(cachedErrors,
-            state->csvReaderConfig.option.warningLimit);
+            state->csvReaderConfig.option.warningLimit, ctx->queryID);
     }
 }
 

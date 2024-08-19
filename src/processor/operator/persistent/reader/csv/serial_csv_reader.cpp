@@ -194,7 +194,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         KU_ASSERT(state->csvReaderConfig.option.ignoreErrors || cachedWarnings.empty());
 
         ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings,
-            state->csvReaderConfig.option.warningLimit);
+            state->csvReaderConfig.option.warningLimit, ctx->queryID);
     }
 }
 

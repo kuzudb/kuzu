@@ -37,10 +37,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
 ---- 1
 5 tuples have been copied to the person table.
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 2
-0|Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
-0|Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
 -STATEMENT MATCH (p:person) return p.ID, p.gender;
 ---- 5
 0|4
@@ -63,13 +63,13 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~")
 ---- 1
 5 tuples have been copied to the movie table.
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 5
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
-0|quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
-0|expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
-0|Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB
@@ -81,10 +81,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 -CASE ParallelSkipInvalidNodeTableRowsMixedLimitWarnings
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", WARNING_LIMIT=2)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 2
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB
@@ -96,20 +96,26 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 -CASE ParallelSkipInvalidRelMixed
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true)
 ---- ok
 -STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~")
 ---- 1
 3 tuples have been copied to the likes table.
--STATEMENT CALL show_warnings() RETURN *
----- 3
-0|Conversion exception: Cast failed. Could not convert "10a" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|1|7,7,10a...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|4|6,7,"ab~a...
-0|Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|6|0,1,0,"unquoted
--STATEMENT MATCH (a:person)-[l:likes]->(b:movie) return a.ID, b.ID, l.score, l.comment;
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+---- 10
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "10a" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|1|7,7,10a...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|4|6,7,"ab~a...
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|6|0,1,0,"unquoted
 ---- 3
 0|3|8|good
-4|9|10|vgood
+4|9|11|vgood
 6|1|1|vbad
 
 -CASE ParallelSkipInvalidNodeTableRowsMultipleFilesSomeEmptyHasHeaderMismatch
@@ -117,15 +123,15 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 ---- ok
 -STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv"] (HEADER=false, IGNORE_ERRORS=true, ESCAPE="~")
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 7
-0|Conversion exception: Cast failed. Could not convert "ID" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv|1|ID...
-0|Conversion exception: Cast failed. Could not convert "ID" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|1|ID...
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
-0|quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
-0|expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
-0|Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "ID" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv|1|ID...
+Conversion exception: Cast failed. Could not convert "ID" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|1|ID...
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB
@@ -139,14 +145,14 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 ---- ok
 -STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, IGNORE_ERRORS=true, ESCAPE="~")
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 6
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
-0|quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
-0|expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
-0|Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
-0|Conversion exception: Cast failed. Could not convert "1111111111111111111111111" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv|17|1111111111111111111111111...
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "1111111111111111111111111" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv|17|1111111111111111111111111...
 -STATEMENT MATCH (m:movie) return COUNT(*);
 ---- 1
 20
@@ -157,7 +163,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
 # casting errors are not detected during CSV sniffing so the first error that is detected is actually on line 4 (instead of line 2)
 -STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv"] (HEADER=true, ESCAPE="~")
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 4: 0|neither QUOTE nor ESCAPE is proceeded by ESCAPE. Line containing the error: '4,1,"ab~c...'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 4: neither QUOTE nor ESCAPE is proceeded by ESCAPE. Line containing the error: '4,1,"ab~c...'
 
 -CASE SerialSkipInvalidNodeTableRowsCastingErrorCheckNumTuples
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)
@@ -171,10 +177,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 ---- ok
 -STATEMENT COPY someTable FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person_1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person.csv"] (IGNORE_ERRORS=true, HEADER=true, DELIM="|")
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 2
-0|Conversion exception: Cast failed. Could not convert "349583094854930859438504394" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person_1.csv|107756|349583094854930859438504394...
-0|Conversion exception: Cast failed. Could not convert "abc" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person.csv|40561|137439055744|abc
+Conversion exception: Cast failed. Could not convert "349583094854930859438504394" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person_1.csv|107756|349583094854930859438504394...
+Conversion exception: Cast failed. Could not convert "abc" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person.csv|40561|137439055744|abc
 -STATEMENT MATCH (s:someTable) RETURN COUNT(*)
 ---- 1
 151042
@@ -182,9 +188,9 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 -CASE SkipInvalidAtEOF
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv" (IGNORE_ERRORS=true)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 1
-0|Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv|2|2,2147483650
 -STATEMENT MATCH (p:person) RETURN p.*
 ---- 1
 0|4
@@ -192,10 +198,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 -CASE SerialSkipInvalidNodeTableRowsCastingError
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 2
-0|Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
-0|Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
 -STATEMENT MATCH (p:person) return p.ID, p.gender;
 ---- 5
 0|4
@@ -217,13 +223,13 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 -CASE SerialSkipInvalidNodeTableRowsMixed
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false, HEADER=true)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 5
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
-0|quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
-0|expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
-0|unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB
@@ -235,10 +241,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 -CASE SerialSkipInvalidNodeTableRowsMixedLimitWarnings
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", WARNING_LIMIT=2, PARALLEL=false, HEADER=true)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 2
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
 -STATEMENT MATCH (m:movie) return m.*;
 ---- 5
 1|312|movieB
@@ -254,11 +260,18 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 ---- ok
 -STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
----- 3
-0|Conversion exception: Cast failed. Could not convert "10a" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|1|7,7,10a...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|4|6,7,"ab~a...
-0|unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|6|0,1,0,"unquoted
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+---- 10
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "10a" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|1|7,7,10a...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|4|6,7,"ab~a...
+unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|6|0,1,0,"unquoted
 -STATEMENT MATCH (a:person)-[l:likes]->(b:movie) return a.ID, b.ID, l.score, l.comment;
 ---- 3
 0|3|8|good
@@ -268,14 +281,14 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/in
 -CASE SerialSkipInvalidNodeTableRowsMultipleFiles
 -STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
 ---- ok
--STATEMENT CALL show_warnings() RETURN *
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
 ---- 6
-0|Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
-0|neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
-0|quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
-0|expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
-0|unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
-0|Conversion exception: Cast failed. Could not convert "1111111111111111111111111" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv|17|1111111111111111111111111...
+Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
+neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
+quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
+expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
+unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
+Conversion exception: Cast failed. Could not convert "1111111111111111111111111" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv|17|1111111111111111111111111...
 -STATEMENT MATCH (m:movie) return COUNT(*);
 ---- 1
 20
