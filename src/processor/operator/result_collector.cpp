@@ -64,7 +64,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
     }
 }
 
-void ResultCollector::finalizeInternal(ExecutionContext* context) {
+void ResultCollector::finalize(ExecutionContext* context) {
     sharedState->setWarningTable(std::move(context->warningContext.warningTable));
     switch (info.accumulateType) {
     case AccumulateType::OPTIONAL_: {

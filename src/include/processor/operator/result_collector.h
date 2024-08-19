@@ -79,7 +79,7 @@ public:
 
     void executeInternal(ExecutionContext* context) final;
 
-    void finalizeInternal(ExecutionContext* context) final;
+    void finalize(ExecutionContext* context) final;
 
     std::shared_ptr<FactorizedTable> getResultFactorizedTable() { return sharedState->getTable(); }
     CollectedQueryResult getResult();
