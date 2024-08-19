@@ -97,7 +97,7 @@ Elizabeth|Greg|1905-12-12
 -LOG CreateNodeError
 -STATEMENT CREATE (p:person {ID: 5})
 ---- error
-Cannot execute write operations in a read-only database!
+Connection exception: Cannot execute write operations in a read-only database!
 -STATEMENT DETACH test
 ---- ok
 -STATEMENT match (p:person) return p.*
