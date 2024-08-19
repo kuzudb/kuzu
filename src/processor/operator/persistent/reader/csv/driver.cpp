@@ -86,11 +86,12 @@ BaseCSVReader* SerialParsingDriver::getReader() {
 }
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(main::ClientContext* context,
     const common::CSVOption& csvOptions, SerialCSVReader* reader,
-    const function::ScanTableFuncBindInput* bindInput):
-    context{context}, csvOptions{csvOptions}, reader{reader} {
+    const function::ScanTableFuncBindInput* bindInput)
+    : context{context}, csvOptions{csvOptions}, reader{reader} {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
-            columns.push_back({bindInput->expectedColumnNames[i], bindInput->expectedColumnTypes[i].copy()});
+            columns.push_back(
+                {bindInput->expectedColumnNames[i], bindInput->expectedColumnTypes[i].copy()});
             sniffType.push_back(false);
         }
     }
