@@ -202,6 +202,9 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     }
     uint64_t totalReadSize =
         (state->numBlocksReadByFiles + state->blockIdx) * CopyConstants::PARALLEL_BLOCK_SIZE;
+    if (totalReadSize > state->totalSize) {
+        return 1.0;
+    }
     return static_cast<double>(totalReadSize) / state->totalSize;
 }
 
