@@ -21,8 +21,6 @@ public:
         storage::MemoryManager* memoryManager);
     static std::shared_ptr<FactorizedTable> getFactorizedTableForOutputMsg(std::string& outputMsg,
         storage::MemoryManager* memoryManager);
-    static std::shared_ptr<common::ValueVector> getVectorToAppendFromString(
-        const std::string& outputMsg, storage::MemoryManager* memoryManager);
     static std::shared_ptr<FactorizedTable> getSingleStringColumnFTable(storage::MemoryManager* mm);
 };
 

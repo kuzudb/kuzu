@@ -1,7 +1,5 @@
 #include "processor/warning_context.h"
 
-#include "processor/result/factorized_table_util.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -38,8 +38,8 @@ FactorizedTableSchema FactorizedTableUtils::createFlatTableSchema(
     return tableSchema;
 }
 
-std::shared_ptr<common::ValueVector> FactorizedTableUtils::getVectorToAppendFromString(
-    const std::string& outputMsg, storage::MemoryManager* memoryManager) {
+void FactorizedTableUtils::appendStringToTable(FactorizedTable* factorizedTable,
+    std::string& outputMsg, MemoryManager* memoryManager) {
     auto outputMsgVector = std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager);
     outputMsgVector->state = DataChunkState::getSingleValueDataChunkState();
     auto outputKUStr = ku_string_t();
@@ -48,14 +48,7 @@ std::shared_ptr<common::ValueVector> FactorizedTableUtils::getVectorToAppendFrom
                                        ->allocateSpace(outputMsg.length()));
     outputKUStr.set(outputMsg);
     outputMsgVector->setValue(0, outputKUStr);
-    return outputMsgVector;
-}
-
-void FactorizedTableUtils::appendStringToTable(FactorizedTable* factorizedTable,
-    std::string& outputMsg, MemoryManager* memoryManager) {
-
-    factorizedTable->append(
-        std::vector<ValueVector*>{getVectorToAppendFromString(outputMsg, memoryManager).get()});
+    factorizedTable->append(std::vector<ValueVector*>{outputMsgVector.get()});
 }
 
 std::shared_ptr<FactorizedTable> FactorizedTableUtils::getFactorizedTableForOutputMsg(
