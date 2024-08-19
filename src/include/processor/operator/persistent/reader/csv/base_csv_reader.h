@@ -82,7 +82,7 @@ protected:
     common::block_idx_t currentBlockIdx;
     uint64_t numRowsInCurrentBlock;
 
-    uint64_t rowNum;
+    uint64_t curRowIdx;
     uint64_t numErrors;
 
     std::unique_ptr<char[]> buffer;

@@ -46,7 +46,7 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
     uint64_t numColumns;
     uint64_t numBlocksReadByFiles = 0;
     common::CSVReaderConfig csvReaderConfig;
-    WarningCounter warningCounter;
+    warning_counter_t warningCounter;
     std::vector<CSVErrorHandler> errorHandlers;
 };
 

@@ -27,7 +27,7 @@ bool CSVError::operator<(const CSVError& o) const {
 }
 
 CSVErrorHandler::CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
-    WarningCounter* sharedWarningCounter, bool ignoreErrors)
+    warning_counter_t* sharedWarningCounter, bool ignoreErrors)
     : mtx(sharedMtx), maxCachedErrorCount(maxCachedErrorCount), ignoreErrors(ignoreErrors),
       headerNumRows(0), sharedWarningCounter(sharedWarningCounter) {}
 
@@ -45,9 +45,9 @@ std::vector<PopulatedCSVError> CSVErrorHandler::getCachedErrors(BaseCSVReader* r
 }
 
 void CSVErrorHandler::tryCacheError(const CSVError& error) {
-    if (sharedWarningCounter->count < maxCachedErrorCount) {
+    if (*sharedWarningCounter < maxCachedErrorCount) {
         cachedErrors.insert(error);
-        ++sharedWarningCounter->count;
+        ++(*sharedWarningCounter);
     }
 }
 

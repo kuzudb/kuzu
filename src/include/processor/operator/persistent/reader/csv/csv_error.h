@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/uniq_lock.h"
+#include "processor/warning_context.h"
 
 namespace kuzu::processor {
 
@@ -34,21 +35,18 @@ struct CSVError {
     bool operator<(const CSVError& o) const;
 };
 
-struct PopulatedCSVError {
-    std::string message;
-    std::string filePath;
-    std::string reconstructedLine;
-    uint64_t lineNumber;
-};
+using warning_counter_t = uint64_t;
 
-struct WarningCounter {
-    uint64_t count;
+struct LinesPerBlock {
+    uint64_t validLines;
+    uint64_t invalidLines;
+    bool doneParsingBlock;
 };
 
 class CSVErrorHandler {
 public:
-    explicit CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
-        WarningCounter* sharedWarningCounter, bool ignoreErrors);
+    CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
+        warning_counter_t* sharedWarningCounter, bool ignoreErrors);
 
     void handleError(BaseCSVReader* reader, const CSVError& error, bool mustThrow);
     void handleCachedErrors(BaseCSVReader* reader);
@@ -60,12 +58,6 @@ public:
     std::vector<PopulatedCSVError> getCachedErrors(BaseCSVReader* reader);
 
 private:
-    struct LinesPerBlock {
-        uint64_t validLines;
-        uint64_t invalidLines;
-        bool doneParsingBlock;
-    };
-
     common::UniqLock lock();
     void reportCachedErrors(BaseCSVReader* reader);
     void tryThrowFirstCachedError(BaseCSVReader* reader, bool mustThrow = false) const;
@@ -86,6 +78,6 @@ private:
     uint64_t maxCachedErrorCount;
     bool ignoreErrors;
     uint64_t headerNumRows;
-    WarningCounter* sharedWarningCounter;
+    warning_counter_t* sharedWarningCounter;
 };
 } // namespace kuzu::processor

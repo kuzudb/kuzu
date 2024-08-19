@@ -1,17 +1,19 @@
 #pragma once
 
+#include <mutex>
+#include <string>
 #include <vector>
-
-#include "common/types/types.h"
-#include "processor/operator/persistent/reader/csv/csv_error.h"
 
 namespace kuzu {
 
-namespace main {
-class ClientContext;
-}
-
 namespace processor {
+
+struct PopulatedCSVError {
+    std::string message;
+    std::string filePath;
+    std::string reconstructedLine;
+    uint64_t lineNumber;
+};
 
 struct WarningInfo {
     uint64_t queryID;

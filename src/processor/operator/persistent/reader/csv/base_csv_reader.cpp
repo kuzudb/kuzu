@@ -18,7 +18,7 @@ namespace processor {
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
     uint64_t numColumns, main::ClientContext* context, CSVErrorHandler* errorHandler)
     : option{std::move(option)}, numColumns{numColumns}, currentBlockIdx(0),
-      numRowsInCurrentBlock(0), rowNum(0), numErrors(0), buffer{nullptr}, bufferIdx(0),
+      numRowsInCurrentBlock(0), curRowIdx(0), numErrors(0), buffer{nullptr}, bufferIdx(0),
       bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, errorHandler(errorHandler),
       rowEmpty{false}, context{context} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
@@ -190,7 +190,7 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
         .filePath = fileInfo->path,
         .errorLine = lineContext,
         .blockIdx = currentBlockIdx,
-        .numRowsReadInBlock = numRowsInCurrentBlock + rowNum + numErrors};
+        .numRowsReadInBlock = numRowsInCurrentBlock + curRowIdx + numErrors};
     if (!error.errorLine.isCompleteLine) {
         error.errorLine.endByteOffset = getFileOffset();
     }
@@ -205,7 +205,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
     KU_ASSERT(nullptr != errorHandler);
 
     // used for parsing algorithm
-    rowNum = 0;
+    curRowIdx = 0;
     numErrors = 0;
 
     while (true) {
@@ -217,7 +217,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
 
         // read values into the buffer (if any)
         if (!maybeReadBuffer(&start)) {
-            return rowNum;
+            return curRowIdx;
         }
 
         // start parsing the first value
@@ -261,7 +261,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         // We get here after we have a delimiter.
         KU_ASSERT(buffer[position] == option.delimiter);
         // Trim one character if we have quotes.
-        if (!addValue(driver, rowNum, column,
+        if (!addValue(driver, curRowIdx, column,
                 std::string_view(buffer.get() + start, position - start - hasQuotes),
                 escapePositions)) {
             goto ignore_error;
@@ -283,14 +283,14 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         KU_ASSERT(isNewLine(buffer[position]));
         lineContext.setEndOfLine(getFileOffset());
         bool isCarriageReturn = buffer[position] == '\r';
-        if (!addValue(driver, rowNum, column,
+        if (!addValue(driver, curRowIdx, column,
                 std::string_view(buffer.get() + start, position - start - hasQuotes),
                 escapePositions)) {
             goto ignore_error;
         }
         column++;
 
-        rowNum += driver.addRow(rowNum, column);
+        curRowIdx += driver.addRow(curRowIdx, column);
 
         column = 0;
         position++;
@@ -305,8 +305,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             // \r newline, go to special state that parses an optional \n afterwards
             goto carriage_return;
         } else {
-            if (driver.done(rowNum)) {
-                return rowNum;
+            if (driver.done(curRowIdx)) {
+                return curRowIdx;
             }
             goto value_start;
         }
@@ -392,8 +392,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
                 goto final_state;
             }
         }
-        if (driver.done(rowNum)) {
-            return rowNum;
+        if (driver.done(curRowIdx)) {
+            return curRowIdx;
         }
 
         goto value_start;
@@ -403,17 +403,17 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         lineContext.setEndOfLine(getFileOffset());
         if (position > start) {
             // Add remaining value to chunk.
-            if (!addValue(driver, rowNum, column,
+            if (!addValue(driver, curRowIdx, column,
                     std::string_view(buffer.get() + start, position - start - hasQuotes),
                     escapePositions)) {
-                return rowNum;
+                return curRowIdx;
             }
             column++;
         }
         if (column > 0) {
-            rowNum += driver.addRow(rowNum, column);
+            curRowIdx += driver.addRow(curRowIdx, column);
         }
-        return rowNum;
+        return curRowIdx;
     ignore_error:
         // we skip the current row then restart the state machine to continue parsing
         skipCurrentLine();

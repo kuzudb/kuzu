@@ -104,7 +104,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
-    WarningCounter warningCounter;
+    warning_counter_t warningCounter;
     CSVErrorHandler errorHandler{nullptr, csvConfig.option.warningLimit, &warningCounter,
         csvConfig.option.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),

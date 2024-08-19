@@ -1,5 +1,7 @@
 #include "processor/warning_context.h"
 
+#include "common/uniq_lock.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
