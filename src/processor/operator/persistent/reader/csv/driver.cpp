@@ -1,6 +1,5 @@
 #include "processor/operator/persistent/reader/csv/driver.h"
 
-#include "catalog/catalog.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_from_string_functions.h"
