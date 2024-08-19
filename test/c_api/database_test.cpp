@@ -94,14 +94,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
-
-TEST_F(CApiDatabaseTest, dadsa) {
-    createDBAndConn();
-    printf("%s", conn->query("CREATE TYPE largeint AS int64;")->toString().c_str());
-    // printf("%s", conn->query("CREATE TYPE many_things AS STRUCT(k
-    // largeint);")->toString().c_str());
-    printf("%s",
-        conn->query("create node table person (id int64, a struct(b largeint), primary key(id))")
-            ->toString()
-            .c_str());
-}
