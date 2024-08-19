@@ -51,7 +51,8 @@ struct RelTableScanState : TableScanState {
           localTableScanState{nullptr} {
         nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
         // Can we change the capacity to 1?
-        nodeOutputSelVector = std::make_shared<common::SelectionVector>(1);
+        nodeOutputSelVector =
+            std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
         nodeOutputSelVector->setToFiltered(1);
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
