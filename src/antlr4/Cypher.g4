@@ -432,7 +432,7 @@ oC_AndExpression
     : oC_NotExpression ( SP AND SP oC_NotExpression )* ;
 
 oC_NotExpression
-    : ( NOT SP? )*  oC_ComparisonExpression ;
+    : ( NOT SP? )*  oC_ComparisonExpression;
 
 oC_ComparisonExpression
     : kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )?
@@ -509,7 +509,21 @@ oC_Atom
         | oC_ExistSubquery
         | kU_CountSubquery
         | oC_Variable
+        | oC_Quantifier
         ;
+
+oC_Quantifier
+    :  ( ALL SP? '(' SP? oC_FilterExpression SP? ')' )
+        | ( ANY SP? '(' SP? oC_FilterExpression SP? ')' )
+        | ( NONE SP? '(' SP? oC_FilterExpression SP? ')' )
+        | ( SINGLE SP? '(' SP? oC_FilterExpression SP? ')' )
+        ;
+
+oC_FilterExpression
+    :  oC_IdInColl ( SP? oC_Where )? ;
+
+oC_IdInColl
+    :  oC_Variable SP IN SP oC_Expression ;
 
 oC_Literal
     : oC_NumberLiteral

@@ -380,6 +380,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
         return transformExistSubquery(*ctx.oC_ExistSubquery());
     } else if (ctx.kU_CountSubquery()) {
         return transformCountSubquery(*ctx.kU_CountSubquery());
+    } else if (ctx.oC_Quantifier()) {
+        return transformOcQuantifier(*ctx.oC_Quantifier());
     } else {
         KU_ASSERT(ctx.oC_Variable());
         return std::make_unique<ParsedVariableExpression>(transformVariable(*ctx.oC_Variable()),
@@ -562,6 +564,26 @@ std::unique_ptr<ParsedExpression> Transformer::transformCountSubquery(
         subquery->setWhereClause(transformWhere(*ctx.oC_Where()));
     }
     return subquery;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformOcQuantifier(
+    CypherParser::OC_QuantifierContext& ctx) {
+    auto variable = transformVariable(*ctx.oC_FilterExpression()->oC_IdInColl()->oC_Variable());
+    auto whereExpr = transformWhere(*ctx.oC_FilterExpression()->oC_Where());
+    auto lambdaRaw = variable + "->" + whereExpr->toString();
+    auto lambdaExpr = std::make_unique<ParsedLambdaExpression>(std::vector<std::string>{variable}, std::move(whereExpr), lambdaRaw);
+    std::string quantifierName;
+    if (ctx.ALL()) {
+        quantifierName = "ALL";
+    } else if (ctx.ANY()) {
+        quantifierName = "ANY";
+    } else if (ctx.NONE()) {
+        quantifierName = "NONE";
+    } else if (ctx.SINGLE()) {
+        quantifierName = "SINGLE";
+    }
+    auto listExpr = transformExpression(*ctx.oC_FilterExpression()->oC_IdInColl()->oC_Expression());
+    return std::make_unique<ParsedFunctionExpression>(quantifierName, std::move(listExpr), std::move(lambdaExpr), ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(

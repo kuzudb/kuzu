@@ -179,6 +179,8 @@ private:
         CypherParser::OC_ExistSubqueryContext& ctx);
     std::unique_ptr<ParsedExpression> transformCountSubquery(
         CypherParser::KU_CountSubqueryContext& ctx);
+    std::unique_ptr<ParsedExpression> transformOcQuantifier(
+        CypherParser::OC_QuantifierContext& ctx);
     std::unique_ptr<ParsedExpression> createPropertyExpression(
         CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child);
     std::unique_ptr<ParsedExpression> transformCaseExpression(

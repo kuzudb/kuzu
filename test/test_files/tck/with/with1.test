@@ -92,7 +92,7 @@
 
 # Forwarding a node variable possibly null
 -CASE Scenario6
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -100,11 +100,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),

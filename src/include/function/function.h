@@ -60,9 +60,10 @@ struct Function {
     std::vector<common::LogicalTypeID> parameterTypeIDs;
     // Currently we only one variable-length function which is list creation. The expectation is
     // that all parameters must have the same type as parameterTypes[0].
-    bool isVarLength;
+    bool isVarLength = false;
+    bool acceptLambdaParam = false;
 
-    Function() : isVarLength{false} {};
+    Function() : isVarLength{false}, acceptLambdaParam{false} {};
     Function(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
         : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, isVarLength{false} {
     }

@@ -29,7 +29,7 @@ A
 
 # Filter node with false node label predicate after OPTIONAL MATCH
 -CASE Scenario2
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -37,18 +37,18 @@ A
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
                   (a)-[:REL_A_C]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
--STATEMENT MATCH (n:Single)
+-STATEMENT MATCH (n:`Single`)
            OPTIONAL MATCH (n)-[r]-(m)
            WHERE LABEL(m) = 'NonExistent'
            RETURN r;
@@ -57,7 +57,7 @@ A
 
 # Filter node with property predicate on multi variables with multiple bindings after OPTIONAL MATCH
 -CASE Scenario3
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -65,18 +65,18 @@ A
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
                   (a)-[:REL_A_C]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
--STATEMENT MATCH (n:Single)
+-STATEMENT MATCH (n:`Single`)
            OPTIONAL MATCH (n)-[r]-(m)
            WHERE m.num = 42
            RETURN m;

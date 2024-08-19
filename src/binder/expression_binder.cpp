@@ -69,7 +69,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression = bindCaseExpression(parsedExpression);
     } else if (ExpressionType::LAMBDA == expressionType) {
         expression = bindLambdaExpression(parsedExpression);
-    } else {
+    }
+    else {
         throw NotImplementedException(
             "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");
     }

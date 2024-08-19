@@ -14,6 +14,8 @@ grammar Cypher;
     virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 }
 
+ANY : ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'Y' | 'y' ) ;
+
 ADD : ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
 ALL : ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
@@ -144,6 +146,8 @@ NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
+NONE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ( 'E' | 'e' ) ;
+
 NULL : ( 'N' | 'n' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 ON : ( 'O' | 'o' ) ( 'N' | 'n' ) ;
@@ -213,6 +217,8 @@ WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
 WRITE : ( 'W' | 'w' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
 XOR : ( 'X' | 'x' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+
+SINGLE : ( 'S' | 's' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 
 
@@ -649,7 +655,7 @@ oC_AndExpression
     : oC_NotExpression ( SP AND SP oC_NotExpression )* ;
 
 oC_NotExpression
-    : ( NOT SP? )*  oC_ComparisonExpression ;
+    : ( NOT SP? )*  oC_ComparisonExpression;
 
 oC_ComparisonExpression
     : kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )?
@@ -726,7 +732,21 @@ oC_Atom
         | oC_ExistSubquery
         | kU_CountSubquery
         | oC_Variable
+        | oC_Quantifier
         ;
+
+oC_Quantifier
+    :  ( ALL SP? '(' SP? oC_FilterExpression SP? ')' )
+        | ( ANY SP? '(' SP? oC_FilterExpression SP? ')' )
+        | ( NONE SP? '(' SP? oC_FilterExpression SP? ')' )
+        | ( SINGLE SP? '(' SP? oC_FilterExpression SP? ')' )
+        ;
+
+oC_FilterExpression
+    :  oC_IdInColl ( SP? oC_Where )? ;
+
+oC_IdInColl
+    :  oC_Variable SP IN SP oC_Expression ;
 
 oC_Literal
     : oC_NumberLiteral

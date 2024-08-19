@@ -30,7 +30,6 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& in
     lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
-    ListVector::setDataVector(&result, input[1]);
     ListVector::copyListEntryAndBufferMetaData(result, *inputVector);
 }
 
@@ -39,6 +38,7 @@ function_set ListTransformFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
         execFunc, bindFunc);
+    function->acceptLambdaParam = true;
     result.push_back(std::move(function));
     return result;
 }

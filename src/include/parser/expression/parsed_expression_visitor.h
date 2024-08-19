@@ -25,6 +25,7 @@ public:
     virtual void visitGraphExpr(const ParsedExpression*) {}
     virtual void visitLambdaExpr(const ParsedExpression*) {}
     virtual void visitStar(const ParsedExpression*) {}
+    virtual void visitQuantifierExpr(const ParsedExpression*) {}
 
     void visitChildren(const ParsedExpression& expr);
     void visitCaseExprChildren(const ParsedExpression& expr);
