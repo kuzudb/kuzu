@@ -250,7 +250,6 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
-    std::vector<PopulatedCSVError> warningMessages;
 
     auto state = ku_dynamic_cast<TableFuncSharedState*, ParallelCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
@@ -262,12 +261,9 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         state->errorHandlers[i].handleCachedErrors(&reader);
 
         const auto cachedErrors = (state->errorHandlers[i].getCachedErrors(&reader));
-        warningMessages.insert(warningMessages.end(), cachedErrors.begin(), cachedErrors.end());
+        ctx->clientContext->getWarningContext().appendWarningMessages(cachedErrors,
+            state->csvReaderConfig.option.warningLimit);
     }
-
-    KU_ASSERT(warningMessages.size() <= state->csvReaderConfig.option.warningLimit);
-    ctx->warningContext.appendWarningMessages(warningMessages,
-        state->csvReaderConfig.option.warningLimit);
 }
 
 function_set ParallelCSVScan::getFunctionSet() {

@@ -183,7 +183,6 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
-    std::vector<PopulatedCSVError> warningMessages;
 
     auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
@@ -194,12 +193,9 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         // The serial CSV reader should always be able to throw immediately if not ignoring errors
         KU_ASSERT(state->csvReaderConfig.option.ignoreErrors || cachedWarnings.empty());
 
-        warningMessages.insert(warningMessages.end(), cachedWarnings.begin(), cachedWarnings.end());
+        ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings,
+            state->csvReaderConfig.option.warningLimit);
     }
-
-    KU_ASSERT(warningMessages.size() <= state->csvReaderConfig.option.warningLimit);
-    ctx->warningContext.appendWarningMessages(warningMessages,
-        state->csvReaderConfig.option.warningLimit);
 }
 
 function_set SerialCSVScan::getFunctionSet() {

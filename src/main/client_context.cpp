@@ -580,5 +580,13 @@ void ClientContext::runQuery(std::string query) {
     }
     return;
 }
+
+processor::WarningContext& ClientContext::getWarningContext() {
+    return warningContext;
+}
+
+const processor::WarningContext& ClientContext::getWarningContext() const {
+    return warningContext;
+}
 } // namespace main
 } // namespace kuzu
