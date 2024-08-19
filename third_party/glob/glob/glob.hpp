@@ -43,6 +43,8 @@
 #include <filesystem>
 #endif
 
+#include "re2.h"
+
 namespace glob {
 
 #ifdef GLOB_USE_GHC_FILESYSTEM
@@ -128,10 +130,12 @@ std::string translate(const std::string &pattern) {
 
         // Escape set operations (&&, ~~ and ||).
         std::string result;
-        std::regex_replace(std::back_inserter(result),          // result
-                           stuff.begin(), stuff.end(),          // string
-                           std::regex(std::string{R"([&~|])"}), // pattern
-                           std::string{R"(\\\1)"});             // repl
+        for (const auto& i: stuff) {
+          if (i == '&' || i == '~' || i == '|') {
+            result.push_back('\\');
+          }
+          result.push_back(i);
+        }
         stuff = result;
         i = j + 1;
         if (stuff[0] == '!') {
@@ -167,13 +171,8 @@ std::string translate(const std::string &pattern) {
 }
 
 static inline 
-std::regex compile_pattern(const std::string &pattern) {
-  return std::regex(translate(pattern), std::regex::ECMAScript);
-}
-
-static inline 
 bool fnmatch(const fs::path &name, const std::string &pattern) {
-  return std::regex_match(name.string(), compile_pattern(pattern));
+  return RE2::FullMatch(name.string(), translate(pattern));
 }
 
 static inline 
@@ -215,13 +214,14 @@ fs::path expand_tilde(fs::path path) {
 
 static inline 
 bool has_magic(const std::string &pathname) {
-  static const auto magic_check = std::regex("([*?[])");
-  return std::regex_search(pathname, magic_check);
+  static const auto magic_check = RE2("([*?[])");
+  return RE2::PartialMatch(pathname, magic_check);
 }
 
 static inline 
 bool is_hidden(const std::string &pathname) {
-  return std::regex_match(pathname, std::regex("^(.*\\/)*\\.[^\\.\\/]+\\/*$"));
+  static const auto check = RE2("^(.*\\/)*\\.[^\\.\\/]+\\/*$");
+  return RE2::FullMatch(pathname, check);
 }
 
 static inline 

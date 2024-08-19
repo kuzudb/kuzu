@@ -1,0 +1,12 @@
+-DATASET CSV empty
+
+--
+
+-CASE LongPath
+-STATEMENT CREATE NODE TABLE tab(msg string, primary key(msg));
+---- ok
+-STATEMENT COPY tab FROM '${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/*/nested/*/path/test/with-a-reallllllllllllllllllllly-long-name/big-comma-separated-values-*-name-with-long-path.csv' (HEADER=FALSE);
+---- ok
+-STATEMENT MATCH (t:tab) RETURN t.*;
+---- 1
+hi
