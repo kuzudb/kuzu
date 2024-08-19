@@ -14,7 +14,7 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager,
+    NullColumn(const std::string& name, BMFileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
@@ -29,11 +29,12 @@ public:
 
     bool isNull(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t offsetInChunk);
-    void setNull(ColumnChunkData& persistentChunk, ChunkState& state,
+    void setNull(ColumnChunkData& persistentChunk, const ChunkState& state,
         common::offset_t offsetInChunk, uint64_t value = true);
 
-    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t offsetInChunk,
-        ColumnChunkData* data, common::offset_t dataOffset, common::length_t numValues) override;
+    void write(ColumnChunkData& persistentChunk, const ChunkState& state,
+        common::offset_t offsetInChunk, ColumnChunkData* data, common::offset_t dataOffset,
+        common::length_t numValues) override;
 };
 
 } // namespace storage

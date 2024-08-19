@@ -386,15 +386,14 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
     }
 }
 
-void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
+void Column::write(ColumnChunkData& persistentChunk, const ChunkState& state, offset_t dstOffset,
     ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
     std::optional<NullMask> nullMask = data->getNullMask();
     NullMask* nullMaskPtr = nullptr;
     if (nullMask) {
         nullMaskPtr = &*nullMask;
     }
-    writeValues(persistentChunk, state, dstOffset, data->getData(), nullMaskPtr, srcOffset,
-        numValues);
+    writeValues(state, dstOffset, data->getData(), nullMaskPtr, srcOffset, numValues);
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data->getData(), srcOffset, numValues,
         dataType.getPhysicalType(), nullMaskPtr);
@@ -402,8 +401,8 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
         maxWritten);
 }
 
-void Column::writeValues(ColumnChunkData&, ChunkState& state, offset_t dstOffset,
-    const uint8_t* data, const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) {
+void Column::writeValues(const ChunkState& state, offset_t dstOffset, const uint8_t* data,
+    const NullMask* nullChunkData, offset_t srcOffset, offset_t numValues) {
     auto numValuesWritten = 0u;
     auto cursor = getPageCursorForOffsetInGroup(dstOffset, state);
     while (numValuesWritten < numValues) {
@@ -419,15 +418,14 @@ void Column::writeValues(ColumnChunkData&, ChunkState& state, offset_t dstOffset
 }
 
 // Apend to the end of the chunk.
-offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
+offset_t Column::appendValues(ColumnChunkData& persistentChunk, const ChunkState& state,
     const uint8_t* data, const NullMask* nullChunkData, offset_t numValues) {
-    const auto startOffset = state.metadata.numValues;
+    auto& metadata = persistentChunk.getMetadata();
+    const auto startOffset = metadata.numValues;
     const auto numPages = dataFH->getNumPages();
     // TODO: writeValues should return new pages appended if any.
-    writeValues(persistentChunk, state, state.metadata.numValues, data, nullChunkData,
-        0 /*dataOffset*/, numValues);
+    writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
     const auto newNumPages = dataFH->getNumPages();
-    auto& metadata = persistentChunk.getMetadata();
     metadata.numPages += (newNumPages - numPages);
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
@@ -469,7 +467,7 @@ bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
     return false;
 }
 
-void Column::checkpointColumnChunkInPlace(ChunkState& state,
+void Column::checkpointColumnChunkInPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         KU_ASSERT(chunkCheckpointState.numRows > 0);
@@ -497,7 +495,7 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
     nullColumn->checkpointColumnChunk(nullColumnCheckpointState);
 }
 
-void Column::checkpointColumnChunkOutOfPlace(ChunkState& state,
+void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
