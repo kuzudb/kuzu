@@ -471,7 +471,6 @@ static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
 
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->ptrCast<ExtraAddPropertyInfo>();

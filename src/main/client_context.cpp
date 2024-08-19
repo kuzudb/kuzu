@@ -516,7 +516,7 @@ void ClientContext::runFuncInTransaction(const std::function<void(void)>& fun) {
         if (startNewTrx) {
             transactionContext->rollback();
         }
-        throw e;
+        throw;
     }
     if (startNewTrx) {
         transactionContext->commit();

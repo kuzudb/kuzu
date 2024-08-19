@@ -16,7 +16,7 @@ Runtime exception: Modulo by zero.
 -LOG EmptyQuery
 -STATEMENT
 ---- error
-Connection Exception: Query is empty.
+Connection exception: Query is empty.
 
 -LOG Overflow
 -STATEMENT RETURN to_int16(10000000000)

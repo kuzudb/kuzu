@@ -8,7 +8,7 @@
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
 ---- error
-COPY FROM is only supported in auto transaction mode.
+Connection exception: COPY FROM is only supported in auto transaction mode.
 
 -CASE CopyNodeCommit
 -SKIP

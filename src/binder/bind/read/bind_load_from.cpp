@@ -3,7 +3,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "common/exception/binder.h"
-#include "main/database.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/scan_source.h"
 
