@@ -8,7 +8,6 @@
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
-#include "test_runner/csv_to_parquet_converter.h"
 
 using namespace kuzu::common;
 
