@@ -76,6 +76,13 @@ jobs:
 
       - name: Generate datasets
         run: bash scripts/generate_binary_demo.sh
+      
+      - name: Generate and upload tinysnb
+        run: |
+          bash scripts/generate_binary_tinysnb.sh
+          s3cmd del -r s3://kuzu-test/tinysnb/
+          s3cmd sync ./tinysnb s3://kuzu-test/tinysnb/ 
+          rm -rf tinysnb
 
       - name: Upload binary-demo
         uses: actions/upload-artifact@v4
