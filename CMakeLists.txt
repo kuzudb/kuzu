@@ -254,7 +254,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.5.1.7")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.5.1.8")
 
 include_directories(src/include)
 
