@@ -15,34 +15,6 @@ std::string LoadExtensionPrintInfo::toString() const {
     return "Load " + extensionName;
 }
 
-#ifdef _WIN32
-std::wstring utf8ToUnicode(const char* input) {
-    uint32_t result;
-
-    result = MultiByteToWideChar(CP_UTF8, 0, input, -1, nullptr, 0);
-    if (result == 0) {
-        throw IOException("Failure in MultiByteToWideChar");
-    }
-    auto buffer = std::make_unique<wchar_t[]>(result);
-    result = MultiByteToWideChar(CP_UTF8, 0, input, -1, buffer.get(), result);
-    if (result == 0) {
-        throw IOException("Failure in MultiByteToWideChar");
-    }
-    return std::wstring(buffer.get(), result);
-}
-
-void* dlopen(const char* file, int /*mode*/) {
-    KU_ASSERT(file);
-    auto fpath = utf8ToUnicode(file);
-    return (void*)LoadLibraryW(fpath.c_str());
-}
-
-void* dlsym(void* handle, const char* name) {
-    KU_ASSERT(handle);
-    return (void*)GetProcAddress((HINSTANCE)handle, name);
-}
-#endif
-
 static void executeExtensionLoader(main::ClientContext* context, const std::string& extensionName) {
     auto loaderPath = ExtensionUtils::getLocalPathForExtensionLoader(context, extensionName);
     if (context->getVFSUnsafe()->fileOrPathExists(loaderPath)) {

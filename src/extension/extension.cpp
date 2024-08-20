@@ -11,16 +11,6 @@
 #include "main/database.h"
 #include "transaction/transaction.h"
 
-#ifdef _WIN32
-
-#include "windows.h"
-#define RTLD_NOW 0
-#define RTLD_LOCAL 0
-
-#else
-#include <dlfcn.h>
-#endif
-
 namespace kuzu {
 namespace extension {
 
