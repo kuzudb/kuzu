@@ -83,11 +83,13 @@ jobs:
           s3cmd get s3://kuzu-test/tinysnb/tinysnb/version.txt
           if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ]; then
             echo "TinySNB dataset is up to date, skipping upload"
+            rm -rf tinysnb version.txt
             exit 0
           fi
+          echo "TinySNB dataset is outdated, uploading..."
           s3cmd del -r s3://kuzu-test/tinysnb/
           s3cmd sync ./tinysnb s3://kuzu-test/tinysnb/ 
-          rm -rf tinysnb
+          rm -rf tinysnb version.txt
 
       - name: Upload binary-demo
         uses: actions/upload-artifact@v4
