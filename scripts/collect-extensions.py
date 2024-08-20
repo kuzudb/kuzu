@@ -29,8 +29,7 @@ def find_duckdb():
     elif platform.system() == 'Linux':
         candidates = ["/usr/local/lib/libduckdb.so", "/usr/lib/libduckdb.so", "/usr/lib64/libduckdb.so"]
     elif platform.system() == 'Windows':
-        # TODO: find duckdb.dll on Windows
-        pass
+        candidates = ["C:\\Program Files\\duckdb\\build\\release\\src\\Release\\duckdb.lib"]
     for candidate in candidates:
         if os.path.exists(candidate):
             return os.path.abspath(candidate)
