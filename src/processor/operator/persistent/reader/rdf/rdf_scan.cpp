@@ -81,8 +81,8 @@ static offset_t RdfAllTripleScanTableFunc(TableFuncInput& input, TableFuncOutput
 }
 
 static std::unique_ptr<function::TableFuncBindData> RdfAllTripleScanBindFunc(main::ClientContext*,
-    function::TableFuncBindInput* input_) {
-    auto input = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input_);
+    function::ScanTableFuncBindInput* input_) {
+    auto input = ku_dynamic_cast<ScanTableFuncBindInput*, ScanTableFuncBindInput*>(input_);
     return std::make_unique<RdfScanBindData>(std::vector<common::LogicalType>{},
         std::vector<std::string>{}, input->config.copy(), input->context,
         std::make_shared<TripleStore>());

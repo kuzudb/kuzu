@@ -35,7 +35,7 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
+    ScanTableFuncBindInput* input) {
     auto optionName = input->inputs[0].getValue<std::string>();
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;

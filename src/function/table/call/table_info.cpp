@@ -92,7 +92,7 @@ static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(main::ClientConte
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+    ScanTableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     auto catalogEntry = getTableCatalogEntry(context, input->inputs[0].getValue<std::string>());

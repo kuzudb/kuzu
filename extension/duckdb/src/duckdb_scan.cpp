@@ -44,7 +44,7 @@ struct DuckDBScanFunction {
         function::TableFuncOutput& output);
 
     static std::unique_ptr<function::TableFuncBindData> bindFunc(DuckDBScanBindData bindData,
-        main::ClientContext* /*context*/, function::TableFuncBindInput* input);
+        main::ClientContext* /*context*/, function::ScanTableFuncBindInput* input);
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);
@@ -190,7 +190,7 @@ common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
 
 std::unique_ptr<function::TableFuncBindData> DuckDBScanFunction::bindFunc(
     DuckDBScanBindData bindData, main::ClientContext* /*clientContext*/,
-    function::TableFuncBindInput* /*input*/) {
+    function::ScanTableFuncBindInput* /*input*/) {
     return bindData.copy();
 }
 

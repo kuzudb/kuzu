@@ -13,8 +13,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    TableFuncBindInput* input) {
-
+    ScanTableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));

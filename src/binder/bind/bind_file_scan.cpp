@@ -80,7 +80,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
         return bindQueryScanSource(*source, columnNames, columnTypes);
     }
     case ScanSourceType::OBJECT: {
-        return bindObjectScanSource(*source, columnNames, columnTypes);
+        return bindObjectScanSource(*source, options, columnNames, columnTypes);
     }
     default:
         KU_UNREACHABLE;
@@ -137,7 +137,7 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
 }
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScanSource& scanSource,
-    const std::vector<std::string>& columnNames,
+    const parser::options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<common::LogicalType>& columnTypes) {
     auto objectSource = scanSource.constPtrCast<ObjectScanSource>();
     TableFunction func;
@@ -149,11 +149,12 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         auto replacementData = clientContext->tryReplace(objectName);
         if (replacementData != nullptr) { // Replace as
             func = replacementData->func;
+            replacementData->bindInput.config.options = bindParsingOptions(options);
             bindData = func.bindFunc(clientContext, &replacementData->bindInput);
         } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
             auto dbName = clientContext->getDatabaseManager()->getDefaultDatabase();
             func = getObjectScanFunc(dbName, objectSource->objectNames[0], clientContext);
-            auto bindInput = function::TableFuncBindInput();
+            auto bindInput = function::ScanTableFuncBindInput();
             bindData = func.bindFunc(clientContext, &bindInput);
         } else {
             throw BinderException(ExceptionMessage::variableNotInScope(objectName));
@@ -163,7 +164,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         objectName = objectSource->objectNames[0] + "." + objectSource->objectNames[1];
         func = getObjectScanFunc(objectSource->objectNames[0], objectSource->objectNames[1],
             clientContext);
-        auto bindInput = function::TableFuncBindInput();
+        auto bindInput = function::ScanTableFuncBindInput();
         bindData = func.bindFunc(clientContext, &bindInput);
     } else {
         // LCOV_EXCL_START
