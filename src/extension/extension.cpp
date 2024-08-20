@@ -10,6 +10,15 @@
 #include "main/client_context.h"
 #include "main/database.h"
 #include "transaction/transaction.h"
+#ifdef _WIN32
+
+#include "windows.h"
+#define RTLD_NOW 0
+#define RTLD_LOCAL 0
+
+#else
+#include <dlfcn.h>
+#endif
 
 namespace kuzu {
 namespace extension {
@@ -196,6 +205,34 @@ main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) {
     common::StringUtils::toLower(name);
     return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
 }
+
+#ifdef _WIN32
+std::wstring utf8ToUnicode(const char* input) {
+    uint32_t result;
+
+    result = MultiByteToWideChar(CP_UTF8, 0, input, -1, nullptr, 0);
+    if (result == 0) {
+        throw common::IOException("Failure in MultiByteToWideChar");
+    }
+    auto buffer = std::make_unique<wchar_t[]>(result);
+    result = MultiByteToWideChar(CP_UTF8, 0, input, -1, buffer.get(), result);
+    if (result == 0) {
+        throw common::IOException("Failure in MultiByteToWideChar");
+    }
+    return std::wstring(buffer.get(), result);
+}
+
+void* dlopen(const char* file, int /*mode*/) {
+    KU_ASSERT(file);
+    auto fpath = utf8ToUnicode(file);
+    return (void*)LoadLibraryW(fpath.c_str());
+}
+
+void* dlsym(void* handle, const char* name) {
+    KU_ASSERT(handle);
+    return (void*)GetProcAddress((HINSTANCE)handle, name);
+}
+#endif
 
 } // namespace extension
 } // namespace kuzu
