@@ -156,14 +156,14 @@ jobs:
       - name: Delete checked out repository
         run: cd .. && rm -rf kuzudb
 
-      # - uses: actions/checkout@v4
-      #   with:
-      #     repository: kuzudb/extension
-      #     token: ${{ secrets.DOC_PUSH_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: kuzudb/extension
+          token: ${{ secrets.DOC_PUSH_TOKEN }}
 
-      # - name: Clear old artifacts
-      #   run: |
-      #     rm -rf releases/$RELEASE_VERSION/
+      - name: Clear old artifacts
+        run: |
+          rm -rf releases/$RELEASE_VERSION/
 
       - name: Create temporary directory for artifacts
         run: |
@@ -204,9 +204,6 @@ jobs:
         with:
           name: kuzu-extensions_osx-arm64
           path: extension-artifacts/osx_arm64
-      
-      - name: List downloaded artifacts
-        run: ls -R extension-artifacts
 
       # - name: Download built artifacts for windows-x86_64
       #   uses: actions/download-artifact@v4
@@ -214,52 +211,40 @@ jobs:
       #     name: kuzu-extensions_win-x86_64
       #     path: extension-artifacts/win_amd64
 
-      
-
-      # - name: Copy built artifacts
-      #   run: |
-      #     cp extension-artifacts/linux_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_amd64
-      #     cp extension-artifacts/linux_arm64/*.kuzu_extension releases/$RELEASE_VERSION/linux_arm64
-      #     cp extension-artifacts/linux_x86/*.kuzu_extension releases/$RELEASE_VERSION/linux_x86
-      #     cp extension-artifacts/osx_amd64/*.kuzu_extension releases/$RELEASE_VERSION/osx_amd64
-      #     cp extension-artifacts/osx_arm64/*.kuzu_extension releases/$RELEASE_VERSION/osx_arm64
-      #     cp extension-artifacts/win_amd64/*.kuzu_extension releases/$RELEASE_VERSION/win_amd64
+      - name: Copy built artifacts
+        run: |
+          rsync -av extension-artifacts/ releases/$RELEASE_VERSION/
 
       - name: Remove temporary directory
         run: rm -rf extension-artifacts
 
       - name: Set artifact permissions
         run: |
-          chmod 755 releases/$RELEASE_VERSION/linux_amd64/*
-          chmod 755 releases/$RELEASE_VERSION/linux_arm64/*
-          chmod 755 releases/$RELEASE_VERSION/linux_x86/*
-          chmod 755 releases/$RELEASE_VERSION/osx_amd64/*
-          chmod 755 releases/$RELEASE_VERSION/osx_arm64/*
-          chmod 755 releases/$RELEASE_VERSION/win_amd64/*
+          chmod -R 755 releases/$RELEASE_VERSION
 
       - name: List downloaded artifacts
         run: ls -R releases/$RELEASE_VERSION
 
-      # - name: Push changes
-      #   run: |
-      #     git checkout -b "extensions-update-${{ github.sha }}"
-      #     git config --global user.name "CI User"
-      #     git config --global user.email "contact@kuzudb.com"
-      #     git add -A
-      #     git commit -m "Update extensions (CI) - $RELEASE_VERSION"
-      #     git push -u origin "extensions-update-${{ github.sha }}"
+      - name: Push changes
+        run: |
+          git checkout -b "extensions-update-${{ github.sha }}"
+          git config --global user.name "CI User"
+          git config --global user.email "contact@kuzudb.com"
+          git add -A
+          git commit -m "Update extensions (CI) - $RELEASE_VERSION"
+          git push -u origin "extensions-update-${{ github.sha }}"
 
-      # - name: Create pull request
-      #   run: |
-      #     echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
-      #     gh auth login --with-token < token.txt
-      #     rm -rf token.txt
-      #     gh pr create \
-      #       --body "Action triggered by CI workflow." \
-      #       --title "Update extensions (CI) - $RELEASE_VERSION" \
-      #       --head "extensions-update-${{ github.sha }}" \
-      #       --base "main"
+      - name: Create pull request
+        run: |
+          echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
+          gh auth login --with-token < token.txt
+          rm -rf token.txt
+          gh pr create \
+            --body "Action triggered by CI workflow." \
+            --title "Update extensions (CI) - $RELEASE_VERSION" \
+            --head "extensions-update-${{ github.sha }}" \
+            --base "main"
 
-      # - name: Merge pull request
-      #   run: |
-      #     gh pr merge --auto --squash --delete-branch
+      - name: Merge pull request
+        run: |
+          gh pr merge --auto --squash --delete-branch
