@@ -143,9 +143,14 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
         handleCopyException(stringFormat("Could not read from file: {}", posixErrMessage()), true);
         // LCOV_EXCL_STOP
     }
-    osFileOffset += readCount;
 
-    bufferSize = remaining + readCount;
+    // Update buffer size in a way so that the invariant osFileOffset >= bufferSize is never broken
+    // This is needed because in the serial CSV reader the progressFunc can call getFileOffset from
+    // a different thread
+    bufferSize = remaining;
+    osFileOffset += readCount;
+    bufferSize += readCount;
+
     buffer[bufferSize] = '\0';
     if (start != nullptr) {
         *start = 0;
