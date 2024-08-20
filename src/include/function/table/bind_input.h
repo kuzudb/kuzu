@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "common/cast.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
 
