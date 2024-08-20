@@ -6,6 +6,7 @@
 #include "common/string_utils.h"
 #include "common/types/cast_helpers.h"
 #include "common/types/timestamp_t.h"
+#include "re2.h"
 
 namespace kuzu {
 namespace common {
@@ -476,6 +477,12 @@ date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
 
 int64_t Date::getEpochNanoSeconds(const date_t& date) {
     return ((int64_t)date.days) * (Interval::MICROS_PER_DAY * Interval::NANOS_PER_MICRO);
+}
+
+const regex::RE2& Date::regexPattern() {
+    static regex::RE2 retval("\\d{4}/\\d{1,2}/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2}|\\d{4} \\d{1,2} "
+                             "\\d{1,2}|\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
+    return retval;
 }
 
 } // namespace common

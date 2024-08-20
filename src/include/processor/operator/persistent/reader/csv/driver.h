@@ -4,6 +4,7 @@
 
 #include "common/copier_config/csv_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
+#include "function/table/bind_input.h"
 
 namespace kuzu {
 namespace main {
@@ -67,8 +68,8 @@ struct SniffCSVNameAndTypeDriver {
     SerialCSVReader* reader;
 
     explicit SniffCSVNameAndTypeDriver(main::ClientContext* context,
-        const common::CSVOption& csvOptions, SerialCSVReader* reader)
-        : context{context}, csvOptions(csvOptions), reader(reader){};
+        const common::CSVOption& csvOptions, SerialCSVReader* reader,
+        const function::ScanTableFuncBindInput* bindInput);
     bool done(uint64_t rowNum) const;
     void addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columntCount);

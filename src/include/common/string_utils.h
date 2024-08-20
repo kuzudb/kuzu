@@ -16,7 +16,7 @@ public:
 
     // Does not split within [], {}, or ().
     // can specify maximum number of elements to split
-    static std::vector<std::string> smartSplit(const std::string& input, char splitChar,
+    static std::vector<std::string_view> smartSplit(std::string_view input, char splitChar,
         uint64_t maxNumEle = function::NumericLimits<uint64_t>::maximum());
 
     static std::vector<std::string> split(const std::string& input, const std::string& delimiter,
@@ -44,11 +44,25 @@ public:
             find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
         return s;
     }
+    static std::string_view ltrim(std::string_view input) {
+        auto begin = 0u;
+        while (begin < input.size() && isspace(input[begin])) {
+            begin++;
+        }
+        return input.substr(begin);
+    }
     static std::string rtrim(const std::string& input) {
         auto s = input;
         s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !isspace(ch); }).base(),
             s.end());
         return s;
+    }
+    static std::string_view rtrim(std::string_view input) {
+        auto end = input.size();
+        while (end > 0 && isspace(input[end - 1])) {
+            end--;
+        }
+        return input.substr(0, end);
     }
 
     static void removeWhiteSpaces(std::string& str) {

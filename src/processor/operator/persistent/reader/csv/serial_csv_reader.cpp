@@ -11,12 +11,12 @@ namespace kuzu {
 namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option, uint64_t numColumns,
-    main::ClientContext* context)
-    : BaseCSVReader{filePath, std::move(option), numColumns, context} {}
+    main::ClientContext* context, const ScanTableFuncBindInput* bindInput)
+    : BaseCSVReader{filePath, std::move(option), numColumns, context}, bindInput{bindInput} {}
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
-    SniffCSVNameAndTypeDriver driver{context, option, this};
+    SniffCSVNameAndTypeDriver driver{context, option, this, bindInput};
     parseCSV(driver);
     // finalize the columns; rename duplicate names
     std::map<std::string, int32_t> names;
@@ -82,7 +82,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
-        0 /* numColumns */, bindInput->context);
+        0 /* numColumns */, bindInput->context, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
@@ -104,7 +104,7 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     TableFuncBindInput* input) {
-    auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
+    auto scanInput = input->ptrCast<ScanTableFuncBindInput>();
     if (scanInput->expectedColumnTypes.size() > 0) {
         scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
             Value((int64_t)0)); // only scan headers

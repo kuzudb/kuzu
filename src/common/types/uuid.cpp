@@ -2,6 +2,7 @@
 
 #include "common/exception/conversion.h"
 #include "common/random_engine.h"
+#include "re2.h"
 
 namespace kuzu {
 namespace common {
@@ -144,6 +145,11 @@ ku_uuid_t UUID::generateRandomUUID(RandomEngine* engine) {
     result.low |= ((uint64_t)bytes[14] << 8);
     result.low |= bytes[15];
     return ku_uuid_t{result};
+}
+
+const regex::RE2& UUID::regexPattern() {
+    static regex::RE2 retval("(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
+    return retval;
 }
 
 } // namespace common

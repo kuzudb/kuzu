@@ -155,7 +155,11 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     TableFuncBindInput* input) {
-    auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
+    auto scanInput = input->ptrCast<ScanTableFuncBindInput>();
+    if (scanInput->expectedColumnTypes.size() > 0) {
+        scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
+            Value((int64_t)0)); // only scan headers
+    }
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
     SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);

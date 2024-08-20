@@ -83,6 +83,18 @@ bool SerialParsingDriver::doneEarly() {
 BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
+SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(main::ClientContext* context,
+    const common::CSVOption& csvOptions, SerialCSVReader* reader,
+    const function::ScanTableFuncBindInput* bindInput)
+    : context{context}, csvOptions{csvOptions}, reader{reader} {
+    if (bindInput != nullptr) {
+        for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
+            columns.push_back(
+                {bindInput->expectedColumnNames[i], bindInput->expectedColumnTypes[i].copy()});
+            sniffType.push_back(false);
+        }
+    }
+}
 
 bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
     return (csvOptions.hasHeader ? 1 : 0) + csvOptions.sampleSize <= rowNum;
@@ -122,7 +134,7 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         // reading the body
         LogicalType combinedType;
         columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
-            function::inferMinimalTypeFromString(std::string(value)));
+            function::inferMinimalTypeFromString(value));
         if (columns[columnIdx].second.getLogicalTypeID() == LogicalTypeID::STRING) {
             sniffType[columnIdx] = false;
         }

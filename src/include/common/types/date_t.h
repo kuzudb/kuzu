@@ -3,6 +3,11 @@
 #include "interval_t.h"
 
 namespace kuzu {
+
+namespace regex {
+class RE2;
+}
+
 namespace common {
 
 struct timestamp_t;
@@ -105,6 +110,8 @@ public:
     KUZU_API static date_t trunc(DatePartSpecifier specifier, date_t& date);
 
     KUZU_API static int64_t getEpochNanoSeconds(const date_t& date);
+
+    KUZU_API static const regex::RE2& regexPattern();
 
 private:
     static void extractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
