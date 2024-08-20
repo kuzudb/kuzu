@@ -12,15 +12,13 @@ jobs:
         run: make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: /opt/python/cp310-cp310/bin/python scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86_64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-linux-extensions-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
@@ -32,15 +30,13 @@ jobs:
         run: make extension-release NUM_THREADS=$(nproc)
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: /opt/python/cp310-cp310/bin/python scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-aarch64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-linux-extensions-x86:
     runs-on: ubuntu-latest
@@ -52,7 +48,7 @@ jobs:
         run: |
           docker run -d --name kuzu-x86 \
                      -v $PWD:/kuzu -w /kuzu \
-                     -e NUM_THREADS=2 -e CC=gcc -e CXX=g++ \
+                     -e NUM_THREADS=$(nproc) -e CC=gcc -e CXX=g++ \
                      i386/debian:stable tail -f /dev/null
 
       - name: Install dependencies
@@ -66,8 +62,7 @@ jobs:
 
       - name: Collect built artifacts
         run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+          python3 scripts/collect-extensions.py
           sudo chown -R $USER:$USER extension-artifacts
           sudo chmod -R 755 extension-artifacts
 
@@ -75,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_linux-x86
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
       - name: Stop Docker container
         run: docker stop kuzu-x86
@@ -92,15 +87,13 @@ jobs:
           CMAKE_OSX_ARCHITECTURES: "arm64"
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: python3 scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_osx-arm64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-mac-extensions-x86_64:
     runs-on: self-hosted-mac-x64
@@ -114,15 +107,13 @@ jobs:
           CMAKE_OSX_ARCHITECTURES: "x86_64"
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          find extension -type f -name "*.kuzu_extension" -exec cp {} extension-artifacts \;
+        run: python3 scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_osx-x86_64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   build-windows-extensions-x86_64:
     runs-on: self-hosted-windows
@@ -138,15 +129,13 @@ jobs:
           make extension-release
 
       - name: Collect built artifacts
-        run: |
-          mkdir -p extension-artifacts
-          Get-ChildItem -Path .\extension -Recurse -Filter "*.kuzu_extension" | ForEach-Object {Copy-Item $_.FullName -Destination extension-artifacts -Force}
+        run: python scripts/collect-extensions.py
 
       - name: Upload built artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-extensions_win-x86_64
-          path: extension-artifacts/*.kuzu_extension
+          path: extension-artifacts
 
   update-extensions-repo:
     runs-on: ubuntu-latest
@@ -172,23 +161,9 @@ jobs:
           repository: kuzudb/extension
           token: ${{ secrets.DOC_PUSH_TOKEN }}
 
-      - name: Ensure extension directories
-        run: |
-          mkdir -p releases/$RELEASE_VERSION/linux_amd64
-          mkdir -p releases/$RELEASE_VERSION/linux_arm64
-          mkdir -p releases/$RELEASE_VERSION/linux_x86
-          mkdir -p releases/$RELEASE_VERSION/osx_amd64
-          mkdir -p releases/$RELEASE_VERSION/osx_arm64
-          mkdir -p releases/$RELEASE_VERSION/win_amd64
-
       - name: Clear old artifacts
         run: |
-          rm -rf releases/$RELEASE_VERSION/linux_amd64/*
-          rm -rf releases/$RELEASE_VERSION/linux_arm64/*
-          rm -rf releases/$RELEASE_VERSION/linux_x86/*
-          rm -rf releases/$RELEASE_VERSION/osx_amd64/*
-          rm -rf releases/$RELEASE_VERSION/osx_arm64/*
-          rm -rf releases/$RELEASE_VERSION/win_amd64/*
+          rm -rf releases/$RELEASE_VERSION/
 
       - name: Create temporary directory for artifacts
         run: |
@@ -238,24 +213,14 @@ jobs:
 
       - name: Copy built artifacts
         run: |
-          cp extension-artifacts/linux_amd64/*.kuzu_extension releases/$RELEASE_VERSION/linux_amd64
-          cp extension-artifacts/linux_arm64/*.kuzu_extension releases/$RELEASE_VERSION/linux_arm64
-          cp extension-artifacts/linux_x86/*.kuzu_extension releases/$RELEASE_VERSION/linux_x86
-          cp extension-artifacts/osx_amd64/*.kuzu_extension releases/$RELEASE_VERSION/osx_amd64
-          cp extension-artifacts/osx_arm64/*.kuzu_extension releases/$RELEASE_VERSION/osx_arm64
-          cp extension-artifacts/win_amd64/*.kuzu_extension releases/$RELEASE_VERSION/win_amd64
+          rsync -av extension-artifacts/ releases/$RELEASE_VERSION/
 
       - name: Remove temporary directory
         run: rm -rf extension-artifacts
 
       - name: Set artifact permissions
         run: |
-          chmod 755 releases/$RELEASE_VERSION/linux_amd64/*
-          chmod 755 releases/$RELEASE_VERSION/linux_arm64/*
-          chmod 755 releases/$RELEASE_VERSION/linux_x86/*
-          chmod 755 releases/$RELEASE_VERSION/osx_amd64/*
-          chmod 755 releases/$RELEASE_VERSION/osx_arm64/*
-          chmod 755 releases/$RELEASE_VERSION/win_amd64/*
+          chmod -R 755 releases/$RELEASE_VERSION
 
       - name: List downloaded artifacts
         run: ls -R releases/$RELEASE_VERSION
