@@ -13,6 +13,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 
 PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value>& options) {
+    skipNum = limitNum = 0;
     for (const auto& i: options) {
         if (i.first == "SKIP") {
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
