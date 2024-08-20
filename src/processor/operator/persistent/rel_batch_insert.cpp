@@ -205,6 +205,18 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
             sharedState->getNumRows(), info->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
+
+        const auto warningCount = context->warningCount;
+        bool atWarningLimit =
+            (warningCount == context->clientContext->getClientConfig()->warningLimit);
+        if (warningCount > 0) {
+            const auto warningLimitSuffix = atWarningLimit ? "+" : "";
+            auto warningMsg = stringFormat("{}{} warnings encountered during copy. Use 'CALL "
+                                           "show_warnings() RETURN *' to view the actual warnings.",
+                warningCount, warningLimitSuffix);
+            FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
+                context->clientContext->getMemoryManager());
+        }
     }
     sharedState->numRows.store(0);
     sharedState->table->cast<RelTable>().setHasChanges();

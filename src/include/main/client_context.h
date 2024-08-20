@@ -128,7 +128,7 @@ public:
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
 
-    processor::WarningContext& getWarningContext();
+    processor::WarningContext& getWarningContextUnsafe();
     const processor::WarningContext& getWarningContext() const;
 
     void cleanUP();

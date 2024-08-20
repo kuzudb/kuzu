@@ -8,6 +8,7 @@
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/system_message.h"
+#include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;

@@ -191,7 +191,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
 
         totalWarningCount += cachedWarnings.size();
 
-        ctx->clientContext->getWarningContext().appendWarningMessages(cachedWarnings, ctx->queryID);
+        ctx->appendWarningMessages(cachedWarnings, ctx->queryID);
     }
 
     KU_ASSERT(totalWarningCount <= ctx->clientContext->getClientConfig()->warningLimit);

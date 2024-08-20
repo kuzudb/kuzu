@@ -8,10 +8,14 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/file_system/file_info.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/csv_error.h"
 
 namespace kuzu {
+
+namespace main {
+class ClientContext;
+}
+
 namespace processor {
 
 class BaseCSVReader {

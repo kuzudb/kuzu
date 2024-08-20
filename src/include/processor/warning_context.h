@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "main/client_config.h"
+
 namespace kuzu {
 
 namespace processor {
@@ -19,16 +21,16 @@ struct WarningInfo {
     uint64_t queryID;
     processor::PopulatedCSVError warning;
 
-    explicit WarningInfo(processor::PopulatedCSVError warning, uint64_t queryID)
+    WarningInfo(processor::PopulatedCSVError warning, uint64_t queryID)
         : queryID(queryID), warning(std::move(warning)) {}
 };
 
 struct WarningContext {
     std::vector<WarningInfo> warnings;
-    uint64_t* warningLimit;
+    main::ClientConfig* clientConfig;
     std::mutex mtx;
 
-    explicit WarningContext(uint64_t* warningLimit) : warningLimit(warningLimit) {}
+    explicit WarningContext(main::ClientConfig* clientConfig);
 
     void appendWarningMessages(const std::vector<PopulatedCSVError>& messages, uint64_t queryID);
 };
