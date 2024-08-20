@@ -284,6 +284,12 @@ jobs:
         env:
           ASAN_OPTIONS: "detect_leaks=1"
 
+      - name: Test compression disabled with ASAN
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
+          make test
+
   clang-build-test:
     name: clang build & test
     needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
@@ -323,6 +329,12 @@ jobs:
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test
+
+      - name: Test compression disabled
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
           make test
 
       - name: Python test
@@ -391,6 +403,14 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
+
+      - name: Test compression disabled
+        shell: cmd
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
       - name: Test in mem
@@ -721,6 +741,12 @@ jobs:
       - name: Test
         run: |
           ulimit -n 10240
+          make test
+
+      - name: Test compression disabled
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
           make test
 
       - name: Python test
