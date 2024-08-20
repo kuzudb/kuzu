@@ -50,11 +50,11 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
         // We still need to save and restore for flat input because we are discarding NULL join keys
         // which changes the selected position.
         // TODO(Guodong): we have potential bugs here because all keys' states should be restored.
-        restoreSelVector(*keyVectors[0]->state);
+        restoreSelVector(*keyVectors.back()->state);
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        saveSelVector(*keyVectors[0]->state);
+        saveSelVector(*keyVectors.back()->state);
         sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
             probeState->probedTuples.get());
     }
