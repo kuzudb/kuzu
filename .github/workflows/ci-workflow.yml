@@ -80,6 +80,11 @@ jobs:
       - name: Generate and upload tinysnb
         run: |
           bash scripts/generate_binary_tinysnb.sh
+          s3cmd get s3://kuzu-test/tinysnb/tinysnb/version.txt
+          if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ]; then
+            echo "TinySNB dataset is up to date, skipping upload"
+            exit 0
+          fi
           s3cmd del -r s3://kuzu-test/tinysnb/
           s3cmd sync ./tinysnb s3://kuzu-test/tinysnb/ 
           rm -rf tinysnb

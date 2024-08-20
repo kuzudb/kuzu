@@ -55,7 +55,6 @@ def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path,
     serialize_queries = [q.strip().replace('{}', dataset_path)
                          for q in serialize_queries]
     serialize_queries = [q for q in serialize_queries if q]
-    serialize_queries = [q + ';' if not q.endswith(';') else q for q in serialize_queries]
 
     table_types = {}
 
