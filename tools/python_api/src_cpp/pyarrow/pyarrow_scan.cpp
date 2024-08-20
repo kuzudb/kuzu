@@ -12,6 +12,24 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
+PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value>& options) {
+    for (const auto& i: options) {
+        if (i.first == "SKIP") {
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
+                throw BinderException("SKIP Option must be an integer literal.");
+            }
+            skipNum = i.second.val.int64Val;
+        } else if (i.first == "LIMIT") {
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
+                throw BinderException("LIMIT Option must be an integer literal.");
+            }
+            limitNum = i.second.val.int64Val;
+        } else {
+            throw BinderException(stringFormat("{} Option not recognized by pyArrow scanner."));
+        }
+    }
+}
+
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     ScanTableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
@@ -29,7 +47,11 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
-
+    auto config = PyArrowScanConfig(input->config.options);
+    if (config.skipNum != 0 || config.limitNum != 0) {
+        // The following operation is zero copy as defined in pyarrow docs.
+        table = table.attr("slice")(config.skipNum, config.limitNum);
+    }
     py::list batches = table.attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
     std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
     for (auto& i : batches) {
