@@ -16,6 +16,7 @@ namespace kuzu {
 namespace function {
 
 LogicalType inferMinimalTypeFromString(const std::string& str);
+LogicalType inferMinimalTypeFromString(std::string_view str);
 // Infer the type that the string represents.
 // Note: minimal integer width is int64
 // Used for sniffing

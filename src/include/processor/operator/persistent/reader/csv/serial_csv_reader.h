@@ -12,7 +12,8 @@ namespace processor {
 class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        main::ClientContext* context, CSVErrorHandler* errorHandler);
+        main::ClientContext* context, CSVErrorHandler* errorHandler,
+        const function::ScanTableFuncBindInput* bindInput = nullptr);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
@@ -20,6 +21,9 @@ public:
 
 protected:
     bool handleQuotedNewline() override { return true; }
+
+private:
+    const function::ScanTableFuncBindInput* bindInput;
 };
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {

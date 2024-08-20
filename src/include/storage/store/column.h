@@ -82,12 +82,12 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
     // Batch write to a set of sequential pages.
-    virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
+    virtual void write(ColumnChunkData& persistentChunk, const ChunkState& state,
         common::offset_t dstOffset, ColumnChunkData* data, common::offset_t srcOffset,
         common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary
-    common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
+    common::offset_t appendValues(ColumnChunkData& persistentChunk, const ChunkState& state,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
     virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
@@ -118,9 +118,9 @@ protected:
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func) const;
 
-    virtual void writeValues(ColumnChunkData& persistentChunk, ChunkState& state,
-        common::offset_t dstOffset, const uint8_t* data, const common::NullMask* nullChunkData,
-        common::offset_t srcOffset = 0, common::offset_t numValues = 1);
+    void writeValues(const ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
+        const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+        common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
     static PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
@@ -138,11 +138,11 @@ protected:
     virtual bool canCheckpointInPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState);
 
-    virtual void checkpointColumnChunkInPlace(ChunkState& state,
+    void checkpointColumnChunkInPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState);
     void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
 
-    virtual void checkpointColumnChunkOutOfPlace(ChunkState& state,
+    void checkpointColumnChunkOutOfPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState);
 
     // check if val is in range [start, end)
@@ -159,10 +159,8 @@ protected:
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
-    write_values_from_vector_func_t writeFromVectorFunc;
     write_values_func_t writeFunc;
     read_values_to_page_func_t readToPageFunc;
-    batch_lookup_func_t batchLookupFunc;
     bool enableCompression;
 };
 

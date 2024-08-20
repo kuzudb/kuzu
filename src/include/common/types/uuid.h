@@ -3,6 +3,11 @@
 #include "int128_t.h"
 
 namespace kuzu {
+
+namespace regex {
+class RE2;
+}
+
 namespace common {
 
 class RandomEngine;
@@ -27,6 +32,8 @@ struct UUID {
     static std::string toString(ku_uuid_t val);
 
     static ku_uuid_t generateRandomUUID(RandomEngine* engine);
+
+    static const regex::RE2& regexPattern();
 };
 
 } // namespace common

@@ -1,0 +1,17 @@
+-DATASET CSV empty
+
+--
+-CASE Unbraced
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/unbraced-lists/only-unbraced.csv" (header=true, LIST_UNBRACED=true) return a, b, c;
+---- 2
+[a,b,c]|[1,3]|[,,]
+[x,y,z]|[123,3,94494]|[,1.000000]
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/unbraced-lists/mixed-unbraced.csv" (header=true, list_unbraced=true) return a;
+---- 2
+[1,2,3]
+[1,2,3]
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/unbraced-lists/nested.csv" (header=true, list_unbraced=true) return a, b;
+---- 1
+[[a,b,c],[1],[2],[3],[k,u,z,u]]|[{a=1, b=2, c=3},,{}]

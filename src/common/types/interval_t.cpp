@@ -10,6 +10,7 @@
 #include "function/arithmetic/multiply.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
+#include "re2.h"
 
 namespace kuzu {
 namespace common {
@@ -458,6 +459,23 @@ int64_t Interval::getMicro(const interval_t& val) {
 
 int64_t Interval::getNanoseconds(const interval_t& val) {
     return getMicro(val) * NANOS_PER_MICRO;
+}
+
+const regex::RE2& Interval::regexPattern1() {
+    static regex::RE2 retval(
+        "(?i)((0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
+        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
+        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
+        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?");
+    return retval;
+}
+
+const regex::RE2& Interval::regexPattern2() {
+    static regex::RE2 retval("\\d+:\\d{2}:\\d{2}(\\.\\d+)?");
+    return retval;
 }
 
 } // namespace common

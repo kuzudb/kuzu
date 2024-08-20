@@ -133,7 +133,7 @@ struct CopyConstants {
     static constexpr uint64_t PARALLEL_BLOCK_SIZE = INITIAL_BUFFER_SIZE / 2;
 
     static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL",
-        "IGNORE_ERRORS"};
+        "IGNORE_ERRORS", "LIST_UNBRACED"};
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
     static constexpr bool DEFAULT_CSV_PARALLEL = true;
     static constexpr bool DEFAULT_IGNORE_ERRORS = false;
@@ -142,6 +142,8 @@ struct CopyConstants {
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {"ESCAPE", "DELIM", "QUOTE"};
     static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '"';
     static constexpr char DEFAULT_CSV_DELIMITER = ',';
+    static constexpr char DEFAULT_CSV_LIST_DELIMITER = ',';
+    static constexpr bool DEFAULT_CSV_ALLOW_UNBRACED_LIST = false;
     static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
@@ -151,7 +153,7 @@ struct CopyConstants {
 
     static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP", "SAMPLE_SIZE"};
     static constexpr uint64_t DEFAULT_CSV_SKIP_NUM = 0;
-    static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 2048;
+    static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 256;
 };
 
 struct RdfConstants {

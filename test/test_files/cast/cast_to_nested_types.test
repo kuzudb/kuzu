@@ -15,7 +15,7 @@
 []||[111,0,0]
 ||[0,111,12]
 |{num: , str: }|[0,0,0]
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
 ---- 3
 [escape,is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: }}
 [this,is a word,normal not escape,' [ ] | , ~ ']|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
@@ -230,7 +230,7 @@ Conversion exception: Map does not allow null as key.
 ||||
 
 -LOG CastNestedStructToStruct
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN cast(struct, "STRUCT(a STRUCT(b STRUCT(c INT128[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c DOUBLE[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c STRING)))"), cast(struct, "STRUCT(a STRUCT(b STRING))"), cast(struct, "STRUCT(a STRING)");
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'") RETURN cast(struct, "STRUCT(a STRUCT(b STRUCT(c INT128[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c DOUBLE[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c STRING)))"), cast(struct, "STRUCT(a STRUCT(b STRING))"), cast(struct, "STRUCT(a STRING)");
 ---- 3
 {a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423.000000,-43423.000000,31231.000000,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}
 {a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}

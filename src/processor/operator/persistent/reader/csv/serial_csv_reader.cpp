@@ -12,12 +12,14 @@ namespace kuzu {
 namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option, uint64_t numColumns,
-    main::ClientContext* context, CSVErrorHandler* errorHandler)
-    : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler} {}
+    main::ClientContext* context, CSVErrorHandler* errorHandler,
+    const ScanTableFuncBindInput* bindInput)
+    : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler},
+      bindInput{bindInput} {}
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
-    SniffCSVNameAndTypeDriver driver{context, option, this};
+    SniffCSVNameAndTypeDriver driver{context, option, this, bindInput};
     parseCSV(driver);
     // finalize the columns; rename duplicate names
     std::map<std::string, int32_t> names;
@@ -108,7 +110,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     CSVErrorHandler errorHandler{nullptr, bindInput->context->getClientConfig()->warningLimit,
         &warningCounter, csvConfig.option.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
-        0 /* numColumns */, bindInput->context, &errorHandler);
+        0 /* numColumns */, bindInput->context, &errorHandler, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
@@ -130,7 +132,7 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     TableFuncBindInput* input) {
-    auto scanInput = ku_dynamic_cast<TableFuncBindInput*, ScanTableFuncBindInput*>(input);
+    auto scanInput = input->ptrCast<ScanTableFuncBindInput>();
     if (scanInput->expectedColumnTypes.size() > 0) {
         scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
             Value((int64_t)0)); // only scan headers

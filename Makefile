@@ -127,7 +127,7 @@ python-debug:
 rust:
 ifeq ($(OS),Windows_NT)
 	set CFLAGS=/MDd
-	set CXXFLAGS=/MDd /std:c++20
+	set CXXFLAGS=/MDd /std:c++20 /Zc:__cplusplus
 	set CARGO_BUILD_JOBS=$(NUM_THREADS)
 else
 	export CARGO_BUILD_JOBS=$(NUM_THREADS)

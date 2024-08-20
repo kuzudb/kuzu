@@ -24,6 +24,10 @@ struct TableFuncBindInput {
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const TableFuncBindInput*, const TARGET*>(this);
     }
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TableFuncBindInput*, TARGET*>(this);
+    }
 
 protected:
     TableFuncBindInput(const TableFuncBindInput& other) : inputs{other.inputs} {}

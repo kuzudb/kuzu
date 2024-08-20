@@ -16,6 +16,7 @@ struct CSVOption {
     bool ignoreErrors;
     uint64_t skipNum;
     uint64_t sampleSize;
+    bool allowUnbracedList;
 
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
@@ -24,8 +25,8 @@ struct CSVOption {
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
           ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
           skipNum{CopyConstants::DEFAULT_CSV_SKIP_NUM},
-          sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE} {}
-
+          sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
+          allowUnbracedList{CopyConstants::DEFAULT_CSV_ALLOW_UNBRACED_LIST} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.

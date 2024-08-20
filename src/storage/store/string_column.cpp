@@ -92,8 +92,8 @@ void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& st
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
-    ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
+void StringColumn::write(ColumnChunkData& persistentChunk, const ChunkState& state,
+    offset_t dstOffset, ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();
     numValues = std::min(numValues, data->getNumValues() - srcOffset);
     auto& strChunkToWriteFrom = data->cast<StringChunkData>();
@@ -112,8 +112,7 @@ void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, of
     nullMask.copyFromNullBits(data->getNullData()->getNullMask().getData(), srcOffset,
         0 /*dstOffset*/, numValues);
     // Write index to main column
-    indexColumn->writeValues(*stringPersistentChunk.getIndexColumnChunk(),
-        getChildState(state, ChildStateIndex::INDEX), dstOffset,
+    indexColumn->writeValues(getChildState(state, ChildStateIndex::INDEX), dstOffset,
         reinterpret_cast<const uint8_t*>(&indices[0]), &nullMask, 0 /*srcOffset*/, numValues);
     auto [min, max] = std::minmax_element(indices.begin(), indices.end());
     auto minWritten = StorageValue(*min);
