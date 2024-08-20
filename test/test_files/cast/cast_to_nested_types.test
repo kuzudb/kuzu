@@ -27,7 +27,7 @@
 {}
 -STATEMENT LOAD WITH HEADERS (map MAP(INT32[], STRUCT(c STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv" (HEADER=true, DELIM=">") RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv on line 7: Conversion exception: Map does not allow null as key. Line containing the error: '"{={c: '~~ have some > >'}}"'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv on line 7: Conversion exception: Map does not allow null as key. Line containing the error: '"{={c: '~~ have some , ,'}}"'
 -STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys. Line containing the error: '"{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}"'

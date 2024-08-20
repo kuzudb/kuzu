@@ -163,7 +163,7 @@ Binder exception: Table tableOfTypes7 does not contain column nonexistentColumn.
 -STATEMENT COPY tableOfTypes8 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
     listOfInt, extraColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- error(regex)
-Copy exception: Error in file \${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k\.csv on line 8?2: expected 9 values per row, but got 8
+Copy exception: Error in file \${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k\.csv on line 8?2: expected 9 values per row, but got 8. Line containing the error: '0,73,3.2585065282054626,true,1829-10-28,1829-10-28 0:21:21,FrPZkcHFuepVxcAiMwyAsRqDlRtQx,"\[99,2,98,100\]"'
 
 -LOG PartialCopyException4
 -STATEMENT CREATE NODE TABLE tableOfTypes9 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
