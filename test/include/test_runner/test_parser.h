@@ -78,7 +78,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-END_CONCURRENT_EXECUTION", TokenType::END_CONCURRENT_EXECUTION},
     {"-CREATE_DATASET_SCHEMA", TokenType::CREATE_DATASET_SCHEMA},
     {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW},
-    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}, {"-SEED", TokenType::SEED}};
+    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}};
 
 class LogicToken {
 public:
