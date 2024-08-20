@@ -6,7 +6,6 @@
 #include "common/types/blob.h"
 #include "function/list/functions/list_unique_function.h"
 #include "utf8proc_wrapper.h"
-#include "re2.h"
 
 using namespace kuzu::common;
 
