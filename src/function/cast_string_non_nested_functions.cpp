@@ -100,8 +100,8 @@ static bool isUUID(std::string_view str) {
 }
 
 static bool isInterval(std::string_view str) {
-    return RE2::FullMatch(str, Interval::regexPattern1())
-        || RE2::FullMatch(str, Interval::regexPattern2());
+    return RE2::FullMatch(str, Interval::regexPattern1()) ||
+           RE2::FullMatch(str, Interval::regexPattern2());
 }
 
 static LogicalType inferMapOrStruct(std::string_view str) {

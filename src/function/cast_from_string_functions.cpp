@@ -311,8 +311,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
         } else if (ch == '{') {
             uint64_t struct_lvl = 0;
             skipToClose(input, end, struct_lvl, '}', option);
-        } else if (ch == ',' ||
-                   ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
+        } else if (ch == ',' || ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
             if (ch != CopyConstants::DEFAULT_CSV_LIST_END_CHAR || start_ptr < input || seen_value) {
                 state.handleValue(start_ptr, input, option);
                 seen_value = true;

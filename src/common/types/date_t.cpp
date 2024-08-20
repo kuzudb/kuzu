@@ -480,7 +480,8 @@ int64_t Date::getEpochNanoSeconds(const date_t& date) {
 }
 
 const regex::RE2& Date::regexPattern() {
-    static regex::RE2 retval("\\d{4}/\\d{1,2}/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2}|\\d{4} \\d{1,2} \\d{1,2}|\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
+    static regex::RE2 retval("\\d{4}/\\d{1,2}/\\d{1,2}|\\d{4}-\\d{1,2}-\\d{1,2}|\\d{4} \\d{1,2} "
+                             "\\d{1,2}|\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
     return retval;
 }
 

@@ -5,7 +5,7 @@
 namespace kuzu {
 
 namespace regex {
-    class RE2;
+class RE2;
 }
 
 namespace common {
