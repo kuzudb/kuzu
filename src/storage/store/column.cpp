@@ -79,15 +79,6 @@ static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType&
     }
 }
 
-static write_values_from_vector_func_t getWriteValueFromVectorFunc(const LogicalType& logicalType) {
-    switch (logicalType.getLogicalTypeID()) {
-    case LogicalTypeID::INTERNAL_ID:
-        return WriteInternalIDValuesToPage();
-    default:
-        return WriteCompressedValuesToPage(logicalType);
-    }
-}
-
 static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
@@ -120,8 +111,6 @@ Column::Column(std::string name, LogicalType dataType, BMFileHandle* dataFH,
       enableCompression{enableCompression} {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
-    batchLookupFunc = ReadCompressedValuesFromPage(this->dataType);
-    writeFromVectorFunc = getWriteValueFromVectorFunc(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);
     if (requireNullColumn) {
         auto columnName =

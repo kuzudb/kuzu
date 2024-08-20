@@ -26,18 +26,6 @@ struct NullColumnFunc {
                 pageCursor.elemPosInPage, posInVector, numValuesToRead);
         }
     }
-
-    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata) {
-        if (metadata.isConstant()) {
-            // Value to write is identical to the constant value
-            return;
-        }
-        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-        // Otherwise, it could read off the end of the page.
-        NullMask::setNull(reinterpret_cast<uint64_t*>(frame), posInFrame,
-            vector->isNull(posInVector));
-    }
 };
 
 NullColumn::NullColumn(const std::string& name, BMFileHandle* dataFH, BufferManager* bufferManager,
@@ -45,9 +33,6 @@ NullColumn::NullColumn(const std::string& name, BMFileHandle* dataFH, BufferMana
     : Column{name, LogicalType::BOOL(), dataFH, bufferManager, shadowFile, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
-    writeFromVectorFunc = NullColumnFunc::writeValueToPageFromVector;
-    // Should never be used
-    batchLookupFunc = nullptr;
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,
@@ -67,26 +52,6 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
-}
-
-bool NullColumn::isNull(Transaction* transaction, const ChunkState& state, offset_t offsetInChunk) {
-    uint64_t result = false;
-    if (offsetInChunk >= state.metadata.numValues) {
-        return true;
-    }
-    // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    Column::scan(transaction, state, offsetInChunk, offsetInChunk + 1,
-        reinterpret_cast<uint8_t*>(&result));
-    return result;
-}
-
-void NullColumn::setNull(ColumnChunkData& persistentChunk, const ChunkState& state,
-    offset_t offsetInChunk, uint64_t value) {
-    // Must be aligned to an 8-byte chunk for NullMask read to not overflow
-    writeValues(state, offsetInChunk, reinterpret_cast<const uint8_t*>(&value),
-        nullptr /*nullChunkData=*/);
-    updateStatistics(persistentChunk.getMetadata(), offsetInChunk,
-        StorageValue(static_cast<bool>(value)), StorageValue(static_cast<bool>(value)));
 }
 
 void NullColumn::write(ColumnChunkData& persistentChunk, const ChunkState& state,

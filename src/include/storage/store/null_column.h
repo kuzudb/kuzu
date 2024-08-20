@@ -27,11 +27,6 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    bool isNull(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t offsetInChunk);
-    void setNull(ColumnChunkData& persistentChunk, const ChunkState& state,
-        common::offset_t offsetInChunk, uint64_t value = true);
-
     void write(ColumnChunkData& persistentChunk, const ChunkState& state,
         common::offset_t offsetInChunk, ColumnChunkData* data, common::offset_t dataOffset,
         common::length_t numValues) override;

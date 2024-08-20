@@ -159,10 +159,8 @@ protected:
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
-    write_values_from_vector_func_t writeFromVectorFunc;
     write_values_func_t writeFunc;
     read_values_to_page_func_t readToPageFunc;
-    batch_lookup_func_t batchLookupFunc;
     bool enableCompression;
 };
 
