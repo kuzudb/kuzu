@@ -19,6 +19,8 @@
 #include "snappy/snappy.h"
 #include "zstd.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -28,8 +30,8 @@ using kuzu_parquet::format::Encoding;
 using kuzu_parquet::format::PageType;
 using kuzu_parquet::format::Type;
 
-ColumnReader::ColumnReader(ParquetReader& reader, common::LogicalType type,
-    const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefinition,
+ColumnReader::ColumnReader(ParquetReader& reader, LogicalType type,
+    const kuzu_parquet::format::SchemaElement& schema, idx_t fileIdx, uint64_t maxDefinition,
     uint64_t maxRepeat)
     : schema{schema}, fileIdx{fileIdx}, maxDefine{maxDefinition}, maxRepeat{maxRepeat},
       reader{reader}, type{std::move(type)}, pageRowsAvailable{0} {}

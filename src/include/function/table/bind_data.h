@@ -21,9 +21,16 @@ struct TableFuncBindData {
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
     TableFuncBindData(const TableFuncBindData& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnNames{other.columnNames} {}
-
+          columnNames{other.columnNames}, columnSkips{other.columnSkips} {}
     virtual ~TableFuncBindData() = default;
+
+    common::idx_t getNumColumns() const {
+        return columnTypes.size();
+    }
+    void setColumnSkips(std::vector<bool> skips) {
+        columnSkips = std::move(skips);
+    }
+    std::vector<bool> getColumnSkips() const;
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 
@@ -31,6 +38,9 @@ struct TableFuncBindData {
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const TableFuncBindData*, const TARGET*>(this);
     }
+
+private:
+    std::vector<bool> columnSkips;
 };
 
 struct ScanBindData : public TableFuncBindData {
@@ -44,7 +54,7 @@ struct ScanBindData : public TableFuncBindData {
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() const override {
+    std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ScanBindData>(*this);
     }
 };

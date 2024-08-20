@@ -7,8 +7,23 @@ namespace optimizer {
 
 void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     switch (op->getOperatorType()) {
-    case LogicalOperatorType::FLATTEN: {
-        visitFlatten(op);
+    case LogicalOperatorType::ACCUMULATE: {
+        visitAccumulate(op);
+    } break;
+    case LogicalOperatorType::AGGREGATE: {
+        visitAggregate(op);
+    } break;
+    case LogicalOperatorType::COPY_FROM: {
+        visitCopyFrom(op);
+    } break;
+    case LogicalOperatorType::COPY_TO: {
+        visitCopyTo(op);
+    } break;
+    case LogicalOperatorType::DELETE: {
+        visitDelete(op);
+    } break;
+    case LogicalOperatorType::DISTINCT: {
+        visitDistinct(op);
     } break;
     case LogicalOperatorType::EMPTY_RESULT: {
         visitEmptyResult(op);
@@ -16,17 +31,17 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         visitExpressionsScan(op);
     } break;
-    case LogicalOperatorType::SCAN_NODE_TABLE: {
-        visitScanNodeTable(op);
-    } break;
     case LogicalOperatorType::EXTEND: {
         visitExtend(op);
     } break;
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        visitRecursiveExtend(op);
+    case LogicalOperatorType::FILTER: {
+        visitFilter(op);
     } break;
-    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
-        visitPathPropertyProbe(op);
+    case LogicalOperatorType::FLATTEN: {
+        visitFlatten(op);
+    } break;
+    case LogicalOperatorType::GDS_CALL: {
+        visitGDSCall(op);
     } break;
     case LogicalOperatorType::HASH_JOIN: {
         visitHashJoin(op);
@@ -34,53 +49,41 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::INTERSECT: {
         visitIntersect(op);
     } break;
-    case LogicalOperatorType::PROJECTION: {
-        visitProjection(op);
-    } break;
-    case LogicalOperatorType::AGGREGATE: {
-        visitAggregate(op);
-    } break;
-    case LogicalOperatorType::ORDER_BY: {
-        visitOrderBy(op);
+    case LogicalOperatorType::INSERT: {
+        visitInsert(op);
     } break;
     case LogicalOperatorType::LIMIT: {
         visitLimit(op);
     } break;
-    case LogicalOperatorType::ACCUMULATE: {
-        visitAccumulate(op);
+    case LogicalOperatorType::MERGE: {
+        visitMerge(op);
     } break;
-    case LogicalOperatorType::DISTINCT: {
-        visitDistinct(op);
+    case LogicalOperatorType::ORDER_BY: {
+        visitOrderBy(op);
     } break;
-    case LogicalOperatorType::UNWIND: {
-        visitUnwind(op);
+    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
+        visitPathPropertyProbe(op);
     } break;
-    case LogicalOperatorType::UNION_ALL: {
-        visitUnion(op);
+    case LogicalOperatorType::PROJECTION: {
+        visitProjection(op);
     } break;
-    case LogicalOperatorType::FILTER: {
-        visitFilter(op);
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        visitRecursiveExtend(op);
+    } break;
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        visitScanNodeTable(op);
     } break;
     case LogicalOperatorType::SET_PROPERTY: {
         visitSetProperty(op);
     } break;
-    case LogicalOperatorType::DELETE: {
-        visitDelete(op);
+    case LogicalOperatorType::TABLE_FUNCTION_CALL: {
+        visitTableFunctionCall(op);
     } break;
-    case LogicalOperatorType::INSERT: {
-        visitInsert(op);
+    case LogicalOperatorType::UNION_ALL: {
+        visitUnion(op);
     } break;
-    case LogicalOperatorType::MERGE: {
-        visitMerge(op);
-    } break;
-    case LogicalOperatorType::COPY_TO: {
-        visitCopyTo(op);
-    } break;
-    case LogicalOperatorType::COPY_FROM: {
-        visitCopyFrom(op);
-    } break;
-    case LogicalOperatorType::GDS_CALL: {
-        visitGDSCall(op);
+    case LogicalOperatorType::UNWIND: {
+        visitUnwind(op);
     } break;
     default:
         return;
@@ -90,8 +93,23 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
 std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwitch(
     std::shared_ptr<LogicalOperator> op) {
     switch (op->getOperatorType()) {
-    case LogicalOperatorType::FLATTEN: {
-        return visitFlattenReplace(op);
+    case LogicalOperatorType::ACCUMULATE: {
+        return visitAccumulateReplace(op);
+    }
+    case LogicalOperatorType::AGGREGATE: {
+        return visitAggregateReplace(op);
+    }
+    case LogicalOperatorType::COPY_FROM: {
+        return visitCopyFromReplace(op);
+    }
+    case LogicalOperatorType::COPY_TO: {
+        return visitCopyToReplace(op);
+    }
+    case LogicalOperatorType::DELETE: {
+        return visitDeleteReplace(op);
+    }
+    case LogicalOperatorType::DISTINCT: {
+        return visitDistinctReplace(op);
     }
     case LogicalOperatorType::EMPTY_RESULT: {
         return visitEmptyResultReplace(op);
@@ -99,17 +117,17 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         return visitExpressionsScanReplace(op);
     }
-    case LogicalOperatorType::SCAN_NODE_TABLE: {
-        return visitScanNodeTableReplace(op);
-    }
     case LogicalOperatorType::EXTEND: {
         return visitExtendReplace(op);
     }
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        return visitRecursiveExtendReplace(op);
+    case LogicalOperatorType::FILTER: {
+        return visitFilterReplace(op);
     }
-    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
-        return visitPathPropertyProbeReplace(op);
+    case LogicalOperatorType::FLATTEN: {
+        return visitFlattenReplace(op);
+    }
+    case LogicalOperatorType::GDS_CALL: {
+        return visitGDSCallReplace(op);
     }
     case LogicalOperatorType::HASH_JOIN: {
         return visitHashJoinReplace(op);
@@ -117,53 +135,41 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     case LogicalOperatorType::INTERSECT: {
         return visitIntersectReplace(op);
     }
-    case LogicalOperatorType::PROJECTION: {
-        return visitProjectionReplace(op);
-    }
-    case LogicalOperatorType::AGGREGATE: {
-        return visitAggregateReplace(op);
-    }
-    case LogicalOperatorType::ORDER_BY: {
-        return visitOrderByReplace(op);
+    case LogicalOperatorType::INSERT: {
+        return visitInsertReplace(op);
     }
     case LogicalOperatorType::LIMIT: {
         return visitLimitReplace(op);
     }
-    case LogicalOperatorType::ACCUMULATE: {
-        return visitAccumulateReplace(op);
+    case LogicalOperatorType::MERGE: {
+        return visitMergeReplace(op);
     }
-    case LogicalOperatorType::DISTINCT: {
-        return visitDistinctReplace(op);
+    case LogicalOperatorType::ORDER_BY: {
+        return visitOrderByReplace(op);
     }
-    case LogicalOperatorType::UNWIND: {
-        return visitUnwindReplace(op);
+    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
+        return visitPathPropertyProbeReplace(op);
     }
-    case LogicalOperatorType::UNION_ALL: {
-        return visitUnionReplace(op);
+    case LogicalOperatorType::PROJECTION: {
+        return visitProjectionReplace(op);
     }
-    case LogicalOperatorType::FILTER: {
-        return visitFilterReplace(op);
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        return visitRecursiveExtendReplace(op);
+    }
+    case LogicalOperatorType::SCAN_NODE_TABLE: {
+        return visitScanNodeTableReplace(op);
     }
     case LogicalOperatorType::SET_PROPERTY: {
         return visitSetPropertyReplace(op);
     }
-    case LogicalOperatorType::DELETE: {
-        return visitDeleteReplace(op);
+    case LogicalOperatorType::TABLE_FUNCTION_CALL: {
+        return visitTableFunctionCallReplace(op);
     }
-    case LogicalOperatorType::INSERT: {
-        return visitInsertReplace(op);
+    case LogicalOperatorType::UNION_ALL: {
+        return visitUnionReplace(op);
     }
-    case LogicalOperatorType::MERGE: {
-        return visitMergeReplace(op);
-    }
-    case LogicalOperatorType::COPY_TO: {
-        return visitCopyToReplace(op);
-    }
-    case LogicalOperatorType::COPY_FROM: {
-        return visitCopyFromReplace(op);
-    }
-    case LogicalOperatorType::GDS_CALL: {
-        return visitGDSCallReplace(op);
+    case LogicalOperatorType::UNWIND: {
+        return visitUnwindReplace(op);
     }
     default:
         return op;

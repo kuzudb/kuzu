@@ -2,6 +2,7 @@ add_subdirectory(call)
 
 add_library(kuzu_table
         OBJECT
+        bind_data.cpp
         call_functions.cpp
         scan_functions.cpp)
 
