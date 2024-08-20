@@ -1,7 +1,10 @@
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 
 #include "common/constants.h"
+#include "common/types/date_t.h"
+#include "common/types/interval_t.h"
 #include "common/types/timestamp_t.h"
+#include "common/types/uuid.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "re2.h"
 
@@ -88,55 +91,17 @@ bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(const char* input, uint6
     return true;
 }
 
-static RE2& datePattern1() {
-    static RE2 retval("\\d{4}/\\d{1,2}/\\d{1,2}");
-    return retval;
-}
-static RE2& datePattern2() {
-    static RE2 retval("\\d{4}-\\d{1,2}-\\d{1,2}");
-    return retval;
-}
-static RE2& datePattern3() {
-    static RE2 retval("\\d{4} \\d{1,2} \\d{1,2}");
-    return retval;
-}
-static RE2& datePattern4() {
-    static RE2 retval("\\d{4}\\\\\\d{1,2}\\\\\\d{1,2}");
-    return retval;
-}
-
 static bool isDate(std::string_view str) {
-    return RE2::FullMatch(str, datePattern1()) || RE2::FullMatch(str, datePattern2()) ||
-           RE2::FullMatch(str, datePattern3()) || RE2::FullMatch(str, datePattern4());
-}
-
-static RE2& UUIDPattern() {
-    static RE2 retval("(?i)[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
-    return retval;
+    return RE2::FullMatch(str, Date::regexPattern());
 }
 
 static bool isUUID(std::string_view str) {
-    return RE2::FullMatch(str, UUIDPattern());
-}
-
-static RE2& intervalPattern() {
-    static RE2 retval(
-        "(?i)((0|[1-9]\\d*) "
-        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
-        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))( +(0|[1-9]\\d*) "
-        "+(YEARS?|YRS?|Y|MONS?|MONTHS?|DAYS?|D|DAYOFMONTH|DECADES?|DECS?|CENTURY|CENTURIES|CENT|C|"
-        "MILLENN?IUMS?|MILS?|MILLENNIA|MICROSECONDS?|US|USECS?|USECONDS?|SECONDS?|SECS?|S|MINUTES?|"
-        "MINS?|M|HOURS?|HRS?|H|WEEKS?|WEEKOFYEAR|W|QUARTERS?))*( +\\d+:\\d{2}:\\d{2}(\\.\\d+)?)?");
-    return retval;
-}
-static RE2& intervalPattern2() {
-    static RE2 retval("\\d+:\\d{2}:\\d{2}(\\.\\d+)?");
-    return retval;
+    return RE2::FullMatch(str, UUID::regexPattern());
 }
 
 static bool isInterval(std::string_view str) {
-    return RE2::FullMatch(str, intervalPattern()) || RE2::FullMatch(str, intervalPattern2());
+    return RE2::FullMatch(str, Interval::regexPattern1())
+        || RE2::FullMatch(str, Interval::regexPattern2());
 }
 
 static LogicalType inferMapOrStruct(std::string_view str) {

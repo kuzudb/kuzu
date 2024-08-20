@@ -6,6 +6,11 @@
 #include "common/api.h"
 
 namespace kuzu {
+
+namespace regex {
+    class RE2;
+}
+
 namespace common {
 
 struct timestamp_t;
@@ -103,6 +108,8 @@ public:
     KUZU_API static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t& timestamp);
     KUZU_API static int64_t getMicro(const interval_t& val);
     KUZU_API static int64_t getNanoseconds(const interval_t& val);
+    KUZU_API static const regex::RE2& regexPattern1();
+    KUZU_API static const regex::RE2& regexPattern2();
 };
 
 } // namespace common

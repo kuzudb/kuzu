@@ -27,7 +27,6 @@ static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& op
         config.parallel = optionValue;
     } else if (optionName == "LIST_UNBRACED") {
         config.option.allowUnbracedList = optionValue;
-        config.option.listDelimiter = optionValue ? ';' : ',';
     } else {
         KU_UNREACHABLE;
     }

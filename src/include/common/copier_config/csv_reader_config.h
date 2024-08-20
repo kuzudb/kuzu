@@ -15,7 +15,6 @@ struct CSVOption {
     bool hasHeader;
     uint64_t skipNum;
     uint64_t sampleSize;
-    char listDelimiter;
     bool allowUnbracedList;
 
     CSVOption()
@@ -25,7 +24,6 @@ struct CSVOption {
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
           skipNum{CopyConstants::DEFAULT_CSV_SKIP_NUM},
           sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
-          listDelimiter{CopyConstants::DEFAULT_CSV_LIST_DELIMITER},
           allowUnbracedList{CopyConstants::DEFAULT_CSV_ALLOW_UNBRACED_LIST} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 

@@ -6,6 +6,7 @@
 #include "common/types/blob.h"
 #include "function/list/functions/list_unique_function.h"
 #include "utf8proc_wrapper.h"
+#include "re2.h"
 
 using namespace kuzu::common;
 
@@ -311,7 +312,7 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
         } else if (ch == '{') {
             uint64_t struct_lvl = 0;
             skipToClose(input, end, struct_lvl, '}', option);
-        } else if (ch == option->listDelimiter ||
+        } else if (ch == ',' ||
                    ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
             if (ch != CopyConstants::DEFAULT_CSV_LIST_END_CHAR || start_ptr < input || seen_value) {
                 state.handleValue(start_ptr, input, option);
@@ -334,9 +335,9 @@ static bool splitCStringList(const char* input, uint64_t len, T& state, const CS
 template<typename T>
 static bool splitPossibleUnbracedList(std::string_view input, T& state, const CSVOption* option) {
     input = StringUtils::ltrim(StringUtils::rtrim(input));
-    auto split = StringUtils::smartSplit(input, option->listDelimiter);
+    auto split = StringUtils::smartSplit(input, ';');
     if (split.size() == 1 && input.front() == '[' && input.back() == ']') {
-        split = StringUtils::smartSplit(input.substr(1, input.size() - 2), option->listDelimiter);
+        split = StringUtils::smartSplit(input.substr(1, input.size() - 2), ';');
     }
     for (auto& i : split) {
         state.handleValue(i.data(), i.data() + i.length(), option);
