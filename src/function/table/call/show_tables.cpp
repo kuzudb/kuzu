@@ -20,16 +20,16 @@ struct TableInfo {
           comment{std::move(comment)} {}
 };
 
-struct ShowWarningssBindData : public CallTableFuncBindData {
+struct ShowTablesBindData : public CallTableFuncBindData {
     std::vector<TableInfo> tables;
 
-    ShowWarningssBindData(std::vector<TableInfo> tables, std::vector<LogicalType> returnTypes,
+    ShowTablesBindData(std::vector<TableInfo> tables, std::vector<LogicalType> returnTypes,
         std::vector<std::string> returnColumnNames, offset_t maxOffset)
         : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowWarningssBindData>(tables, LogicalType::copy(columnTypes),
+        return std::make_unique<ShowTablesBindData>(tables, LogicalType::copy(columnTypes),
             columnNames, maxOffset);
     }
 };
@@ -41,7 +41,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto tables = input.bindData->constPtrCast<ShowWarningssBindData>()->tables;
+    auto tables = input.bindData->constPtrCast<ShowTablesBindData>()->tables;
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableInfo = tables[morsel.startOffset + i];
@@ -86,7 +86,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             tableInfos.push_back(std::move(tableInfo));
         }
     }
-    return std::make_unique<ShowWarningssBindData>(std::move(tableInfos), std::move(columnTypes),
+    return std::make_unique<ShowTablesBindData>(std::move(tableInfos), std::move(columnTypes),
         std::move(columnNames), tableInfos.size());
 }
 
