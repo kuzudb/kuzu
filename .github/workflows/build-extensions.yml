@@ -145,7 +145,7 @@ jobs:
       - build-linux-extensions-x86
       - build-mac-extensions-arm64
       - build-mac-extensions-x86_64
-      # - build-windows-extensions-x86_64
+      - build-windows-extensions-x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -205,11 +205,11 @@ jobs:
           name: kuzu-extensions_osx-arm64
           path: extension-artifacts/osx_arm64
 
-      # - name: Download built artifacts for windows-x86_64
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: kuzu-extensions_win-x86_64
-      #     path: extension-artifacts/win_amd64
+      - name: Download built artifacts for windows-x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_win-x86_64
+          path: extension-artifacts/win_amd64
 
       - name: Copy built artifacts
         run: |
