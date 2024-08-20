@@ -17,7 +17,7 @@ namespace kuzu {
 namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
-    uint64_t numColumns, main::ClientContext* context, CSVErrorHandler* errorHandler)
+    uint64_t numColumns, main::ClientContext* context, CSVFileErrorHandler* errorHandler)
     : option{std::move(option)}, numColumns{numColumns}, currentBlockIdx(0),
       numRowsInCurrentBlock(0), curRowIdx(0), numErrors(0), buffer{nullptr}, bufferIdx(0),
       bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, errorHandler(errorHandler),
@@ -196,11 +196,12 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
         .filePath = fileInfo->path,
         .errorLine = lineContext,
         .blockIdx = currentBlockIdx,
-        .numRowsReadInBlock = numRowsInCurrentBlock + curRowIdx + numErrors};
+        .numRowsReadInBlock = numRowsInCurrentBlock + curRowIdx + numErrors,
+        .mustThrow = mustThrow};
     if (!error.errorLine.isCompleteLine) {
         error.errorLine.endByteOffset = getFileOffset();
     }
-    errorHandler->handleError(this, error, mustThrow);
+    errorHandler->handleError(this, error);
 
     // if we reach here it means we are ignoring the error
     ++numErrors;

@@ -12,7 +12,7 @@ namespace kuzu {
 namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option, uint64_t numColumns,
-    main::ClientContext* context, CSVErrorHandler* errorHandler,
+    main::ClientContext* context, CSVFileErrorHandler* errorHandler,
     const ScanTableFuncBindInput* bindInput)
     : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler},
       bindInput{bindInput} {}
@@ -63,11 +63,12 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
     uint64_t numRows, uint64_t numColumns, common::CSVReaderConfig csvReaderConfig,
     main::ClientContext* context)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-      totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)}, warningCounter(),
+      totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)},
+      warningCounter(std::make_shared<warning_counter_t>()),
       errorHandlers(this->readerConfig.getNumFiles(),
-          CSVErrorHandler(nullptr, // locking is handled external to the error handler
-                                   // since we are scanning serially
-              context->getClientConfig()->warningLimit, &warningCounter,
+          CSVFileErrorHandler(nullptr, // locking is handled external to the error handler
+                                       // since we are scanning serially
+              context->getClientConfig()->warningLimit, warningCounter,
               this->csvReaderConfig.option.ignoreErrors)) {
     initReader(context);
 }
@@ -83,7 +84,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
             return;
         }
         totalReadSizeByFile += reader->getFileSize();
-        errorHandlers[fileIdx].handleCachedErrors(reader.get());
+        errorHandlers[fileIdx].getPopulatedCachedErrors(reader.get());
         fileIdx++;
         initReader(context);
     } while (true);
@@ -106,9 +107,9 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
-    warning_counter_t warningCounter;
-    CSVErrorHandler errorHandler{nullptr, bindInput->context->getClientConfig()->warningLimit,
-        &warningCounter, csvConfig.option.ignoreErrors};
+    auto warningCounter = std::make_shared<warning_counter_t>();
+    CSVFileErrorHandler errorHandler{nullptr, bindInput->context->getClientConfig()->warningLimit,
+        warningCounter, csvConfig.option.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
         0 /* numColumns */, bindInput->context, &errorHandler, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();
@@ -186,7 +187,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
         state->fileIdx = i;
         state->initReader(ctx->clientContext);
-        auto cachedWarnings = state->errorHandlers[i].getCachedErrors(state->reader.get());
+        auto cachedWarnings = state->errorHandlers[i].getPopulatedCachedErrors(state->reader.get());
 
         // The serial CSV reader should always be able to throw immediately if not ignoring errors
         KU_ASSERT(state->csvReaderConfig.option.ignoreErrors || cachedWarnings.empty());

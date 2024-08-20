@@ -20,7 +20,7 @@ namespace kuzu {
 namespace processor {
 
 ParallelCSVReader::ParallelCSVReader(const std::string& filePath, CSVOption option,
-    uint64_t numColumns, main::ClientContext* context, CSVErrorHandler* errorHandler)
+    uint64_t numColumns, main::ClientContext* context, CSVFileErrorHandler* errorHandler)
     : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler} {
     KU_ASSERT(nullptr != errorHandler);
 }
@@ -123,9 +123,10 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(common::ReaderConfig read
     uint64_t numRows, uint64_t numColumns, main::ClientContext* context,
     common::CSVReaderConfig csvReaderConfig)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-      numBlocksReadByFiles{0}, csvReaderConfig{std::move(csvReaderConfig)}, warningCounter(),
+      numBlocksReadByFiles{0}, csvReaderConfig{std::move(csvReaderConfig)},
+      warningCounter(std::make_shared<warning_counter_t>()),
       errorHandlers(this->readerConfig.getNumFiles(),
-          CSVErrorHandler{&lock, context->getClientConfig()->warningLimit, &warningCounter,
+          CSVFileErrorHandler{&lock, context->getClientConfig()->warningLimit, warningCounter,
               this->csvReaderConfig.option.ignoreErrors}) {}
 
 void ParallelCSVScanSharedState::setFileComplete(uint64_t completedFileIdx) {
@@ -171,7 +172,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
         // if there are any pending errors to throw, stop the parsing
         // the actual error will be thrown during finalize
         if (!parallelCSVSharedState->csvReaderConfig.option.ignoreErrors &&
-            parallelCSVSharedState->errorHandlers[fileIdx].getCachedErrorCount() > 0) {
+            parallelCSVSharedState->errorHandlers[fileIdx].getNumCachedErrors() > 0) {
             numRowsRead = 0;
         }
 
@@ -258,9 +259,9 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
             &state->errorHandlers[i]};
 
         // throw any cached errors if we are not ignoring them
-        state->errorHandlers[i].handleCachedErrors(&reader);
+        state->errorHandlers[i].getPopulatedCachedErrors(&reader);
 
-        auto cachedWarnings = (state->errorHandlers[i].getCachedErrors(&reader));
+        auto cachedWarnings = (state->errorHandlers[i].getPopulatedCachedErrors(&reader));
 
         totalWarningCount += cachedWarnings.size();
 

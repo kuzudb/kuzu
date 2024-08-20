@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/reader/csv/csv_error.h"
+#include "processor/operator/persistent/reader/csv/csv_error_handler.h"
 
 #include "common/assert.h"
 #include "common/exception/copy.h"
@@ -26,16 +26,17 @@ bool CSVError::operator<(const CSVError& o) const {
     return blockIdx < o.blockIdx;
 }
 
-CSVErrorHandler::CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
-    warning_counter_t* sharedWarningCounter, bool ignoreErrors)
+CSVFileErrorHandler::CSVFileErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
+    std::shared_ptr<warning_counter_t> sharedWarningCounter, bool ignoreErrors)
     : mtx(sharedMtx), maxCachedErrorCount(maxCachedErrorCount), ignoreErrors(ignoreErrors),
-      headerNumRows(0), sharedWarningCounter(sharedWarningCounter) {}
+      headerNumRows(0), sharedWarningCounter(std::move(sharedWarningCounter)) {}
 
-uint64_t CSVErrorHandler::getCachedErrorCount() {
+uint64_t CSVFileErrorHandler::getNumCachedErrors() {
     return cachedErrors.size();
 }
 
-std::vector<PopulatedCSVError> CSVErrorHandler::getCachedErrors(BaseCSVReader* reader) {
+std::vector<PopulatedCSVError> CSVFileErrorHandler::getPopulatedCachedErrors(
+    BaseCSVReader* reader) {
     std::vector<PopulatedCSVError> errorMessages;
     for (const auto& error : cachedErrors) {
         const auto lineNumber = getLineNumber(error.blockIdx, error.numRowsReadInBlock);
@@ -44,14 +45,14 @@ std::vector<PopulatedCSVError> CSVErrorHandler::getCachedErrors(BaseCSVReader* r
     return errorMessages;
 }
 
-void CSVErrorHandler::tryCacheError(const CSVError& error) {
+void CSVFileErrorHandler::tryCacheError(const CSVError& error, const common::UniqLock& /*lock*/) {
     if (*sharedWarningCounter < maxCachedErrorCount) {
         cachedErrors.insert(error);
         ++(*sharedWarningCounter);
     }
 }
 
-void CSVErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error, bool mustThrow) {
+void CSVFileErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error) {
     auto lockGuard = lock();
 
     if (error.blockIdx >= linesPerBlock.size()) {
@@ -59,38 +60,36 @@ void CSVErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error, 
     }
     ++linesPerBlock[error.blockIdx].invalidLines;
 
-    if (!mustThrow && (ignoreErrors || !canGetLineNumber(error.blockIdx))) {
-        tryCacheError(error);
+    if (!error.mustThrow && (ignoreErrors || !canGetLineNumber(error.blockIdx))) {
+        tryCacheError(error, lockGuard);
         return;
     }
     const auto lineNumber = getLineNumber(error.blockIdx, error.numRowsReadInBlock);
     throwError(reader, error, lineNumber);
 }
 
-void CSVErrorHandler::handleCachedErrors(BaseCSVReader* reader) {
+void CSVFileErrorHandler::throwCachedErrorsIfNeeded(BaseCSVReader* reader) {
     if (!ignoreErrors) {
         auto lockGuard = lock();
-        tryThrowFirstCachedError(reader, true);
+        tryThrowFirstCachedError(reader);
     }
 }
 
-void CSVErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader,
-    [[maybe_unused]] bool mustThrow) const {
+void CSVFileErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader) const {
     if (ignoreErrors || cachedErrors.empty()) {
         return;
     }
     const auto error = *cachedErrors.cbegin();
+    KU_ASSERT(!error.mustThrow);
 
     const bool errorIsThrowable = canGetLineNumber(error.blockIdx);
     if (errorIsThrowable) {
         const auto lineNumber = getLineNumber(error.blockIdx, error.numRowsReadInBlock);
         throwError(reader, error, lineNumber);
-    } else if (mustThrow) {
-        throwError(reader, error, 0);
     }
 }
 
-std::string CSVErrorHandler::getErrorMessage(BaseCSVReader* reader, const CSVError& error,
+std::string CSVFileErrorHandler::getErrorMessage(BaseCSVReader* reader, const CSVError& error,
     uint64_t lineNumber) const {
     const char* incompleteLineSuffix = error.errorLine.isCompleteLine ? "" : "...";
     return stringFormat("Error in file {} on line {}: {} Line containing the error: '{}{}'",
@@ -99,8 +98,8 @@ std::string CSVErrorHandler::getErrorMessage(BaseCSVReader* reader, const CSVErr
         incompleteLineSuffix);
 }
 
-PopulatedCSVError CSVErrorHandler::getPopulatedError(BaseCSVReader* reader, const CSVError& error,
-    uint64_t lineNumber) {
+PopulatedCSVError CSVFileErrorHandler::getPopulatedError(BaseCSVReader* reader,
+    const CSVError& error, uint64_t lineNumber) {
     const char* incompleteLineSuffix = error.errorLine.isCompleteLine ? "" : "...";
     return {.message = error.message,
         .filePath = error.filePath,
@@ -110,19 +109,19 @@ PopulatedCSVError CSVErrorHandler::getPopulatedError(BaseCSVReader* reader, cons
         .lineNumber = lineNumber};
 }
 
-void CSVErrorHandler::throwError(BaseCSVReader* reader, const CSVError& error,
+void CSVFileErrorHandler::throwError(BaseCSVReader* reader, const CSVError& error,
     uint64_t lineNumber) const {
     throw CopyException(getErrorMessage(reader, error, lineNumber));
 }
 
-common::UniqLock CSVErrorHandler::lock() {
+common::UniqLock CSVFileErrorHandler::lock() {
     if (mtx) {
         return common::UniqLock{*mtx};
     }
     return common::UniqLock{};
 }
 
-bool CSVErrorHandler::canGetLineNumber(uint64_t blockIdx) const {
+bool CSVFileErrorHandler::canGetLineNumber(uint64_t blockIdx) const {
     if (blockIdx > linesPerBlock.size()) {
         return false;
     }
@@ -135,7 +134,7 @@ bool CSVErrorHandler::canGetLineNumber(uint64_t blockIdx) const {
     return true;
 }
 
-uint64_t CSVErrorHandler::getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const {
+uint64_t CSVFileErrorHandler::getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const {
     // 1-indexed
     uint64_t res = numRowsReadInBlock + headerNumRows + 1;
     for (uint64_t i = 0; i < blockIdx; ++i) {
@@ -145,7 +144,7 @@ uint64_t CSVErrorHandler::getLineNumber(uint64_t blockIdx, uint64_t numRowsReadI
     return res;
 }
 
-void CSVErrorHandler::reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx,
+void CSVFileErrorHandler::reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx,
     uint64_t numRowsRead) {
     if (numRowsRead == 0) {
         return;
@@ -163,7 +162,7 @@ void CSVErrorHandler::reportFinishedBlock(BaseCSVReader* reader, uint64_t blockI
     tryThrowFirstCachedError(reader);
 }
 
-void CSVErrorHandler::setHeaderNumRows(uint64_t numRows) {
+void CSVFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
     if (numRows == 0) {
         return;
     }

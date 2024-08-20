@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -32,6 +33,8 @@ struct CSVError {
     uint64_t blockIdx;
     uint64_t numRowsReadInBlock;
 
+    bool mustThrow;
+
     bool operator<(const CSVError& o) const;
 };
 
@@ -43,24 +46,23 @@ struct LinesPerBlock {
     bool doneParsingBlock;
 };
 
-class CSVErrorHandler {
+class CSVFileErrorHandler {
 public:
-    CSVErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
-        warning_counter_t* sharedWarningCounter, bool ignoreErrors);
+    CSVFileErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
+        std::shared_ptr<warning_counter_t> sharedWarningCounter, bool ignoreErrors);
 
-    void handleError(BaseCSVReader* reader, const CSVError& error, bool mustThrow);
-    void handleCachedErrors(BaseCSVReader* reader);
+    void handleError(BaseCSVReader* reader, const CSVError& error);
+    void throwCachedErrorsIfNeeded(BaseCSVReader* reader);
 
     void reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx, uint64_t numRowsRead);
     void setHeaderNumRows(uint64_t numRows);
 
-    uint64_t getCachedErrorCount();
-    std::vector<PopulatedCSVError> getCachedErrors(BaseCSVReader* reader);
+    uint64_t getNumCachedErrors();
+    std::vector<PopulatedCSVError> getPopulatedCachedErrors(BaseCSVReader* reader);
 
 private:
     common::UniqLock lock();
-    void reportCachedErrors(BaseCSVReader* reader);
-    void tryThrowFirstCachedError(BaseCSVReader* reader, bool mustThrow = false) const;
+    void tryThrowFirstCachedError(BaseCSVReader* reader) const;
 
     std::string getErrorMessage(BaseCSVReader* reader, const CSVError& error,
         uint64_t lineNumber) const;
@@ -68,7 +70,7 @@ private:
         uint64_t lineNumber);
     void throwError(BaseCSVReader* reader, const CSVError& error, uint64_t lineNumber) const;
     bool canGetLineNumber(uint64_t blockIdx) const;
-    void tryCacheError(const CSVError& error);
+    void tryCacheError(const CSVError& error, const common::UniqLock&);
     uint64_t getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const;
 
     std::mutex* mtx; // can be nullptr, in which case mutual exclusion is guaranteed by the caller
@@ -78,6 +80,6 @@ private:
     uint64_t maxCachedErrorCount;
     bool ignoreErrors;
     uint64_t headerNumRows;
-    warning_counter_t* sharedWarningCounter;
+    std::shared_ptr<warning_counter_t> sharedWarningCounter;
 };
 } // namespace kuzu::processor

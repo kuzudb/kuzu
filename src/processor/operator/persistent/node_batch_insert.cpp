@@ -209,9 +209,10 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     bool atWarningLimit = (warningCount == context->clientContext->getClientConfig()->warningLimit);
     if (warningCount > 0) {
         const auto warningLimitSuffix = atWarningLimit ? "+" : "";
-        auto warningMsg = stringFormat("{}{} warnings encountered during copy. Use 'CALL "
-                                       "show_warnings() RETURN *' to view the actual warnings.",
-            warningCount, warningLimitSuffix);
+        auto warningMsg =
+            stringFormat("{}{} warnings encountered during copy. Use 'CALL "
+                         "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
+                warningCount, warningLimitSuffix, context->queryID);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
             context->clientContext->getMemoryManager());
     }

@@ -8,7 +8,7 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/file_system/file_info.h"
 #include "common/types/types.h"
-#include "processor/operator/persistent/reader/csv/csv_error.h"
+#include "processor/operator/persistent/reader/csv/csv_error_handler.h"
 
 namespace kuzu {
 
@@ -24,7 +24,7 @@ class BaseCSVReader {
 
 public:
     BaseCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        main::ClientContext* context, CSVErrorHandler* errorHandler);
+        main::ClientContext* context, CSVFileErrorHandler* errorHandler);
 
     virtual ~BaseCSVReader() = default;
 
@@ -96,7 +96,7 @@ protected:
     LineContext lineContext;
     uint64_t osFileOffset;
 
-    CSVErrorHandler* errorHandler;
+    CSVFileErrorHandler* errorHandler;
 
     bool rowEmpty = false;
     main::ClientContext* context;
