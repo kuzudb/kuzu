@@ -28,11 +28,14 @@ bool CSVError::operator<(const CSVError& o) const {
     return blockIdx < o.blockIdx;
 }
 
+CSVFileErrorHandler::CSVFileErrorHandler(uint64_t maxCachedErrorCount, bool ignoreErrors)
+    : maxCachedErrorCount(maxCachedErrorCount), ignoreErrors(ignoreErrors) {}
+
 SharedCSVFileErrorHandler::SharedCSVFileErrorHandler(std::string filePath, std::mutex* sharedMtx,
     uint64_t maxCachedErrorCount, std::shared_ptr<warning_counter_t> sharedWarningCounter,
     bool ignoreErrors)
-    : mtx(sharedMtx), filePath(std::move(filePath)), maxCachedErrorCount(maxCachedErrorCount),
-      ignoreErrors(ignoreErrors), headerNumRows(0),
+    : CSVFileErrorHandler(maxCachedErrorCount, ignoreErrors), mtx(sharedMtx),
+      filePath(std::move(filePath)), headerNumRows(0),
       sharedWarningCounter(std::move(sharedWarningCounter)) {}
 
 uint64_t SharedCSVFileErrorHandler::getNumCachedErrors() {
@@ -210,9 +213,8 @@ void SharedCSVFileErrorHandler::addCachedErrors(std::vector<CSVError>& errors,
 
 LocalCSVFileErrorHandler::LocalCSVFileErrorHandler(uint64_t maxCachedErrorCount, bool ignoreErrors,
     SharedCSVFileErrorHandler* sharedErrorHandler)
-    : sharedErrorHandler(sharedErrorHandler),
-      maxCachedErrorCount(std::min(maxCachedErrorCount, LOCAL_WARNING_LIMIT)),
-      ignoreErrors(ignoreErrors) {}
+    : CSVFileErrorHandler(std::min(maxCachedErrorCount, LOCAL_WARNING_LIMIT), ignoreErrors),
+      sharedErrorHandler(sharedErrorHandler) {}
 
 void LocalCSVFileErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error) {
     if (error.mustThrow || !ignoreErrors) {
