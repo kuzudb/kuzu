@@ -1,17 +1,19 @@
 #include "duckdb_loader.h"
 
+#include "duckdb_extension.h"
+
 namespace kuzu {
-namespace duckdb {
+namespace duckdb_extension {
 
 void DuckDBLoader::loadDependency(main::ClientContext* context) {
-    for (auto& dependencyLib : DEPENDENCY_LIB_FILES) {
+    for (auto& dependencyLib : DuckDBExtension::DEPENDENCY_LIB_FILES) {
         auto dependencyLibPath =
             extension::ExtensionUtils::getLocalPathForSharedLib(context, dependencyLib);
         auto dependencyLoader = extension::ExtensionLibLoader(extensionName, dependencyLibPath);
     }
 }
 
-} // namespace duckdb
+} // namespace duckdb_extension
 } // namespace kuzu
 
 extern "C" {
@@ -23,7 +25,7 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void load(kuzu::main::ClientContext* context) {
-    kuzu::duckdb::DuckDBLoader loader{"duckdb"};
+    kuzu::duckdb_extension::DuckDBLoader loader{"duckdb"};
     loader.loadDependency(context);
 }
 }

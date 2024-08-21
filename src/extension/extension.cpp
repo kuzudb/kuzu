@@ -135,7 +135,18 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
 
 std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context,
     const std::string& libName) {
-    return common::stringFormat("{}common/{}", context->getExtensionDir(), libName);
+    auto os = getOS();
+    std::string suffix;
+    if (os == "linux") {
+        suffix = "so";
+    } else if (os == "win") {
+        suffix = "lib";
+    } else if (os == "osx") {
+        suffix = "dylib";
+    } else {
+        KU_UNREACHABLE;
+    }
+    return common::stringFormat("{}common/{}.{}", context->getExtensionDir(), libName, suffix);
 }
 
 std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context) {

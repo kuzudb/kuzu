@@ -1,10 +1,11 @@
 #include "duckdb_installer.h"
 
 #include "common/file_system/virtual_file_system.h"
+#include "duckdb_extension.h"
 #include "main/client_context.h"
 
 namespace kuzu {
-namespace duckdb {
+namespace duckdb_extension {
 
 void DuckDBInstaller::install(main::ClientContext* context) {
     auto loaderFileRepoInfo = extension::ExtensionUtils::getExtensionLoaderRepoInfo(extensionName);
@@ -12,7 +13,7 @@ void DuckDBInstaller::install(main::ClientContext* context) {
         extension::ExtensionUtils::getLocalPathForExtensionLoader(context, extensionName);
     tryDownloadExtensionFile(context, loaderFileRepoInfo, localLoaderFilePath);
 
-    for (auto& dependencyLib : DEPENDENCY_LIB_FILES) {
+    for (auto& dependencyLib : DuckDBExtension::DEPENDENCY_LIB_FILES) {
         auto localDependencyLibPath =
             extension::ExtensionUtils::getLocalPathForSharedLib(context, dependencyLib);
         if (!context->getVFSUnsafe()->fileOrPathExists(localDependencyLibPath)) {
@@ -23,5 +24,5 @@ void DuckDBInstaller::install(main::ClientContext* context) {
     }
 }
 
-} // namespace duckdb
+} // namespace duckdb_extension
 } // namespace kuzu
