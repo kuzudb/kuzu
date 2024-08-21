@@ -4,9 +4,9 @@
 #include <unordered_map>
 
 #include "common/api.h"
+#include "common/exception/io.h"
 #include "function/function.h"
 #include "main/db_config.h"
-#include "common/exception/io.h"
 
 #define ADD_FUNC(FUNC_STRUCT)                                                                      \
     kuzu::extension::ExtensionUtils::registerFunctionSet(db, std::string(FUNC_STRUCT::name),       \
