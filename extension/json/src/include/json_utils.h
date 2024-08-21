@@ -48,15 +48,19 @@ enum JsonScanFormat : uint8_t { ARRAY = 0, UNSTRUCTURED = 1 };
 
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
 // Converts an internal Kuzu Value into json
+
 std::vector<JsonWrapper> jsonifyQueryResult(
     const std::vector<std::shared_ptr<common::ValueVector>>& columns,
     const std::vector<std::string>& names);
 // Converts an entire query result into a sequence of json values
+
 common::LogicalType jsonSchema(const JsonWrapper& wrapper, int64_t depth = -1,
     int64_t breadth = -1);
 // depth indicates at what nested depth to stop
 // breadth indicates the limit of how many children the root nested type is sampled
 // -1 means to scan the whole thing
+// may return ANY
+
 void readJsonToValueVector(yyjson_val* val, common::ValueVector& vec, uint64_t pos);
 
 std::string jsonToString(const JsonWrapper& wrapper);

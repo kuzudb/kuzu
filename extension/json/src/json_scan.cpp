@@ -193,7 +193,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
         if (scanConfig.depth == -1 || scanConfig.depth > 3) {
             scanConfig.depth = 3;
         }
-        auto schema = jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth);
+        auto schema = LogicalTypeUtils::purgeAny(
+            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth),
+            LogicalType::STRING());
         if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
             schema = ListType::getChildType(schema).copy();
             scanFromList = true;
@@ -202,7 +204,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
             scanFromStruct = true;
         }
     } else {
-        auto schema = jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth);
+        auto schema = LogicalTypeUtils::purgeAny(
+            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth),
+            LogicalType::STRING());
         if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
             schema = ListType::getChildType(schema).copy();
             scanFromList = true;

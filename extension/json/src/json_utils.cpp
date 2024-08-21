@@ -199,9 +199,6 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
                 break;
             }
         }
-        if (childType.getLogicalTypeID() == LogicalTypeID::ANY) {
-            childType = LogicalType::INT8();
-        }
         return LogicalType::LIST(std::move(childType));
     } break;
     case YYJSON_TYPE_OBJ: {
@@ -219,7 +216,7 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
         return LogicalType::STRUCT(std::move(fields));
     } break;
     case YYJSON_TYPE_NULL:
-        return LogicalType::INT8(); // todo: make a null dt and replace this
+        return LogicalType::ANY();
     case YYJSON_TYPE_BOOL:
         return LogicalType::BOOL();
     case YYJSON_TYPE_NUM:
@@ -595,6 +592,8 @@ static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint
 
 static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffer,
     uint64_t fileSize) {
+    // TODO: This function could be optimized by around
+    // 2-3 times if the extra copies could be omitted
     JsonMutWrapper result;
     auto root = yyjson_mut_arr(result.ptr);
     yyjson_mut_doc_set_root(result.ptr, root);
