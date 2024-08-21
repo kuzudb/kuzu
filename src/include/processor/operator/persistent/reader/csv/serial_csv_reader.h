@@ -32,7 +32,7 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     uint64_t totalReadSizeByFile;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-       main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo)
+        main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo)
         : ScanFileSharedState{std::move(readerConfig), numRows, context},
           csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)},
           totalReadSizeByFile{0} {

@@ -42,7 +42,7 @@ private:
     void visitDelete(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;
     void visitCopyFrom(planner::LogicalOperator* op) override;
-    void visitTableFunctionCall(planner::LogicalOperator *) override;
+    void visitTableFunctionCall(planner::LogicalOperator*) override;
 
     void visitSetInfo(const binder::BoundSetPropertyInfo& info);
     void visitInsertInfo(const planner::LogicalInsertInfo& info);

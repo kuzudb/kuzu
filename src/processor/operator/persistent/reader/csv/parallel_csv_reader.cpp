@@ -118,11 +118,9 @@ void ParallelCSVScanSharedState::setFileComplete(uint64_t completedFileIdx) {
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& outputChunk = output.dataChunk;
     auto localState = input.localState->ptrCast<ParallelCSVLocalState>();
-    auto sharedState =
-        input.sharedState->ptrCast<ParallelCSVScanSharedState>();
+    auto sharedState = input.sharedState->ptrCast<ParallelCSVScanSharedState>();
     do {
-        if (localState->reader != nullptr &&
-            localState->reader->hasMoreToRead()) {
+        if (localState->reader != nullptr && localState->reader->hasMoreToRead()) {
             auto result = localState->reader->continueBlock(outputChunk);
             outputChunk.state->getSelVectorUnsafe().setSelSize(result);
             if (result > 0) {
@@ -177,8 +175,8 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->config.copy(),
         numRows, bindData->context, csvOption.copy(), columnInfo.copy());
     for (auto filePath : sharedState->readerConfig.filePaths) {
-        auto reader = std::make_unique<ParallelCSVReader>(filePath,
-            csvOption.copy(), columnInfo.copy(), bindData->context);
+        auto reader = std::make_unique<ParallelCSVReader>(filePath, csvOption.copy(),
+            columnInfo.copy(), bindData->context);
         sharedState->totalSize += reader->getFileSize();
     }
     return sharedState;

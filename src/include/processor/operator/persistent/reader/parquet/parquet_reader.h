@@ -41,7 +41,8 @@ struct ParquetReaderScanState {
 
 class ParquetReader {
 public:
-    ParquetReader(const std::string& filePath, std::vector<bool> columnSkips, main::ClientContext* context);
+    ParquetReader(const std::string& filePath, std::vector<bool> columnSkips,
+        main::ClientContext* context);
     ~ParquetReader() = default;
 
     void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read,

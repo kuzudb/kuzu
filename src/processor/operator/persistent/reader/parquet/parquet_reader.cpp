@@ -20,7 +20,8 @@ namespace processor {
 using namespace kuzu::function;
 using namespace kuzu::common;
 
-ParquetReader::ParquetReader(const std::string& filePath, std::vector<bool> columnSkips, main::ClientContext* context)
+ParquetReader::ParquetReader(const std::string& filePath, std::vector<bool> columnSkips,
+    main::ClientContext* context)
     : filePath{filePath}, columnSkips(std::move(columnSkips)), context{context} {
     initMetadata();
 }
@@ -583,11 +584,12 @@ uint64_t ParquetReader::getGroupOffset(ParquetReaderScanState& state) {
 ParquetScanSharedState::ParquetScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
     main::ClientContext* context, std::vector<bool> columnSkips)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, columnSkips{columnSkips} {
-    readers.push_back(
-        std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], columnSkips, context));
+    readers.push_back(std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx],
+        columnSkips, context));
     totalRowsGroups = 0;
     for (auto i = fileIdx; i < this->readerConfig.getNumFiles(); i++) {
-        auto reader = std::make_unique<ParquetReader>(this->readerConfig.filePaths[i], columnSkips, context);
+        auto reader =
+            std::make_unique<ParquetReader>(this->readerConfig.filePaths[i], columnSkips, context);
         totalRowsGroups += reader->getNumRowsGroups();
     }
     numBlocksReadByFiles = 0;
@@ -615,7 +617,8 @@ static bool parquetSharedStateNext(ParquetScanLocalState& localState,
                 return false;
             }
             sharedState.readers.push_back(std::make_unique<ParquetReader>(
-                sharedState.readerConfig.filePaths[sharedState.fileIdx], sharedState.columnSkips, sharedState.context));
+                sharedState.readerConfig.filePaths[sharedState.fileIdx], sharedState.columnSkips,
+                sharedState.context));
             continue;
         }
     }
@@ -689,7 +692,8 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
     row_idx_t numRows = 0;
     for (const auto& path : bindData->config.filePaths) {
-        auto reader = std::make_unique<ParquetReader>(path, bindData->getColumnSkips(), bindData->context);
+        auto reader =
+            std::make_unique<ParquetReader>(path, bindData->getColumnSkips(), bindData->context);
         numRows += reader->getMetadata()->num_rows;
     }
     return std::make_unique<ParquetScanSharedState>(bindData->config.copy(), numRows,

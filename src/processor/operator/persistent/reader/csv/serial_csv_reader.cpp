@@ -12,7 +12,8 @@ namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option,
     CSVColumnInfo columnInfo, main::ClientContext* context, const ScanTableFuncBindInput* bindInput)
-    : BaseCSVReader{filePath, std::move(option), std::move(columnInfo), context}, bindInput{bindInput} {}
+    : BaseCSVReader{filePath, std::move(option), std::move(columnInfo), context},
+      bindInput{bindInput} {}
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
@@ -83,7 +84,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
     auto columnInfo = CSVColumnInfo(0 /* numColumns */, {} /* columnSkips */);
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvOption.copy(),
-       columnInfo.copy(), bindInput->context, bindInput);
+        columnInfo.copy(), bindInput->context, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
@@ -130,7 +131,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
         bindData->context, csvOption.copy(), columnInfo.copy());
     for (auto filePath : sharedState->readerConfig.filePaths) {
         auto reader = std::make_unique<SerialCSVReader>(filePath, csvOption.copy(),
-                columnInfo.copy(), sharedState->context);
+            columnInfo.copy(), sharedState->context);
         sharedState->totalSize += reader->getFileSize();
     }
     return sharedState;

@@ -20,16 +20,12 @@ struct TableFuncBindData {
         std::vector<std::string> columnNames)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnNames{other.columnNames}, columnSkips{other.columnSkips} {}
+        : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
+          columnSkips{other.columnSkips} {}
     virtual ~TableFuncBindData() = default;
 
-    common::idx_t getNumColumns() const {
-        return columnTypes.size();
-    }
-    void setColumnSkips(std::vector<bool> skips) {
-        columnSkips = std::move(skips);
-    }
+    common::idx_t getNumColumns() const { return columnTypes.size(); }
+    void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
     std::vector<bool> getColumnSkips() const;
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;

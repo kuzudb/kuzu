@@ -14,5 +14,5 @@ std::vector<bool> TableFuncBindData::getColumnSkips() const {
     return columnSkips;
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

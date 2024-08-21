@@ -59,9 +59,9 @@ bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount)
     }
     if (columnCount < reader->getNumColumns()) {
         // Column number mismatch.
-        throw CopyException(
-            stringFormat("Error in file {} on line {}: expected {} values per row, but got {}",
-                reader->fileInfo->path, reader->getLineNumber(), reader->getNumColumns(), columnCount));
+        throw CopyException(stringFormat(
+            "Error in file {} on line {}: expected {} values per row, but got {}",
+            reader->fileInfo->path, reader->getLineNumber(), reader->getNumColumns(), columnCount));
     }
     return true;
 }
@@ -124,8 +124,8 @@ void SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         auto it = value.rfind(':');
         if (it != std::string_view::npos) {
             try {
-                columnType =
-                    LogicalType::convertFromString(std::string(value.substr(it + 1)), reader->getClientContext());
+                columnType = LogicalType::convertFromString(std::string(value.substr(it + 1)),
+                    reader->getClientContext());
                 columnName = std::string(value.substr(0, it));
                 sniffType[columnIdx] = false;
             } catch (const Exception&) { // NOLINT(bugprone-empty-catch):

@@ -9,13 +9,13 @@
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/logical_unwind.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
-#include "planner/operator/logical_table_function_call.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -329,8 +329,8 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
     return expression_vector{expressionsAfterPruning.begin(), expressionsAfterPruning.end()};
 }
 
-void ProjectionPushDownOptimizer::preAppendProjection(LogicalOperator* op,
-    idx_t childIdx, binder::expression_vector expressions) {
+void ProjectionPushDownOptimizer::preAppendProjection(LogicalOperator* op, idx_t childIdx,
+    binder::expression_vector expressions) {
     if (expressions.empty()) {
         // We don't have a way to handle
         return;

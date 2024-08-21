@@ -20,8 +20,8 @@ typedef std::bitset<common::DEFAULT_VECTOR_CAPACITY> parquet_filter_t;
 class ColumnReader {
 public:
     ColumnReader(ParquetReader& reader, common::LogicalType type,
-        const kuzu_parquet::format::SchemaElement& schema, common::idx_t fileIdx, uint64_t maxDefinition,
-        uint64_t maxRepeat);
+        const kuzu_parquet::format::SchemaElement& schema, common::idx_t fileIdx,
+        uint64_t maxDefinition, uint64_t maxRepeat);
     virtual ~ColumnReader() = default;
     const common::LogicalType& getDataType() const { return type; }
     bool hasDefines() const { return maxDefine > 0; }
@@ -35,9 +35,9 @@ public:
         parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
         KU_UNREACHABLE;
     }
-    virtual void plain(const std::shared_ptr<ByteBuffer>& /*plainData*/,
-        uint8_t* /*defines*/, uint64_t /*numValues*/, parquet_filter_t& /*filter*/,
-        uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
+    virtual void plain(const std::shared_ptr<ByteBuffer>& /*plainData*/, uint8_t* /*defines*/,
+        uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
+        common::ValueVector* /*result*/) {
         KU_UNREACHABLE;
     }
     virtual void resetPage() {}
