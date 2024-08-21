@@ -25,14 +25,18 @@ bool ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
         rowEmpty = false;
     }
     BaseCSVReader* reader = getReader();
-    if (columnIdx == reader->numColumns && length == 0) {
+
+    if (columnIdx == reader->getNumColumns() && length == 0) {
         // skip a single trailing delimiter in last columnIdx
         return true;
     }
-    if (columnIdx >= reader->numColumns) {
+    if (columnIdx >= reader->getNumColumns()) {
         reader->handleCopyException(
-            stringFormat("expected {} values per row, but got more.", reader->numColumns));
+            stringFormat("expected {} values per row, but got more.", reader->getNumColumns()));
         return false;
+    }
+    if (reader->skipColumn(columnIdx)) {
+        return true;
     }
     try {
         function::CastString::copyStringToVector(chunk.getValueVector(columnIdx).get(), rowNum,
@@ -49,15 +53,15 @@ bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount)
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;
-        if (reader->numColumns != 1) {
+        if (reader->getNumColumns() != 1) {
             return false;
         }
         // Otherwise, treat it as null.
     }
-    if (columnCount < reader->numColumns) {
+    if (columnCount < reader->getNumColumns()) {
         // Column number mismatch.
         reader->handleCopyException(stringFormat("expected {} values per row, but got {}.",
-            reader->numColumns, columnCount));
+            reader->getNumColumns(), columnCount));
         return false;
     }
     return true;
@@ -84,10 +88,10 @@ bool SerialParsingDriver::doneEarly() {
 BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
-SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(main::ClientContext* context,
-    const common::CSVOption& csvOptions, SerialCSVReader* reader,
+
+SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
-    : context{context}, csvOptions{csvOptions}, reader{reader} {
+    : reader{reader} {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
             columns.push_back(
@@ -98,27 +102,29 @@ SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(main::ClientContext* contex
 }
 
 bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
-    return (csvOptions.hasHeader ? 1 : 0) + csvOptions.sampleSize <= rowNum;
+    auto& csvOption = reader->getCSVOption();
+    return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
 }
 
 bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     std::string_view value) {
-    if (columns.size() < columnIdx + 1 && csvOptions.hasHeader && rowNum > 0) {
+    auto& csvOption = reader->getCSVOption();
+    if (columns.size() < columnIdx + 1 && csvOption.hasHeader && rowNum > 0) {
         reader->handleCopyException("expected {} values per row, but got more.");
     }
     while (columns.size() < columnIdx + 1) {
         columns.emplace_back(stringFormat("column{}", columns.size()), LogicalType::ANY());
         sniffType.push_back(true);
     }
-    if (rowNum == 0 && csvOptions.hasHeader) {
+    if (rowNum == 0 && csvOption.hasHeader) {
         // reading the header
         std::string columnName(value);
         LogicalType columnType(LogicalTypeID::ANY);
         auto it = value.rfind(':');
         if (it != std::string_view::npos) {
             try {
-                columnType =
-                    LogicalType::convertFromString(std::string(value.substr(it + 1)), context);
+                columnType = LogicalType::convertFromString(std::string(value.substr(it + 1)),
+                    reader->getClientContext());
                 columnName = std::string(value.substr(0, it));
                 sniffType[columnIdx] = false;
             } catch (const Exception&) { // NOLINT(bugprone-empty-catch):

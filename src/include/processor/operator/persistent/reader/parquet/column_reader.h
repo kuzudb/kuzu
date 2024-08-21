@@ -20,28 +20,28 @@ typedef std::bitset<common::DEFAULT_VECTOR_CAPACITY> parquet_filter_t;
 class ColumnReader {
 public:
     ColumnReader(ParquetReader& reader, common::LogicalType type,
-        const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefinition,
-        uint64_t maxRepeat);
+        const kuzu_parquet::format::SchemaElement& schema, common::idx_t fileIdx,
+        uint64_t maxDefinition, uint64_t maxRepeat);
     virtual ~ColumnReader() = default;
-    inline const common::LogicalType& getDataType() const { return type; }
-    inline bool hasDefines() const { return maxDefine > 0; }
-    inline bool hasRepeats() const { return maxRepeat > 0; }
-    virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
-    virtual inline void dictionary(const std::shared_ptr<ResizeableBuffer>& /*data*/,
+    const common::LogicalType& getDataType() const { return type; }
+    bool hasDefines() const { return maxDefine > 0; }
+    bool hasRepeats() const { return maxRepeat > 0; }
+    virtual void skip(uint64_t numValues) { pendingSkips += numValues; }
+    virtual void dictionary(const std::shared_ptr<ResizeableBuffer>& /*data*/,
         uint64_t /*num_entries*/) {
         KU_UNREACHABLE;
     }
-    virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
+    virtual void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
         parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
         KU_UNREACHABLE;
     }
-    virtual inline void plain(const std::shared_ptr<ByteBuffer>& /*plainData*/,
-        uint8_t* /*defines*/, uint64_t /*numValues*/, parquet_filter_t& /*filter*/,
-        uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
+    virtual void plain(const std::shared_ptr<ByteBuffer>& /*plainData*/, uint8_t* /*defines*/,
+        uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
+        common::ValueVector* /*result*/) {
         KU_UNREACHABLE;
     }
-    virtual inline void resetPage() {}
-    virtual inline uint64_t getGroupRowsAvailable() { return groupRowsAvailable; }
+    virtual void resetPage() {}
+    virtual uint64_t getGroupRowsAvailable() { return groupRowsAvailable; }
     virtual void initializeRead(uint64_t rowGroupIdx,
         const std::vector<kuzu_parquet::format::ColumnChunk>& columns,
         kuzu_apache::thrift::protocol::TProtocol& protocol);

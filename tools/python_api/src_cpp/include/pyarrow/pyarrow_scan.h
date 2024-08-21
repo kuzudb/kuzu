@@ -10,6 +10,12 @@
 
 namespace kuzu {
 
+struct PyArrowScanConfig {
+    uint64_t skipNum;
+    uint64_t limitNum;
+    explicit PyArrowScanConfig(const std::unordered_map<std::string, common::Value>& options);
+};
+
 struct PyArrowTableScanLocalState final : public function::TableFuncLocalState {
     ArrowArrayWrapper* arrowArray;
 

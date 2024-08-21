@@ -25,7 +25,7 @@ static offset_t clearCacheTableFunc(TableFuncInput& input, TableFuncOutput& outp
 }
 
 static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* context,
-    TableFuncBindInput*) {
+    ScanTableFuncBindInput*) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("message");

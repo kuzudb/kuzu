@@ -17,11 +17,11 @@ namespace kuzu {
 namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
-    uint64_t numColumns, main::ClientContext* context, CSVFileErrorHandler* errorHandler)
-    : option{std::move(option)}, numColumns{numColumns}, currentBlockIdx(0),
-      numRowsInCurrentBlock(0), curRowIdx(0), numErrors(0), buffer{nullptr}, bufferIdx(0),
-      bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, errorHandler(errorHandler),
-      rowEmpty{false}, context{context} {
+    CSVColumnInfo columnInfo, main::ClientContext* context, CSVFileErrorHandler* errorHandler)
+    : context{context}, option{std::move(option)}, columnInfo{std::move(columnInfo)},
+      currentBlockIdx(0), numRowsInCurrentBlock(0), curRowIdx(0), numErrors(0), buffer{nullptr},
+      bufferIdx(0), bufferSize{0}, position{0}, lineContext(), osFileOffset{0},
+      errorHandler(errorHandler), rowEmpty{false} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         O_RDONLY
 #ifdef _WIN32

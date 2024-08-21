@@ -18,18 +18,39 @@ class ClientContext;
 
 namespace processor {
 
+struct CSVColumnInfo {
+    uint64_t numColumns;
+    std::vector<bool> columnSkips;
+
+    CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips)
+        : numColumns{numColumns}, columnSkips{columnSkips} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(CSVColumnInfo);
+
+private:
+    CSVColumnInfo(const CSVColumnInfo& other)
+        : numColumns{other.numColumns}, columnSkips{other.columnSkips} {}
+};
+
 class BaseCSVReader {
     friend class ParsingDriver;
     friend struct SniffCSVNameAndTypeDriver;
 
 public:
-    BaseCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
+    BaseCSVReader(const std::string& filePath, common::CSVOption option, CSVColumnInfo columnInfo,
         main::ClientContext* context, CSVFileErrorHandler* errorHandler);
 
     virtual ~BaseCSVReader() = default;
 
     virtual uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) = 0;
 
+    main::ClientContext* getClientContext() const { return context; }
+    const common::CSVOption& getCSVOption() const { return option; }
+
+    uint64_t getNumColumns() const { return columnInfo.numColumns; }
+    bool skipColumn(common::idx_t idx) const {
+        KU_ASSERT(idx < columnInfo.columnSkips.size());
+        return columnInfo.columnSkips[idx];
+    }
     bool isEOF() const;
     uint64_t getFileSize();
     // Get the file offset of the current buffer position.
@@ -78,9 +99,9 @@ protected:
     uint64_t getNumRowsInCurrentBlock() const;
 
 protected:
+    main::ClientContext* context;
     common::CSVOption option;
-
-    uint64_t numColumns;
+    CSVColumnInfo columnInfo;
     std::unique_ptr<common::FileInfo> fileInfo;
 
     common::block_idx_t currentBlockIdx;
@@ -99,7 +120,6 @@ protected:
     CSVFileErrorHandler* errorHandler;
 
     bool rowEmpty = false;
-    main::ClientContext* context;
 };
 
 } // namespace processor

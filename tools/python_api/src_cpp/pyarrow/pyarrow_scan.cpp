@@ -2,6 +2,7 @@
 
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
+#include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
@@ -12,9 +13,30 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    TableFuncBindInput* input) {
+PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value>& options) {
+    skipNum = 0;
+    limitNum = NumericLimits<uint64_t>::maximum();
+    for (const auto& i : options) {
+        if (i.first == "SKIP") {
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
+                i.second.val.int64Val < 0) {
+                throw BinderException("SKIP Option must be a positive integer literal.");
+            }
+            skipNum = i.second.val.int64Val;
+        } else if (i.first == "LIMIT") {
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
+                i.second.val.int64Val < 0) {
+                throw BinderException("LIMIT Option must be a positive integer literal.");
+            }
+            limitNum = i.second.val.int64Val;
+        } else {
+            throw BinderException(stringFormat("{} Option not recognized by pyArrow scanner."));
+        }
+    }
+}
 
+static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+    ScanTableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
@@ -30,7 +52,14 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
-
+    auto config = PyArrowScanConfig(input->config.options);
+    // The following python operations are zero copy as defined in pyarrow docs.
+    if (config.skipNum != 0) {
+        table = table.attr("slice")(config.skipNum);
+    }
+    if (config.limitNum != NumericLimits<uint64_t>::maximum()) {
+        table = table.attr("slice")(0, config.limitNum);
+    }
     py::list batches = table.attr("to_batches")(DEFAULT_VECTOR_CAPACITY);
     std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
     for (auto& i : batches) {

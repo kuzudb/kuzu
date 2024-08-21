@@ -326,7 +326,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
+    ScanTableFuncBindInput* input) {
     std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
         "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values", "min",
         "max", "compression"};

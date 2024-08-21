@@ -18,7 +18,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, TableFuncBindInput*) {
+static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, ScanTableFuncBindInput*) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("version");

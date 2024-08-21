@@ -20,8 +20,9 @@ namespace processor {
 using namespace kuzu::function;
 using namespace kuzu::common;
 
-ParquetReader::ParquetReader(const std::string& filePath, main::ClientContext* context)
-    : filePath{filePath}, context{context} {
+ParquetReader::ParquetReader(const std::string& filePath, std::vector<bool> columnSkips,
+    main::ClientContext* context)
+    : filePath{filePath}, columnSkips(std::move(columnSkips)), context{context} {
     initMetadata();
 }
 
@@ -143,6 +144,9 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
     auto rootReader = ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
 
     for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
+        if (!columnSkips.empty() && columnSkips[colIdx]) {
+            continue;
+        }
         auto fileColIdx = colIdx;
         auto resultVector = result.getValueVector(colIdx);
         auto childReader = rootReader->getChildReader(fileColIdx);
@@ -578,13 +582,14 @@ uint64_t ParquetReader::getGroupOffset(ParquetReaderScanState& state) {
 }
 
 ParquetScanSharedState::ParquetScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-    main::ClientContext* context)
-    : ScanFileSharedState{std::move(readerConfig), numRows, context} {
-    readers.push_back(
-        std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], context));
+    main::ClientContext* context, std::vector<bool> columnSkips)
+    : ScanFileSharedState{std::move(readerConfig), numRows, context}, columnSkips{columnSkips} {
+    readers.push_back(std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx],
+        columnSkips, context));
     totalRowsGroups = 0;
     for (auto i = fileIdx; i < this->readerConfig.getNumFiles(); i++) {
-        auto reader = std::make_unique<ParquetReader>(this->readerConfig.filePaths[i], context);
+        auto reader =
+            std::make_unique<ParquetReader>(this->readerConfig.filePaths[i], columnSkips, context);
         totalRowsGroups += reader->getNumRowsGroups();
     }
     numBlocksReadByFiles = 0;
@@ -612,7 +617,8 @@ static bool parquetSharedStateNext(ParquetScanLocalState& localState,
                 return false;
             }
             sharedState.readers.push_back(std::make_unique<ParquetReader>(
-                sharedState.readerConfig.filePaths[sharedState.fileIdx], sharedState.context));
+                sharedState.readerConfig.filePaths[sharedState.fileIdx], sharedState.columnSkips,
+                sharedState.context));
             continue;
         }
     }
@@ -640,7 +646,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 
 static void bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-    auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], bindInput->context);
+    auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], {}, bindInput->context);
     auto state = std::make_unique<processor::ParquetReaderScanState>();
     reader.initializeScan(*state, std::vector<uint64_t>{}, bindInput->context->getVFSUnsafe());
     for (auto i = 0u; i < reader.getNumColumns(); ++i) {
@@ -663,9 +669,7 @@ static void bindColumns(const ScanTableFuncBindInput* bindInput,
 }
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    function::TableFuncBindInput* input) {
-    auto scanInput =
-        ku_dynamic_cast<function::TableFuncBindInput*, function::ScanTableFuncBindInput*>(input);
+    function::ScanTableFuncBindInput* scanInput) {
     if (!scanInput->config.options.empty()) {
         throw BinderException{"Copy from Parquet cannot have options."};
     }
@@ -683,30 +687,30 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     TableFunctionInitInput& input) {
-    auto parquetScanBindData = ku_dynamic_cast<TableFuncBindData*, ScanBindData*>(input.bindData);
+    auto bindData = input.bindData->constPtrCast<ScanBindData>();
     row_idx_t numRows = 0;
-    for (const auto& path : parquetScanBindData->config.filePaths) {
-        auto reader = std::make_unique<ParquetReader>(path, parquetScanBindData->context);
+    for (const auto& path : bindData->config.filePaths) {
+        auto reader =
+            std::make_unique<ParquetReader>(path, bindData->getColumnSkips(), bindData->context);
         numRows += reader->getMetadata()->num_rows;
     }
-    return std::make_unique<ParquetScanSharedState>(parquetScanBindData->config.copy(), numRows,
-        parquetScanBindData->context);
+    return std::make_unique<ParquetScanSharedState>(bindData->config.copy(), numRows,
+        bindData->context, bindData->getColumnSkips());
 }
 
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(
     TableFunctionInitInput& /*input*/, TableFuncSharedState* state,
     storage::MemoryManager* /*mm*/) {
-    auto parquetScanSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, ParquetScanSharedState*>(state);
+    auto sharedState = state->ptrCast<ParquetScanSharedState>();
     auto localState = std::make_unique<ParquetScanLocalState>();
-    if (!parquetSharedStateNext(*localState, *parquetScanSharedState)) {
+    if (!parquetSharedStateNext(*localState, *sharedState)) {
         return nullptr;
     }
     return localState;
 }
 
 static double progressFunc(TableFuncSharedState* sharedState) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, ParquetScanSharedState*>(sharedState);
+    auto state = sharedState->ptrCast<ParquetScanSharedState>();
     if (state->fileIdx >= state->readerConfig.getNumFiles()) {
         return 1.0;
     }

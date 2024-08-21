@@ -42,6 +42,7 @@ private:
     void visitDelete(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;
     void visitCopyFrom(planner::LogicalOperator* op) override;
+    void visitTableFunctionCall(planner::LogicalOperator*) override;
 
     void visitSetInfo(const binder::BoundSetPropertyInfo& info);
     void visitInsertInfo(const planner::LogicalInsertInfo& info);
@@ -50,12 +51,13 @@ private:
 
     binder::expression_vector pruneExpressions(const binder::expression_vector& expressions);
 
-    void preAppendProjection(planner::LogicalOperator* op, uint32_t childIdx,
+    void preAppendProjection(planner::LogicalOperator* op, common::idx_t childIdx,
         binder::expression_vector expressions);
 
 private:
     binder::expression_set propertiesInUse;
-    binder::expression_set patternInUse;
+    binder::expression_set variablesInUse;
+    binder::expression_set nodeOrRelInUse;
 };
 
 } // namespace optimizer

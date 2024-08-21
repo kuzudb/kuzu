@@ -27,7 +27,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     switch (source->type) {
     case ScanSourceType::OBJECT: {
         auto objectSource = source->ptrCast<ObjectScanSource>();
-        auto boundScanSource = bindObjectScanSource(*objectSource, columnNames, columnTypes);
+        auto boundScanSource = bindObjectScanSource(*objectSource, loadFrom.getParsingOptions(),
+            columnNames, columnTypes);
         auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;
         boundLoadFrom = std::make_unique<BoundLoadFrom>(scanInfo.copy());
     } break;

@@ -52,7 +52,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             auto parameterTypeID = tableFunc->parameterTypeIDs[i];
             ExpressionUtil::validateDataType(*children[i], parameterTypeID);
         }
-        auto bindInput = function::TableFuncBindInput();
+        auto bindInput = function::ScanTableFuncBindInput();
         bindInput.inputs = std::move(inputValues);
         auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
         for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
