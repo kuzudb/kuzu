@@ -1,4 +1,8 @@
-set(DuckDB_USE_STATIC_LIBS OFF)
+if (WIN32)
+    set(DuckDB_USE_STATIC_LIBS ON)
+else ()
+    set(DuckDB_USE_STATIC_LIBS OFF)
+endif ()
 find_package(DuckDB REQUIRED)
 
 include_directories(
@@ -19,34 +23,11 @@ add_library(sqlite_extension
         src/sqlite_storage.cpp
         src/sqlite_connector.cpp)
 
-add_library(sqlite_extension_installer
-        SHARED
-        src/sqlite_install_func.cpp
-        ../duckdb/src/duckdb_installer.cpp)
-
-add_library(sqlite_extension_loader
-        SHARED
-        ../duckdb/src/duckdb_loader.cpp)
-
 set_target_properties(sqlite_extension
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
-
-set_target_properties(sqlite_extension_loader
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
-
-set_target_properties(sqlite_extension_installer
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
 target_link_libraries(sqlite_extension
@@ -59,17 +40,42 @@ set_target_properties(sqlite_extension PROPERTIES
         SUFFIX ".kuzu_extension"
 )
 
-set_target_properties(sqlite_extension_loader PROPERTIES
-        OUTPUT_NAME sqlite_loader
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
+if (NOT WIN32)
+    add_library(sqlite_extension_installer
+            SHARED
+            src/sqlite_install_func.cpp
+            ../duckdb/src/duckdb_installer.cpp)
 
-set_target_properties(sqlite_extension_installer PROPERTIES
-        OUTPUT_NAME sqlite_installer
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
+    add_library(sqlite_extension_loader
+            SHARED
+            ../duckdb/src/duckdb_loader.cpp)
+
+    set_target_properties(sqlite_extension_loader
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+
+    set_target_properties(sqlite_extension_installer
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+
+    set_target_properties(sqlite_extension_loader PROPERTIES
+            OUTPUT_NAME sqlite_loader
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+
+    set_target_properties(sqlite_extension_installer PROPERTIES
+            OUTPUT_NAME sqlite_installer
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+endif ()
 
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not

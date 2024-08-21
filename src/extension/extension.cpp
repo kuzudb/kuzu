@@ -138,8 +138,6 @@ std::string ExtensionUtils::appendLibSuffix(const std::string& libName) {
     std::string suffix;
     if (os == "linux" || os == "linux_old") {
         suffix = "so";
-    } else if (os == "win") {
-        suffix = "lib";
     } else if (os == "osx") {
         suffix = "dylib";
     } else {

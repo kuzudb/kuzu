@@ -1,4 +1,9 @@
-set(DuckDB_USE_STATIC_LIBS OFF)
+if (WIN32)
+    set(DuckDB_USE_STATIC_LIBS ON)
+else ()
+    set(DuckDB_USE_STATIC_LIBS OFF)
+endif ()
+
 find_package(DuckDB REQUIRED)
 
 add_library(postgres_extension
@@ -13,15 +18,6 @@ add_library(postgres_extension
         src/postgres_storage.cpp
         src/postgres_connector.cpp)
 
-add_library(postgres_extension_installer
-        SHARED
-        src/postgres_install_func.cpp
-        ../duckdb/src/duckdb_installer.cpp)
-
-add_library(postgres_extension_loader
-        SHARED
-        ../duckdb/src/duckdb_loader.cpp)
-
 include_directories(
         src/include
         ../duckdb/src/include
@@ -34,18 +30,6 @@ set_target_properties(postgres_extension PROPERTIES
         SUFFIX ".kuzu_extension"
 )
 
-set_target_properties(postgres_extension_loader PROPERTIES
-        OUTPUT_NAME postgres_loader
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
-
-set_target_properties(postgres_extension_installer PROPERTIES
-        OUTPUT_NAME postgres_installer
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
-
 set_target_properties(postgres_extension
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
@@ -53,23 +37,46 @@ set_target_properties(postgres_extension
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
-set_target_properties(postgres_extension_installer
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
-
-set_target_properties(postgres_extension_loader
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
-
 target_link_libraries(postgres_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
+
+if (NOT WIN32)
+    add_library(postgres_extension_installer
+            SHARED
+            src/postgres_install_func.cpp
+            ../duckdb/src/duckdb_installer.cpp)
+
+    add_library(postgres_extension_loader
+            SHARED
+            ../duckdb/src/duckdb_loader.cpp)
+
+    set_target_properties(postgres_extension_loader PROPERTIES
+            OUTPUT_NAME postgres_loader
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+
+    set_target_properties(postgres_extension_installer PROPERTIES
+            OUTPUT_NAME postgres_installer
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+
+    set_target_properties(postgres_extension_installer
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+
+    set_target_properties(postgres_extension_loader
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+endif ()
 
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not

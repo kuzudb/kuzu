@@ -1,4 +1,9 @@
-set(DuckDB_USE_STATIC_LIBS OFF)
+if (WIN32)
+    set(DuckDB_USE_STATIC_LIBS ON)
+else ()
+    set(DuckDB_USE_STATIC_LIBS OFF)
+endif ()
+
 find_package(DuckDB REQUIRED)
 
 include_directories(
@@ -18,34 +23,11 @@ add_library(duckdb_extension
         src/duckdb_s3_auth.cpp
         src/duckdb_connector.cpp)
 
-add_library(duckdb_extension_installer
-        SHARED
-        src/duckdb_installer.cpp
-        src/duckdb_install_func.cpp)
-
-add_library(duckdb_extension_loader
-        SHARED
-        src/duckdb_loader.cpp)
-
 set_target_properties(duckdb_extension
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
-
-set_target_properties(duckdb_extension_installer
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
-
-set_target_properties(duckdb_extension_loader
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
 )
 
 target_link_libraries(duckdb_extension
@@ -58,17 +40,42 @@ set_target_properties(duckdb_extension PROPERTIES
         SUFFIX ".kuzu_extension"
 )
 
-set_target_properties(duckdb_extension_installer PROPERTIES
-        OUTPUT_NAME duckdb_installer
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
+if (NOT WIN32)
+    add_library(duckdb_extension_installer
+            SHARED
+            src/duckdb_installer.cpp
+            src/duckdb_install_func.cpp)
 
-set_target_properties(duckdb_extension_loader PROPERTIES
-        OUTPUT_NAME duckdb_loader
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
+    add_library(duckdb_extension_loader
+            SHARED
+            src/duckdb_loader.cpp)
+
+    set_target_properties(duckdb_extension_installer
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+
+    set_target_properties(duckdb_extension_loader
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+
+    set_target_properties(duckdb_extension_installer PROPERTIES
+            OUTPUT_NAME duckdb_installer
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+
+    set_target_properties(duckdb_extension_loader PROPERTIES
+            OUTPUT_NAME duckdb_loader
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+endif ()
 
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not
