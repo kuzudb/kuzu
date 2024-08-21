@@ -78,6 +78,8 @@ struct ExtensionUtils {
     KUZU_API static std::string getLocalExtensionDir(main::ClientContext* context,
         const std::string& extensionName);
 
+    KUZU_API static std::string appendLibSuffix(const std::string& libName);
+
     KUZU_API static std::string getLocalPathForSharedLib(main::ClientContext* context,
         const std::string& libName);
 

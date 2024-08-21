@@ -133,11 +133,10 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
         catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
 }
 
-std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context,
-    const std::string& libName) {
+std::string ExtensionUtils::appendLibSuffix(const std::string& libName) {
     auto os = getOS();
     std::string suffix;
-    if (os == "linux") {
+    if (os == "linux" || os == "linux_old") {
         suffix = "so";
     } else if (os == "win") {
         suffix = "lib";
@@ -146,7 +145,12 @@ std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* contex
     } else {
         KU_UNREACHABLE;
     }
-    return common::stringFormat("{}common/{}.{}", context->getExtensionDir(), libName, suffix);
+    return common::stringFormat("{}.{}", libName, suffix);
+}
+
+std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context,
+    const std::string& libName) {
+    return common::stringFormat("{}common/{}", context->getExtensionDir(), libName);
 }
 
 std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context) {

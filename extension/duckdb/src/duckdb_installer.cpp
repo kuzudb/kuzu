@@ -14,11 +14,12 @@ void DuckDBInstaller::install(main::ClientContext* context) {
     tryDownloadExtensionFile(context, loaderFileRepoInfo, localLoaderFilePath);
 
     for (auto& dependencyLib : DuckDBExtension::DEPENDENCY_LIB_FILES) {
+        auto dependencyLibWithSuffix = extension::ExtensionUtils::appendLibSuffix(dependencyLib);
         auto localDependencyLibPath =
-            extension::ExtensionUtils::getLocalPathForSharedLib(context, dependencyLib);
+            extension::ExtensionUtils::getLocalPathForSharedLib(context, dependencyLibWithSuffix);
         if (!context->getVFSUnsafe()->fileOrPathExists(localDependencyLibPath)) {
             auto dependencyLibRepoInfo =
-                extension::ExtensionUtils::getSharedLibRepoInfo(dependencyLib);
+                extension::ExtensionUtils::getSharedLibRepoInfo(dependencyLibWithSuffix);
             tryDownloadExtensionFile(context, dependencyLibRepoInfo, localDependencyLibPath);
         }
     }
