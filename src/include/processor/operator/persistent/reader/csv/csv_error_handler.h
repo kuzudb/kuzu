@@ -1,7 +1,7 @@
 #pragma once
 
+#include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -27,7 +27,6 @@ struct LineContext {
 // After parsing this will be used to populate a PopulatedCSVError instance
 struct CSVError {
     std::string message;
-    std::string filePath;
     LineContext errorLine;
 
     uint64_t blockIdx;
@@ -48,21 +47,34 @@ struct LinesPerBlock {
 
 class CSVFileErrorHandler {
 public:
-    CSVFileErrorHandler(std::mutex* sharedMtx, uint64_t maxCachedErrorCount,
-        std::shared_ptr<warning_counter_t> sharedWarningCounter, bool ignoreErrors);
+    virtual ~CSVFileErrorHandler() = default;
+    virtual void handleError(BaseCSVReader* reader, const CSVError& error) = 0;
+    virtual void reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx,
+        uint64_t numRowsRead) = 0;
+    virtual void setHeaderNumRows(uint64_t numRows) = 0;
+};
 
-    void handleError(BaseCSVReader* reader, const CSVError& error);
+class SharedCSVFileErrorHandler : public CSVFileErrorHandler {
+public:
+    SharedCSVFileErrorHandler(std::string filePath, std::mutex* sharedMtx,
+        uint64_t maxCachedErrorCount, std::shared_ptr<warning_counter_t> sharedWarningCounter,
+        bool ignoreErrors);
+
+    void handleError(BaseCSVReader* reader, const CSVError& error) override;
     void throwCachedErrorsIfNeeded(BaseCSVReader* reader);
 
-    void reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx, uint64_t numRowsRead);
-    void setHeaderNumRows(uint64_t numRows);
+    void reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx,
+        uint64_t numRowsRead) override;
+    void setHeaderNumRows(uint64_t numRows) override;
 
+    void addCachedErrors(std::vector<CSVError>& errors,
+        const std::map<uint64_t, LinesPerBlock>& linesPerBlock);
     uint64_t getNumCachedErrors();
     std::vector<PopulatedCSVError> getPopulatedCachedErrors(BaseCSVReader* reader);
 
 private:
     common::UniqLock lock();
-    void tryThrowFirstCachedError(BaseCSVReader* reader) const;
+    void tryThrowFirstCachedError(BaseCSVReader* reader);
 
     std::string getErrorMessage(BaseCSVReader* reader, const CSVError& error,
         uint64_t lineNumber) const;
@@ -75,11 +87,38 @@ private:
 
     std::mutex* mtx; // can be nullptr, in which case mutual exclusion is guaranteed by the caller
     std::vector<LinesPerBlock> linesPerBlock;
-    std::set<CSVError> cachedErrors;
+    std::vector<CSVError> cachedErrors;
+    std::string filePath;
 
     uint64_t maxCachedErrorCount;
     bool ignoreErrors;
     uint64_t headerNumRows;
     std::shared_ptr<warning_counter_t> sharedWarningCounter;
 };
+
+class LocalCSVFileErrorHandler : public CSVFileErrorHandler {
+public:
+    ~LocalCSVFileErrorHandler() override;
+
+    LocalCSVFileErrorHandler(uint64_t maxCachedErrorCount, bool ignoreErrors,
+        SharedCSVFileErrorHandler* sharedErrorHandler);
+
+    void handleError(BaseCSVReader* reader, const CSVError& error) override;
+    void reportFinishedBlock(BaseCSVReader* reader, uint64_t blockIdx,
+        uint64_t numRowsRead) override;
+    void setHeaderNumRows(uint64_t numRows) override;
+
+private:
+    static constexpr uint64_t LOCAL_WARNING_LIMIT = 256;
+
+    void flushCachedErrors();
+
+    std::map<uint64_t, LinesPerBlock> linesPerBlock;
+    std::vector<CSVError> cachedErrors;
+    SharedCSVFileErrorHandler* sharedErrorHandler;
+
+    uint64_t maxCachedErrorCount;
+    bool ignoreErrors;
+};
+
 } // namespace kuzu::processor

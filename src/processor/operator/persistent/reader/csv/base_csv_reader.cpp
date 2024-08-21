@@ -193,7 +193,6 @@ void BaseCSVReader::skipCurrentLine() {
 
 void BaseCSVReader::handleCopyException(const std::string& message, bool mustThrow) {
     CSVError error{.message = message,
-        .filePath = fileInfo->path,
         .errorLine = lineContext,
         .blockIdx = currentBlockIdx,
         .numRowsReadInBlock = numRowsInCurrentBlock + curRowIdx + numErrors,

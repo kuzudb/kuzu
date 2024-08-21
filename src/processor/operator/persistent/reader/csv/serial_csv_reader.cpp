@@ -12,7 +12,7 @@ namespace kuzu {
 namespace processor {
 
 SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option, uint64_t numColumns,
-    main::ClientContext* context, CSVFileErrorHandler* errorHandler,
+    main::ClientContext* context, SharedCSVFileErrorHandler* errorHandler,
     const ScanTableFuncBindInput* bindInput)
     : BaseCSVReader{filePath, std::move(option), numColumns, context, errorHandler},
       bindInput{bindInput} {}
@@ -64,12 +64,12 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
     main::ClientContext* context)
     : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
       totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)},
-      warningCounter(std::make_shared<warning_counter_t>()),
-      errorHandlers(this->readerConfig.getNumFiles(),
-          CSVFileErrorHandler(nullptr, // locking is handled external to the error handler
-                                       // since we are scanning serially
-              context->getClientConfig()->warningLimit, warningCounter,
-              this->csvReaderConfig.option.ignoreErrors)) {
+      warningCounter(std::make_shared<warning_counter_t>()) {
+    for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
+        errorHandlers.emplace_back(this->readerConfig.getFilePath(i), nullptr,
+            context->getClientConfig()->warningLimit, warningCounter,
+            this->csvReaderConfig.option.ignoreErrors);
+    }
     initReader(context);
 }
 
@@ -108,8 +108,9 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvConfig = CSVReaderConfig::construct(bindInput->config.options);
     auto warningCounter = std::make_shared<warning_counter_t>();
-    CSVFileErrorHandler errorHandler{nullptr, bindInput->context->getClientConfig()->warningLimit,
-        warningCounter, csvConfig.option.ignoreErrors};
+    SharedCSVFileErrorHandler errorHandler{bindInput->config.getFilePath(fileIdx), nullptr,
+        bindInput->context->getClientConfig()->warningLimit, warningCounter,
+        csvConfig.option.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvConfig.option.copy(),
         0 /* numColumns */, bindInput->context, &errorHandler, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();

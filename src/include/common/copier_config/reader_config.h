@@ -41,6 +41,10 @@ struct ReaderConfig {
     EXPLICIT_COPY_DEFAULT_MOVE(ReaderConfig);
 
     uint32_t getNumFiles() const { return filePaths.size(); }
+    std::string getFilePath(idx_t fileIdx) const {
+        KU_ASSERT(fileIdx < getNumFiles());
+        return filePaths[fileIdx];
+    }
 
 private:
     ReaderConfig(const ReaderConfig& other)

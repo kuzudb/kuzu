@@ -12,7 +12,7 @@ namespace processor {
 class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
-        main::ClientContext* context, CSVFileErrorHandler* errorHandler,
+        main::ClientContext* context, SharedCSVFileErrorHandler* errorHandler,
         const function::ScanTableFuncBindInput* bindInput = nullptr);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
@@ -32,7 +32,7 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     uint64_t totalReadSizeByFile;
     common::CSVReaderConfig csvReaderConfig;
     std::shared_ptr<warning_counter_t> warningCounter;
-    std::vector<CSVFileErrorHandler> errorHandlers;
+    std::vector<SharedCSVFileErrorHandler> errorHandlers;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context);
