@@ -185,6 +185,12 @@ pub(crate) mod ffi {
             params: UniquePtr<QueryParams>,
         ) -> Result<UniquePtr<QueryResult>>;
 
+        #[namespace = "kuzu_rs"]
+        fn connection_query<'a>(
+            connection: Pin<&mut Connection>,
+            query: StringView<'a>,
+        ) -> Result<UniquePtr<QueryResult>>;
+
         fn getMaxNumThreadForExec(self: Pin<&mut Connection>) -> u64;
         fn setMaxNumThreadForExec(self: Pin<&mut Connection>, num_threads: u64);
         fn interrupt(self: Pin<&mut Connection>) -> Result<()>;

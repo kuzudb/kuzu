@@ -133,8 +133,15 @@ impl<'a> Connection<'a> {
     //
     // But this would really just be syntactic sugar wrapping the current system
     pub fn query(&self, query: &str) -> Result<QueryResult, Error> {
-        let mut statement = self.prepare(query)?;
-        self.execute(&mut statement, vec![])
+        let conn = unsafe { (*self.conn.get()).pin_mut() };
+        let result = ffi::connection_query(conn, ffi::StringView::new(query))?;
+        if !result.isSuccess() {
+            Err(Error::FailedQuery(ffi::query_result_get_error_message(
+                &result,
+            )))
+        } else {
+            Ok(QueryResult { result })
+        }
     }
 
     /// Executes the given prepared statement with args and returns the result.
@@ -217,6 +224,19 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 \"MATCH (a:Person RETURN a.name AS NAME, a.age AS AGE;\"
                  ^^^^^^"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_multiple_statement_query() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
+        conn.query(
+            "CREATE (:Person {name: 'Alice', age: 25});
+            CREATE (:Person {name: 'Bob', age: 30});",
+        )?;
         Ok(())
     }
 
