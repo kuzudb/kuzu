@@ -119,7 +119,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     bool persistentInitialized = false;
     common::sel_t prevCSREndOffset;
     // States at the csr list level. Cached during scan over a single csr list.
-    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
+    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE;
 
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
         : NodeGroupScanState{numChunks},
@@ -129,7 +129,6 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     void resetState() override {
         NodeGroupScanState::resetState();
         csrHeader->resetToEmpty();
-        source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         persistentCSRLists.clear();
         nextCSRToScan = 0;
         persistentInitialized = false;

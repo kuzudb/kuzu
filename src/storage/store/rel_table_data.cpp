@@ -142,6 +142,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
                 scanState->currNodeIdx = 0;
                 scanState->endNodeIdx = 0;
                 scanState->nodeGroup->initializeScanState(transaction, *scanState);
+                scanState->resetCommitted = false;
                 continue;
             }
             break;
@@ -193,6 +194,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
                 scanState->currNodeIdx = 0;
                 scanState->endNodeIdx = 0;
                 scanState->nodeGroup->initializeScanState(transaction, *scanState);
+                scanState->resetCommitted = false;
                 continue;
             }
             break;
