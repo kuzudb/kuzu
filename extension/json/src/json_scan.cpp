@@ -177,8 +177,7 @@ struct JsonScanSharedState : public BaseScanSharedState {
 };
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
-    TableFuncBindInput* input) {
-    auto scanInput = input->constPtrCast<ScanTableFuncBindInput>();
+    ScanTableFuncBindInput* scanInput) {
     // get parameters
     JsonScanConfig scanConfig(scanInput->config.options);
     auto parsedJson = fileToJson(ctx, scanInput->inputs[0].strVal, scanConfig.format);

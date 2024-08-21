@@ -663,9 +663,7 @@ static void bindColumns(const ScanTableFuncBindInput* bindInput,
 }
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    function::TableFuncBindInput* input) {
-    auto scanInput =
-        ku_dynamic_cast<function::TableFuncBindInput*, function::ScanTableFuncBindInput*>(input);
+    function::ScanTableFuncBindInput* scanInput) {
     if (!scanInput->config.options.empty()) {
         throw BinderException{"Copy from Parquet cannot have options."};
     }

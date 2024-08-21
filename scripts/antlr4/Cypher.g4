@@ -929,6 +929,7 @@ kU_NonReservedKeywords
         | SET
         | START
         | L_SKIP
+        | LIMIT
         | TRANSACTION
         | TYPE
         | USE

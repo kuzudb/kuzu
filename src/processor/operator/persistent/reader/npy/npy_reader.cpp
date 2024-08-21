@@ -293,8 +293,7 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
 }
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    function::TableFuncBindInput* input) {
-    auto scanInput = input->constPtrCast<function::ScanTableFuncBindInput>();
+    function::ScanTableFuncBindInput* scanInput) {
     KU_ASSERT(scanInput->config.options.empty());
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;

@@ -2830,6 +2830,7 @@ public:
     antlr4::tree::TerminalNode *SET();
     antlr4::tree::TerminalNode *START();
     antlr4::tree::TerminalNode *L_SKIP();
+    antlr4::tree::TerminalNode *LIMIT();
     antlr4::tree::TerminalNode *TRANSACTION();
     antlr4::tree::TerminalNode *TYPE();
     antlr4::tree::TerminalNode *USE();

@@ -11,6 +11,7 @@ import pyarrow as pa
 import pytest
 from pandas.arrays import ArrowExtensionArray as arrowtopd
 from type_aliases import ConnDB
+import re
 
 
 def generate_primitive(dtype):
@@ -654,3 +655,35 @@ def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
     print(result)
     print(expected)
     assert tables_equal(result, expected)
+
+def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
+    datalength = 15000
+    random.seed(100)
+    index = pa.array(range(datalength))
+    col0 = pa.array([generate_primitive("int64[pyarrow]") for _ in range(datalength)])
+    col1 = pa.array([generate_string(random.randint(1, 100)) for _ in range(datalength)])
+    col2 = pa.array([[generate_primitive("bool[pyarrow]") for x in range(random.randint(1, 10))] for _ in range(datalength)])
+    df = pd.DataFrame({
+        'index': arrowtopd(index),
+        'col0': arrowtopd(col0),
+        'col1': arrowtopd(col1),
+        'col2': arrowtopd(col2)
+    })
+    result = conn.execute("LOAD FROM df (SKIP=5000, LIMIT=5000) RETURN * ORDER BY index").get_as_arrow()
+    expected = pa.Table.from_pandas(df).slice(5000, 5000)
+    assert result['index'].to_pylist() == expected['index'].to_pylist()
+    assert result['col0'].to_pylist() == expected['col0'].to_pylist()
+    assert result['col1'].to_pylist() == expected['col1'].to_pylist()
+    assert result['col2'].to_pylist() == expected['col2'].to_pylist()
+
+def test_pyarrow_invalid_skip_limit(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
+    df = pd.DataFrame({ 'col': arrowtopd(pa.array([1,2,3,4,5])) })
+    with pytest.raises(RuntimeError,
+        match=re.escape("Binder exception: SKIP Option must be a positive integer literal.")):
+        conn.execute("LOAD FROM df (skip='1') RETURN *;")
+    with pytest.raises(RuntimeError,
+        match=re.escape("Binder exception: LIMIT Option must be a positive integer literal.")):
+        conn.execute("LOAD FROM df (limit='1') RETURN *;")
+
