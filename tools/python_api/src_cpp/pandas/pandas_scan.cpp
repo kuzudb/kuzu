@@ -90,9 +90,12 @@ offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     }
     auto numValuesToOutput =
         std::min(DEFAULT_VECTOR_CAPACITY, pandasLocalState->end - pandasLocalState->start);
+    auto skips = pandasScanData->getColumnSkips();
     for (auto i = 0u; i < pandasScanData->columnNames.size(); i++) {
-        pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
-            pandasLocalState->start, output.dataChunk.getValueVector(i).get());
+        if (!skips[i]) {
+            pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
+                pandasLocalState->start, output.dataChunk.getValueVector(i).get());
+        }
     }
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(numValuesToOutput);
     pandasLocalState->start += numValuesToOutput;

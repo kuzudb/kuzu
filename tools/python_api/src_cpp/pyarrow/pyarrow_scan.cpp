@@ -108,9 +108,12 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
     if (arrowLocalState->arrowArray == nullptr) {
         return 0;
     }
+    auto skipCols = arrowScanData->getColumnSkips();
     for (auto i = 0u; i < arrowScanData->columnTypes.size(); i++) {
-        common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
-            arrowLocalState->arrowArray->children[i], *output.dataChunk.getValueVector(i));
+        if (!skipCols[i]) {
+            common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
+                arrowLocalState->arrowArray->children[i], *output.dataChunk.getValueVector(i));
+        }
     }
     auto len = arrowLocalState->arrowArray->length;
     arrowLocalState->arrowArray = arrowSharedState->getNextChunk();
