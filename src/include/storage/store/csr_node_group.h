@@ -128,7 +128,6 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
 
     void resetState() override {
         NodeGroupScanState::resetState();
-        csrHeader->resetToEmpty();
         persistentCSRLists.clear();
         nextCSRToScan = 0;
         persistentInitialized = false;
@@ -137,9 +136,6 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // reset within the same batch
     void softReset() {
         NodeGroupScanState::resetState();
-        // This could be optimized out
-        csrHeader->resetToEmpty();
-        persistentCSRLists.clear();
         nextCSRToScan = 0;
     }
 

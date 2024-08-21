@@ -16,14 +16,30 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     nodeGroupScanState.softReset();
-    relScanState.nodeGroupIdx = nodeGroupIdx;
+    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
+        relScanState.nodeGroupIdx = nodeGroupIdx;
+        // Scan the csr header chunks from disk.
+        if (persistentChunkGroup) {
+            nodeGroupScanState.csrHeader->resetToEmpty();
+            initializePersistentCSRHeader(transaction, relScanState, nodeGroupScanState);
+        }
+    }
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     nodeGroupScanState.source = CSRNodeGroupScanSource::NONE;
     if (persistentChunkGroup && !nodeGroupScanState.persistentInitialized) {
         nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
         nodeGroupScanState.persistentInitialized = true;
-        // Scan the csr header chunks from disk.
-        initializePersistentCSRHeader(transaction, relScanState, nodeGroupScanState);
+        // Initialize the scan state for the persisted data in the node group.
+        relScanState.zoneMapResult = ZoneMapCheckResult::ALWAYS_SCAN;
+        for (auto i = 0u; i < relScanState.columnIDs.size(); i++) {
+            if (relScanState.columnIDs[i] == INVALID_COLUMN_ID ||
+                relScanState.columnIDs[i] == ROW_IDX_COLUMN_ID) {
+                continue;
+            }
+            auto& chunk = persistentChunkGroup->getColumnChunk(relScanState.columnIDs[i]);
+            chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
+            nodeGroupScanState.chunkStates[i].column = relScanState.columns[i];
+        }
         // Queue persistent nodes to be scanned in the node group.
         while (relScanState.endNodeIdx < relScanState.totalNodeIdx) {
             auto nodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
@@ -87,18 +103,6 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
         *nodeGroupScanState.csrHeader->offset);
     csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
         *nodeGroupScanState.csrHeader->length);
-    // Initialize the scan state for the persisted data in the node group.
-    relScanState.zoneMapResult = ZoneMapCheckResult::ALWAYS_SCAN;
-    for (auto i = 0u; i < relScanState.columnIDs.size(); i++) {
-        if (relScanState.columnIDs[i] == INVALID_COLUMN_ID ||
-            relScanState.columnIDs[i] == ROW_IDX_COLUMN_ID) {
-            continue;
-        }
-        auto& chunk = persistentChunkGroup->getColumnChunk(relScanState.columnIDs[i]);
-        chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-        // TODO: Not a good way to initialize column for chunkState here.
-        nodeGroupScanState.chunkStates[i].column = relScanState.columns[i];
-    }
 }
 
 NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
