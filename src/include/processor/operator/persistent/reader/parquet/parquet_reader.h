@@ -41,29 +41,30 @@ struct ParquetReaderScanState {
 
 class ParquetReader {
 public:
-    ParquetReader(const std::string& filePath, main::ClientContext* context);
+    ParquetReader(const std::string& filePath, std::vector<bool> columnSkips,
+        main::ClientContext* context);
     ~ParquetReader() = default;
 
     void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read,
         common::VirtualFileSystem* vfs);
     bool scanInternal(ParquetReaderScanState& state, common::DataChunk& result);
     void scan(ParquetReaderScanState& state, common::DataChunk& result);
-    inline uint64_t getNumRowsGroups() { return metadata->row_groups.size(); }
+    uint64_t getNumRowsGroups() { return metadata->row_groups.size(); }
 
-    inline uint32_t getNumColumns() const { return columnNames.size(); }
-    inline std::string getColumnName(uint32_t idx) const { return columnNames[idx]; }
-    inline const common::LogicalType& getColumnType(uint32_t idx) const { return columnTypes[idx]; }
+    uint32_t getNumColumns() const { return columnNames.size(); }
+    std::string getColumnName(uint32_t idx) const { return columnNames[idx]; }
+    const common::LogicalType& getColumnType(uint32_t idx) const { return columnTypes[idx]; }
 
-    inline kuzu_parquet::format::FileMetaData* getMetadata() const { return metadata.get(); }
+    kuzu_parquet::format::FileMetaData* getMetadata() const { return metadata.get(); }
 
 private:
-    inline std::unique_ptr<kuzu_apache::thrift::protocol::TProtocol> createThriftProtocol(
+    std::unique_ptr<kuzu_apache::thrift::protocol::TProtocol> createThriftProtocol(
         common::FileInfo* fileInfo_, bool prefetch_mode) {
         return std::make_unique<
             kuzu_apache::thrift::protocol::TCompactProtocolT<ThriftFileTransport>>(
             std::make_shared<ThriftFileTransport>(fileInfo_, prefetch_mode));
     }
-    inline const kuzu_parquet::format::RowGroup& getGroup(ParquetReaderScanState& state) {
+    const kuzu_parquet::format::RowGroup& getGroup(ParquetReaderScanState& state) {
         KU_ASSERT(
             state.currentGroup >= 0 && (uint64_t)state.currentGroup < state.groupIdxList.size());
         KU_ASSERT(state.groupIdxList[state.currentGroup] < metadata->row_groups.size());
@@ -83,17 +84,20 @@ private:
 
 private:
     const std::string filePath;
+    std::vector<bool> columnSkips;
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;
+
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
     main::ClientContext* context;
 };
 
 struct ParquetScanSharedState final : public function::ScanFileSharedState {
     explicit ParquetScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows,
-        main::ClientContext* context);
+        main::ClientContext* context, std::vector<bool> columnSkips);
 
     std::vector<std::unique_ptr<ParquetReader>> readers;
+    std::vector<bool> columnSkips;
     uint64_t totalRowsGroups;
     uint64_t numBlocksReadByFiles;
 };

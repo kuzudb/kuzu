@@ -11,7 +11,7 @@ namespace processor {
 //! Serial CSV reader is a class that reads values from a stream in a single thread.
 class SerialCSVReader final : public BaseCSVReader {
 public:
-    SerialCSVReader(const std::string& filePath, common::CSVOption option, uint64_t numColumns,
+    SerialCSVReader(const std::string& filePath, common::CSVOption option, CSVColumnInfo columnInfo,
         main::ClientContext* context, const function::ScanTableFuncBindInput* bindInput = nullptr);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
@@ -27,14 +27,15 @@ private:
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     std::unique_ptr<SerialCSVReader> reader;
-    uint64_t numColumns;
+    common::CSVOption csvOption;
+    CSVColumnInfo columnInfo;
     uint64_t totalReadSizeByFile;
-    common::CSVReaderConfig csvReaderConfig;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-        uint64_t numColumns, common::CSVReaderConfig csvReaderConfig, main::ClientContext* context)
-        : ScanFileSharedState{std::move(readerConfig), numRows, context}, numColumns{numColumns},
-          totalReadSizeByFile{0}, csvReaderConfig{std::move(csvReaderConfig)} {
+        main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo)
+        : ScanFileSharedState{std::move(readerConfig), numRows, context},
+          csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)},
+          totalReadSizeByFile{0} {
         initReader(context);
     }
 

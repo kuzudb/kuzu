@@ -16,9 +16,9 @@ namespace kuzu {
 namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
-    uint64_t numColumns, main::ClientContext* context)
-    : option{std::move(option)}, numColumns{numColumns}, buffer{nullptr}, bufferSize{0},
-      position{0}, osFileOffset{0}, rowEmpty{false}, context{context} {
+    CSVColumnInfo columnInfo, main::ClientContext* context)
+    : context{context}, option{std::move(option)}, columnInfo{std::move(columnInfo)},
+      buffer{nullptr}, bufferSize{0}, position{0}, osFileOffset{0}, rowEmpty{false} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         O_RDONLY
 #ifdef _WIN32
@@ -39,7 +39,7 @@ line_start:
     }
 
     // If the number of columns is 1, every line start indicates a row.
-    if (numColumns == 1) {
+    if (columnInfo.numColumns == 1) {
         rows++;
     }
 
@@ -51,7 +51,7 @@ line_start:
         goto line_start;
     } else {
         // If we have more than one column, every non-empty line is a row.
-        if (numColumns != 1) {
+        if (columnInfo.numColumns != 1) {
             rows++;
         }
         goto normal;

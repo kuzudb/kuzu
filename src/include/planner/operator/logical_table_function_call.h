@@ -17,8 +17,11 @@ public:
         : LogicalOperator{operatorType_}, tableFunc{tableFunc}, bindData{std::move(bindData)},
           columns{std::move(columns)}, offset{std::move(offset)} {}
 
-    function::TableFunction getTableFunc() const { return tableFunc; }
-    function::TableFuncBindData* getBindData() const { return bindData.get(); }
+    const function::TableFunction& getTableFunc() const { return tableFunc; }
+    const function::TableFuncBindData* getBindData() const { return bindData.get(); }
+    void setColumnSkips(std::vector<bool> columnSkips) {
+        bindData->setColumnSkips(std::move(columnSkips));
+    }
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;

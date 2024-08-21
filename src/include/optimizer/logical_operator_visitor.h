@@ -15,8 +15,38 @@ protected:
     std::shared_ptr<planner::LogicalOperator> visitOperatorReplaceSwitch(
         std::shared_ptr<planner::LogicalOperator> op);
 
-    virtual void visitFlatten(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitFlattenReplace(
+    virtual void visitAccumulate(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitAccumulateReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitAggregate(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitAggregateReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitCopyFrom(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitCopyFromReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitCopyTo(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitCopyToReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitDelete(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitDeleteReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitDistinct(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitDistinctReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
@@ -33,26 +63,26 @@ protected:
         return op;
     }
 
-    virtual void visitScanNodeTable(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitScanNodeTableReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
     virtual void visitExtend(planner::LogicalOperator* /*op*/) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitExtendReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitRecursiveExtend(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitRecursiveExtendReplace(
+    virtual void visitFilter(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitFilterReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitPathPropertyProbe(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitPathPropertyProbeReplace(
+    virtual void visitFlatten(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitFlattenReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitGDSCall(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitGDSCallReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
@@ -69,20 +99,8 @@ protected:
         return op;
     }
 
-    virtual void visitProjection(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitProjectionReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitAggregate(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitAggregateReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitOrderBy(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitOrderByReplace(
+    virtual void visitInsert(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitInsertReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
@@ -93,32 +111,38 @@ protected:
         return op;
     }
 
-    virtual void visitAccumulate(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitAccumulateReplace(
+    virtual void visitMerge(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitMergeReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitDistinct(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitDistinctReplace(
+    virtual void visitOrderBy(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitOrderByReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitUnwind(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitUnwindReplace(
+    virtual void visitPathPropertyProbe(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitPathPropertyProbeReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitUnion(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitUnionReplace(
+    virtual void visitProjection(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitProjectionReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitFilter(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitFilterReplace(
+    virtual void visitRecursiveExtend(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitRecursiveExtendReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitScanNodeTable(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitScanNodeTableReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
@@ -129,38 +153,20 @@ protected:
         return op;
     }
 
-    virtual void visitDelete(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitDeleteReplace(
+    virtual void visitTableFunctionCall(planner::LogicalOperator*) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitTableFunctionCallReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitInsert(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitInsertReplace(
+    virtual void visitUnion(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitUnionReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
 
-    virtual void visitMerge(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitMergeReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitCopyTo(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitCopyToReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitCopyFrom(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitCopyFromReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
-    virtual void visitGDSCall(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitGDSCallReplace(
+    virtual void visitUnwind(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitUnwindReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
