@@ -107,6 +107,10 @@ void database_set_logging_level(kuzu::main::Database& database, const std::strin
 std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& database);
 std::unique_ptr<kuzu::main::QueryResult> connection_execute(kuzu::main::Connection& connection,
     kuzu::main::PreparedStatement& query, std::unique_ptr<QueryParams> params);
+inline std::unique_ptr<kuzu::main::QueryResult> connection_query(kuzu::main::Connection& connection,
+    std::string_view query) {
+    return connection.query(query);
+}
 
 /* PreparedStatement */
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement);
