@@ -95,8 +95,6 @@ if (WIN32)
         # Future work could make it possible to embed extension into kuzu,
         # which would help fix this problem.
         target_link_libraries(duckdb_extension PRIVATE kuzu)
-        target_link_libraries(duckdb_extension_installer PRIVATE kuzu)
-        target_link_libraries(duckdb_extension_loader PRIVATE kuzu)
 endif()
 
 if (APPLE)

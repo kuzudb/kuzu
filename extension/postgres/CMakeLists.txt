@@ -96,8 +96,6 @@ if (WIN32)
         # Future work could make it possible to embed extension into kuzu,
         # which would help fix this problem.
         target_link_libraries(postgres_extension PRIVATE kuzu)
-        target_link_libraries(postgres_extension_loader PRIVATE kuzu)
-        target_link_libraries(postgres_extension_installer PRIVATE kuzu)
 endif()
 
 if (APPLE)

@@ -95,8 +95,6 @@ if (WIN32)
         # Future work could make it possible to embed extension into kuzu,
         # which would help fix this problem.
         target_link_libraries(sqlite_extension PRIVATE kuzu)
-        target_link_libraries(sqlite_extension_loader PRIVATE kuzu)
-        target_link_libraries(sqlite_extension_installer PRIVATE kuzu)
 endif()
 
 if (APPLE)

@@ -3,7 +3,6 @@
 #include <string>
 
 #include "common/api.h"
-#include "extension.h"
 
 namespace kuzu {
 namespace main {
