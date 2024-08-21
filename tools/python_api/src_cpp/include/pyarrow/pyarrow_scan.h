@@ -43,20 +43,20 @@ struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
         std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames)},
           schema{std::move(schema)}, arrowArrayBatches{arrowArrayBatches}, numRows{numRows} {}
-    
+
     ~PyArrowTableScanFunctionData() override {}
 
 private:
-    PyArrowTableScanFunctionData(const PyArrowTableScanFunctionData& other):
-        TableFuncBindData{other}, schema{other.schema}, arrowArrayBatches{other.arrowArrayBatches},
-        numRows{other.numRows} {}
-    
+    PyArrowTableScanFunctionData(const PyArrowTableScanFunctionData& other)
+        : TableFuncBindData{other}, schema{other.schema},
+          arrowArrayBatches{other.arrowArrayBatches}, numRows{other.numRows} {}
+
 public:
     std::unique_ptr<function::TableFuncBindData> copy() const override {
         py::gil_scoped_acquire acquire;
         // the schema is considered immutable so copying it by copying the shared_ptr is fine.
         return std::unique_ptr<PyArrowTableScanFunctionData>(
-                new PyArrowTableScanFunctionData(*this));
+            new PyArrowTableScanFunctionData(*this));
     }
 };
 

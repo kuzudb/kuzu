@@ -72,8 +72,9 @@ struct JsonBindData : public ScanBindData {
     }
 
 private:
-    JsonBindData(const JsonBindData& other): ScanBindData{other}, json{other.json},
-        scanFromList{other.scanFromList}, scanFromStruct{other.scanFromStruct} {
+    JsonBindData(const JsonBindData& other)
+        : ScanBindData{other}, json{other.json}, scanFromList{other.scanFromList},
+          scanFromStruct{other.scanFromStruct} {
         for (auto i = 0u; i < NBUCKETS; i++) {
             buckets[i] = other.buckets[i];
         }

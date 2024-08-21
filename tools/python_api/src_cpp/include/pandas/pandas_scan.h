@@ -48,9 +48,9 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     std::vector<std::unique_ptr<PandasColumnBindData>> copyColumnBindData() const;
 
 private:
-    PandasScanFunctionData(const PandasScanFunctionData& other):
-        TableFuncBindData{other}, df{other.df}, numRows{other.numRows} {
-        for (const auto& i: other.columnBindData) {
+    PandasScanFunctionData(const PandasScanFunctionData& other)
+        : TableFuncBindData{other}, df{other.df}, numRows{other.numRows} {
+        for (const auto& i : other.columnBindData) {
             columnBindData.push_back(i->copy());
         }
     }
