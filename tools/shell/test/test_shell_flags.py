@@ -489,6 +489,79 @@ def test_no_stats(temp_db, flag) -> None:
     result.check_stdout("(1 column)")
     result.check_stdout("Time: ")
 
+#TODO: re-enable when progress bar performance issues are fixed
+# @pytest.mark.parametrize(
+#     "flag",
+#     [
+#         "-b",
+#         "--no_progress_bar",
+#         "--noprogressbar"
+#     ],
+# )
+# def test_no_progress_bar(temp_db, flag) -> None:
+#     # progress bar on by default
+#     test = (
+#         ShellTest()
+#         .add_argument(temp_db)
+#         .statement("CALL current_setting('progress_bar') RETURN *;")
+#     )
+#     result = test.run()
+#     result.check_stdout("True")
+# 
+#     # progress bar off
+#     test = (
+#         ShellTest()
+#         .add_argument(temp_db)
+#         .add_argument(flag)
+#         .statement("CALL current_setting('progress_bar') RETURN *;")
+#     )
+#     result = test.run()
+#     print(result.stdout)
+#     print(result.stderr)
+#     result.check_stdout("False")
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "-i",
+        "--init",
+    ],
+)
+def test_init(temp_db, init_path, flag) -> None:
+    # without init
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement("CALL show_tables() RETURN *;")
+    )
+    result = test.run()
+    result.check_not_stdout("person")
+    result.check_not_stdout("organisation")
+    result.check_not_stdout("movies")
+    result.check_not_stdout("knows")
+    result.check_not_stdout("studyAt")
+    result.check_not_stdout("workAt")
+    result.check_not_stdout("meets")
+    result.check_not_stdout("marries")
+
+    # with init
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument(flag)
+        .add_argument(init_path)
+        .statement("CALL show_tables() RETURN *;")
+    )
+    result = test.run()
+    result.check_stdout("person")
+    result.check_stdout("organisation")
+    result.check_stdout("movies")
+    result.check_stdout("knows")
+    result.check_stdout("studyAt")
+    result.check_stdout("workAt")
+    result.check_stdout("meets")
+    result.check_stdout("marries")
 
 def test_bad_flag(temp_db) -> None:
     # without database path

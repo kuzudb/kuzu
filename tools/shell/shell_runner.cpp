@@ -63,6 +63,11 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<std::string> mode(parser, "mode", "Set the output mode of the shell",
         {'m', "mode"});
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
+    // TODO: re-enable when progress bar performance issues are fixed
+    /*args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
+        {'b', "no_progress_bar", "noprogressbar"});*/
+    args::ValueFlag<std::string> init(parser, "", "Path to file with script to run on startup",
+        {'i', "init"});
 
     std::vector<std::string> lCaseArgsStrings;
     for (auto i = 0; i < argc; ++i) {
@@ -148,6 +153,11 @@ int main(int argc, char* argv[]) {
     } else {
         std::cout << "Opened the database at path: " << databasePath << " in "
                   << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+        // TODO: re-enable when progress bar performance issues are fixed
+        /*if (!progress_bar) {
+            conn->getClientContext()->getClientConfigUnsafe()->enableProgressBar = true;
+            conn->getClientContext()->getProgressBar()->toggleProgressBarPrinting(true);
+        }*/
     }
     std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
     try {
