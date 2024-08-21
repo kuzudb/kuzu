@@ -36,7 +36,7 @@ public:
     static bool CharacterIsSpace(char c) {
         return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
     }
-    static bool CharacterIsNewLine(char c) { return c == '\n' || c == '\r'; }
+    static bool characterIsNewLine(char c) { return c == '\n' || c == '\r'; }
     static bool CharacterIsDigit(char c) { return c >= '0' && c <= '9'; }
 
     static std::string ltrim(const std::string& input) {
@@ -65,20 +65,8 @@ public:
         }
         return input.substr(0, end);
     }
-    static std::string ltrimNewlines(const std::string& input) {
-        auto s = input;
-        s.erase(s.begin(),
-            find_if(s.begin(), s.end(), [](unsigned char ch) { return !CharacterIsNewLine(ch); }));
-        return s;
-    }
-    static std::string rtrimNewlines(const std::string& input) {
-        auto s = input;
-        s.erase(
-            find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !CharacterIsNewLine(ch); })
-                .base(),
-            s.end());
-        return s;
-    }
+    static std::string ltrimNewlines(const std::string& input);
+    static std::string rtrimNewlines(const std::string& input);
 
     static void removeWhiteSpaces(std::string& str) {
         std::regex whiteSpacePattern{"\\s"};

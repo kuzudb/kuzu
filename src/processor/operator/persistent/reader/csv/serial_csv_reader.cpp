@@ -181,7 +181,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
-    uint64_t totalWarningCount = 0;
+    RUNTIME_CHECK(uint64_t totalWarningCount = 0);
 
     auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
@@ -192,7 +192,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         // The serial CSV reader should always be able to throw immediately if not ignoring errors
         KU_ASSERT(state->csvReaderConfig.option.ignoreErrors || cachedWarnings.empty());
 
-        totalWarningCount += cachedWarnings.size();
+        RUNTIME_CHECK(totalWarningCount += cachedWarnings.size());
 
         ctx->appendWarningMessages(cachedWarnings, ctx->queryID);
     }

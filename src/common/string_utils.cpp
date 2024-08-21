@@ -212,5 +212,20 @@ std::string StringUtils::join(const C& input, S count, const std::string& separa
     return result;
 }
 
+std::string StringUtils::ltrimNewlines(const std::string& input) {
+    auto s = input;
+    s.erase(s.begin(),
+        find_if(s.begin(), s.end(), [](unsigned char ch) { return !characterIsNewLine(ch); }));
+    return s;
+}
+
+std::string StringUtils::rtrimNewlines(const std::string& input) {
+    auto s = input;
+    s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !characterIsNewLine(ch); })
+                .base(),
+        s.end());
+    return s;
+}
+
 } // namespace common
 } // namespace kuzu
