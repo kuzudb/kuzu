@@ -16,7 +16,6 @@ struct PyArrowScanConfig {
     explicit PyArrowScanConfig(const std::unordered_map<std::string, common::Value>& options);
 };
 
-
 struct PyArrowTableScanLocalState final : public function::TableFuncLocalState {
     ArrowArrayWrapper* arrowArray;
 

@@ -2,8 +2,8 @@
 
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
-#include "function/table/bind_input.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "function/table/bind_input.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
 
@@ -16,7 +16,7 @@ namespace kuzu {
 PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value>& options) {
     skipNum = 0;
     limitNum = NumericLimits<uint64_t>::maximum();
-    for (const auto& i: options) {
+    for (const auto& i : options) {
         if (i.first == "SKIP") {
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
                 i.second.val.int64Val < 0) {
