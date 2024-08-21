@@ -18,11 +18,15 @@ public:
     void addPredicate(std::unique_ptr<ColumnPredicate> predicate) {
         predicates.push_back(std::move(predicate));
     }
+    bool isEmpty() const { return predicates.empty(); }
 
     common::ZoneMapCheckResult checkZoneMap(const CompressionMetadata& metadata);
 
+    std::string toString() const;
+
 private:
-    ColumnPredicateSet(const ColumnPredicateSet& other);
+    ColumnPredicateSet(const ColumnPredicateSet& other)
+        : predicates{copyVector(other.predicates)} {}
 
 private:
     std::vector<std::unique_ptr<ColumnPredicate>> predicates;
@@ -30,9 +34,13 @@ private:
 
 class ColumnPredicate {
 public:
+    explicit ColumnPredicate(std::string columnName) : columnName{std::move(columnName)} {}
+
     virtual ~ColumnPredicate() = default;
 
     virtual common::ZoneMapCheckResult checkZoneMap(const CompressionMetadata& metadata) const = 0;
+
+    virtual std::string toString() = 0;
 
     virtual std::unique_ptr<ColumnPredicate> copy() const = 0;
 
@@ -40,10 +48,13 @@ public:
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const ColumnPredicate&, const TARGET&>(*this);
     }
+
+protected:
+    std::string columnName;
 };
 
 struct ColumnPredicateUtil {
-    static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& property,
+    static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& column,
         const binder::Expression& predicate);
 };
 

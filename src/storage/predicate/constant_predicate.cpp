@@ -70,5 +70,16 @@ ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
         [&](auto) { return ZoneMapCheckResult::ALWAYS_SCAN; });
 }
 
+std::string ColumnConstantPredicate::toString() {
+    std::string valStr;
+    // TODO(Ziyi): test if we need to skip char for other types.
+    if (value.getDataType().getLogicalTypeID() == LogicalTypeID::STRING) {
+        valStr = stringFormat("'{}'", value.toString());
+    } else {
+        valStr = value.toString();
+    }
+    return stringFormat("{} {} {}", columnName, ExpressionTypeUtil::toParsableString(expressionType), valStr);
+}
+
 } // namespace storage
 } // namespace kuzu

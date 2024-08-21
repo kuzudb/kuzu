@@ -27,6 +27,7 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
     }
 }
 
+<<<<<<< HEAD
 std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
     auto result = std::make_unique<DuckDBScanBindData>(query, LogicalType::copy(columnTypes),
         columnNames, connector);
@@ -34,6 +35,8 @@ std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
     return result;
 }
 
+=======
+>>>>>>> d60dddffa (Add filter push down to relational table)
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
     : BaseScanSharedStateWithNumRows{queryResult->RowCount()}, queryResult{std::move(queryResult)} {

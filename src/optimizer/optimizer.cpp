@@ -24,7 +24,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
 
     auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
     removeUnnecessaryJoinOptimizer.rewrite(plan);
-
+    
     auto filterPushDownOptimizer = FilterPushDownOptimizer(context);
     filterPushDownOptimizer.rewrite(plan);
 

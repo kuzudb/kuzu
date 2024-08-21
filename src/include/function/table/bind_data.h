@@ -3,6 +3,7 @@
 #include "common/copier_config/reader_config.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "storage/predicate/column_predicate.h"
 
 namespace kuzu {
 namespace common {
@@ -21,12 +22,19 @@ struct TableFuncBindData {
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
     TableFuncBindData(const TableFuncBindData& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
-          columnSkips{other.columnSkips} {}
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columnTypes.size(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
     KUZU_API std::vector<bool> getColumnSkips() const;
+
+    void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
+        columnPredicates = std::move(predicates);
+    }
+    const std::vector<storage::ColumnPredicateSet>& getColumnPredicates() const {
+        return columnPredicates;
+    }
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 
@@ -37,6 +45,7 @@ struct TableFuncBindData {
 
 private:
     std::vector<bool> columnSkips;
+    std::vector<storage::ColumnPredicateSet> columnPredicates;
 };
 
 struct ScanBindData : public TableFuncBindData {
