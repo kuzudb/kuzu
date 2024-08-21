@@ -18,13 +18,15 @@ PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value
     limitNum = NumericLimits<uint64_t>::maximum();
     for (const auto& i: options) {
         if (i.first == "SKIP") {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
-                throw BinderException("SKIP Option must be an integer literal.");
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
+                i.second.val.int64Val < 0) {
+                throw BinderException("SKIP Option must be a positive integer literal.");
             }
             skipNum = i.second.val.int64Val;
         } else if (i.first == "LIMIT") {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
-                throw BinderException("LIMIT Option must be an integer literal.");
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
+                i.second.val.int64Val < 0) {
+                throw BinderException("LIMIT Option must be a positive integer literal.");
             }
             limitNum = i.second.val.int64Val;
         } else {

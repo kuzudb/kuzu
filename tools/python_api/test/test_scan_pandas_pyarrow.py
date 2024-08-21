@@ -11,6 +11,7 @@ import pyarrow as pa
 import pytest
 from pandas.arrays import ArrowExtensionArray as arrowtopd
 from type_aliases import ConnDB
+import re
 
 
 def generate_primitive(dtype):
@@ -655,8 +656,8 @@ def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
     print(expected)
     assert tables_equal(result, expected)
 
-def test_pyarrow_skip_limit(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
+def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
     datalength = 15000
     random.seed(100)
     index = pa.array(range(datalength))
@@ -675,3 +676,14 @@ def test_pyarrow_skip_limit(conn_db_readwrite: ConnDB) -> None:
     assert result['col0'].to_pylist() == expected['col0'].to_pylist()
     assert result['col1'].to_pylist() == expected['col1'].to_pylist()
     assert result['col2'].to_pylist() == expected['col2'].to_pylist()
+
+def test_pyarrow_invalid_skip_limit(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
+    df = pd.DataFrame({ 'col': arrowtopd(pa.array([1,2,3,4,5])) })
+    with pytest.raises(RuntimeError,
+        match=re.escape("Binder exception: SKIP Option must be a positive integer literal.")):
+        conn.execute("LOAD FROM df (skip='1') RETURN *;")
+    with pytest.raises(RuntimeError,
+        match=re.escape("Binder exception: LIMIT Option must be a positive integer literal.")):
+        conn.execute("LOAD FROM df (limit='1') RETURN *;")
+

@@ -12,7 +12,7 @@ class ClientContext;
 
 namespace function {
 
-struct ScanTableFuncBindInput final {
+struct ScanTableFuncBindInput {
     std::vector<common::Value> inputs;
     common::ReaderConfig config;
     std::vector<std::string> expectedColumnNames;
