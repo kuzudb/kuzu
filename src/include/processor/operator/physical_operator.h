@@ -181,6 +181,8 @@ protected:
     physical_op_vector_t children;
     ResultSet* resultSet;
     std::unique_ptr<OPPrintInfo> printInfo;
+
+    bool hasBeenFinalized = false;
 };
 
 } // namespace processor

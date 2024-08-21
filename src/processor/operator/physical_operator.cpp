@@ -186,6 +186,10 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
 }
 
 void PhysicalOperator::finalize(ExecutionContext* context) {
+    if (hasBeenFinalized) {
+        return;
+    }
+    hasBeenFinalized = true;
     if (!isSource()) {
         for (auto& child : children) {
             child->finalize(context);
