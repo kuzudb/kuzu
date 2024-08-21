@@ -194,8 +194,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
             scanConfig.depth = 3;
         }
         auto schema = LogicalTypeUtils::purgeAny(
-            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth),
-            LogicalType::STRING());
+            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth), LogicalType::STRING());
         if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
             schema = ListType::getChildType(schema).copy();
             scanFromList = true;
@@ -205,8 +204,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* ctx,
         }
     } else {
         auto schema = LogicalTypeUtils::purgeAny(
-            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth),
-            LogicalType::STRING());
+            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth), LogicalType::STRING());
         if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
             schema = ListType::getChildType(schema).copy();
             scanFromList = true;
