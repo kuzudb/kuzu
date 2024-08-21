@@ -44,7 +44,8 @@ static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const E
             return nullptr;
         }
         auto value = predicate.getChild(1)->constCast<LiteralExpression>().getValue();
-        return std::make_unique<ColumnConstantPredicate>(column.toString(), predicate.expressionType, value);
+        return std::make_unique<ColumnConstantPredicate>(column.toString(),
+            predicate.expressionType, value);
     } else if (isColumnRefConstantPair(*predicate.getChild(1), *predicate.getChild(0))) {
         if (column != *predicate.getChild(1)) {
             return nullptr;

@@ -78,7 +78,8 @@ std::string ColumnConstantPredicate::toString() {
     } else {
         valStr = value.toString();
     }
-    return stringFormat("{} {} {}", columnName, ExpressionTypeUtil::toParsableString(expressionType), valStr);
+    return stringFormat("{} {} {}", columnName,
+        ExpressionTypeUtil::toParsableString(expressionType), valStr);
 }
 
 } // namespace storage

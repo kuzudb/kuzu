@@ -28,9 +28,9 @@ struct DuckDBScanBindData : public function::TableFuncBindData {
 
     DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, const DuckDBConnector& connector);
-    DuckDBScanBindData(const DuckDBScanBindData& other) : function::TableFuncBindData{other},
-          query{other.query}, conversionFunctions{other.conversionFunctions},
-          connector{other.connector}  {}
+    DuckDBScanBindData(const DuckDBScanBindData& other)
+        : function::TableFuncBindData{other}, query{other.query},
+          conversionFunctions{other.conversionFunctions}, connector{other.connector} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DuckDBScanBindData>(*this);

@@ -8,8 +8,8 @@
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/logical_table_function_call.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -179,7 +179,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
     auto nodeID = scan.getNodeID();
     // Apply column predicates.
     if (context->getClientConfig()->enableZoneMap) {
-        scan.setPropertyPredicates(getColumnPredicateSets(scan.getProperties(), predicateSet.getAllPredicates()));
+        scan.setPropertyPredicates(
+            getColumnPredicateSets(scan.getProperties(), predicateSet.getAllPredicates()));
     }
     // Apply index scan
     auto tableIDs = scan.getTableIDs();
@@ -204,8 +205,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitTableFunctionCallReplace(
     const std::shared_ptr<LogicalOperator>& op) {
-    auto& tableFunctionCall = op -> cast<LogicalTableFunctionCall>();
-    auto columnPredicates = getColumnPredicateSets(tableFunctionCall.getColumns(), predicateSet.getAllPredicates());
+    auto& tableFunctionCall = op->cast<LogicalTableFunctionCall>();
+    auto columnPredicates =
+        getColumnPredicateSets(tableFunctionCall.getColumns(), predicateSet.getAllPredicates());
     tableFunctionCall.setColumnPredicates(std::move(columnPredicates));
     return finishPushDown(op);
 }
@@ -218,7 +220,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
     }
     auto& extend = op->cast<LogicalExtend>();
     // Apply column predicates.
-    auto columnPredicates = getColumnPredicateSets(extend.getProperties(), predicateSet.getAllPredicates());
+    auto columnPredicates =
+        getColumnPredicateSets(extend.getProperties(), predicateSet.getAllPredicates());
     extend.setPropertyPredicates(std::move(columnPredicates));
     return finishPushDown(op);
 }

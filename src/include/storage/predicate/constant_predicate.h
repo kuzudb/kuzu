@@ -9,8 +9,10 @@ namespace storage {
 
 class ColumnConstantPredicate : public ColumnPredicate {
 public:
-    ColumnConstantPredicate(std::string columnName, common::ExpressionType expressionType, common::Value value)
-        : ColumnPredicate{std::move(columnName)}, expressionType{expressionType}, value{std::move(value)} {}
+    ColumnConstantPredicate(std::string columnName, common::ExpressionType expressionType,
+        common::Value value)
+        : ColumnPredicate{std::move(columnName)}, expressionType{expressionType},
+          value{std::move(value)} {}
 
     common::ZoneMapCheckResult checkZoneMap(const CompressionMetadata& metadata) const override;
 

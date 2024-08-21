@@ -108,7 +108,6 @@ std::string ExpressionTypeUtil::toString(ExpressionType type) {
     return "";
 }
 
-
 std::string ExpressionTypeUtil::toParsableString(ExpressionType type) {
     switch (type) {
     case ExpressionType::EQUALS:
@@ -124,7 +123,8 @@ std::string ExpressionTypeUtil::toParsableString(ExpressionType type) {
     case ExpressionType::LESS_THAN_EQUALS:
         return "<=";
     default:
-        throw RuntimeException(stringFormat("ExpressionTypeUtil::toParsableString not implemented for {}", toString(type)));
+        throw RuntimeException(stringFormat(
+            "ExpressionTypeUtil::toParsableString not implemented for {}", toString(type)));
     }
 }
 // LCOV_EXCL_STOP
