@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/reader/csv/csv_error_handler.h"
 
+#include <algorithm>
+
 #include "common/assert.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
