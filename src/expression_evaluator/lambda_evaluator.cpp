@@ -53,6 +53,7 @@ void ListLambdaEvaluator::evaluate() {
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;
+    // Performance optimization to avoid copy data vector for list_transform
     if (expression->cast<binder::ScalarFunctionExpression>().getFunction().name ==
         function::ListTransformFunction::name) {
         ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);

@@ -71,7 +71,7 @@ function_set ListFilterFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
         execFunc, bindFunc);
-    function->acceptLambdaParam = true;
+    function->isListLambda = true;
     result.push_back(std::move(function));
     return result;
 }

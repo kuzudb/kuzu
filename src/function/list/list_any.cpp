@@ -17,7 +17,7 @@ function_set ListAnyFunction::getFunctionSet() {
         std::bind(execQuantifierFunc, anyHandler, std::placeholders::_1, std::placeholders::_2,
             std::placeholders::_3),
         bindQuantifierFunc);
-    function->acceptLambdaParam = true;
+    function->isListLambda = true;
     result.push_back(std::move(function));
     return result;
 }

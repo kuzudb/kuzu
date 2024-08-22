@@ -164,7 +164,7 @@ void GroupDependencyAnalyzer::visitFunction(std::shared_ptr<binder::Expression> 
     }
     // For list lambda we need to flatten all dependent expressions in lambda function
     // E.g. MATCH (a)->(b) RETURN list_filter(a.list, x -> x>b.age)
-    if (funcExpr.getFunction().acceptLambdaParam) {
+    if (funcExpr.getFunction().isListLambda) {
         auto lambdaFunctionAnalyzer = GroupDependencyAnalyzer(collectDependentExpr, schema);
         lambdaFunctionAnalyzer.visit(funcExpr.getChild(1));
         requiredFlatGroups = lambdaFunctionAnalyzer.getDependentGroups();

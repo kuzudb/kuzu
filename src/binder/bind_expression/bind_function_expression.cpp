@@ -76,7 +76,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             ->ptrCast<ScalarFunction>()
             ->copy();
     if (children.size() == 2 && children[1]->expressionType == ExpressionType::LAMBDA) {
-        if (!function.acceptLambdaParam) {
+        if (!function.isListLambda) {
             throw BinderException(stringFormat("{} does not support lambda input.", functionName));
         }
         bindLambdaExpression(*children[0], *children[1]);
