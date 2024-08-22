@@ -9,6 +9,8 @@ namespace catalog {
 class PropertyDefinitionCollection {
 public:
     PropertyDefinitionCollection() : nextColumnID{0} {}
+    explicit PropertyDefinitionCollection(common::column_id_t nextColumnID)
+        : nextColumnID{nextColumnID} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PropertyDefinitionCollection);
 
     common::idx_t size() const { return definitions.size(); }
@@ -22,7 +24,7 @@ public:
     common::column_id_t getColumnID(const std::string& name) const;
     common::column_id_t getColumnID(common::idx_t idx) const;
     common::idx_t getIdx(const std::string& name) const;
-    void vacuumColumnIDs();
+    void vacuumColumnIDs(common::column_id_t nextColumnID);
 
     void add(const binder::PropertyDefinition& definition);
     void drop(const std::string& name);

@@ -1,12 +1,13 @@
+import logging
+import multiprocessing
+import os
 import shutil
 import subprocess
-import logging
-import os
-import argparse
 import sys
+
 import psutil
+
 from serializer import _get_kuzu_version
-import multiprocessing
 
 # Get the number of CPUs, try to use sched_getaffinity if available to account
 # for Docker CPU limits

@@ -28,8 +28,10 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
 }
 
 std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
-    return std::make_unique<DuckDBScanBindData>(query, LogicalType::copy(columnTypes), columnNames,
-        connector);
+    auto result = std::make_unique<DuckDBScanBindData>(query, LogicalType::copy(columnTypes),
+        columnNames, connector);
+    result->setColumnSkips(getColumnSkips());
+    return result;
 }
 
 DuckDBScanSharedState::DuckDBScanSharedState(
@@ -58,7 +60,22 @@ struct DuckDBScanFunction {
 std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedState(
     function::TableFunctionInitInput& input) {
     auto scanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
-    auto result = scanBindData->connector.executeQuery(scanBindData->query);
+    std::string columnNames = "";
+    auto columnSkips = scanBindData->getColumnSkips();
+    auto numSkippedColumns =
+        std::count_if(columnSkips.begin(), columnSkips.end(), [](auto item) { return item; });
+    if (scanBindData->getNumColumns() == numSkippedColumns) {
+        columnNames = input.bindData->columnNames[0];
+    }
+    for (auto i = 0u; i < scanBindData->getNumColumns(); i++) {
+        if (columnSkips[i]) {
+            continue;
+        }
+        columnNames += input.bindData->columnNames[i];
+        columnNames += (i == scanBindData->getNumColumns() - 1) ? "" : ",";
+    }
+    auto finalQuery = common::stringFormat(scanBindData->query, columnNames);
+    auto result = scanBindData->connector.executeQuery(finalQuery);
     if (result->HasError()) {
         throw common::RuntimeException(
             common::stringFormat("Failed to execute query due to error: {}", result->GetError()));
@@ -160,12 +177,17 @@ void convertDuckDBVectorToVector<struct_entry_t>(duckdb::Vector& duckDBVector, V
 }
 
 static void convertDuckDBResultToVector(duckdb::DataChunk& duckDBResult, DataChunk& result,
-    std::vector<duckdb_conversion_func_t> conversionFuncs) {
-    for (auto i = 0u; i < conversionFuncs.size(); i++) {
+    const DuckDBScanBindData& bindData) {
+    auto duckdbResultColIdx = 0u;
+    for (auto i = 0u; i < bindData.conversionFunctions.size(); i++) {
         result.state->getSelVectorUnsafe().setSelSize(duckDBResult.size());
-        assert(duckDBResult.data[i].GetVectorType() == duckdb::VectorType::FLAT_VECTOR);
-        conversionFuncs[i](duckDBResult.data[i], *result.getValueVector(i),
-            result.state->getSelVector().getSelSize());
+        if (!bindData.getColumnSkips()[i]) {
+            KU_ASSERT(duckDBResult.data[duckdbResultColIdx].GetVectorType() ==
+                      duckdb::VectorType::FLAT_VECTOR);
+            bindData.conversionFunctions[i](duckDBResult.data[duckdbResultColIdx],
+                *result.getValueVector(i), result.state->getSelVector().getSelSize());
+            duckdbResultColIdx++;
+        }
     }
 }
 
@@ -184,7 +206,7 @@ common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
     if (result == nullptr) {
         return 0;
     }
-    convertDuckDBResultToVector(*result, output.dataChunk, duckdbScanBindData->conversionFunctions);
+    convertDuckDBResultToVector(*result, output.dataChunk, *duckdbScanBindData);
     return output.dataChunk.state->getSelVector().getSelSize();
 }
 

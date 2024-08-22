@@ -8,7 +8,7 @@ namespace kuzu {
 namespace catalog {
 
 class RelTableCatalogEntry final : public TableCatalogEntry {
-    static constexpr CatalogEntryType entryType_ = CatalogEntryType::REL_TABLE_ENTRY;
+    static constexpr auto entryType_ = CatalogEntryType::REL_TABLE_ENTRY;
 
 public:
     RelTableCatalogEntry() = default;
@@ -16,13 +16,13 @@ public:
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID)
         : TableCatalogEntry{set, entryType_, std::move(name)}, srcMultiplicity{srcMultiplicity},
-          dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
+          dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {
+        propertyCollection =
+            PropertyDefinitionCollection{1}; // Skip NBR_NODE_ID column as the first one.
+    }
 
     bool isParent(common::table_id_t tableID) override;
     common::TableType getTableType() const override { return common::TableType::REL; }
-
-    common::column_id_t getColumnID(const std::string& propertyName) const override;
-
     common::table_id_t getSrcTableID() const { return srcTableID; }
     common::table_id_t getDstTableID() const { return dstTableID; }
     bool isSingleMultiplicity(common::RelDataDirection direction) const;

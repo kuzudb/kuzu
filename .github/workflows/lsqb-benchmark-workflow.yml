@@ -1,12 +1,14 @@
 name: LSQB-Benchmark
-
 on:
+  schedule:
+    - cron: "0 5 * * *"
+
   workflow_dispatch:
     inputs:
       scale_factor:
         description: 'Scale factor'
         required: true
-        default: "0.3"
+        default: "30"
         type: choice
         options:
           - "0.1"
@@ -28,10 +30,20 @@ jobs:
     env:
       NUM_THREADS: 30
       GEN: Ninja
-      TIMEOUT: ${{ github.event.inputs.timeout }}
-      SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
     runs-on: kuzu-self-hosted-benchmarking
     steps:
+      - name: Set env for scheduled run
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+            echo "TIMEOUT=600000" >> $GITHUB_ENV
+            echo "SCALE_FACTOR=100" >> $GITHUB_ENV
+
+      - name: Set env for workflow dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+            echo "TIMEOUT=${{ github.event.inputs.timeout }}" >> $GITHUB_ENV
+            echo "SCALE_FACTOR=${{ github.event.inputs.scale_factor }}" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
 
       - name: Build

@@ -173,6 +173,15 @@ struct ScalarFunction final : public ScalarOrAggregateFunction {
             UnaryNestedTypeFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
     }
 
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryExecStructFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* dataPtr) {
+        KU_ASSERT(params.size() == 1);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryStructFunctionWrapper>(*params[0], result, dataPtr);
+    }
+
     template<typename RESULT_TYPE, typename FUNC>
     static void NullaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
