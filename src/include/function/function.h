@@ -65,8 +65,8 @@ struct Function {
 
     Function() : isVarLength{false}, isListLambda{false} {};
     Function(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
-        : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, isVarLength{false}, isListLambda{false} {
-    }
+        : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, isVarLength{false},
+          isListLambda{false} {}
     Function(const Function&) = default;
 
     virtual ~Function() = default;
