@@ -2,7 +2,6 @@
 
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
-#include "storage/compression/float_compression.h"
 #include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu::storage {

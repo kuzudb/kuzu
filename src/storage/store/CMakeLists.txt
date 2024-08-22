@@ -13,6 +13,7 @@ add_library(kuzu_storage_store
         dictionary_chunk.cpp
         dictionary_column.cpp
         in_mem_chunked_node_group_collection.cpp
+        in_memory_exception_chunk.cpp
         list_chunk_data.cpp
         list_column.cpp
         node_group.cpp
