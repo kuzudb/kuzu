@@ -93,3 +93,13 @@ Cannot read from JSON Object to FLOAT
 ---- 2
 1|True|5.000000
 2|False|0.100000
+
+-CASE JsonNull
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-misc/null-test.json" RETURN *;
+---- 4
+
+{a: 1, b: 2024-02-11}
+{a: , b: 2000-01-01}
+
