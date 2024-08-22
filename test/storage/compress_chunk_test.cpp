@@ -32,8 +32,8 @@ public:
     }
 
     template<std::floating_point T>
-    void commitUpdate(ColumnReadWriter* reader, transaction::Transaction* transaction,
-        ChunkState& state);
+    void commitUpdate(transaction::Transaction* transaction, ChunkState& state,
+        BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
 
     template<std::floating_point T>
     void testCompressChunk(const std::vector<T>& bufferToCompress, check_func_t checkFunc);
@@ -101,17 +101,17 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
 }
 
 template<std::floating_point T>
-void CompressChunkTest::commitUpdate(ColumnReadWriter* reader,
-    transaction::Transaction* transaction, ChunkState& state) {
+void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, ChunkState& state,
+    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile) {
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
-        state.getExceptionChunk<T>()->finalizeAndFlushToDisk(reader, state);
+        state.getExceptionChunk<T>()->finalizeAndFlushToDisk(state);
     }
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionManagerUnsafe()->commit(*clientContext);
     clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
-        state.alpExceptionChunk =
-            std::make_unique<InMemoryExceptionChunk<T>>(reader, transaction, state);
+        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(transaction, state,
+            dataFH, bufferManager, shadowFile);
     }
 }
 
@@ -140,8 +140,8 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     state.numValuesPerPage =
         state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
-        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(columnReader.get(),
-            clientContext->getTx(), state);
+        state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(
+            clientContext->getTx(), state, dataFH, bm, &storageManager->getShadowFile());
     }
 
     checkFunc(columnReader.get(), clientContext->getTx(), state, dataType);
@@ -154,9 +154,13 @@ void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_
             [&bufferToCompress, &updateFunc, this](ColumnReadWriter* reader,
                 transaction::Transaction* transaction, ChunkState& state,
                 const LogicalType& dataType) {
+                auto* bm = getBufferManager(*database);
+                auto* storageManager = getStorageManager(*database);
+                auto* dataFH = storageManager->getDataFH();
+
                 updateFunc(reader, transaction, state, dataType);
 
-                commitUpdate<T>(reader, transaction, state);
+                commitUpdate<T>(transaction, state, dataFH, bm, &storageManager->getShadowFile());
 
                 std::vector<T> out(bufferToCompress.size());
                 reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
@@ -405,7 +409,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
             // finalize after each update so that we can still update in place
             if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
                 KU_ASSERT(nullptr != state.getExceptionChunk<double>());
-                state.getExceptionChunk<double>()->finalizeAndFlushToDisk(reader, state);
+                state.getExceptionChunk<double>()->finalizeAndFlushToDisk(state);
             }
         }
     });

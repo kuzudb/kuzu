@@ -277,6 +277,11 @@ public:
     KUZU_API static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
 
     static LogicalType ANY() { return LogicalType(LogicalTypeID::ANY); }
+    static LogicalType ANY(PhysicalTypeID physicalType) {
+        auto ret = LogicalType(LogicalTypeID::ANY);
+        ret.physicalType = physicalType;
+        return ret;
+    }
     static LogicalType BOOL() { return LogicalType(LogicalTypeID::BOOL); }
     static LogicalType HASH() { return LogicalType(LogicalTypeID::UINT64); }
     static LogicalType INT64() { return LogicalType(LogicalTypeID::INT64); }

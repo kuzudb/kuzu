@@ -36,6 +36,9 @@ public:
     Column(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
+        bool requireNullColumn = true);
     virtual ~Column();
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
@@ -190,6 +193,9 @@ struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
         BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
         bool enableCompression);
+    static std::unique_ptr<Column> createColumn(std::string name,
+        common::PhysicalTypeID physicalType, BMFileHandle* dataFH, BufferManager* bufferManager,
+        ShadowFile* shadowFile, bool enableCompression);
 };
 
 } // namespace storage

@@ -1135,6 +1135,7 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
     const uint8_t* data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
     const NullMask* nullMask, bool valueRequiredIfUnsupported) {
     std::pair<std::optional<StorageValue>, std::optional<StorageValue>> returnValue;
+
     TypeUtils::visit(
         physicalType,
         [&](bool) {

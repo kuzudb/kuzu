@@ -97,6 +97,8 @@ public:
         ResidencyState residencyState, bool hasNullData);
     ColumnChunkData(common::LogicalType dataType, bool enableCompression,
         const ColumnChunkMetadata& metadata, bool hasNullData);
+    ColumnChunkData(common::PhysicalTypeID physicalType, bool enableCompression,
+        const ColumnChunkMetadata& metadata, bool hasNullData);
     virtual ~ColumnChunkData() = default;
 
     template<typename T>
@@ -221,7 +223,7 @@ public:
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.
-    void initializeBuffer();
+    void initializeBuffer(common::PhysicalTypeID physicalType);
     void initializeFunction(bool enableCompression);
 
     // Note: This function is not setting child/null chunk data recursively.

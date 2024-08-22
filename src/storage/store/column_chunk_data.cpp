@@ -82,29 +82,33 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, uint64_t capacity, bool e
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(capacity, enableCompression, residencyState);
     }
-    initializeBuffer();
+    initializeBuffer(dataType.getPhysicalType());
     initializeFunction(enableCompression);
 }
 
 ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
     const ColumnChunkMetadata& metadata, bool hasNullData)
-    : residencyState{ResidencyState::ON_DISK}, dataType{std::move(dataType)},
+    : residencyState(ResidencyState::ON_DISK), dataType{std::move(dataType)},
       enableCompression{enableCompression},
       numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, bufferSize{0}, capacity{0},
       numValues{metadata.numValues}, metadata{metadata} {
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(enableCompression, metadata);
     }
-    initializeBuffer();
+    initializeBuffer(dataType.getPhysicalType());
     initializeFunction(enableCompression);
 }
 
-void ColumnChunkData::initializeBuffer() {
-    numBytesPerValue = getDataTypeSizeInChunk(dataType);
+ColumnChunkData::ColumnChunkData(PhysicalTypeID dataType, bool enableCompression,
+    const ColumnChunkMetadata& metadata, bool hasNullData)
+    : ColumnChunkData(LogicalType::ANY(dataType), enableCompression, metadata, hasNullData) {}
+
+void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType) {
+    numBytesPerValue = getDataTypeSizeInChunk(physicalType);
     bufferSize = getBufferSize(capacity);
     buffer = std::make_unique<uint8_t[]>(bufferSize);
     if (nullData) {
-        nullData->initializeBuffer();
+        nullData->initializeBuffer(physicalType);
     }
 }
 

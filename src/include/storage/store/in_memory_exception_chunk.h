@@ -9,6 +9,7 @@ class Transaction;
 }
 namespace storage {
 
+class Column;
 class ColumnReadWriter;
 struct ColumnChunkMetadata;
 struct ChunkState;
@@ -20,10 +21,11 @@ struct ChunkState;
 template<std::floating_point T>
 class InMemoryExceptionChunk {
 public:
-    explicit InMemoryExceptionChunk(ColumnReadWriter* columnReader,
-        transaction::Transaction* transaction, const ChunkState& state);
+    InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
+        BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
+    ~InMemoryExceptionChunk();
 
-    void finalizeAndFlushToDisk(ColumnReadWriter* columnReader, ChunkState& state);
+    void finalizeAndFlushToDisk(ChunkState& state);
 
     void addException(EncodeException<T> exception);
 
@@ -42,14 +44,20 @@ private:
         PageCursor pageBaseCursor, size_t exceptionCapacity);
 
     void finalize(ChunkState& state);
-    void flushToDisk(ColumnReadWriter* columnReader, ChunkState& state);
+
+    static constexpr common::PhysicalTypeID physicalType =
+        std::is_same_v<T, float> ? common::PhysicalTypeID::ALP_EXCEPTION_FLOAT :
+                                   common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE;
 
     size_t exceptionCount;
     size_t finalizedExceptionCount;
     size_t exceptionCapacity;
 
-    std::unique_ptr<std::byte[]> exceptionBuffer;
     common::NullMask emptyMask;
+
+    std::unique_ptr<Column> column;
+    std::unique_ptr<ColumnChunkData> chunkData;
+    std::unique_ptr<ChunkState> chunkState;
 };
 
 } // namespace storage

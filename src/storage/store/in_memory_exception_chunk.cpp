@@ -1,5 +1,6 @@
 #include "storage/store/in_memory_exception_chunk.h"
 
+#include "common/utils.h"
 #include "storage/compression/float_compression.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
@@ -11,45 +12,42 @@ using namespace common;
 using namespace transaction;
 
 template<std::floating_point T>
-InMemoryExceptionChunk<T>::InMemoryExceptionChunk(ColumnReadWriter* columnReader,
-    Transaction* transaction, const ChunkState& state)
+using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes()>;
+
+template<std::floating_point T>
+InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, const ChunkState& state,
+    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
-      exceptionBuffer(
-          std::make_unique<std::byte[]>(exceptionCapacity * EncodeException<T>::sizeInBytes())),
-      emptyMask(exceptionCapacity) {
-    // Read the ALP exceptions on disk into the in-memory exception buffer
+      emptyMask(exceptionCapacity), column(ColumnFactory::createColumn("ALPExceptionChunk",
+                                        physicalType, dataFH, bufferManager, shadowFile, false)) {
+    const auto exceptionBaseCursor =
+        getExceptionPageCursor(state.metadata, PageCursor{state.metadata.pageIdx, 0},
+            state.metadata.compMeta.floatMetadata()->exceptionCapacity);
+    const auto compMeta =
+        CompressionMetadata(StorageValue{0}, StorageValue{1}, CompressionType::UNCOMPRESSED);
+    const auto exceptionChunkMeta = ColumnChunkMetadata(exceptionBaseCursor.pageIdx,
+        safeIntegerConversion<page_idx_t>(
+            EncodeException<T>::numPagesFromExceptions(exceptionCount)),
+        exceptionCount, compMeta);
+    chunkState = std::make_unique<ChunkState>(exceptionChunkMeta,
+        EncodeException<T>::exceptionBytesPerPage() / EncodeException<T>::sizeInBytes());
 
-    emptyMask.setNullFromRange(exceptionCount, exceptionCapacity - exceptionCount, true);
-
-    auto exceptionCursor = getExceptionPageCursor(state.metadata,
-        columnReader->getPageCursorForOffsetInGroup(0, state.metadata.pageIdx,
-            state.numValuesPerPage),
-        exceptionCapacity);
-    KU_ASSERT(exceptionCursor.elemPosInPage == 0);
-
-    const size_t numPagesToCopy = EncodeException<T>::numPagesFromExceptions(getExceptionCount());
-    size_t remainingBytesToCopy = getExceptionCount() * EncodeException<T>::sizeInBytes();
-    for (size_t i = 0; i < numPagesToCopy; ++i) {
-        columnReader->readFromPage(transaction, exceptionCursor.pageIdx,
-            [this, i, remainingBytesToCopy](uint8_t* frame) {
-                std::memcpy(exceptionBuffer.get() + i * EncodeException<T>::exceptionBytesPerPage(),
-                    frame,
-                    std::min(EncodeException<T>::exceptionBytesPerPage(), remainingBytesToCopy));
-            });
-
-        remainingBytesToCopy -= EncodeException<T>::exceptionBytesPerPage();
-        KU_ASSERT(remainingBytesToCopy >= 0);
-        exceptionCursor.nextPage();
-    }
+    chunkData = std::make_unique<ColumnChunkData>(physicalType, false, exceptionChunkMeta, true);
+    chunkData->setToInMemory();
+    column->scan(transaction, *chunkState, chunkData.get());
 }
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ColumnReadWriter* columnReader,
-    ChunkState& state) {
+InMemoryExceptionChunk<T>::~InMemoryExceptionChunk() = default;
+
+template<std::floating_point T>
+void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ChunkState& state) {
     finalize(state);
-    flushToDisk(columnReader, state);
+
+    column->write(*chunkData, *chunkState, 0, chunkData.get(), 0, finalizedExceptionCount);
+    // chunkData->flushBuffer(dataFH, exceptionChunkMeta->pageIdx, *exceptionChunkMeta);
 }
 
 template<std::floating_point T>
@@ -70,43 +68,19 @@ void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
         finalizedExceptionCount <= state.metadata.compMeta.floatMetadata()->exceptionCapacity);
     state.metadata.compMeta.floatMetadata()->exceptionCount = finalizedExceptionCount;
 
-    using ExceptionWord = std::array<std::byte, EncodeException<T>::sizeInBytes()>;
-    ExceptionWord* exceptionWordBuffer = reinterpret_cast<ExceptionWord*>(exceptionBuffer.get());
+    ExceptionInBuffer<T>* exceptionWordBuffer =
+        reinterpret_cast<ExceptionInBuffer<T>*>(chunkData->getData());
     std::sort(exceptionWordBuffer, exceptionWordBuffer + finalizedExceptionCount,
-        [](ExceptionWord& a, ExceptionWord& b) {
+        [](ExceptionInBuffer<T>& a, ExceptionInBuffer<T>& b) {
             return EncodeExceptionView<T>{reinterpret_cast<std::byte*>(&a)}.getValue() <
                    EncodeExceptionView<T>{reinterpret_cast<std::byte*>(&b)}.getValue();
         });
-    std::memset(exceptionBuffer.get() + finalizedExceptionCount * EncodeException<T>::sizeInBytes(),
+    std::memset(chunkData->getData() + finalizedExceptionCount * EncodeException<T>::sizeInBytes(),
         0, (exceptionCount - finalizedExceptionCount) * EncodeException<T>::sizeInBytes());
     emptyMask.setNullFromRange(0, finalizedExceptionCount, false);
     emptyMask.setNullFromRange(finalizedExceptionCount, (exceptionCount - finalizedExceptionCount),
         true);
     exceptionCount = finalizedExceptionCount;
-}
-
-template<std::floating_point T>
-void InMemoryExceptionChunk<T>::flushToDisk(ColumnReadWriter* columnReader, ChunkState& state) {
-    auto exceptionCursor = getExceptionPageCursor(state.metadata,
-        columnReader->getPageCursorForOffsetInGroup(0, state.metadata.pageIdx,
-            state.numValuesPerPage),
-        exceptionCapacity);
-
-    const size_t numPagesToFlush = EncodeException<T>::numPagesFromExceptions(exceptionCapacity);
-    size_t remainingBytesToCopy = exceptionCapacity * EncodeException<T>::sizeInBytes();
-    for (size_t i = 0; i < numPagesToFlush; ++i) {
-        KU_ASSERT(exceptionCursor.elemPosInPage == 0);
-        columnReader->updatePageWithCursor(exceptionCursor,
-            [this, i, remainingBytesToCopy](auto frame, auto /*offsetInPage*/) {
-                std::memcpy(frame,
-                    exceptionBuffer.get() + i * EncodeException<T>::exceptionBytesPerPage(),
-                    std::min(EncodeException<T>::exceptionBytesPerPage(), remainingBytesToCopy));
-            });
-
-        remainingBytesToCopy -= EncodeException<T>::exceptionBytesPerPage();
-        KU_ASSERT(remainingBytesToCopy >= 0);
-        exceptionCursor.nextPage();
-    }
 }
 
 template<std::floating_point T>
@@ -126,13 +100,15 @@ void InMemoryExceptionChunk<T>::removeExceptionAt(size_t exceptionIdx) {
 template<std::floating_point T>
 EncodeException<T> InMemoryExceptionChunk<T>::getExceptionAt(size_t exceptionIdx) const {
     KU_ASSERT(exceptionIdx < exceptionCount);
-    return EncodeExceptionView<T>{exceptionBuffer.get()}.getValue(exceptionIdx);
+    auto bytesInBuffer = chunkData->getValue<ExceptionInBuffer<T>>(exceptionIdx);
+    return EncodeExceptionView<T>{reinterpret_cast<std::byte*>(&bytesInBuffer)}.getValue();
 }
 
 template<std::floating_point T>
 void InMemoryExceptionChunk<T>::writeException(EncodeException<T> exception, size_t exceptionIdx) {
     KU_ASSERT(exceptionIdx < exceptionCount);
-    EncodeExceptionView<T>{exceptionBuffer.get()}.setValue(exception, exceptionIdx);
+    return EncodeExceptionView<T>{reinterpret_cast<std::byte*>(chunkData->getData())}.setValue(
+        exception, exceptionIdx);
 }
 
 template<std::floating_point T>
