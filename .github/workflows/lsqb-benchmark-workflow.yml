@@ -1,4 +1,7 @@
 name: LSQB-Benchmark
+on:
+  schedule:
+    - cron: "0 5 * * *"
 
 on:
   workflow_dispatch:
@@ -6,7 +9,7 @@ on:
       scale_factor:
         description: 'Scale factor'
         required: true
-        default: "0.3"
+        default: "100"
         type: choice
         options:
           - "0.1"
@@ -19,7 +22,7 @@ on:
       timeout:
         description: 'Timeout in milliseconds'
         required: true
-        default: 60000
+        default: 600000
         type: number
 
 jobs:
