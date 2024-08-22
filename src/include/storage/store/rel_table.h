@@ -16,6 +16,7 @@ struct RelTableScanState : TableScanState {
     common::ValueVector* boundNodeIDVector;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
+    std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     std::shared_ptr<common::SelectionVector> nodeOriginalSelVector;
     std::shared_ptr<common::SelectionVector> nodeOutputSelVector;
@@ -30,8 +31,6 @@ struct RelTableScanState : TableScanState {
     common::offset_t posInLastCSR = 0;
     common::offset_t batchSize = 0;
     common::offset_t versionedBatchSize = 0;
-
-    std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.
     explicit RelTableScanState(const std::vector<common::column_id_t>& columnIDs)
@@ -69,7 +68,8 @@ struct RelTableScanState : TableScanState {
 };
 
 class LocalRelTable;
-struct LocalRelTableScanState final : RelTableScanState {
+struct LocalRelTableScanState {
+    std::vector<common::column_id_t> columnIDs;
     LocalRelTable* localRelTable;
     // TODO(Guodong): Copy of rowIndices here is only to simplify the implementation. We can always
     // go to the fwdIndex/bwdIndex inside LocalRelTable to find the row indices. We can revisit this
@@ -77,18 +77,9 @@ struct LocalRelTableScanState final : RelTableScanState {
     row_idx_vec_t rowIndices;
     common::row_idx_t nextRowToScan = 0;
 
-    LocalRelTableScanState(const RelTableScanState& state,
-        const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
-        : RelTableScanState{columnIDs}, localRelTable{localRelTable} {
-        IDVector = state.IDVector;
-        direction = state.direction;
-        boundNodeIDVector = state.boundNodeIDVector;
-        nodeOriginalSelVector = state.nodeOriginalSelVector;
-        outputVectors = state.outputVectors;
-        // Setting source to UNCOMMITTED is not necessary but just to keep it semantically
-        // consistent.
-        source = TableScanSource::UNCOMMITTED;
-    }
+    LocalRelTableScanState(const std::vector<common::column_id_t>& columnIDs,
+        LocalRelTable* localRelTable)
+        : columnIDs{columnIDs}, localRelTable{localRelTable} {}
 };
 
 struct RelTableInsertState final : TableInsertState {

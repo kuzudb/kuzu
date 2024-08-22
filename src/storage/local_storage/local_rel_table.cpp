@@ -151,19 +151,21 @@ void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
-    auto& relScanState = state.cast<LocalRelTableScanState>();
+    auto& relScanState = state.cast<RelTableScanState>();
+    auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
-    relScanState.nextRowToScan = 0;
+    localScanState.nextRowToScan = 0;
     relScanState.nodeGroup = localNodeGroup.get();
     auto& nodeSelVector = *relScanState.nodeOriginalSelVector;
     auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
     offset_t nodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]);
     if (index.contains(nodeOffset)) {
-        relScanState.rowIndices = index[nodeOffset];
-        KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
+        localScanState.rowIndices = index[nodeOffset];
+        KU_ASSERT(
+            std::is_sorted(localScanState.rowIndices.begin(), localScanState.rowIndices.end()));
     } else {
-        relScanState.rowIndices.clear();
+        localScanState.rowIndices.clear();
     }
 }
 
@@ -196,11 +198,13 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
         return false;
     }
     for (auto i = 0u; i < relScanState.batchSize; i++) {
-        localScanState.rowIdxVector->setValue<row_idx_t>(i,
+        relScanState.rowIdxVector->setValue<row_idx_t>(i,
             localScanState.rowIndices[localScanState.nextRowToScan + i]);
     }
-    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(relScanState.batchSize);
-    localNodeGroup->lookup(transaction, localScanState);
+    relScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(relScanState.batchSize);
+    relScanState.columnIDs.swap(localScanState.columnIDs);
+    localNodeGroup->lookup(transaction, relScanState);
+    relScanState.columnIDs.swap(localScanState.columnIDs);
     localScanState.nextRowToScan += relScanState.batchSize;
     return true;
 }

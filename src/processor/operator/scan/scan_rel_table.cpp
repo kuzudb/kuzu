@@ -74,14 +74,14 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(relInfo.direction, relInfo.scanState->columnIDs);
         relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
-            *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+            localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
     }
 }
 
 void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
     ScanTable::initVectors(state, resultSet);
-    auto& relScanState = state.cast<RelTableScanState>();
-    relScanState.boundNodeIDVector = resultSet.getValueVector(relInfo.boundNodeIDPos).get();
+    state.cast<RelTableScanState>().boundNodeIDVector =
+        resultSet.getValueVector(relInfo.boundNodeIDPos).get();
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
