@@ -5,6 +5,7 @@
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
 #include "test_runner/insert_by_row.h"
+#include "test_runner/multi_copy_split.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_manager.h"
 
@@ -98,6 +99,17 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
             InsertDatasetByRow insert(statement->dataset, connection);
             insert.init();
             insert.run();
+            continue;
+        }
+        if (statement->multiCopySplits > 0) {
+            auto& connection = conn ? *conn : *(connMap.begin()->second);
+            SplitMultiCopyRandom split(statement->multiCopySplits, statement->multiCopyTable,
+                statement->multiCopySource, connection);
+            if (statement->seed.size() == 2) {
+                split.setSeed(statement->seed);
+            }
+            split.init();
+            split.run();
             continue;
         }
         if (conn) {

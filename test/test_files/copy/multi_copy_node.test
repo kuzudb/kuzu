@@ -17,3 +17,19 @@
 -STATEMENT match (t:test) return count(*);
 ---- 1
 200000
+
+-CASE CopyLargeIntRandom
+-STATEMENT create node table test(id int64, primary key(id));
+---- ok
+-MULTI_COPY_RANDOM 5 test "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable_merged.csv"
+-STATEMENT match (t:test) return count(*);
+---- 1
+200000
+
+-CASE CopyLargeIntRandomSeeded
+-STATEMENT create node table test(id int64, primary key(id));
+---- ok
+-MULTI_COPY_RANDOM 5 test SEED 3024167388 2272459668 "${KUZU_ROOT_DIRECTORY}/dataset/large-serial/serialtable_merged.csv"
+-STATEMENT match (t:test) return count(*);
+---- 1
+200000

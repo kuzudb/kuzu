@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "common/file_system/file_system.h"
 #include "common/string_utils.h"
 #include "main/kuzu.h"
 
@@ -99,6 +100,15 @@ public:
             return envStr;
         }
         return "";
+    }
+
+    inline static std::string joinPath(const std::string& base, const std::string& part) {
+        auto pathStr = common::FileSystem::joinPath(base, part);
+#ifdef _WIN32
+        // kuzu still doesn't support backslashes in paths on windows
+        std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+#endif
+        return pathStr;
     }
 
 private:

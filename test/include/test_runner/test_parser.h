@@ -40,6 +40,8 @@ enum class TokenType {
     _SKIP_LINE,
     CREATE_DATASET_SCHEMA,
     INSERT_DATASET_BY_ROW,
+    MULTI_COPY_RANDOM,
+    SEED,
 
     CHECKPOINT_WAIT_TIMEOUT,
     CREATE_CONNECTION,
@@ -75,7 +77,8 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-BEGIN_CONCURRENT_EXECUTION", TokenType::BEGIN_CONCURRENT_EXECUTION},
     {"-END_CONCURRENT_EXECUTION", TokenType::END_CONCURRENT_EXECUTION},
     {"-CREATE_DATASET_SCHEMA", TokenType::CREATE_DATASET_SCHEMA},
-    {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW}};
+    {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW},
+    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}};
 
 class LogicToken {
 public:
