@@ -380,7 +380,7 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         pkIndex->checkpoint();
         hasChanges = false;
         columns = std::move(state.columns);
-        tableEntry->vacuumColumnIDs();
+        tableEntry->vacuumColumnIDs(0);
     }
     serialize(ser);
 }

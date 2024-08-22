@@ -433,7 +433,7 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         }
         fwdRelTableData->checkpoint(columnIDs);
         bwdRelTableData->checkpoint(columnIDs);
-        tableEntry->vacuumColumnIDs();
+        tableEntry->vacuumColumnIDs(1);
         hasChanges = false;
     }
     Table::serialize(ser);

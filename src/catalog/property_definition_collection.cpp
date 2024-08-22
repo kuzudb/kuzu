@@ -31,12 +31,12 @@ column_id_t PropertyDefinitionCollection::getColumnID(idx_t idx) const {
     return columnIDs[idx];
 }
 
-void PropertyDefinitionCollection::vacuumColumnIDs() {
-    nextColumnID = 0;
+void PropertyDefinitionCollection::vacuumColumnIDs(column_id_t nextColumnID) {
+    this->nextColumnID = nextColumnID;
     columnIDs.clear();
     for (auto& _ : definitions) {
         KU_UNUSED(_);
-        columnIDs.push_back(nextColumnID++);
+        columnIDs.push_back(this->nextColumnID++);
     }
 }
 
@@ -75,7 +75,7 @@ column_id_t PropertyDefinitionCollection::getMaxColumnID() const {
     return maxID;
 }
 
-common::idx_t PropertyDefinitionCollection::getIdx(const std::string& name) const {
+idx_t PropertyDefinitionCollection::getIdx(const std::string& name) const {
     KU_ASSERT(contains(name));
     return nameToPropertyIdxMap.at(name);
 }
@@ -108,7 +108,7 @@ void PropertyDefinitionCollection::serialize(Serializer& serializer) const {
 
 PropertyDefinitionCollection PropertyDefinitionCollection::deserialize(Deserializer& deserializer) {
     std::string debuggingInfo;
-    common::column_id_t nextColumnID;
+    column_id_t nextColumnID;
     deserializer.validateDebuggingInfo(debuggingInfo, "nextColumnID");
     deserializer.deserializeValue(nextColumnID);
     std::vector<PropertyDefinition> definitions;

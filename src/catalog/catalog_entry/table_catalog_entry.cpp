@@ -44,12 +44,12 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo
     return newEntry;
 }
 
-common::column_id_t TableCatalogEntry::getMaxColumnID() const {
+column_id_t TableCatalogEntry::getMaxColumnID() const {
     return propertyCollection.getMaxColumnID();
 }
 
-void TableCatalogEntry::vacuumColumnIDs() {
-    propertyCollection.vacuumColumnIDs();
+void TableCatalogEntry::vacuumColumnIDs(column_id_t nextColumnID) {
+    propertyCollection.vacuumColumnIDs(nextColumnID);
 }
 
 std::string TableCatalogEntry::propertiesToCypher() const {
@@ -60,7 +60,7 @@ bool TableCatalogEntry::containsProperty(const std::string& propertyName) const 
     return propertyCollection.contains(propertyName);
 }
 
-common::idx_t TableCatalogEntry::getPropertyIdx(const std::string& propertyName) const {
+idx_t TableCatalogEntry::getPropertyIdx(const std::string& propertyName) const {
     return propertyCollection.getIdx(propertyName);
 }
 
@@ -68,11 +68,11 @@ const PropertyDefinition& TableCatalogEntry::getProperty(const std::string& prop
     return propertyCollection.getDefinition(propertyName);
 }
 
-const PropertyDefinition& TableCatalogEntry::getProperty(common::idx_t idx) const {
+const PropertyDefinition& TableCatalogEntry::getProperty(idx_t idx) const {
     return propertyCollection.getDefinition(idx);
 }
 
-common::column_id_t TableCatalogEntry::getColumnID(const std::string& propertyName) const {
+column_id_t TableCatalogEntry::getColumnID(const std::string& propertyName) const {
     return propertyCollection.getColumnID(propertyName);
 }
 
@@ -97,8 +97,8 @@ void TableCatalogEntry::serialize(Serializer& serializer) const {
     propertyCollection.serialize(serializer);
 }
 
-std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(
-    common::Deserializer& deserializer, CatalogEntryType type) {
+std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& deserializer,
+    CatalogEntryType type) {
     std::string debuggingInfo;
     std::string comment;
     deserializer.validateDebuggingInfo(debuggingInfo, "comment");

@@ -17,10 +17,6 @@ bool RelTableCatalogEntry::isParent(table_id_t tableID) {
     return srcTableID == tableID || dstTableID == tableID;
 }
 
-common::column_id_t RelTableCatalogEntry::getColumnID(const std::string& propertyName) const {
-    return propertyCollection.getColumnID(propertyName) + 1; // Reserve column 0 for NBR_ID
-}
-
 bool RelTableCatalogEntry::isSingleMultiplicity(RelDataDirection direction) const {
     return getMultiplicity(direction) == RelMultiplicity::ONE;
 }
