@@ -1,5 +1,6 @@
-
-#include "function/scalar_function.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/expression/scalar_function_expression.h"
+#include "function/rewrite_function.h"
 #include "function/struct/vector_struct_functions.h"
 
 using namespace kuzu::common;
@@ -8,49 +9,29 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-struct KeysBindData : public FunctionBindData {
-    std::vector<std::string> fields;
-
-    KeysBindData(std::vector<LogicalType> paramTypes, LogicalType resultType,
-        std::vector<std::string> fields)
-        : FunctionBindData{std::move(paramTypes), std::move(resultType)},
-          fields{std::move(fields)} {}
-
-    std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<KeysBindData>(LogicalType::copy(paramTypes), resultType.copy(),
-            fields);
-    }
-};
-
-struct Keys {
-    static void operation(list_entry_t& result, ValueVector& resultVector, void* dataPtr) {
-        auto keysBindData = reinterpret_cast<KeysBindData*>(dataPtr);
-        result = common::ListVector::addList(&resultVector, keysBindData->fields.size());
-        auto dataVec = ListVector::getDataVector(&resultVector);
-        for (auto i = 0u; i < keysBindData->fields.size(); i++) {
-            dataVec->setValue(result.offset + i, keysBindData->fields[i]);
+static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
+    ExpressionBinder* /*binder*/) {
+    KU_ASSERT(params.size() == 1);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(KeysFunctions::name, params);
+    const auto& resultType = LogicalType::LIST(LogicalType::STRING());
+    auto fields = common::StructType::getFieldNames(params[0]->dataType);
+    std::vector<std::unique_ptr<Value>> children;
+    for (auto field : fields) {
+        if (field == InternalKeyword::ID || field == InternalKeyword::LABEL ||
+            field == InternalKeyword::SRC || field == InternalKeyword::DST) {
+            continue;
         }
+        children.push_back(std::make_unique<Value>(field));
     }
-};
-
-std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
-    std::vector<LogicalType> paramTypes;
-    paramTypes.push_back(input.arguments[0]->getDataType().copy());
-    auto fields = common::StructType::getFieldNames(input.arguments[0]->dataType);
-    fields.erase(std::remove_if(fields.begin(), fields.end(),
-                     [&](const auto& item) {
-                         return item == InternalKeyword::ID || item == InternalKeyword::LABEL ||
-                                item == InternalKeyword::SRC || item == InternalKeyword::DST;
-                     }),
-        fields.end());
-    return std::make_unique<KeysBindData>(std::move(paramTypes),
-        LogicalType::LIST(LogicalType::STRING()), std::move(fields));
+    auto resultExpr = std::make_shared<binder::LiteralExpression>(
+        Value{resultType.copy(), std::move(children)}, std::move(uniqueExpressionName));
+    return resultExpr;
 }
 
-static std::unique_ptr<ScalarFunction> getKeysFunction(LogicalTypeID logicalTypeID) {
-    return std::make_unique<ScalarFunction>(KeysFunctions::name,
-        std::vector<LogicalTypeID>{logicalTypeID}, LogicalTypeID::LIST,
-        ScalarFunction::UnaryExecStructFunction<struct_entry_t, list_entry_t, Keys>, bindFunc);
+static std::unique_ptr<Function> getKeysFunction(LogicalTypeID logicalTypeID) {
+    return std::make_unique<function::RewriteFunction>(KeysFunctions::name,
+        std::vector<LogicalTypeID>{logicalTypeID}, rewriteFunc);
 }
 
 function_set KeysFunctions::getFunctionSet() {
