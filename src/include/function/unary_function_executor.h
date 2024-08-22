@@ -43,6 +43,15 @@ struct UnaryStringFunctionWrapper {
     }
 };
 
+struct UnaryStructFunctionWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void operation(void* /*inputVector*/, uint64_t /*inputPos*/, void* resultVector,
+        uint64_t resultPos, void* dataPtr) {
+        auto& resultVector_ = *(common::ValueVector*)resultVector;
+        FUNC::operation(resultVector_.getValue<RESULT_TYPE>(resultPos), resultVector_, dataPtr);
+    }
+};
+
 struct UnaryCastStringFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(void* inputVector, uint64_t inputPos, void* resultVector,

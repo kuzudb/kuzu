@@ -30,7 +30,7 @@ struct StructExtractBindData : public FunctionBindData {
     StructExtractBindData(common::LogicalType dataType, common::idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 
-    inline std::unique_ptr<FunctionBindData> copy() const override {
+    std::unique_ptr<FunctionBindData> copy() const override {
         return std::make_unique<StructExtractBindData>(resultType.copy(), childIdx);
     }
 };
@@ -45,6 +45,12 @@ struct StructExtractFunctions {
     static void compileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);
+};
+
+struct KeysFunctions {
+    static constexpr const char* name = "KEYS";
+
+    static function_set getFunctionSet();
 };
 
 } // namespace function
