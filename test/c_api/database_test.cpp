@@ -98,11 +98,7 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
 TEST_F(CApiDatabaseTest, dadsa) {
     createDBAndConn();
     printf("%s",
-        conn->query(
-                "create node table test1(ID INT64, description STRUCT(a int64), PRIMARY KEY(ID))")
+        conn->query("create node table test1(ID INT64, description STRUCT, PRIMARY KEY(ID))")
             ->toString()
             .c_str());
-    printf("%s", conn->query("create (t:test1 {ID: 5})")->toString().c_str());
-    printf("%s", conn->query("create (t:test1 {ID: 6})")->toString().c_str());
-    printf("%s", conn->query("MATCH (t:test1) return keys(t);")->toString().c_str());
 }
