@@ -56,8 +56,8 @@ void DuckDBCatalog::init() {
 
 static std::string getQuery(const binder::BoundCreateTableInfo& info) {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateDuckDBTableInfo>();
-    return common::stringFormat("SELECT * FROM \"{}\".{}.{}", extraInfo->catalogName,
-        extraInfo->schemaName, info.tableName);
+    return "SELECT {} " + common::stringFormat("FROM \"{}\".{}.{}", extraInfo->catalogName,
+                              extraInfo->schemaName, info.tableName);
 }
 
 void DuckDBCatalog::createForeignTable(const std::string& tableName) {

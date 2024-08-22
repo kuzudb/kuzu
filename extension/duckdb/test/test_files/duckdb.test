@@ -52,7 +52,16 @@ Attached database successfully.
 7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|1.463000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15|[96,59,65,88]
 8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|1.510000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16|[80,78,34,83]
 9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 11:21:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|1.600000|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17|[43,83,67,43]
-
+-STATEMENT LOAD FROM tinysnb.person RETURN fName;
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -STATEMENT LOAD FROM tinysnb.organisation RETURN *;
 ---- 3
 1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000|{revenue: 138, "location": ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|3.12
