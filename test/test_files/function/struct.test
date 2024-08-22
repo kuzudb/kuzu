@@ -22,3 +22,68 @@
 -STATEMENT WITH {a:1, b:{c: 'C', d: 'D'}} AS s RETURN s.b.c
 ---- 1
 C
+
+-LOG KeysSingleNodeLabel
+-STATEMENT MATCH (p:movies) RETURN keys(p)
+---- 3
+[name,length,note,description,content,audience,grade]
+[name,length,note,description,content,audience,grade]
+[name,length,note,description,content,audience,grade]
+
+-LOG KeysMultiNodeLabel
+-STATEMENT MATCH (p:person:organisation) RETURN keys(p)
+---- 11
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+[ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
+
+-LOG KeysSingleRelLabel
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN keys(e)
+---- 14
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+[date,meetTime,validInterval,comments,summary,notes,someMap]
+
+-LOG KeysMultiRelLabel
+-STATEMENT MATCH (p:person)-[e:knows|:meets]->(:person) RETURN keys(e)
+---- 21
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+[date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
