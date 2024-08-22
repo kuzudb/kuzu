@@ -142,5 +142,5 @@ True
 -STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(maximum_depth=1, sample_size=3) return json_structure(json);
 ---- 3
 STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE, stars UINT8, views UINT8, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content STRING, audience STRING, grade BOOL)
-STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT8, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content INT8, audience STRING, grade DOUBLE)
+STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT8, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content ANY, audience STRING, grade DOUBLE)
 STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT16, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content STRING, audience STRUCT(), grade UINT8)
