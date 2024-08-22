@@ -91,7 +91,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|1990-11-27
             WHERE ID = '10'
             RETURN *, concat(fName, 'aa');
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "[Aida]" to INT64.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "[Aida]" to INT64. Line containing the error: '0,Alice,1,true,false,35,5.0,1900-01-01,2011-08-20 11:25:30Z+00:00,3 years 2 days 13 hours 2 minutes,"[10,5]","[Aida]"...'
 -STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (HEADER=FALSE)
             WHERE ID = '10'
             RETURN *, concat(fName, 'aa');
@@ -148,4 +148,3 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- 2
 1|Some sample text.
 2|Some more sample "text".
-

@@ -90,7 +90,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* context) override;
+    void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState, hashInfo,

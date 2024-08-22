@@ -188,7 +188,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     KU_ASSERT(numNodesAppended == localNodeGroup->getNumRows());
 }
 
-void NodeBatchInsert::finalize(ExecutionContext* context) {
+void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     if (nodeSharedState->sharedNodeGroup) {
@@ -204,6 +204,18 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
         sharedState->getNumRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
+
+    const auto warningCount = context->warningCount;
+    bool atWarningLimit = (warningCount == context->clientContext->getClientConfig()->warningLimit);
+    if (warningCount > 0) {
+        const auto warningLimitSuffix = atWarningLimit ? "+" : "";
+        auto warningMsg =
+            stringFormat("{}{} warnings encountered during copy. Use 'CALL "
+                         "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
+                warningCount, warningLimitSuffix, context->queryID);
+        FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
+            context->clientContext->getMemoryManager());
+    }
 }
 } // namespace processor
 } // namespace kuzu

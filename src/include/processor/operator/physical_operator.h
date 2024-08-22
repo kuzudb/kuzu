@@ -136,6 +136,8 @@ public:
 
     bool getNextTuple(ExecutionContext* context);
 
+    virtual void finalize(ExecutionContext* context);
+
     std::unordered_map<std::string, std::string> getProfilerKeyValAttributes(
         common::Profiler& profiler) const;
     std::vector<std::string> getProfilerAttributes(common::Profiler& profiler) const;
@@ -169,6 +171,8 @@ protected:
     double getExecutionTime(common::Profiler& profiler) const;
     uint64_t getNumOutputTuples(common::Profiler& profiler) const;
 
+    virtual void finalizeInternal(ExecutionContext* /*context*/) {};
+
 protected:
     physical_op_id id;
     std::unique_ptr<OperatorMetrics> metrics;
@@ -177,6 +181,8 @@ protected:
     physical_op_vector_t children;
     ResultSet* resultSet;
     std::unique_ptr<OPPrintInfo> printInfo;
+
+    bool hasBeenFinalized = false;
 };
 
 } // namespace processor

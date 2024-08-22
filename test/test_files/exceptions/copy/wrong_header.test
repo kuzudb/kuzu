@@ -22,7 +22,7 @@ False
 True
 -STATEMENT COPY person2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Guodong" to INT64.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Guodong" to INT64. Line containing the error: '10,Guodong'
 -STATEMENT COPY person3 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 2.
@@ -30,7 +30,7 @@ Binder exception: Number of columns mismatch. Expected 1 but got 2.
        ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv",
         "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv"] (HEADER=true)
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv on line 2: expected 2 values per row, but got 1
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv on line 2: expected 2 values per row, but got 1. Line containing the error: '10'
 -STATEMENT CREATE REL TABLE knows (FROM person TO person, prop1 INTERVAL);
 ---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
@@ -38,7 +38,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wr
 Binder exception: Number of columns mismatch. Expected 3 but got 4.
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv on line 2: Conversion exception: Error occurred during parsing interval. Field name is missing.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv on line 2: Conversion exception: Error occurred during parsing interval. Field name is missing. Line containing the error: '10,24,1'
 
 -CASE ParquetHeaderMismatch
 -STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
@@ -84,7 +84,7 @@ Binder exception: Number of columns mismatch. Expected 3 but got 2.
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Alice" to INT64.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Alice" to INT64. Line containing the error: '0,Alice...'
 
 -CASE HeaderError
 -STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))
@@ -105,7 +105,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- ok
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv on line 2: expected 4 values per row, but got 3
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv on line 2: expected 4 values per row, but got 3. Line containing the error: '10,24,1'
 
 -CASE NodeUnmatchedNumColumns
 -STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))

@@ -195,15 +195,29 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
     }
 }
 
-void RelBatchInsert::finalize(ExecutionContext* context) {
+void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     if (relInfo->direction == RelDataDirection::BWD) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
+
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
+
+        const auto warningCount = context->warningCount;
+        bool atWarningLimit =
+            (warningCount == context->clientContext->getClientConfig()->warningLimit);
+        if (warningCount > 0) {
+            const auto warningLimitSuffix = atWarningLimit ? "+" : "";
+            auto warningMsg =
+                stringFormat("{}{} warnings encountered during copy. Use 'CALL "
+                             "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
+                    warningCount, warningLimitSuffix, context->queryID);
+            FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
+                context->clientContext->getMemoryManager());
+        }
     }
     sharedState->numRows.store(0);
     sharedState->table->cast<RelTable>().setHasChanges();

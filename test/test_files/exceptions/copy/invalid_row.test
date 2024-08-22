@@ -15,7 +15,7 @@
 -CASE InvalidRel
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson-valid.csv"
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie-valid.csv"
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie-valid.csv"(HEADER=true)
 ---- ok
 -STATEMENT COPY watch FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"
 ---- error
@@ -26,4 +26,4 @@ Runtime exception: Unable to find primary key value 5.
 ---- ok
 -STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv"
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line containing the error: 'id...'

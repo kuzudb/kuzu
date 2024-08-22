@@ -43,7 +43,7 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database)
-    : dbConfig{database->dbConfig}, localDatabase{database} {
+    : dbConfig{database->dbConfig}, localDatabase{database}, warningContext(&clientConfig) {
     progressBar = std::make_unique<ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
@@ -65,6 +65,7 @@ ClientContext::ClientContext(Database* database)
     clientConfig.recursivePatternCardinalityScaleFactor =
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
     clientConfig.disableMapKeyCheck = ClientConfigDefault::DISABLE_MAP_KEY_CHECK;
+    clientConfig.warningLimit = ClientConfigDefault::WARNING_LIMIT;
 }
 
 ClientContext::~ClientContext() = default;
@@ -579,6 +580,14 @@ void ClientContext::runQuery(std::string query) {
         throw ConnectionException(exception.what());
     }
     return;
+}
+
+processor::WarningContext& ClientContext::getWarningContextUnsafe() {
+    return warningContext;
+}
+
+const processor::WarningContext& ClientContext::getWarningContext() const {
+    return warningContext;
 }
 } // namespace main
 } // namespace kuzu

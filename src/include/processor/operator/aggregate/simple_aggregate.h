@@ -60,7 +60,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    inline void finalize(ExecutionContext* /*context*/) override {
+    void finalizeInternal(ExecutionContext* /*context*/) override {
         sharedState->finalizeAggregateStates();
     }
 

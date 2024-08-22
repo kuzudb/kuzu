@@ -70,6 +70,10 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
     return numTuplesScanned != 0;
 }
 
+void TableFunctionCall::finalizeInternal(ExecutionContext* context) {
+    info.function.finalizeFunc(context, sharedState->funcState.get());
+}
+
 double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {
     return info.function.progressFunc(sharedState->funcState.get());
 }

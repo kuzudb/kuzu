@@ -69,6 +69,12 @@ struct ShowTablesFunction : CallFunction {
     static function_set getFunctionSet();
 };
 
+struct ShowWarningsFunction : CallFunction {
+    static constexpr const char* name = "SHOW_WARNINGS";
+
+    static function_set getFunctionSet();
+};
+
 struct TableInfoFunction : CallFunction {
     static constexpr const char* name = "TABLE_INFO";
 

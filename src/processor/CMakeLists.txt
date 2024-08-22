@@ -4,6 +4,7 @@ add_subdirectory(result)
 
 add_library(kuzu_processor
         OBJECT
+        warning_context.cpp
         processor.cpp
         processor_task.cpp)
 

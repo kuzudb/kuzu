@@ -23,7 +23,7 @@ public:
     virtual ~ParsingDriver() = default;
 
     bool done(uint64_t rowNum);
-    void addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
+    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columnCount);
 
 private:
@@ -67,7 +67,7 @@ struct SniffCSVNameAndTypeDriver {
     SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
         const function::ScanTableFuncBindInput* bindInput);
     bool done(uint64_t rowNum) const;
-    void addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
+    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columntCount);
 };
 

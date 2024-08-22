@@ -27,10 +27,10 @@
 {}
 -STATEMENT LOAD WITH HEADERS (map MAP(INT32[], STRUCT(c STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv" (HEADER=true, DELIM=">") RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv on line 7: Conversion exception: Map does not allow null as key.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv on line 7: Conversion exception: Map does not allow null as key. Line containing the error: '"{={c: '~~ have some , ,'}}"'
 -STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN *;
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys. Line containing the error: '"{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}"'
 -STATEMENT LOAD WITH HEADERS (array INT32[92]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/long_array2.csv" (QUOTE="'") RETURN *;
 ---- 1
 [32131,0,0,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313]
@@ -198,7 +198,7 @@ False|-4325|14|18446744073709551616.000000|  dfsa
 {213=1, -3123=0}|{213=1, -3123=0}|{213=1, -3123=0}|{213=1, -3123=0}|{213.000000=1, -3123.000000=0}|{213=1.000000, -3123=0.000000}
 -STATEMENT LOAD WITH HEADERS (map MAP(INT8, INT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_non_nested.csv" RETURN cast(map, "MAP(INT8, INT8)"), cast(map, "MAP(INT16, INT16)"), cast(map, "MAP(INT32, INT32)"), cast(map, "MAP(INT64, INT64)"), cast(map, "MAP(INT128, INT128)"), cast(map, "MAP(UINT8, UINT8)"), cast(map, "MAP(UINT16, UINT16)"), cast(map, "MAP(UINT32, UINT32)"), cast(map, "MAP(UINT64, UINT64)"), cast(map, "MAP(DOUBLE, DOUBLE)"), cast(map, "MAP(float, float)"), cast(cast(cast(cast(map, "MAP(STRING, STRING)"), "MAP(int32, int32)"), "MAP(float, float)"), "MAP(STRING, STRING)");
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_non_nested.csv on line 2: Conversion exception: Map does not allow null as key.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_non_nested.csv on line 2: Conversion exception: Map does not allow null as key. Line containing the error: '"{=}"'
 
 -LOG CastNestedMapToMap
 -STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" RETURN cast(map, "MAP(STRING, MAP(STRING, INT16))"), cast(map, "MAP(STRING, MAP(STRING, INT128))"), cast(map, "MAP(STRING, MAP(STRING, DOUBLE))");
@@ -208,7 +208,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 {}|{}|{}
 -STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN cast(map, "MAP(MAP(UINT64, UINT64), STRING)"), cast(cast(map, "MAP(MAP(FLOAT, INT64), MAP(STRING, STRING))"), "MAP(MAP(INT128, FLOAT), MAP(STRING, STRING))");
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv on line 1: Conversion exception: Map does not allow duplicate keys. Line containing the error: '"{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}"'
 -STATEMENT RETURN cast(cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT32, UINT8), DOUBLE), MAP(FLOAT, MAP(STRING, INT128)))"), cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(STRING, INT16), MAP(INT128, STRING))");
 ---- error
 Conversion exception: Map does not allow null as key.

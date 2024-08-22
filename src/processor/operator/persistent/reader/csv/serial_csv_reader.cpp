@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
 #include "function/table/bind_data.h"
+#include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 
@@ -10,9 +11,10 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-SerialCSVReader::SerialCSVReader(const std::string& filePath, CSVOption option,
-    CSVColumnInfo columnInfo, main::ClientContext* context, const ScanTableFuncBindInput* bindInput)
-    : BaseCSVReader{filePath, std::move(option), std::move(columnInfo), context},
+SerialCSVReader::SerialCSVReader(const std::string& filePath, common::CSVOption option,
+    CSVColumnInfo columnInfo, main::ClientContext* context, SharedCSVFileErrorHandler* errorHandler,
+    const function::ScanTableFuncBindInput* bindInput)
+    : BaseCSVReader{filePath, std::move(option), std::move(columnInfo), context, errorHandler},
       bindInput{bindInput} {}
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
@@ -39,20 +41,41 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
 }
 
 uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChunk) {
+    KU_ASSERT(nullptr != errorHandler);
+
+    if (blockIdx != currentBlockIdx) {
+        resetNumRowsInCurrentBlock();
+    }
     currentBlockIdx = blockIdx;
     if (blockIdx == 0) {
-        handleFirstBlock();
+        uint64_t headerNumRows = handleFirstBlock();
+        errorHandler->setHeaderNumRows(headerNumRows);
     }
     SerialParsingDriver driver(resultChunk, this);
     auto numRowsRead = parseCSV(driver);
+    errorHandler->reportFinishedBlock(this, blockIdx, numRowsRead);
     resultChunk.state->getSelVectorUnsafe().setSelSize(numRowsRead);
+    increaseNumRowsInCurrentBlock(numRowsRead);
     return numRowsRead;
+}
+
+SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerConfig,
+    uint64_t numRows, main::ClientContext* context, common::CSVOption csvOption,
+    CSVColumnInfo columnInfo)
+    : ScanFileSharedState{std::move(readerConfig), numRows, context},
+      csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, totalReadSizeByFile{0},
+      warningCounter(std::make_shared<warning_counter_t>()) {
+    for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
+        errorHandlers.emplace_back(this->readerConfig.getFilePath(i), nullptr,
+            context->getClientConfig()->warningLimit, warningCounter, this->csvOption.ignoreErrors);
+    }
+    initReader(context);
 }
 
 void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
     std::lock_guard<std::mutex> mtx{lock};
     do {
-        if (fileIdx > readerConfig.getNumFiles()) {
+        if (fileIdx >= readerConfig.getNumFiles()) {
             return;
         }
         uint64_t numRows = reader->parseBlock(reader->getFileOffset() == 0 ? 0 : 1, outputChunk);
@@ -60,6 +83,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
             return;
         }
         totalReadSizeByFile += reader->getFileSize();
+        errorHandlers[fileIdx].getPopulatedCachedErrors(reader.get());
         fileIdx++;
         initReader(context);
     } while (true);
@@ -68,7 +92,7 @@ void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
 void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
     if (fileIdx < readerConfig.getNumFiles()) {
         reader = std::make_unique<SerialCSVReader>(readerConfig.filePaths[fileIdx],
-            csvOption.copy(), columnInfo.copy(), context);
+            csvOption.copy(), columnInfo.copy(), context, &errorHandlers[fileIdx]);
     }
 }
 
@@ -83,8 +107,12 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
     auto columnInfo = CSVColumnInfo(0 /* numColumns */, {} /* columnSkips */);
+    auto warningCounter = std::make_shared<warning_counter_t>();
+    SharedCSVFileErrorHandler errorHandler{bindInput->config.getFilePath(fileIdx), nullptr,
+        bindInput->context->getClientConfig()->warningLimit, warningCounter,
+        csvOption.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvOption.copy(),
-        columnInfo.copy(), bindInput->context, bindInput);
+        columnInfo.copy(), bindInput->context, &errorHandler, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
@@ -130,7 +158,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
         bindData->context, csvOption.copy(), columnInfo.copy());
     for (auto filePath : sharedState->readerConfig.filePaths) {
         auto reader = std::make_unique<SerialCSVReader>(filePath, csvOption.copy(),
-            columnInfo.copy(), sharedState->context);
+            columnInfo.copy(), sharedState->context, nullptr);
         sharedState->totalSize += reader->getFileSize();
     }
     return sharedState;
@@ -152,11 +180,31 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(totalReadSize) / state->totalSize;
 }
 
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
+    RUNTIME_CHECK(uint64_t totalWarningCount = 0);
+
+    auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
+    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
+        state->fileIdx = i;
+        state->initReader(ctx->clientContext);
+        auto cachedWarnings = state->errorHandlers[i].getPopulatedCachedErrors(state->reader.get());
+
+        // The serial CSV reader should always be able to throw immediately if not ignoring errors
+        KU_ASSERT(state->csvOption.ignoreErrors || cachedWarnings.empty());
+
+        RUNTIME_CHECK(totalWarningCount += cachedWarnings.size());
+
+        ctx->appendWarningMessages(cachedWarnings, ctx->queryID);
+    }
+
+    KU_ASSERT(totalWarningCount <= ctx->clientContext->getClientConfig()->warningLimit);
+}
+
 function_set SerialCSVScan::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
 }
 

@@ -37,7 +37,7 @@ protected:
 
     bool isParallel() const final { return !containDistinctAggregate(); }
 
-    void finalize(ExecutionContext* context) override = 0;
+    void finalizeInternal(ExecutionContext* context) override = 0;
 
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
