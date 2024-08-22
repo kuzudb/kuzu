@@ -571,7 +571,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformOcQuantifier(
     auto variable = transformVariable(*ctx.oC_FilterExpression()->oC_IdInColl()->oC_Variable());
     auto whereExpr = transformWhere(*ctx.oC_FilterExpression()->oC_Where());
     auto lambdaRaw = variable + "->" + whereExpr->toString();
-    auto lambdaExpr = std::make_unique<ParsedLambdaExpression>(std::vector<std::string>{variable}, std::move(whereExpr), lambdaRaw);
+    auto lambdaExpr = std::make_unique<ParsedLambdaExpression>(std::vector<std::string>{variable},
+        std::move(whereExpr), lambdaRaw);
     std::string quantifierName;
     if (ctx.ALL()) {
         quantifierName = "ALL";
@@ -583,7 +584,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformOcQuantifier(
         quantifierName = "SINGLE";
     }
     auto listExpr = transformExpression(*ctx.oC_FilterExpression()->oC_IdInColl()->oC_Expression());
-    return std::make_unique<ParsedFunctionExpression>(quantifierName, std::move(listExpr), std::move(lambdaExpr), ctx.getText());
+    return std::make_unique<ParsedFunctionExpression>(quantifierName, std::move(listExpr),
+        std::move(lambdaExpr), ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(

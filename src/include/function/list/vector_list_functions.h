@@ -203,6 +203,5 @@ struct ListSingleFunction {
     static function_set getFunctionSet();
 };
 
-
 } // namespace function
 } // namespace kuzu

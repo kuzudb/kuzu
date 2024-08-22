@@ -1,8 +1,8 @@
-#include "function/list/vector_list_functions.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/lambda_evaluator.h"
 #include "function/function.h"
+#include "function/list/vector_list_functions.h"
 
 using namespace kuzu::common;
 

@@ -1,7 +1,7 @@
 #include "expression_evaluator/lambda_evaluator.h"
 
-#include "expression_evaluator/expression_evaluator_visitor.h"
 #include "binder/expression/scalar_function_expression.h"
+#include "expression_evaluator/expression_evaluator_visitor.h"
 #include "function/list/vector_list_functions.h"
 
 using namespace kuzu::common;
@@ -53,7 +53,8 @@ void ListLambdaEvaluator::evaluate() {
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;
-    if (expression->cast<binder::ScalarFunctionExpression>().getFunction().name == function::ListTransformFunction::name) {
+    if (expression->cast<binder::ScalarFunctionExpression>().getFunction().name ==
+        function::ListTransformFunction::name) {
         ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
     }
     isResultFlat_ = children[0]->isResultFlat();
