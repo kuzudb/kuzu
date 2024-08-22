@@ -1,9 +1,11 @@
 #pragma once
 
+#include "common/api.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/predicate/column_predicate.h"
+
 
 namespace kuzu {
 namespace common {
@@ -12,7 +14,7 @@ class FileSystem;
 
 namespace function {
 
-struct TableFuncBindData {
+struct KUZU_API TableFuncBindData {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
 
@@ -48,7 +50,7 @@ private:
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 };
 
-struct ScanBindData : public TableFuncBindData {
+struct KUZU_API ScanBindData : public TableFuncBindData {
     common::ReaderConfig config;
     main::ClientContext* context;
 
