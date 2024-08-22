@@ -92,8 +92,8 @@ void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& st
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::write(ColumnChunkData& persistentChunk, const ChunkState& state,
-    offset_t dstOffset, ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
+void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
+    ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();
     numValues = std::min(numValues, data->getNumValues() - srcOffset);
     auto& strChunkToWriteFrom = data->cast<StringChunkData>();

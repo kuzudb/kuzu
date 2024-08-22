@@ -23,9 +23,8 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void write(ColumnChunkData& persistentChunk, const ChunkState& state,
-        common::offset_t dstOffset, ColumnChunkData* data, common::offset_t srcOffset,
-        common::length_t numValues) override;
+    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
+        ColumnChunkData* data, common::offset_t srcOffset, common::length_t numValues) override;
 
     void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
 
