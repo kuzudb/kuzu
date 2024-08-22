@@ -6,7 +6,6 @@
 #include "main/client_context.h"
 #include "storage/predicate/column_predicate.h"
 
-
 namespace kuzu {
 namespace common {
 class FileSystem;
