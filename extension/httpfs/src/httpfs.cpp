@@ -137,7 +137,7 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
 
 bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
     try {
-        auto fileInfo = openFile(path, O_RDONLY, context, FileLockType::READ_LOCK);
+        auto fileInfo = openFile(path, FileFlags::READ_ONLY, context, FileLockType::READ_LOCK);
         auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
         if (httpFileInfo->length == 0) {
             return false;

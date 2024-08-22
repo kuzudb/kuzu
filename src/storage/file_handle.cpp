@@ -1,7 +1,5 @@
 #include "storage/file_handle.h"
 
-#include <fcntl.h>
-
 #include <cmath>
 
 #include "common/file_system/virtual_file_system.h"
@@ -30,13 +28,22 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm
     }
 }
 
-void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs,
+void FileHandle::constructFileHandle(const std::string& path, VirtualFileSystem* vfs,
     main::ClientContext* context) {
+    if (isNewTmpFile()) {
+        numPages = 0;
+        pageCapacity = 0;
+        fileInfo = std::make_unique<FileInfo>(path, nullptr /* fileSystem */);
+        return;
+    }
     int openFlags;
     if (isReadOnlyFile()) {
-        openFlags = O_RDONLY;
+        openFlags = FileFlags::READ_ONLY;
     } else {
-        openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
+        openFlags = FileFlags::WRITE | FileFlags::READ_ONLY;
+        if (createFileIfNotExists()) {
+            openFlags |= FileFlags::CREATE_IF_NOT_EXISTS;
+        }
     }
     fileInfo = vfs->openFile(path, openFlags, context);
     const auto fileLength = fileInfo->getFileSize();
@@ -45,12 +52,6 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     while (pageCapacity < numPages) {
         pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
     }
-}
-
-void FileHandle::constructNewFileHandle(const std::string& path) {
-    fileInfo = std::make_unique<FileInfo>(path, nullptr);
-    numPages = 0;
-    pageCapacity = 0;
 }
 
 page_idx_t FileHandle::addNewPage() {

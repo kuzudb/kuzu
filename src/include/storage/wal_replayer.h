@@ -12,10 +12,10 @@ class WALReplayer {
 public:
     explicit WALReplayer(main::ClientContext& clientContext);
 
-    void replay();
+    void replay() const;
 
 private:
-    void replayWALRecord(const WALRecord& walRecord);
+    void replayWALRecord(const WALRecord& walRecord) const;
     void replayCreateTableEntryRecord(const WALRecord& walRecord) const;
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayDropCatalogEntryRecord(const WALRecord& walRecord) const;

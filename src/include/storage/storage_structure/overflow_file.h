@@ -1,7 +1,5 @@
 #pragma once
 
-#include <fcntl.h>
-
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -58,7 +56,7 @@ private:
         const std::function<void(uint8_t*)>& func) const;
 
 private:
-    static const common::page_idx_t END_OF_PAGE =
+    static constexpr common::page_idx_t END_OF_PAGE =
         common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t);
     // This is the index of the last free byte to which we can write.
     PageCursor& nextPosToWriteTo;
@@ -132,7 +130,7 @@ private:
     void writePageToDisk(common::page_idx_t pageIdx, uint8_t* data) const;
 
 protected:
-    static const uint64_t HEADER_PAGE_IDX = 0;
+    static constexpr uint64_t HEADER_PAGE_IDX = 0;
 
     std::vector<std::unique_ptr<OverflowFileHandle>> handles;
     StringOverflowFileHeader header;

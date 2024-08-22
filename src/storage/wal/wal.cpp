@@ -1,7 +1,5 @@
 #include "storage/wal/wal.h"
 
-#include <fcntl.h>
-
 #include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
@@ -27,7 +25,9 @@ WAL::WAL(const std::string& directory, bool readOnly, VirtualFileSystem* vfs,
     }
     fileInfo =
         vfs->openFile(vfs->joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-            readOnly ? O_RDONLY : O_CREAT | O_RDWR, context);
+            readOnly ? FileFlags::READ_ONLY :
+                       FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE,
+            context);
     bufferedWriter = std::make_shared<BufferedFileWriter>(*fileInfo);
     // WAL should always be APPEND only. We don't want to overwrite the file as it may still contain
     // records not replayed. This can happen if checkpoint is not triggered before the Database is
