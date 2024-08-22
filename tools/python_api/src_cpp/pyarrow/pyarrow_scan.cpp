@@ -37,6 +37,9 @@ PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     ScanTableFuncBindInput* input) {
+    // TODO: This binding step could use some drastic improvements.
+    // Particularly when scanning from pandas or polars.
+    // Possibly look into using the pycapsule interface.
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
