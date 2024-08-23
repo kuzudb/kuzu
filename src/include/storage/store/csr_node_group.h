@@ -16,11 +16,7 @@ struct csr_list_t {
     common::length_t length = 0;
 };
 
-enum class CSRNodeGroupScanSource : uint8_t {
-    COMMITTED_PERSISTENT = 0,
-    COMMITTED_IN_MEMORY = 1,
-    NONE = 10
-};
+enum class CSRNodeGroupScanSource : uint8_t { COMMITTED_PERSISTENT = 0, COMMITTED_IN_MEMORY = 1 };
 
 // Store rows of a CSR list.
 // If rows of the CSR list are stored in a sequential order, then `isSequential` is set to true.
@@ -116,10 +112,9 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // position in vector of csr list vector
     uint32_t nextCSRToScan;
 
-    bool persistentInitialized = false;
     common::sel_t prevCSREndOffset;
     // States at the csr list level. Cached during scan over a single csr list.
-    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE;
+    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
         : NodeGroupScanState{numChunks},
@@ -128,9 +123,9 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
 
     void resetState() override {
         NodeGroupScanState::resetState();
+        source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
         persistentCSRLists.clear();
         nextCSRToScan = 0;
-        persistentInitialized = false;
     }
 
     // reset within the same batch

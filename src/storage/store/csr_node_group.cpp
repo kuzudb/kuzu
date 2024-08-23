@@ -25,10 +25,11 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
         }
     }
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    nodeGroupScanState.source = CSRNodeGroupScanSource::NONE;
-    if (persistentChunkGroup && !nodeGroupScanState.persistentInitialized) {
-        nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
-        nodeGroupScanState.persistentInitialized = true;
+    switch (nodeGroupScanState.source) {
+    case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
+        if (!persistentChunkGroup) {
+            return;
+        }
         // Initialize the scan state for the persisted data in the node group.
         relScanState.zoneMapResult = ZoneMapCheckResult::ALWAYS_SCAN;
         for (auto i = 0u; i < relScanState.columnIDs.size(); i++) {
@@ -55,15 +56,16 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
             nodeGroupScanState.persistentCSRLists.emplace_back(csr_list_t{offset, length});
             relScanState.endNodeIdx++;
         }
-        if (csrIndex) {
-            // after scanning all persistent data, reset nodeIdxs back to 0 for in memory data
-            relScanState.resetCommitted = true;
-        } else {
-            relScanState.resetUncommitted = true;
+    } break;
+    case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
+        if (!csrIndex) {
+            return;
         }
-    } else if (csrIndex) {
-        // Either we only have in memory data to scan or we have already scanned the persistent data
         initializeInMemScanState(state);
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
     }
 }
 
@@ -74,7 +76,6 @@ void CSRNodeGroup::initializeInMemScanState(TableScanState& state) {
     KU_ASSERT(csrIndex);
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
-    nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto nodeOffset =
         relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.endNodeIdx++]);
@@ -83,9 +84,6 @@ void CSRNodeGroup::initializeInMemScanState(TableScanState& state) {
     if (!nodeGroupScanState.inMemCSRList.isSequential) {
         KU_ASSERT(std::is_sorted(nodeGroupScanState.inMemCSRList.rowIndices.begin(),
             nodeGroupScanState.inMemCSRList.rowIndices.end()));
-    }
-    if (relScanState.endNodeIdx == relScanState.totalNodeIdx) {
-        relScanState.resetUncommitted = true;
     }
 }
 
@@ -125,10 +123,6 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
             relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
         }
         return result;
-    }
-    case CSRNodeGroupScanSource::NONE: {
-        relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
-        return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     default: {
         KU_UNREACHABLE;
