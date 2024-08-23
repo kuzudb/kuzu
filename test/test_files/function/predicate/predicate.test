@@ -107,6 +107,28 @@ Farooq|True
 Greg|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
 
+-STATEMENT MATCH (a:person) RETURN a.fName, all(name in a.workedHours WHERE true)
+---- 8
+Alice|True
+Bob|True
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|True
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-STATEMENT MATCH (a:person) RETURN a.fName, none(name in a.workedHours WHERE false)
+---- 8
+Alice|True
+Bob|True
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|True
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
 # TODO: Double check if we should handle instead of erroring
 -STATEMENT RETURN any(name in NULL WHERE name = 5)
 ---- error

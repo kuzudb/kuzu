@@ -64,3 +64,16 @@ Binder exception: The second argument of LIST_TRANSFORM should be a lambda expre
 -STATEMENT RETURN LIST_TRANSFORM([null, 5, 22, null, 17], x->x+5)
 ---- 1
 [,10,27,,22]
+-STATEMENT RETURN LIST_TRANSFORM([20, 50, 3], x->2)
+---- 1
+[2,2,2]
+-STATEMENT MATCH (p:person) RETURN LIST_TRANSFORM(p.usedNames, x->500)
+---- 8
+[500]
+[500]
+[500]
+[500]
+[500]
+[500]
+[500]
+[500]
