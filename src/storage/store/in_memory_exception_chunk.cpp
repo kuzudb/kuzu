@@ -25,6 +25,7 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, cons
     const auto exceptionBaseCursor =
         getExceptionPageCursor(state.metadata, PageCursor{state.metadata.pageIdx, 0},
             state.metadata.compMeta.floatMetadata()->exceptionCapacity);
+    // for ALP exceptions we don't care about the statistics
     const auto compMeta =
         CompressionMetadata(StorageValue{0}, StorageValue{1}, CompressionType::UNCOMPRESSED);
     const auto exceptionChunkMeta = ColumnChunkMetadata(exceptionBaseCursor.pageIdx,

@@ -7,6 +7,7 @@
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
+#include "storage/store/string_column.h"
 
 using namespace kuzu::common;
 
@@ -126,14 +127,19 @@ void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<std::string_view>(posInOutputVector, str);
 }
 
-void StringChunkData::initializeScanState(ChunkState& state) const {
-    ColumnChunkData::initializeScanState(state);
+void StringChunkData::initializeScanState(ChunkState& state, Column* column) const {
+    ColumnChunkData::initializeScanState(state, column);
+
+    auto* stringColumn = ku_dynamic_cast<Column*, StringColumn*>(column);
     state.childrenStates.resize(CHILD_COLUMN_COUNT);
-    indexColumnChunk->initializeScanState(state.childrenStates[INDEX_COLUMN_CHILD_READ_STATE_IDX]);
+    indexColumnChunk->initializeScanState(state.childrenStates[INDEX_COLUMN_CHILD_READ_STATE_IDX],
+        stringColumn->getIndexColumn());
     dictionaryChunk->getOffsetChunk()->initializeScanState(
-        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        stringColumn->getDictionary().getOffsetColumn());
     dictionaryChunk->getStringDataChunk()->initializeScanState(
-        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+        stringColumn->getDictionary().getDataColumn());
 }
 
 void StringChunkData::write(const ValueVector* vector, offset_t offsetInVector,

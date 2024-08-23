@@ -6,6 +6,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/struct_column.h"
 
 using namespace kuzu::common;
 
@@ -130,11 +131,13 @@ void StructChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
 }
 
-void StructChunkData::initializeScanState(ChunkState& state) const {
-    ColumnChunkData::initializeScanState(state);
+void StructChunkData::initializeScanState(ChunkState& state, Column* column) const {
+    ColumnChunkData::initializeScanState(state, column);
+
+    auto* structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
     state.childrenStates.resize(childChunks.size());
     for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->initializeScanState(state.childrenStates[i]);
+        childChunks[i]->initializeScanState(state.childrenStates[i], structColumn->getChild(i));
     }
 }
 

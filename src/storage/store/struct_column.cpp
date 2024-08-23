@@ -94,13 +94,6 @@ void StructColumn::write(ColumnChunkData& persistentChunk, ChunkState& state,
     }
 }
 
-void StructColumn::initializeScanState(ChunkState& state) {
-    Column::initializeScanState(state);
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->initializeScanState(state.getChildState(i));
-    }
-}
-
 void StructColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {

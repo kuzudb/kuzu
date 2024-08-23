@@ -113,8 +113,7 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableSca
                 continue;
             }
             auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
-            chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-            state.columns[i]->initializeScanState(nodeGroupScanState.chunkStates[i]);
+            chunk.initializeScanState(nodeGroupScanState.chunkStates[i], state.columns[i]);
         }
     }
 }

@@ -254,15 +254,18 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void ColumnChunkData::initializeScanState(ChunkState& state) const {
+void ColumnChunkData::initializeScanState(ChunkState& state, Column* column) const {
     if (nullData) {
         KU_ASSERT(state.nullState);
-        nullData->initializeScanState(*state.nullState);
+        nullData->initializeScanState(*state.nullState, column->getNullColumn());
     }
     if (residencyState == ResidencyState::ON_DISK) {
         state.metadata = metadata;
         state.numValuesPerPage =
             state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        state.column = column;
+
+        state.column->populateExtraChunkState(state);
     }
 }
 

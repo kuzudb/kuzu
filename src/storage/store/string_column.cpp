@@ -188,13 +188,6 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::initializeScanState(ChunkState& state) {
-    Column::initializeScanState(state);
-    indexColumn->initializeScanState(
-        state.getChildState(static_cast<idx_t>(StringColumn::ChildStateIndex::INDEX)));
-    dictionary.initializeScanState(state);
-}
-
 bool StringColumn::canCheckpointInPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     row_idx_t strLenToAdd = 0u;

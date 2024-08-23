@@ -166,7 +166,7 @@ public:
     uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     uint8_t* getData() const { return buffer.get(); }
 
-    virtual void initializeScanState(ChunkState& state) const;
+    virtual void initializeScanState(ChunkState& state, Column* column) const;
     virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,

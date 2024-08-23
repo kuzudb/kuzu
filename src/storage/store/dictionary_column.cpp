@@ -193,12 +193,5 @@ bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
     return true;
 }
 
-void DictionaryColumn::initializeScanState(ChunkState& state) {
-    dataColumn->initializeScanState(
-        state.getChildState(static_cast<idx_t>(StringColumn::ChildStateIndex::DATA)));
-    offsetColumn->initializeScanState(
-        state.getChildState(static_cast<idx_t>(StringColumn::ChildStateIndex::OFFSET)));
-}
-
 } // namespace storage
 } // namespace kuzu

@@ -301,13 +301,6 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
-void ListColumn::initializeScanState(ChunkState& state) {
-    Column::initializeScanState(state);
-    offsetColumn->initializeScanState(state.getChildState(OFFSET_COLUMN_CHILD_READ_STATE_IDX));
-    sizeColumn->initializeScanState(state.getChildState(SIZE_COLUMN_CHILD_READ_STATE_IDX));
-    dataColumn->initializeScanState(state.getChildState(DATA_COLUMN_CHILD_READ_STATE_IDX));
-}
-
 void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
@@ -332,8 +325,7 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     }
 
     ChunkState chunkState;
-    checkpointState.persistentData.initializeScanState(chunkState);
-    initializeScanState(chunkState);
+    checkpointState.persistentData.initializeScanState(chunkState, this);
     ColumnCheckpointState listDataCheckpointState(*persistentDataChunk,
         std::move(listDataChunkCheckpointStates));
     const auto listDataCanCheckpointInPlace = dataColumn->canCheckpointInPlace(

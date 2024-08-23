@@ -9,6 +9,7 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/list_column.h"
 
 using namespace kuzu::common;
 
@@ -215,13 +216,17 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
-void ListChunkData::initializeScanState(ChunkState& state) const {
-    ColumnChunkData::initializeScanState(state);
+void ListChunkData::initializeScanState(ChunkState& state, Column* column) const {
+    ColumnChunkData::initializeScanState(state, column);
+
+    auto* listColumn = ku_dynamic_cast<Column*, ListColumn*>(column);
     state.childrenStates.resize(CHILD_COLUMN_COUNT);
-    sizeColumnChunk->initializeScanState(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    dataColumnChunk->initializeScanState(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
-    offsetColumnChunk->initializeScanState(
-        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+    sizeColumnChunk->initializeScanState(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
+        listColumn->getSizeColumn());
+    dataColumnChunk->initializeScanState(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+        listColumn->getDataColumn());
+    offsetColumnChunk->initializeScanState(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        listColumn->getOffsetColumn());
 }
 
 void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, RelMultiplicity) {

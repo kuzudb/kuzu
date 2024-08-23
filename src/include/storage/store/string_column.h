@@ -29,13 +29,12 @@ public:
     void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
+    Column* getIndexColumn() { return indexColumn.get(); }
 
     static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
     static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);
 
 protected:
-    void initializeScanState(ChunkState& state) override;
-
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;

@@ -41,6 +41,8 @@ public:
         bool requireNullColumn = true);
     virtual ~Column();
 
+    void populateExtraChunkState(ChunkState& state);
+
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         BMFileHandle& dataFH);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
@@ -82,8 +84,6 @@ public:
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
     virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
-
-    virtual void initializeScanState(ChunkState& state);
 
     template<class TARGET>
     TARGET& cast() {

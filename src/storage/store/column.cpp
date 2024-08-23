@@ -131,6 +131,19 @@ Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
 
+void Column::populateExtraChunkState(ChunkState& state) {
+    if (state.metadata.compMeta.compression == CompressionType::ALP) {
+        Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
+        if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
+            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(&transaction,
+                state, dataFH, bufferManager, shadowFile);
+        } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
+            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(&transaction,
+                state, dataFH, bufferManager, shadowFile);
+        }
+    }
+}
+
 std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& chunkData,
     BMFileHandle& dataFH) {
     switch (chunkData.getDataType().getPhysicalType()) {
@@ -434,26 +447,9 @@ bool Column::canCheckpointInPlace(const ChunkState& state,
     return true;
 }
 
-void Column::initializeScanState(ChunkState& state) {
-    // TODO: Not a good way to initialize column for chunkState here.
-    state.column = this;
-
-    if (state.metadata.compMeta.compression == CompressionType::ALP) {
-        Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
-        if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
-            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(&transaction,
-                state, dataFH, bufferManager, shadowFile);
-        } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
-            state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(&transaction,
-                state, dataFH, bufferManager, shadowFile);
-        }
-    }
-}
-
 void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
     ChunkState chunkState;
-    checkpointState.persistentData.initializeScanState(chunkState);
-    initializeScanState(chunkState);
+    checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
         checkpointColumnChunkInPlace(chunkState, checkpointState);
 
