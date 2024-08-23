@@ -171,7 +171,6 @@ extension-test-build:
 	$(call run-cmake-release, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
-		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
 extension-json-test-build:

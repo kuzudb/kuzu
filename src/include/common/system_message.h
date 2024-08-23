@@ -4,6 +4,8 @@
 #include <string>
 #include <system_error>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace common {
 
@@ -21,7 +23,7 @@ inline std::string posixErrMessage() {
     // LCOV_EXCL_STOP
 }
 
-std::string dlErrMessage();
+KUZU_API std::string dlErrMessage();
 
 } // namespace common
 } // namespace kuzu

@@ -1,9 +1,9 @@
 #include "processor/operator/simple/install_extension.h"
 
-#include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "extension/extension.h"
+#include "extension/extension_installer.h"
 #include "httplib.h"
 #include "main/database.h"
 
@@ -25,45 +25,35 @@ std::string InstallExtension::getOutputMsg() {
     return common::stringFormat("Extension: {} has been installed.", name);
 }
 
-std::string InstallExtension::tryDownloadExtension() {
-    auto extensionRepoInfo = ExtensionUtils::getExtensionRepoInfo(name);
-    httplib::Client cli(extensionRepoInfo.hostURL.c_str());
-    httplib::Headers headers = {
-        {"User-Agent", common::stringFormat("kuzu/v{}", KUZU_EXTENSION_VERSION)}};
-    auto res = cli.Get(extensionRepoInfo.hostPath.c_str(), headers);
-    if (!res || res->status != 200) {
-        if (res.error() == httplib::Error::Success) {
-            // LCOV_EXCL_START
-            throw IOException(common::stringFormat(
-                "HTTP Returns: {}, Failed to download extension: \"{}\" from {}.",
-                res.value().status, name, extensionRepoInfo.repoURL));
-            // LCOC_EXCL_STOP
-        } else {
-            throw IOException(
-                common::stringFormat("Failed to download extension: {} at URL {} (ERROR: {})", name,
-                    extensionRepoInfo.repoURL, to_string(res.error())));
-        }
-    }
-    return res->body;
-}
-
-void InstallExtension::saveExtensionToLocalFile(const std::string& extensionData,
+static void saveExtensionToLocalFile(const std::string& extensionData, const std::string& name,
     main::ClientContext* context) {
-    auto extensionDir = context->getExtensionDir();
-    auto extensionPath = ExtensionUtils::getExtensionPath(extensionDir, name);
-    auto vfs = context->getVFSUnsafe();
-    if (!vfs->fileOrPathExists(extensionDir, context)) {
-        vfs->createDir(extensionDir);
-    }
-    auto fileInfo = vfs->openFile(extensionPath, O_WRONLY | O_CREAT);
+    auto extensionPath = ExtensionUtils::getLocalPathForExtensionInstaller(context, name);
+    auto fileInfo = context->getVFSUnsafe()->openFile(extensionPath, O_WRONLY | O_CREAT);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(extensionData.c_str()),
         extensionData.size(), 0 /* offset */);
     fileInfo->syncFile();
 }
 
+static void installDependencies(const std::string& name, main::ClientContext* context) {
+    auto extensionRepoInfo = ExtensionUtils::getExtensionInstallerRepoInfo(name);
+    httplib::Client cli(extensionRepoInfo.hostURL.c_str());
+    httplib::Headers headers = {
+        {"User-Agent", common::stringFormat("kuzu/v{}", KUZU_EXTENSION_VERSION)}};
+    auto res = cli.Get(extensionRepoInfo.hostPath.c_str(), headers);
+    if (!res || res->status != 200) {
+        return;
+    }
+    saveExtensionToLocalFile(res->body, name, context);
+    auto extensionInstallerPath = ExtensionUtils::getLocalPathForExtensionInstaller(context, name);
+    auto libLoader = ExtensionLibLoader(name, extensionInstallerPath.c_str());
+    auto install = libLoader.getInstallFunc();
+    (*install)(context);
+}
+
 void InstallExtension::installExtension(main::ClientContext* context) {
-    auto extensionData = tryDownloadExtension();
-    saveExtensionToLocalFile(extensionData, context);
+    extension::ExtensionInstaller installer{name};
+    installer.install(context);
+    installDependencies(name, context);
 }
 
 } // namespace processor

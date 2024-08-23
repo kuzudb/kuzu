@@ -1,14 +1,10 @@
-# Address sanitizer may change the ABI, so we use dynamic linking
-# if it's enabled.
-if(${ENABLE_ADDRESS_SANITIZER})
-        set(DuckDB_USE_STATIC_LIBS OFF)
-else()
-        set(DuckDB_USE_STATIC_LIBS ON)
-endif()
+if (WIN32)
+    set(DuckDB_USE_STATIC_LIBS ON)
+else ()
+    set(DuckDB_USE_STATIC_LIBS OFF)
+endif ()
+
 find_package(DuckDB REQUIRED)
-if(NOT WIN32)
-        find_library(DuckDB_STATIC REQUIRED NAMES libduckdb_static.a)
-endif()
 
 add_library(postgres_extension
         SHARED
@@ -45,6 +41,43 @@ target_link_libraries(postgres_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
+if (NOT WIN32)
+    add_library(postgres_extension_installer
+            SHARED
+            src/postgres_install_func.cpp
+            ../duckdb/src/duckdb_installer.cpp)
+
+    add_library(postgres_extension_loader
+            SHARED
+            ../duckdb/src/duckdb_loader.cpp)
+
+    set_target_properties(postgres_extension_loader PROPERTIES
+            OUTPUT_NAME postgres_loader
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+
+    set_target_properties(postgres_extension_installer PROPERTIES
+            OUTPUT_NAME postgres_installer
+            PREFIX "lib"
+            SUFFIX ".kuzu_extension"
+    )
+
+    set_target_properties(postgres_extension_installer
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+
+    set_target_properties(postgres_extension_loader
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
+    )
+endif ()
+
 if (WIN32)
         # On windows, there is no dynamic lookup available, so it's not
         # possible to generically look for symbols on library load. There are
@@ -67,4 +100,6 @@ endif()
 
 if (APPLE)
     set_target_properties(postgres_extension PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(postgres_extension_loader PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_target_properties(postgres_extension_installer PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif ()
