@@ -71,9 +71,18 @@ struct JsonBindData : public ScanBindData {
         }
     }
 
+private:
+    JsonBindData(const JsonBindData& other)
+        : ScanBindData{other}, json{other.json}, scanFromList{other.scanFromList},
+          scanFromStruct{other.scanFromStruct} {
+        for (auto i = 0u; i < NBUCKETS; i++) {
+            buckets[i] = other.buckets[i];
+        }
+    }
+
+public:
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<JsonBindData>(LogicalType::copy(columnTypes), columnNames, json,
-            scanFromList, scanFromStruct, config.copy(), context);
+        return std::unique_ptr<JsonBindData>(new JsonBindData(*this));
     }
 
     int32_t getIdxFromName(std::string s) const { // possible bottleneck
@@ -257,6 +266,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     for (auto& i : output.dataChunk.valueVectors) {
         i->setAllNull();
     }
+    auto projectionSkips = bindData->getColumnSkips();
     for (auto i = localState->begin; i != localState->end; i++) {
         if (bindData->scanFromStruct) {
             auto objIter = yyjson_obj_iter_with(*i);
@@ -264,7 +274,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
                 auto columnIdx = bindData->getIdxFromName(yyjson_get_str(key));
-                if (columnIdx == -1) {
+                if (columnIdx == -1 || projectionSkips[columnIdx]) {
                     continue;
                 }
                 readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx],

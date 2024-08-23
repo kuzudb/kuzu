@@ -37,6 +37,9 @@ PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     ScanTableFuncBindInput* input) {
+    // TODO: This binding step could use some drastic improvements.
+    // Particularly when scanning from pandas or polars.
+    // Possibly look into using the pycapsule interface.
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
@@ -108,9 +111,12 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
     if (arrowLocalState->arrowArray == nullptr) {
         return 0;
     }
+    auto skipCols = arrowScanData->getColumnSkips();
     for (auto i = 0u; i < arrowScanData->columnTypes.size(); i++) {
-        common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
-            arrowLocalState->arrowArray->children[i], *output.dataChunk.getValueVector(i));
+        if (!skipCols[i]) {
+            common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
+                arrowLocalState->arrowArray->children[i], *output.dataChunk.getValueVector(i));
+        }
     }
     auto len = arrowLocalState->arrowArray->length;
     arrowLocalState->arrowArray = arrowSharedState->getNextChunk();
