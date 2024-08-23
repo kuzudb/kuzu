@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/api.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
@@ -13,7 +12,7 @@ class FileSystem;
 
 namespace function {
 
-struct KUZU_API TableFuncBindData {
+struct TableFuncBindData {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
 
@@ -28,7 +27,7 @@ struct KUZU_API TableFuncBindData {
 
     common::idx_t getNumColumns() const { return columnTypes.size(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
-    std::vector<bool> getColumnSkips() const;
+    KUZU_API std::vector<bool> getColumnSkips() const;
 
     void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
         columnPredicates = std::move(predicates);
@@ -49,7 +48,7 @@ private:
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 };
 
-struct KUZU_API ScanBindData : public TableFuncBindData {
+struct ScanBindData : public TableFuncBindData {
     common::ReaderConfig config;
     main::ClientContext* context;
 
