@@ -157,7 +157,6 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
 
 void GroupDependencyAnalyzer::visitFunction(std::shared_ptr<binder::Expression> expr) {
     auto& funcExpr = expr->constCast<ScalarFunctionExpression>();
-    auto functionName = funcExpr.getFunction().name;
     for (auto& child : expr->getChildren()) {
         visit(child);
     }
