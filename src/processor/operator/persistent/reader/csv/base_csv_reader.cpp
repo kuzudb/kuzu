@@ -139,6 +139,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     auto readCount = fileInfo->readFile(buffer.get() + remaining, bufferReadSize);
     if (readCount == -1) {
         // LCOV_EXCL_START
+        lineContext.setEndOfLine(getFileOffset());
         handleCopyException(stringFormat("Could not read from file: {}", posixErrMessage()), true);
         // LCOV_EXCL_STOP
     }
