@@ -18,33 +18,42 @@ ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const CompressionMetadata& m
     return ZoneMapCheckResult::ALWAYS_SCAN;
 }
 
-ColumnPredicateSet::ColumnPredicateSet(const ColumnPredicateSet& other) {
-    for (auto& p : other.predicates) {
-        predicates.push_back(p->copy());
+std::string ColumnPredicateSet::toString() const {
+    if (predicates.empty()) {
+        return {};
     }
+    auto result = predicates[0]->toString();
+    for (auto i = 1u; i < predicates.size(); ++i) {
+        result += stringFormat(" AND {}", predicates[i]->toString());
+    }
+    return result;
 }
 
-static bool isPropertyConstantPair(const Expression& left, const Expression& right) {
-    return left.expressionType == ExpressionType::PROPERTY &&
-           right.expressionType == ExpressionType::LITERAL;
+static bool isColumnRef(ExpressionType type) {
+    return type == ExpressionType::PROPERTY || type == ExpressionType::VARIABLE;
 }
 
-static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const Expression& property,
+static bool isColumnRefConstantPair(const Expression& left, const Expression& right) {
+    return isColumnRef(left.expressionType) && right.expressionType == ExpressionType::LITERAL;
+}
+
+static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const Expression& column,
     const Expression& predicate) {
-    if (isPropertyConstantPair(*predicate.getChild(0), *predicate.getChild(1))) {
-        if (property != *predicate.getChild(0)) {
+    if (isColumnRefConstantPair(*predicate.getChild(0), *predicate.getChild(1))) {
+        if (column != *predicate.getChild(0)) {
             return nullptr;
         }
         auto value = predicate.getChild(1)->constCast<LiteralExpression>().getValue();
-        return std::make_unique<ColumnConstantPredicate>(predicate.expressionType, value);
-    } else if (isPropertyConstantPair(*predicate.getChild(1), *predicate.getChild(0))) {
-        if (property != *predicate.getChild(1)) {
+        return std::make_unique<ColumnConstantPredicate>(column.toString(),
+            predicate.expressionType, value);
+    } else if (isColumnRefConstantPair(*predicate.getChild(1), *predicate.getChild(0))) {
+        if (column != *predicate.getChild(1)) {
             return nullptr;
         }
         auto value = predicate.getChild(0)->constCast<LiteralExpression>().getValue();
         auto expressionType =
             ExpressionTypeUtil::reverseComparisonDirection(predicate.expressionType);
-        return std::make_unique<ColumnConstantPredicate>(expressionType, value);
+        return std::make_unique<ColumnConstantPredicate>(column.toString(), expressionType, value);
     }
     // Not a predicate that runs on this property.
     return nullptr;

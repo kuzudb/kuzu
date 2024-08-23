@@ -62,6 +62,9 @@ private:
     // Push Filter into EXTEND.
     std::shared_ptr<planner::LogicalOperator> visitExtendReplace(
         const std::shared_ptr<planner::LogicalOperator>& op);
+    // Push Filter into TABLE_FUNCTION_CALL
+    std::shared_ptr<planner::LogicalOperator> visitTableFunctionCallReplace(
+        const std::shared_ptr<planner::LogicalOperator>& op);
 
     // Finish the current push down optimization by apply remaining predicates as a single filter.
     // And heuristically reorder equality predicates first in the filter.

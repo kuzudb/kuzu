@@ -8,6 +8,7 @@
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 
 using namespace kuzu::binder;
@@ -37,6 +38,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
         //    }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return visitScanNodeTableReplace(op);
+    }
+    case LogicalOperatorType::TABLE_FUNCTION_CALL: {
+        return visitTableFunctionCallReplace(op);
     }
     default: { // Stop current push down for unhandled operator.
         for (auto i = 0u; i < op->getNumChildren(); ++i) {
@@ -127,17 +131,26 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     return appendFilters(predicates, hashJoin);
 }
 
-static ColumnPredicateSet getPropertyPredicateSet(const Expression& property,
+static ColumnPredicateSet getPredicateSet(const Expression& column,
     const binder::expression_vector& predicates) {
-    auto propertyPredicateSet = ColumnPredicateSet();
+    auto predicateSet = ColumnPredicateSet();
     for (auto& predicate : predicates) {
-        auto columnPredicate = ColumnPredicateUtil::tryConvert(property, *predicate);
+        auto columnPredicate = ColumnPredicateUtil::tryConvert(column, *predicate);
         if (columnPredicate == nullptr) {
             continue;
         }
-        propertyPredicateSet.addPredicate(std::move(columnPredicate));
+        predicateSet.addPredicate(std::move(columnPredicate));
     }
-    return propertyPredicateSet;
+    return predicateSet;
+}
+
+static std::vector<ColumnPredicateSet> getColumnPredicateSets(const expression_vector& columns,
+    const expression_vector& predicates) {
+    std::vector<ColumnPredicateSet> predicateSets;
+    for (auto& column : columns) {
+        predicateSets.push_back(getPredicateSet(*column, predicates));
+    }
+    return predicateSets;
 }
 
 static bool isConstantExpression(const std::shared_ptr<Expression> expression) {
@@ -166,14 +179,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
     auto nodeID = scan.getNodeID();
     // Apply column predicates.
     if (context->getClientConfig()->enableZoneMap) {
-        std::vector<ColumnPredicateSet> propertyPredicateSets;
-        auto predicates = predicateSet.getAllPredicates();
-        for (auto& property : scan.getProperties()) {
-            propertyPredicateSets.push_back(getPropertyPredicateSet(*property, predicates));
-        }
-        scan.setPropertyPredicates(std::move(propertyPredicateSets));
+        scan.setPropertyPredicates(
+            getColumnPredicateSets(scan.getProperties(), predicateSet.getAllPredicates()));
     }
-
     // Apply index scan
     auto tableIDs = scan.getTableIDs();
     std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
@@ -195,6 +203,15 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
     return finishPushDown(op);
 }
 
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitTableFunctionCallReplace(
+    const std::shared_ptr<LogicalOperator>& op) {
+    auto& tableFunctionCall = op->cast<LogicalTableFunctionCall>();
+    auto columnPredicates =
+        getColumnPredicateSets(tableFunctionCall.getColumns(), predicateSet.getAllPredicates());
+    tableFunctionCall.setColumnPredicates(std::move(columnPredicates));
+    return finishPushDown(op);
+}
+
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     if (op->ptrCast<BaseLogicalExtend>()->isRecursive() ||
@@ -203,12 +220,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
     }
     auto& extend = op->cast<LogicalExtend>();
     // Apply column predicates.
-    std::vector<ColumnPredicateSet> propertyPredicateSets;
-    auto predicates = predicateSet.getAllPredicates();
-    for (auto& property : extend.getProperties()) {
-        propertyPredicateSets.push_back(getPropertyPredicateSet(*property, predicates));
-    }
-    extend.setPropertyPredicates(std::move(propertyPredicateSets));
+    auto columnPredicates =
+        getColumnPredicateSets(extend.getProperties(), predicateSet.getAllPredicates());
+    extend.setPropertyPredicates(std::move(columnPredicates));
     return finishPushDown(op);
 }
 

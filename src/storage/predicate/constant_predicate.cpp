@@ -70,5 +70,23 @@ ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
         [&](auto) { return ZoneMapCheckResult::ALWAYS_SCAN; });
 }
 
+std::string ColumnConstantPredicate::toString() {
+    std::string valStr;
+    if (value.getDataType().getPhysicalType() == PhysicalTypeID::STRING ||
+        value.getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
+        value.getDataType().getPhysicalType() == PhysicalTypeID::ARRAY ||
+        value.getDataType().getPhysicalType() == PhysicalTypeID::STRUCT ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::UUID ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::TIMESTAMP ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::DATE ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::INTERVAL) {
+        valStr = stringFormat("'{}'", value.toString());
+    } else {
+        valStr = value.toString();
+    }
+    return stringFormat("{} {} {}", columnName,
+        ExpressionTypeUtil::toParsableString(expressionType), valStr);
+}
+
 } // namespace storage
 } // namespace kuzu

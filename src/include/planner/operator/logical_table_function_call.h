@@ -19,8 +19,12 @@ public:
 
     const function::TableFunction& getTableFunc() const { return tableFunc; }
     const function::TableFuncBindData* getBindData() const { return bindData.get(); }
+
     void setColumnSkips(std::vector<bool> columnSkips) {
         bindData->setColumnSkips(std::move(columnSkips));
+    }
+    void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
+        bindData->setColumnPredicates(std::move(predicates));
     }
 
     void computeFlatSchema() override;

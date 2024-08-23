@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 #include "common/assert.h"
 #include "common/numeric_utils.h"
@@ -43,16 +42,6 @@ bool isLittleEndian();
 
 template<typename T>
 bool integerFitsIn(int64_t val);
-
-template<typename T>
-std::vector<T> copyVector(const std::vector<T>& objects) {
-    std::vector<T> result;
-    result.reserve(objects.size());
-    for (auto& object : objects) {
-        result.push_back(object->copy());
-    }
-    return result;
-}
 
 } // namespace common
 } // namespace kuzu

@@ -22,14 +22,19 @@ using duckdb_conversion_func_t = std::function<void(duckdb::Vector& duckDBVector
 using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Connection>()>;
 
 struct DuckDBScanBindData : public function::TableFuncBindData {
-    explicit DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, const DuckDBConnector& connector);
-
-    std::unique_ptr<TableFuncBindData> copy() const override;
-
     std::string query;
     std::vector<duckdb_conversion_func_t> conversionFunctions;
     const DuckDBConnector& connector;
+
+    DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
+        std::vector<std::string> columnNames, const DuckDBConnector& connector);
+    DuckDBScanBindData(const DuckDBScanBindData& other)
+        : function::TableFuncBindData{other}, query{other.query},
+          conversionFunctions{other.conversionFunctions}, connector{other.connector} {}
+
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<DuckDBScanBindData>(*this);
+    }
 };
 
 struct DuckDBScanSharedState : public function::BaseScanSharedStateWithNumRows {
