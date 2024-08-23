@@ -61,6 +61,8 @@ private:
 
     void setStats(const std::string& statsString);
 
+    void setLinenoiseMode(int mode);
+
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> conn;

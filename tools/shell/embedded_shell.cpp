@@ -41,6 +41,8 @@ namespace main {
 // prompt for user input
 const char* PROMPT = "kuzu> ";
 const char* ALTPROMPT = "..> ";
+const char* CONPROMPT = "\u00B7 ";
+const char* SCONPROMPT = "\u2023 ";
 
 // build-in shell command
 struct ShellCommand {
@@ -51,8 +53,10 @@ struct ShellCommand {
     const char* MAX_WIDTH = ":max_width";
     const char* MODE = ":mode";
     const char* STATS = ":stats";
-    const std::array<const char*, 7> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
-        STATS};
+    const char* MULTI = ":multiline";
+    const char* SINGLE = ":singleline";
+    const std::array<const char*, 9> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS, MULTI, SINGLE};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -70,6 +74,7 @@ std::vector<std::string> relTableNames;
 
 bool continueLine = false;
 std::string currLine;
+std::string historyLine;
 
 static Connection* globalConnection;
 
@@ -280,6 +285,10 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setMode(arg);
     } else if (command == shellCommand.STATS) {
         setStats(arg);
+    } else if (command == shellCommand.MULTI) {
+        setLinenoiseMode(1);
+    } else if (command == shellCommand.SINGLE) {
+        setLinenoiseMode(0);
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -308,6 +317,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
     std::string query;
     std::stringstream ss;
     std::vector<std::unique_ptr<QueryResult>> queryResults;
+    historyLine = "";
     // Append rest of multiline query to current input line
     if (continueLine) {
         input = std::move(currLine) + std::move(input);
@@ -319,7 +329,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
     if (!continueLine && input[0] == ':') {
         processShellCommands(input);
         // process queries
-    } else if (!input.empty() && input.back() == ';') {
+    } else if (!input.empty() && cypherComplete((char*)input.c_str())) {
         ss.clear();
         ss.str(input);
         while (getline(ss, query, ';')) {
@@ -328,9 +338,10 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
         continueLine = true;
-        currLine += input + " ";
+        currLine += input + "\n";
     }
     updateTableNames();
+    historyLine = input;
     return queryResults;
 }
 
@@ -341,7 +352,7 @@ void EmbeddedShell::printErrorMessage(std::string input, QueryResult& queryResul
     if (errMsg.find(ParserException::ERROR_PREFIX) == 0) {
         std::string trimmedinput = input;
         trimmedinput.erase(0, trimmedinput.find_first_not_of(" \t\n\r\f\v"));
-        if (trimmedinput.find(' ') == std::string::npos) {
+        if (trimmedinput.find_first_of(" \t\n\r\f\v") == std::string::npos) {
             printf("\"%s\" is not a valid Cypher query. Did you mean to issue a "
                    "CLI command, e.g., \"%s\"?\n",
                 input.c_str(), findClosestCommand(input).c_str());
@@ -377,7 +388,8 @@ void EmbeddedShell::run() {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
+    while (
+        (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
         auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {
@@ -411,8 +423,8 @@ void EmbeddedShell::run() {
                 printErrorMessage(lineStr, *queryResult);
             }
         }
-        if (!continueLine) {
-            linenoiseHistoryAdd(lineStr.c_str());
+        if (!continueLine && !historyLine.empty()) {
+            linenoiseHistoryAdd(historyLine.c_str());
         }
         linenoiseHistorySave(path_to_history);
         free(line);
@@ -435,6 +447,15 @@ void EmbeddedShell::interruptHandler(int /*signal*/) {
 #else
     SetConsoleOutputCP(oldOutputCP);
 #endif
+}
+
+void EmbeddedShell::setLinenoiseMode(int mode) {
+    linenoiseSetMultiLine(mode, path_to_history);
+    if (mode == 0) {
+        printf("Single line mode enabled\n");
+    } else {
+        printf("Multi line mode enabled\n");
+    }
 }
 
 void EmbeddedShell::setMaxRows(const std::string& maxRowsString) {
@@ -557,6 +578,8 @@ void EmbeddedShell::printHelp() {
         shellCommand.MAX_WIDTH, TAB);
     printf("%s%s [mode] %sset output mode (default: box)\n", TAB, shellCommand.MODE, TAB);
     printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
+    printf("%s%s %sset multiline mode\n", TAB, shellCommand.MULTI, TAB);
+    printf("%s%s %sset singleline mode (default)\n", TAB, shellCommand.SINGLE, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);

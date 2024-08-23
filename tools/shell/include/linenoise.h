@@ -62,19 +62,20 @@ void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback*);
 void linenoiseSetHighlightCallback(linenoiseHighlightCallback*);
 void linenoiseAddCompletion(linenoiseCompletions*, const char*);
 
-char* linenoise(const char* prompt);
+char* linenoise(const char* prompt, const char* continuePrompt, const char* selectedContinuePrompt);
 void linenoiseFree(void* ptr);
 int linenoiseHistoryAdd(const char* line);
 int linenoiseHistorySetMaxLen(int len);
 int linenoiseHistorySave(const char* filename);
 int linenoiseHistoryLoad(const char* filename);
 void linenoiseClearScreen(void);
-void linenoiseSetMultiLine(int ml);
+void linenoiseSetMultiLine(int ml, const char* filename);
 void linenoisePrintKeyCodes(void);
 void linenoiseMaskModeEnable(void);
 void linenoiseMaskModeDisable(void);
 uint32_t linenoiseComputeRenderWidth(const char* buf, size_t len);
 int getColumns(int ifd, int ofd);
+bool cypherComplete(const char* z);
 
 #ifdef __cplusplus
 }

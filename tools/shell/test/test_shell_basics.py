@@ -63,6 +63,7 @@ def test_multi_queries_one_line(temp_db) -> None:
     # two successful queries
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a; RETURN "kuzu is cool" AS b;')
     result = test.run()
+    print(result.stdout)
     result.check_stdout("\u2502 databases rule \u2502")
     result.check_stdout("\u2502 kuzu is cool \u2502")
 
@@ -189,3 +190,14 @@ def test_kuzurc(temp_db) -> None:
     result.check_stdout("b")
 
     deleteIfExists(".kuzurc")
+
+
+def test_comments(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('RETURN // testing\n /* test\ntest\ntest */"databases rule" // testing\n AS a\n; // testing')
+        .statement('\x1b[A\r') # run the last command again to make sure comments are still ignored
+    )
+    result = test.run()
+    result.check_stdout("\u2502 databases rule \u2502")
