@@ -954,6 +954,10 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | WRITE
+        | SINGLE
+        | NONE
+        | ANY
+        | ALL
         ;
 
 UnescapedSymbolicName
