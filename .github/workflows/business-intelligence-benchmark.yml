@@ -13,7 +13,9 @@ on:
         type: choice
         options:
           - "1"
-          # TODO: Add more scale factors here
+          - "10"
+          - "30"
+          - "100"
 
 jobs:
   benchmark:
