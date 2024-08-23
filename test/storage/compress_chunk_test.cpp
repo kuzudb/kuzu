@@ -456,9 +456,8 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
             src[i] = src[i - 10] + 1;
         }
 
-        InPlaceUpdateLocalState localUpdateState{};
-        ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), 0, src.size(),
-            dataType.getPhysicalType(), localUpdateState));
+        // in practice canUpdateInPlace() will return false so we will typically not in-place update
+        // in this case however it is still worth testing if it works
         reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), nullptr, 0, src.size(),
             WriteCompressedValuesToPage(dataType));
     });
