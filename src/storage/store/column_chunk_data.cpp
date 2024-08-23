@@ -82,7 +82,7 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, uint64_t capacity, bool e
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(capacity, enableCompression, residencyState);
     }
-    initializeBuffer(dataType.getPhysicalType());
+    initializeBuffer(this->dataType.getPhysicalType());
     initializeFunction(enableCompression);
 }
 
@@ -95,7 +95,7 @@ ColumnChunkData::ColumnChunkData(LogicalType dataType, bool enableCompression,
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(enableCompression, metadata);
     }
-    initializeBuffer(dataType.getPhysicalType());
+    initializeBuffer(this->dataType.getPhysicalType());
     initializeFunction(enableCompression);
 }
 
