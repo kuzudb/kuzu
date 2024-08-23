@@ -329,13 +329,13 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
     if (!continueLine && input[0] == ':') {
         processShellCommands(input);
         // process queries
-    } else if (!input.empty() && cypherComplete((char *) input.c_str())) {
+    } else if (!input.empty() && cypherComplete((char*)input.c_str())) {
         ss.clear();
         ss.str(input);
         while (getline(ss, query, ';')) {
             queryResults.push_back(conn->query(query));
         }
-    // set up multiline query if current query doesn't end with a semicolon
+        // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
         continueLine = true;
         currLine += input + "\n";
@@ -388,7 +388,8 @@ void EmbeddedShell::run() {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
+    while (
+        (line = linenoise(continueLine ? ALTPROMPT : PROMPT, CONPROMPT, SCONPROMPT)) != nullptr) {
         auto lineStr = std::string(line);
         lineStr = lineStr.erase(lineStr.find_last_not_of(" \t\n\r\f\v") + 1);
         if (!lineStr.empty() && lineStr[0] == ctrl_c) {

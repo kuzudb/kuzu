@@ -75,7 +75,7 @@ void linenoiseMaskModeEnable(void);
 void linenoiseMaskModeDisable(void);
 uint32_t linenoiseComputeRenderWidth(const char* buf, size_t len);
 int getColumns(int ifd, int ofd);
-bool cypherComplete(const char *z);
+bool cypherComplete(const char* z);
 
 #ifdef __cplusplus
 }

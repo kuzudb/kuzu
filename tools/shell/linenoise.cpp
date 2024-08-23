@@ -228,35 +228,36 @@ struct searchMatch {
  * We pass this state to functions implementing specific editing
  * functionalities. */
 struct linenoiseState {
-    int ifd;                            /* Terminal stdin file descriptor. */
-    int ofd;                            /* Terminal stdout file descriptor. */
-    char* buf;                          /* Edited line buffer. */
-    size_t buflen;                      /* Edited line buffer size. */
-    const char* prompt;                 /* Prompt to display. */
-    const char* continuePrompt;         /* Prompt to display when continuing a line */
-    const char* selectedContinuePrompt; /* Prompt to display when continuing a line and text is selected */
-    size_t plen;                        /* Prompt length. */
-    size_t pos;                         /* Current cursor position. */
-    size_t oldpos;                      /* Previous refresh cursor position. */
-    size_t len;                         /* Current edited line length. */
-    size_t totalUTF8Chars;              /* Number of utf-8 chars in buffer. */
-    size_t cols;                        /* Number of columns in terminal. */
-    size_t rows;                        /* Number of rows in terminal. */
-    size_t maxrows;                     /* Maximum num of rows used so far (multiline mode) */
-    size_t y_scroll;                    /* The y scroll position (multiline mode) */
-    int history_index;                  /* The history index we are currently editing. */
-    bool search;                        /* Whether or not we are searching our history */
-    bool render;                        /* Whether or not to re-render */
-    bool clear_screen;                  /* Whether we are clearing the screen */
-    bool hasMoreData;                   /* Whether or not there is more data available in the buffer (copy+paste)*/
-    bool continuePromptActive;          /* Whether or not the continue prompt is active */
+    int ifd;                    /* Terminal stdin file descriptor. */
+    int ofd;                    /* Terminal stdout file descriptor. */
+    char* buf;                  /* Edited line buffer. */
+    size_t buflen;              /* Edited line buffer size. */
+    const char* prompt;         /* Prompt to display. */
+    const char* continuePrompt; /* Prompt to display when continuing a line */
+    const char*
+        selectedContinuePrompt; /* Prompt to display when continuing a line and text is selected */
+    size_t plen;                /* Prompt length. */
+    size_t pos;                 /* Current cursor position. */
+    size_t oldpos;              /* Previous refresh cursor position. */
+    size_t len;                 /* Current edited line length. */
+    size_t totalUTF8Chars;      /* Number of utf-8 chars in buffer. */
+    size_t cols;                /* Number of columns in terminal. */
+    size_t rows;                /* Number of rows in terminal. */
+    size_t maxrows;             /* Maximum num of rows used so far (multiline mode) */
+    size_t y_scroll;            /* The y scroll position (multiline mode) */
+    int history_index;          /* The history index we are currently editing. */
+    bool search;                /* Whether or not we are searching our history */
+    bool render;                /* Whether or not to re-render */
+    bool clear_screen;          /* Whether we are clearing the screen */
+    bool hasMoreData; /* Whether or not there is more data available in the buffer (copy+paste)*/
+    bool continuePromptActive;               /* Whether or not the continue prompt is active */
     std::string search_buf;                  //! The search buffer
     std::vector<searchMatch> search_matches; //! The set of search matches in our history
     std::string prev_search_match;           //! The previous search match
     int prev_search_match_history_index;     //! The previous search match history index
     size_t search_index;                     //! The current match index
-    size_t search_maxrows;                   //! The maximum number of rows used so far in search mode
-    size_t search_oldpos;                    //! The previous refresh cursor position in search mode
+    size_t search_maxrows; //! The maximum number of rows used so far in search mode
+    size_t search_oldpos;  //! The previous refresh cursor position in search mode
 };
 
 enum KEY_ACTION {
@@ -362,76 +363,78 @@ int linenoiseHistoryAdd(const char* line) {
         bool endWhile = false;
         while (*z) {
             switch (*z) {
-                case ' ':
-                case '\r':
-                case '\t':
-                case '\n':
-                case '\f': {  /* White space is turned into a space */
-                    spaceCount++;
-                    if (spaceCount >= 4) {
-                        spaceCount = 0;
+            case ' ':
+            case '\r':
+            case '\t':
+            case '\n':
+            case '\f': { /* White space is turned into a space */
+                spaceCount++;
+                if (spaceCount >= 4) {
+                    spaceCount = 0;
+                    singleLineCopy += ' ';
+                } else if (z[1] && !isspace((unsigned char)z[1])) {
+                    for (auto i = 0; i < spaceCount; i++) {
                         singleLineCopy += ' ';
-                    } else if (z[1] && !isspace((unsigned char)z[1])) {
-                        for (auto i = 0; i < spaceCount; i++) {
-                            singleLineCopy += ' ';
-                        }
-                        spaceCount = 0;
                     }
+                    spaceCount = 0;
+                }
+                break;
+            }
+            case '*': {
+                singleLineCopy += *z;
+                if (inQuote || !inComment) {
                     break;
                 }
-                case '*': {
+                if (z[1] == '/') {
+                    z++;
                     singleLineCopy += *z;
-                    if (inQuote || !inComment) {
-                        break;
-                    }
-                    if (z[1] == '/') {
+                    inComment = false;
+                    break;
+                }
+                break;
+            }
+            case '/': { /* C-style comments */
+                if (inQuote || inComment) {
+                    singleLineCopy += *z;
+                    break;
+                }
+                if (z[1] == '*') {
+                    singleLineCopy += *z;
+                    z++;
+                    singleLineCopy += *z;
+                    inComment = true;
+                    break;
+                } else if (z[1] == '/') {
+                    while (*z && *z != '\n') {
                         z++;
-                        singleLineCopy += *z;
-                        inComment = false;
+                    }
+                    if (*z == 0) {
+                        endWhile = true;
                         break;
                     }
                     break;
-                }
-                case '/': {   /* C-style comments */
-                    if (inQuote || inComment) {
-                        singleLineCopy += *z;
-                        break;
-                    }
-                    if (z[1] == '*') {
-                        singleLineCopy += *z;
-                        z++;
-                        singleLineCopy += *z;
-                        inComment = true;
-                        break;
-                    } else if (z[1] == '/') {
-                        while (*z && *z != '\n') { z++; }
-                        if (*z == 0) {
-                            endWhile = true;
-                            break;
-                        }
-                        break;
-                    } else {
-                        break;
-                    }
-                }
-                case '`':     /* Grave-accent quoted symbols */
-                case '"':     /* single- and double-quoted strings */
-                case '\'': {
-                    singleLineCopy += *z;
-                    if (!inComment) {
-                        if (!inQuote) {
-                            quote = *z;
-                            inQuote = true;
-                        } else if (quote == *z && (z[-1] != '\\' || (z[-1] == '\\' && z[-2] == '\\'))) {
-                            inQuote = false;
-                        }
-                    }
+                } else {
                     break;
                 }
-                default: {
-                    singleLineCopy += *z;
-                    break;
+            }
+            case '`': /* Grave-accent quoted symbols */
+            case '"': /* single- and double-quoted strings */
+            case '\'': {
+                singleLineCopy += *z;
+                if (!inComment) {
+                    if (!inQuote) {
+                        quote = *z;
+                        inQuote = true;
+                    } else if (quote == *z && (z[-1] != '\\' || (z[-1] == '\\' && z[-2] == '\\'))) {
+                        inQuote = false;
+                    }
                 }
+                break;
+            }
+            default: {
+                singleLineCopy += *z;
+                break;
+            }
             }
             if (endWhile) {
                 break;
@@ -441,29 +444,29 @@ int linenoiseHistoryAdd(const char* line) {
         linecopy = strdup(singleLineCopy.c_str());
     } else {
         // replace all '\n' with '\r\n'
-		uint64_t replaced_newline_count = 0;
-		uint64_t len;
-		for (len = 0; line[len]; len++) {
-			if (line[len] == '\r' && line[len + 1] == '\n') {
-				// \r\n - skip past the \n
-				len++;
-			} else if (line[len] == '\n') {
-				replaced_newline_count++;
-			}
-		}
-		linecopy = (char *)malloc((len + replaced_newline_count + 1) * sizeof(char));
-		uint64_t pos = 0;
-		for (len = 0; line[len]; len++) {
-			if (line[len] == '\r' && line[len + 1] == '\n') {
-				// \r\n - skip past the \n
-				linecopy[pos++] = '\r';
-				len++;
-			} else if (line[len] == '\n') {
-				linecopy[pos++] = '\r';
-			}
-			linecopy[pos++] = line[len];
-		}
-		linecopy[pos] = '\0';
+        uint64_t replaced_newline_count = 0;
+        uint64_t len;
+        for (len = 0; line[len]; len++) {
+            if (line[len] == '\r' && line[len + 1] == '\n') {
+                // \r\n - skip past the \n
+                len++;
+            } else if (line[len] == '\n') {
+                replaced_newline_count++;
+            }
+        }
+        linecopy = (char*)malloc((len + replaced_newline_count + 1) * sizeof(char));
+        uint64_t pos = 0;
+        for (len = 0; line[len]; len++) {
+            if (line[len] == '\r' && line[len + 1] == '\n') {
+                // \r\n - skip past the \n
+                linecopy[pos++] = '\r';
+                len++;
+            } else if (line[len] == '\n') {
+                linecopy[pos++] = '\r';
+            }
+            linecopy[pos++] = line[len];
+        }
+        linecopy[pos] = '\0';
     }
 
     /* Don't add duplicated lines. */
@@ -592,7 +595,6 @@ int linenoiseHistoryLoad(const char* filename) {
 
     return 0;
 }
-
 
 #ifdef _WIN32
 HANDLE hOut;
@@ -1096,27 +1098,23 @@ void linenoiseAddCompletion(linenoiseCompletions* lc, const char* str) {
  * write all the escape sequences in a buffer and flush them to the standard
  * output in a single call, to avoid flickering effects. */
 struct AppendBuffer {
-	void abAppend(const char *s, uint64_t len) {
-		buffer.append(s, len);
-	}
-	void abAppend(const char *s) {
-		buffer.append(s);
-	}
+    void abAppend(const char* s, uint64_t len) { buffer.append(s, len); }
+    void abAppend(const char* s) { buffer.append(s); }
 
-	void abWrite(int fd) {
-		if (write(fd, buffer.c_str(), buffer.size()) == -1) {
-			/* Can't recover from write error. */
-			lndebug("%s", "Failed to write buffer\n");
-		}
-	}
+    void abWrite(int fd) {
+        if (write(fd, buffer.c_str(), buffer.size()) == -1) {
+            /* Can't recover from write error. */
+            lndebug("%s", "Failed to write buffer\n");
+        }
+    }
 
 private:
-	std::string buffer;
+    std::string buffer;
 };
 
 /* Helper of refreshSingleLine() and refreshMultiLine() to show hints
  * to the right of the prompt. */
-void refreshShowHints(AppendBuffer &append_buffer, struct linenoiseState* l, int plen) {
+void refreshShowHints(AppendBuffer& append_buffer, struct linenoiseState* l, int plen) {
     char seq[64];
     if (hintsCallback && plen + l->len < l->cols) {
         int color = -1, bold = 0;
@@ -1272,121 +1270,124 @@ bool isNewline(char c) {
     return c == '\n' || c == '\r';
 }
 
-void nextPosition(const char *buf, size_t len, size_t &cpos, size_t &rows, size_t &cols, int plen, size_t ws_col) {
-	if (isNewline(buf[cpos])) {
-		// explicit newline! move to next line and insert a prompt
-		rows++;
-		cols = plen;
-		cpos++;
-		if (buf[cpos - 1] == '\r' && cpos < len && buf[cpos] == '\n') {
-			cpos++;
-		}
-		return;
-	}
-	int sz;
-	int char_render_width;
-	if (Utf8Proc::utf8ToCodepoint(buf + cpos, sz) < 0) {
-		char_render_width = 1;
-		cpos++;
-	} else {
-		char_render_width = (int)Utf8Proc::renderWidth(buf, cpos);
-		cpos = utf8proc_next_grapheme(buf, len, cpos);
-	}
-	if (cols + char_render_width > ws_col) {
-		// exceeded l->cols, move to next row
-		rows++;
-		cols = char_render_width;
-	}
-	cols += char_render_width;
+void nextPosition(const char* buf, size_t len, size_t& cpos, size_t& rows, size_t& cols, int plen,
+    size_t ws_col) {
+    if (isNewline(buf[cpos])) {
+        // explicit newline! move to next line and insert a prompt
+        rows++;
+        cols = plen;
+        cpos++;
+        if (buf[cpos - 1] == '\r' && cpos < len && buf[cpos] == '\n') {
+            cpos++;
+        }
+        return;
+    }
+    int sz;
+    int char_render_width;
+    if (Utf8Proc::utf8ToCodepoint(buf + cpos, sz) < 0) {
+        char_render_width = 1;
+        cpos++;
+    } else {
+        char_render_width = (int)Utf8Proc::renderWidth(buf, cpos);
+        cpos = utf8proc_next_grapheme(buf, len, cpos);
+    }
+    if (cols + char_render_width > ws_col) {
+        // exceeded l->cols, move to next row
+        rows++;
+        cols = char_render_width;
+    }
+    cols += char_render_width;
 }
 
-void positionToColAndRow(size_t target_pos, int &out_row, int &out_col, size_t &rows, size_t &cols, struct linenoiseState* l) {
-	int plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
-	out_row = -1;
-	out_col = 0;
-	rows = 1;
-	cols = plen;
-	size_t cpos = 0;
-	while (cpos < l->len) {
-		if (cols >= l->cols && !isNewline(l->buf[cpos])) {
-			// exceeded width - move to next line
-			rows++;
-			cols = 0;
-		}
-		if (out_row < 0 && cpos >= target_pos) {
-			out_row = rows;
-			out_col = cols;
-		}
-		nextPosition(l->buf, l->len, cpos, rows, cols, plen, l->cols);
-	}
-	if (target_pos == l->len) {
-		out_row = rows;
-		out_col = cols;
-	}
+void positionToColAndRow(size_t target_pos, int& out_row, int& out_col, size_t& rows, size_t& cols,
+    struct linenoiseState* l) {
+    int plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
+    out_row = -1;
+    out_col = 0;
+    rows = 1;
+    cols = plen;
+    size_t cpos = 0;
+    while (cpos < l->len) {
+        if (cols >= l->cols && !isNewline(l->buf[cpos])) {
+            // exceeded width - move to next line
+            rows++;
+            cols = 0;
+        }
+        if (out_row < 0 && cpos >= target_pos) {
+            out_row = rows;
+            out_col = cols;
+        }
+        nextPosition(l->buf, l->len, cpos, rows, cols, plen, l->cols);
+    }
+    if (target_pos == l->len) {
+        out_row = rows;
+        out_col = cols;
+    }
 }
 
 size_t colAndRowToPosition(size_t target_row, size_t target_col, struct linenoiseState* l) {
-	int plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
-	size_t rows = 1;
-	size_t cols = plen;
-	size_t last_cpos = 0;
-	size_t cpos = 0;
-	while (cpos < l->len) {
-		if (cols >= l->cols) {
-			// exceeded width - move to next line
-			rows++;
-			cols = 0;
-		}
-		if (rows > target_row) {
-			// we have skipped our target row - that means "target_col" was out of range for this row
-			// return the last position within the target row
-			return last_cpos;
-		}
-		if (rows == target_row) {
-			last_cpos = cpos;
-		}
-		if (rows == target_row && cols == target_col) {
-			return cpos;
-		}
-		nextPosition(l->buf, l->len, cpos, rows, cols, plen, l->cols);
-	}
-	return cpos;
+    int plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
+    size_t rows = 1;
+    size_t cols = plen;
+    size_t last_cpos = 0;
+    size_t cpos = 0;
+    while (cpos < l->len) {
+        if (cols >= l->cols) {
+            // exceeded width - move to next line
+            rows++;
+            cols = 0;
+        }
+        if (rows > target_row) {
+            // we have skipped our target row - that means "target_col" was out of range for this
+            // row return the last position within the target row
+            return last_cpos;
+        }
+        if (rows == target_row) {
+            last_cpos = cpos;
+        }
+        if (rows == target_row && cols == target_col) {
+            return cpos;
+        }
+        nextPosition(l->buf, l->len, cpos, rows, cols, plen, l->cols);
+    }
+    return cpos;
 }
 
-std::string linenoiseAddContinuationMarkers(const char *buf, size_t len, size_t plen, int cursor_row, struct linenoiseState* l) {
-	std::string result;
-	size_t rows = 1;
-	size_t cols = plen;
-	size_t cpos = 0;
-	size_t prev_pos = 0;
-	size_t extra_bytes = 0;    // extra bytes introduced
-	while (cpos < len) {
-		bool is_newline = isNewline(buf[cpos]);
-		nextPosition(buf, len, cpos, rows, cols, plen, l->cols);
-		for (; prev_pos < cpos; prev_pos++) {
-			result += buf[prev_pos];
-		}
-		if (is_newline) {
-			bool is_cursor_row = (int) rows == cursor_row;
-			const char *prompt = is_cursor_row ? l->selectedContinuePrompt : l->continuePrompt;
+std::string linenoiseAddContinuationMarkers(const char* buf, size_t len, size_t plen,
+    int cursor_row, struct linenoiseState* l) {
+    std::string result;
+    size_t rows = 1;
+    size_t cols = plen;
+    size_t cpos = 0;
+    size_t prev_pos = 0;
+    size_t extra_bytes = 0; // extra bytes introduced
+    while (cpos < len) {
+        bool is_newline = isNewline(buf[cpos]);
+        nextPosition(buf, len, cpos, rows, cols, plen, l->cols);
+        for (; prev_pos < cpos; prev_pos++) {
+            result += buf[prev_pos];
+        }
+        if (is_newline) {
+            bool is_cursor_row = (int)rows == cursor_row;
+            const char* prompt = is_cursor_row ? l->selectedContinuePrompt : l->continuePrompt;
             if (!l->continuePromptActive) {
                 prompt = "";
             }
-			size_t continuationLen = strlen(prompt);
-			size_t continuationRender = linenoiseComputeRenderWidth(prompt, continuationLen);
-			// pad with spaces prior to prompt
-			for (size_t i = continuationRender; i < plen; i++) {
-				result += " ";
-			}
-			result += prompt;
-			size_t continuationBytes = plen - continuationRender + continuationLen;
-			extra_bytes += continuationBytes;
-		}
-	}
-	for (; prev_pos < cpos; prev_pos++) {
-		result += buf[prev_pos];
-	}
-	return result;
+            size_t continuationLen = strlen(prompt);
+            size_t continuationRender = linenoiseComputeRenderWidth(prompt, continuationLen);
+            // pad with spaces prior to prompt
+            for (size_t i = continuationRender; i < plen; i++) {
+                result += " ";
+            }
+            result += prompt;
+            size_t continuationBytes = plen - continuationRender + continuationLen;
+            extra_bytes += continuationBytes;
+        }
+    }
+    for (; prev_pos < cpos; prev_pos++) {
+        result += buf[prev_pos];
+    }
+    return result;
 }
 
 /* Multi line low level line refresh.
@@ -1394,155 +1395,156 @@ std::string linenoiseAddContinuationMarkers(const char *buf, size_t len, size_t 
  * Rewrite the currently edited line accordingly to the buffer content,
  * cursor position, and number of columns of the terminal. */
 static void refreshMultiLine(struct linenoiseState* l) {
-	if (!l->render) {
-		return;
-	}
-	char seq[64];
-	int plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
-	// utf8 in prompt, get render width
-	size_t rows, cols;
-	int new_cursor_row, new_cursor_x;
-	positionToColAndRow(l->pos, new_cursor_row, new_cursor_x, rows, cols, l);
-	int col; /* colum position, zero-based. */
-	int old_rows = l->maxrows ? l->maxrows : 1;
-	int fd = l->ofd;
+    if (!l->render) {
+        return;
+    }
+    char seq[64];
+    int plen = linenoiseComputeRenderWidth(l->prompt, strlen(l->prompt));
+    // utf8 in prompt, get render width
+    size_t rows, cols;
+    int new_cursor_row, new_cursor_x;
+    positionToColAndRow(l->pos, new_cursor_row, new_cursor_x, rows, cols, l);
+    int col; /* colum position, zero-based. */
+    int old_rows = l->maxrows ? l->maxrows : 1;
+    int fd = l->ofd;
     char highlight_buffer[LINENOISE_MAX_LINE];
-	auto render_buf = l->buf;
-	auto render_len = l->len;
-	uint64_t render_start = 0;
-	uint64_t render_end = render_len;
-	if (l->clear_screen) {
-		l->oldpos = 0;
-		old_rows = 0;
-		l->clear_screen = false;
-	}
-	if (rows > l->rows) {
-		// the text does not fit in the terminal (too many rows)
-		// enable scrolling mode
-		// check if, given the current y_scroll, the cursor is visible
-		// display range is [y_scroll, y_scroll + l->rows]
-		if (new_cursor_row < int(l->y_scroll) + 1) {
-			l->y_scroll = new_cursor_row - 1;
-		} else if (new_cursor_row > int(l->y_scroll) + int(l->rows)) {
-			l->y_scroll = new_cursor_row - l->rows;
-		}
-		// display only characters up to the current scroll position
-		if (l->y_scroll == 0) {
-			render_start = 0;
-		} else {
-			render_start = colAndRowToPosition(l->y_scroll, 0, l);
-		}
-		if (l->y_scroll + l->rows >= rows) {
-			render_end = l->len;
-		} else {
-			render_end = colAndRowToPosition(l->y_scroll + l->rows, 99999, l);
-		}
-		new_cursor_row -= l->y_scroll;
-		render_buf += render_start;
-		render_len = render_end - render_start;
-		lndebug("truncate to rows %d - %d (render bytes %d to %d)", l->y_scroll, l->y_scroll + l->rows, render_start,
-		               render_end);
-		rows = l->rows;
-	} else {
-		l->y_scroll = 0;
-	}
+    auto render_buf = l->buf;
+    auto render_len = l->len;
+    uint64_t render_start = 0;
+    uint64_t render_end = render_len;
+    if (l->clear_screen) {
+        l->oldpos = 0;
+        old_rows = 0;
+        l->clear_screen = false;
+    }
+    if (rows > l->rows) {
+        // the text does not fit in the terminal (too many rows)
+        // enable scrolling mode
+        // check if, given the current y_scroll, the cursor is visible
+        // display range is [y_scroll, y_scroll + l->rows]
+        if (new_cursor_row < int(l->y_scroll) + 1) {
+            l->y_scroll = new_cursor_row - 1;
+        } else if (new_cursor_row > int(l->y_scroll) + int(l->rows)) {
+            l->y_scroll = new_cursor_row - l->rows;
+        }
+        // display only characters up to the current scroll position
+        if (l->y_scroll == 0) {
+            render_start = 0;
+        } else {
+            render_start = colAndRowToPosition(l->y_scroll, 0, l);
+        }
+        if (l->y_scroll + l->rows >= rows) {
+            render_end = l->len;
+        } else {
+            render_end = colAndRowToPosition(l->y_scroll + l->rows, 99999, l);
+        }
+        new_cursor_row -= l->y_scroll;
+        render_buf += render_start;
+        render_len = render_end - render_start;
+        lndebug("truncate to rows %d - %d (render bytes %d to %d)", l->y_scroll,
+            l->y_scroll + l->rows, render_start, render_end);
+        rows = l->rows;
+    } else {
+        l->y_scroll = 0;
+    }
 
-	/* Update maxrows if needed. */
-	if (rows > l->maxrows) {
-		l->maxrows = rows;
-	}
+    /* Update maxrows if needed. */
+    if (rows > l->maxrows) {
+        l->maxrows = rows;
+    }
 
     std::string continue_buffer;
-	if (rows > 1) {
-		// add continuation markers
-		continue_buffer = linenoiseAddContinuationMarkers(render_buf, render_len, plen, l->y_scroll > 0 ? new_cursor_row + 1 : new_cursor_row, l);
-		render_buf = (char *)continue_buffer.c_str();
-		render_len = continue_buffer.size();
-	}
-	if (Utf8Proc::isValid(render_buf, render_len)) {
-		if (highlightCallback) {
-			highlightCallback(render_buf, highlight_buffer, render_len, render_len);
-			render_buf = highlight_buffer;
-			render_len = strlen(highlight_buffer);
-		}
-	}
+    if (rows > 1) {
+        // add continuation markers
+        continue_buffer = linenoiseAddContinuationMarkers(render_buf, render_len, plen,
+            l->y_scroll > 0 ? new_cursor_row + 1 : new_cursor_row, l);
+        render_buf = (char*)continue_buffer.c_str();
+        render_len = continue_buffer.size();
+    }
+    if (Utf8Proc::isValid(render_buf, render_len)) {
+        if (highlightCallback) {
+            highlightCallback(render_buf, highlight_buffer, render_len, render_len);
+            render_buf = highlight_buffer;
+            render_len = strlen(highlight_buffer);
+        }
+    }
 
-	/* First step: clear all the lines used before. To do so start by
-	 * going to the last row. */
-	AppendBuffer append_buffer;
-	if (old_rows - l->oldpos > 0) {
-		lndebug("go down %d", old_rows - l->oldpos);
-		snprintf(seq, 64, "\x1b[%dB", old_rows - int(l->oldpos));
+    /* First step: clear all the lines used before. To do so start by
+     * going to the last row. */
+    AppendBuffer append_buffer;
+    if (old_rows - l->oldpos > 0) {
+        lndebug("go down %d", old_rows - l->oldpos);
+        snprintf(seq, 64, "\x1b[%dB", old_rows - int(l->oldpos));
         append_buffer.abAppend(seq);
-	}
+    }
 
-	/* Now for every row clear it, go up. */
+    /* Now for every row clear it, go up. */
     // printf("\noldrows: %d\n", old_rows);
-	for (int j = 0; j < old_rows - 1; j++) {
-		lndebug("clear+up");
+    for (int j = 0; j < old_rows - 1; j++) {
+        lndebug("clear+up");
         append_buffer.abAppend("\r\x1b[0K\x1b[1A");
-	}
+    }
 
-	/* Clean the top line. */
-	lndebug("clear");
+    /* Clean the top line. */
+    lndebug("clear");
     append_buffer.abAppend("\r\x1b[0K");
 
-	/* Write the prompt and the current buffer content */
-	if (l->y_scroll == 0) {
+    /* Write the prompt and the current buffer content */
+    if (l->y_scroll == 0) {
         append_buffer.abAppend(l->prompt);
-	}
+    }
     append_buffer.abAppend(render_buf, render_len);
 
-	/* Show hints if any. */
-	refreshShowHints(append_buffer, l, plen);
+    /* Show hints if any. */
+    refreshShowHints(append_buffer, l, plen);
 
-	/* If we are at the very end of the screen with our prompt, we need to
-	 * emit a newline and move the prompt to the first column. */
-	lndebug("pos > 0 %d", l->pos > 0 ? 1 : 0);
-	lndebug("pos == len %d", l->pos == l->len ? 1 : 0);
-	lndebug("new_cursor_x == cols %d", new_cursor_x == l->cols ? 1 : 0);
-	if (l->pos > 0 && l->pos == l->len && new_cursor_x == (int)l->cols) {
-		lndebug("<newline>", 0);
+    /* If we are at the very end of the screen with our prompt, we need to
+     * emit a newline and move the prompt to the first column. */
+    lndebug("pos > 0 %d", l->pos > 0 ? 1 : 0);
+    lndebug("pos == len %d", l->pos == l->len ? 1 : 0);
+    lndebug("new_cursor_x == cols %d", new_cursor_x == l->cols ? 1 : 0);
+    if (l->pos > 0 && l->pos == l->len && new_cursor_x == (int)l->cols) {
+        lndebug("<newline>", 0);
         append_buffer.abAppend("\n");
-		append_buffer.abAppend("\r");
-		rows++;
-		new_cursor_row++;
-		new_cursor_x = 0;
-		if (rows > l->maxrows) {
-			l->maxrows = rows;
-		}
-	}
-	lndebug("render %d rows (old rows %d)", rows, old_rows);
+        append_buffer.abAppend("\r");
+        rows++;
+        new_cursor_row++;
+        new_cursor_x = 0;
+        if (rows > l->maxrows) {
+            l->maxrows = rows;
+        }
+    }
+    lndebug("render %d rows (old rows %d)", rows, old_rows);
 
-	/* Move cursor to right position. */
-	lndebug("new_cursor_row %d", new_cursor_row);
-	lndebug("new_cursor_x %d", new_cursor_x);
-	lndebug("len %d", l->len);
-	lndebug("old_cursor_rows %d", l->oldpos);
-	lndebug("pos %d", l->pos);
-	lndebug("max cols %d", l->cols);
+    /* Move cursor to right position. */
+    lndebug("new_cursor_row %d", new_cursor_row);
+    lndebug("new_cursor_x %d", new_cursor_x);
+    lndebug("len %d", l->len);
+    lndebug("old_cursor_rows %d", l->oldpos);
+    lndebug("pos %d", l->pos);
+    lndebug("max cols %d", l->cols);
 
-	/* Go up till we reach the expected positon. */
+    /* Go up till we reach the expected positon. */
     // printf("rows - new_cursor_row %d\n", rows - new_cursor_row);
-	if (rows - new_cursor_row > 0) {
-		lndebug("go-up %d", rows - new_cursor_row);
-		snprintf(seq, 64, "\x1b[%ldA", rows - new_cursor_row);
+    if (rows - new_cursor_row > 0) {
+        lndebug("go-up %d", rows - new_cursor_row);
+        snprintf(seq, 64, "\x1b[%ldA", rows - new_cursor_row);
         append_buffer.abAppend(seq);
-	}
+    }
 
-	/* Set column. */
-	col = new_cursor_x;
-	lndebug("set col %d", 1 + col);
-	if (col) {
-		snprintf(seq, 64, "\r\x1b[%dC", col);
-	} else {
-		snprintf(seq, 64, "\r");
-	}
+    /* Set column. */
+    col = new_cursor_x;
+    lndebug("set col %d", 1 + col);
+    if (col) {
+        snprintf(seq, 64, "\r\x1b[%dC", col);
+    } else {
+        snprintf(seq, 64, "\r");
+    }
     append_buffer.abAppend(seq);
 
-	lndebug("\n");
-	l->oldpos = new_cursor_row;
-	append_buffer.abWrite(fd);
+    lndebug("\n");
+    l->oldpos = new_cursor_row;
+    append_buffer.abWrite(fd);
 }
 
 /* Calls the two low level functions refreshSingleLine() or
@@ -1679,7 +1681,7 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
         }
     }
 
-    char *buffer = (char *)strBuf.c_str();
+    char* buffer = (char*)strBuf.c_str();
     truncateText(buffer, len, l->pos, l->cols, plen, true, render_pos, highlightBuf);
     if (strlen(highlightBuf) > 0) {
         highlightSearchMatch(highlightBuf, buf, searchText);
@@ -1928,13 +1930,13 @@ static void performSearch(linenoiseState* l) {
         for (size_t i = history_len; i > 0; i--) {
             size_t history_index = i - 1;
             auto lhistory = std::string(history[history_index]);
-            
+
             if (mlmode) {
                 // Replace newlines with spaces
                 std::regex newline_regex("[\n\r]");
                 lhistory = std::regex_replace(lhistory, newline_regex, " ");
             }
-            
+
             kuzu::common::StringUtils::toLower(lhistory);
             if (matches.find(lhistory) != matches.end()) {
                 continue;
@@ -1989,44 +1991,44 @@ bool pastedInput(int ifd) {
 
 /* Move cursor one row up. */
 bool linenoiseEditMoveRowUp(struct linenoiseState* l) {
-	if (!mlmode) {
-		return false;
-	}
-	size_t rows, cols;
-	int cursor_row, cursor_col;
-	positionToColAndRow(l->pos, cursor_row, cursor_col, rows, cols, l);
-	if (cursor_row <= 1) {
-		return false;
-	}
-	// we can move the cursor a line up
-	lndebug("source pos %d", l->pos);
-	lndebug("move from row %d to row %d", cursor_row, cursor_row - 1);
-	cursor_row--;
-	l->pos = colAndRowToPosition(cursor_row, cursor_col, l);
-	lndebug("new pos %d", l->pos);
-	refreshLine(l);
-	return true;
+    if (!mlmode) {
+        return false;
+    }
+    size_t rows, cols;
+    int cursor_row, cursor_col;
+    positionToColAndRow(l->pos, cursor_row, cursor_col, rows, cols, l);
+    if (cursor_row <= 1) {
+        return false;
+    }
+    // we can move the cursor a line up
+    lndebug("source pos %d", l->pos);
+    lndebug("move from row %d to row %d", cursor_row, cursor_row - 1);
+    cursor_row--;
+    l->pos = colAndRowToPosition(cursor_row, cursor_col, l);
+    lndebug("new pos %d", l->pos);
+    refreshLine(l);
+    return true;
 }
 
 /* Move cursor one row down. */
 bool linenoiseEditMoveRowDown(struct linenoiseState* l) {
-	if (!mlmode) {
-		return false;
-	}
-	size_t rows, cols;
-	int cursor_row, cursor_col;
-	positionToColAndRow(l->pos, cursor_row, cursor_col, rows, cols, l);
-	if (cursor_row >= (int)rows) {
-		return false;
-	}
-	// we can move the cursor a line down
-	lndebug("source pos %d", l->pos);
-	lndebug("move from row %d to row %d", cursor_row, cursor_row + 1);
-	cursor_row++;
-	l->pos = colAndRowToPosition(cursor_row, cursor_col, l);
-	lndebug("new pos %d", l->pos);
-	refreshLine(l);
-	return true;
+    if (!mlmode) {
+        return false;
+    }
+    size_t rows, cols;
+    int cursor_row, cursor_col;
+    positionToColAndRow(l->pos, cursor_row, cursor_col, rows, cols, l);
+    if (cursor_row >= (int)rows) {
+        return false;
+    }
+    // we can move the cursor a line down
+    lndebug("source pos %d", l->pos);
+    lndebug("move from row %d to row %d", cursor_row, cursor_row + 1);
+    cursor_row++;
+    l->pos = colAndRowToPosition(cursor_row, cursor_col, l);
+    lndebug("new pos %d", l->pos);
+    refreshLine(l);
+    return true;
 }
 
 static char linenoiseSearch(linenoiseState* l, char c) {
@@ -2365,10 +2367,10 @@ void linenoiseEditDeletePrevWord(struct linenoiseState* l) {
     refreshLine(l);
 }
 
-bool linenoiseAllWhitespace(const char *z) {
+bool linenoiseAllWhitespace(const char* z) {
     for (; *z; z++) {
         // whitespace
-        if (isspace((unsigned char)z[0])) 
+        if (isspace((unsigned char)z[0]))
             continue;
         // multi-line comments
         if (*z == '/' && z[1] == '*') {
@@ -2398,78 +2400,97 @@ bool linenoiseAllWhitespace(const char *z) {
     return true;
 }
 
-bool cypherComplete(const char *z){
-    enum TokenType {
-        tkSEMI = 0,
-        tkWS,
-        tkOTHER
-    };
+bool cypherComplete(const char* z) {
+    enum TokenType { tkSEMI = 0, tkWS, tkOTHER };
 
-    unsigned char state = 0;   /* Current state, using numbers defined in header comment */
-    unsigned char token;       /* Value of the next token */
+    unsigned char state = 0; /* Current state, using numbers defined in header comment */
+    unsigned char token;     /* Value of the next token */
 
     /* If triggers are not supported by this compile then the statement machine
     ** used to detect the end of a statement is much simpler
     */
     static const unsigned char trans[3][3] = {
-                        /* Token:           */
+        /* Token:           */
         /* State:       **  SEMI  WS  OTHER */
-        /* 0 INVALID: */ {    1,  0,     2, },
-        /* 1   START: */ {    1,  1,     2, },
-        /* 2  NORMAL: */ {    1,  2,     2, },
+        /* 0 INVALID: */ {
+            1,
+            0,
+            2,
+        },
+        /* 1   START: */
+        {
+            1,
+            1,
+            2,
+        },
+        /* 2  NORMAL: */
+        {
+            1,
+            2,
+            2,
+        },
     };
 
-    while( *z ){
-        switch( *z ){
-            case ';': {  /* A semicolon */
-                token = tkSEMI;
-                break;
-            }
-            case ' ':
-            case '\r':
-            case '\t':
-            case '\n':
-            case '\f': {  /* White space is ignored */
+    while (*z) {
+        switch (*z) {
+        case ';': { /* A semicolon */
+            token = tkSEMI;
+            break;
+        }
+        case ' ':
+        case '\r':
+        case '\t':
+        case '\n':
+        case '\f': { /* White space is ignored */
+            token = tkWS;
+            break;
+        }
+        case '/': { /* C-style comments */
+            if (z[1] == '*') {
+                z += 2;
+                while (z[0] && (z[0] != '*' || z[1] != '/')) {
+                    z++;
+                }
+                if (z[0] == 0)
+                    return 0;
+                z++;
                 token = tkWS;
                 break;
-            }
-            case '/': {   /* C-style comments */
-                if( z[1]=='*' ) {
-                    z += 2;
-                    while( z[0] && (z[0]!='*' || z[1]!='/') ){ z++; }
-                    if( z[0]==0 ) return 0;
+            } else if (z[1] == '/') {
+                while (*z && *z != '\n') {
                     z++;
-                    token = tkWS;
-                    break;
-                } else if (z[1]=='/') {
-                    while( *z && *z!='\n' ){ z++; }
-                    if( *z==0 ) return state==1;
-                    token = tkWS;
-                    break;
-                } else {
-                    token = tkOTHER;
-                    break;
                 }
-            }
-            case '`':     /* Grave-accent quoted symbols */
-            case '"':     /* single- and double-quoted strings */
-            case '\'': {
-                int c = *z;
-                z++;
-                while (*z && (*z != c || (z[-1] == '\\' && z[-2] != '\\'))) { z++; }
-                if( *z==0 ) return 0;
-                token = tkOTHER;
+                if (*z == 0)
+                    return state == 1;
+                token = tkWS;
                 break;
-            }
-            default: {
+            } else {
                 token = tkOTHER;
                 break;
             }
         }
+        case '`': /* Grave-accent quoted symbols */
+        case '"': /* single- and double-quoted strings */
+        case '\'': {
+            int c = *z;
+            z++;
+            while (*z && (*z != c || (z[-1] == '\\' && z[-2] != '\\'))) {
+                z++;
+            }
+            if (*z == 0)
+                return 0;
+            token = tkOTHER;
+            break;
+        }
+        default: {
+            token = tkOTHER;
+            break;
+        }
+        }
         state = trans[state][token];
         z++;
     }
-    return state==1;
+    return state == 1;
 }
 
 /* This function is the core of the line editing capability of linenoise.
@@ -2480,8 +2501,8 @@ bool cypherComplete(const char *z){
  * when ctrl+d is typed.
  *
  * The function returns the length of the current buffer. */
-static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen,
-    const char* prompt, const char* continuePrompt, const char* selectedContinuePrompt) {
+static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, const char* prompt,
+    const char* continuePrompt, const char* selectedContinuePrompt) {
     struct linenoiseState l;
 
     /* Populate the linenoise state that we pass to functions implementing
@@ -2563,17 +2584,17 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen,
             size_t new_cols = getColumns(stdin_fd, stdout_fd);
             size_t new_rows = getRows(stdin_fd, stdout_fd);
             if (new_cols != l.cols || new_rows != l.rows) {
-				// terminal resize! re-compute max lines
-				l.cols = new_cols;
+                // terminal resize! re-compute max lines
+                l.cols = new_cols;
                 l.rows = new_rows;
-				size_t rows, cols;
-				int cursor_row, cursor_col;
-				positionToColAndRow(l.pos, cursor_row, cursor_col, rows, cols, &l);
-				l.oldpos = cursor_row;
+                size_t rows, cols;
+                int cursor_row, cursor_col;
+                positionToColAndRow(l.pos, cursor_row, cursor_col, rows, cols, &l);
+                l.oldpos = cursor_row;
                 if (mlmode) {
                     l.maxrows = rows;
                 }
-			}
+            }
         }
 
         if (l.search) {
@@ -2633,45 +2654,47 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen,
         case 10:
         case ENTER: /* enter */ {
             if (mlmode && l.len > 0) {
-				// check if this forms a complete Cypher statement or not or if enter is pressed in the middle of a line
-				l.buf[l.len] = '\0';
-				if (l.buf[0] != ':' && (l.pos != l.len || (!linenoiseAllWhitespace(l.buf) && !cypherComplete(l.buf)))) {
-					if (linenoiseEditInsertMulti(&l, "\r\n")) {
-						return -1;
-					}
-					break;
-				}
-			}
+                // check if this forms a complete Cypher statement or not or if enter is pressed in
+                // the middle of a line
+                l.buf[l.len] = '\0';
+                if (l.buf[0] != ':' && (l.pos != l.len || (!linenoiseAllWhitespace(l.buf) &&
+                                                              !cypherComplete(l.buf)))) {
+                    if (linenoiseEditInsertMulti(&l, "\r\n")) {
+                        return -1;
+                    }
+                    break;
+                }
+            }
             history_len--;
             free(history[history_len]);
             l.continuePromptActive = false;
             if (mlmode) {
-				if (l.pos == l.len) {
-					// already at the end - only refresh
-					refreshLine(&l);
-				} else {
-					linenoiseEditMoveEnd(&l);
-				}
-			}
+                if (l.pos == l.len) {
+                    // already at the end - only refresh
+                    refreshLine(&l);
+                } else {
+                    linenoiseEditMoveEnd(&l);
+                }
+            }
             if (hintsCallback) {
-				/* Force a refresh without hints to leave the previous
-				 * line as the user typed it after a newline. */
-				linenoiseHintsCallback *hc = hintsCallback;
-				hintsCallback = NULL;
-				refreshLine(&l);
-				hintsCallback = hc;
-			} else {
+                /* Force a refresh without hints to leave the previous
+                 * line as the user typed it after a newline. */
+                linenoiseHintsCallback* hc = hintsCallback;
+                hintsCallback = NULL;
+                refreshLine(&l);
+                hintsCallback = hc;
+            } else {
                 refreshLine(&l);
             }
             // rewrite \r\n to \n
-			uint64_t new_len = 0;
-			for (uint64_t i = 0; i < l.len; i++) {
-				if (l.buf[i] == '\r' && l.buf[i + 1] == '\n') {
-					continue;
-				}
-				l.buf[new_len++] = l.buf[i];
-			}
-			l.buf[new_len] = '\0';
+            uint64_t new_len = 0;
+            for (uint64_t i = 0; i < l.len; i++) {
+                if (l.buf[i] == '\r' && l.buf[i + 1] == '\n') {
+                    continue;
+                }
+                l.buf[new_len++] = l.buf[i];
+            }
+            l.buf[new_len] = '\0';
             return (int)new_len;
         }
         case BACKSPACE: /* backspace */
@@ -2799,8 +2822,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen,
                     switch (seq[1]) {
                     case 'A': /* Up */
                         if (linenoiseEditMoveRowUp(&l)) {
-					        break;
-				        }
+                            break;
+                        }
                         linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
                         break;
                     case 'B': /* Down */
@@ -2919,7 +2942,8 @@ void linenoisePrintKeyCodes(void) {
 
 /* This function calls the line editing function linenoiseEdit() using
  * the STDIN file descriptor set in raw mode. */
-static int linenoiseRaw(char* buf, size_t buflen, const char* prompt, const char* continuePrompt, const char* selectedContinuePrompt) {
+static int linenoiseRaw(char* buf, size_t buflen, const char* prompt, const char* continuePrompt,
+    const char* selectedContinuePrompt) {
     int count;
 
     if (buflen == 0) {
@@ -2929,7 +2953,8 @@ static int linenoiseRaw(char* buf, size_t buflen, const char* prompt, const char
 
     if (enableRawMode(STDIN_FILENO) == -1)
         return -1;
-    count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt, continuePrompt, selectedContinuePrompt);
+    count = linenoiseEdit(STDIN_FILENO, STDOUT_FILENO, buf, buflen, prompt, continuePrompt,
+        selectedContinuePrompt);
     disableRawMode(STDIN_FILENO);
     printf("\n");
     return count;
@@ -2978,7 +3003,8 @@ static char* linenoiseNoTTY(void) {
  * for a blacklist of stupid terminals, and later either calls the line
  * editing function or uses dummy fgets() so that you will be able to type
  * something even in the most desperate of the conditions. */
-char* linenoise(const char* prompt, const char* continuePrompt, const char* selectedContinuePrompt) {
+char* linenoise(const char* prompt, const char* continuePrompt,
+    const char* selectedContinuePrompt) {
     char buf[LINENOISE_MAX_LINE];
     int count;
 
@@ -3000,7 +3026,8 @@ char* linenoise(const char* prompt, const char* continuePrompt, const char* sele
         }
         return strdup(buf);
     } else {
-        count = linenoiseRaw(buf, LINENOISE_MAX_LINE, prompt, continuePrompt, selectedContinuePrompt);
+        count =
+            linenoiseRaw(buf, LINENOISE_MAX_LINE, prompt, continuePrompt, selectedContinuePrompt);
         if (count == -1)
             return NULL;
         return strdup(buf);
