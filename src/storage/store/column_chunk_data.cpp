@@ -259,11 +259,11 @@ void ColumnChunkData::initializeScanState(ChunkState& state, Column* column) con
         KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState, column->getNullColumn());
     }
+    state.column = column;
     if (residencyState == ResidencyState::ON_DISK) {
         state.metadata = metadata;
         state.numValuesPerPage =
             state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        state.column = column;
 
         state.column->populateExtraChunkState(state);
     }

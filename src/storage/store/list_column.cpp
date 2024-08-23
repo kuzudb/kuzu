@@ -272,8 +272,8 @@ offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& read
     offset_t offsetInNodeGroup) const {
     offset_t ret;
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
-    columnReadWriter->readCompressedValueToPage(transaction, offsetState, offsetInNodeGroup,
-        reinterpret_cast<uint8_t*>(&ret), 0, offsetColumn->readToPageFunc);
+    offsetColumn->columnReadWriter->readCompressedValueToPage(transaction, offsetState,
+        offsetInNodeGroup, reinterpret_cast<uint8_t*>(&ret), 0, offsetColumn->readToPageFunc);
     return ret;
 }
 
@@ -281,8 +281,8 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
     offset_t offsetInNodeGroup) const {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
     offset_t value;
-    columnReadWriter->readCompressedValueToPage(transaction, sizeState, offsetInNodeGroup,
-        reinterpret_cast<uint8_t*>(&value), 0, offsetColumn->readToPageFunc);
+    sizeColumn->columnReadWriter->readCompressedValueToPage(transaction, sizeState,
+        offsetInNodeGroup, reinterpret_cast<uint8_t*>(&value), 0, sizeColumn->readToPageFunc);
     return value;
 }
 
