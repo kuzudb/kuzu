@@ -27,7 +27,9 @@ bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
         return false;
     if (a.extraMetadata.has_value() != b.extraMetadata.has_value())
         return false;
-    if (a.extraMetadata.has_value() && a.extraMetadata.value() != b.extraMetadata.value()) {
+    if (a.extraMetadata.has_value() &&
+        *reinterpret_cast<ALPMetadata*>(a.extraMetadata.value().get()) !=
+            *reinterpret_cast<ALPMetadata*>(b.extraMetadata.value().get())) {
         return false;
     }
     if (a.children.size() != b.children.size())
@@ -69,7 +71,7 @@ void testSerializeThenDeserialize(const ColumnChunkMetadata& orig) {
     EXPECT_TRUE(orig == deserialized);
 }
 
-TEST(CompressionTests, DoubleMetadataSerializeThenDeserialize) {
+TEST(ColumnChunkMetadataTests, DoubleChunkMetadataSerializeThenDeserialize) {
     alp::state alpState{};
     alpState.exceptions_count = 1 << 17;
     alpState.exp = 10;
