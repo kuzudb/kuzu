@@ -10,7 +10,7 @@ namespace storage {
 struct CompressionMetadata;
 
 class ColumnPredicate;
-class ColumnPredicateSet {
+class KUZU_API ColumnPredicateSet {
 public:
     ColumnPredicateSet() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(ColumnPredicateSet);
@@ -32,7 +32,7 @@ private:
     std::vector<std::unique_ptr<ColumnPredicate>> predicates;
 };
 
-class ColumnPredicate {
+class KUZU_API ColumnPredicate {
 public:
     explicit ColumnPredicate(std::string columnName) : columnName{std::move(columnName)} {}
 

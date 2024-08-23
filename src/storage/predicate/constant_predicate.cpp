@@ -72,8 +72,14 @@ ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
 
 std::string ColumnConstantPredicate::toString() {
     std::string valStr;
-    // TODO(Ziyi): test if we need to skip char for other types.
-    if (value.getDataType().getLogicalTypeID() == LogicalTypeID::STRING) {
+    if (value.getDataType().getPhysicalType() == PhysicalTypeID::STRING ||
+        value.getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
+        value.getDataType().getPhysicalType() == PhysicalTypeID::ARRAY ||
+        value.getDataType().getPhysicalType() == PhysicalTypeID::STRUCT ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::UUID ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::TIMESTAMP ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::DATE ||
+        value.getDataType().getLogicalTypeID() == LogicalTypeID::INTERVAL) {
         valStr = stringFormat("'{}'", value.toString());
     } else {
         valStr = value.toString();

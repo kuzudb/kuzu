@@ -27,16 +27,6 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
     }
 }
 
-<<<<<<< HEAD
-std::unique_ptr<TableFuncBindData> DuckDBScanBindData::copy() const {
-    auto result = std::make_unique<DuckDBScanBindData>(query, LogicalType::copy(columnTypes),
-        columnNames, connector);
-    result->setColumnSkips(getColumnSkips());
-    return result;
-}
-
-=======
->>>>>>> d60dddffa (Add filter push down to relational table)
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
     : BaseScanSharedStateWithNumRows{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
@@ -77,7 +67,18 @@ std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedSt
         columnNames += input.bindData->columnNames[i];
         columnNames += (i == scanBindData->getNumColumns() - 1) ? "" : ",";
     }
-    auto finalQuery = common::stringFormat(scanBindData->query, columnNames);
+    std::string predicatesString = "";
+    for (auto& predicates : scanBindData->getColumnPredicates()) {
+        if (predicates.isEmpty()) {
+            continue;
+        }
+        if (predicatesString.empty()) {
+            predicatesString = " WHERE " + predicates.toString();
+        } else {
+            predicatesString += stringFormat(" AND {}", predicates.toString());
+        }
+    }
+    auto finalQuery = common::stringFormat(scanBindData->query, columnNames) + predicatesString;
     auto result = scanBindData->connector.executeQuery(finalQuery);
     if (result->HasError()) {
         throw common::RuntimeException(

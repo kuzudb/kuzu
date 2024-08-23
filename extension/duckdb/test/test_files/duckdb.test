@@ -62,6 +62,21 @@ Elizabeth
 Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+-STATEMENT LOAD FROM tinysnb.person WHERE ID > 5 RETURN fName;
+---- 4
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+-STATEMENT LOAD FROM tinysnb.person WHERE ID = 2 RETURN fName;
+---- 1
+Bob
+-STATEMENT LOAD FROM tinysnb.person WHERE ID < 5 AND usedNames = ['Aida'] RETURN fName;
+---- 1
+Alice
+-STATEMENT LOAD FROM tinysnb.person WHERE ID > 4 AND u = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15' RETURN fName;
+---- 1
+Elizabeth
 -STATEMENT LOAD FROM tinysnb.organisation RETURN *;
 ---- 3
 1|ABFsUni|325|3.700000|-2|10 years 5 months 13 hours 24 us|3 years 5 days|1.000000|{revenue: 138, "location": ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}|3.12
