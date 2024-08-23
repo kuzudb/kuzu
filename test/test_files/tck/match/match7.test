@@ -27,7 +27,7 @@
 
 # OPTIONAL MATCH and bound nodes
 -CASE Scenario3
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -35,11 +35,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -127,7 +127,7 @@
 
 # Longer pattern with bound nodes without matches
 -CASE Scenario8
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -135,11 +135,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -154,7 +154,7 @@
 
 # Longer pattern with bound nodes
 -CASE Scenario9
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -162,18 +162,18 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
                   (a)-[:REL_A_C]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
--STATEMENT MATCH (a:Single), (c:C)
+-STATEMENT MATCH (a:`Single`), (c:C)
            OPTIONAL MATCH (a)-->(b)-->(c)
            RETURN b;
 ---- 1
@@ -216,7 +216,7 @@
 # Variable length optional relationships
 -CASE Scenario12
 -SKIP
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -224,18 +224,18 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
                   (a)-[:REL_A_C]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
--STATEMENT MATCH (a:Single)
+-STATEMENT MATCH (a:`Single`)
            OPTIONAL MATCH (a)-[*]->(b)
            RETURN b;
 ---- 4
@@ -246,7 +246,7 @@
 
 # Variable length optional relationships with bound nodes
 -CASE Scenario13
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -254,18 +254,18 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
                   (a)-[:REL_A_C]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
--STATEMENT MATCH (a:Single), (x:C)
+-STATEMENT MATCH (a:`Single`), (x:C)
            OPTIONAL MATCH (a)-[*]->(x)
            RETURN x;
 ---- 1
@@ -274,7 +274,7 @@
 # Variable length optional relationships with length predicates
 -CASE Scenario14
 -SKIP
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -282,11 +282,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -321,7 +321,7 @@
 # Optionally matching named paths - null result
 -CASE Scenario16
 -SKIP
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -329,11 +329,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -366,7 +366,7 @@
 # Named paths inside optional matches with node predicates
 -CASE Scenario18
 -SKIP
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -374,11 +374,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -391,7 +391,7 @@
 ---- 1
 {...}
 
-# Optionally matching named paths with single and variable length patterns
+# Optionally matching named paths with `Single` and variable length patterns
 -CASE Scenario19
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
@@ -408,7 +408,7 @@
 
 # Variable length optional relationships with bound nodes, no matches
 -CASE Scenario20
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -416,11 +416,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -435,7 +435,7 @@
 
 # Handling optional matches between nulls
 -CASE Scenario21
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -445,13 +445,13 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE NotThere(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
 -STATEMENT CREATE REL TABLE NOR_THIS(FROM NotThere TO NotThere);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -469,7 +469,7 @@
 # MATCH after OPTIONAL MATCH
 -CASE Scenario22
 -SKIP
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -479,11 +479,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE NonExistent(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -505,7 +505,7 @@
 # Optionally matching self-loops
 -CASE Scenario24
 -SKIP
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -513,11 +513,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -532,7 +532,7 @@
 
 # Optionally matching self-loops without matches
 -CASE Scenario25
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -540,11 +540,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -562,7 +562,7 @@
 
 # Handling correlated optional matches; first does not match implies second does not match
 -CASE Scenario26
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -570,11 +570,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -590,7 +590,7 @@
 
 # Handling optional matches between optionally matched entities
 -CASE Scenario27
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -600,13 +600,13 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE NotThere(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
 -STATEMENT CREATE REL TABLE NOR_THIS(FROM NotThere TO NotThere);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
@@ -624,7 +624,7 @@
 
 # Handling optional matches with inline label predicate
 -CASE Scenario28
--STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE `Single`(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
 ---- ok
@@ -634,18 +634,18 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE NonExistent(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP REL(FROM Single TO A, FROM Single TO B, FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP REL(FROM `Single` TO A, FROM `Single` TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM B TO B);
 ---- ok
--STATEMENT CREATE (s:Single), (a:A {num: 42}),
+-STATEMENT CREATE (s:`Single`), (a:A {num: 42}),
                   (b:B {num: 46}), (c:C)
            CREATE (s)-[:REL_Single_A]->(a),
                   (s)-[:REL_Single_B]->(b),
                   (a)-[:REL_A_C]->(c),
                   (b)-[:LOOP]->(b);
 ---- ok
--STATEMENT MATCH (n:Single)
+-STATEMENT MATCH (n:`Single`)
            OPTIONAL MATCH (n)-[r]-(m:NonExistent)
            RETURN r;
 ---- 1
@@ -671,7 +671,7 @@
 ---- 1
 1|False
 
-# Satisfies the open world assumption, single relationship
+# Satisfies the open world assumption, `Single` relationship
 -CASE Scenario30
 -SKIP
 -STATEMENT CREATE NODE TABLE Player(ID SERIAL, PRIMARY KEY(ID));

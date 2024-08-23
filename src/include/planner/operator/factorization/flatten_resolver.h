@@ -28,7 +28,7 @@ struct FlattenAll {
 
 class GroupDependencyAnalyzer {
 public:
-    explicit GroupDependencyAnalyzer(bool collectDependentExpr, const Schema& schema)
+    GroupDependencyAnalyzer(bool collectDependentExpr, const Schema& schema)
         : collectDependentExpr{collectDependentExpr}, schema{schema} {}
 
     binder::expression_vector getDependentExprs() const {

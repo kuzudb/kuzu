@@ -68,6 +68,7 @@ function_set ListReduceFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
         execFunc, bindFunc);
+    function->isListLambda = true;
     result.push_back(std::move(function));
     return result;
 }

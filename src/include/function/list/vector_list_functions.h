@@ -171,5 +171,37 @@ struct ListReduceFunction {
     static function_set getFunctionSet();
 };
 
+using quantifier_handler = std::function<bool(uint64_t numSelectedValues, uint64_t originalSize)>;
+
+void execQuantifierFunc(quantifier_handler handler,
+    const std::vector<std::shared_ptr<common::ValueVector>>& input, common::ValueVector& result,
+    void* bindData);
+
+std::unique_ptr<FunctionBindData> bindQuantifierFunc(ScalarBindFuncInput input);
+
+struct ListAnyFunction {
+    static constexpr const char* name = "ANY";
+
+    static function_set getFunctionSet();
+};
+
+struct ListAllFunction {
+    static constexpr const char* name = "ALL";
+
+    static function_set getFunctionSet();
+};
+
+struct ListNoneFunction {
+    static constexpr const char* name = "None";
+
+    static function_set getFunctionSet();
+};
+
+struct ListSingleFunction {
+    static constexpr const char* name = "Single";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

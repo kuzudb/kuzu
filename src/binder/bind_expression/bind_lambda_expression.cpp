@@ -1,8 +1,6 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/lambda_expression.h"
-#include "binder/expression_binder.h"
-#include "common/exception/binder.h"
-#include "function/list/vector_list_functions.h"
 #include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;
@@ -11,14 +9,8 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-void ExpressionBinder::bindLambdaExpression(const std::string& functionName,
-    const Expression& lambdaInput, Expression& lambdaExpr) {
-    if (functionName != function::ListTransformFunction::name &&
-        functionName != function::ListFilterFunction::name &&
-        functionName != function::ListReduceFunction::name) {
-        throw BinderException(stringFormat("{} does not support lambda input.", functionName));
-    }
-    KU_ASSERT(lambdaInput.getDataType().getLogicalTypeID() == LogicalTypeID::LIST);
+void ExpressionBinder::bindLambdaExpression(const Expression& lambdaInput, Expression& lambdaExpr) {
+    ExpressionUtil::validateDataType(lambdaInput, LogicalTypeID::LIST);
     auto& listChildType = ListType::getChildType(lambdaInput.getDataType());
     auto& boundLambdaExpr = lambdaExpr.cast<LambdaExpression>();
     auto& parsedLambdaExpr =

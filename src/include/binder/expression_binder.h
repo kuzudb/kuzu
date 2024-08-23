@@ -60,8 +60,7 @@ public:
     // Function expressions.
     std::shared_ptr<Expression> bindFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
-    void bindLambdaExpression(const std::string& functionName, const Expression& lambdaInput,
-        Expression& lambdaExpr);
+    void bindLambdaExpression(const Expression& lambdaInput, Expression& lambdaExpr);
     std::shared_ptr<Expression> bindLambdaExpression(
         const parser::ParsedExpression& parsedExpression) const;
 

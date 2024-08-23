@@ -2,6 +2,8 @@ add_library(kuzu_list_function
         OBJECT
         list_agg_function.cpp
         list_any_value_function.cpp
+        list_any.cpp
+        list_all.cpp
         list_append_function.cpp
         list_concat_function.cpp
         list_contains_function.cpp
@@ -19,7 +21,10 @@ add_library(kuzu_list_function
         list_transform.cpp
         list_filter.cpp
         list_reduce.cpp
-        size_function.cpp)
+        list_none.cpp
+        list_single.cpp
+        size_function.cpp
+        quantifier_functions.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_list_function>

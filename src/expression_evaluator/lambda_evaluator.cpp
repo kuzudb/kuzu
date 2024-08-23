@@ -1,6 +1,8 @@
 #include "expression_evaluator/lambda_evaluator.h"
 
+#include "binder/expression/scalar_function_expression.h"
 #include "expression_evaluator/expression_evaluator_visitor.h"
+#include "function/list/vector_list_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -16,6 +18,7 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     }
     KU_ASSERT(children.size() == 1);
     auto listInputVector = children[0]->resultVector.get();
+    // Find all param in lambda, e.g. find x in x->x+1
     auto collector = LambdaParamEvaluatorCollector();
     collector.visit(lambdaRootEvaluator.get());
     auto evaluators = collector.getEvaluators();
@@ -50,6 +53,11 @@ void ListLambdaEvaluator::evaluate() {
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;
+    // Performance optimization to avoid copy data vector for list_transform
+    if (expression->cast<binder::ScalarFunctionExpression>().getFunction().name ==
+        function::ListTransformFunction::name) {
+        ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
+    }
     isResultFlat_ = children[0]->isResultFlat();
 }
 

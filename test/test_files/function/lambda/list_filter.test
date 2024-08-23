@@ -47,3 +47,25 @@ Binder exception: LIST_FILTER requires the result type of lambda expression be B
 -STATEMENT RETURN LIST_FILTER([null, 5, 7, 3, null, 10], x->x>=5)
 ---- 1
 [5,7,10]
+-STATEMENT RETURN list_filter(LIST_FILTER([1,2,3,4,5], x->x>=1), y->y<=2)
+---- 1
+[1,2]
+-STATEMENT RETURN list_filter([5,2,3], x->true)
+---- 1
+[5,2,3]
+-STATEMENT RETURN list_filter([1,0,3], x->false)
+---- 1
+[]
+-STATEMENT RETURN list_filter([], x->false)
+---- 1
+[]
+-STATEMENT MATCH (p:person) RETURN list_filter(p.usedNames, x->true)
+---- 8
+[Ad,De,Hi,Kye,Orlan]
+[Aida]
+[Bobby]
+[Carmen,Fred]
+[Ein]
+[Fesdwe]
+[Grad]
+[Wolfeschlegelstein,Daniel]

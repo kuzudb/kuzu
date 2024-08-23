@@ -42,8 +42,10 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, Val
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     auto inputVector = input[0].get();
     auto listSize = ListVector::getDataVectorSize(inputVector);
-    auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
-    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
+        auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
+        lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    }
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
     auto& listInputSelVector = input[0]->state->getSelVector();
@@ -52,14 +54,28 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, Val
     auto dstDataVector = ListVector::getDataVector(&result);
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
         auto srcListEntry = inputVector->getValue<list_entry_t>(listInputSelVector[i]);
-        auto dstListEntry =
-            ListVector::addList(&result, getSelectedListSize(srcListEntry, *filterVector));
-        auto dstListOffset = dstListEntry.offset;
-        for (auto j = 0u; j < srcListEntry.size; j++) {
-            auto pos = srcListEntry.offset + j;
-            if (filterVector->getValue<bool>(pos)) {
-                dstDataVector->copyFromVectorData(dstListOffset, srcDataVector, pos);
-                dstListOffset++;
+        list_entry_t dstListEntry;
+        if (listLambdaBindData->lambdaParamEvaluators.empty()) {
+            // Constant evaluate
+            auto filterResult =
+                filterVector->getValue<bool>(filterVector->state->getSelVector()[0]);
+            if (filterResult) {
+                dstListEntry = ListVector::addList(&result, listSize);
+                ListVector::copyFromVectorData(&result, (uint8_t*)&dstListEntry, inputVector,
+                    (uint8_t*)&srcListEntry);
+            } else {
+                dstListEntry = ListVector::addList(&result, 0 /* listSize */);
+            }
+        } else {
+            dstListEntry =
+                ListVector::addList(&result, getSelectedListSize(srcListEntry, *filterVector));
+            auto dstListOffset = dstListEntry.offset;
+            for (auto j = 0u; j < srcListEntry.size; j++) {
+                auto pos = srcListEntry.offset + j;
+                if (filterVector->getValue<bool>(pos)) {
+                    dstDataVector->copyFromVectorData(dstListOffset, srcDataVector, pos);
+                    dstListOffset++;
+                }
             }
         }
         result.setValue(result.state->getSelVector()[i], std::move(dstListEntry));
@@ -71,6 +87,7 @@ function_set ListFilterFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
         execFunc, bindFunc);
+    function->isListLambda = true;
     result.push_back(std::move(function));
     return result;
 }

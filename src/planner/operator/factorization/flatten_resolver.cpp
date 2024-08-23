@@ -7,7 +7,6 @@
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
-#include "function/list/vector_list_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -158,15 +157,12 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
 
 void GroupDependencyAnalyzer::visitFunction(std::shared_ptr<binder::Expression> expr) {
     auto& funcExpr = expr->constCast<ScalarFunctionExpression>();
-    auto functionName = funcExpr.getFunction().name;
     for (auto& child : expr->getChildren()) {
         visit(child);
     }
     // For list lambda we need to flatten all dependent expressions in lambda function
     // E.g. MATCH (a)->(b) RETURN list_filter(a.list, x -> x>b.age)
-    if (functionName == function::ListTransformFunction::name ||
-        functionName == function::ListFilterFunction::name ||
-        functionName == function::ListReduceFunction::name) {
+    if (funcExpr.getFunction().isListLambda) {
         auto lambdaFunctionAnalyzer = GroupDependencyAnalyzer(collectDependentExpr, schema);
         lambdaFunctionAnalyzer.visit(funcExpr.getChild(1));
         requiredFlatGroups = lambdaFunctionAnalyzer.getDependentGroups();

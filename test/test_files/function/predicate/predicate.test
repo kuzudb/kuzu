@@ -1,0 +1,135 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE Any
+
+-STATEMENT MATCH (a:person) RETURN a.fName, any(name in list_transform(a.workedHours, x-> x - 7) WHERE name = 5)
+---- 8
+Alice|False
+Bob|True
+Carol|False
+Dan|False
+Elizabeth|False
+Farooq|False
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-STATEMENT RETURN ANY(length in [1,2,3] where any (height in [3,5,6] where height = 5))
+---- 1
+True
+
+-STATEMENT MATCH (a:person) RETURN a.ID, a.workedHours, any(length in a.workedHours where a.ID - 5 = length)
+---- 8
+0|[10,5]|False
+2|[12,8]|False
+3|[4,5]|False
+5|[1,9]|False
+7|[2]|True
+8|[3,4,5,6,7]|True
+9|[1]|False
+10|[10,11,12,3,4,5,6,7]|True
+
+-STATEMENT MATCH (a:person) RETURN a.fName, any(name in a.usedNames WHERE name = 'Aida')
+---- 8
+Alice|True
+Bob|False
+Carol|False
+Dan|False
+Elizabeth|False
+Farooq|False
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
+
+-STATEMENT MATCH (a:person) RETURN a.fName, any(name in a.workedHours WHERE name = 5)
+---- 8
+Alice|True
+Bob|False
+Carol|True
+Dan|False
+Elizabeth|False
+Farooq|True
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-STATEMENT MATCH (a:person) RETURN a.fName, any(length in [3,2,5] where length=3)
+---- 8
+Alice|True
+Bob|True
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|True
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-STATEMENT MATCH (a:person) RETURN a.fName, any(name in a.workedHours[2:] WHERE name = 5)
+---- 8
+Alice|True
+Bob|False
+Carol|True
+Dan|False
+Elizabeth|False
+Farooq|True
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-STATEMENT MATCH (a:person) RETURN a.fName, all(name in a.workedHours WHERE name % 5 = 0)
+---- 8
+Alice|True
+Bob|False
+Carol|False
+Dan|False
+Elizabeth|False
+Farooq|False
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
+
+-STATEMENT MATCH (a:person) RETURN a.fName, none(name in a.workedHours WHERE name % 5 = 0)
+---- 8
+Alice|False
+Bob|True
+Carol|False
+Dan|True
+Elizabeth|True
+Farooq|False
+Greg|True
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
+
+-STATEMENT MATCH (a:person) RETURN a.fName, single(name in a.workedHours WHERE name % 5 = 0)
+---- 8
+Alice|False
+Bob|False
+Carol|True
+Dan|False
+Elizabeth|False
+Farooq|True
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
+
+-STATEMENT MATCH (a:person) RETURN a.fName, all(name in a.workedHours WHERE true)
+---- 8
+Alice|True
+Bob|True
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|True
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-STATEMENT MATCH (a:person) RETURN a.fName, none(name in a.workedHours WHERE false)
+---- 8
+Alice|True
+Bob|True
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|True
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+# TODO: Double check if we should handle instead of erroring
+-STATEMENT RETURN any(name in NULL WHERE name = 5)
+---- error
+Binder exception:  has data type ANY but LIST was expected.

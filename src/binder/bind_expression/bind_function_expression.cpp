@@ -54,9 +54,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         children.push_back(bindExpression(*parsedExpression.getChild(i)));
     }
-    if (children.size() == 2 && children[1]->expressionType == ExpressionType::LAMBDA) {
-        bindLambdaExpression(functionName, *children[0], *children[1]);
-    }
     return bindScalarFunctionExpression(children, functionName);
 }
 
@@ -78,6 +75,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         BuiltInFunctionsUtils::matchFunction(transaction, functionName, childrenTypes, functions)
             ->ptrCast<ScalarFunction>()
             ->copy();
+    if (children.size() == 2 && children[1]->expressionType == ExpressionType::LAMBDA) {
+        if (!function.isListLambda) {
+            throw BinderException(stringFormat("{} does not support lambda input.", functionName));
+        }
+        bindLambdaExpression(*children[0], *children[1]);
+    }
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {

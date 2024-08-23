@@ -26,12 +26,35 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& in
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     auto inputVector = input[0].get();
     auto listSize = ListVector::getDataVectorSize(inputVector);
-    auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
-    lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
+        auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
+        lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    }
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
-    ListVector::setDataVector(&result, input[1]);
-    ListVector::copyListEntryAndBufferMetaData(result, *inputVector);
+    if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
+        ListVector::copyListEntryAndBufferMetaData(result, *inputVector);
+    } else {
+        auto& selVector = result.state->getSelVector();
+        auto srcPos = inputVector->state->getSelVector()[0];
+        auto dstDataVector = ListVector::getDataVector(&result);
+        for (auto i = 0u; i < inputVector->state->getSelVector().getSelSize(); ++i) {
+            auto inputList =
+                inputVector->getValue<list_entry_t>(inputVector->state->getSelVector()[0]);
+            auto pos = selVector[i];
+            if (inputVector->isNull(srcPos)) {
+                result.setNull(pos, true);
+            } else {
+                auto dstLst = ListVector::addList(inputVector, inputList.size);
+                for (auto j = 0u; j < dstLst.size; j++) {
+                    dstDataVector->copyFromVectorData(dstLst.offset + j,
+                        listLambdaBindData->rootEvaluator->resultVector.get(),
+                        listLambdaBindData->rootEvaluator->resultVector->state->getSelVector()[0]);
+                }
+                result.setValue(pos, dstLst);
+            }
+        }
+    }
 }
 
 function_set ListTransformFunction::getFunctionSet() {
@@ -39,6 +62,7 @@ function_set ListTransformFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
         execFunc, bindFunc);
+    function->isListLambda = true;
     result.push_back(std::move(function));
     return result;
 }
