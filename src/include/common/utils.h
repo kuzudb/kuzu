@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <limits>
-#include <vector>
 
 #include "common/assert.h"
 #include "common/numeric_utils.h"
