@@ -48,7 +48,6 @@ void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ChunkState& state) {
     finalize(state);
 
     column->write(*chunkData, *chunkState, 0, chunkData.get(), 0, finalizedExceptionCount);
-    // chunkData->flushBuffer(dataFH, exceptionChunkMeta->pageIdx, *exceptionChunkMeta);
 }
 
 template<std::floating_point T>
