@@ -920,8 +920,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
     // calculate the width of each column name/type
     for (auto i = 0u; i < colsWidth.size(); i++) {
         colsWidth[i] = std::max(queryResult.getColumnNames()[i].length(),
-                            queryResult.getColumnDataTypes()[i].toString().length()) +
-                        2;
+                           queryResult.getColumnDataTypes()[i].toString().length()) +
+                       2;
     }
     uint64_t rowCount = 0;
     // calculate the width of each tuple value
@@ -960,9 +960,9 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
         if (maxPrintWidth > minDisplayWidth) {
             sumGoal = maxPrintWidth - 2;
         } else {
-            sumGoal = std::max(
-                (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
-                minDisplayWidth);
+            sumGoal =
+                std::max((uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
         }
     } else if (colsWidth.size() > 1) {
         uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH + minTruncatedWidth * 2;
@@ -970,9 +970,9 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             sumGoal = maxPrintWidth - colsWidth.size() - 1;
         } else {
             // make sure there is space for the first and last column
-            sumGoal = std::max(
-                (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
-                minDisplayWidth);
+            sumGoal =
+                std::max((uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
         }
     } else if (maxPrintWidth > minTruncatedWidth) {
         sumGoal = maxPrintWidth;
@@ -998,7 +998,7 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
     // truncate columns
     while (sum > sumGoal) {
         uint32_t truncationValue = ((sum - sumGoal) / maxValueIndex.size()) +
-                                    ((sum - sumGoal) % maxValueIndex.size() != 0);
+                                   ((sum - sumGoal) % maxValueIndex.size() != 0);
         uint32_t newValue = 0;
         if (truncationValue < colsWidth[maxValueIndex[0]]) {
             newValue = colsWidth[maxValueIndex[0]] - truncationValue;
@@ -1007,8 +1007,7 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
         if (secondHighestValue < minTruncatedWidth + 2 && newValue < minTruncatedWidth + 2) {
             newValue = minTruncatedWidth + 2;
         } else {
-            uint32_t sumDifference =
-                sum - ((oldValue - secondHighestValue) * maxValueIndex.size());
+            uint32_t sumDifference = sum - ((oldValue - secondHighestValue) * maxValueIndex.size());
             if (sumDifference > sumGoal) {
                 newValue = secondHighestValue;
             }
@@ -1141,8 +1140,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             for (auto i = 0u; i < k; i++) {
                 std::string columnType = queryResult.getColumnDataTypes()[i].toString();
                 if (columnType.length() > colsWidth[i] - 2) {
-                    columnType = columnType.substr(0, colsWidth[i] - 5) +
-                                    tableDrawingCharacters->Truncation;
+                    columnType =
+                        columnType.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
                 printString += " ";
                 printString += columnType;
@@ -1158,8 +1157,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             for (auto i = j + 1; i < colsWidth.size(); i++) {
                 std::string columnType = queryResult.getColumnDataTypes()[i].toString();
                 if (columnType.length() > colsWidth[i] - 2) {
-                    columnType = columnType.substr(0, colsWidth[i] - 5) +
-                                    tableDrawingCharacters->Truncation;
+                    columnType =
+                        columnType.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
                 printString += tableDrawingCharacters->Vertical;
                 printString += " ";
@@ -1250,8 +1249,7 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             continue;
         }
         auto tuple = queryResult.getNext();
-        auto result =
-            tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
+        auto result = tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
         std::string printString;
         uint64_t startPos = 0;
         std::vector<std::string> colResults;
@@ -1339,8 +1337,8 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             }
             printf(")\n");
         }
-        printf("Time: %.2fms (compiling), %.2fms (executing)\n",
-            querySummary->getCompilingTime(), querySummary->getExecutionTime());
+        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
+            querySummary->getExecutionTime());
     }
 }
 
