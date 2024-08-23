@@ -43,16 +43,6 @@ bool isLittleEndian();
 template<typename T>
 bool integerFitsIn(int64_t val);
 
-template<typename T>
-std::vector<T> copyVector(const std::vector<T>& objects) {
-    std::vector<T> result;
-    result.reserve(objects.size());
-    for (auto& object : objects) {
-        result.push_back(object->copy());
-    }
-    return result;
-}
-
 template<numeric_utils::IsIntegral T>
 constexpr T ceilDiv(T a, T b) {
     return (a / b) + (a % b != 0);
