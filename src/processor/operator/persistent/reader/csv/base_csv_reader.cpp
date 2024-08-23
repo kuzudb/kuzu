@@ -131,7 +131,6 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     }
 
     buffer = std::unique_ptr<char[]>(new char[bufferReadSize + remaining + 1]());
-    bufferSize = remaining + bufferReadSize;
     if (remaining > 0) {
         // remaining from last buffer: copy it here
         KU_ASSERT(start != nullptr);
