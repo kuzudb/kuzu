@@ -1,7 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/lambda_expression.h"
-#include "common/exception/binder.h"
 #include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;
