@@ -7,7 +7,6 @@
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
-#include "function/list/vector_list_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
