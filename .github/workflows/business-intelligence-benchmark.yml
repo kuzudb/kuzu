@@ -1,10 +1,9 @@
 name: LDBC-SNB-Business-Intelligence-Benchmark
 
-env:
-  RUNTIME_CHECKS: 1
-  WERROR: 1
-
 on:
+  schedule:
+    - cron: "0 5 * * *"
+
   workflow_dispatch:
     inputs:
       scale_factor:
@@ -14,61 +13,71 @@ on:
         type: choice
         options:
           - "1"
-          # TODO: Add more scale factors here
+          - "10"
+          - "30"
+          - "100"
 
 jobs:
   benchmark:
     name: business-intelligence-benchmark
     runs-on: kuzu-self-hosted-benchmarking-xl
     env:
-      SF: ${{ github.event.inputs.scale_factor }}
       NUM_THREADS: 128
-
+      GEN: Ninja
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Set environment variables
-      run: |
-        echo "KUZU_CSV_DIR=$CSV_DIR/bi-dataset/bi-sf${SF}-composite-projected-fk/graphs/csv/bi/composite-projected-fk/" >> $GITHUB_ENV
-        echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
-        echo "KUZU_BUILD_PATH=$(pwd)/tools/python_api/build" >> $GITHUB_ENV
+      - name: Set env for scheduled run
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          echo "SCALE_FACTOR=1" >> $GITHUB_ENV
 
-    - name: Build kuzu
-      run: |
-        pip3 install -r tools/python_api/requirements_dev.txt
-        make python
+      - name: Set env for workflow dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "SCALE_FACTOR=${{ github.event.inputs.scale_factor }}" >> $GITHUB_ENV
     
-    - name: Clone implementation
-      uses: actions/checkout@v4
-      with:
-        repository: kuzudb/ldbc_snb_bi
-        path: ldbc_snb_bi
-        token: ${{ secrets.DOC_PUSH_TOKEN }}
-    
-    - name: Link substitution parameters
-      working-directory: ldbc_snb_bi
-      run: |
-        rm -rf parameters
-        ln -s $CSV_DIR/bi-dataset/ldbc-snb-bi-parameters-sf1-to-sf30000 parameters
-    
-    - name: Load database
-      working-directory: ldbc_snb_bi/kuzu
-      run: |
-        workflow-scripts/decompress-gz.sh
-        workflow-scripts/load-database.sh
-    
-    - name: Run benchmark
-      working-directory: ldbc_snb_bi/kuzu
-      run: workflow-scripts/benchmark.sh
-    
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-        name: LDBC-SNB-Business-Intelligence-results
-        path: ldbc_snb_bi/kuzu/output/
+      - name: Set environment variables
+        run: |
+          echo "KUZU_CSV_DIR=$CSV_DIR/bi-dataset/bi-sf${SCALE_FACTOR}-composite-projected-fk/graphs/csv/bi/composite-projected-fk/" >> $GITHUB_ENV
+          echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
+          echo "KUZU_BUILD_PATH=$(pwd)/tools/python_api/build" >> $GITHUB_ENV
 
-    - name: Report result to server
-      working-directory: ldbc_snb_bi/kuzu/
-      run: |
-        python3 workflow-scripts/report_results.py
+      - uses: actions/checkout@v4
+
+      - name: Build kuzu
+        run: |
+          pip3 install -r tools/python_api/requirements_dev.txt
+          make python
+    
+      - name: Clone implementation
+        uses: actions/checkout@v4
+        with:
+          repository: kuzudb/ldbc_snb_bi
+          path: ldbc_snb_bi
+          token: ${{ secrets.DOC_PUSH_TOKEN }}
+    
+      - name: Link substitution parameters
+        working-directory: ldbc_snb_bi
+        run: |
+          rm -rf parameters
+          ln -s $CSV_DIR/bi-dataset/ldbc-snb-bi-parameters-sf1-to-sf30000 parameters
+    
+      - name: Load database
+        working-directory: ldbc_snb_bi/kuzu
+        run: |
+          workflow-scripts/decompress-gz.sh
+          workflow-scripts/load-database.sh
+    
+      - name: Run benchmark
+        working-directory: ldbc_snb_bi/kuzu
+        run: workflow-scripts/benchmark.sh
+    
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: LDBC-SNB-Business-Intelligence-results
+          path: ldbc_snb_bi/kuzu/output/
+
+      - name: Report result to server
+        working-directory: ldbc_snb_bi/kuzu/
+        run: |
+          python3 workflow-scripts/report_results.py
