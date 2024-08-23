@@ -12,7 +12,9 @@ def test_help(temp_db) -> None:
             "    :max_rows [max_rows]     set maximum number of rows for display (default: 20)",
             "    :max_width [max_width]     set maximum width in characters for display",
             "    :mode [mode]     set output mode (default: box)",
-            "    :stats [on|off]     toggle query stats on or off",
+            "    :stats [on|off]     toggle query stats on or off",  
+            "    :multiline     set multiline mode",
+            "    :singleline     set singleline mode (default)",
             "",
             "    Note: you can change and see several system configurations, such as num-threads, ",
             "          timeout, and progress_bar using Cypher CALL statements.",
@@ -222,7 +224,7 @@ def test_set_mode(temp_db) -> None:
         .statement('RETURN "This is a \\"test\\", with commas, \\"quotes\\", and\nnewlines.";')
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with commas, ""quotes"", and newlines."')
+    result.check_stdout('"This is a ""test"", with commas, ""quotes"", and\nnewlines."')
 
     # test box mode
     test = (
@@ -286,10 +288,10 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode json")
-        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines \n, and tabs \t." AS a;')
+        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
     )
     result = test.run()
-    result.check_stdout('[{"a":"This is a \\"test\\" with backslashes \\\\, newlines , and tabs \\t."}]')
+    result.check_stdout('[{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}]')
 
     # test jsonlines mode
     test = (
@@ -306,10 +308,10 @@ def test_set_mode(temp_db) -> None:
         ShellTest()
         .add_argument(temp_db)
         .statement(":mode jsonlines")
-        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines \n, and tabs \t." AS a;')
+        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
     )
     result = test.run()
-    result.check_stdout('{"a":"This is a \\"test\\" with backslashes \\\\, newlines , and tabs \\t."}')
+    result.check_stdout('{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}')
 
     # test latex mode
     test = (
@@ -373,7 +375,7 @@ def test_set_mode(temp_db) -> None:
         .statement('RETURN "This is a \\"test\\", with vertical bars |, \\"quotes\\", and\nnewlines.";')
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with vertical bars |, ""quotes"", and newlines."')
+    result.check_stdout('"This is a ""test"", with vertical bars |, ""quotes"", and\nnewlines."')
 
     # test markdown mode
     test = (
@@ -416,7 +418,7 @@ def test_set_mode(temp_db) -> None:
         .statement('RETURN "This is a \\"test\\", with tabs \t, \\"quotes\\", and\nnewlines.";')
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with tabs \t, ""quotes"", and newlines."')
+    result.check_stdout('"This is a ""test"", with tabs \t, ""quotes"", and\nnewlines."')
 
     # test trash mode
     test = (
@@ -495,6 +497,55 @@ def test_stats(temp_db) -> None:
     )
     result = test.run()
     result.check_stdout("Cannot parse 'invalid' to toggle stats. Expect 'on' or 'off'.")
+
+
+def test_multiline(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":multiline")
+        .statement("RETURN")
+        .statement('"databases rule"')
+        .statement("AS")
+        .statement("a")
+        .statement(";")
+    )
+    result = test.run()
+    result.check_stdout("\u2502 databases rule \u2502")
+
+    # test no truncation
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement("a" * 400 + ";")
+    )
+    result = test.run()
+    result.check_stdout("a" * 400)
+
+
+def test_singleline(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":multiline")
+        .statement(":singleline")
+        .statement("RETURN")
+        .statement('"databases rule"')
+        .statement("AS")
+        .statement("a")
+        .statement(";")
+    )
+    result = test.run()
+    result.check_stdout("\u2502 databases rule \u2502")
+
+    # test truncation
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement("a" * 400 + ";")
+    )
+    result = test.run()
+    result.check_stdout("a" * 80)
 
 
 def test_bad_command(temp_db) -> None:

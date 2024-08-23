@@ -92,6 +92,15 @@ def test_next_history(temp_db) -> None:
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
+    # multiline up arrow will move up if not on top line
+    test = ShellTest().add_argument(temp_db)
+    test.start()
+    test.send_finished_statement('RETURN "databases rule"\r AS a;\r')
+    assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
+    test.send_statement("\x1b[A\x1b[A")
+    test.send_finished_statement(KEY_ACTION.ENTER.value)
+    assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
+
 
 def test_prev_history(temp_db) -> None:
     test = ShellTest().add_argument(temp_db)
@@ -102,6 +111,21 @@ def test_prev_history(temp_db) -> None:
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
     test.send_control_statement(KEY_ACTION.CTRL_P.value)  # move up in history
     test.send_control_statement(KEY_ACTION.CTRL_P.value)  # move up in history
+    test.send_statement("\x1b[B")
+    test.send_finished_statement(KEY_ACTION.ENTER.value)
+    assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
+
+    # multiline down arrow will move down if not on bottom line
+    test = ShellTest().add_argument(temp_db)
+    test.start()
+    test.send_finished_statement('RETURN "kuzu is cool"\r AS b;\r')
+    assert test.shell_process.expect_exact(["\u2502 kuzu is cool \u2502", pexpect.EOF]) == 0
+    test.send_finished_statement('RETURN "databases rule" AS a;\r')
+    assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
+    test.send_control_statement(KEY_ACTION.CTRL_P.value)  # move up in history
+    test.send_control_statement(KEY_ACTION.CTRL_P.value)  # move up in history
+    test.send_control_statement(KEY_ACTION.CTRL_P.value)  # move up line
+    test.send_statement("\x1b[B")
     test.send_statement("\x1b[B")
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0

@@ -214,7 +214,7 @@ def test_mode(temp_db, flag) -> None:
         .statement('RETURN "This is a \\"test\\", with commas, \\"quotes\\", and\nnewlines.";')
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with commas, ""quotes"", and newlines."')
+    result.check_stdout('"This is a ""test"", with commas, ""quotes"", and\nnewlines."')
 
     # test box mode
     test = (
@@ -281,10 +281,10 @@ def test_mode(temp_db, flag) -> None:
         .add_argument(temp_db)
         .add_argument(flag)
         .add_argument("json")
-        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines \n, and tabs \t." AS a;')
+        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
     )
     result = test.run()
-    result.check_stdout('[{"a":"This is a \\"test\\" with backslashes \\\\, newlines , and tabs \\t."}]')
+    result.check_stdout('[{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}]')
 
     # test jsonlines mode
     test = (
@@ -303,10 +303,10 @@ def test_mode(temp_db, flag) -> None:
         .add_argument(temp_db)
         .add_argument(flag)
         .add_argument("jsonlines")
-        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines \n, and tabs \t." AS a;')
+        .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
     )
     result = test.run()
-    result.check_stdout('{"a":"This is a \\"test\\" with backslashes \\\\, newlines , and tabs \\t."}')
+    result.check_stdout('{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}')
 
     # test latex mode
     test = (
@@ -375,7 +375,7 @@ def test_mode(temp_db, flag) -> None:
         .statement('RETURN "This is a \\"test\\", with vertical bars |, \\"quotes\\", and\nnewlines.";')
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with vertical bars |, ""quotes"", and newlines."')
+    result.check_stdout('"This is a ""test"", with vertical bars |, ""quotes"", and\nnewlines."')
 
     # test markdown mode
     test = (
@@ -422,7 +422,7 @@ def test_mode(temp_db, flag) -> None:
         .statement('RETURN "This is a \\"test\\", with tabs \t, \\"quotes\\", and\nnewlines.";')
     )
     result = test.run()
-    result.check_stdout('"This is a ""test"", with tabs \t, ""quotes"", and newlines."')
+    result.check_stdout('"This is a ""test"", with tabs \t, ""quotes"", and\nnewlines."')
 
     # test trash mode
     test = (

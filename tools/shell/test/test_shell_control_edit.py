@@ -64,6 +64,22 @@ def test_enter(temp_db, key, history_path) -> None:
         assert f.readline() == 'RETURN "databases rule" AS a;\n'
     deleteIfExists(os.path.join(history_path, "history.txt"))
 
+    # enter in multiline when not at the end of the line should not execute the query
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .add_argument("-p")
+        .add_argument(history_path)
+    )
+    test.start()
+    test.send_statement('RETURN "databases rule" AS a;\x1b[D\x1b[D\x1b[D')
+    test.send_finished_statement(key)
+    assert test.shell_process.expect_exact(["kuzu", pexpect.EOF]) == 0
+
+    with open(os.path.join(history_path, "history.txt")) as f:
+        assert f.readline() != 'RETURN "databases rule" AS a;\n'
+    deleteIfExists(os.path.join(history_path, "history.txt"))
+
 
 @pytest.mark.parametrize(
     "key",

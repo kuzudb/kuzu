@@ -67,18 +67,18 @@ def test_accept_move_home(temp_db, esc) -> None:
 def test_accept_move_end(temp_db, esc) -> None:
     test = ShellTest().add_argument(temp_db)
     test.start()
-    test.send_finished_statement('RETURN "databases ;\r')
+    test.send_finished_statement('RETURN ;\r')
     assert (
         test.shell_process.expect_exact(
-            ['Error: Parser exception: Invalid input <RETURN ">:', pexpect.EOF],
+            ['Error: Parser exception: Invalid input <RETURN >:', pexpect.EOF],
         )
         == 0
     )
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
-    test.send_statement("databases")
+    test.send_statement("return")
     test.send_statement(esc)
     test.send_statement(KEY_ACTION.BACKSPACE.value)  # remove semicolon
-    test.send_finished_statement('rule" AS a;\r')
+    test.send_finished_statement('"databases rule" AS a;\r')
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
 
