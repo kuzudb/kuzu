@@ -37,7 +37,7 @@ jobs:
     
       - name: Set environment variables
         run: |
-          echo "KUZU_CSV_DIR=$CSV_DIR/bi-dataset/bi-sf${SF}-composite-projected-fk/graphs/csv/bi/composite-projected-fk/" >> $GITHUB_ENV
+          echo "KUZU_CSV_DIR=$CSV_DIR/bi-dataset/bi-sf${SCALE_FACTOR}-composite-projected-fk/graphs/csv/bi/composite-projected-fk/" >> $GITHUB_ENV
           echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
           echo "KUZU_BUILD_PATH=$(pwd)/tools/python_api/build" >> $GITHUB_ENV
 
