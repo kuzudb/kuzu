@@ -3,9 +3,9 @@
 #include "catalog/catalog.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/compression/compression.h"
 #include "storage/db_file_id.h"
 #include "storage/store/column_chunk_data.h"
+#include "storage/store/column_reader_writer.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -15,18 +15,6 @@ namespace storage {
 
 struct CompressionMetadata;
 
-using read_values_to_vector_func_t =
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
-using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
-using write_values_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
-    const uint8_t* data, common::offset_t dataOffset, common::offset_t numValues,
-    const CompressionMetadata& metadata, const common::NullMask*)>;
-
-using read_values_to_page_func_t =
-    std::function<void(uint8_t* frame, PageCursor& pageCursor, uint8_t* result,
-        uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>;
 // This is a special usage for the `batchLookup` interface.
 using batch_lookup_func_t = read_values_to_page_func_t;
 
@@ -43,12 +31,17 @@ class Column {
     friend class RelTableData;
 
 public:
-    // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware of
-    // transaction when reading/writing from/to disk pages.
+    // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
+    // of transaction when reading/writing from/to disk pages.
     Column(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType, BMFileHandle* dataFH,
+        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
+        bool requireNullColumn = true);
     virtual ~Column();
+
+    void populateExtraChunkState(ChunkState& state);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         BMFileHandle& dataFH);
@@ -82,12 +75,12 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
     // Batch write to a set of sequential pages.
-    virtual void write(ColumnChunkData& persistentChunk, const ChunkState& state,
+    virtual void write(ColumnChunkData& persistentChunk, ChunkState& state,
         common::offset_t dstOffset, ColumnChunkData* data, common::offset_t srcOffset,
         common::length_t numValues);
 
     // Append values to the end of the node group, resizing it if necessary
-    common::offset_t appendValues(ColumnChunkData& persistentChunk, const ChunkState& state,
+    common::offset_t appendValues(ColumnChunkData& persistentChunk, ChunkState& state,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t numValues);
 
     virtual void checkpointColumnChunk(ColumnCheckpointState& checkpointState);
@@ -105,20 +98,11 @@ protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    void scanUnfiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        uint64_t numValuesToScan, common::ValueVector* resultVector,
-        const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0) const;
-    void scanFiltered(transaction::Transaction* transaction, PageCursor& pageCursor,
-        uint64_t numValuesToScan, const common::SelectionVector& selVector,
-        common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta) const;
 
     virtual void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
-    void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
-        const std::function<void(uint8_t*)>& func) const;
-
-    void writeValues(const ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
+    void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1);
 
@@ -138,7 +122,7 @@ protected:
     virtual bool canCheckpointInPlace(const ChunkState& state,
         const ColumnCheckpointState& checkpointState);
 
-    void checkpointColumnChunkInPlace(const ChunkState& state,
+    void checkpointColumnChunkInPlace(ChunkState& state,
         const ColumnCheckpointState& checkpointState);
     void checkpointNullData(const ColumnCheckpointState& checkpointState) const;
 
@@ -162,6 +146,8 @@ protected:
     write_values_func_t writeFunc;
     read_values_to_page_func_t readToPageFunc;
     bool enableCompression;
+
+    std::unique_ptr<ColumnReadWriter> columnReadWriter;
 };
 
 class InternalIDColumn final : public Column {
@@ -207,6 +193,9 @@ struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
         BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
         bool enableCompression);
+    static std::unique_ptr<Column> createColumn(std::string name,
+        common::PhysicalTypeID physicalType, BMFileHandle* dataFH, BufferManager* bufferManager,
+        ShadowFile* shadowFile, bool enableCompression);
 };
 
 } // namespace storage

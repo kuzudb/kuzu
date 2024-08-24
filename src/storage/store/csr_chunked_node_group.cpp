@@ -262,11 +262,11 @@ void ChunkedCSRNodeGroup::scanCSRHeader(CSRNodeGroupCheckpointState& csrState) c
     ChunkState headerChunkState;
     KU_ASSERT(csrHeader.offset->getResidencyState() == ResidencyState::ON_DISK);
     KU_ASSERT(csrHeader.length->getResidencyState() == ResidencyState::ON_DISK);
-    csrHeader.offset->initializeScanState(headerChunkState);
+    csrHeader.offset->initializeScanState(headerChunkState, csrState.csrOffsetColumn);
     KU_ASSERT(csrState.csrOffsetColumn && csrState.csrLengthColumn);
     csrState.csrOffsetColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
         &csrState.oldHeader->offset->getData());
-    csrHeader.length->initializeScanState(headerChunkState);
+    csrHeader.length->initializeScanState(headerChunkState, csrState.csrLengthColumn);
     csrState.csrLengthColumn->scan(&transaction::DUMMY_CHECKPOINT_TRANSACTION, headerChunkState,
         &csrState.oldHeader->length->getData());
 }

@@ -142,6 +142,10 @@ void NullMask::setNullFromRange(uint64_t offset, uint64_t numBitsToSet, bool isN
 
 void NullMask::setNullRange(uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet,
     bool isNull) {
+    if (numBitsToSet == 0) {
+        return;
+    }
+
     auto [firstEntryPos, firstBitPos] = getNullEntryAndBitPos(offset);
     auto [lastEntryPos, lastBitPos] = getNullEntryAndBitPos(offset + numBitsToSet);
 

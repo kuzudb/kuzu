@@ -201,6 +201,7 @@ enum class LogicalTypeID : uint8_t {
     POINTER = 58,
 
     UUID = 59,
+
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -220,6 +221,8 @@ enum class PhysicalTypeID : uint8_t {
     FLOAT = 12,
     INTERVAL = 13,
     INTERNAL_ID = 14,
+    ALP_EXCEPTION_FLOAT = 15,
+    ALP_EXCEPTION_DOUBLE = 16,
 
     // Variable size types.
     STRING = 20,
@@ -274,6 +277,16 @@ public:
     KUZU_API static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
 
     static LogicalType ANY() { return LogicalType(LogicalTypeID::ANY); }
+
+    // NOTE: avoid using this if possible, this is a temporary hack for passing internal types
+    // TODO(Royi) remove this when float compression no longer relies on this or ColumnChunkData
+    // takes physical types instead of logical types
+    static LogicalType ANY(PhysicalTypeID physicalType) {
+        auto ret = LogicalType(LogicalTypeID::ANY);
+        ret.physicalType = physicalType;
+        return ret;
+    }
+
     static LogicalType BOOL() { return LogicalType(LogicalTypeID::BOOL); }
     static LogicalType HASH() { return LogicalType(LogicalTypeID::UINT64); }
     static LogicalType INT64() { return LogicalType(LogicalTypeID::INT64); }

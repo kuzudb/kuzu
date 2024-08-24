@@ -32,8 +32,8 @@ ColumnChunk::ColumnChunk(const LogicalType& dataType, bool enableCompression,
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
     : enableCompression{enableCompression}, data{std::move(data)} {}
 
-void ColumnChunk::initializeScanState(ChunkState& state) const {
-    data->initializeScanState(state);
+void ColumnChunk::initializeScanState(ChunkState& state, Column* column) const {
+    data->initializeScanState(state, column);
 }
 
 // TODO(Guodong): Should remove `nodeID` here. We should only need to pass in a selVector.

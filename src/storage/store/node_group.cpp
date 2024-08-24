@@ -1,5 +1,6 @@
 #include "storage/store/node_group.h"
 
+#include "common/utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
@@ -112,9 +113,7 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableSca
                 continue;
             }
             auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
-            chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-            // TODO: Not a good way to initialize column for chunkState here.
-            nodeGroupScanState.chunkStates[i].column = state.columns[i];
+            chunk.initializeScanState(nodeGroupScanState.chunkStates[i], state.columns[i]);
         }
     }
 }
@@ -328,7 +327,7 @@ std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lo
     for (const auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         numRows += chunkedGroup->getNumRows();
     }
-    const auto numVectors = StorageUtils::divideAndRoundUpTo(numRows, DEFAULT_VECTOR_CAPACITY);
+    const auto numVectors = common::ceilDiv(numRows, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numVectors; i++) {
         checkpointVersionInfo->getOrCreateVersionInfo(i);
     }

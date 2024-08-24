@@ -43,5 +43,16 @@ bool isLittleEndian();
 template<typename T>
 bool integerFitsIn(int64_t val);
 
+template<numeric_utils::IsIntegral T>
+constexpr T ceilDiv(T a, T b) {
+    return (a / b) + (a % b != 0);
+}
+
+template<std::integral To, std::integral From>
+constexpr To safeIntegerConversion(From val) {
+    KU_ASSERT(static_cast<To>(val) == val);
+    return val;
+}
+
 } // namespace common
 } // namespace kuzu

@@ -27,9 +27,8 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void write(ColumnChunkData& persistentChunk, const ChunkState& state,
-        common::offset_t offsetInChunk, ColumnChunkData* data, common::offset_t dataOffset,
-        common::length_t numValues) override;
+    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t offsetInChunk,
+        ColumnChunkData* data, common::offset_t dataOffset, common::length_t numValues) override;
 };
 
 } // namespace storage

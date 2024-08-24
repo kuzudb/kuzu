@@ -56,10 +56,8 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
     ChunkState offsetState, lengthState;
     auto& csrChunkGroup = persistentChunkGroup->cast<ChunkedCSRNodeGroup>();
     const auto& csrHeader = csrChunkGroup.getCSRHeader();
-    csrHeader.offset->initializeScanState(offsetState);
-    csrHeader.length->initializeScanState(lengthState);
-    offsetState.column = relScanState.csrOffsetColumn;
-    lengthState.column = relScanState.csrLengthColumn;
+    csrHeader.offset->initializeScanState(offsetState, relScanState.csrOffsetColumn);
+    csrHeader.length->initializeScanState(lengthState, relScanState.csrLengthColumn);
     csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
         *nodeGroupScanState.csrHeader->offset);
     csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
@@ -72,9 +70,7 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
             continue;
         }
         auto& chunk = persistentChunkGroup->getColumnChunk(relScanState.columnIDs[i]);
-        chunk.initializeScanState(nodeGroupScanState.chunkStates[i]);
-        // TODO: Not a good way to initialize column for chunkState here.
-        nodeGroupScanState.chunkStates[i].column = relScanState.columns[i];
+        chunk.initializeScanState(nodeGroupScanState.chunkStates[i], relScanState.columns[i]);
     }
 }
 
@@ -435,8 +431,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
         numOldRowsInRegion, false, ResidencyState::IN_MEMORY);
     ChunkState chunkState;
     const auto& persistentChunk = persistentChunkGroup->getColumnChunk(columnID);
-    chunkState.column = csrState.columns[columnID].get();
-    persistentChunk.initializeScanState(chunkState);
+    persistentChunk.initializeScanState(chunkState, csrState.columns[columnID].get());
     persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
         chunkState, *oldChunkWithUpdates, leftCSROffset, numOldRowsInRegion);
     KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));

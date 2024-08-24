@@ -2,9 +2,11 @@
 
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <type_traits>
 
+#include "alp/state.hpp"
 #include "common/assert.h"
 #include "common/null_mask.h"
 #include "common/numeric_utils.h"
@@ -58,8 +60,8 @@ union StorageValue {
     }
 
     bool operator==(const StorageValue& other) const {
-        // All types are the same size, so we can compare any of them to check equality
-        return this->signedInt == other.signedInt;
+        // We zero-initialize any padding bits, so we can compare values to check equality
+        return this->signedInt128 == other.signedInt128;
     }
 
     template<StorageValueType T>
@@ -105,37 +107,100 @@ enum class CompressionType : uint8_t {
     INTEGER_BITPACKING = 1,
     BOOLEAN_BITPACKING = 2,
     CONSTANT = 3,
+    ALP = 4,
+};
+
+struct ExtraMetadata {
+    virtual ~ExtraMetadata() = default;
+    virtual std::unique_ptr<ExtraMetadata> copy() = 0;
+};
+
+// used only for compressing floats/doubles
+struct ALPMetadata : ExtraMetadata {
+    ALPMetadata() = default;
+    explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType);
+
+    uint8_t exp;
+    uint8_t fac;
+    uint32_t exceptionCount;
+    uint32_t exceptionCapacity;
+
+    void serialize(common::Serializer& serializer) const;
+    static ALPMetadata deserialize(common::Deserializer& deserializer);
+
+    std::unique_ptr<ExtraMetadata> copy() override;
+};
+
+struct InPlaceUpdateLocalState {
+    struct FloatState {
+        size_t newExceptionCount;
+    } floatState;
 };
 
 // Data statistics used for determining how to handle compressed data
 struct CompressionMetadata {
+
     // Minimum and maximum are upper and lower bounds for the data.
     // Updates and deletions may cause them to no longer be the exact minimums and maximums,
     // but no value will be larger than the maximum or smaller than the minimum
     StorageValue min;
     StorageValue max;
+
     CompressionType compression;
-    uint8_t _padding[7]{};
+
+    std::optional<std::unique_ptr<ExtraMetadata>> extraMetadata;
+
+    std::vector<CompressionMetadata> children;
 
     CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression)
-        : min(min), max(max), compression(compression) {}
+        : min(min), max(max), compression(compression), extraMetadata() {}
+
+    // constructor for float metadata
+    CompressionMetadata(StorageValue min, StorageValue max, CompressionType compression,
+        const alp::state& state, StorageValue minEncoded, StorageValue maxEncoded,
+        common::PhysicalTypeID physicalType);
+
+    CompressionMetadata(const CompressionMetadata&);
+    CompressionMetadata& operator=(const CompressionMetadata&);
+
+    static size_t getChildCount(CompressionType compressionType);
+
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
+    const CompressionMetadata& getChild(common::offset_t idx) const;
+
+    // accessors for additionalMetadata
+    inline const ExtraMetadata* getExtraMetadata() const {
+        KU_ASSERT(extraMetadata.has_value());
+        return extraMetadata.value().get();
+    }
+    inline ExtraMetadata* getExtraMetadata() {
+        KU_ASSERT(extraMetadata.has_value());
+        return extraMetadata.value().get();
+    }
+    inline const ALPMetadata* floatMetadata() const {
+        return common::ku_dynamic_cast<const ExtraMetadata*, const ALPMetadata*>(
+            getExtraMetadata());
+    }
+    inline ALPMetadata* floatMetadata() {
+        return common::ku_dynamic_cast<ExtraMetadata*, ALPMetadata*>(getExtraMetadata());
+    }
+
+    void serialize(common::Serializer& serializer) const;
+    static CompressionMetadata deserialize(common::Deserializer& deserializer);
 
     // Returns the number of values which will be stored in the given data size
     // This must be consistent with the compression implementation for the given size
+    uint64_t numValues(uint64_t dataSize, common::PhysicalTypeID dataType) const;
     uint64_t numValues(uint64_t dataSize, const common::LogicalType& dataType) const;
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
     bool canUpdateInPlace(const uint8_t* data, uint32_t pos, uint64_t numValues,
-        common::PhysicalTypeID physicalType,
+        common::PhysicalTypeID physicalType, InPlaceUpdateLocalState& localUpdateState,
         const std::optional<common::NullMask>& nullMask = std::nullopt) const;
     bool canAlwaysUpdateInPlace() const;
 
     std::string toString(const common::PhysicalTypeID physicalType) const;
 };
-// Padding should be kept to a minimum, but must be stored explicitly for consistent binary output
-// when writing the padding to disk.
-static_assert(sizeof(CompressionMetadata) == sizeof(StorageValue) * 2 + 8);
 
 class CompressionAlg {
 public:
@@ -220,8 +285,10 @@ private:
 // Compression alg which does not compress values and instead just copies them.
 class Uncompressed : public CompressionAlg {
 public:
+    explicit Uncompressed(common::PhysicalTypeID physicalType)
+        : numBytesPerValue{getDataTypeSizeInChunk(physicalType)} {}
     explicit Uncompressed(const common::LogicalType& logicalType)
-        : numBytesPerValue{getDataTypeSizeInChunk(logicalType)} {}
+        : Uncompressed(logicalType.getPhysicalType()) {}
     explicit Uncompressed(uint8_t numBytesPerValue) : numBytesPerValue{numBytesPerValue} {}
 
     Uncompressed(const Uncompressed&) = default;
@@ -233,10 +300,8 @@ public:
             numBytesPerValue * numValues);
     }
 
-    static inline uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType) {
-        auto numBytesPerValue = getDataTypeSizeInChunk(logicalType);
-        return numBytesPerValue == 0 ? UINT64_MAX : dataSize / numBytesPerValue;
-    }
+    static uint64_t numValues(uint64_t dataSize, common::PhysicalTypeID physicalType);
+    static uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType);
 
     inline uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
@@ -315,7 +380,7 @@ public:
         uint64_t dstOffset, uint64_t numValues,
         const struct CompressionMetadata& metadata) const final;
 
-    static bool canUpdateInPlace(std::span<T> value, const CompressionMetadata& metadata,
+    static bool canUpdateInPlace(std::span<const T> value, const CompressionMetadata& metadata,
         const std::optional<common::NullMask>& nullMask = std::nullopt,
         uint64_t nullMaskOffset = 0);
 
@@ -393,7 +458,7 @@ public:
     ReadCompressedValuesFromPageToVector(const ReadCompressedValuesFromPageToVector&) = default;
 
     void operator()(const uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata);
+        uint32_t posInVector, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
 class ReadCompressedValuesFromPage : public CompressedFunctor {
@@ -417,7 +482,7 @@ public:
         const CompressionMetadata& metadata, const common::NullMask* nullMask = nullptr);
 
     void operator()(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata);
+        uint32_t posInVector, common::offset_t numValues, const CompressionMetadata& metadata);
 };
 
 } // namespace storage

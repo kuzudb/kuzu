@@ -92,8 +92,8 @@ void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& st
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::write(ColumnChunkData& persistentChunk, const ChunkState& state,
-    offset_t dstOffset, ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
+void StringColumn::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t dstOffset,
+    ColumnChunkData* data, offset_t srcOffset, length_t numValues) {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();
     numValues = std::min(numValues, data->getNumValues() - srcOffset);
     auto& strChunkToWriteFrom = data->cast<StringChunkData>();
@@ -220,10 +220,11 @@ bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numSt
     }
     const auto totalStringsAfterUpdate =
         getChildState(state, ChildStateIndex::OFFSET).metadata.numValues + numStrings;
+    InPlaceUpdateLocalState localUpdateState{};
     // Check if the index column can store the largest new index in-place
     if (!indexState.metadata.compMeta.canUpdateInPlace(
             reinterpret_cast<const uint8_t*>(&totalStringsAfterUpdate), 0 /*pos*/, 1 /*numValues*/,
-            PhysicalTypeID::UINT32)) {
+            PhysicalTypeID::UINT32, localUpdateState)) {
         return false;
     }
     return true;

@@ -23,13 +23,13 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void write(ColumnChunkData& persistentChunk, const ChunkState& state,
-        common::offset_t dstOffset, ColumnChunkData* data, common::offset_t srcOffset,
-        common::length_t numValues) override;
+    void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
+        ColumnChunkData* data, common::offset_t srcOffset, common::length_t numValues) override;
 
     void checkpointColumnChunk(ColumnCheckpointState& checkpointState) override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
+    Column* getIndexColumn() { return indexColumn.get(); }
 
     static ChunkState& getChildState(ChunkState& state, ChildStateIndex child);
     static const ChunkState& getChildState(const ChunkState& state, ChildStateIndex child);

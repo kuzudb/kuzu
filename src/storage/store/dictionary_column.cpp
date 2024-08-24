@@ -95,7 +95,7 @@ void DictionaryColumn::scan(Transaction* transaction, const ChunkState& offsetSt
     }
 }
 
-string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, const ChunkState& state,
+string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkState& state,
     std::string_view val) {
     const auto startOffset = dataColumn->appendValues(*dictChunk.getStringDataChunk(),
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA),
@@ -184,9 +184,10 @@ bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
     if (offsetState.metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
+    InPlaceUpdateLocalState localUpdateState{};
     if (!offsetState.metadata.compMeta.canUpdateInPlace(
             (const uint8_t*)&totalStringOffsetsAfterUpdate, 0 /*offset*/, 1 /*numValues*/,
-            offsetColumn->getDataType().getPhysicalType())) {
+            offsetColumn->getDataType().getPhysicalType(), localUpdateState)) {
         return false;
     }
     return true;

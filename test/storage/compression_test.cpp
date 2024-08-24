@@ -1,12 +1,179 @@
 #include <algorithm>
 #include <numeric>
 
+#include "common/constants.h"
+#include "common/exception/not_implemented.h"
+#include "common/exception/storage.h"
+#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/reader.h"
+#include "common/serializer/serializer.h"
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "storage/compression/compression.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
+
+/*
+ * StorageValue Tests
+ */
+
+TEST(CompressionTests, TestStorageValueEquality) {
+    KU_ASSERT(StorageValue{-1} == StorageValue{-2 + 1});
+    KU_ASSERT(StorageValue{5} == StorageValue{5U});
+    KU_ASSERT(
+        StorageValue{1} == StorageValue{StorageValue{(int128_t{1} << 100)}.get<int128_t>() >> 100});
+}
+
+/*
+ * CompressionMetadata Tests
+ */
+
+bool operator==(const ALPMetadata& a, const ALPMetadata& b) {
+    return (a.exceptionCapacity == b.exceptionCapacity) && (a.exceptionCount == b.exceptionCount) &&
+           (a.exp == b.exp) && (a.fac == b.fac);
+}
+
+bool operator!=(const ALPMetadata& a, const ALPMetadata& b) {
+    return !(a == b);
+}
+
+bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
+    if (a.min != b.min)
+        return false;
+    if (a.max != b.max)
+        return false;
+    if (a.extraMetadata.has_value() != b.extraMetadata.has_value())
+        return false;
+    if (a.extraMetadata.has_value() &&
+        *reinterpret_cast<ALPMetadata*>(a.extraMetadata.value().get()) !=
+            *reinterpret_cast<ALPMetadata*>(b.extraMetadata.value().get())) {
+        return false;
+    }
+    if (a.children.size() != b.children.size())
+        return false;
+    for (size_t i = 0; i < a.children.size(); ++i) {
+        if (a.getChild(i) != b.getChild(i))
+            return false;
+    }
+    return true;
+}
+
+struct BufferReader : Reader {
+    BufferReader(uint8_t* data, size_t dataSize) : data(data), dataSize(dataSize), readSize(0) {}
+
+    void read(uint8_t* outputData, uint64_t size) final {
+        memcpy(outputData, data + readSize, size);
+        readSize += size;
+    }
+
+    bool finished() final { return (readSize >= dataSize); }
+
+    uint8_t* data;
+    size_t dataSize;
+    size_t readSize;
+};
+
+void testSerializeThenDeserialize(const CompressionMetadata& orig) {
+    // test serializing/deserializing twice
+
+    const auto writer = std::make_shared<BufferedSerializer>();
+    Serializer ser{writer};
+    orig.serialize(ser);
+    orig.serialize(ser);
+
+    Deserializer deser{std::make_unique<BufferReader>(writer->getBlobData(), writer->getSize())};
+    const auto deserialized1 = CompressionMetadata::deserialize(deser);
+    EXPECT_TRUE(orig == deserialized1);
+
+    const auto deserialized2 = CompressionMetadata::deserialize(deser);
+    EXPECT_TRUE(orig == deserialized2);
+}
+
+TEST(CompressionTests, DoubleMetadataSerializeThenDeserialize) {
+    alp::state alpState{};
+    alpState.exceptions_count = 1 << 17;
+    alpState.exp = 10;
+    alpState.fac = 5;
+
+    const CompressionMetadata orig{StorageValue{-1.01}, StorageValue{1.01}, CompressionType::ALP,
+        alpState, StorageValue{0}, StorageValue{1}, PhysicalTypeID::DOUBLE};
+
+    testSerializeThenDeserialize(orig);
+}
+
+TEST(CompressionTests, DoubleUncompressedMetadataSerializeThenDeserialize) {
+    alp::state alpState{};
+    alpState.exceptions_count = 1 << 17;
+    alpState.exp = 10;
+    alpState.fac = 5;
+
+    CompressionMetadata orig{StorageValue{-1.01}, StorageValue{1.01},
+        CompressionType::UNCOMPRESSED};
+
+    testSerializeThenDeserialize(orig);
+}
+
+TEST(CompressionTests, IntMetadataSerializeThenDeserialize) {
+    const CompressionMetadata orig{StorageValue{-10}, StorageValue{-5},
+        CompressionType::INTEGER_BITPACKING};
+
+    testSerializeThenDeserialize(orig);
+}
+
+TEST(CompressionTests, IntegerBitpackingMetadataInvalidPhysicalType) {
+    const CompressionMetadata metadata{StorageValue{-10}, StorageValue{-5},
+        CompressionType::INTEGER_BITPACKING};
+    uint8_t data = 0;
+
+    kuzu::storage::InPlaceUpdateLocalState localUpdateState{};
+    EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::ARRAY, localUpdateState),
+        StorageException);
+
+    EXPECT_THROW(metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, LogicalType::STRING()),
+        StorageException);
+
+    EXPECT_THROW(metadata.toString(PhysicalTypeID::FLOAT), InternalException);
+    EXPECT_THROW(metadata.toString(PhysicalTypeID::BOOL), InternalException);
+
+    uint8_t result = 0;
+    PageCursor cursor;
+    EXPECT_THROW(ReadCompressedValuesFromPage{LogicalType::DOUBLE()}.operator()(&data, cursor,
+                     &result, 0, 1, metadata),
+        NotImplementedException);
+    EXPECT_THROW(WriteCompressedValuesToPage{LogicalType::DOUBLE()}.operator()(&data, 0, &result, 0,
+                     1, metadata),
+        NotImplementedException);
+}
+
+TEST(CompressionTests, FloatCompressionMetadataInvalidPhysicalType) {
+    const CompressionMetadata metadata{StorageValue{-10}, StorageValue{-5}, CompressionType::ALP};
+    uint8_t data = 0;
+
+    kuzu::storage::InPlaceUpdateLocalState localUpdateState{};
+    EXPECT_THROW(metadata.canUpdateInPlace(&data, 0, 1, PhysicalTypeID::INT32, localUpdateState),
+        StorageException);
+
+    EXPECT_THROW(metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, LogicalType::UINT64()),
+        StorageException);
+
+    EXPECT_THROW(metadata.toString(PhysicalTypeID::STRUCT), InternalException);
+
+    uint8_t result = 0;
+    PageCursor cursor;
+    EXPECT_THROW(ReadCompressedValuesFromPage{LogicalType::DATE()}.operator()(&data, cursor,
+                     &result, 0, 1, metadata),
+        NotImplementedException);
+    EXPECT_THROW(WriteCompressedValuesToPage{LogicalType::DATE()}.operator()(&data, 0, &result, 0,
+                     1, metadata),
+        NotImplementedException);
+}
+
+/*
+ * Compression Tests
+ */
 
 template<typename T>
 void test_compression(CompressionAlg& alg, std::vector<T> src, bool force_offset_zero = true) {

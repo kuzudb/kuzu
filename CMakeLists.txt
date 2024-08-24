@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.6.0.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.6.0.2 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -238,6 +238,7 @@ include_directories(third_party/pybind11/include)
 include_directories(third_party/pyparse)
 include_directories(third_party/re2/include)
 include_directories(third_party/serd/include)
+include_directories(third_party/alp/include)
 if (${BUILD_TESTS})
     include_directories(third_party/spdlog)
 elseif (${BUILD_BENCHMARK})
