@@ -1,6 +1,9 @@
 name: LDBC-Fintech-Benchmark
 
 on:
+  schedule:
+    - cron: "0 5 * * *"
+
   workflow_dispatch:
     inputs:
       scale_factor:
@@ -17,60 +20,69 @@ jobs:
     name: ldbc-fintech-benchmark
     runs-on: kuzu-self-hosted-benchmarking-xl
     env:
-      SCALE_FACTOR: ${{ github.event.inputs.scale_factor }}
       NUM_THREADS: 128
+      GEN: Ninja
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Set env for scheduled run
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          echo "SCALE_FACTOR=1" >> $GITHUB_ENV
 
-    - name: Set checkout dir
-      run: |
-        echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
+      - name: Set env for workflow dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "SCALE_FACTOR=${{ github.event.inputs.scale_factor }}" >> $GITHUB_ENV
 
-    - name: Build kuzu
-      run: |
-        pip3 install -r tools/python_api/requirements_dev.txt
-        make python
-        make java
+      - name: Set checkout dir
+        run: |
+          echo "KUZU_DIR=$(pwd)" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+
+      - name: Build kuzu
+        run: |
+          pip3 install -r tools/python_api/requirements_dev.txt
+          make python
+          make java
     
-    - name: Clone implementation
-      uses: actions/checkout@v4
-      with:
-        repository: kuzudb/ldbc_finbench_transaction_impls
-        token: ${{ secrets.DOC_PUSH_TOKEN }}
-        path: ldbc_finbench_transaction_impls
+      - name: Clone implementation
+        uses: actions/checkout@v4
+        with:
+          repository: kuzudb/ldbc_finbench_transaction_impls
+          token: ${{ secrets.DOC_PUSH_TOKEN }}
+          path: ldbc_finbench_transaction_impls
       
-    - name: Update implementation
-      working-directory: ldbc_finbench_transaction_impls
-      run: |
-        ln -s $KUZU_DIR/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/kuzu_java.jar
-        ln -s $KUZU_DIR/tools/python_api/build/kuzu kuzu/scripts/kuzu
-        mkdir -p kuzu/src/main/resources/data
-        ln -s $CSV_DIR/finbench-datasets/sf${SCALE_FACTOR} kuzu/src/main/resources/data/sf${SCALE_FACTOR}
-        mvn clean package -DskipTests
+      - name: Update implementation
+        working-directory: ldbc_finbench_transaction_impls
+        run: |
+          ln -s $KUZU_DIR/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/kuzu_java.jar
+          ln -s $KUZU_DIR/tools/python_api/build/kuzu kuzu/scripts/kuzu
+          mkdir -p kuzu/src/main/resources/data
+          ln -s $CSV_DIR/finbench-datasets/sf${SCALE_FACTOR} kuzu/src/main/resources/data/sf${SCALE_FACTOR}
+          mvn clean package -DskipTests
 
-    - name: Load data
-      working-directory: ldbc_finbench_transaction_impls
-      run: python3 kuzu/scripts/import_data.py sf${SCALE_FACTOR}
+      - name: Load data
+        working-directory: ldbc_finbench_transaction_impls
+        run: python3 kuzu/scripts/import_data.py sf${SCALE_FACTOR}
 
-    - name: Run benchmark
-      working-directory: ldbc_finbench_transaction_impls/kuzu
-      run:
-        java -cp target/kuzu-0.1.0-alpha.jar:target/classes/kuzu_java.jar org.ldbcouncil.finbench.driver.driver.Driver -P sf${SCALE_FACTOR}_finbench_benchmark.properties | tee LDBC-FinBench.log
+      - name: Run benchmark
+        working-directory: ldbc_finbench_transaction_impls/kuzu
+        run:
+          java -cp target/kuzu-0.1.0-alpha.jar:target/classes/kuzu_java.jar org.ldbcouncil.finbench.driver.driver.Driver -P sf${SCALE_FACTOR}_finbench_benchmark.properties | tee LDBC-FinBench.log
      
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-        name: LDBC-FinBench-results
-        path: ldbc_finbench_transaction_impls/kuzu/results/LDBC-FinBench-results.json
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: LDBC-FinBench-results
+          path: ldbc_finbench_transaction_impls/kuzu/results/LDBC-FinBench-results.json
 
-    - name: Upload logs
-      uses: actions/upload-artifact@v4
-      with:
-        name: LDBC-FinBench-logs
-        path: ldbc_finbench_transaction_impls/kuzu/LDBC-FinBench.log
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: LDBC-FinBench-logs
+          path: ldbc_finbench_transaction_impls/kuzu/LDBC-FinBench.log
     
-    - name: Report result to server
-      working-directory: ldbc_finbench_transaction_impls
-      run: |
-        python3 kuzu/scripts/report_results.py
+      - name: Report result to server
+        working-directory: ldbc_finbench_transaction_impls
+        run: |
+          python3 kuzu/scripts/report_results.py
