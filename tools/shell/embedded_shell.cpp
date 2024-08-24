@@ -913,433 +913,432 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
         common::ku_dynamic_cast<DrawingCharacters*, BaseTableDrawingCharacters*>(
             drawingCharacters.get());
     auto querySummary = queryResult.getQuerySummary();
-    if (querySummary->isExplain()) {
-        printf("%s", queryResult.getNext()->toString().c_str());
-    } else {
-        constexpr uint32_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
-        const uint32_t minTruncatedWidth = 20;
-        uint64_t numTuples = queryResult.getNumTuples();
-        std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
-        for (auto i = 0u; i < colsWidth.size(); i++) {
-            colsWidth[i] = std::max(queryResult.getColumnNames()[i].length(),
-                               queryResult.getColumnDataTypes()[i].toString().length()) +
-                           2;
+    constexpr uint32_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
+    const uint32_t minTruncatedWidth = 20;
+    uint64_t numTuples = queryResult.getNumTuples();
+    std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
+    // calculate the width of each column name/type
+    for (auto i = 0u; i < colsWidth.size(); i++) {
+        colsWidth[i] = std::max(queryResult.getColumnNames()[i].length(),
+                           queryResult.getColumnDataTypes()[i].toString().length()) +
+                       2;
+    }
+    uint64_t rowCount = 0;
+    // calculate the width of each tuple value
+    while (queryResult.hasNext()) {
+        if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+            rowCount < numTuples - maxRowSize / 2) {
+            auto tuple = queryResult.getNext();
+            rowCount++;
+            continue;
         }
-        uint64_t rowCount = 0;
-        while (queryResult.hasNext()) {
-            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
-                rowCount < numTuples - maxRowSize / 2) {
-                auto tuple = queryResult.getNext();
-                rowCount++;
+        auto tuple = queryResult.getNext();
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            if (tuple->getValue(i)->isNull()) {
                 continue;
             }
-            auto tuple = queryResult.getNext();
-            for (auto i = 0u; i < colsWidth.size(); i++) {
-                if (tuple->getValue(i)->isNull()) {
-                    continue;
-                }
-                std::string tupleString = tuple->getValue(i)->toString();
-                uint32_t fieldLen = 0;
-                uint32_t chrIter = 0;
-                while (chrIter < tupleString.length()) {
-                    fieldLen += Utf8Proc::renderWidth(tupleString.c_str(), chrIter);
-                    chrIter =
-                        utf8proc_next_grapheme(tupleString.c_str(), tupleString.length(), chrIter);
-                }
-                // An extra 2 spaces are added for an extra space on either
-                // side of the std::string.
-                colsWidth[i] = std::max(colsWidth[i], fieldLen + 2);
+            std::string tupleString = tuple->getValue(i)->toString();
+            uint32_t fieldLen = 0;
+            uint32_t chrIter = 0;
+            while (chrIter < tupleString.length()) {
+                fieldLen += Utf8Proc::renderWidth(tupleString.c_str(), chrIter);
+                chrIter =
+                    utf8proc_next_grapheme(tupleString.c_str(), tupleString.length(), chrIter);
             }
-            rowCount++;
+            // An extra 2 spaces are added for an extra space on either
+            // side of the std::string.
+            colsWidth[i] = std::max(colsWidth[i], fieldLen + 2);
+        }
+        rowCount++;
+    }
+
+    // calculate the maximum width of the table
+    uint32_t sumGoal = minTruncatedWidth;
+    uint32_t maxWidth = minTruncatedWidth;
+    if (colsWidth.size() == 1) {
+        uint32_t minDisplayWidth = minTruncatedWidth + SMALL_TABLE_SEPERATOR_LENGTH;
+        if (maxPrintWidth > minDisplayWidth) {
+            sumGoal = maxPrintWidth - 2;
+        } else {
+            sumGoal =
+                std::max((uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
+        }
+    } else if (colsWidth.size() > 1) {
+        uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH + minTruncatedWidth * 2;
+        if (maxPrintWidth > minDisplayWidth) {
+            sumGoal = maxPrintWidth - colsWidth.size() - 1;
+        } else {
+            // make sure there is space for the first and last column
+            sumGoal =
+                std::max((uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
+                    minDisplayWidth);
+        }
+    } else if (maxPrintWidth > minTruncatedWidth) {
+        sumGoal = maxPrintWidth;
+    }
+    uint32_t sum = 0;
+    std::vector<uint32_t> maxValueIndex;
+    uint32_t secondHighestValue = 0;
+    for (auto i = 0u; i < colsWidth.size(); i++) {
+        if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
+            maxValueIndex.push_back(i);
+            maxWidth = colsWidth[maxValueIndex[0]];
+        } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
+            secondHighestValue = colsWidth[maxValueIndex[0]];
+            maxValueIndex.clear();
+            maxValueIndex.push_back(i);
+            maxWidth = colsWidth[maxValueIndex[0]];
+        } else if (colsWidth[i] > secondHighestValue) {
+            secondHighestValue = colsWidth[i];
+        }
+        sum += colsWidth[i];
+    }
+
+    // truncate columns
+    while (sum > sumGoal) {
+        uint32_t truncationValue = ((sum - sumGoal) / maxValueIndex.size()) +
+                                   ((sum - sumGoal) % maxValueIndex.size() != 0);
+        uint32_t newValue = 0;
+        if (truncationValue < colsWidth[maxValueIndex[0]]) {
+            newValue = colsWidth[maxValueIndex[0]] - truncationValue;
+        }
+        uint32_t oldValue = colsWidth[maxValueIndex[0]];
+        if (secondHighestValue < minTruncatedWidth + 2 && newValue < minTruncatedWidth + 2) {
+            newValue = minTruncatedWidth + 2;
+        } else {
+            uint32_t sumDifference = sum - ((oldValue - secondHighestValue) * maxValueIndex.size());
+            if (sumDifference > sumGoal) {
+                newValue = secondHighestValue;
+            }
+        }
+        for (auto i = 0u; i < maxValueIndex.size(); i++) {
+            colsWidth[maxValueIndex[i]] = newValue;
+        }
+        maxWidth = newValue - 2;
+        sum -= (oldValue - newValue) * maxValueIndex.size();
+        if (newValue == minTruncatedWidth + 2) {
+            break;
         }
 
-        uint32_t sumGoal = minTruncatedWidth;
-        uint32_t maxWidth = minTruncatedWidth;
-        if (colsWidth.size() == 1) {
-            uint32_t minDisplayWidth = minTruncatedWidth + SMALL_TABLE_SEPERATOR_LENGTH;
-            if (maxPrintWidth > minDisplayWidth) {
-                sumGoal = maxPrintWidth - 2;
-            } else {
-                sumGoal = std::max(
-                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
-                    minDisplayWidth);
-            }
-        } else if (colsWidth.size() > 1) {
-            uint32_t minDisplayWidth = SMALL_TABLE_SEPERATOR_LENGTH + minTruncatedWidth * 2;
-            if (maxPrintWidth > minDisplayWidth) {
-                sumGoal = maxPrintWidth - colsWidth.size() - 1;
-            } else {
-                // make sure there is space for the first and last column
-                sumGoal = std::max(
-                    (uint32_t)(getColumns(STDIN_FILENO, STDOUT_FILENO) - colsWidth.size() - 1),
-                    minDisplayWidth);
-            }
-        } else if (maxPrintWidth > minTruncatedWidth) {
-            sumGoal = maxPrintWidth;
-        }
-        uint32_t sum = 0;
-        std::vector<uint32_t> maxValueIndex;
-        uint32_t secondHighestValue = 0;
+        maxValueIndex.clear();
+        secondHighestValue = 0;
         for (auto i = 0u; i < colsWidth.size(); i++) {
             if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
                 maxValueIndex.push_back(i);
-                maxWidth = colsWidth[maxValueIndex[0]];
             } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
                 secondHighestValue = colsWidth[maxValueIndex[0]];
                 maxValueIndex.clear();
                 maxValueIndex.push_back(i);
-                maxWidth = colsWidth[maxValueIndex[0]];
             } else if (colsWidth[i] > secondHighestValue) {
                 secondHighestValue = colsWidth[i];
             }
-            sum += colsWidth[i];
         }
+    }
 
-        while (sum > sumGoal) {
-            uint32_t truncationValue = ((sum - sumGoal) / maxValueIndex.size()) +
-                                       ((sum - sumGoal) % maxValueIndex.size() != 0);
-            uint32_t newValue = 0;
-            if (truncationValue < colsWidth[maxValueIndex[0]]) {
-                newValue = colsWidth[maxValueIndex[0]] - truncationValue;
-            }
-            uint32_t oldValue = colsWidth[maxValueIndex[0]];
-            if (secondHighestValue < minTruncatedWidth + 2 && newValue < minTruncatedWidth + 2) {
-                newValue = minTruncatedWidth + 2;
-            } else {
-                uint32_t sumDifference =
-                    sum - ((oldValue - secondHighestValue) * maxValueIndex.size());
-                if (sumDifference > sumGoal) {
-                    newValue = secondHighestValue;
-                }
-            }
-            for (auto i = 0u; i < maxValueIndex.size(); i++) {
-                colsWidth[maxValueIndex[i]] = newValue;
-            }
-            maxWidth = newValue - 2;
-            sum -= (oldValue - newValue) * maxValueIndex.size();
-            if (newValue == minTruncatedWidth + 2) {
-                break;
-            }
-
-            maxValueIndex.clear();
-            secondHighestValue = 0;
-            for (auto i = 0u; i < colsWidth.size(); i++) {
-                if (maxValueIndex.empty() || colsWidth[i] == colsWidth[maxValueIndex[0]]) {
-                    maxValueIndex.push_back(i);
-                } else if (colsWidth[i] > colsWidth[maxValueIndex[0]]) {
-                    secondHighestValue = colsWidth[maxValueIndex[0]];
-                    maxValueIndex.clear();
-                    maxValueIndex.push_back(i);
-                } else if (colsWidth[i] > secondHighestValue) {
-                    secondHighestValue = colsWidth[i];
-                }
+    // remove columns
+    uint32_t k = 0;
+    uint32_t j = colsWidth.size() - 1;
+    bool colTruncated = false;
+    uint64_t colsPrinted = 0;
+    uint32_t lineSeparatorLen = 1u;
+    for (auto i = 0u; i < colsWidth.size(); i++) {
+        if (k <= j) {
+            if ((lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() - 5) ||
+                (lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() + 1 &&
+                    (colTruncated || k == j))) {
+                lineSeparatorLen += colsWidth[k] + 1;
+                k++;
+                colsPrinted++;
+            } else if (!colTruncated) {
+                lineSeparatorLen += 6;
+                colTruncated = true;
             }
         }
-
-        uint32_t k = 0;
-        uint32_t j = colsWidth.size() - 1;
-        bool colTruncated = false;
-        uint64_t colsPrinted = 0;
-        uint32_t lineSeparatorLen = 1u;
-        for (auto i = 0u; i < colsWidth.size(); i++) {
-            if (k <= j) {
-                if ((lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() - 5) ||
-                    (lineSeparatorLen + colsWidth[k] < sumGoal + colsWidth.size() + 1 &&
-                        (colTruncated || k == j))) {
-                    lineSeparatorLen += colsWidth[k] + 1;
-                    k++;
-                    colsPrinted++;
-                } else if (!colTruncated) {
-                    lineSeparatorLen += 6;
-                    colTruncated = true;
-                }
-            }
-            if (j >= k) {
-                if ((lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() - 5) ||
-                    (lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() + 1 &&
-                        (colTruncated || j == k))) {
-                    lineSeparatorLen += colsWidth[j] + 1;
-                    j--;
-                    colsPrinted++;
-                } else if (!colTruncated) {
-                    lineSeparatorLen += 6;
-                    colTruncated = true;
-                }
+        if (j >= k) {
+            if ((lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() - 5) ||
+                (lineSeparatorLen + colsWidth[j] < sumGoal + colsWidth.size() + 1 &&
+                    (colTruncated || j == k))) {
+                lineSeparatorLen += colsWidth[j] + 1;
+                j--;
+                colsPrinted++;
+            } else if (!colTruncated) {
+                lineSeparatorLen += 6;
+                colTruncated = true;
             }
         }
+    }
 
-        if (queryResult.getNumColumns() != 0 && tableDrawingCharacters->TopLine) {
-            std::string printString;
-            printString += tableDrawingCharacters->DownAndRight;
-            for (auto i = 0u; i < k; i++) {
-                for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += tableDrawingCharacters->Horizontal;
-                }
-                if (i != colsWidth.size() - 1) {
-                    printString += tableDrawingCharacters->DownAndHorizontal;
-                }
+    if (queryResult.getNumColumns() != 0 && tableDrawingCharacters->TopLine) {
+        std::string printString;
+        printString += tableDrawingCharacters->DownAndRight;
+        for (auto i = 0u; i < k; i++) {
+            for (auto l = 0u; l < colsWidth[i]; l++) {
+                printString += tableDrawingCharacters->Horizontal;
             }
-            if (j >= k) {
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
+            if (i != colsWidth.size() - 1) {
                 printString += tableDrawingCharacters->DownAndHorizontal;
             }
-            for (auto i = j + 1; i < colsWidth.size(); i++) {
-                for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += tableDrawingCharacters->Horizontal;
-                }
-                if (i != colsWidth.size() - 1) {
-                    printString += tableDrawingCharacters->DownAndHorizontal;
-                }
-            }
-            printString += tableDrawingCharacters->DownAndLeft;
-            printf("%s\n", printString.c_str());
         }
+        if (j >= k) {
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->DownAndHorizontal;
+        }
+        for (auto i = j + 1; i < colsWidth.size(); i++) {
+            for (auto l = 0u; l < colsWidth[i]; l++) {
+                printString += tableDrawingCharacters->Horizontal;
+            }
+            if (i != colsWidth.size() - 1) {
+                printString += tableDrawingCharacters->DownAndHorizontal;
+            }
+        }
+        printString += tableDrawingCharacters->DownAndLeft;
+        printf("%s\n", printString.c_str());
+    }
 
-        if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
-            std::string printString;
+    if (queryResult.getNumColumns() != 0 && !queryResult.getColumnNames()[0].empty()) {
+        std::string printString;
+        printString += tableDrawingCharacters->Vertical;
+        for (auto i = 0u; i < k; i++) {
+            std::string columnName = queryResult.getColumnNames()[i];
+            if (columnName.length() > colsWidth[i] - 2) {
+                columnName =
+                    columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+            }
+            printString += " ";
+            printString += columnName;
+            printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+            if (i != k - 1) {
+                printString += tableDrawingCharacters->Vertical;
+            }
+        }
+        if (j >= k) {
+            printString += tableDrawingCharacters->Vertical;
+            printString += " ";
+            printString += tableDrawingCharacters->Truncation;
+            printString += " ";
+        }
+        for (auto i = j + 1; i < colsWidth.size(); i++) {
+            std::string columnName = queryResult.getColumnNames()[i];
+            if (columnName.length() > colsWidth[i] - 2) {
+                columnName =
+                    columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+            }
+            printString += tableDrawingCharacters->Vertical;
+            printString += " ";
+            printString += columnName;
+            printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+        }
+        printString += tableDrawingCharacters->Vertical;
+        if (tableDrawingCharacters->Types) {
+            printString += "\n";
             printString += tableDrawingCharacters->Vertical;
             for (auto i = 0u; i < k; i++) {
-                std::string columnName = queryResult.getColumnNames()[i];
-                if (columnName.length() > colsWidth[i] - 2) {
-                    columnName =
-                        columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+                std::string columnType = queryResult.getColumnDataTypes()[i].toString();
+                if (columnType.length() > colsWidth[i] - 2) {
+                    columnType =
+                        columnType.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
                 printString += " ";
-                printString += columnName;
-                printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+                printString += columnType;
+                printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
                 if (i != k - 1) {
                     printString += tableDrawingCharacters->Vertical;
                 }
             }
             if (j >= k) {
                 printString += tableDrawingCharacters->Vertical;
-                printString += " ";
-                printString += tableDrawingCharacters->Truncation;
-                printString += " ";
+                printString += "     ";
             }
             for (auto i = j + 1; i < colsWidth.size(); i++) {
-                std::string columnName = queryResult.getColumnNames()[i];
-                if (columnName.length() > colsWidth[i] - 2) {
-                    columnName =
-                        columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+                std::string columnType = queryResult.getColumnDataTypes()[i].toString();
+                if (columnType.length() > colsWidth[i] - 2) {
+                    columnType =
+                        columnType.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
                 }
                 printString += tableDrawingCharacters->Vertical;
                 printString += " ";
-                printString += columnName;
-                printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+                printString += columnType;
+                printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
             }
             printString += tableDrawingCharacters->Vertical;
-            if (tableDrawingCharacters->Types) {
-                printString += "\n";
-                printString += tableDrawingCharacters->Vertical;
-                for (auto i = 0u; i < k; i++) {
-                    std::string columnType = queryResult.getColumnDataTypes()[i].toString();
-                    if (columnType.length() > colsWidth[i] - 2) {
-                        columnType = columnType.substr(0, colsWidth[i] - 5) +
-                                     tableDrawingCharacters->Truncation;
-                    }
-                    printString += " ";
-                    printString += columnType;
-                    printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
-                    if (i != k - 1) {
-                        printString += tableDrawingCharacters->Vertical;
-                    }
-                }
-                if (j >= k) {
-                    printString += tableDrawingCharacters->Vertical;
-                    printString += "     ";
-                }
-                for (auto i = j + 1; i < colsWidth.size(); i++) {
-                    std::string columnType = queryResult.getColumnDataTypes()[i].toString();
-                    if (columnType.length() > colsWidth[i] - 2) {
-                        columnType = columnType.substr(0, colsWidth[i] - 5) +
-                                     tableDrawingCharacters->Truncation;
-                    }
-                    printString += tableDrawingCharacters->Vertical;
-                    printString += " ";
-                    printString += columnType;
-                    printString += std::string(colsWidth[i] - columnType.length() - 1, ' ');
-                }
-                printString += tableDrawingCharacters->Vertical;
-            }
-            printf("%s\n", printString.c_str());
         }
+        printf("%s\n", printString.c_str());
+    }
 
-        if (queryResult.getNumColumns() != 0) {
-            std::string printString;
-            printString += tableDrawingCharacters->VerticalAndRight;
-            for (auto i = 0u; i < k; i++) {
-                for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += tableDrawingCharacters->Horizontal;
-                }
-                if (i != colsWidth.size() - 1) {
-                    printString += tableDrawingCharacters->VerticalAndHorizontal;
-                }
+    if (queryResult.getNumColumns() != 0) {
+        std::string printString;
+        printString += tableDrawingCharacters->VerticalAndRight;
+        for (auto i = 0u; i < k; i++) {
+            for (auto l = 0u; l < colsWidth[i]; l++) {
+                printString += tableDrawingCharacters->Horizontal;
             }
-            if (j >= k) {
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
+            if (i != colsWidth.size() - 1) {
                 printString += tableDrawingCharacters->VerticalAndHorizontal;
             }
-            for (auto i = j + 1; i < colsWidth.size(); i++) {
-                for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += tableDrawingCharacters->Horizontal;
-                }
-                if (i != colsWidth.size() - 1) {
-                    printString += tableDrawingCharacters->VerticalAndHorizontal;
-                }
-            }
-            printString += tableDrawingCharacters->VerticalAndLeft;
-            printf("%s\n", printString.c_str());
         }
-
-        queryResult.resetIterator();
-        rowCount = 0;
-        bool rowTruncated = false;
-        while (queryResult.hasNext()) {
-            if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
-                rowCount < numTuples - maxRowSize / 2) {
-                auto tuple = queryResult.getNext();
-                if (!rowTruncated) {
-                    rowTruncated = true;
-                    for (auto i = 0u; i < 3u; i++) {
-                        std::string printString;
-                        printString += tableDrawingCharacters->Vertical;
-                        for (auto l = 0u; l < k; l++) {
-                            uint32_t spacesToPrint = (colsWidth[l] / 2);
-                            printString += std::string(spacesToPrint - 1, ' ');
-                            printString += tableDrawingCharacters->MiddleDot;
-                            if (colsWidth[l] % 2 == 1) {
-                                printString += " ";
-                            }
-                            printString += std::string(spacesToPrint, ' ');
-                            if (l != k - 1) {
-                                printString += tableDrawingCharacters->Vertical;
-                            }
-                        }
-                        if (j >= k) {
-                            printString += tableDrawingCharacters->Vertical;
-                            printString += "  ";
-                            printString += tableDrawingCharacters->MiddleDot;
-                            printString += "  ";
-                        }
-                        for (auto l = j + 1; l < colsWidth.size(); l++) {
-                            uint32_t spacesToPrint = (colsWidth[l] / 2);
-                            printString += tableDrawingCharacters->Vertical;
-                            printString += std::string(spacesToPrint - 1, ' ');
-                            printString += tableDrawingCharacters->MiddleDot;
-                            if (colsWidth[l] % 2 == 1) {
-                                printString += " ";
-                            }
-                            printString += std::string(spacesToPrint, ' ');
-                        }
-                        printString += tableDrawingCharacters->Vertical;
-                        printf("%s\n", printString.c_str());
-                    }
-                }
-                rowCount++;
-                continue;
+        if (j >= k) {
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->VerticalAndHorizontal;
+        }
+        for (auto i = j + 1; i < colsWidth.size(); i++) {
+            for (auto l = 0u; l < colsWidth[i]; l++) {
+                printString += tableDrawingCharacters->Horizontal;
             }
+            if (i != colsWidth.size() - 1) {
+                printString += tableDrawingCharacters->VerticalAndHorizontal;
+            }
+        }
+        printString += tableDrawingCharacters->VerticalAndLeft;
+        printf("%s\n", printString.c_str());
+    }
+
+    queryResult.resetIterator();
+    rowCount = 0;
+    bool rowTruncated = false;
+    while (queryResult.hasNext()) {
+        if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
+            rowCount < numTuples - maxRowSize / 2) {
             auto tuple = queryResult.getNext();
-            auto result =
-                tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
-            std::string printString;
-            uint64_t startPos = 0;
-            std::vector<std::string> colResults;
-            for (auto i = 0u; i < colsWidth.size(); i++) {
-                uint32_t chrIter = startPos;
-                uint32_t fieldLen = 0;
-                while (fieldLen < colsWidth[i]) {
-                    fieldLen += Utf8Proc::renderWidth(result.c_str(), chrIter);
-                    chrIter = utf8proc_next_grapheme(result.c_str(), result.length(), chrIter);
-                }
-                colResults.push_back(result.substr(startPos, chrIter - startPos));
-                // new start position is after the | seperating results
-                startPos = chrIter + 1;
-            }
-            printString += tableDrawingCharacters->Vertical;
-            for (auto i = 0u; i < k; i++) {
-                printString += colResults[i];
-                if (i != k - 1) {
+            if (!rowTruncated) {
+                rowTruncated = true;
+                for (auto i = 0u; i < 3u; i++) {
+                    std::string printString;
                     printString += tableDrawingCharacters->Vertical;
+                    for (auto l = 0u; l < k; l++) {
+                        uint32_t spacesToPrint = (colsWidth[l] / 2);
+                        printString += std::string(spacesToPrint - 1, ' ');
+                        printString += tableDrawingCharacters->MiddleDot;
+                        if (colsWidth[l] % 2 == 1) {
+                            printString += " ";
+                        }
+                        printString += std::string(spacesToPrint, ' ');
+                        if (l != k - 1) {
+                            printString += tableDrawingCharacters->Vertical;
+                        }
+                    }
+                    if (j >= k) {
+                        printString += tableDrawingCharacters->Vertical;
+                        printString += "  ";
+                        printString += tableDrawingCharacters->MiddleDot;
+                        printString += "  ";
+                    }
+                    for (auto l = j + 1; l < colsWidth.size(); l++) {
+                        uint32_t spacesToPrint = (colsWidth[l] / 2);
+                        printString += tableDrawingCharacters->Vertical;
+                        printString += std::string(spacesToPrint - 1, ' ');
+                        printString += tableDrawingCharacters->MiddleDot;
+                        if (colsWidth[l] % 2 == 1) {
+                            printString += " ";
+                        }
+                        printString += std::string(spacesToPrint, ' ');
+                    }
+                    printString += tableDrawingCharacters->Vertical;
+                    printf("%s\n", printString.c_str());
                 }
             }
-            if (j >= k) {
-                printString += tableDrawingCharacters->Vertical;
-                printString += " ";
-                printString += tableDrawingCharacters->Truncation;
-                printString += " ";
-            }
-            for (auto i = j + 1; i < colResults.size(); i++) {
-                printString += tableDrawingCharacters->Vertical;
-                printString += colResults[i];
-            }
-            printString += tableDrawingCharacters->Vertical;
-            printf("%s\n", printString.c_str());
             rowCount++;
+            continue;
         }
-
-        if (queryResult.getNumColumns() != 0 && tableDrawingCharacters->BottomLine) {
-            std::string printString;
-            printString += tableDrawingCharacters->UpAndRight;
-            for (auto i = 0u; i < k; i++) {
-                for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += tableDrawingCharacters->Horizontal;
-                }
-                if (i != colsWidth.size() - 1) {
-                    printString += tableDrawingCharacters->UpAndHorizontal;
-                }
+        auto tuple = queryResult.getNext();
+        auto result = tuple->toString(colsWidth, tableDrawingCharacters->TupleDelimiter, maxWidth);
+        std::string printString;
+        uint64_t startPos = 0;
+        std::vector<std::string> colResults;
+        for (auto i = 0u; i < colsWidth.size(); i++) {
+            uint32_t chrIter = startPos;
+            uint32_t fieldLen = 0;
+            while (fieldLen < colsWidth[i]) {
+                fieldLen += Utf8Proc::renderWidth(result.c_str(), chrIter);
+                chrIter = utf8proc_next_grapheme(result.c_str(), result.length(), chrIter);
             }
-            if (j >= k) {
+            colResults.push_back(result.substr(startPos, chrIter - startPos));
+            // new start position is after the | seperating results
+            startPos = chrIter + 1;
+        }
+        printString += tableDrawingCharacters->Vertical;
+        for (auto i = 0u; i < k; i++) {
+            printString += colResults[i];
+            if (i != k - 1) {
+                printString += tableDrawingCharacters->Vertical;
+            }
+        }
+        if (j >= k) {
+            printString += tableDrawingCharacters->Vertical;
+            printString += " ";
+            printString += tableDrawingCharacters->Truncation;
+            printString += " ";
+        }
+        for (auto i = j + 1; i < colResults.size(); i++) {
+            printString += tableDrawingCharacters->Vertical;
+            printString += colResults[i];
+        }
+        printString += tableDrawingCharacters->Vertical;
+        printf("%s\n", printString.c_str());
+        rowCount++;
+    }
+
+    if (queryResult.getNumColumns() != 0 && tableDrawingCharacters->BottomLine) {
+        std::string printString;
+        printString += tableDrawingCharacters->UpAndRight;
+        for (auto i = 0u; i < k; i++) {
+            for (auto l = 0u; l < colsWidth[i]; l++) {
                 printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
-                printString += tableDrawingCharacters->Horizontal;
+            }
+            if (i != colsWidth.size() - 1) {
                 printString += tableDrawingCharacters->UpAndHorizontal;
             }
-            for (auto i = j + 1; i < colsWidth.size(); i++) {
-                for (auto l = 0u; l < colsWidth[i]; l++) {
-                    printString += tableDrawingCharacters->Horizontal;
-                }
-                if (i != colsWidth.size() - 1) {
-                    printString += tableDrawingCharacters->UpAndHorizontal;
-                }
-            }
-            printString += tableDrawingCharacters->UpAndLeft;
-            printf("%s\n", printString.c_str());
         }
+        if (j >= k) {
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->Horizontal;
+            printString += tableDrawingCharacters->UpAndHorizontal;
+        }
+        for (auto i = j + 1; i < colsWidth.size(); i++) {
+            for (auto l = 0u; l < colsWidth[i]; l++) {
+                printString += tableDrawingCharacters->Horizontal;
+            }
+            if (i != colsWidth.size() - 1) {
+                printString += tableDrawingCharacters->UpAndHorizontal;
+            }
+        }
+        printString += tableDrawingCharacters->UpAndLeft;
+        printf("%s\n", printString.c_str());
+    }
 
-        // print query result (numFlatTuples & tuples)
-        if (stats) {
-            if (numTuples == 1) {
-                printf("(1 tuple)\n");
-            } else {
-                printf("(%" PRIu64 " tuples", numTuples);
-                if (rowTruncated) {
-                    printf(", %" PRIu64 " shown", maxRowSize);
-                }
-                printf(")\n");
+    // print query result (numFlatTuples & tuples)
+    if (stats) {
+        if (numTuples == 1) {
+            printf("(1 tuple)\n");
+        } else {
+            printf("(%" PRIu64 " tuples", numTuples);
+            if (rowTruncated) {
+                printf(", %" PRIu64 " shown", maxRowSize);
             }
-            if (colsWidth.size() == 1) {
-                printf("(1 column)\n");
-            } else {
-                printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
-                if (colTruncated) {
-                    printf(", %" PRIu64 " shown", colsPrinted);
-                }
-                printf(")\n");
-            }
-            printf("Time: %.2fms (compiling), %.2fms (executing)\n",
-                querySummary->getCompilingTime(), querySummary->getExecutionTime());
+            printf(")\n");
         }
+        if (colsWidth.size() == 1) {
+            printf("(1 column)\n");
+        } else {
+            printf("(%" PRIu64 " columns", (uint64_t)colsWidth.size());
+            if (colTruncated) {
+                printf(", %" PRIu64 " shown", colsPrinted);
+            }
+            printf(")\n");
+        }
+        printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
+            querySummary->getExecutionTime());
     }
 }
 
