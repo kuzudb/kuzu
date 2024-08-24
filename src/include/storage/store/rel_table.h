@@ -21,8 +21,6 @@ struct RelTableScanState : TableScanState {
     std::shared_ptr<common::SelectionVector> nodeOriginalSelVector;
     std::shared_ptr<common::SelectionVector> nodeOutputSelVector;
 
-    bool resetCommitted = false;
-    bool resetUncommitted = false;
     common::sel_t currNodeIdx = 0;
     common::sel_t endNodeIdx = 0;
     common::sel_t totalNodeIdx = 0;
@@ -59,7 +57,7 @@ struct RelTableScanState : TableScanState {
     }
 
     void resetState() override {
-        source = TableScanSource::NONE;
+        source = TableScanSource::COMMITTED;
         nodeGroupScanState->resetState();
         nodeOriginalSelVector = boundNodeIDVector->state->getSelVectorShared();
         currNodeIdx = 0;
@@ -181,6 +179,7 @@ public:
     }
 
 private:
+    void advanceScanState(TableScanState& scanState);
     void scanNext(transaction::Transaction* transaction, TableScanState& scanState);
 
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,

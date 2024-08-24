@@ -48,69 +48,86 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     return relTable;
 }
 
+void RelTable::advanceScanState(TableScanState& scanState) {
+    auto& relScanState = scanState.cast<RelTableScanState>();
+    relScanState.currNodeIdx = 0;
+    relScanState.endNodeIdx = 0;
+    switch (relScanState.source) {
+    case TableScanSource::COMMITTED: {
+        auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
+        switch (nodeGroupScanState.source) {
+        case CSRNodeGroupScanSource::COMMITTED_PERSISTENT: {
+            nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
+        } break;
+        case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
+            relScanState.source = TableScanSource::UNCOMMITTED;
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
+    } break;
+    case TableScanSource::UNCOMMITTED: {
+        relScanState.source = TableScanSource::NONE;
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 void RelTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {
     // Scan always start with committed data first.
     auto& relScanState = scanState.cast<RelTableScanState>();
     auto& nodeSelVector = *relScanState.nodeOriginalSelVector;
     relScanState.totalNodeIdx = nodeSelVector.getSelSize();
-    relScanState.batchSize = 0;
-    if (relScanState.resetCommitted) {
-        // reset to read committed, in memory data
-        relScanState.currNodeIdx = 0;
-        relScanState.endNodeIdx = 0;
-        relScanState.resetCommitted = false;
-    }
-    if (relScanState.resetUncommitted && relScanState.localTableScanState &&
-        relScanState.source != TableScanSource::UNCOMMITTED) {
-        // reset to read uncommitted, transaction-local data
-        KU_ASSERT(!relScanState.resetCommitted);
-        relScanState.source = TableScanSource::UNCOMMITTED;
-        relScanState.currNodeIdx = 0;
-        relScanState.endNodeIdx = 0;
-        relScanState.resetUncommitted = false;
-    }
-    if (relScanState.currNodeIdx == relScanState.totalNodeIdx) {
-        relScanState.source = TableScanSource::NONE;
-        return;
-    }
     KU_ASSERT(relScanState.totalNodeIdx > 0);
-    KU_ASSERT(relScanState.endNodeIdx == relScanState.currNodeIdx);
-    KU_ASSERT(relScanState.endNodeIdx < relScanState.totalNodeIdx);
-    offset_t nodeOffset =
-        relScanState.boundNodeIDVector->readNodeOffset(nodeSelVector[relScanState.currNodeIdx]);
-    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE && relScanState.localTableScanState &&
-        relScanState.source != TableScanSource::UNCOMMITTED) {
-        relScanState.source = TableScanSource::UNCOMMITTED;
-        relScanState.currNodeIdx = 0;
-        relScanState.endNodeIdx = 0;
-    }
-    if (relScanState.source == TableScanSource::UNCOMMITTED) {
-        // No more to read from committed
-        relScanState.nodeGroup = nullptr;
-        initializeLocalRelScanState(relScanState);
-        return;
-    }
-    relScanState.source = TableScanSource::NONE;
-    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
-        return;
-    }
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
-                                 fwdRelTableData->getNodeGroup(nodeGroupIdx) :
-                                 bwdRelTableData->getNodeGroup(nodeGroupIdx);
-    if (relScanState.nodeGroup) {
-        relScanState.nodeGroup->initializeScanState(transaction, scanState);
-        if (relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>().source !=
-            CSRNodeGroupScanSource::NONE) {
-            relScanState.source = TableScanSource::COMMITTED;
+    while (true) {
+        KU_ASSERT(relScanState.endNodeIdx == relScanState.currNodeIdx);
+        if (relScanState.endNodeIdx < relScanState.totalNodeIdx) {
+            switch (relScanState.source) {
+            case TableScanSource::NONE: {
+                // End of state machine
+                return;
+            }
+            case TableScanSource::COMMITTED: {
+                offset_t nodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
+                    nodeSelVector[relScanState.currNodeIdx]);
+                auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+                if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+                    // Advance to next state
+                    KU_ASSERT(relScanState.currNodeIdx == relScanState.endNodeIdx);
+                    break;
+                }
+                relScanState.nodeGroup = relScanState.direction == RelDataDirection::FWD ?
+                                             fwdRelTableData->getNodeGroup(nodeGroupIdx) :
+                                             bwdRelTableData->getNodeGroup(nodeGroupIdx);
+                if (relScanState.nodeGroup) {
+                    relScanState.nodeGroup->initializeScanState(transaction, scanState);
+                }
+            } break;
+            case TableScanSource::UNCOMMITTED: {
+                // No more to read from committed
+                if (relScanState.localTableScanState) {
+                    relScanState.nodeGroup = nullptr;
+                    initializeLocalRelScanState(relScanState);
+                }
+            } break;
+            default: {
+                KU_UNREACHABLE;
+            }
+            }
         }
-    } else if (relScanState.localTableScanState) {
-        initializeLocalRelScanState(relScanState);
+        if (relScanState.currNodeIdx < relScanState.endNodeIdx) {
+            // We have more to read from one of the states
+            return;
+        }
+        // Next state to init
+        advanceScanState(scanState);
     }
 }
 
 void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
-    relScanState.source = TableScanSource::UNCOMMITTED;
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(localScanState.localRelTable);

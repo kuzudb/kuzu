@@ -124,6 +124,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
     const auto scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    auto& nodeGroupScanState = scanState->nodeGroupScanState->cast<CSRNodeGroupScanState>();
     scanState->boundNodeIDVector = &boundNodeIDVector;
     scanState->nodeOriginalSelVector = scanState->boundNodeIDVector->state->getSelVectorShared();
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
@@ -138,11 +139,11 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-            if (scanState->resetCommitted) {
+            if (nodeGroupScanState.source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+                nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
                 scanState->currNodeIdx = 0;
                 scanState->endNodeIdx = 0;
                 scanState->nodeGroup->initializeScanState(transaction, *scanState);
-                scanState->resetCommitted = false;
                 continue;
             }
             break;
@@ -152,7 +153,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
             if (scanState->IDVector->getValue<internalID_t>(pos).offset == relOffset) {
                 const auto rowIdxPos = scanState->rowIdxVector->state->getSelVector()[i];
                 matchingRowIdx = scanState->rowIdxVector->getValue<row_idx_t>(rowIdxPos);
-                source = scanState->nodeGroupScanState->cast<CSRNodeGroupScanState>().source;
+                source = nodeGroupScanState.source;
                 break;
             }
         }
@@ -179,6 +180,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
     const auto scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    auto& nodeGroupScanState = scanState->nodeGroupScanState->cast<CSRNodeGroupScanState>();
     scanState->boundNodeIDVector = srcNodeIDVector;
     scanState->nodeOriginalSelVector = scanState->boundNodeIDVector->state->getSelVectorShared();
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
@@ -190,11 +192,11 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-            if (scanState->resetCommitted) {
+            if (nodeGroupScanState.source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+                nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
                 scanState->currNodeIdx = 0;
                 scanState->endNodeIdx = 0;
                 scanState->nodeGroup->initializeScanState(transaction, *scanState);
-                scanState->resetCommitted = false;
                 continue;
             }
             break;
