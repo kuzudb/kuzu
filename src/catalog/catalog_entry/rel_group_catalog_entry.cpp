@@ -94,7 +94,7 @@ std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     }
     auto childRelEntry =
         clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), relTableIDs[0]);
-    if (childRelEntry->getNumProperties() > 0) {
+    if (childRelEntry->getNumProperties() > 1) { // skip internal id property.
         auto propertyStr = stringFormat(", {}", childRelEntry->propertiesToCypher());
         propertyStr.resize(propertyStr.size() - 1);
         ss << propertyStr;
