@@ -6,10 +6,12 @@ namespace kuzu {
 namespace binder {
 
 class VariableExpression : public Expression {
+    static constexpr common::ExpressionType expressionType_ = common::ExpressionType::VARIABLE;
+
 public:
     VariableExpression(common::LogicalType dataType, std::string uniqueName,
         std::string variableName)
-        : Expression{common::ExpressionType::VARIABLE, std::move(dataType), std::move(uniqueName)},
+        : Expression{expressionType_, std::move(dataType), std::move(uniqueName)},
           variableName{std::move(variableName)} {}
 
     std::string getVariableName() const { return variableName; }

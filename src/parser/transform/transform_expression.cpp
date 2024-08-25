@@ -444,15 +444,16 @@ std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
     auto structPack =
         std::make_unique<ParsedFunctionExpression>(StructPackFunctions::name, ctx.getText());
     for (auto& structField : ctx.kU_StructField()) {
-        auto structExpr = transformExpression(*structField->oC_Expression());
-        std::string alias;
+        auto fieldValueExpr = transformExpression(*structField->oC_Expression());
+        std::string fieldName;
         if (structField->oC_SymbolicName()) {
-            alias = transformSymbolicName(*structField->oC_SymbolicName());
+            fieldName = transformSymbolicName(*structField->oC_SymbolicName());
         } else {
-            alias = transformStringLiteral(*structField->StringLiteral());
+            fieldName = transformStringLiteral(*structField->StringLiteral());
         }
-        structExpr->setAlias(alias);
-        structPack->addChild(std::move(structExpr));
+        auto fieldNameExpr = std::make_unique<ParsedLiteralExpression>(Value(fieldName), fieldName);
+        structPack->addChild(std::move(fieldNameExpr));
+        structPack->addChild(std::move(fieldValueExpr));
     }
     return structPack;
 }

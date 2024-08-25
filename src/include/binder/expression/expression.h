@@ -118,7 +118,7 @@ public:
 protected:
     // Name that serves as the unique identifier.
     std::string uniqueName;
-    std::string alias;
+    std::string alias; // TODO: we might want to remove this.
     expression_vector children;
 };
 

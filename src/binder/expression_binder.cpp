@@ -12,6 +12,7 @@
 #include "main/client_context.h"
 #include "parser/expression/parsed_expression_visitor.h"
 #include "parser/expression/parsed_parameter_expression.h"
+#include "binder/expression/alias_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -74,7 +75,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
             "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");
     }
     if (parsedExpression.hasAlias()) {
-        expression->setAlias(parsedExpression.getAlias());
+        auto origin = expression;
+        while (origin->expressionType == ExpressionType::ALIAS) {
+            origin = origin->constCast<AliasExpression>().getOrigin();
+        }
+        auto aliasName = parsedExpression.getAlias();
+        auto uniqueName = binder->getUniqueExpressionName(aliasName);
+        return std::make_shared<AliasExpression>(aliasName, origin, uniqueName);
+//        expression->setAlias(parsedExpression.getAlias());
     }
     validateAggregationExpressionIsNotNested(expression);
     if (ConstantExpressionVisitor::needFold(*expression)) {

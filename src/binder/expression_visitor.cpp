@@ -10,6 +10,7 @@
 #include "common/exception/not_implemented.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
+#include "binder/expression/alias_expression.h"
 
 using namespace kuzu::common;
 
@@ -59,6 +60,9 @@ void ExpressionVisitor::visitSwitch(std::shared_ptr<Expression> expr) {
     case ExpressionType::PARAMETER: {
         visitParamExpr(expr);
     } break;
+    case ExpressionType::ALIAS: {
+        visitAliasExpr(expr);
+    } break;
     case ExpressionType::SUBQUERY: {
         visitSubqueryExpr(expr);
     } break;
@@ -86,6 +90,10 @@ void ExpressionVisitor::visitChildren(const Expression& expr) {
     case ExpressionType::LAMBDA: {
         auto& lambda = expr.constCast<LambdaExpression>();
         visit(lambda.getFunctionExpr());
+    } break;
+    case ExpressionType::ALIAS: {
+        auto& aliasExpr = expr.constCast<AliasExpression>();
+        visit(aliasExpr.getOrigin());
     } break;
     default: {
         for (auto& child : expr.getChildren()) {
@@ -126,6 +134,9 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
         }
         }
     }
+    case ExpressionType::ALIAS: {
+        return collectChildren(*expression.constCast<AliasExpression>().getOrigin());
+    }
     default: {
         return expression.children;
     }
@@ -134,7 +145,7 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
 
 expression_vector ExpressionChildrenCollector::collectCaseChildren(const Expression& expression) {
     expression_vector result;
-    auto& caseExpression = (CaseExpression&)expression;
+    auto& caseExpression = expression.constCast<CaseExpression>();
     for (auto i = 0u; i < caseExpression.getNumCaseAlternatives(); ++i) {
         auto caseAlternative = caseExpression.getCaseAlternative(i);
         result.push_back(caseAlternative->whenExpression);
@@ -147,7 +158,7 @@ expression_vector ExpressionChildrenCollector::collectCaseChildren(const Express
 expression_vector ExpressionChildrenCollector::collectSubqueryChildren(
     const Expression& expression) {
     expression_vector result;
-    auto& subqueryExpression = (SubqueryExpression&)expression;
+    auto& subqueryExpression = expression.constCast<SubqueryExpression>();
     for (auto& node : subqueryExpression.getQueryGraphCollection()->getQueryNodes()) {
         result.push_back(node->getInternalID());
     }
@@ -272,6 +283,8 @@ bool ConstantExpressionVisitor::isConstant(const Expression& expr) {
     case ExpressionType::GRAPH:
     case ExpressionType::LAMBDA:
         return false;
+    case ExpressionType::ALIAS:
+        return isConstant(*expr.constCast<AliasExpression>().getOrigin());
     case ExpressionType::FUNCTION:
         return visitFunction(expr);
     case ExpressionType::CASE_ELSE:

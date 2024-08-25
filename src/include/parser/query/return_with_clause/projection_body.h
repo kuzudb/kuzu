@@ -13,35 +13,35 @@ public:
         : isDistinct{isDistinct}, projectionExpressions{std::move(projectionExpressions)} {}
     DELETE_COPY_DEFAULT_MOVE(ProjectionBody);
 
-    inline bool getIsDistinct() const { return isDistinct; }
+    bool getIsDistinct() const { return isDistinct; }
 
-    inline const std::vector<std::unique_ptr<ParsedExpression>>& getProjectionExpressions() const {
+    const std::vector<std::unique_ptr<ParsedExpression>>& getProjectionExpressions() const {
         return projectionExpressions;
     }
 
-    inline void setOrderByExpressions(std::vector<std::unique_ptr<ParsedExpression>> expressions,
+    void setOrderByExpressions(std::vector<std::unique_ptr<ParsedExpression>> expressions,
         std::vector<bool> sortOrders) {
         orderByExpressions = std::move(expressions);
         isAscOrders = std::move(sortOrders);
     }
-    inline bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
-    inline const std::vector<std::unique_ptr<ParsedExpression>>& getOrderByExpressions() const {
+    bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
+    const std::vector<std::unique_ptr<ParsedExpression>>& getOrderByExpressions() const {
         return orderByExpressions;
     }
 
-    inline std::vector<bool> getSortOrders() const { return isAscOrders; }
+    std::vector<bool> getSortOrders() const { return isAscOrders; }
 
-    inline void setSkipExpression(std::unique_ptr<ParsedExpression> expression) {
+    void setSkipExpression(std::unique_ptr<ParsedExpression> expression) {
         skipExpression = std::move(expression);
     }
-    inline bool hasSkipExpression() const { return skipExpression != nullptr; }
-    inline ParsedExpression* getSkipExpression() const { return skipExpression.get(); }
+    bool hasSkipExpression() const { return skipExpression != nullptr; }
+    ParsedExpression* getSkipExpression() const { return skipExpression.get(); }
 
-    inline void setLimitExpression(std::unique_ptr<ParsedExpression> expression) {
+    void setLimitExpression(std::unique_ptr<ParsedExpression> expression) {
         limitExpression = std::move(expression);
     }
-    inline bool hasLimitExpression() const { return limitExpression != nullptr; }
-    inline ParsedExpression* getLimitExpression() const { return limitExpression.get(); }
+    bool hasLimitExpression() const { return limitExpression != nullptr; }
+    ParsedExpression* getLimitExpression() const { return limitExpression.get(); }
 
 private:
     bool isDistinct;

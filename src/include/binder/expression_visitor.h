@@ -37,6 +37,7 @@ protected:
     virtual void visitPathExpr(std::shared_ptr<Expression>) {}
     virtual void visitNodeRelExpr(std::shared_ptr<Expression>) {}
     virtual void visitParamExpr(std::shared_ptr<Expression>) {}
+    virtual void visitAliasExpr(std::shared_ptr<Expression>) {}
     virtual void visitSubqueryExpr(std::shared_ptr<Expression>) {}
     virtual void visitCaseExpr(std::shared_ptr<Expression>) {}
     virtual void visitGraphExpr(std::shared_ptr<Expression>) {}

@@ -6,6 +6,7 @@
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
+#include "binder/expression/alias_expression.h"
 #include "common/exception/not_implemented.h"
 
 using namespace kuzu::common;
@@ -124,6 +125,9 @@ void GroupDependencyAnalyzer::visit(std::shared_ptr<binder::Expression> expr) {
     } break;
     case ExpressionType::LAMBDA: {
         visit(expr->constCast<LambdaExpression>().getFunctionExpr());
+    } break;
+    case ExpressionType::ALIAS: {
+        visit(expr->constCast<AliasExpression>().getOrigin());
     } break;
     case ExpressionType::LITERAL:
     case ExpressionType::AGGREGATE_FUNCTION:

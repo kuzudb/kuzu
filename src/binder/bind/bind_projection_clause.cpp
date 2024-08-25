@@ -112,7 +112,7 @@ static expression_vector getAggregateExpressions(const std::shared_ptr<Expressio
     return result;
 }
 
-BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
+BoundProjectionBody Binder::bindProjectionBody(const ProjectionBody& projectionBody,
     const expression_vector& projectionExpressions) {
     auto boundProjectionBody =
         BoundProjectionBody(projectionBody.getIsDistinct(), projectionExpressions);

@@ -55,8 +55,8 @@ public:
 
     std::string getRawName() const { return rawName; }
 
-    uint32_t getNumChildren() const { return children.size(); }
-    ParsedExpression* getChild(uint32_t idx) const { return children[idx].get(); }
+    common::idx_t getNumChildren() const { return children.size(); }
+    ParsedExpression* getChild(common::idx_t idx) const { return children[idx].get(); }
 
     std::string toString() const { return rawName; }
 
