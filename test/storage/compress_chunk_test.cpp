@@ -32,8 +32,8 @@ public:
     }
 
     template<std::floating_point T>
-    void commitUpdate(transaction::Transaction* transaction, ChunkState& state,
-        BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
+    void commitUpdate(transaction::Transaction* transaction, ChunkState& state, FileHandle* dataFH,
+        BufferManager* bufferManager, ShadowFile* shadowFile);
 
     template<std::floating_point T>
     void testCompressChunk(const std::vector<T>& bufferToCompress, check_func_t checkFunc);
@@ -84,7 +84,7 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(const std::vector<T>& buff
 template<std::floating_point T>
 ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
     const std::shared_ptr<FloatCompression<T>>& alg, const CompressionMetadata* metadata,
-    BMFileHandle* dataFH, const LogicalType& dataType) {
+    FileHandle* dataFH, const LogicalType& dataType) {
 
     auto preScanMetadata = GetFloatCompressionMetadata<T>{alg, dataType}.operator()(
         (uint8_t*)bufferToCompress.data(), bufferToCompress.size() * sizeof(T),
@@ -102,7 +102,7 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
 
 template<std::floating_point T>
 void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, ChunkState& state,
-    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile) {
+    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile) {
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.getExceptionChunk<T>()->finalizeAndFlushToDisk(state);
     }

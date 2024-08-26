@@ -7,7 +7,7 @@
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/file_handle.h"
 
 #if defined(_WIN32)
 #include <exception>
@@ -106,7 +106,7 @@ void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize
 // should be flushed to disk if it is evicted.
 // (3) If multiple threads are writing to the page, they should coordinate separately because they
 // both get access to the same piece of memory.
-uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
+uint8_t* BufferManager::pin(FileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     while (true) {
@@ -197,7 +197,7 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
     return true;
 }
 
-void BufferManager::optimisticRead(BMFileHandle& fileHandle, page_idx_t pageIdx,
+void BufferManager::optimisticRead(FileHandle& fileHandle, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) {
     auto pageState = fileHandle.getPageState(pageIdx);
 #if defined(_WIN32)
@@ -233,7 +233,7 @@ void BufferManager::optimisticRead(BMFileHandle& fileHandle, page_idx_t pageIdx,
     }
 }
 
-void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
+void BufferManager::unpin(FileHandle& fileHandle, page_idx_t pageIdx) {
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->unlock();
 }
@@ -284,7 +284,7 @@ uint64_t BufferManager::evictPages() {
 // or we can find no more pages to be evicted.
 // Lastly, we double check if the needed memory is available. If not, we free the memory we reserved
 // and return false, otherwise, we load the page to its corresponding frame and return true.
-bool BufferManager::claimAFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
+bool BufferManager::claimAFrame(FileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
     page_offset_t pageSizeToClaim = fileHandle.getPageSize();
     if (!reserve(pageSizeToClaim)) {
@@ -366,17 +366,16 @@ uint64_t BufferManager::tryEvictPage(std::atomic<EvictionCandidate>& _candidate)
     return numBytesFreed;
 }
 
-void BufferManager::cachePageIntoFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
+void BufferManager::cachePageIntoFrame(FileHandle& fileHandle, page_idx_t pageIdx,
     PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->clearDirty();
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
-        fileHandle.getFileInfo()->readFromFile((void*)getFrame(fileHandle, pageIdx),
-            fileHandle.getPageSize(), pageIdx * fileHandle.getPageSize());
+        fileHandle.readPageFromDisk(getFrame(fileHandle, pageIdx), pageIdx);
     }
 }
 
-void BufferManager::removeFilePagesFromFrames(BMFileHandle& fileHandle) {
+void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
     evictionQueue.removeCandidatesForFile(fileHandle.getFileIndex());
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
         removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
@@ -393,7 +392,7 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutLock(file_idx_t fileIdx,
     }
 }
 
-void BufferManager::removePageFromFrameIfNecessary(BMFileHandle& fileHandle, page_idx_t pageIdx) {
+void BufferManager::removePageFromFrameIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx) {
     if (pageIdx >= fileHandle.getNumPages()) {
         return;
     }
@@ -401,7 +400,7 @@ void BufferManager::removePageFromFrameIfNecessary(BMFileHandle& fileHandle, pag
 }
 
 // NOTE: We assume the page is not pinned (locked) here.
-void BufferManager::removePageFromFrame(BMFileHandle& fileHandle, page_idx_t pageIdx,
+void BufferManager::removePageFromFrame(FileHandle& fileHandle, page_idx_t pageIdx,
     bool shouldFlush) {
     auto pageState = fileHandle.getPageState(pageIdx);
     if (PageState::getState(pageState->getStateAndVersion()) == PageState::EVICTED) {

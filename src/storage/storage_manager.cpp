@@ -33,13 +33,13 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     loadTables(catalog, vfs, context);
 }
 
-BMFileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualFileSystem* vfs,
+FileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualFileSystem* vfs,
     main::ClientContext* context) const {
     if (main::DBConfig::isDBPathInMemory(databasePath)) {
-        return memoryManager.getBufferManager()->getBMFileHandle(fileName,
+        return memoryManager.getBufferManager()->getFileHandle(fileName,
             FileHandle::O_PERSISTENT_FILE_IN_MEM, vfs, context);
     }
-    return memoryManager.getBufferManager()->getBMFileHandle(fileName,
+    return memoryManager.getBufferManager()->getFileHandle(fileName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         vfs, context);

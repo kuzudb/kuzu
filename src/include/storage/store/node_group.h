@@ -47,11 +47,11 @@ class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<std::unique_ptr<Column>> columns;
-    BMFileHandle& dataFH;
+    FileHandle& dataFH;
     MemoryManager* mm;
 
     NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<std::unique_ptr<Column>> columns, BMFileHandle& dataFH, MemoryManager* mm)
+        std::vector<std::unique_ptr<Column>> columns, FileHandle& dataFH, MemoryManager* mm)
         : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, dataFH{dataFH}, mm{mm} {}
     virtual ~NodeGroupCheckpointState() = default;
 
@@ -145,9 +145,9 @@ public:
 
     common::row_idx_t getNumDeletedRows(const transaction::Transaction* transaction);
     virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState, BMFileHandle* dataFH);
+        TableAddColumnState& addColumnState, FileHandle* dataFH);
 
-    void flush(BMFileHandle& dataFH);
+    void flush(FileHandle& dataFH);
 
     virtual void checkpoint(NodeGroupCheckpointState& state);
 

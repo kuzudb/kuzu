@@ -210,7 +210,7 @@ row_idx_t NodeGroup::getNumDeletedRows(const Transaction* transaction) {
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    BMFileHandle* dataFH) {
+    FileHandle* dataFH) {
     dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
@@ -218,7 +218,7 @@ void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColu
     }
 }
 
-void NodeGroup::flush(BMFileHandle& dataFH) {
+void NodeGroup::flush(FileHandle& dataFH) {
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.getNumGroups(lock) == 1) {
         const auto chunkedGroupToFlush = chunkedGroups.getFirstGroup(lock);

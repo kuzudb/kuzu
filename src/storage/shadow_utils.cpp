@@ -1,6 +1,6 @@
-#include "storage/storage_structure/db_file_utils.h"
+#include "storage/shadow_utils.h"
 
-#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/file_handle.h"
 #include "storage/wal/shadow_file.h"
 #include "transaction/transaction.h"
 
@@ -9,8 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ShadowPageAndFrame DBFileUtils::createShadowVersionIfNecessaryAndPinPage(page_idx_t originalPage,
-    bool insertingNewPage, BMFileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile) {
+ShadowPageAndFrame ShadowUtils::createShadowVersionIfNecessaryAndPinPage(page_idx_t originalPage,
+    bool insertingNewPage, FileHandle& fileHandle, DBFileID dbFileID, ShadowFile& shadowFile) {
     KU_ASSERT(!fileHandle.isInMemoryMode());
     const auto hasShadowPage = shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPage);
     auto shadowPage =
@@ -38,8 +38,8 @@ ShadowPageAndFrame DBFileUtils::createShadowVersionIfNecessaryAndPinPage(page_id
     return {originalPage, shadowPage, shadowFrame};
 }
 
-std::pair<BMFileHandle*, page_idx_t> DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-    BMFileHandle& fileHandle, page_idx_t pageIdx, const ShadowFile& shadowFile,
+std::pair<FileHandle*, page_idx_t> ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
+    FileHandle& fileHandle, page_idx_t pageIdx, const ShadowFile& shadowFile,
     transaction::TransactionType trxType) {
     if (trxType == transaction::TransactionType::CHECKPOINT &&
         shadowFile.hasShadowPage(fileHandle.getFileIndex(), pageIdx)) {
@@ -49,7 +49,7 @@ std::pair<BMFileHandle*, page_idx_t> DBFileUtils::getFileHandleAndPhysicalPageId
     return std::make_pair(&fileHandle, pageIdx);
 }
 
-page_idx_t DBFileUtils::insertNewPage(BMFileHandle& fileHandle, DBFileID dbFileID,
+page_idx_t ShadowUtils::insertNewPage(FileHandle& fileHandle, DBFileID dbFileID,
     ShadowFile& shadowFile, const std::function<void(uint8_t*)>& insertOp) {
     KU_ASSERT(!fileHandle.isInMemoryMode());
     const auto newOriginalPage = fileHandle.addNewPage();
@@ -71,8 +71,8 @@ void unpinShadowPage(page_idx_t originalPageIdx, page_idx_t shadowPageIdx,
     }
 }
 
-void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
-    page_idx_t originalPageIdx, bool isInsertingNewPage, ShadowFile& shadowFile,
+void ShadowUtils::updatePage(FileHandle& fileHandle, DBFileID dbFileID, page_idx_t originalPageIdx,
+    bool isInsertingNewPage, ShadowFile& shadowFile,
     const std::function<void(uint8_t*)>& updateOp) {
     KU_ASSERT(!fileHandle.isInMemoryMode());
     const auto shadowPageIdxAndFrame = createShadowVersionIfNecessaryAndPinPage(originalPageIdx,
@@ -88,9 +88,8 @@ void DBFileUtils::updatePage(BMFileHandle& fileHandle, DBFileID dbFileID,
         shadowFile);
 }
 
-void DBFileUtils::readShadowVersionOfPage(const BMFileHandle& fileHandle,
-    page_idx_t originalPageIdx, const ShadowFile& shadowFile,
-    const std::function<void(uint8_t*)>& readOp) {
+void ShadowUtils::readShadowVersionOfPage(const FileHandle& fileHandle, page_idx_t originalPageIdx,
+    const ShadowFile& shadowFile, const std::function<void(uint8_t*)>& readOp) {
     KU_ASSERT(!fileHandle.isInMemoryMode());
     KU_ASSERT(shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPageIdx));
     const page_idx_t shadowPageIdx =

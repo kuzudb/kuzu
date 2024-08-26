@@ -22,7 +22,7 @@ template<std::floating_point T>
 class InMemoryExceptionChunk {
 public:
     InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
-        BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
+        FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
     ~InMemoryExceptionChunk();
 
     void finalizeAndFlushToDisk(ChunkState& state);

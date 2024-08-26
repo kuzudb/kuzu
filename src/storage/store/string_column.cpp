@@ -19,7 +19,7 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-StringColumn::StringColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+StringColumn::StringColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
     : Column{std::move(name), std::move(dataType), dataFH, bufferManager, shadowFile,
           enableCompression, true /* requireNullColumn */},
@@ -41,7 +41,7 @@ const ChunkState& StringColumn::getChildState(const ChunkState& state, ChildStat
 }
 
 std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkData& chunkData,
-    BMFileHandle& dataFH) {
+    FileHandle& dataFH) {
     auto flushedChunkData = flushNonNestedChunkData(chunkData, dataFH);
     auto& flushedStringData = flushedChunkData->cast<StringChunkData>();
 

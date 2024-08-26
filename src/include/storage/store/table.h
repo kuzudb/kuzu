@@ -144,7 +144,7 @@ public:
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
     std::string getTableName() const { return tableName; }
-    BMFileHandle* getDataFH() const { return dataFH; }
+    FileHandle* getDataFH() const { return dataFH; }
 
     virtual void initializeScanState(transaction::Transaction* transaction,
         TableScanState& readState) = 0;
@@ -196,7 +196,7 @@ protected:
     common::table_id_t tableID;
     std::string tableName;
     bool enableCompression;
-    BMFileHandle* dataFH;
+    FileHandle* dataFH;
     MemoryManager* memoryManager;
     BufferManager* bufferManager;
     ShadowFile* shadowFile;

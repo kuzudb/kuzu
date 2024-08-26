@@ -17,7 +17,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelTableData::RelTableData(BMFileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
+RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
     Deserializer* deSer)
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()}, mm{mm},

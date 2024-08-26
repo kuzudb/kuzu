@@ -3,7 +3,7 @@
 #include "alp/encode.hpp"
 #include "common/utils.h"
 #include "storage/compression/float_compression.h"
-#include "storage/storage_structure/db_file_utils.h"
+#include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
 #include <concepts>
@@ -71,7 +71,7 @@ class FloatColumnReadWriter;
 
 class DefaultColumnReadWriter : public ColumnReadWriter {
 public:
-    DefaultColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+    DefaultColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile)
         : ColumnReadWriter(dbFileID, dataFH, bufferManager, shadowFile) {}
 
@@ -198,7 +198,7 @@ public:
 template<std::floating_point T>
 class FloatColumnReadWriter : public ColumnReadWriter {
 public:
-    FloatColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH, BufferManager* bufferManager,
+    FloatColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile)
         : ColumnReadWriter(dbFileID, dataFH, bufferManager, shadowFile),
           defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, bufferManager,
@@ -386,7 +386,7 @@ private:
 } // namespace
 
 std::unique_ptr<ColumnReadWriter> ColumnReadWriterFactory::createColumnReadWriter(
-    common::PhysicalTypeID dataType, DBFileID dbFileID, BMFileHandle* dataFH,
+    common::PhysicalTypeID dataType, DBFileID dbFileID, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile) {
     switch (dataType) {
     case common::PhysicalTypeID::FLOAT:
@@ -401,7 +401,7 @@ std::unique_ptr<ColumnReadWriter> ColumnReadWriterFactory::createColumnReadWrite
     }
 }
 
-ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, BMFileHandle* dataFH,
+ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile)
     : dbFileID(dbFileID), dataFH(dataFH), bufferManager(bufferManager), shadowFile(shadowFile) {}
 
@@ -412,7 +412,7 @@ void ColumnReadWriter::readFromPage(Transaction* transaction, page_idx_t pageIdx
     if (pageIdx == INVALID_PAGE_IDX) {
         return readFunc(nullptr);
     }
-    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
+    auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
         *dataFH, pageIdx, *shadowFile, transaction->getType());
     fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
 }
@@ -425,10 +425,10 @@ void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     }
     if (cursor.pageIdx >= dataFH->getNumPages()) {
         KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        DBFileUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
+        ShadowUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
         insertingNewPage = true;
     }
-    DBFileUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
+    ShadowUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
         [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 

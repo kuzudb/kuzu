@@ -33,10 +33,10 @@ class Column {
 public:
     // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
     // of transaction when reading/writing from/to disk pages.
-    Column(std::string name, common::LogicalType dataType, BMFileHandle* dataFH,
+    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
-    Column(std::string name, common::PhysicalTypeID physicalType, BMFileHandle* dataFH,
+    Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
         BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
     virtual ~Column();
@@ -44,10 +44,10 @@ public:
     void populateExtraChunkState(ChunkState& state);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        BMFileHandle& dataFH);
+        FileHandle& dataFH);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
-        const ColumnChunkData& chunkData, BMFileHandle& dataFH);
-    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, BMFileHandle& dataFH);
+        const ColumnChunkData& chunkData, FileHandle& dataFH);
+    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, FileHandle& dataFH);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -138,7 +138,7 @@ protected:
     std::string name;
     DBFileID dbFileID;
     common::LogicalType dataType;
-    BMFileHandle* dataFH;
+    FileHandle* dataFH;
     BufferManager* bufferManager;
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
@@ -152,7 +152,7 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, BMFileHandle* dataFH, BufferManager* bufferManager,
+    InternalIDColumn(std::string name, FileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
@@ -191,10 +191,10 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
+        FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
         bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, BMFileHandle* dataFH, BufferManager* bufferManager,
+        common::PhysicalTypeID physicalType, FileHandle* dataFH, BufferManager* bufferManager,
         ShadowFile* shadowFile, bool enableCompression);
 };
 

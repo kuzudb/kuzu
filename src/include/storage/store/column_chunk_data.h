@@ -87,7 +87,7 @@ struct ChunkState {
     }
 };
 
-class BMFileHandle;
+class FileHandle;
 // Base data segment covers all fixed-sized data types.
 class ColumnChunkData {
 public:
@@ -153,9 +153,9 @@ public:
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
-    virtual void flush(BMFileHandle& dataFH);
+    virtual void flush(FileHandle& dataFH);
 
-    ColumnChunkMetadata flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
+    ColumnChunkMetadata flushBuffer(FileHandle* dataFH, common::page_idx_t startPageIdx,
         const ColumnChunkMetadata& metadata) const;
 
     static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
@@ -237,7 +237,7 @@ private:
 
 protected:
     using flush_buffer_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
-        BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
+        FileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
     using get_metadata_func_t = std::function<ColumnChunkMetadata(const uint8_t*, uint64_t,
         uint64_t, uint64_t, StorageValue, StorageValue)>;
     using get_min_max_func_t =

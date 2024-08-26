@@ -12,7 +12,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+StructColumn::StructColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
     : Column{std::move(name), std::move(dataType), dataFH, bufferManager, shadowFile,
           enableCompression, true /* requireNullColumn */} {
@@ -27,7 +27,7 @@ StructColumn::StructColumn(std::string name, LogicalType dataType, BMFileHandle*
 }
 
 std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkData& chunk,
-    BMFileHandle& dataFH) {
+    FileHandle& dataFH) {
     auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
     auto& structChunk = chunk.cast<StructChunkData>();
     auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();

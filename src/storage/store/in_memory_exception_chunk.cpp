@@ -16,7 +16,7 @@ using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes(
 
 template<std::floating_point T>
 InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, const ChunkState& state,
-    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile)
+    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),

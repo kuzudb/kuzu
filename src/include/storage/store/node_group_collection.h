@@ -9,7 +9,7 @@ namespace storage {
 class NodeGroupCollection {
 public:
     explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
-        bool enableCompression, BMFileHandle* dataFH = nullptr,
+        bool enableCompression, FileHandle* dataFH = nullptr,
         common::Deserializer* deSer = nullptr);
 
     void append(const transaction::Transaction* transaction,
@@ -65,7 +65,7 @@ private:
     common::row_idx_t numRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    BMFileHandle* dataFH;
+    FileHandle* dataFH;
 };
 
 } // namespace storage

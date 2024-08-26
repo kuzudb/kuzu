@@ -9,7 +9,8 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
-#include "storage/storage_structure/db_file_utils.h"
+#include "storage/file_handle.h"
+#include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"
@@ -84,7 +85,7 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
-InternalIDColumn::InternalIDColumn(std::string name, BMFileHandle* dataFH,
+InternalIDColumn::InternalIDColumn(std::string name, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
     : Column{std::move(name), LogicalType::INTERNAL_ID(), dataFH, bufferManager, shadowFile,
           enableCompression, false /*requireNullColumn*/},
@@ -99,7 +100,7 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
     }
 }
 
-Column::Column(std::string name, LogicalType dataType, BMFileHandle* dataFH,
+Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
     bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
@@ -119,7 +120,7 @@ Column::Column(std::string name, LogicalType dataType, BMFileHandle* dataFH,
     }
 }
 
-Column::Column(std::string name, PhysicalTypeID physicalType, BMFileHandle* dataFH,
+Column::Column(std::string name, PhysicalTypeID physicalType, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
     bool requireNullColumn)
     : Column(name, LogicalType::ANY(physicalType), dataFH, bufferManager, shadowFile,
@@ -145,7 +146,7 @@ void Column::populateExtraChunkState(ChunkState& state) {
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& chunkData,
-    BMFileHandle& dataFH) {
+    FileHandle& dataFH) {
     switch (chunkData.getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         return StructColumn::flushChunkData(chunkData, dataFH);
@@ -164,7 +165,7 @@ std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& c
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChunkData& chunkData,
-    BMFileHandle& dataFH) {
+    FileHandle& dataFH) {
     auto chunkMeta = flushData(chunkData, dataFH);
     auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getDataType().copy(),
         chunkData.isCompressionEnabled(), chunkMeta, chunkData.hasNullData());
@@ -177,7 +178,7 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
     return flushedChunk;
 }
 
-ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, BMFileHandle& dataFH) {
+ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHandle& dataFH) {
     KU_ASSERT(chunkData.sanityCheck());
     // TODO(Guodong/Ben): We can optimize the flush to write back to same set of pages if new
     // flushed data are not out of the capacity.
@@ -466,14 +467,14 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
+    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
     bool enableCompression) {
     return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, bufferManager,
         shadowFile, enableCompression);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,
-    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
+    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
     bool enableCompression) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:

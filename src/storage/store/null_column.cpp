@@ -28,7 +28,7 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(const std::string& name, BMFileHandle* dataFH, BufferManager* bufferManager,
+NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, BufferManager* bufferManager,
     ShadowFile* shadowFile, bool enableCompression)
     : Column{name, LogicalType::BOOL(), dataFH, bufferManager, shadowFile, enableCompression,
           false /*requireNullColumn*/} {

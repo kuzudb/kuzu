@@ -10,8 +10,8 @@ namespace storage {
 
 // A VMRegion holds a virtual memory region of a certain size allocated through mmap.
 // The region is divided into frame groups, each of which is a group of frames of the same size.
-// Each BMFileHandle should grab a frame group each time when they add a new file page group (see
-// `BMFileHandle::addNewPageGroupWithoutLock`). In this way, each file page group uniquely
+// Each FileHandle should grab a frame group each time when they add a new file page group (see
+// `FileHandle::addNewPageGroupWithoutLock`). In this way, each file page group uniquely
 // corresponds to a frame group, thus, a page also uniquely corresponds to a frame in a VMRegion.
 class VMRegion {
     friend class BufferManager;

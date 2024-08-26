@@ -8,6 +8,7 @@
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/file_handle.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -37,7 +38,7 @@ ShadowFile::ShadowFile(const std::string& directory, bool readOnly, BufferManage
     if (DBConfig::isDBPathInMemory(directory)) {
         return;
     }
-    shadowingFH = bufferManager.getBMFileHandle(
+    shadowingFH = bufferManager.getFileHandle(
         vfs->joinPath(directory, std::string(StorageConstants::SHADOWING_SUFFIX)),
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
@@ -83,7 +84,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
             fileCache.insert(std::make_pair(dbFileID, getFileInfo(context, dbFileID)));
         }
         const auto& fileInfoOfDBFile = fileCache.at(dbFileID);
-        shadowingFH->readPage(pageBuffer.get(), shadowPageIdx++);
+        shadowingFH->readPageFromDisk(pageBuffer.get(), shadowPageIdx++);
         fileInfoOfDBFile->writeFile(pageBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE,
             record.originalPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
         // NOTE: We're not taking lock here, as we assume this is only called with single thread.
@@ -98,7 +99,8 @@ void ShadowFile::flushAll() const {
     header.numShadowPages = shadowPageRecords.size();
     const auto headerBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
     memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
-    shadowingFH->writePage(headerBuffer.get(), 0);
+    KU_ASSERT(!shadowingFH->isInMemoryMode());
+    shadowingFH->writePageToFile(headerBuffer.get(), 0);
     // Flush shadow pages to file.
     shadowingFH->flushAllDirtyPagesInFrames();
     // Append shadow page records to end of file.

@@ -11,7 +11,6 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -211,7 +210,7 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     numValues += numValuesToAppend;
 }
 
-void ColumnChunkData::flush(BMFileHandle& dataFH) {
+void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
     const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
     const auto metadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
@@ -232,7 +231,7 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& metadata) {
     this->numValues = metadata.numValues;
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, page_idx_t startPageIdx,
     const ColumnChunkMetadata& metadata) const {
     if (!metadata.compMeta.isConstant() && bufferSize != 0) {
         KU_ASSERT(bufferSize == getBufferSize(capacity));

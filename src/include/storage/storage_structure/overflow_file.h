@@ -10,8 +10,7 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/file_handle.h"
+#include "storage//file_handle.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
@@ -110,7 +109,7 @@ public:
         return handles.back().get();
     }
 
-    BMFileHandle* getBMFileHandle() const {
+    FileHandle* getFileHandle() const {
         KU_ASSERT(fileHandle);
         return fileHandle;
     }
@@ -139,7 +138,7 @@ protected:
     StringOverflowFileHeader header;
     common::page_idx_t numPagesOnDisk;
     DBFileID dbFileID;
-    BMFileHandle* fileHandle;
+    FileHandle* fileHandle;
     ShadowFile* shadowFile;
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;

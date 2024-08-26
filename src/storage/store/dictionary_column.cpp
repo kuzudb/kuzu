@@ -15,7 +15,7 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-DictionaryColumn::DictionaryColumn(const std::string& name, BMFileHandle* dataFH,
+DictionaryColumn::DictionaryColumn(const std::string& name, FileHandle* dataFH,
     BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
     dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(), dataFH, bufferManager,

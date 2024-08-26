@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "common/types/types.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/enums/page_read_policy.h"
+#include "storage/file_handle.h"
 
 namespace kuzu {
 namespace storage {
@@ -76,7 +76,7 @@ private:
  * It provides two main functionalities:
  * 1) it provides the high-level functionality to pin() and unpin() the pages of the database files
  * used by storage structures, such as the Column, Lists, or HashIndex in the storage layer, and
- * operates via their BMFileHandle to read/write the page data into/out of one of the frames.
+ * operates via their FileHandle to read/write the page data into/out of one of the frames.
  * 2) it provides optimistic read of pages, which optimistically read unlocked or marked pages
  * without acquiring locks.
  * 3) it supports the MemoryManager (MM) to allocate memory buffers that are not
@@ -102,7 +102,7 @@ private:
  *
  * All accesses to the BM are through a FileHandle. This design is to de-centralize the management
  * of page states from the BM to each file handle itself. Thus each on-disk file should have a
- * unique BMFileHandle, and MM also holds a unique BMFileHandle, which is backed by an temp in-mem
+ * unique FileHandle, and MM also holds a unique FileHandle, which is backed by an temp in-mem
  * file, for all memory buffer allocations
  *
  * To start a Database, users need to specify the max size of the memory usage (`maxSize`) in BM.
@@ -113,7 +113,7 @@ private:
  * constants.h), which is usually much larger than `maxSize`, and is expected to be large enough to
  * contain all disk pages. Each disk page in database files is directly mapped to a unique
  * PAGE_4KB_SIZE frame in the region.
- * 2) For each BMFileHandle backed by a temp in-mem file in MM, BM allocates a virtual memory region
+ * 2) For each FileHandle backed by a temp in-mem file in MM, BM allocates a virtual memory region
  * of `maxSize` for it. Each memory buffer is mapped to a unique PAGE_256KB_SIZE frame in that
  * region. Both disk pages and memory buffers are all managed by the BM to make sure that actually
  * used physical memory doesn't go beyond max size specified by users. Currently, the BM uses a
@@ -168,58 +168,56 @@ private:
 
 class BufferManager {
     friend class MemoryAllocator;
-    friend class BMFileHandle;
+    friend class FileHandle;
 
 public:
     BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);
     ~BufferManager() = default;
 
     // Currently, these functions are specifically used only for WAL files.
-    void removeFilePagesFromFrames(BMFileHandle& fileHandle);
+    void removeFilePagesFromFrames(FileHandle& fileHandle);
     void updateFrameIfPageIsInFrameWithoutLock(common::file_idx_t fileIdx, const uint8_t* newPage,
         common::page_idx_t pageIdx);
 
     // For files that are managed by BM, their FileHandles should be created through this function.
-    BMFileHandle* getBMFileHandle(const std::string& filePath, uint8_t flags,
+    FileHandle* getFileHandle(const std::string& filePath, uint8_t flags,
         common::VirtualFileSystem* vfs, main::ClientContext* context,
         common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
-        fileHandles.emplace_back(std::unique_ptr<BMFileHandle>(new BMFileHandle(filePath, flags,
-            this, fileHandles.size(), pageSizeClass, vfs, context)));
+        fileHandles.emplace_back(std::unique_ptr<FileHandle>(new FileHandle(filePath, flags, this,
+            fileHandles.size(), pageSizeClass, vfs, context)));
         return fileHandles.back().get();
     }
 
     uint64_t getUsedMemory() const { return usedMemory; }
 
 private:
-    uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
-    void optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+    void optimisticRead(FileHandle& fileHandle, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
     // The function assumes that the requested page is already pinned.
-    void unpin(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
-    uint8_t* getFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx) const {
+    void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    uint8_t* getFrame(FileHandle& fileHandle, common::page_idx_t pageIdx) const {
         return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));
     }
     common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
     }
-    void removePageFromFrameIfNecessary(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
+    void removePageFromFrameIfNecessary(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
 
     // Reclaims used memory until the given size to reserve is available
     // The specified amount of memory will be recorded as being used
     bool reserve(uint64_t sizeToReserve);
-    bool claimAFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+    bool claimAFrame(FileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
     // Return number of bytes freed.
     uint64_t tryEvictPage(std::atomic<EvictionCandidate>& candidate);
 
-    void cachePageIntoFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+    void cachePageIntoFrame(FileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
-    // void flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
-    void removePageFromFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
-        bool shouldFlush);
+    void removePageFromFrame(FileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
 
     uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
     uint64_t freeUsedMemory(uint64_t size) {
@@ -227,7 +225,7 @@ private:
         return usedMemory.fetch_sub(size);
     }
 
-    void releaseFrameForPage(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
+    void releaseFrameForPage(FileHandle& fileHandle, common::page_idx_t pageIdx) {
         vmRegions[fileHandle.getPageSizeClass()]->releaseFrame(fileHandle.getFrameIdx(pageIdx));
     }
 
@@ -240,7 +238,7 @@ private:
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
     // hold two sizes of PAGE_4KB and PAGE_256KB.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
-    std::vector<std::unique_ptr<BMFileHandle>> fileHandles;
+    std::vector<std::unique_ptr<FileHandle>> fileHandles;
 };
 
 } // namespace storage
