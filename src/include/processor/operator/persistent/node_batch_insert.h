@@ -124,6 +124,8 @@ private:
         common::offset_t startIndexInGroup) const;
 
     void copyToNodeGroup(transaction::Transaction* transaction) const;
+    void handleIndexErrors(transaction::Transaction* transaction,
+        const CopyIndexErrors& indexErrors) const;
 };
 
 } // namespace processor

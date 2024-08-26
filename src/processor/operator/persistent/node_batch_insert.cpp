@@ -113,7 +113,13 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     if (nodeLocalState->localIndexBuilder) {
         KU_ASSERT(token);
         token->quit();
-        nodeLocalState->localIndexBuilder->finishedProducing();
+
+        const auto nodeSharedState =
+            ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
+                sharedState.get());
+        CopyIndexErrors errors{context->clientContext, nodeSharedState->pkType.getLogicalTypeID()};
+        nodeLocalState->localIndexBuilder->finishedProducing(errors);
+        handleIndexErrors(context->clientContext->getTx(), errors);
     }
 }
 
@@ -154,8 +160,11 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
     auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(transaction, *nodeGroup);
     if (indexBuilder) {
+        CopyIndexErrors errors{transaction->getClientContext(),
+            nodeSharedState->pkType.getLogicalTypeID()};
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
-            nodeOffset, numRowsWritten);
+            nodeOffset, numRowsWritten, errors);
+        handleIndexErrors(transaction, errors);
     }
     if (numRowsWritten == nodeGroup->getNumRows()) {
         nodeGroup->resetToEmpty();
@@ -198,7 +207,9 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
         }
     }
     if (nodeSharedState->globalIndexBuilder) {
-        nodeSharedState->globalIndexBuilder->finalize(context);
+        CopyIndexErrors errors{context->clientContext, nodeSharedState->pkType.getLogicalTypeID()};
+        nodeSharedState->globalIndexBuilder->finalize(context, errors);
+        handleIndexErrors(context->clientContext->getTx(), errors);
     }
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows(), info->tableEntry->getName());
@@ -215,6 +226,18 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
                 warningCount, warningLimitSuffix, context->queryID);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
             context->clientContext->getMemoryManager());
+    }
+}
+
+void NodeBatchInsert::handleIndexErrors(transaction::Transaction* transaction,
+    const CopyIndexErrors& indexErrors) const {
+    const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
+    for (idx_t i = 0; i < indexErrors.offsetVector.size(); ++i) {
+        NodeTableDeleteState deleteState{
+            *indexErrors.offsetVector[i],
+            *indexErrors.keyVector[i],
+        };
+        nodeTable->delete_(transaction, deleteState);
     }
 }
 } // namespace processor
