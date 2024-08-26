@@ -1,6 +1,7 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "main/client_context.h"
 #include "catalog/catalog_entry/external_node_table_catalog_entry.h"
@@ -44,6 +45,12 @@ void Planner::appendScanNodeTable(const Expression& expr, const expression_vecto
         auto bindData = scanFunc.bindFunc(clientContext, &bindInput);
         auto scanInfo = BoundTableScanSourceInfo(scanFunc, std::move(bindData), node.getPropertyExprs());
         appendTableFunctionCall(scanInfo, plan);
+        auto& tableFunctionCall = plan.getLastOperator()->cast<LogicalTableFunctionCall>();
+        std::vector<bool> columnSkips;
+        for (auto i =0u; i < entry->getNumProperties(); ++i) {
+            columnSkips.push_back(!propertyExprCollection.contains(expr, entry->getProperty(i).getName()));
+        }
+        tableFunctionCall.setColumnSkips(columnSkips);
         // Join external table with internal table.
         auto joinCondition = std::make_pair(pkExpr, pkExpr);
         std::vector<binder::expression_pair> joinConditions;

@@ -31,6 +31,7 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     deserializer.deserializeValue(hasParent);
     switch (type) {
     case TableType::NODE:
+    case TableType::EXTERNAL_NODE:
     case TableType::REL: {
         extraInfo = BoundExtraCreateTableInfo::deserialize(deserializer, type);
     } break;
@@ -61,6 +62,9 @@ std::unique_ptr<BoundExtraCreateTableInfo> BoundExtraCreateTableInfo::deserializ
     switch (type) {
     case TableType::NODE: {
         info = BoundExtraCreateNodeTableInfo::deserialize(deserializer);
+    } break;
+    case TableType::EXTERNAL_NODE: {
+        info = BoundExtraCreateExternalNodeTableInfo::deserialize(deserializer);
     } break;
     case TableType::REL: {
         info = BoundExtraCreateRelTableInfo::deserialize(deserializer);

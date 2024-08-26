@@ -50,6 +50,7 @@ class PropertyExprCollection {
 public:
     void addProperties(const std::string& patternName,
         std::shared_ptr<binder::Expression> property);
+    bool contains(const binder::Expression& pattern, const std::string propertyName) const;
     binder::expression_vector getProperties(const binder::Expression& pattern) const;
     binder::expression_vector getProperties() const;
 

@@ -26,6 +26,7 @@ struct TableFuncBindData {
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columnTypes.size(); }
+    bool hasColumnSkips() const { return !columnSkips.empty(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
     KUZU_API std::vector<bool> getColumnSkips() const;
 
