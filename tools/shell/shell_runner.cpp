@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
         std::make_unique<LocalFileSystem>()->openFile(pathToHistory,
             FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY);
     } catch (Exception& e) {
-        std::cerr << "Invalid path: " + pathToHistory + " to directory for history file" << '\n';
+        std::cerr << "Invalid path to directory for history file" << '\n';
         return 1;
     }
 
