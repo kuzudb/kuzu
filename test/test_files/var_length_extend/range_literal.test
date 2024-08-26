@@ -97,7 +97,7 @@ Binder exception: Cannot create recursive rel e.
 -STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)<-[e:meets*..]-(b:person {ID: 11, fName: "Mike"});
 ---- error
 Binder exception: Cannot create recursive rel e.
--STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*2]-(b:person {ID: 11, fName: "Mike"});
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*2]->(b:person {ID: 11, fName: "Mike"});
 ---- error
 Binder exception: Cannot create recursive rel e.
 -STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*2..4]->(b:person {ID: 11, fName: "Mike"});
