@@ -140,7 +140,8 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo& info
         std::move(boundExtraInfo));
 }
 
-static PropertyDefinition getDefinition(const std::vector<PropertyDefinition>& definitions, const std::string& name) {
+static PropertyDefinition getDefinition(const std::vector<PropertyDefinition>& definitions,
+    const std::string& name) {
     for (auto& definition : definitions) {
         if (definition.getName() == name) {
             return definition.copy();
@@ -163,14 +164,17 @@ BoundCreateTableInfo Binder::bindCreateExternalNodeTableInfo(const CreateTableIn
     auto pkDefinition = getDefinition(propertyDefinitions, extraInfo.pkName);
     std::vector<PropertyDefinition> physicalPropertyDefinitions;
     physicalPropertyDefinitions.push_back(pkDefinition.copy());
-    auto boundPhysicalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(extraInfo.pkName, std::move(physicalPropertyDefinitions));
-    auto boundPhysicalCreateInfo = BoundCreateTableInfo(TableType::NODE,
-        getPhysicalTableName(info.tableName), ConflictAction::ON_CONFLICT_THROW,
-        std::move(boundPhysicalExtraInfo));
+    auto boundPhysicalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(extraInfo.pkName,
+        std::move(physicalPropertyDefinitions));
+    auto boundPhysicalCreateInfo =
+        BoundCreateTableInfo(TableType::NODE, getPhysicalTableName(info.tableName),
+            ConflictAction::ON_CONFLICT_THROW, std::move(boundPhysicalExtraInfo));
     // Bind create node table reference info
     auto boundExtraInfo = std::make_unique<BoundExtraCreateExternalNodeTableInfo>(extraInfo.pkName,
-        extraInfo.dbName, extraInfo.tableName, std::move(boundPhysicalCreateInfo), copyVector(propertyDefinitions));
-    return BoundCreateTableInfo(TableType::EXTERNAL_NODE, info.tableName, info.onConflict, std::move(boundExtraInfo));
+        extraInfo.dbName, extraInfo.tableName, std::move(boundPhysicalCreateInfo),
+        copyVector(propertyDefinitions));
+    return BoundCreateTableInfo(TableType::EXTERNAL_NODE, info.tableName, info.onConflict,
+        std::move(boundExtraInfo));
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo& info) {

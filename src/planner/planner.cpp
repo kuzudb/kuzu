@@ -1,8 +1,8 @@
 #include "planner/planner.h"
 
 #include "binder/bound_explain.h"
-#include "main/client_context.h"
 #include "binder/expression/property_expression.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -12,7 +12,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace planner {
 
-bool PropertyExprCollection::contains(const Expression& pattern, const std::string propertyName) const {
+bool PropertyExprCollection::contains(const Expression& pattern,
+    const std::string propertyName) const {
     if (!patternNameToProperties.contains(pattern.getUniqueName())) {
         return false;
     }

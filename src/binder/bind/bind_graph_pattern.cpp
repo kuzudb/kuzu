@@ -9,12 +9,12 @@
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/distinct_vector.h"
 #include "common/exception/binder.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"
-#include "common/distinct_vector.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -286,15 +286,15 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         for (auto& tableID : rdfGraphTableIDSet) {
             auto entry = catalog->getTableCatalogEntry(transaction, tableID);
             auto& rdfGraphEntry = entry->constCast<RDFGraphCatalogEntry>();
-            resourceEntries.push_back(catalog->getTableCatalogEntry(transaction, rdfGraphEntry.getResourceTableID()));
+            resourceEntries.push_back(
+                catalog->getTableCatalogEntry(transaction, rdfGraphEntry.getResourceTableID()));
         }
         auto pID =
             expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
         auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceEntries, std::move(pID));
         queryRel->setRdfPredicateInfo(std::move(rdfInfo));
         // Mock existence of pIRI property.
-        auto pIRI =
-            createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceEntries);
+        auto pIRI = createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceEntries);
         queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
     }
     std::vector<StructField> fields;

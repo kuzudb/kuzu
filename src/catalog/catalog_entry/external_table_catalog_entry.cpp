@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/external_table_catalog_entry.h"
+
 #include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
@@ -34,7 +35,7 @@ std::unique_ptr<ExternalTableCatalogEntry> ExternalTableCatalogEntry::deserializ
     switch (type) {
     case CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY: {
         entry = ExternalNodeTableCatalogEntry::deserialize(deserializer);
-    } break ;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -44,7 +45,5 @@ std::unique_ptr<ExternalTableCatalogEntry> ExternalTableCatalogEntry::deserializ
     return entry;
 }
 
-
-
-}
-}
+} // namespace catalog
+} // namespace kuzu

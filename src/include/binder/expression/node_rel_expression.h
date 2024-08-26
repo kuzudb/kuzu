@@ -38,15 +38,9 @@ public:
     void addEntries(const std::vector<catalog::TableCatalogEntry*> entries_);
     catalog::TableCatalogEntry* getSingleEntry() const;
 
-    void setExternalEntry(catalog::TableCatalogEntry* entry) {
-        externalEntry = entry;
-    }
-    bool hasExternalEntry() const {
-        return externalEntry != nullptr;
-    }
-    catalog::TableCatalogEntry* getExternalEntry() const {
-        return externalEntry;
-    }
+    void setExternalEntry(catalog::TableCatalogEntry* entry) { externalEntry = entry; }
+    bool hasExternalEntry() const { return externalEntry != nullptr; }
+    catalog::TableCatalogEntry* getExternalEntry() const { return externalEntry; }
 
     void addPropertyExpression(const std::string& propertyName,
         std::unique_ptr<Expression> property);

@@ -5,7 +5,7 @@ namespace planner {
 
 LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
     : LogicalOperator{type_}, scanType{other.scanType}, nodeID{other.nodeID},
-       properties{other.properties}, tableScanInfos{other.tableScanInfos},
+      properties{other.properties}, tableScanInfos{other.tableScanInfos},
       propertyPredicates{copyVector(other.propertyPredicates)} {
     if (other.extraInfo != nullptr) {
         setExtraInfo(other.extraInfo->copy());

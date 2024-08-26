@@ -1,9 +1,9 @@
 #include "storage/storage_manager.h"
 
+#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
@@ -177,7 +177,7 @@ void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
         auto externalEntry = tableEntry->ptrCast<ExternalNodeTableCatalogEntry>();
         auto nodeEntry = externalEntry->getPhysicalEntry()->ptrCast<NodeTableCatalogEntry>();
         createNodeTable(nodeEntry->getTableID(), nodeEntry, context);
-    } break ;
+    } break;
     case TableType::REL: {
         createRelTable(tableID, tableEntry->ptrCast<RelTableCatalogEntry>(), catalog,
             context->getTx());

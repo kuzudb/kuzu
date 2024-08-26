@@ -1,8 +1,8 @@
 #include "binder/binder.h"
-#include "main/database_manager.h"
+#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "main/client_context.h"
-#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
+#include "main/database_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -23,19 +23,20 @@ catalog::TableCatalogEntry* Binder::bindExternalTableEntry(const std::string& db
 
 void Binder::bindExternalTableEntry(NodeOrRelExpression& nodeOrRel) {
     if (nodeOrRel.isMultiLabeled() || nodeOrRel.isEmpty()) {
-        return ;
+        return;
     }
     auto entry = nodeOrRel.getSingleEntry();
     switch (entry->getType()) {
     case CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY: {
         auto& tableEntry = entry->constCast<ExternalNodeTableCatalogEntry>();
-        auto externalEntry = bindExternalTableEntry(tableEntry.getExternalDBName(), tableEntry.getExternalTableName());
+        auto externalEntry = bindExternalTableEntry(tableEntry.getExternalDBName(),
+            tableEntry.getExternalTableName());
         nodeOrRel.setExternalEntry(externalEntry);
-    } break ;
+    } break;
     default:
         break;
     }
 }
 
-}
-}
+} // namespace binder
+} // namespace kuzu

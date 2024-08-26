@@ -98,7 +98,8 @@ void BoundExtraCreateExternalNodeTableInfo::serialize(Serializer& serializer) co
     physicalInfo.serialize(serializer);
 }
 
-std::unique_ptr<BoundExtraCreateExternalNodeTableInfo> BoundExtraCreateExternalNodeTableInfo::deserialize(Deserializer& deserializer) {
+std::unique_ptr<BoundExtraCreateExternalNodeTableInfo>
+BoundExtraCreateExternalNodeTableInfo::deserialize(Deserializer& deserializer) {
     std::string primaryKeyName;
     std::string externalDBName;
     std::string externalTableName;

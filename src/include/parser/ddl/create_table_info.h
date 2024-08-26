@@ -31,7 +31,8 @@ struct CreateTableInfo {
     CreateTableInfo(common::TableType tableType, std::string tableName)
         : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
           onConflict{common::ConflictAction::ON_CONFLICT_THROW} {}
-    CreateTableInfo(common::TableType tableType, std::string tableName, common::ConflictAction onConflict)
+    CreateTableInfo(common::TableType tableType, std::string tableName,
+        common::ConflictAction onConflict)
         : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
           onConflict{onConflict} {}
     DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);

@@ -114,7 +114,7 @@ struct BoundExtraCreateExternalNodeTableInfo : public BoundExtraCreateTableInfo 
         return std::make_unique<BoundExtraCreateExternalNodeTableInfo>(*this);
     }
 
-    void serialize(common::Serializer &serializer) const override;
+    void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<BoundExtraCreateExternalNodeTableInfo> deserialize(
         common::Deserializer& deserializer);
 };

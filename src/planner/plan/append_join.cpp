@@ -14,9 +14,9 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     appendHashJoin(joinNodeIDs, joinType, nullptr /* mark */, probePlan, buildPlan, resultPlan);
 }
 
-void Planner::appendHashJoin(const std::vector<expression_pair>& joinConditions,
-    JoinType joinType, std::shared_ptr<Expression> mark, LogicalPlan& probePlan,
-    LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+void Planner::appendHashJoin(const std::vector<expression_pair>& joinConditions, JoinType joinType,
+    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side

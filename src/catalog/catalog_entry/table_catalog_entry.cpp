@@ -1,11 +1,11 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 
 #include "binder/ddl/bound_alter_info.h"
+#include "catalog/catalog_entry/external_table_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "catalog/catalog_entry/external_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
 using namespace kuzu::binder;
@@ -77,7 +77,8 @@ column_id_t TableCatalogEntry::getColumnID(const std::string& propertyName) cons
     return propertyCollection.getColumnID(propertyName);
 }
 
-void TableCatalogEntry::addProperties(const std::vector<binder::PropertyDefinition>& propertyDefinitions) {
+void TableCatalogEntry::addProperties(
+    const std::vector<binder::PropertyDefinition>& propertyDefinitions) {
     for (auto& definition : propertyDefinitions) {
         propertyCollection.add(definition);
     }
@@ -119,7 +120,7 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
     } break;
     case CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY: {
         result = ExternalTableCatalogEntry::deserialize(deserializer, type);
-    } break ;
+    } break;
     case CatalogEntryType::REL_TABLE_ENTRY: {
         result = RelTableCatalogEntry::deserialize(deserializer);
     } break;

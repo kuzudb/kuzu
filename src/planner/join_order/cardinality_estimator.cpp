@@ -1,12 +1,12 @@
 #include "planner/join_order/cardinality_estimator.h"
 
 #include "binder/expression/property_expression.h"
+#include "catalog/catalog_entry/external_table_catalog_entry.h"
 #include "main/client_context.h"
 #include "planner/join_order/join_order_util.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
-#include "catalog/catalog_entry/external_table_catalog_entry.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -16,7 +16,9 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace planner {
 
-static uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
+static uint64_t atLeastOne(uint64_t x) {
+    return x == 0 ? 1 : x;
+}
 
 void CardinalityEstimator::initNodeIDDom(const QueryGraph& queryGraph, Transaction*) {
     for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
@@ -118,7 +120,8 @@ uint64_t CardinalityEstimator::getNumNodes(const std::vector<TableCatalogEntry*>
     for (auto entry : entries) {
         auto tableID = entry->getTableID();
         if (entry->getType() == CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY) {
-            tableID = entry->constCast<ExternalTableCatalogEntry>().getPhysicalEntry()->getTableID();
+            tableID =
+                entry->constCast<ExternalTableCatalogEntry>().getPhysicalEntry()->getTableID();
         }
         numNodes += context->getStorageManager()->getTable(tableID)->getNumRows();
     }

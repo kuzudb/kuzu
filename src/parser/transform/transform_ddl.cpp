@@ -43,14 +43,15 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
-std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(CypherParser::KU_CreateExternalNodeTableContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformCreateExternalNodeTable(
+    CypherParser::KU_CreateExternalNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
     auto createTableInfo = CreateTableInfo(TableType::EXTERNAL_NODE, tableName);
     auto dbName = transformSchemaName(*ctx.oC_SchemaName(1));
     auto externalTableName = transformSchemaName(*ctx.kU_TableLookup()->oC_SchemaName());
     auto primaryKeyName = transformPrimaryKey(*ctx.kU_PrimaryKey());
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(
-        dbName, externalTableName, primaryKeyName);
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateExternalNodeTableInfo>(dbName,
+        externalTableName, primaryKeyName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 

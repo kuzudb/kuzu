@@ -176,12 +176,12 @@ private:
         const binder::BoundAlterInfo& info) const;
     std::unique_ptr<TableCatalogEntry> createNodeTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info) const;
-    std::unique_ptr<TableCatalogEntry> createExternalNodeTableEntry(transaction::Transaction* transaction,
-        const binder::BoundCreateTableInfo& info) const;
+    std::unique_ptr<TableCatalogEntry> createExternalNodeTableEntry(
+        transaction::Transaction* transaction, const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<TableCatalogEntry> createRelTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info) const;
-    std::unique_ptr<TableCatalogEntry> createRelTableGroupEntry(transaction::Transaction* transaction,
-        const binder::BoundCreateTableInfo& info);
+    std::unique_ptr<TableCatalogEntry> createRelTableGroupEntry(
+        transaction::Transaction* transaction, const binder::BoundCreateTableInfo& info);
     std::unique_ptr<TableCatalogEntry> createRdfGraphEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
 

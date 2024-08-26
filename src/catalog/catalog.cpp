@@ -197,7 +197,7 @@ table_id_t Catalog::createTableEntry(Transaction* transaction, const BoundCreate
     } break;
     case TableType::EXTERNAL_NODE: {
         entry = createExternalNodeTableEntry(transaction, info);
-    } break ;
+    } break;
     case TableType::REL: {
         entry = createRelTableEntry(transaction, info);
     } break;
@@ -527,14 +527,13 @@ std::unique_ptr<TableCatalogEntry> Catalog::createNodeTableEntry(Transaction*,
     return nodeTableEntry;
 }
 
-
 std::unique_ptr<TableCatalogEntry> Catalog::createExternalNodeTableEntry(Transaction* transaction,
-  const BoundCreateTableInfo& info) const {
+    const BoundCreateTableInfo& info) const {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateExternalNodeTableInfo>();
     auto physicalEntry = createNodeTableEntry(transaction, extraInfo->physicalInfo);
     auto entry = std::make_unique<ExternalNodeTableCatalogEntry>(tables.get(), info.tableName,
-        extraInfo->externalDBName, extraInfo->externalTableName,
-        std::move(physicalEntry), extraInfo->primaryKeyName);
+        extraInfo->externalDBName, extraInfo->externalTableName, std::move(physicalEntry),
+        extraInfo->primaryKeyName);
     entry->addProperties(extraInfo->propertyDefinitions);
     return entry;
 }
@@ -549,7 +548,6 @@ std::unique_ptr<TableCatalogEntry> Catalog::createRelTableEntry(Transaction*,
     relTableEntry->setHasParent(info.hasParent);
     return relTableEntry;
 }
-
 
 std::unique_ptr<TableCatalogEntry> Catalog::createRelTableGroupEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {

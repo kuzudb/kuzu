@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 namespace kuzu {
 namespace common {
@@ -13,7 +13,7 @@ struct DistinctVector {
 
     void add(const T& val) {
         if (set.contains(val)) {
-            return ;
+            return;
         }
         values.push_back(val);
         set.insert(val);
@@ -23,5 +23,5 @@ private:
     std::unordered_set<T> set;
 };
 
-}
-}
+} // namespace common
+} // namespace kuzu
