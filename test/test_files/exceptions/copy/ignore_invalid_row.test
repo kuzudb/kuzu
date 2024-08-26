@@ -215,6 +215,14 @@ quote should be followed by end of file, end of value, end of row or another quo
 expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|8|8,39
 unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 
+-CASE SkipInvalidLoadFrom2
+-STATEMENT LOAD WITH HEADERS (ID INT16, gender INT32) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv" (IGNORE_ERRORS=true, HEADER=false) RETURN *
+---- 1
+0|4
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+---- 1
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv|2|2,2147483650
+
 -CASE SerialSkipInvalidNodeTableRowsCastingError
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)
 ---- ok

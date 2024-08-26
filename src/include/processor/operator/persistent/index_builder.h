@@ -9,6 +9,7 @@
 #include "common/types/int128_t.h"
 #include "common/types/types.h"
 #include "processor/execution_context.h"
+#include "processor/operator/persistent/copy_error_handler.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/store/column_chunk_data.h"
@@ -24,43 +25,13 @@ namespace processor {
 
 const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
-class CopyIndexErrors {
-public:
-    CopyIndexErrors(main::ClientContext* clientContext, common::LogicalTypeID pkType);
-
-    std::vector<std::shared_ptr<common::ValueVector>> keyVector;
-    std::vector<std::shared_ptr<common::ValueVector>> offsetVector;
-
-    template<typename T>
-    void addError(T key, common::nodeID_t offset) {
-        if (keyVector.empty() || currentVectorSize >= DELETE_VECTOR_SIZE) {
-            addNewVectors();
-            currentVectorSize = 0;
-        }
-        keyVector.back()->setValue<T>(currentVectorSize, key);
-        offsetVector.back()->setValue(currentVectorSize, offset);
-        ++currentVectorSize;
-    }
-
-    void append(const CopyIndexErrors& errors);
-
-private:
-    static constexpr common::idx_t DELETE_VECTOR_SIZE = 1;
-
-    common::idx_t currentVectorSize;
-    main::ClientContext* clientContext;
-    common::LogicalTypeID pkType;
-
-    void addNewVectors();
-};
-
 class IndexBuilderGlobalQueues {
 public:
     explicit IndexBuilderGlobalQueues(transaction::Transaction* transaction,
         storage::NodeTable* nodeTable);
 
     template<typename T>
-    void insert(size_t index, storage::IndexBuffer<T> elem, CopyIndexErrors& errors) {
+    void insert(size_t index, storage::IndexBuffer<T> elem, IndexBuilderErrorHandler& errors) {
         auto& typedQueues = std::get<Queue<T>>(queues).array;
         typedQueues[index].push(std::move(elem));
         if (typedQueues[index].approxSize() < SHOULD_FLUSH_QUEUE_SIZE) {
@@ -69,12 +40,12 @@ public:
         return maybeConsumeIndex(index, errors);
     }
 
-    void consume(CopyIndexErrors& errors);
+    void consume(IndexBuilderErrorHandler& errors);
 
     common::PhysicalTypeID pkTypeID() const;
 
 private:
-    void maybeConsumeIndex(size_t index, CopyIndexErrors& errors);
+    void maybeConsumeIndex(size_t index, IndexBuilderErrorHandler& errors);
 
     std::array<std::mutex, storage::NUM_HASH_INDEXES> mutexes;
     storage::NodeTable* nodeTable;
@@ -98,7 +69,7 @@ class IndexBuilderLocalBuffers {
 public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
-    void insert(std::string key, common::offset_t value, CopyIndexErrors& errors) {
+    void insert(std::string key, common::offset_t value, IndexBuilderErrorHandler& errors) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
         auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
         if (stringBuffer.full()) {
@@ -109,7 +80,7 @@ public:
     }
 
     template<common::HashablePrimitive T>
-    void insert(T key, common::offset_t value, CopyIndexErrors& errors) {
+    void insert(T key, common::offset_t value, IndexBuilderErrorHandler& errors) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];
         if (buffer.full()) {
@@ -118,7 +89,7 @@ public:
         buffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
     }
 
-    void flush(CopyIndexErrors& errors);
+    void flush(IndexBuilderErrorHandler& errors);
 
 private:
     IndexBuilderGlobalQueues* globalQueues;
@@ -142,7 +113,7 @@ public:
     explicit IndexBuilderSharedState(transaction::Transaction* transaction,
         storage::NodeTable* nodeTable)
         : globalQueues{transaction, nodeTable}, nodeTable(nodeTable) {}
-    inline void consume(CopyIndexErrors& errors) { return globalQueues.consume(errors); }
+    inline void consume(IndexBuilderErrorHandler& errors) { return globalQueues.consume(errors); }
 
     inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
     void quitProducer();
@@ -188,16 +159,16 @@ public:
     IndexBuilder clone() { return IndexBuilder(sharedState); }
 
     void insert(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
-        common::offset_t numNodes, CopyIndexErrors& errors);
+        common::offset_t numNodes, IndexBuilderErrorHandler& errors);
 
     ProducerToken getProducerToken() const { return ProducerToken(sharedState); }
 
-    void finishedProducing(CopyIndexErrors& errors);
-    void finalize(ExecutionContext* context, CopyIndexErrors& errors);
+    void finishedProducing(IndexBuilderErrorHandler& errors);
+    void finalize(ExecutionContext* context, IndexBuilderErrorHandler& errors);
 
 private:
     void checkNonNullConstraint(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
-        common::offset_t numNodes, CopyIndexErrors& errors);
+        common::offset_t numNodes, IndexBuilderErrorHandler& errors);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

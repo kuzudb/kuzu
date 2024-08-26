@@ -66,6 +66,7 @@ ClientContext::ClientContext(Database* database)
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
     clientConfig.disableMapKeyCheck = ClientConfigDefault::DISABLE_MAP_KEY_CHECK;
     clientConfig.warningLimit = ClientConfigDefault::WARNING_LIMIT;
+    clientConfig.ignoreCopyErrors = ClientConfigDefault::IGNORE_COPY_ERRORS;
 }
 
 ClientContext::~ClientContext() = default;

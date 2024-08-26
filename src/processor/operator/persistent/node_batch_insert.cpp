@@ -43,6 +43,10 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
         std::make_shared<IndexBuilderSharedState>(context->clientContext->getTx(), nodeTable));
 }
 
+NodeBatchInsertLocalState::NodeBatchInsertLocalState(main::ClientContext* clientContext,
+    common::LogicalTypeID pkType)
+    : errorHandler(clientContext, pkType) {}
+
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
@@ -54,7 +58,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
-    localState = std::make_unique<NodeBatchInsertLocalState>();
+    localState = std::make_unique<NodeBatchInsertLocalState>(context->clientContext,
+        nodeSharedState->pkType.getLogicalTypeID());
     const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
     // NOLINTBEGIN(bugprone-unchecked-optional-access)
@@ -114,16 +119,11 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         KU_ASSERT(token);
         token->quit();
 
-        const auto nodeSharedState =
-            ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(
-                sharedState.get());
-        CopyIndexErrors errors{context->clientContext, nodeSharedState->pkType.getLogicalTypeID()};
-        nodeLocalState->localIndexBuilder->finishedProducing(errors);
-        handleIndexErrors(context->clientContext->getTx(), errors);
+        nodeLocalState->localIndexBuilder->finishedProducing(nodeLocalState->errorHandler);
     }
 }
 
-void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) const {
+void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
     auto numAppendedTuples = 0ul;
     const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
@@ -154,13 +154,13 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
 }
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
-    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) const {
+    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
     auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(transaction, *nodeGroup);
     if (indexBuilder) {
-        CopyIndexErrors errors{transaction->getClientContext(),
+        IndexBuilderErrorHandler errors{transaction->getClientContext(),
             nodeSharedState->pkType.getLogicalTypeID()};
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
             nodeOffset, numRowsWritten, errors);
@@ -174,8 +174,7 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
 }
 
 void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transaction,
-    std::unique_ptr<ChunkedNodeGroup> localNodeGroup,
-    std::optional<IndexBuilder>& indexBuilder) const {
+    std::unique_ptr<ChunkedNodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder) {
     std::unique_lock xLck{sharedState->mtx};
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
@@ -207,7 +206,8 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
         }
     }
     if (nodeSharedState->globalIndexBuilder) {
-        CopyIndexErrors errors{context->clientContext, nodeSharedState->pkType.getLogicalTypeID()};
+        IndexBuilderErrorHandler errors{context->clientContext,
+            nodeSharedState->pkType.getLogicalTypeID()};
         nodeSharedState->globalIndexBuilder->finalize(context, errors);
         handleIndexErrors(context->clientContext->getTx(), errors);
     }
@@ -230,12 +230,12 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
 }
 
 void NodeBatchInsert::handleIndexErrors(transaction::Transaction* transaction,
-    const CopyIndexErrors& indexErrors) const {
+    IndexBuilderErrorHandler& indexErrors) {
     const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-    for (idx_t i = 0; i < indexErrors.offsetVector.size(); ++i) {
+    for (idx_t i = 0; i < indexErrors.getOffsetVector().size(); ++i) {
         NodeTableDeleteState deleteState{
-            *indexErrors.offsetVector[i],
-            *indexErrors.keyVector[i],
+            *indexErrors.getOffsetVector()[i],
+            *indexErrors.getKeyVector()[i],
         };
         nodeTable->delete_(transaction, deleteState);
     }

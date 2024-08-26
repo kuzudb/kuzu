@@ -79,10 +79,14 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 };
 
 struct NodeBatchInsertLocalState final : BatchInsertLocalState {
+    IndexBuilderErrorHandler errorHandler;
+
     std::optional<IndexBuilder> localIndexBuilder;
 
     std::shared_ptr<common::DataChunkState> columnState;
     std::vector<common::ValueVector*> columnVectors;
+
+    NodeBatchInsertLocalState(main::ClientContext* clientContext, common::LogicalTypeID pkType);
 };
 
 class NodeBatchInsert final : public BatchInsert {
@@ -114,18 +118,18 @@ public:
     // written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        std::optional<IndexBuilder>& indexBuilder) const;
+        std::optional<IndexBuilder>& indexBuilder);
 
 private:
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder) const;
+        std::optional<IndexBuilder>& indexBuilder);
     void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         common::offset_t startIndexInGroup) const;
 
-    void copyToNodeGroup(transaction::Transaction* transaction) const;
+    void copyToNodeGroup(transaction::Transaction* transaction);
     void handleIndexErrors(transaction::Transaction* transaction,
-        const CopyIndexErrors& indexErrors) const;
+        IndexBuilderErrorHandler& indexErrors);
 };
 
 } // namespace processor
