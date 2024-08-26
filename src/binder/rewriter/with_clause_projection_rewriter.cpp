@@ -12,8 +12,8 @@ static expression_vector getPropertiesOfSameVariable(const expression_vector& ex
     const std::string& variableName) {
     expression_vector result;
     for (auto& expression : expressions) {
-        auto propertyExpression = (PropertyExpression*)expression.get();
-        if (propertyExpression->getVariableName() != variableName) {
+        auto& propertyExpression = expression->constCast<PropertyExpression>();
+        if (propertyExpression.getVariableName() != variableName) {
             continue;
         }
         result.push_back(expression);
@@ -25,17 +25,17 @@ static expression_vector rewriteExpressions(const expression_vector& expressions
     const expression_vector& properties) {
     expression_set distinctResult;
     for (auto& expression : expressions) {
-        if (expression->expressionType != common::ExpressionType::PROPERTY) {
+        if (expression->expressionType != ExpressionType::PROPERTY) {
             distinctResult.insert(expression);
             continue;
         }
-        auto propertyExpression = (PropertyExpression*)expression.get();
-        if (!propertyExpression->isInternalID()) {
+        auto& propertyExpression = expression->constCast<PropertyExpression>();
+        if (!propertyExpression.isInternalID()) {
             distinctResult.insert(expression);
             continue;
         }
         // Expression is internal ID. Perform rewrite as all properties with the same variable.
-        auto variableName = propertyExpression->getVariableName();
+        auto variableName = propertyExpression.getVariableName();
         for (auto& property : getPropertiesOfSameVariable(properties, variableName)) {
             distinctResult.insert(property);
         }

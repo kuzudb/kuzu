@@ -28,17 +28,20 @@ static expression_vector rewriteProjectionInWithClause(const expression_vector& 
     expression_vector result;
     for (auto& expression : expressions) {
         if (ExpressionUtil::isNodePattern(*expression)) {
-            auto node = (NodeExpression*)expression.get();
-            result.push_back(node->getInternalID());
+            auto& node = expression->constCast<NodeExpression>();
+            result.push_back(node.getInternalID());
         } else if (ExpressionUtil::isRelPattern(*expression)) {
-            auto rel = (RelExpression*)expression.get();
-            result.push_back(rel->getSrcNode()->getInternalID());
-            result.push_back(rel->getDstNode()->getInternalID());
-            result.push_back(rel->getInternalIDProperty());
+            auto& rel = expression->constCast<RelExpression>();
+            result.push_back(rel.getSrcNode()->getInternalID());
+            result.push_back(rel.getDstNode()->getInternalID());
+            result.push_back(rel.getInternalIDProperty());
+            if (rel.hasDirectionExpr()) {
+                result.push_back(rel.getDirectionExpr());
+            }
         } else if (ExpressionUtil::isRecursiveRelPattern(*expression)) {
-            auto rel = (RelExpression*)expression.get();
+            auto& rel = expression->constCast<RelExpression>();
             result.push_back(expression);
-            result.push_back(rel->getLengthExpression());
+            result.push_back(rel.getLengthExpression());
         } else {
             result.push_back(expression);
         }
