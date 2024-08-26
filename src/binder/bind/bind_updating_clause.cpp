@@ -126,7 +126,9 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
-                throw BinderException(stringFormat("Create undirected relationship is not supported. Try create 2 directed relationships instead."));
+                throw BinderException(
+                    stringFormat("Create undirected relationship is not supported. Try create 2 "
+                                 "directed relationships instead."));
             }
             if (rel->getVariableName().empty()) { // Always create anonymous rel.
                 bindInsertRel(rel, result);
