@@ -23,7 +23,7 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption opti
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         FileFlags::READ_ONLY
 #ifdef _WIN32
-            | _O_BINARY
+            | FileFlags::BINARY
 #endif
         ,
         context);

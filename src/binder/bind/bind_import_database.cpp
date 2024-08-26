@@ -24,7 +24,7 @@ static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::s
     auto fileInfo = vfs->openFile(filePath, FileFlags::READ_ONLY
 // TODO(Ziyi): We need to handle O_BINARY here.
 #ifdef _WIN32
-                                                | _O_BINARY
+                                                | FileFlags::BINARY
 #endif
     );
     auto fsize = fileInfo->getFileSize();

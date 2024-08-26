@@ -26,6 +26,10 @@ struct FileFlags {
     static constexpr uint8_t CREATE_AND_TRUNCATE_IF_EXISTS = 1 << 4;
     // Temporary file that is not persisted to disk.
     static constexpr uint8_t TEMPORARY = 1 << 5;
+#ifdef _WIN32
+    // Only used in windows to open files in binary mode.
+    static constexpr uint8_t BINARY = 1 << 5;
+#endif
 };
 
 class KUZU_API FileSystem {

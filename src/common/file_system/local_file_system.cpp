@@ -73,7 +73,6 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
     }
     if (writeMode) {
         KU_ASSERT(flags & FileFlags::WRITE);
-        openFlags |= O_CLOEXEC;
         if (flags & FileFlags::CREATE_IF_NOT_EXISTS) {
             openFlags |= O_CREAT;
         } else if (flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS) {
@@ -91,6 +90,9 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
     // O_RDONLY is 0 in practice, so openFlags & (O_RDONLY | O_RDWR) doesn't work.
     if (!(openFlags & O_WRONLY)) {
         dwDesiredAccess |= GENERIC_READ;
+    }
+    if (openFlags & FileFlags::BINARY) {
+        dwDesiredAccess |= _O_BINARY;
     }
 
     HANDLE handle = CreateFileA(fullPath.c_str(), dwDesiredAccess, dwShareMode, nullptr,
