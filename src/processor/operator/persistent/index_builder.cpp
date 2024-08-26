@@ -57,7 +57,6 @@ void IndexBuilderGlobalQueues::consume(CopyIndexErrors& errors) {
 }
 
 void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index, CopyIndexErrors& errors) {
-
     if (!mutexes[index].try_lock()) {
         return;
     }
@@ -117,7 +116,7 @@ void IndexBuilderSharedState::quitProducer() {
 
 void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes,
     CopyIndexErrors& errors) {
-    checkNonNullConstraint(chunk.getNullData(), numNodes);
+    checkNonNullConstraint(chunk, nodeOffset, numNodes, errors);
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
@@ -136,6 +135,9 @@ void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, off
         },
         [&](auto) {
             throw CopyException(ExceptionMessage::invalidPKType(chunk.getDataType().toString()));
+            // TypeUtils::visit(chunk.getDataType().getPhysicalType(), [&]<typename T>(T) {
+            //     errors.addError(T{}, nodeID_t{0, sharedState->nodeTable->getTableID()});
+            // });
         });
 }
 
@@ -155,10 +157,22 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/, CopyIndexErrors& erro
     sharedState->consume(errors);
 }
 
-void IndexBuilder::checkNonNullConstraint(const NullChunkData& nullChunk, offset_t numNodes) {
+void IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk, offset_t nodeOffset,
+    offset_t numNodes, CopyIndexErrors& errors) {
+    const auto& nullChunk = chunk.getNullData();
     for (auto i = 0u; i < numNodes; i++) {
         if (nullChunk.isNull(i)) {
-            throw CopyException(ExceptionMessage::nullPKException());
+            // throw CopyException(ExceptionMessage::nullPKException());
+            // errors.addError(T key, common::nodeID_t offset)
+            TypeUtils::visit(
+                chunk.getDataType().getPhysicalType(),
+                [&](struct_entry_t) {
+                    // TODO handle
+                },
+                [&]<typename T>(T) {
+                    errors.addError(T{},
+                        nodeID_t{nodeOffset + i, sharedState->nodeTable->getTableID()});
+                });
         }
     }
 }

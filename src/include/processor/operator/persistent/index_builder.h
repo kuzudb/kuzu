@@ -141,7 +141,7 @@ class IndexBuilderSharedState {
 public:
     explicit IndexBuilderSharedState(transaction::Transaction* transaction,
         storage::NodeTable* nodeTable)
-        : globalQueues{transaction, nodeTable} {}
+        : globalQueues{transaction, nodeTable}, nodeTable(nodeTable) {}
     inline void consume(CopyIndexErrors& errors) { return globalQueues.consume(errors); }
 
     inline void addProducer() { producers.fetch_add(1, std::memory_order_relaxed); }
@@ -150,6 +150,7 @@ public:
 
 private:
     IndexBuilderGlobalQueues globalQueues;
+    storage::NodeTable* nodeTable;
 
     std::atomic<size_t> producers;
     std::atomic<bool> done;
@@ -195,7 +196,8 @@ public:
     void finalize(ExecutionContext* context, CopyIndexErrors& errors);
 
 private:
-    void checkNonNullConstraint(const storage::NullChunkData& nullChunk, common::offset_t numNodes);
+    void checkNonNullConstraint(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
+        common::offset_t numNodes, CopyIndexErrors& errors);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

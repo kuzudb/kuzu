@@ -4,5 +4,5 @@
 
 -CASE InvalidUTF8
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv"
----- error
-Copy exception: Invalid UTF8-encoded string.
+---- error(regex)
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8\.csv on line 1: Conversion exception: Invalid UTF8-encoded string\. Line containing the error: '.'

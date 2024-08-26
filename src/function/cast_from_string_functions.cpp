@@ -359,7 +359,7 @@ static inline void startListCast(const char* input, uint64_t len, T split, const
 static void validateNumElementsInArray(uint64_t numElementsRead, const LogicalType& type) {
     auto numElementsInArray = ArrayType::getNumElements(type);
     if (numElementsRead != numElementsInArray) {
-        throw CopyException(stringFormat(
+        throw ConversionException(stringFormat(
             "Each array should have fixed number of elements. Expected: {}, Actual: {}.",
             numElementsInArray, numElementsRead));
     }
@@ -781,7 +781,7 @@ static bool tryCastUnionField(ValueVector* vector, uint64_t rowToAdd, const char
     } break;
     case LogicalTypeID::STRING: {
         if (!utf8proc::Utf8Proc::isValid(input, len)) {
-            throw CopyException{"Invalid UTF8-encoded string."};
+            throw ConversionException{"Invalid UTF8-encoded string."};
         }
         StringVector::addString(vector, rowToAdd, input, len);
         return true;
@@ -941,7 +941,7 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
     } break;
     case LogicalTypeID::STRING: {
         if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
-            throw CopyException{"Invalid UTF8-encoded string."};
+            throw ConversionException{"Invalid UTF8-encoded string."};
         }
         StringVector::addString(vector, vectorPos, strVal.data(), strVal.length());
     } break;
