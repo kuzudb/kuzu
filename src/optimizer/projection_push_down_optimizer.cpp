@@ -233,6 +233,12 @@ void ProjectionPushDownOptimizer::visitCopyFrom(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitTableFunctionCall(LogicalOperator* op) {
     auto& tableFunctionCall = op->cast<LogicalTableFunctionCall>();
+    // We have an interesting problem here. By default, we scan from external sources, columns are
+    // bound as variables. So in projection push down, we check "variablesInUse".
+    // When try to execute cypher over external sources directly, TODO: fnish
+    if (tableFunctionCall.getBindData()->hasColumnSkips()) {
+        return;
+    }
     std::vector<bool> columnSkips;
     for (auto& column : tableFunctionCall.getColumns()) {
         columnSkips.push_back(!variablesInUse.contains(column));

@@ -46,12 +46,14 @@ struct RecursiveInfo {
 };
 
 struct RdfPredicateInfo {
-    std::vector<common::table_id_t> resourceTableIDs;
+    std::vector<catalog::TableCatalogEntry*> resourceEntries;
     std::shared_ptr<Expression> predicateID;
 
-    RdfPredicateInfo(std::vector<common::table_id_t> resourceTableIDs,
+    common::table_id_vector_t getResourceTableIDs() const;
+
+    RdfPredicateInfo(std::vector<catalog::TableCatalogEntry*> resourceEntries,
         std::shared_ptr<Expression> predicateID)
-        : resourceTableIDs{std::move(resourceTableIDs)}, predicateID{std::move(predicateID)} {}
+        : resourceEntries{std::move(resourceEntries)}, predicateID{std::move(predicateID)} {}
     DELETE_COPY_DEFAULT_MOVE(RdfPredicateInfo);
 };
 

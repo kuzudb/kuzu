@@ -17,6 +17,8 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "RDF_GRAPH_ENTRY";
     case CatalogEntryType::FOREIGN_TABLE_ENTRY:
         return "FOREIGN_TABLE_ENTRY";
+    case CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY:
+        return "EXTERNAL_NODE_TABLE_ENTRY";
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
         return "SCALAR_MACRO_ENTRY";
     case CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:

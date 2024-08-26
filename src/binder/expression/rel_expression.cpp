@@ -1,9 +1,19 @@
 #include "binder/expression/rel_expression.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
+
+common::table_id_vector_t RdfPredicateInfo::getResourceTableIDs() const {
+    common::table_id_vector_t tableIDs;
+    for (auto entry : resourceEntries) {
+        tableIDs.push_back(entry->getTableID());
+    }
+    return tableIDs;
+}
 
 std::string RelExpression::detailsToString() const {
     std::string result = toString();

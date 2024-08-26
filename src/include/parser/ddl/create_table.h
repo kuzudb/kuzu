@@ -7,11 +7,12 @@ namespace kuzu {
 namespace parser {
 
 class CreateTable final : public Statement {
-public:
-    explicit CreateTable(CreateTableInfo info)
-        : Statement{common::StatementType::CREATE_TABLE}, info{std::move(info)} {}
+    static constexpr common::StatementType statementType_ = common::StatementType::CREATE_TABLE;
 
-    inline const CreateTableInfo* getInfo() const { return &info; }
+public:
+    explicit CreateTable(CreateTableInfo info) : Statement{statementType_}, info{std::move(info)} {}
+
+    const CreateTableInfo& getInfo() const { return info; }
 
 private:
     CreateTableInfo info;

@@ -20,6 +20,7 @@ add_library(
         bind_transaction.cpp
         bind_updating_clause.cpp
         bind_extension.cpp
+        bind_external.cpp
         bind_export_database.cpp
         bind_import_database.cpp
         bind_use_database.cpp)

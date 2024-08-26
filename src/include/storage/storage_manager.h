@@ -29,18 +29,14 @@ public:
 
     void checkpoint(main::ClientContext& clientContext);
 
-    PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
-
-    Table* getTable(common::table_id_t tableID) {
-        std::lock_guard lck{mtx};
-        KU_ASSERT(tables.contains(tableID));
-        return tables.at(tableID).get();
-    }
+    Table* getTable(common::table_id_t tableID);
 
     WAL& getWAL() const;
     ShadowFile& getShadowFile() const;
+
     FileHandle* getDataFH() const { return dataFH; }
     FileHandle* getMetadataFH() const { return metadataFH; }
+
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }

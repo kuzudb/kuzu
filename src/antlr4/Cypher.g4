@@ -8,6 +8,7 @@ oC_Cypher
 oC_Statement
     : oC_Query
         | kU_CreateNodeTable
+        | kU_CreateExternalNodeTable
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
@@ -95,10 +96,13 @@ kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
+    : CREATE SP NODE SP TABLE SP ( kU_IfNotExists SP )? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_PrimaryKey ) SP? ')' ;
+
+kU_CreateExternalNodeTable
+    : CREATE SP EXTERNAL SP NODE SP TABLE SP oC_SchemaName SP AS SP oC_SchemaName kU_TableLookup SP? '(' SP? kU_PrimaryKey SP? ')' ;
 
 kU_CreateRelTable
-    : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP ( kU_IfNotExists SP )? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_CreateRelTableGroup
     : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
@@ -107,10 +111,10 @@ kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
 kU_CreateRdfGraph
-    : CREATE SP RDFGRAPH SP (kU_IfNotExists SP)? oC_SchemaName ;
+    : CREATE SP RDFGRAPH SP ( kU_IfNotExists SP )? oC_SchemaName ;
 
 kU_CreateSequence
-    : CREATE SP SEQUENCE SP (kU_IfNotExists SP)? oC_SchemaName (SP kU_SequenceOptions)* ;
+    : CREATE SP SEQUENCE SP ( kU_IfNotExists SP )? oC_SchemaName ( SP kU_SequenceOptions )* ;
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
@@ -170,7 +174,7 @@ kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefiniti
 
 kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ;
 
-kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
+kU_PrimaryKey : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
 DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
@@ -584,6 +588,9 @@ kU_CountSubquery
 
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName | STAR ) ;
+
+kU_TableLookup
+    : '.' SP? oC_SchemaName ;
 
 oC_CaseExpression
     :  ( ( CASE ( SP? oC_CaseAlternative )+ ) | ( CASE SP? oC_Expression ( SP? oC_CaseAlternative )+ ) ) ( SP? ELSE SP? oC_Expression )? SP? END ;

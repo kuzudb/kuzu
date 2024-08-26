@@ -41,6 +41,8 @@ public:
     SIPInfo& getSIPInfoUnsafe() { return sipInfo; }
     SIPInfo getSIPInfo() const { return sipInfo; }
 
+    void vectorizeProbe() { canVectorizeProbe_ = true; }
+
     std::unique_ptr<LogicalOperator> copy() override;
 
     // Flat probe side key group in either of the following two cases:
@@ -61,6 +63,7 @@ private:
     common::JoinType joinType;
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark or Left
     SIPInfo sipInfo;
+    bool canVectorizeProbe_ = false;
 };
 
 } // namespace planner

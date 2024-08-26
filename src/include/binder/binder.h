@@ -100,11 +100,12 @@ public:
         common::LogicalTypeID typeID);
 
     /*** bind DDL ***/
-    BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateExternalNodeTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo& info);
+    BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo& info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
@@ -287,6 +288,10 @@ public:
     // TODO(Xiyang): remove id based table binding logic.
     std::vector<catalog::TableCatalogEntry*> getTableEntries(
         const common::table_id_vector_t& tableIDs);
+
+    catalog::TableCatalogEntry* bindExternalTableEntry(const std::string& dbName,
+        const std::string& tableName);
+    void bindExternalTableEntry(NodeOrRelExpression& nodeOrRel);
 
     /*** validations ***/
     // E.g. ... RETURN a, b AS a

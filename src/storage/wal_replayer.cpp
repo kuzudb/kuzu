@@ -126,7 +126,7 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
 void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
     auto& createTableEntryRecord = walRecord.constCast<CreateTableEntryRecord>();
     KU_ASSERT(clientContext.getCatalog());
-    auto tableID = clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
+    auto tableID = clientContext.getCatalog()->createTableEntry(clientContext.getTx(),
         createTableEntryRecord.boundCreateTableInfo);
     KU_ASSERT(clientContext.getStorageManager());
     clientContext.getStorageManager()->createTable(tableID, clientContext.getCatalog(),

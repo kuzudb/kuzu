@@ -138,6 +138,7 @@ std::unique_ptr<LogicalOperator> LogicalHashJoin::copy() {
     auto op = std::make_unique<LogicalHashJoin>(joinConditions, joinType, mark, children[0]->copy(),
         children[1]->copy());
     op->sipInfo = sipInfo;
+    op->canVectorizeProbe_ = canVectorizeProbe_;
     return op;
 }
 
@@ -161,6 +162,10 @@ binder::expression_vector LogicalHashJoin::getJoinNodeIDs() const {
 }
 
 bool LogicalHashJoin::requireFlatProbeKeys() {
+    // Overwrite subsequent checks. This happens when we try to join
+    if (canVectorizeProbe_) {
+        return false;
+    }
     // Flatten for multiple join keys.
     if (joinConditions.size() > 1) {
         return true;

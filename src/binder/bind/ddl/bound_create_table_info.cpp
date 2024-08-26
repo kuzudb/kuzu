@@ -31,6 +31,7 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     deserializer.deserializeValue(hasParent);
     switch (type) {
     case TableType::NODE:
+    case TableType::EXTERNAL_NODE:
     case TableType::REL: {
         extraInfo = BoundExtraCreateTableInfo::deserialize(deserializer, type);
     } break;
@@ -62,6 +63,9 @@ std::unique_ptr<BoundExtraCreateTableInfo> BoundExtraCreateTableInfo::deserializ
     case TableType::NODE: {
         info = BoundExtraCreateNodeTableInfo::deserialize(deserializer);
     } break;
+    case TableType::EXTERNAL_NODE: {
+        info = BoundExtraCreateExternalNodeTableInfo::deserialize(deserializer);
+    } break;
     case TableType::REL: {
         info = BoundExtraCreateRelTableInfo::deserialize(deserializer);
     } break;
@@ -84,6 +88,27 @@ std::unique_ptr<BoundExtraCreateNodeTableInfo> BoundExtraCreateNodeTableInfo::de
     deserializer.deserializeValue(primaryKeyName);
     return std::make_unique<BoundExtraCreateNodeTableInfo>(primaryKeyName,
         std::vector<PropertyDefinition>());
+}
+
+void BoundExtraCreateExternalNodeTableInfo::serialize(Serializer& serializer) const {
+    BoundExtraCreateTableInfo::serialize(serializer);
+    serializer.serializeValue(primaryKeyName);
+    serializer.serializeValue(externalDBName);
+    serializer.serializeValue(externalTableName);
+    physicalInfo.serialize(serializer);
+}
+
+std::unique_ptr<BoundExtraCreateExternalNodeTableInfo>
+BoundExtraCreateExternalNodeTableInfo::deserialize(Deserializer& deserializer) {
+    std::string primaryKeyName;
+    std::string externalDBName;
+    std::string externalTableName;
+    deserializer.deserializeValue(primaryKeyName);
+    deserializer.deserializeValue(externalDBName);
+    deserializer.deserializeValue(externalTableName);
+    BoundCreateTableInfo physicalInfo = BoundCreateTableInfo::deserialize(deserializer);
+    return std::make_unique<BoundExtraCreateExternalNodeTableInfo>(primaryKeyName, externalDBName,
+        externalTableName, std::move(physicalInfo), std::vector<PropertyDefinition>());
 }
 
 void BoundExtraCreateRelTableInfo::serialize(Serializer& serializer) const {

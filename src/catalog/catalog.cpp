@@ -5,6 +5,7 @@
 #include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
+#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
@@ -188,11 +189,14 @@ table_id_set_t Catalog::getBwdRelTableIDs(Transaction* transaction, table_id_t n
     return result;
 }
 
-table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreateTableInfo& info) {
+table_id_t Catalog::createTableEntry(Transaction* transaction, const BoundCreateTableInfo& info) {
     std::unique_ptr<CatalogEntry> entry;
     switch (info.type) {
     case TableType::NODE: {
         entry = createNodeTableEntry(transaction, info);
+    } break;
+    case TableType::EXTERNAL_NODE: {
+        entry = createExternalNodeTableEntry(transaction, info);
     } break;
     case TableType::REL: {
         entry = createRelTableEntry(transaction, info);
@@ -234,11 +238,11 @@ void Catalog::dropTableEntry(Transaction* transaction, table_id_t tableID) {
         }
     } break;
     case CatalogEntryType::RDF_GRAPH_ENTRY: {
-        const auto rdfGraphSchema = tableEntry->ptrCast<RDFGraphCatalogEntry>();
-        dropTableEntry(transaction, rdfGraphSchema->getResourceTableID());
-        dropTableEntry(transaction, rdfGraphSchema->getLiteralTableID());
-        dropTableEntry(transaction, rdfGraphSchema->getResourceTripleTableID());
-        dropTableEntry(transaction, rdfGraphSchema->getLiteralTripleTableID());
+        const auto rdfGraphEntry = tableEntry->constPtrCast<RDFGraphCatalogEntry>();
+        dropTableEntry(transaction, rdfGraphEntry->getResourceTableID());
+        dropTableEntry(transaction, rdfGraphEntry->getLiteralTableID());
+        dropTableEntry(transaction, rdfGraphEntry->getResourceTripleTableID());
+        dropTableEntry(transaction, rdfGraphEntry->getLiteralTripleTableID());
     } break;
     default: {
         // DO NOTHING.
@@ -513,47 +517,54 @@ void Catalog::alterRdfChildTableEntries(Transaction* transaction, CatalogEntry* 
     tables->alterEntry(transaction, *literalTripleRenameInfo);
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*,
+std::unique_ptr<TableCatalogEntry> Catalog::createNodeTableEntry(Transaction*,
     const BoundCreateTableInfo& info) const {
     const auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>(tables.get(), info.tableName,
         extraInfo->primaryKeyName);
-    for (auto& definition : extraInfo->propertyDefinitions) {
-        nodeTableEntry->addProperty(definition);
-    }
+    nodeTableEntry->addProperties(extraInfo->propertyDefinitions);
     nodeTableEntry->setHasParent(info.hasParent);
     return nodeTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*,
+std::unique_ptr<TableCatalogEntry> Catalog::createExternalNodeTableEntry(Transaction* transaction,
+    const BoundCreateTableInfo& info) const {
+    auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateExternalNodeTableInfo>();
+    auto physicalEntry = createNodeTableEntry(transaction, extraInfo->physicalInfo);
+    auto entry = std::make_unique<ExternalNodeTableCatalogEntry>(tables.get(), info.tableName,
+        extraInfo->externalDBName, extraInfo->externalTableName, std::move(physicalEntry),
+        extraInfo->primaryKeyName);
+    entry->addProperties(extraInfo->propertyDefinitions);
+    return entry;
+}
+
+std::unique_ptr<TableCatalogEntry> Catalog::createRelTableEntry(Transaction*,
     const BoundCreateTableInfo& info) const {
     const auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
         extraInfo->dstTableID);
-    for (auto& definition : extraInfo->propertyDefinitions) {
-        relTableEntry->addProperty(definition);
-    }
+    relTableEntry->addProperties(extraInfo->propertyDefinitions);
     relTableEntry->setHasParent(info.hasParent);
     return relTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* transaction,
+std::unique_ptr<TableCatalogEntry> Catalog::createRelTableGroupEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
-    const auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
+    auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
     std::vector<table_id_t> relTableIDs;
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
         childInfo.hasParent = true;
-        relTableIDs.push_back(createTableSchema(transaction, childInfo));
+        relTableIDs.push_back(createTableEntry(transaction, childInfo));
     }
     return std::make_unique<RelGroupCatalogEntry>(tables.get(), info.tableName,
         std::move(relTableIDs));
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRdfGraphEntry(Transaction* transaction,
+std::unique_ptr<TableCatalogEntry> Catalog::createRdfGraphEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
-    const auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRdfGraphInfo>();
+    auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRdfGraphInfo>();
     auto& resourceInfo = extraInfo->resourceInfo;
     auto& literalInfo = extraInfo->literalInfo;
     auto& resourceTripleInfo = extraInfo->resourceTripleInfo;
@@ -567,17 +578,17 @@ std::unique_ptr<CatalogEntry> Catalog::createRdfGraphEntry(Transaction* transact
     const auto literalTripleExtraInfo =
         literalTripleInfo.extraInfo->ptrCast<BoundExtraCreateRelTableInfo>();
     // Resource table
-    auto resourceTableID = createTableSchema(transaction, resourceInfo);
+    auto resourceTableID = createTableEntry(transaction, resourceInfo);
     // Literal table
-    auto literalTableID = createTableSchema(transaction, literalInfo);
+    auto literalTableID = createTableEntry(transaction, literalInfo);
     // Resource triple table
     resourceTripleExtraInfo->srcTableID = resourceTableID;
     resourceTripleExtraInfo->dstTableID = resourceTableID;
-    auto resourceTripleTableID = createTableSchema(transaction, resourceTripleInfo);
+    auto resourceTripleTableID = createTableEntry(transaction, resourceTripleInfo);
     // Literal triple table
     literalTripleExtraInfo->srcTableID = resourceTableID;
     literalTripleExtraInfo->dstTableID = literalTableID;
-    auto literalTripleTableID = createTableSchema(transaction, literalTripleInfo);
+    auto literalTripleTableID = createTableEntry(transaction, literalTripleInfo);
     // Rdf graph entry
     auto rdfGraphName = info.tableName;
     return std::make_unique<RDFGraphCatalogEntry>(tables.get(), rdfGraphName, resourceTableID,

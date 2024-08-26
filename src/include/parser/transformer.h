@@ -200,6 +200,8 @@ private:
     std::unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformCreateNodeTable(
         CypherParser::KU_CreateNodeTableContext& ctx);
+    std::unique_ptr<Statement> transformCreateExternalNodeTable(
+        CypherParser::KU_CreateExternalNodeTableContext& ctx);
     std::unique_ptr<Statement> transformCreateRelTable(CypherParser::KU_CreateRelTableContext& ctx);
     std::unique_ptr<Statement> transformCreateRelTableGroup(
         CypherParser::KU_CreateRelTableGroupContext& ctx);
@@ -214,7 +216,7 @@ private:
     std::unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
-    std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
+    std::string transformPrimaryKey(CypherParser::KU_PrimaryKeyContext& ctx);
     std::vector<ParsedColumnDefinition> transformColumnDefinitions(
         CypherParser::KU_ColumnDefinitionsContext& ctx);
     ParsedColumnDefinition transformColumnDefinition(CypherParser::KU_ColumnDefinitionContext& ctx);

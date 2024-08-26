@@ -22,8 +22,9 @@ public:
 
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
     void initNodeIDDom(const binder::QueryGraph& queryGraph, transaction::Transaction* transaction);
+    void addNodeIDDom(const binder::NodeExpression& node);
     void addNodeIDDom(const binder::Expression& nodeID,
-        const std::vector<common::table_id_t>& tableIDs);
+        const std::vector<catalog::TableCatalogEntry*>& entries);
 
     uint64_t estimateScanNode(LogicalOperator* op);
     uint64_t estimateHashJoin(const binder::expression_vector& joinKeys,
@@ -38,20 +39,18 @@ public:
         const binder::NodeExpression& boundNode);
 
 private:
-    uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
-
-    uint64_t getNodeIDDom(const std::string& nodeIDName) {
+    common::offset_t getNodeIDDom(const std::string& nodeIDName) {
         KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
-    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs);
+    common::offset_t getNumNodes(const std::vector<catalog::TableCatalogEntry*>& entries);
 
-    uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs);
+    common::offset_t getNumRels(const std::vector<catalog::TableCatalogEntry*>& tableIDs);
 
 private:
     main::ClientContext* context;
     // The domain of nodeID is defined as the number of unique value of nodeID, i.e. num nodes.
-    std::unordered_map<std::string, uint64_t> nodeIDName2dom;
+    std::unordered_map<std::string, common::offset_t> nodeIDName2dom;
 };
 
 } // namespace planner

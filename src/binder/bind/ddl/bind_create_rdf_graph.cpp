@@ -12,8 +12,8 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {
-    auto rdfGraphName = info->tableName;
+BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo& info) {
+    auto rdfGraphName = info.tableName;
     // Resource table.
     auto resourceTableName = RDFGraphCatalogEntry::getResourceTableName(rdfGraphName);
     auto iriColumnDefinition = ColumnDefinition(std::string(rdf::IRI), LogicalType::STRING());
@@ -22,7 +22,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto resourceExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
         iriColumnDefinition.name, std::move(resourceProperties));
     auto resourceCreateInfo = BoundCreateTableInfo(TableType::NODE, resourceTableName,
-        info->onConflict, std::move(resourceExtraInfo));
+        info.onConflict, std::move(resourceExtraInfo));
     // Literal table.
     auto literalTableName = RDFGraphCatalogEntry::getLiteralTableName(rdfGraphName);
     auto literalIDColumnDefinition = ColumnDefinition(std::string(rdf::ID), LogicalType::SERIAL());
@@ -39,7 +39,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
         literalIDColumnDefinition.name, std::move(literalProperties));
     auto literalCreateInfo = BoundCreateTableInfo(TableType::NODE, literalTableName,
-        info->onConflict, std::move(literalExtraInfo));
+        info.onConflict, std::move(literalExtraInfo));
     // Resource triple table.
     auto resourceTripleTableName = RDFGraphCatalogEntry::getResourceTripleTableName(rdfGraphName);
     auto resourceTripleIDColumnDefinition =
@@ -52,7 +52,7 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto boundResourceTripleExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
         INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(resourceTripleProperties));
     auto boundResourceTripleCreateInfo = BoundCreateTableInfo(TableType::REL,
-        resourceTripleTableName, info->onConflict, std::move(boundResourceTripleExtraInfo));
+        resourceTripleTableName, info.onConflict, std::move(boundResourceTripleExtraInfo));
     // Literal triple table.
     auto literalTripleTableName = RDFGraphCatalogEntry::getLiteralTripleTableName(rdfGraphName);
     auto literalTripleIDColumnDefinition =
@@ -65,12 +65,12 @@ BoundCreateTableInfo Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info)
     auto boundLiteralTripleExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
         INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(literalTripleProperties));
     auto boundLiteralTripleCreateInfo = BoundCreateTableInfo(TableType::REL, literalTripleTableName,
-        info->onConflict, std::move(boundLiteralTripleExtraInfo));
+        info.onConflict, std::move(boundLiteralTripleExtraInfo));
     // Rdf table.
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRdfGraphInfo>(
         std::move(resourceCreateInfo), std::move(literalCreateInfo),
         std::move(boundResourceTripleCreateInfo), std::move(boundLiteralTripleCreateInfo));
-    return BoundCreateTableInfo(TableType::RDF, rdfGraphName, info->onConflict,
+    return BoundCreateTableInfo(TableType::RDF, rdfGraphName, info.onConflict,
         std::move(boundExtraInfo));
 }
 

@@ -2,6 +2,7 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
+#include "catalog/catalog_entry/external_node_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/catalog.h"
@@ -69,6 +70,9 @@ oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogE
         std::lock_guard lck{mtx};
         oid = nextOID++;
         entry->setOID(oid);
+        if (entry->getType() == CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY) {
+            entry->ptrCast<ExternalNodeTableCatalogEntry>()->getPhysicalEntry()->setOID(nextOID++);
+        }
         entryPtr = createEntryNoLock(transaction, std::move(entry));
     }
     KU_ASSERT(entryPtr);
@@ -174,6 +178,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         // LCOV_EXCL_STOP
         entry = getEntryNoLock(transaction, alterInfo.tableName);
         KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
+                  entry->getType() == CatalogEntryType::EXTERNAL_NODE_TABLE_ENTRY ||
                   entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
                   entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
                   entry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY);

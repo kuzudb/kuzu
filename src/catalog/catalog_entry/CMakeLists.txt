@@ -2,6 +2,8 @@ add_library(kuzu_catalog_entry
         OBJECT
         catalog_entry.cpp
         catalog_entry_type.cpp
+        external_node_table_catalog_entry.cpp
+        external_table_catalog_entry.cpp
         function_catalog_entry.cpp
         table_catalog_entry.cpp
         node_table_catalog_entry.cpp
