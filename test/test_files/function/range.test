@@ -7,7 +7,7 @@
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
 ---- ok
--STATEMENT CREATE ({AGE: 1, NAME: "Alice", NUMBER: 1})-[]-({AGE: 2, NAME: "Alice", NUMBER: 2});
+-STATEMENT CREATE ({AGE: 1, NAME: "Alice", NUMBER: 1})-[]->({AGE: 2, NAME: "Alice", NUMBER: 2});
 ---- ok
 -STATEMENT CREATE ({AGE: 0, NAME:"Alice", NUMBER:3});
 ---- ok

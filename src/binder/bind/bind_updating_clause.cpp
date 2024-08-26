@@ -64,7 +64,7 @@ static std::unordered_set<std::string> populatePatternsScope(const BinderScope& 
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     const UpdatingClause& updatingClause) {
-    auto& insertClause = (InsertClause&)updatingClause;
+    auto& insertClause = updatingClause.constCast<InsertClause>();
     auto patternsScope = populatePatternsScope(scope);
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(insertClause.getPatternElementsRef());
@@ -74,7 +74,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     const parser::UpdatingClause& updatingClause) {
-    auto& mergeClause = (MergeClause&)updatingClause;
+    auto& mergeClause = updatingClause.constCast<MergeClause>();
     auto patternsScope = populatePatternsScope(scope);
     // bindGraphPattern will update scope.
     auto boundGraphPattern = bindGraphPattern(mergeClause.getPatternElementsRef());
@@ -125,6 +125,11 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
+            if (rel->getDirectionType() == RelDirectionType::BOTH) {
+                throw BinderException(
+                    stringFormat("Create undirected relationship is not supported. Try create 2 "
+                                 "directed relationships instead."));
+            }
             if (rel->getVariableName().empty()) { // Always create anonymous rel.
                 bindInsertRel(rel, result);
                 continue;
