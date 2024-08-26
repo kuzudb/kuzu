@@ -114,7 +114,7 @@ def test_history_path(temp_db, history_path) -> None:
     # invalid path
     test = ShellTest().add_argument(temp_db).add_argument("-p").add_argument("///////")
     result = test.run()
-    result.check_stderr("Invalid path to directory for history file")
+    result.check_stderr(f"Invalid path: {history_path} to directory for history file")
 
     # valid path, file doesn't exist
     test = (
