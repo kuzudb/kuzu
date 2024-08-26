@@ -32,8 +32,8 @@ public:
     }
 
     template<std::floating_point T>
-    void commitUpdate(transaction::Transaction* transaction, ChunkState& state,
-        FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
+    void commitUpdate(transaction::Transaction* transaction, ChunkState& state, FileHandle* dataFH,
+        BufferManager* bufferManager, ShadowFile* shadowFile);
 
     template<std::floating_point T>
     void testCompressChunk(const std::vector<T>& bufferToCompress, check_func_t checkFunc);
