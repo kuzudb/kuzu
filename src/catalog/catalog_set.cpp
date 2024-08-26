@@ -219,7 +219,7 @@ void CatalogSet::iterateEntriesOfType(const Transaction* transaction, CatalogEnt
         }
         const auto currentEntry =
             traverseVersionChainsForTransactionNoLock(transaction, entry.get());
-        if (currentEntry->isDeleted()) {
+        if (currentEntry->getType() != type || currentEntry->isDeleted()) {
             continue;
         }
         func(currentEntry);
