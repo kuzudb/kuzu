@@ -370,30 +370,6 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     return startOffset;
 }
 
-<<<<<<< HEAD
-=======
-PageCursor Column::getPageCursorForOffsetInGroup(offset_t offsetInChunk, const ChunkState& state) {
-    auto pageCursor = PageUtils::getPageCursorForPos(offsetInChunk, state.numValuesPerPage);
-    pageCursor.pageIdx += state.metadata.pageIdx;
-    return pageCursor;
-}
-
-void Column::updatePageWithCursor(PageCursor cursor,
-    const std::function<void(uint8_t*, offset_t)>& writeOp) const {
-    bool insertingNewPage = false;
-    if (cursor.pageIdx == INVALID_PAGE_IDX) {
-        return writeOp(nullptr, cursor.elemPosInPage);
-    }
-    if (cursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        ShadowUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
-        insertingNewPage = true;
-    }
-    ShadowUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
-        [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
-}
-
->>>>>>> 92e0573f2 (rework BMFileHandle and FileHandle)
 bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
     offset_t maxOffset) const {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
@@ -491,7 +467,7 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    BMFileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
+    FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
     bool enableCompression) {
     return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, bufferManager,
         shadowFile, enableCompression);

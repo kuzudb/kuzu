@@ -1,6 +1,6 @@
 #include "storage/store/compression_flush_buffer.h"
 
-#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/file_handle.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu::storage {
@@ -8,7 +8,7 @@ using namespace common;
 using namespace transaction;
 
 ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
-    BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    FileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
     if (dataFH->isInMemoryMode()) {
         const auto frame = dataFH->getFrame(startPageIdx);
@@ -22,7 +22,7 @@ ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t buff
 }
 
 ColumnChunkMetadata CompressedFlushBuffer::operator()(const uint8_t* buffer,
-    uint64_t /*bufferSize*/, BMFileHandle* dataFH, common::page_idx_t startPageIdx,
+    uint64_t /*bufferSize*/, FileHandle* dataFH, common::page_idx_t startPageIdx,
     const ColumnChunkMetadata& metadata) const {
     auto valuesRemaining = metadata.numValues;
     const uint8_t* bufferStart = buffer;
@@ -77,7 +77,7 @@ namespace {
 template<std::floating_point T>
 std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const CompressionAlg& alg,
     PhysicalTypeID dataType, const uint8_t* buffer, [[maybe_unused]] uint64_t bufferSize,
-    BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    FileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     const auto& castedAlg = ku_dynamic_cast<const CompressionAlg&, const FloatCompression<T>&>(alg);
 
     const auto* floatMetadata = metadata.compMeta.floatMetadata();
@@ -140,7 +140,7 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
 
 template<std::floating_point T>
 void flushALPExceptions(const uint8_t* exceptionBuffer, uint64_t exceptionBufferSize,
-    BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    FileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     // we don't care about the min/max values for exceptions
     const auto preExceptionMetadata =
         uncompressedGetMetadata(exceptionBuffer, exceptionBufferSize, exceptionBufferSize,
@@ -171,7 +171,7 @@ CompressedFloatFlushBuffer<T>::CompressedFloatFlushBuffer(std::shared_ptr<Compre
 
 template<std::floating_point T>
 ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(const uint8_t* buffer,
-    uint64_t bufferSize, BMFileHandle* dataFH, common::page_idx_t startPageIdx,
+    uint64_t bufferSize, FileHandle* dataFH, common::page_idx_t startPageIdx,
     const ColumnChunkMetadata& metadata) const {
     if (metadata.compMeta.compression == CompressionType::UNCOMPRESSED) {
         return CompressedFlushBuffer{std::make_shared<Uncompressed>(dataType), dataType}.operator()(

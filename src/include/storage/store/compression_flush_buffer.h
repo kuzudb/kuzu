@@ -1,7 +1,7 @@
 #pragma once
 
-#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
+#include "storage/file_handle.h"
 #include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu::storage {
@@ -17,7 +17,7 @@ public:
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, BMFileHandle* dataFH,
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, FileHandle* dataFH,
         common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const;
 };
 
@@ -34,11 +34,11 @@ public:
 
     CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, BMFileHandle* dataFH,
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, FileHandle* dataFH,
         common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) const;
 };
 
 ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
-    BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
+    FileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
 
 } // namespace kuzu::storage
