@@ -3,10 +3,12 @@
 --
 
 -CASE ParallelSkipInvalidLoadFrom
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~") RETURN COUNT(*)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (HEADER=true, ESCAPE="~") RETURN COUNT(*)
 ---- 1
 6
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 4
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
 quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
@@ -14,17 +16,21 @@ expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-
 Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 
 -CASE ParallelSkipInvalidNodeTableRowsCastingErrorCheckNumTuples
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv"
 ---- 2
 5 tuples have been copied to the person table.
-2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 4
+2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
 
 -CASE ParallelSkipInvalidNodeTableRowsCastingError
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv"
 ---- 2
 5 tuples have been copied to the person table.
-2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 4
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 2
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
@@ -47,11 +53,13 @@ Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_RO
 7|1
 
 -CASE ParallelSkipInvalidNodeTableRowsMixed
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~")
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (HEADER=true, ESCAPE="~")
 ---- 2
 5 tuples have been copied to the movie table.
-5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 4
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 5
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
@@ -69,11 +77,13 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 -CASE ParallelSkipInvalidNodeTableRowsMixedLimitWarnings
 -STATEMENT CALL warning_limit=2
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~")
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (HEADER=true, ESCAPE="~")
 ---- 2
 5 tuples have been copied to the movie table.
-2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 2
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
@@ -88,29 +98,33 @@ neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/
 -CASE ParallelSkipInvalidNodeTableRowsMixedLimitWarningsMultipleQueries
 -STATEMENT CALL warning_limit=2
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv"
 ---- 2
 5 tuples have been copied to the person table.
-2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true)
+2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (ESCAPE="~", HEADER=true)
 ---- 2
 5 tuples have been copied to the movie table.
-2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 2
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
 
 -CASE ParallelSkipInvalidRelMixed
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (ESCAPE="~")
 ---- ok
--STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (ESCAPE="~", HEADER=true)
+---- ok
+-STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (ESCAPE="~")
 ---- 2
 3 tuples have been copied to the likes table.
-3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+3 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 10
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
@@ -130,9 +144,11 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 -CASE ParallelSkipInvalidNodeTableRowsMultipleFilesSomeEmptyHasHeaderMismatch
 -STATEMENT CALL threads=2
 ---- ok
--STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv"] (HEADER=false, IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv"] (HEADER=false, ESCAPE="~")
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 7
 Conversion exception: Cast failed. Could not convert "ID" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/emptyMovie.csv|1|ID...
 Conversion exception: Cast failed. Could not convert "ID" to INT16.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|1|ID...
@@ -152,9 +168,11 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 -CASE ParallelSkipInvalidNodeTableRowsMultipleFiles
 -STATEMENT CALL threads=2
 ---- ok
--STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, ESCAPE="~")
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 6
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
@@ -174,19 +192,23 @@ Conversion exception: Cast failed. Could not convert "1111111111111111111111111"
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv on line 2: Conversion exception: Cast failed. Could not convert "312abc" to INT32. Line containing the error: '0,312abc...'
 
 -CASE SerialSkipInvalidNodeTableRowsCastingErrorCheckNumTuples
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (PARALLEL=false)
 ---- 2
 5 tuples have been copied to the person table.
-2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 4
+2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
 
 -CASE ParallelCopyFromMultipleLargeFilesSkipInvalid
 -STATEMENT CALL threads=2
 ---- ok
 -STATEMENT CREATE NODE TABLE someTable(ID serial, A INT64, B INT64, PRIMARY KEY(ID))
 ---- ok
--STATEMENT COPY someTable FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person_1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person.csv"] (IGNORE_ERRORS=true, HEADER=true, DELIM="|")
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY someTable FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person_1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person.csv"] (HEADER=true, DELIM="|")
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 2
 Conversion exception: Cast failed. Could not convert "349583094854930859438504394" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person_1.csv|107756|349583094854930859438504394...
 Conversion exception: Cast failed. Could not convert "abc" to INT64.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/Comment_hasCreator_Person.csv|40561|137439055744|abc
@@ -195,9 +217,11 @@ Conversion exception: Cast failed. Could not convert "abc" to INT64.|${KUZU_ROOT
 151042
 
 -CASE SkipInvalidAtEOF
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv" (IGNORE_ERRORS=true)
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv"
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 1
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv|2|2,2147483650
 -STATEMENT MATCH (p:person) RETURN p.*
@@ -205,10 +229,12 @@ Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KU
 0|4
 
 -CASE SerialSkipInvalidLoadFrom
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", PARALLEL=false) RETURN COUNT(*)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (HEADER=true, ESCAPE="~", PARALLEL=false) RETURN COUNT(*)
 ---- 1
 6
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 4
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
 quote should be followed by end of file, end of value, end of row or another quote.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|6|6,67,"ab"...
@@ -216,17 +242,21 @@ expected 3 values per row, but got 2.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-
 unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|11|2,53,"movieC
 
 -CASE SkipInvalidLoadFrom2
--STATEMENT LOAD WITH HEADERS (ID INT16, gender INT32) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv" (IGNORE_ERRORS=true, HEADER=false) RETURN *
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT LOAD WITH HEADERS (ID INT16, gender INT32) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv" (HEADER=false) RETURN *
 ---- 1
 0|4
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 1
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPersonInvalidValueAtEOF.csv|2|2,2147483650
 
 -CASE SerialSkipInvalidNodeTableRowsCastingError
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, PARALLEL=false)
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (PARALLEL=false)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 2
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
@@ -249,11 +279,13 @@ Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_RO
 7|1
 
 -CASE SerialSkipInvalidNodeTableRowsMixed
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false, HEADER=true)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (ESCAPE="~", PARALLEL=false, HEADER=true)
 ---- 2
 5 tuples have been copied to the movie table.
-5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 4
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+5 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 5
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
@@ -271,11 +303,13 @@ unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row
 -CASE SerialSkipInvalidNodeTableRowsMixedLimitWarnings
 -STATEMENT CALL warning_limit=2
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", PARALLEL=false)
+-STATEMENT CALL ignore_copy_errors=true
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (HEADER=true, ESCAPE="~", PARALLEL=false)
 ---- 2
 5 tuples have been copied to the movie table.
-2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+2+ warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 2
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...
@@ -288,13 +322,15 @@ neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/
 9|98|vb12
 
 -CASE SerialSkipInvalidRelMixed
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, ESCAPE="~", HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (ESCAPE="~")
 ---- ok
--STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (ESCAPE="~", HEADER=true)
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY likes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv" (ESCAPE="~", PARALLEL=false)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 10
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
@@ -313,9 +349,11 @@ unterminated quotes.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row
 6|1|1|vbad
 
 -CASE SerialSkipInvalidNodeTableRowsMultipleFiles
--STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, IGNORE_ERRORS=true, ESCAPE="~", PARALLEL=false)
+-STATEMENT CALL ignore_copy_errors=true
 ---- ok
--STATEMENT CALL show_warnings() RETURN message, file_path, line_number, reconstructed_line
+-STATEMENT COPY movie FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie1.csv"] (HEADER=true, ESCAPE="~", PARALLEL=false)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 6
 Conversion exception: Cast failed. Could not convert "312abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|2|0,312abc...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv|4|4,1,"ab~c...

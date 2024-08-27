@@ -133,10 +133,9 @@ struct CopyConstants {
     static constexpr uint64_t PARALLEL_BLOCK_SIZE = INITIAL_BUFFER_SIZE / 2;
 
     static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL",
-        "IGNORE_ERRORS", "LIST_UNBRACED"};
+        "LIST_UNBRACED"};
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
     static constexpr bool DEFAULT_CSV_PARALLEL = true;
-    static constexpr bool DEFAULT_IGNORE_ERRORS = false;
 
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {"ESCAPE", "DELIM", "QUOTE"};
@@ -209,7 +208,7 @@ struct ImportDBConstants {
 struct WarningConstants {
     static constexpr uint64_t WARNING_TABLE_NUM_COLUMNS = 5;
     static constexpr std::array WARNING_TABLE_COLUMN_NAMES{"query_id", "message", "file_path",
-        "line_number", "reconstructed_line"};
+        "line_number", "skipped_line"};
     static constexpr std::array WARNING_TABLE_COLUMN_DATA_TYPES{LogicalTypeID::UINT64,
         LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING};
 

@@ -36,7 +36,7 @@ void IndexBuilderErrorHandler::flushStoredErrors() {
         populatedErrors.push_back({
             .message = errorMessages[i],
             .filePath = "",
-            .reconstructedLine = "",
+            .skippedLine = "",
             .lineNumber = 0,
         });
     }
