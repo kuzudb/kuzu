@@ -32,8 +32,9 @@ void AttachedKuzuDatabase::initCatalog(const std::string& path, ClientContext* c
 }
 
 static void validateEmptyWAL(const std::string& path, ClientContext* context) {
-    auto walFile = context->getVFSUnsafe()->openFile(
-        path + "/" + common::StorageConstants::WAL_FILE_SUFFIX, O_RDONLY, context);
+    auto walFile =
+        context->getVFSUnsafe()->openFile(path + "/" + common::StorageConstants::WAL_FILE_SUFFIX,
+            common::FileFlags::READ_ONLY, context);
     if (walFile->getFileSize() > 0) {
         throw common::RuntimeException(common::stringFormat(
             "Cannot attach an external Kùzu database with non-empty wal file. Try manually "

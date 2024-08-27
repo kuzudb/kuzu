@@ -32,11 +32,11 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{cli
     pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
 }
 
-void WALReplayer::replay() {
+void WALReplayer::replay() const {
     if (!clientContext.getVFSUnsafe()->fileOrPathExists(walFilePath, &clientContext)) {
         return;
     }
-    auto fileInfo = clientContext.getVFSUnsafe()->openFile(walFilePath, O_RDONLY);
+    auto fileInfo = clientContext.getVFSUnsafe()->openFile(walFilePath, FileFlags::READ_ONLY);
     const auto walFileSize = fileInfo->getFileSize();
     // Check if the wal file is empty or corrupted. so nothing to read.
     if (walFileSize == 0) {
@@ -66,7 +66,7 @@ void WALReplayer::replay() {
     }
 }
 
-void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
+void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     switch (walRecord.type) {
     case WALRecordType::BEGIN_TRANSACTION_RECORD: {
         clientContext.getTransactionContext()->beginRecoveryTransaction();
@@ -126,7 +126,7 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) {
 void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
     auto& createTableEntryRecord = walRecord.constCast<CreateTableEntryRecord>();
     KU_ASSERT(clientContext.getCatalog());
-    auto tableID = clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
+    const auto tableID = clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
         createTableEntryRecord.boundCreateTableInfo);
     KU_ASSERT(clientContext.getStorageManager());
     clientContext.getStorageManager()->createTable(tableID, clientContext.getCatalog(),

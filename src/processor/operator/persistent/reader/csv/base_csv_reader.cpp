@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
-#include <fcntl.h>
-
 #include <vector>
 
 #include "common/exception/copy.h"
@@ -20,9 +18,9 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption opti
     : option{std::move(option)}, numColumns{numColumns}, buffer{nullptr}, bufferSize{0},
       position{0}, osFileOffset{0}, rowEmpty{false}, context{context} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
-        O_RDONLY
+        FileFlags::READ_ONLY
 #ifdef _WIN32
-            | _O_BINARY
+            | FileFlags::BINARY
 #endif
         ,
         context);

@@ -36,6 +36,9 @@ src/antlr4/.antlr/
 # macOS
 .DS_Store
 
+# Dataset
+dataset/ldbc-1
+
 ### Node.js
 tools/nodejs_api/node_modules/
 tools/nodejs_api/cmake_install.cmake

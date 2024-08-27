@@ -71,7 +71,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     const auto metaFilePath =
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL);
     if (vfs->fileOrPathExists(metaFilePath, context)) {
-        auto metadataFileInfo = vfs->openFile(metaFilePath, O_RDONLY, context);
+        auto metadataFileInfo = vfs->openFile(metaFilePath, FileFlags::READ_ONLY, context);
         if (metadataFileInfo->getFileSize() > 0) {
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
@@ -215,7 +215,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     const auto metadataFileInfo = clientContext.getVFSUnsafe()->openFile(
         StorageUtils::getMetadataFName(clientContext.getVFSUnsafe(), databasePath,
             FileVersionType::WAL_VERSION),
-        O_RDWR | O_CREAT, &clientContext);
+        FileFlags::READ_ONLY | FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS, &clientContext);
     const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
     const auto nodeTableEntries =

@@ -1,5 +1,3 @@
-#include <fcntl.h>
-
 #include "common/constants.h"
 #include "graph_test/graph_test.h"
 
