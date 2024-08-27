@@ -167,7 +167,7 @@ public:
     void finalize(ExecutionContext* context, IndexBuilderErrorHandler& errors);
 
 private:
-    void checkNonNullConstraint(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
+    bool checkNonNullConstraint(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
         common::offset_t numNodes, IndexBuilderErrorHandler& errors);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 

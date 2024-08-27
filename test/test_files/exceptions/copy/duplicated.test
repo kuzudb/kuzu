@@ -24,6 +24,9 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 10|Guodong
 24|Semih
 31|Xiyang
+-STATEMENT CALL show_warnings() RETURN *
+---- 1
+3|Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.||0|
 
 -CASE DuplicateStringIDsIgnoreErrors
 -STATEMENT CALL ignore_copy_errors=true;
@@ -37,3 +40,6 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 10|Guodong
 24|Semih
 31|Xiyang
+-STATEMENT CALL show_warnings() RETURN *
+---- 1
+3|Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.||0|

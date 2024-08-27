@@ -94,31 +94,28 @@ void IndexBuilderSharedState::quitProducer() {
 
 void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes,
     IndexBuilderErrorHandler& errors) {
-    checkNonNullConstraint(chunk, nodeOffset, numNodes, errors);
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < numNodes; i++) {
-                auto value = chunk.getValue<T>(i);
-                localBuffers.insert(value, nodeOffset + i, errors);
+                if (checkNonNullConstraint(chunk, nodeOffset, i, errors)) {
+                    auto value = chunk.getValue<T>(i);
+                    localBuffers.insert(value, nodeOffset + i, errors);
+                }
             }
         },
         [&](ku_string_t) {
             auto& stringColumnChunk =
                 ku_dynamic_cast<const ColumnChunkData&, const StringChunkData&>(chunk);
             for (auto i = 0u; i < numNodes; i++) {
-                auto value = stringColumnChunk.getValue<std::string>(i);
-                localBuffers.insert(std::move(value), nodeOffset + i, errors);
+                if (checkNonNullConstraint(chunk, nodeOffset, i, errors)) {
+                    auto value = stringColumnChunk.getValue<std::string>(i);
+                    localBuffers.insert(std::move(value), nodeOffset + i, errors);
+                }
             }
         },
-        [&](struct_entry_t) {
-            // TODO handle
-        },
         [&]<typename T>(T) {
-            errors.handleOrStoreError<T>(
-                {.message = ExceptionMessage::invalidPKType(chunk.getDataType().toString()),
-                    .key = T{},
-                    .nodeID = nodeID_t{0, sharedState->nodeTable->getTableID()}});
+            throw CopyException(ExceptionMessage::invalidPKType(chunk.getDataType().toString()));
         });
 }
 
@@ -138,23 +135,25 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/, IndexBuilderErrorHand
     sharedState->consume(errors);
 }
 
-void IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk, offset_t nodeOffset,
-    offset_t numNodes, IndexBuilderErrorHandler& errors) {
+bool IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk, offset_t nodeOffset,
+    offset_t chunkOffset, IndexBuilderErrorHandler& errors) {
     const auto& nullChunk = chunk.getNullData();
-    for (auto i = 0u; i < numNodes; i++) {
-        if (nullChunk.isNull(i)) {
-            TypeUtils::visit(
-                chunk.getDataType().getPhysicalType(),
-                [&](struct_entry_t) {
-                    // TODO handle
-                },
-                [&]<typename T>(T) {
-                    errors.handleOrStoreError<T>({.message = ExceptionMessage::nullPKException(),
-                        .key = {},
-                        .nodeID = nodeID_t{nodeOffset + i, sharedState->nodeTable->getTableID()}});
-                });
-        }
+    if (nullChunk.isNull(chunkOffset)) {
+        TypeUtils::visit(
+            chunk.getDataType().getPhysicalType(),
+            [&](struct_entry_t) {
+                // primary key cannot be struct
+                KU_UNREACHABLE;
+            },
+            [&]<typename T>(T) {
+                errors.handleOrStoreError<T>({.message = ExceptionMessage::nullPKException(),
+                    .key = {},
+                    .nodeID =
+                        nodeID_t{nodeOffset + chunkOffset, sharedState->nodeTable->getTableID()}});
+            });
+        return false;
     }
+    return true;
 }
 
 } // namespace processor
