@@ -8,11 +8,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 IndexBuilderErrorHandler::IndexBuilderErrorHandler(ExecutionContext* context,
-    common::LogicalTypeID pkType, storage::NodeTable* nodeTable, uint64_t queryID)
+    common::LogicalTypeID pkType, storage::NodeTable* nodeTable, uint64_t queryID,
+    std::atomic<common::row_idx_t>* sharedDeletedRowCounter)
     : ignoreErrors(context->clientContext->getClientConfig()->ignoreCopyErrors),
       warningLimit(
           std::min(context->clientContext->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
-      context(context), pkType(pkType), nodeTable(nodeTable), queryID(queryID) {}
+      context(context), pkType(pkType), nodeTable(nodeTable), queryID(queryID),
+      sharedDeletedRowCounter(sharedDeletedRowCounter) {}
 
 void IndexBuilderErrorHandler::addNewVectors() {
     offsetVector.push_back(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
@@ -41,6 +43,7 @@ void IndexBuilderErrorHandler::flushStoredErrors() {
         });
     }
     context->appendWarningMessages(populatedErrors, queryID);
+    sharedDeletedRowCounter->fetch_add(getNumErrors());
 
     clearErrors();
 }

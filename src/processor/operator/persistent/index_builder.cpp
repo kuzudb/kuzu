@@ -114,7 +114,7 @@ void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, off
                 }
             }
         },
-        [&]<typename T>(T) {
+        [&](auto) {
             throw CopyException(ExceptionMessage::invalidPKType(chunk.getDataType().toString()));
         });
 }

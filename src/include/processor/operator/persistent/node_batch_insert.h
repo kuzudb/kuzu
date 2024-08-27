@@ -116,16 +116,16 @@ public:
     // written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
+        std::optional<IndexBuilder>& indexBuilder) const;
 
 private:
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder);
+        std::optional<IndexBuilder>& indexBuilder) const;
     void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         common::offset_t startIndexInGroup) const;
 
-    void copyToNodeGroup(transaction::Transaction* transaction);
+    void copyToNodeGroup(transaction::Transaction* transaction) const;
 };
 
 } // namespace processor

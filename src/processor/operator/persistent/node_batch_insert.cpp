@@ -62,8 +62,9 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder.value().clone();
 
         auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-        nodeLocalState->errorHandler = IndexBuilderErrorHandler{context,
-            nodeSharedState->pkType.getLogicalTypeID(), nodeTable, context->queryID};
+        nodeLocalState->errorHandler =
+            IndexBuilderErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(), nodeTable,
+                context->queryID, &nodeSharedState->numDeletedRows};
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 
@@ -124,7 +125,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     }
 }
 
-void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) {
+void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction) const {
     auto numAppendedTuples = 0ul;
     const auto nodeLocalState =
         ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
@@ -155,7 +156,7 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
 }
 
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
-    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) {
+    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) const {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeLocalState =
@@ -175,7 +176,8 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
 }
 
 void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transaction,
-    std::unique_ptr<ChunkedNodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder) {
+    std::unique_ptr<ChunkedNodeGroup> localNodeGroup,
+    std::optional<IndexBuilder>& indexBuilder) const {
     std::unique_lock xLck{sharedState->mtx};
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
@@ -215,10 +217,8 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
         localNodeState->errorHandler->flushStoredErrors();
     }
 
-    auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-        nodeTable->getNumRows() - nodeTable->getNumDeletedRows(context->clientContext->getTx()),
-        info->tableEntry->getName());
+        sharedState->getNumRows() - sharedState->getNumDeletedRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
 

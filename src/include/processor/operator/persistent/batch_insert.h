@@ -27,13 +27,14 @@ struct BatchInsertInfo {
 struct BatchInsertSharedState {
     std::mutex mtx;
     std::atomic<common::row_idx_t> numRows;
+    std::atomic<common::row_idx_t> numDeletedRows;
     storage::Table* table;
     std::shared_ptr<FactorizedTable> fTable;
     storage::WAL* wal;
 
     BatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
         storage::WAL* wal)
-        : numRows{0}, table{table}, fTable{std::move(fTable)}, wal{wal} {};
+        : numRows{0}, numDeletedRows(0), table{table}, fTable{std::move(fTable)}, wal{wal} {};
     BatchInsertSharedState(const BatchInsertSharedState& other) = delete;
 
     virtual ~BatchInsertSharedState() = default;
@@ -48,6 +49,7 @@ struct BatchInsertSharedState {
         numRows.fetch_add(numRowsToIncrement);
     }
     common::row_idx_t getNumRows() const { return numRows.load(); }
+    common::row_idx_t getNumDeletedRows() const { return numDeletedRows.load(); }
 };
 
 struct BatchInsertLocalState {

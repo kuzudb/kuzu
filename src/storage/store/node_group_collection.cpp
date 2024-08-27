@@ -146,15 +146,6 @@ row_idx_t NodeGroupCollection::getNumRows() {
     return numRows;
 }
 
-row_idx_t NodeGroupCollection::getNumDeletedRows(transaction::Transaction* transaction) {
-    const auto lock = nodeGroups.lock();
-    row_idx_t numDeletedRows = 0;
-    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        numDeletedRows += nodeGroup->getNumDeletedRows(transaction);
-    }
-    return numDeletedRows;
-}
-
 NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(node_group_idx_t groupIdx,
     NodeGroupDataFormat format) {
     const auto lock = nodeGroups.lock();

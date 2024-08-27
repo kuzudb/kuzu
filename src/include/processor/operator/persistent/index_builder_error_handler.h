@@ -20,7 +20,8 @@ struct IndexBuilderError {
 class IndexBuilderErrorHandler {
 public:
     IndexBuilderErrorHandler(ExecutionContext* context, common::LogicalTypeID pkType,
-        storage::NodeTable* nodeTable, uint64_t queryID);
+        storage::NodeTable* nodeTable, uint64_t queryID,
+        std::atomic<common::row_idx_t>* sharedDeletedRowCounter);
 
     template<typename T>
     void handleOrStoreError(IndexBuilderError<T> error) {
@@ -50,6 +51,7 @@ private:
     common::LogicalTypeID pkType;
     storage::NodeTable* nodeTable;
     uint64_t queryID;
+    std::atomic<common::row_idx_t>* sharedDeletedRowCounter;
 
     std::vector<std::shared_ptr<common::ValueVector>> keyVector;
     std::vector<std::shared_ptr<common::ValueVector>> offsetVector;

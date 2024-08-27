@@ -37,7 +37,7 @@ public:
         if (typedQueues[index].approxSize() < SHOULD_FLUSH_QUEUE_SIZE) {
             return;
         }
-        return maybeConsumeIndex(index, errors);
+        maybeConsumeIndex(index, errors);
     }
 
     void consume(IndexBuilderErrorHandler& errors);
