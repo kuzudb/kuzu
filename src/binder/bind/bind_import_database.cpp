@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_import_database.h"
-#include "common/cast.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
