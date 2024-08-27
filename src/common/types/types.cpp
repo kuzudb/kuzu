@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
+#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -700,7 +701,7 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
     } else if (context != nullptr) {
         type = context->getCatalog()->getType(context->getTx(), upperDataTypeString);
     } else {
-        throw "abc";
+        throw common::RuntimeException{"Invalid datatype string: " + str};
     }
     return type;
 }
