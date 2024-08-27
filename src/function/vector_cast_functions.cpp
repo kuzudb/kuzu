@@ -1265,18 +1265,19 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
     auto func = input.definition->ptrCast<ScalarFunction>();
     func->name = "CAST_TO_" + targetTypeStr;
     auto targetType = LogicalType::convertFromString(targetTypeStr, input.context);
-    // TODO(Ziyi): fix for json.
-    if (false) {
+    if (!LogicalType::isBuiltInType(targetTypeStr)) {
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {
-            func->execFunc = BuiltInFunctionsUtils::matchFunction(input.context->getTx(),
-                "CAST_TO_" + targetTypeStr, typeVec,
-                input.context->getCatalog()->getFunctions(input.context->getTx()))
-                                 ->constPtrCast<ScalarFunction>()
-                                 ->execFunc;
+            func->execFunc =
+                BuiltInFunctionsUtils::matchFunction(input.context->getTx(), func->name, typeVec,
+                    input.context->getCatalog()->getFunctions(input.context->getTx()))
+                    ->constPtrCast<ScalarFunction>()
+                    ->execFunc;
             return std::make_unique<function::CastFunctionBindData>(targetType.copy());
         } catch (...) { // NOLINT
+            // If there's no user defined casting function for the corresponding user defined type,
+            // we use the default casting function.
         }
     }
     if (targetType == input.arguments[0]->getDataType()) { // No need to cast.
@@ -1286,6 +1287,7 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         input.arguments[0]->cast(targetType);
         return nullptr;
     }
+    // TODO(Xiyang): Can we unify the binding of casting function with other scalar functions?
     func->execFunc =
         CastFunction::bindCastFunction(func->name, input.arguments[0]->getDataType(), targetType)
             ->execFunc;

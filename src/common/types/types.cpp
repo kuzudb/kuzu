@@ -634,14 +634,47 @@ std::string LogicalType::toString() const {
 
 static bool tryGetIDFromString(const std::string& trimmedStr, LogicalTypeID& id);
 static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
-static LogicalType parseListType(const std::string& trimmedStr, main::ClientContext* context);
-static LogicalType parseArrayType(const std::string& trimmedStr, main::ClientContext* context);
+static LogicalType parseListType(const std::string& trimmedStr,
+    main::ClientContext* context = nullptr);
+static LogicalType parseArrayType(const std::string& trimmedStr,
+    main::ClientContext* context = nullptr);
 static std::vector<StructField> parseStructTypeInfo(const std::string& structTypeStr,
     main::ClientContext* context);
-static LogicalType parseStructType(const std::string& trimmedStr, main::ClientContext* context);
-static LogicalType parseMapType(const std::string& trimmedStr, main::ClientContext* context);
-static LogicalType parseUnionType(const std::string& trimmedStr, main::ClientContext* context);
+static LogicalType parseStructType(const std::string& trimmedStr,
+    main::ClientContext* context = nullptr);
+static LogicalType parseMapType(const std::string& trimmedStr,
+    main::ClientContext* context = nullptr);
+static LogicalType parseUnionType(const std::string& trimmedStr,
+    main::ClientContext* context = nullptr);
 static LogicalType parseDecimalType(const std::string& trimmedStr);
+
+bool LogicalType::isBuiltInType(const std::string& str) {
+    auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
+    auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
+    LogicalTypeID id;
+    try {
+        if (upperDataTypeString.ends_with("[]")) {
+            parseListType(trimmedStr);
+        } else if (upperDataTypeString.ends_with("]")) {
+            parseArrayType(trimmedStr);
+        } else if (upperDataTypeString.starts_with("STRUCT")) {
+            parseStructType(trimmedStr);
+        } else if (upperDataTypeString.starts_with("MAP")) {
+            parseMapType(trimmedStr);
+        } else if (upperDataTypeString.starts_with("UNION")) {
+            parseUnionType(trimmedStr);
+        } else if (upperDataTypeString.starts_with("DECIMAL") ||
+                   upperDataTypeString.starts_with("NUMERIC")) {
+            parseDecimalType(trimmedStr);
+        } else if (upperDataTypeString != "RDF_VARIANT" &&
+                   !tryGetIDFromString(upperDataTypeString, id)) {
+            return false;
+        }
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
 
 LogicalType LogicalType::convertFromString(const std::string& str, main::ClientContext* context) {
     LogicalType type;
@@ -664,8 +697,10 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
         type = LogicalType::RDF_VARIANT();
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
-    } else {
+    } else if (context != nullptr) {
         type = context->getCatalog()->getType(context->getTx(), upperDataTypeString);
+    } else {
+        throw "abc";
     }
     return type;
 }
