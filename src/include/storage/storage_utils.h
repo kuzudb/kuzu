@@ -23,7 +23,7 @@ struct DBFileIDAndName {
 };
 
 struct PageCursor {
-    PageCursor(common::page_idx_t pageIdx, uint16_t posInPage)
+    PageCursor(common::page_idx_t pageIdx, uint32_t posInPage)
         : pageIdx{pageIdx}, elemPosInPage{posInPage} {};
     PageCursor() : PageCursor{UINT32_MAX, UINT16_MAX} {};
 

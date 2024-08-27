@@ -95,13 +95,6 @@ bool HashIndex<T>::checkpoint() {
 }
 
 template<typename T>
-void HashIndex<T>::prepareRollback() {
-    if (localStorage->hasUpdates()) {
-        // TODO(Guodong): This function should be removed.
-    }
-}
-
-template<typename T>
 bool HashIndex<T>::checkpointInMemory() {
     if (!localStorage->hasUpdates()) {
         return false;
@@ -495,8 +488,8 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         [&](auto) { KU_UNREACHABLE; });
 }
 
-bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t& result, visible_func isVisible) {
+bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uint64_t vectorPos,
+    offset_t& result, visible_func isVisible) {
     bool retVal = false;
     TypeUtils::visit(
         keyDataTypeID,
@@ -508,8 +501,8 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVec
     return retVal;
 }
 
-bool PrimaryKeyIndex::insert(const Transaction* transaction, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t value, visible_func isVisible) {
+bool PrimaryKeyIndex::insert(const Transaction* transaction, ValueVector* keyVector,
+    uint64_t vectorPos, offset_t value, visible_func isVisible) {
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,

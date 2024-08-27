@@ -40,7 +40,6 @@ struct PageStorageInfo {
 
     uint64_t alignedElementSize;
     uint64_t numElementsPerPage;
-    uint64_t elementPageOffsetMask;
 };
 
 struct PIP {
@@ -52,7 +51,7 @@ struct PIP {
 static_assert(sizeof(PIP) == common::BufferPoolConstants::PAGE_4KB_SIZE);
 
 struct PIPWrapper {
-    PIPWrapper(FileHandle& fileHandle, common::page_idx_t pipPageIdx);
+    PIPWrapper(const FileHandle& fileHandle, common::page_idx_t pipPageIdx);
 
     explicit PIPWrapper(common::page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
 
@@ -354,7 +353,7 @@ public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
     // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
     // memory and not on disk (nor on the wal).
-    uint8_t* operator[](uint64_t idx);
+    uint8_t* operator[](uint64_t idx) const;
 
     uint64_t getMemUsage() const {
         return inMemArrayPages.size() * common::BufferPoolConstants::PAGE_4KB_SIZE;
