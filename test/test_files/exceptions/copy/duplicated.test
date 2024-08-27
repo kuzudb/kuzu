@@ -11,3 +11,29 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 -STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+
+-CASE DuplicateIntIDsIgnoreErrors
+-STATEMENT CALL ignore_copy_errors=true;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv"
+---- 2
+3 tuples have been copied to the person table.
+1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
+-STATEMENT MATCH (p:person) RETURN p.*
+---- 3
+10|Guodong
+24|Semih
+31|Xiyang
+
+-CASE DuplicateStringIDsIgnoreErrors
+-STATEMENT CALL ignore_copy_errors=true;
+---- ok
+-STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"
+---- 2
+3 tuples have been copied to the org table.
+1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
+-STATEMENT MATCH (o:org) RETURN o.*
+---- 3
+10|Guodong
+24|Semih
+31|Xiyang

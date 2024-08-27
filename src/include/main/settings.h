@@ -20,6 +20,18 @@ struct ThreadsSetting {
     }
 };
 
+struct IgnoreCopyErrorsSetting {
+    static constexpr auto name = "ignore_copy_errors";
+    static constexpr auto inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->ignoreCopyErrors = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value(context->getClientConfig()->ignoreCopyErrors);
+    }
+};
+
 struct WarningLimitSetting {
     static constexpr auto name = "warning_limit";
     static constexpr auto inputType = common::LogicalTypeID::INT64;

@@ -97,6 +97,9 @@ public:
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     common::row_idx_t getNumRows() override { return nodeGroups->getNumRows(); }
+    common::row_idx_t getNumDeletedRows(transaction::Transaction* transaction) {
+        return nodeGroups->getNumDeletedRows(transaction);
+    }
 
     void initializeScanState(transaction::Transaction* transaction,
         TableScanState& scanState) override;

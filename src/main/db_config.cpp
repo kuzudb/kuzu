@@ -14,11 +14,12 @@ namespace main {
 
 static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(ThreadsSetting), GET_CONFIGURATION(TimeoutSetting),
-    GET_CONFIGURATION(WarningLimitSetting), GET_CONFIGURATION(VarLengthExtendMaxDepthSetting),
-    GET_CONFIGURATION(EnableSemiMaskSetting), GET_CONFIGURATION(DisableMapKeyCheck),
-    GET_CONFIGURATION(EnableZoneMapSetting), GET_CONFIGURATION(HomeDirectorySetting),
-    GET_CONFIGURATION(FileSearchPathSetting), GET_CONFIGURATION(ProgressBarSetting),
-    GET_CONFIGURATION(ProgressBarTimerSetting), GET_CONFIGURATION(RecursivePatternSemanticSetting),
+    GET_CONFIGURATION(IgnoreCopyErrorsSetting), GET_CONFIGURATION(WarningLimitSetting),
+    GET_CONFIGURATION(VarLengthExtendMaxDepthSetting), GET_CONFIGURATION(EnableSemiMaskSetting),
+    GET_CONFIGURATION(DisableMapKeyCheck), GET_CONFIGURATION(EnableZoneMapSetting),
+    GET_CONFIGURATION(HomeDirectorySetting), GET_CONFIGURATION(FileSearchPathSetting),
+    GET_CONFIGURATION(ProgressBarSetting), GET_CONFIGURATION(ProgressBarTimerSetting),
+    GET_CONFIGURATION(RecursivePatternSemanticSetting),
     GET_CONFIGURATION(RecursivePatternFactorSetting), GET_CONFIGURATION(EnableMVCCSetting),
     GET_CONFIGURATION(CheckpointThresholdSetting), GET_CONFIGURATION(AutoCheckpointSetting),
     GET_CONFIGURATION(ForceCheckpointClosingDBSetting)};

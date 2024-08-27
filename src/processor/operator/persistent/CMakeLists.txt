@@ -4,7 +4,7 @@ add_subdirectory(writer/parquet)
 add_library(kuzu_processor_operator_persistent
         OBJECT
         node_batch_insert.cpp
-        copy_error_handler.cpp
+        index_builder_error_handler.cpp
         copy_rdf.cpp
         rel_batch_insert.cpp
         copy_to.cpp

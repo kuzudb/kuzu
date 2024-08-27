@@ -50,7 +50,8 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index, IndexBuilderError
                     nodeTable->appendPKWithIndexPos(transaction, buffer, index);
                 if (numValuesInserted < buffer.size()) {
                     errors.handleOrStoreError<T>(
-                        {.message = TypeUtils::toString(buffer[numValuesInserted].first),
+                        {.message = ExceptionMessage::duplicatePKException(
+                             TypeUtils::toString(buffer[numValuesInserted].first)),
                             .key = buffer[numValuesInserted].first,
                             .nodeID = nodeID_t{
                                 buffer[numValuesInserted].second,

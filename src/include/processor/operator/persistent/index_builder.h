@@ -9,7 +9,7 @@
 #include "common/types/int128_t.h"
 #include "common/types/types.h"
 #include "processor/execution_context.h"
-#include "processor/operator/persistent/copy_error_handler.h"
+#include "processor/operator/persistent/index_builder_error_handler.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/store/column_chunk_data.h"

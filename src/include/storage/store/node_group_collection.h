@@ -26,6 +26,7 @@ public:
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     common::row_idx_t getNumRows();
+    common::row_idx_t getNumDeletedRows(transaction::Transaction* transaction);
     common::node_group_idx_t getNumNodeGroups() {
         const auto lock = nodeGroups.lock();
         return nodeGroups.getNumGroups(lock);

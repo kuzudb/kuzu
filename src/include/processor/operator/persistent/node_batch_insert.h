@@ -79,14 +79,12 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 };
 
 struct NodeBatchInsertLocalState final : BatchInsertLocalState {
-    IndexBuilderErrorHandler errorHandler;
+    std::optional<IndexBuilderErrorHandler> errorHandler;
 
     std::optional<IndexBuilder> localIndexBuilder;
 
     std::shared_ptr<common::DataChunkState> columnState;
     std::vector<common::ValueVector*> columnVectors;
-
-    NodeBatchInsertLocalState(main::ClientContext* clientContext, common::LogicalTypeID pkType);
 };
 
 class NodeBatchInsert final : public BatchInsert {
@@ -128,8 +126,6 @@ private:
         common::offset_t startIndexInGroup) const;
 
     void copyToNodeGroup(transaction::Transaction* transaction);
-    void handleIndexErrors(transaction::Transaction* transaction,
-        IndexBuilderErrorHandler& indexErrors);
 };
 
 } // namespace processor
