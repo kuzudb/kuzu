@@ -49,7 +49,15 @@ bool ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     return true;
 }
 
-bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount) {
+template<typename T>
+static void updateExtraDataInChunk(DataChunk& chunk, uint64_t rowNum,
+    WarningDataWithColumnInfo::EntryWithColumnIdx<T> extraData) {
+    KU_ASSERT(extraData.second < chunk.getNumValueVectors());
+    chunk.getValueVector(extraData.second)->setValue(rowNum, extraData.first);
+}
+
+bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
+    std::optional<WarningDataWithColumnInfo> extraData) {
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;
@@ -63,6 +71,14 @@ bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount)
         reader->handleCopyException(stringFormat("expected {} values per row, but got {}.",
             reader->getNumColumns(), columnCount));
         return false;
+    }
+
+    if (extraData.has_value()) {
+        updateExtraDataInChunk(chunk, rowNum, extraData->startByteOffset);
+        updateExtraDataInChunk(chunk, rowNum, extraData->endByteOffset);
+        updateExtraDataInChunk(chunk, rowNum, extraData->fileIdx);
+        updateExtraDataInChunk(chunk, rowNum, extraData->blockIdx);
+        updateExtraDataInChunk(chunk, rowNum, extraData->rowOffsetInBlock);
     }
     return true;
 }

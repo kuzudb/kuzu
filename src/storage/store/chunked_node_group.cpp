@@ -51,6 +51,25 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& memoryManager,
     }
 }
 
+void ChunkedNodeGroup::merge(ChunkedNodeGroup& base,
+    const std::vector<common::column_id_t>& columnsToMergeInto) {
+    KU_ASSERT(base.getNumColumns() == columnsToMergeInto.size());
+    for (idx_t i = 0; i < base.getNumColumns(); ++i) {
+        KU_ASSERT(columnsToMergeInto[i] < chunks.size());
+        chunks[columnsToMergeInto[i]] = base.moveColumnChunk(i);
+    }
+}
+
+std::vector<ColumnChunk*> ChunkedNodeGroup::getSlice(
+    const std::vector<common::column_id_t>& columns) const {
+    std::vector<ColumnChunk*> ret;
+    for (auto columnId : columns) {
+        KU_ASSERT(columnId < chunks.size());
+        ret.push_back(chunks[columnId].get());
+    }
+    return ret;
+}
+
 void ChunkedNodeGroup::resetToEmpty() {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     numRows = 0;

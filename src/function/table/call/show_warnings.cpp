@@ -48,7 +48,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<LogicalType> columnTypes{WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.end()};
     std::vector<processor::WarningInfo> warningInfos;
-    for (const auto& warning : context->getWarningContext().warnings) {
+    for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {
         warningInfos.emplace_back(warning);
     }
     return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), std::move(columnTypes),

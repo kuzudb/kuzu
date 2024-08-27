@@ -41,19 +41,28 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
+    std::vector<common::column_id_t> outputDataColumns;
+    std::vector<common::column_id_t> extraDataColumns;
+
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
-        std::vector<common::ColumnEvaluateType> evaluateTypes, bool ignoreErrors)
+        std::vector<common::ColumnEvaluateType> evaluateTypes, bool ignoreErrors,
+        common::column_id_t numExtraDataColumns)
         : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors},
           columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
-          evaluateTypes{std::move(evaluateTypes)} {}
+          evaluateTypes{std::move(evaluateTypes)},
+          outputDataColumns(this->columnTypes.size() - numExtraDataColumns),
+          extraDataColumns(numExtraDataColumns) {
+        std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
+        std::iota(extraDataColumns.begin(), extraDataColumns.end(), outputDataColumns.size());
+    }
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{cloneVector(other.columnEvaluators)},
-          evaluateTypes{other.evaluateTypes} {}
+          columnEvaluators{cloneVector(other.columnEvaluators)}, evaluateTypes{other.evaluateTypes},
+          outputDataColumns(other.outputDataColumns), extraDataColumns(other.extraDataColumns) {}
 
     std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);
@@ -68,6 +77,8 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 
     TableFunctionCallSharedState* readerSharedState;
     HashAggregateSharedState* distinctSharedState;
+
+    std::vector<common::column_id_t> mainDataColumns;
 
     // The sharedNodeGroup is to accumulate left data within local node groups in NodeBatchInsert
     // ops.
@@ -110,6 +121,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
+    void finalize(ExecutionContext* context) override;
     void finalizeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {

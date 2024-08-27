@@ -5,6 +5,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "function/table/bind_data.h"
+#include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
@@ -721,11 +722,19 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(totalReadSize) / state->totalRowsGroups;
 }
 
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
+    TableFuncLocalState*) {
+    auto state = ku_dynamic_cast<TableFuncSharedState*, ParquetScanSharedState*>(sharedState);
+    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
+        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
+    }
+}
+
 function_set ParquetScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
 }
 

@@ -21,19 +21,19 @@ Copy exception: Found NULL, which violates the non-null constraint of the primar
 ---- 2
 alice
 bob
--STATEMENT CALL show_warnings() RETURN query_id, message
+-STATEMENT CALL show_warnings() RETURN query_id, message, file_path, skipped_line, line_number
 ---- 1
-3|Found NULL, which violates the non-null constraint of the primary key column.
+3|Found NULL, which violates the non-null constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv||2
 
 -CASE NullPrimaryKeyInMultiNodeFilesIgnoreErrors
 -STATEMENT COPY person FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson2.csv"](IGNORE_ERRORS=true)
 ---- 2
 5 tuples have been copied to the person table.
 2 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
--STATEMENT CALL show_warnings() RETURN query_id, message
+-STATEMENT CALL show_warnings() RETURN query_id, message, file_path, skipped_line, line_number
 ---- 2
-3|Found NULL, which violates the non-null constraint of the primary key column.
-3|Found NULL, which violates the non-null constraint of the primary key column.
+3|Found NULL, which violates the non-null constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv||2
+3|Found NULL, which violates the non-null constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson2.csv||3
 
 -CASE NullPrimaryKeyInMultiNodeFilesIgnoreErrorsWarningLimit
 -STATEMENT CALL warning_limit=1;

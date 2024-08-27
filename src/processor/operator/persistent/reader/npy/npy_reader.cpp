@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 
 #include "common/exception/binder.h"
+#include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 
 #ifdef _WIN32
@@ -295,7 +296,7 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::ScanTableFuncBindInput* scanInput) {
-    if (scanInput->config.options.size() >= 1 ||
+    if (scanInput->config.options.size() > 1 ||
         (scanInput->config.options.size() == 1 &&
             !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
         throw BinderException{"Copy from numpy cannot have options other than IGNORE_ERRORS."};
@@ -328,6 +329,14 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }
 
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
+    TableFuncLocalState*) {
+    auto state = ku_dynamic_cast<TableFuncSharedState*, NpyScanSharedState*>(sharedState);
+    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
+        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
+    }
+}
+
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(
     function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
     storage::MemoryManager* /*mm*/) {
@@ -336,8 +345,9 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
 
 function_set NpyScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
+            std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
 }
 

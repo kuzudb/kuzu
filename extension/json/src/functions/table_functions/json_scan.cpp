@@ -8,6 +8,8 @@
 #include "common/string_utils.h"
 #include "function/table/scan_functions.h"
 #include "json_utils.h"
+#include "processor/execution_context.h"
+#include "processor/warning_context.h"
 #include "reader/buffered_json_reader.h"
 
 namespace kuzu {
@@ -674,9 +676,15 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
     return 0;
 }
 
+static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*,
+    TableFuncLocalState*) {
+    ctx->clientContext->getWarningContextUnsafe().populateWarnings(0, ctx->queryID);
+}
+
 std::unique_ptr<TableFunction> JsonScan::getFunction() {
-    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
-        initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto func =
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
+            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc);
     return func;
 }
 

@@ -47,7 +47,8 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         KU_UNREACHABLE;
     }
     // Init table function input.
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(),
+        info.numExtraDataColumns};
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
@@ -55,7 +56,8 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 }
 
 void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(),
+        info.numExtraDataColumns};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
 }
 
@@ -71,11 +73,15 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
 }
 
 void TableFunctionCall::finalizeInternal(ExecutionContext* context) {
-    info.function.finalizeFunc(context, sharedState->funcState.get());
+    info.function.finalizeFunc(context, sharedState->funcState.get(), localState.funcState.get());
 }
 
 double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {
     return info.function.progressFunc(sharedState->funcState.get());
+}
+
+common::column_id_t TableFunctionCall::getNumExtraDataColumns() const {
+    return info.numExtraDataColumns;
 }
 
 } // namespace processor

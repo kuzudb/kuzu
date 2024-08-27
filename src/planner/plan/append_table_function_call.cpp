@@ -15,7 +15,7 @@ void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info, Logi
 void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info,
     std::shared_ptr<Expression> offset, LogicalPlan& plan) {
     auto call = std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(),
-        info.columns, offset);
+        info.columns, offset, info.numExtraDataColumns);
     call->computeFactorizedSchema();
     plan.setLastOperator(std::move(call));
 }
@@ -23,7 +23,7 @@ void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info,
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
     const binder::BoundTableScanSourceInfo& info) {
     return std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(),
-        info.columns, nullptr /* offset */);
+        info.columns, nullptr /* offset */, info.numExtraDataColumns);
 }
 
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(

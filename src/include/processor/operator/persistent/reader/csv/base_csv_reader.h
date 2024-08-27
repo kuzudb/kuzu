@@ -21,14 +21,18 @@ namespace processor {
 struct CSVColumnInfo {
     uint64_t numColumns;
     std::vector<bool> columnSkips;
+    common::column_id_t numExtraDataColumns;
 
-    CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips)
-        : numColumns{numColumns}, columnSkips{columnSkips} {}
+    CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips,
+        common::column_id_t numExtraDataColumns)
+        : numColumns{numColumns}, columnSkips{columnSkips},
+          numExtraDataColumns(numExtraDataColumns) {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVColumnInfo);
 
 private:
     CSVColumnInfo(const CSVColumnInfo& other)
-        : numColumns{other.numColumns}, columnSkips{other.columnSkips} {}
+        : numColumns{other.numColumns}, columnSkips{other.columnSkips},
+          numExtraDataColumns(other.numExtraDataColumns) {}
 };
 
 class BaseCSVReader {
@@ -36,8 +40,9 @@ class BaseCSVReader {
     friend class SniffCSVNameAndTypeDriver;
 
 public:
-    BaseCSVReader(const std::string& filePath, common::CSVOption option, CSVColumnInfo columnInfo,
-        main::ClientContext* context, CSVFileErrorHandler* errorHandler);
+    BaseCSVReader(const std::string& filePath, uint64_t fileIdx, common::CSVOption option,
+        CSVColumnInfo columnInfo, main::ClientContext* context,
+        LocalCSVFileErrorHandler* errorHandler);
 
     virtual ~BaseCSVReader() = default;
 
@@ -98,6 +103,8 @@ protected:
     void increaseNumRowsInCurrentBlock(uint64_t numRows);
     uint64_t getNumRowsInCurrentBlock() const;
 
+    WarningSourceData getWarningSourceData() const;
+
 protected:
     main::ClientContext* context;
     common::CSVOption option;
@@ -116,8 +123,9 @@ protected:
     uint64_t position;
     LineContext lineContext;
     uint64_t osFileOffset;
+    uint64_t fileIdx;
 
-    CSVFileErrorHandler* errorHandler;
+    LocalCSVFileErrorHandler* errorHandler;
 
     bool rowEmpty = false;
 };

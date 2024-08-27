@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 
 #include "function/table/bind_input.h"
+#include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/rdf/rdf_utils.h"
 
 using namespace kuzu::common;
@@ -235,10 +236,23 @@ static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* share
     return static_cast<double>(rdfSharedState->rtCursor + rdfSharedState->ltCursor) / size;
 }
 
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
+    TableFuncLocalState*) {
+    auto state = ku_dynamic_cast<TableFuncSharedState*, RdfScanSharedState*>(sharedState);
+    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
+        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
+    }
+}
+
+static void finalizeFuncInMem(ExecutionContext* ctx, TableFuncSharedState*, TableFuncLocalState*) {
+    // file idx doesn't apply here
+    ctx->clientContext->getWarningContextUnsafe().populateWarnings(0, ctx->queryID);
+}
+
 function_set RdfResourceScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
-        RdfResourceScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+        RdfResourceScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{}, finalizeFunc);
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -246,7 +260,7 @@ function_set RdfResourceScan::getFunctionSet() {
 function_set RdfLiteralScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
-        RdfLiteralScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+        RdfLiteralScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{}, finalizeFunc);
     func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -255,7 +269,8 @@ function_set RdfLiteralScan::getFunctionSet() {
 function_set RdfResourceTripleScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
-        RdfResourceTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+        RdfResourceTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{},
+        finalizeFunc);
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -263,16 +278,17 @@ function_set RdfResourceTripleScan::getFunctionSet() {
 function_set RdfLiteralTripleScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, scanTableFunc, nullptr,
-        RdfLiteralTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+        RdfLiteralTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{},
+        finalizeFunc);
     functionSet.push_back(std::move(func));
     return functionSet;
 }
 
 function::function_set RdfAllTripleScan::getFunctionSet() {
     function_set functionSet;
-    auto func =
-        std::make_unique<TableFunction>(name, RdfAllTripleScanTableFunc, RdfAllTripleScanBindFunc,
-            RdfAllTripleScanInitSharedState, initLocalState, std::vector<LogicalTypeID>{});
+    auto func = std::make_unique<TableFunction>(name, RdfAllTripleScanTableFunc,
+        RdfAllTripleScanBindFunc, RdfAllTripleScanInitSharedState, initLocalState,
+        std::vector<LogicalTypeID>{}, finalizeFunc);
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -281,7 +297,7 @@ function_set RdfResourceInMemScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, RdfResourceInMemScanTableFunc, nullptr,
         inMemScanInitSharedState, initLocalState, RdfResourceInMemScanProgressFunc,
-        std::vector<LogicalTypeID>{});
+        std::vector<LogicalTypeID>{}, finalizeFuncInMem);
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -290,7 +306,7 @@ function_set RdfLiteralInMemScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, RdfLiteralInMemScanTableFunc, nullptr,
         inMemScanInitSharedState, initLocalState, RdfLiteralInMemScanProgressFunc,
-        std::vector<LogicalTypeID>{});
+        std::vector<LogicalTypeID>{}, finalizeFuncInMem);
     func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
@@ -300,7 +316,7 @@ function_set RdfResourceTripleInMemScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, RdfResourceTripleInMemScanTableFunc, nullptr,
         inMemScanInitSharedState, initLocalState, RdfResourceTripleInMemScanProgressFunc,
-        std::vector<LogicalTypeID>{});
+        std::vector<LogicalTypeID>{}, finalizeFuncInMem);
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -309,7 +325,7 @@ function_set RdfLiteralTripleInMemScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, RdfLiteralTripleInMemScanTableFunc, nullptr,
         inMemScanInitSharedState, initLocalState, RdfLiteralInMemScanProgressFunc,
-        std::vector<LogicalTypeID>{});
+        std::vector<LogicalTypeID>{}, finalizeFuncInMem);
     functionSet.push_back(std::move(func));
     return functionSet;
 }

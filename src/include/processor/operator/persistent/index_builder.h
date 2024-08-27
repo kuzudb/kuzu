@@ -25,14 +25,21 @@ namespace processor {
 
 const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
+constexpr size_t BUFFER_SIZE = 64;
+using OptionalExtraDataBuffer = std::optional<common::StaticVector<WarningSourceData, BUFFER_SIZE>>;
+
+using OptionalWarningSourceData = std::optional<WarningSourceData>;
+
 class IndexBuilderGlobalQueues {
 public:
     explicit IndexBuilderGlobalQueues(transaction::Transaction* transaction,
         storage::NodeTable* nodeTable);
 
     template<typename T>
-    void insert(size_t index, storage::IndexBuffer<T> elem,
+    void insert(size_t index, storage::IndexBuffer<T> elem, OptionalExtraDataBuffer extraData,
         NodeBatchInsertErrorHandler& errorHandler) {
+        auto& extraDataQueues = std::get<Queue<T>>(queues).extraDataArray;
+        extraDataQueues[index].push(std::move(extraData));
         auto& typedQueues = std::get<Queue<T>>(queues).array;
         typedQueues[index].push(std::move(elem));
         if (typedQueues[index].approxSize() < SHOULD_FLUSH_QUEUE_SIZE) {
@@ -54,6 +61,8 @@ private:
     template<typename T>
     struct Queue {
         std::array<common::MPSCQueue<storage::IndexBuffer<T>>, storage::NUM_HASH_INDEXES> array;
+        std::array<common::MPSCQueue<OptionalExtraDataBuffer>, storage::NUM_HASH_INDEXES>
+            extraDataArray;
         // Type information to help std::visit. Value is not used
         T type;
     };
@@ -70,30 +79,51 @@ class IndexBuilderLocalBuffers {
 public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
-    void insert(std::string key, common::offset_t value,
+    void insert(std::string key, OptionalWarningSourceData extraData, common::offset_t value,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
         auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
-        if (stringBuffer.full()) {
+
+        auto& extraDataBuffer = extraDataBuffers[indexPos];
+
+        if (stringBuffer.full() || (extraDataBuffer.has_value() && extraDataBuffer->full())) {
             // StaticVector's move constructor leaves the original vector valid and empty
-            globalQueues->insert(indexPos, std::move(stringBuffer), errorHandler);
+            globalQueues->insert(indexPos, std::move(stringBuffer), std::move(extraDataBuffer),
+                errorHandler);
         }
-        stringBuffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
+
+        // NOLINTBEGIN (bugprone-use-after-move) moving the buffer clears it which is the expected
+        // behaviour
+        stringBuffer.push_back(std::make_pair(key, value));
+        optionalAppendExtraData(extraDataBuffer, std::move(extraData));
+        // NOLINTEND
     }
 
     template<common::HashablePrimitive T>
-    void insert(T key, common::offset_t value, NodeBatchInsertErrorHandler& errorHandler) {
+    void insert(T key, OptionalWarningSourceData extraData, common::offset_t value,
+        NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];
-        if (buffer.full()) {
-            globalQueues->insert(indexPos, std::move(buffer), errorHandler);
+
+        auto& extraDataBuffer = extraDataBuffers[indexPos];
+
+        if (buffer.full() || (extraDataBuffer.has_value() && extraDataBuffer->full())) {
+            globalQueues->insert(indexPos, std::move(buffer), std::move(extraDataBuffer),
+                errorHandler);
         }
-        buffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
+
+        // NOLINTBEGIN (bugprone-use-after-move) moving the buffer clears it which is the expected
+        // behaviour
+        buffer.push_back(std::make_pair(key, value));
+        optionalAppendExtraData(extraDataBuffer, std::move(extraData));
+        // NOLINTEND
     }
 
     void flush(NodeBatchInsertErrorHandler& errorHandler);
 
 private:
+    void optionalAppendExtraData(OptionalExtraDataBuffer& buffer, OptionalWarningSourceData data);
+
     IndexBuilderGlobalQueues* globalQueues;
 
     // These arrays are much too large to be inline.
@@ -106,6 +136,8 @@ private:
         UniqueBuffers<uint32_t>, UniqueBuffers<uint16_t>, UniqueBuffers<uint8_t>,
         UniqueBuffers<common::int128_t>, UniqueBuffers<float>, UniqueBuffers<double>>
         buffers;
+
+    std::array<OptionalExtraDataBuffer, storage::NUM_HASH_INDEXES> extraDataBuffers;
 };
 
 class IndexBuilderSharedState {
@@ -160,10 +192,12 @@ public:
     DELETE_COPY_DEFAULT_MOVE(IndexBuilder);
     explicit IndexBuilder(std::shared_ptr<IndexBuilderSharedState> sharedState);
 
-    IndexBuilder clone() { return IndexBuilder(sharedState); }
+    std::optional<IndexBuilder> clone() { return IndexBuilder(sharedState); }
 
-    void insert(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
-        common::offset_t numNodes, NodeBatchInsertErrorHandler& errorHandler);
+    void insert(const storage::ColumnChunkData& chunk,
+        const std::optional<std::vector<storage::ColumnChunkData*>>& extraData,
+        common::offset_t nodeOffset, common::offset_t numNodes,
+        NodeBatchInsertErrorHandler& errorHandler);
 
     ProducerToken getProducerToken() const { return ProducerToken(sharedState); }
 
@@ -171,8 +205,10 @@ public:
     void finalize(ExecutionContext* context, NodeBatchInsertErrorHandler& errorHandler);
 
 private:
-    bool checkNonNullConstraint(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
-        common::offset_t numNodes, NodeBatchInsertErrorHandler& errorHandler);
+    bool checkNonNullConstraint(const storage::ColumnChunkData& chunk,
+        const std::optional<std::vector<storage::ColumnChunkData*>>& extraData,
+        common::offset_t nodeOffset, common::offset_t chunkOffset,
+        NodeBatchInsertErrorHandler& errorHandler);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

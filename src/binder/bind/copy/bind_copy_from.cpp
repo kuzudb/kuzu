@@ -87,12 +87,18 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         expectedColumnTypes);
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
+    expression_vector extraDataExprs;
     if (boundSource->type == ScanSourceType::FILE) {
         auto& source = boundSource->constCast<BoundTableScanSource>();
         auto bindData = source.info.bindData->constPtrCast<ScanBindData>();
         if (copyStatement.byColumn() && bindData->config.fileTypeInfo.fileType != FileType::NPY) {
             throw BinderException(stringFormat("Copy by column with {} file type is not supported.",
                 bindData->config.fileTypeInfo.fileTypeStr));
+        }
+
+        for (column_id_t i = source.info.numExtraDataColumns; i >= 1; --i) {
+            KU_ASSERT(i < source.info.columns.size());
+            extraDataExprs.push_back(source.info.columns[source.info.columns.size() - i]);
         }
     }
     expression_vector columns;
@@ -103,6 +109,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         columns.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
+    columns.insert(columns.end(), extraDataExprs.begin(), extraDataExprs.end());
     // TODO(Guodong): Should remove this expression.
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));

@@ -20,6 +20,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     info.function = call.getTableFunc();
     info.bindData = call.getBindData()->copy();
     info.outPosV = outPosV;
+    info.numExtraDataColumns = call.getNumExtraDataColumns();
+    KU_ASSERT(info.outPosV.size() >= info.numExtraDataColumns);
     if (call.getOffset() != nullptr) {
         info.rowOffsetPos = getDataPos(*call.getOffset(), *outSchema);
     } else {
@@ -27,6 +29,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     }
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
+
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
     auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(call.getTableFunc().name);
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),

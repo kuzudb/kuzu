@@ -72,9 +72,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable, pkColumnID,
         pkDefinition.getType().copy(), fTable, &storageManager->getWAL(),
         clientContext->getMemoryManager());
+
+    column_id_t numExtraDataColumns = 0;
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
+
+        numExtraDataColumns = call->getNumExtraDataColumns();
     } else {
         KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::AGGREGATE_SCAN);
         const auto hashScan = prevOperator->ptrCast<HashAggregateScan>();
@@ -92,18 +96,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
         const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
             copyFromInfo->source.get());
-        const auto* bindData =
-            ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-                boundScanSource->info.bindData.get());
-        const auto ignoreErrorsIt =
-            bindData->config.options.find(CopyConstants::IGNORE_ERRORS_OPTION_NAME);
-        if (ignoreErrorsIt != bindData->config.options.end()) {
-            ignoreErrors = ignoreErrorsIt->second.getValue<bool>();
-        }
+        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
+            boundScanSource->info.bindData.get());
+        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+            CopyConstants::DEFAULT_IGNORE_ERRORS);
     }
+
+    KU_ASSERT(columnTypes.size() >= numExtraDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        copyFromInfo->columnEvaluateTypes, ignoreErrors);
+        copyFromInfo->columnEvaluateTypes, ignoreErrors, numExtraDataColumns);
 
     auto printInfo =
         std::make_unique<NodeBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());

@@ -10,11 +10,30 @@ class NodeTable;
 }
 
 namespace processor {
+
 template<typename T>
 struct IndexBuilderError {
     std::string message;
     T key;
     common::nodeID_t nodeID;
+
+    // CSV Reader data
+    std::optional<WarningSourceData> warningData;
+};
+
+struct IndexBuilderCachedError {
+    IndexBuilderCachedError(std::string message, std::optional<WarningSourceData> warningData);
+    IndexBuilderCachedError() = default;
+
+    template<typename T>
+    static IndexBuilderCachedError constructFrom(IndexBuilderError<T> error) {
+        return IndexBuilderCachedError{std::move(error.message), std::move(error.warningData)};
+    }
+
+    std::string message;
+
+    // CSV Reader data
+    std::optional<WarningSourceData> warningData;
 };
 
 class NodeBatchInsertErrorHandler {
@@ -37,7 +56,7 @@ public:
         KU_ASSERT(currentInsertIdx < offsetVector.size());
         keyVector[currentInsertIdx]->setValue<T>(0, error.key);
         offsetVector[currentInsertIdx]->setValue(0, error.nodeID);
-        errorMessages[currentInsertIdx] = std::move(error.message);
+        cachedErrors[currentInsertIdx] = IndexBuilderCachedError::constructFrom(std::move(error));
         ++currentInsertIdx;
     }
 
@@ -64,7 +83,7 @@ private:
 
     std::vector<std::shared_ptr<common::ValueVector>> keyVector;
     std::vector<std::shared_ptr<common::ValueVector>> offsetVector;
-    std::vector<std::string> errorMessages;
+    std::vector<IndexBuilderCachedError> cachedErrors;
 };
 } // namespace processor
 } // namespace kuzu
