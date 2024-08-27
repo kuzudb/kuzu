@@ -6,3 +6,14 @@
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv"
 ---- error(regex)
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8\.csv on line 1: Conversion exception: Invalid UTF8-encoded string\. Line containing the error: '.'
+
+-CASE InvalidUTF8IgnoreErrors
+-STATEMENT CALL ignore_copy_errors=true;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv"
+---- 2
+0 tuples have been copied to the person table.
+1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 2
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number
+---- 1
+Conversion exception: Invalid UTF8-encoded string.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv|1
