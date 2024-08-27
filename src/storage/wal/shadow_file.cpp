@@ -1,7 +1,5 @@
 #include "storage/wal/shadow_file.h"
 
-#include <fcntl.h>
-
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "main/client_context.h"
@@ -140,7 +138,7 @@ std::unique_ptr<FileInfo> ShadowFile::getFileInfo(const ClientContext& context, 
         KU_UNREACHABLE;
     }
     }
-    return context.getVFSUnsafe()->openFile(fileName, O_RDWR);
+    return context.getVFSUnsafe()->openFile(fileName, FileFlags::READ_ONLY | FileFlags::WRITE);
 }
 
 } // namespace storage

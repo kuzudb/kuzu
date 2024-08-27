@@ -37,19 +37,62 @@ LocalFileInfo::~LocalFileInfo() {
 #endif
 }
 
+static void validateFileFlags(uint8_t flags) {
+    const bool isRead = flags & FileFlags::READ_ONLY;
+    const bool isWrite = flags & FileFlags::WRITE;
+    KU_UNUSED(isRead);
+    KU_UNUSED(isWrite);
+    // Require either READ or WRITE (or both).
+    KU_ASSERT(isRead || isWrite);
+    // CREATE flags require writing.
+    KU_ASSERT(isWrite || !(flags & FileFlags::CREATE_IF_NOT_EXISTS));
+    KU_ASSERT(isWrite || !(flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS));
+    // CREATE_IF_NOT_EXISTS and CREATE_AND_TRUNCATE_IF_EXISTS flags cannot be combined.
+    KU_ASSERT(!(flags & FileFlags::CREATE_IF_NOT_EXISTS &&
+                flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS));
+}
+
 std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int flags,
     main::ClientContext* context, FileLockType lock_type) {
     auto fullPath = expandPath(context, path);
+    validateFileFlags(flags);
+
+    int openFlags = 0;
+    bool readMode = flags & FileFlags::READ_ONLY;
+    bool writeMode = flags & FileFlags::WRITE;
+    if (readMode && writeMode) {
+        openFlags = O_RDWR;
+    } else if (readMode) {
+        openFlags = O_RDONLY;
+    } else if (writeMode) {
+        openFlags = O_WRONLY;
+    } else {
+        // LCOV_EXCL_START
+        throw InternalException("READ, WRITE or both should be specified when opening a file.");
+        // LCOV_EXCL_STOP
+    }
+    if (writeMode) {
+        KU_ASSERT(flags & FileFlags::WRITE);
+        if (flags & FileFlags::CREATE_IF_NOT_EXISTS) {
+            openFlags |= O_CREAT;
+        } else if (flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS) {
+            openFlags |= O_CREAT | O_TRUNC;
+        }
+    }
+
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
-    auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
+    auto dwCreationDisposition = (openFlags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
     auto dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
-    if (flags & (O_CREAT | O_WRONLY | O_RDWR)) {
+    if (openFlags & (O_CREAT | O_WRONLY | O_RDWR)) {
         dwDesiredAccess |= GENERIC_WRITE;
     }
-    // O_RDONLY is 0 in practice, so flags & (O_RDONLY | O_RDWR) doesn't work.
-    if (!(flags & O_WRONLY)) {
+    // O_RDONLY is 0 in practice, so openFlags & (O_RDONLY | O_RDWR) doesn't work.
+    if (!(openFlags & O_WRONLY)) {
         dwDesiredAccess |= GENERIC_READ;
+    }
+    if (openFlags & FileFlags::BINARY) {
+        dwDesiredAccess |= _O_BINARY;
     }
 
     HANDLE handle = CreateFileA(fullPath.c_str(), dwDesiredAccess, dwShareMode, nullptr,
@@ -71,7 +114,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
     }
     return std::make_unique<LocalFileInfo>(fullPath, handle, this);
 #else
-    int fd = open(fullPath.c_str(), flags, 0644);
+    int fd = open(fullPath.c_str(), openFlags, 0644);
     if (fd == -1) {
         throw IOException(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }

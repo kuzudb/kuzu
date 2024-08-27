@@ -1,7 +1,5 @@
 #include "json_export.h"
 
-#include <fcntl.h>
-
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_serializer.h"
 #include "function/export/export_function.h"
@@ -35,8 +33,8 @@ struct ExportJSONSharedState : public ExportFuncSharedState {
     std::vector<std::string> jsonValues;
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
-        fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName, O_WRONLY | O_CREAT | O_TRUNC,
-            &context);
+        fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
+            FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS, &context);
     }
 };
 

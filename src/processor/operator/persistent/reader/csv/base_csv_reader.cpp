@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
-#include <fcntl.h>
-
 #include <vector>
 
 #include "common/file_system/virtual_file_system.h"
@@ -23,9 +21,9 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption opti
       bufferIdx(0), bufferSize{0}, position{0}, lineContext(), osFileOffset{0},
       errorHandler(errorHandler), rowEmpty{false} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
-        O_RDONLY
+        FileFlags::READ_ONLY
 #ifdef _WIN32
-            | _O_BINARY
+            | FileFlags::BINARY
 #endif
         ,
         context);

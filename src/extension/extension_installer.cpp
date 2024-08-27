@@ -29,7 +29,9 @@ void ExtensionInstaller::tryDownloadExtensionFile(main::ClientContext* context,
     }
 
     auto vfs = context->getVFSUnsafe();
-    auto fileInfo = vfs->openFile(localFilePath, O_WRONLY | O_CREAT);
+    auto fileInfo =
+        vfs->openFile(localFilePath, common::FileFlags::WRITE | common::FileFlags::READ_ONLY |
+                                         common::FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(res->body.c_str()), res->body.size(),
         0 /* offset */);
     fileInfo->syncFile();

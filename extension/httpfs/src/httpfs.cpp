@@ -29,16 +29,15 @@ void HTTPFileInfo::initialize(main::ClientContext* context) {
     auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
     std::string rangeLength;
     if (res->code != 200) {
-        auto accessMode = flags & O_ACCMODE;
-        if ((accessMode & O_WRONLY) && res->code == 404) {
-            if (!(flags & O_CREAT)) {
+        if ((flags & FileFlags::WRITE) && res->code == 404) {
+            if (!(flags & FileFlags::CREATE_IF_NOT_EXISTS)) {
                 throw IOException(stringFormat("Unable to open URL: \"{}\" for writing: file does "
                                                "not exist and CREATE flag is not set",
                     path));
             }
             length = 0;
             return;
-        } else if ((accessMode & O_RDONLY) && res->code != 404) {
+        } else if ((flags & FileFlags::READ_ONLY) && res->code != 404) {
             // HEAD request fail, use Range request for another try (read only one byte).
             auto rangeRequest =
                 hfs->getRangeRequest(this, this->path, {}, 0, nullptr /* buffer */, 2);
@@ -77,7 +76,7 @@ void HTTPFileInfo::initialize(main::ClientContext* context) {
     }
 
     // Initialize the read buffer now that we know the file exists
-    if ((flags & O_ACCMODE) == O_RDONLY) {
+    if (flags & FileFlags::READ_ONLY) {
         readBuffer = std::make_unique<uint8_t[]>(READ_BUFFER_LEN);
     }
 
@@ -137,7 +136,7 @@ bool HTTPFileSystem::canHandleFile(const std::string& path) const {
 
 bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* context) {
     try {
-        auto fileInfo = openFile(path, O_RDONLY, context, FileLockType::READ_LOCK);
+        auto fileInfo = openFile(path, FileFlags::READ_ONLY, context, FileLockType::READ_LOCK);
         auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
         if (httpFileInfo->length == 0) {
             return false;

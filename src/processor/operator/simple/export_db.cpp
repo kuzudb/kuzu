@@ -1,7 +1,5 @@
 #include "processor/operator/simple/export_db.h"
 
-#include <fcntl.h>
-
 #include <sstream>
 
 #include "catalog/catalog.h"
@@ -40,27 +38,28 @@ std::string ExportDBPrintInfo::toString() const {
     return result;
 }
 
-void ExportDB::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
-    auto vfs = context->clientContext->getVFSUnsafe();
+void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
+    const auto vfs = context->clientContext->getVFSUnsafe();
     KU_ASSERT(!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
     vfs->createDir(boundFileInfo.filePaths[0]);
 }
 
-static void writeStringStreamToFile(ClientContext* context, std::string ssString,
+static void writeStringStreamToFile(ClientContext* context, const std::string& ssString,
     const std::string& path) {
-    auto fileInfo = context->getVFSUnsafe()->openFile(path, O_WRONLY | O_CREAT, context);
+    const auto fileInfo = context->getVFSUnsafe()->openFile(path,
+        FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS, context);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ssString.c_str()), ssString.size(),
         0 /* offset */);
 }
 
-static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
-    ReaderConfig* boundFileInfo) {
+static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
+    const ReaderConfig* boundFileInfo) {
     auto fileTypeStr = boundFileInfo->fileTypeInfo.fileTypeStr;
     StringUtils::toLower(fileTypeStr);
-    auto csvConfig = common::CSVReaderConfig::construct(boundFileInfo->options);
-    auto tableName = entry->getName();
+    const auto csvConfig = CSVReaderConfig::construct(boundFileInfo->options);
+    const auto tableName = entry->getName();
     std::string columns;
-    auto numProperties = entry->getNumProperties();
+    const auto numProperties = entry->getNumProperties();
     for (auto i = 0u; i < numProperties; i++) {
         auto& prop = entry->getProperty(i);
         columns += prop.getName();
@@ -72,24 +71,24 @@ static void writeCopyStatement(stringstream& ss, TableCatalogEntry* entry,
 
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::string& extraMsg) {
     stringstream ss;
-    auto catalog = clientContext->getCatalog();
-    for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
+    const auto catalog = clientContext->getCatalog();
+    for (const auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
-    for (auto& entry : catalog->getRelTableEntries(tx)) {
+    for (const auto& entry : catalog->getRelTableEntries(tx)) {
         if (catalog->tableInRelGroup(tx, entry->getTableID()) ||
             catalog->tableInRDFGraph(tx, entry->getTableID())) {
             continue;
         }
         ss << entry->toCypher(clientContext) << std::endl;
     }
-    for (auto& relGroupEntry : catalog->getRelTableGroupEntries(tx)) {
+    for (const auto& relGroupEntry : catalog->getRelTableGroupEntries(tx)) {
         ss << relGroupEntry->toCypher(clientContext) << std::endl;
     }
     if (catalog->getRdfGraphEntries(tx).size() != 0) {
         extraMsg = " But we skip exporting RDF graphs.";
     }
-    for (auto sequenceEntry : catalog->getSequenceEntries(tx)) {
+    for (const auto sequenceEntry : catalog->getSequenceEntries(tx)) {
         ss << sequenceEntry->toCypher(clientContext) << std::endl;
     }
     for (auto macroName : catalog->getMacroNames(tx)) {
@@ -98,15 +97,16 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::
     return ss.str();
 }
 
-std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* boundFileInfo) {
+std::string getCopyCypher(const Catalog* catalog, Transaction* tx,
+    const ReaderConfig* boundFileInfo) {
     stringstream ss;
-    for (auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
+    for (const auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
         if (catalog->tableInRDFGraph(tx, nodeTableEntry->getTableID())) {
             continue;
         }
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
-    for (auto& entry : catalog->getRelTableEntries(tx)) {
+    for (const auto& entry : catalog->getRelTableEntries(tx)) {
         if (catalog->tableInRDFGraph(tx, entry->getTableID())) {
             continue;
         }
@@ -116,9 +116,9 @@ std::string getCopyCypher(Catalog* catalog, Transaction* tx, ReaderConfig* bound
 }
 
 void ExportDB::executeInternal(ExecutionContext* context) {
-    auto clientContext = context->clientContext;
-    auto tx = clientContext->getTx();
-    auto catalog = clientContext->getCatalog();
+    const auto clientContext = context->clientContext;
+    const auto tx = clientContext->getTx();
+    const auto catalog = clientContext->getCatalog();
     // write the schema.cypher file
     writeStringStreamToFile(clientContext, getSchemaCypher(clientContext, tx, extraMsg),
         boundFileInfo.filePaths[0] + "/schema.cypher");

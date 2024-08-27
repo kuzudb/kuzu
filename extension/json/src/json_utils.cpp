@@ -1,10 +1,7 @@
 #include "json_utils.h"
 
-#include <fcntl.h>
-
 #include <cstdlib>
 
-#include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -618,7 +615,7 @@ static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffe
 JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
     JsonScanFormat format) {
 
-    auto file = context->getVFSUnsafe()->openFile(path, O_RDONLY, context);
+    auto file = context->getVFSUnsafe()->openFile(path, FileFlags::READ_ONLY, context);
     auto fileSize = file->getFileSize();
     auto buffer = std::make_shared<char[]>(fileSize + 9);
     memset(buffer.get() + fileSize, 0 /* valueToSet */, 9 /* len */);

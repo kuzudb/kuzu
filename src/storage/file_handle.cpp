@@ -1,7 +1,5 @@
 #include "storage/file_handle.h"
 
-#include <fcntl.h>
-
 #include <cmath>
 
 #include "common/file_system/virtual_file_system.h"
@@ -34,9 +32,10 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     main::ClientContext* context) {
     int openFlags;
     if (isReadOnlyFile()) {
-        openFlags = O_RDONLY;
+        openFlags = FileFlags::READ_ONLY;
     } else {
-        openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
+        openFlags = FileFlags::WRITE | FileFlags::READ_ONLY |
+                    ((createFileIfNotExists()) ? FileFlags::CREATE_IF_NOT_EXISTS : 0x00000000);
     }
     fileInfo = vfs->openFile(path, openFlags, context);
     const auto fileLength = fileInfo->getFileSize();

@@ -1,7 +1,5 @@
 #include "catalog/catalog.h"
 
-#include <fcntl.h>
-
 #include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
@@ -446,7 +444,8 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     FileVersionType versionType) const {
     KU_ASSERT(!directory.empty());
     const auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
-    const auto catalogFile = fs->openFile(catalogPath, O_WRONLY | O_CREAT);
+    const auto catalogFile = fs->openFile(catalogPath,
+        FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE);
     Serializer serializer(std::make_unique<BufferedFileWriter>(*catalogFile));
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
@@ -460,8 +459,8 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     FileVersionType versionType, main::ClientContext* context) {
     KU_ASSERT(!directory.empty());
     const auto catalogPath = StorageUtils::getCatalogFilePath(fs, directory, versionType);
-    Deserializer deserializer(
-        std::make_unique<BufferedFileReader>(fs->openFile(catalogPath, O_RDONLY, context)));
+    Deserializer deserializer(std::make_unique<BufferedFileReader>(
+        fs->openFile(catalogPath, FileFlags::READ_ONLY, context)));
     validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
     deserializer.deserializeValue(savedStorageVersion);
