@@ -22,7 +22,6 @@ static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::s
         throw BinderException(stringFormat("File {} does not exist.", filePath));
     }
     auto fileInfo = vfs->openFile(filePath, FileFlags::READ_ONLY
-// TODO(Ziyi): We need to handle O_BINARY here.
 #ifdef _WIN32
                                                 | FileFlags::BINARY
 #endif
