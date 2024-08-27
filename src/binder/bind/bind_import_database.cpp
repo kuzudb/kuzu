@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_import_database.h"
-#include "common/cast.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
@@ -32,6 +31,34 @@ static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::s
     return std::string(buffer.get(), fsize);
 }
 
+static std::string getColumnNamesToCopy(const CopyFrom& copyFrom) {
+    std::string columns = "";
+    std::string delimiter = "";
+    for (auto& column : copyFrom.getColumnNames()) {
+        columns += delimiter;
+        columns += column;
+        if (delimiter == "") {
+            delimiter = ",";
+        }
+    }
+    if (columns.empty()) {
+        return columns;
+    }
+    return common::stringFormat("({})", columns);
+}
+
+static std::string getCopyFilePath(const std::string& boundFilePath, const std::string& filePath) {
+    if (filePath[0] == '/' || (std::isalpha(filePath[0]) && filePath[1] == ':')) {
+        // Note:
+        // Unix absolute path starts with '/'
+        // Windows absolute path starts with "[DiskID]://"
+        // This code path is for backward compatability, we used to export the absolute path for
+        // csv files to copy.cypher files.
+        return filePath;
+    }
+    return boundFilePath + "/" + filePath;
+}
+
 std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement& statement) {
     auto& importDB = statement.constCast<ImportDB>();
     auto fs = clientContext->getVFSUnsafe();
@@ -49,34 +76,23 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
         auto parsedStatements = Parser::parseQuery(copyQuery, clientContext);
         for (auto& parsedStatement : parsedStatements) {
             KU_ASSERT(parsedStatement->getStatementType() == StatementType::COPY_FROM);
-            auto copyFromStatement =
-                ku_dynamic_cast<const Statement*, const CopyFrom*>(parsedStatement.get());
-            KU_ASSERT(copyFromStatement->getSource()->type == common::ScanSourceType::FILE);
-            auto filePaths = ku_dynamic_cast<parser::BaseScanSource*, parser::FileScanSource*>(
-                copyFromStatement->getSource())
-                                 ->filePaths;
+            auto& copyFromStatement = parsedStatement->constCast<CopyFrom>();
+            KU_ASSERT(copyFromStatement.getSource()->type == common::ScanSourceType::FILE);
+            auto filePaths =
+                copyFromStatement.getSource()->constPtrCast<FileScanSource>()->filePaths;
             KU_ASSERT(filePaths.size() == 1);
             auto fileTypeInfo = bindFileTypeInfo(filePaths);
-            auto copyFilePath = boundFilePath + "/" + filePaths[0];
-            std::string columns;
-            std::string delimiter = "";
-            for (auto& column : copyFromStatement->getColumnNames()) {
-                columns += delimiter;
-                columns += column;
-                if (delimiter == "") {
-                    delimiter = ",";
-                }
-            }
             std::string query;
+            auto copyFilePath = getCopyFilePath(boundFilePath, filePaths[0]);
+            auto columnNames = getColumnNamesToCopy(copyFromStatement);
             if (fileTypeInfo.fileType == FileType::CSV) {
                 auto csvConfig = CSVReaderConfig::construct(
-                    bindParsingOptions(copyFromStatement->getParsingOptionsRef()));
-                query = stringFormat("COPY {} ( {} ) FROM \"{}\" {};",
-                    copyFromStatement->getTableName(), columns, copyFilePath,
-                    csvConfig.option.toCypher());
+                    bindParsingOptions(copyFromStatement.getParsingOptionsRef()));
+                query = stringFormat("COPY {} {} FROM \"{}\" {};", copyFromStatement.getTableName(),
+                    columnNames, copyFilePath, csvConfig.option.toCypher());
             } else {
-                query = stringFormat("COPY {} ( {} ) FROM \"{}\";",
-                    copyFromStatement->getTableName(), columns, copyFilePath);
+                query = stringFormat("COPY {} {} FROM \"{}\";", copyFromStatement.getTableName(),
+                    columnNames, copyFilePath);
             }
             finalQueryStatements += query;
         }

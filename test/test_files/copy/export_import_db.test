@@ -223,3 +223,13 @@ Zhang|Noura
 -STATEMENT LOAD FROM "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet" RETURN *
 ---- error
 Binder exception: No file found that matches the pattern: ${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet.
+
+-CASE ImportLegacyDB
+-SKIP_IN_MEM
+-STATEMENT IMPORT Database "${KUZU_ROOT_DIRECTORY}/dataset/import_db_legacy";
+---- ok
+-STATEMENT MATCH (p:person)-[:studyAt]->(o:organisation) RETURN p.fName, o.ID
+---- 3
+Alice|1
+Bob|1
+Farooq|1
