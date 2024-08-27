@@ -92,8 +92,8 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
                 query = stringFormat("COPY {} {} FROM \"{}\" {};", copyFromStatement.getTableName(),
                     columnNames, copyFilePath, csvConfig.option.toCypher());
             } else {
-                query = stringFormat("COPY {} {} FROM \"{}\";",
-                    copyFromStatement.getTableName(), columnNames, copyFilePath);
+                query = stringFormat("COPY {} {} FROM \"{}\";", copyFromStatement.getTableName(),
+                    columnNames, copyFilePath);
             }
             finalQueryStatements += query;
         }
