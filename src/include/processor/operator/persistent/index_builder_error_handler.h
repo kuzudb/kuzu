@@ -1,6 +1,8 @@
+#pragma once
+
 #include "common/exception/copy.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace storage {
