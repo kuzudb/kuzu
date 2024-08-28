@@ -14,16 +14,22 @@ NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* conte
       warningLimit(
           std::min(context->clientContext->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
       context(context), pkType(pkType), nodeTable(nodeTable), queryID(context->queryID),
-      sharedErrorCounterMtx(sharedErrorCounterMtx),
+      currentInsertIdx(0), sharedErrorCounterMtx(sharedErrorCounterMtx),
       sharedErrorCounter(std::move(sharedErrorCounter)) {}
 
-void NodeBatchInsertErrorHandler::addNewVectors() {
-    offsetVector.push_back(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
-        context->clientContext->getMemoryManager()));
-    offsetVector.back()->state = DataChunkState::getSingleValueDataChunkState();
-    keyVector.push_back(
-        std::make_shared<ValueVector>(pkType, context->clientContext->getMemoryManager()));
-    keyVector.back()->state = DataChunkState::getSingleValueDataChunkState();
+void NodeBatchInsertErrorHandler::addNewVectorsIfNeeded() {
+    KU_ASSERT(offsetVector.size() == keyVector.size());
+    KU_ASSERT(offsetVector.size() == errorMessages.size());
+    KU_ASSERT(currentInsertIdx <= offsetVector.size());
+    if (currentInsertIdx == offsetVector.size()) {
+        offsetVector.push_back(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
+            context->clientContext->getMemoryManager()));
+        offsetVector.back()->state = DataChunkState::getSingleValueDataChunkState();
+        keyVector.push_back(
+            std::make_shared<ValueVector>(pkType, context->clientContext->getMemoryManager()));
+        keyVector.back()->state = DataChunkState::getSingleValueDataChunkState();
+        errorMessages.emplace_back();
+    }
 }
 
 void NodeBatchInsertErrorHandler::flushStoredErrors() {
@@ -54,15 +60,11 @@ void NodeBatchInsertErrorHandler::flushStoredErrors() {
 }
 
 void NodeBatchInsertErrorHandler::clearErrors() {
-    offsetVector.clear();
-    keyVector.clear();
-    errorMessages.clear();
+    currentInsertIdx = 0;
 }
 
 row_idx_t NodeBatchInsertErrorHandler::getNumErrors() const {
-    KU_ASSERT(offsetVector.size() == keyVector.size());
-    KU_ASSERT(offsetVector.size() == errorMessages.size());
-    return offsetVector.size();
+    return currentInsertIdx;
 }
 
 } // namespace processor

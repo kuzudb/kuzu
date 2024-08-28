@@ -33,17 +33,19 @@ public:
             flushStoredErrors();
         }
 
-        addNewVectors();
-        keyVector.back()->setValue<T>(0, error.key);
-        offsetVector.back()->setValue(0, error.nodeID);
-        errorMessages.emplace_back(std::move(error.message));
+        addNewVectorsIfNeeded();
+        KU_ASSERT(currentInsertIdx < offsetVector.size());
+        keyVector[currentInsertIdx]->setValue<T>(0, error.key);
+        offsetVector[currentInsertIdx]->setValue(0, error.nodeID);
+        errorMessages[currentInsertIdx] = std::move(error.message);
+        ++currentInsertIdx;
     }
 
     void flushStoredErrors();
 
 private:
     common::row_idx_t getNumErrors() const;
-    void addNewVectors();
+    void addNewVectorsIfNeeded();
     void clearErrors();
 
     static constexpr common::idx_t DELETE_VECTOR_SIZE = 1;
@@ -55,6 +57,7 @@ private:
     common::LogicalTypeID pkType;
     storage::NodeTable* nodeTable;
     uint64_t queryID;
+    uint64_t currentInsertIdx;
 
     std::mutex* sharedErrorCounterMtx;
     std::shared_ptr<common::row_idx_t> sharedErrorCounter;
