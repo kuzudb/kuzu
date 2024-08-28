@@ -256,6 +256,7 @@ public:
     KUZU_API bool operator!=(const LogicalType& other) const;
 
     KUZU_API std::string toString() const;
+    static bool isBuiltInType(const std::string& str);
     static LogicalType convertFromString(const std::string& str, main::ClientContext* context);
 
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
