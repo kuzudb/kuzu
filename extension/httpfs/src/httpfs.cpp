@@ -144,6 +144,9 @@ bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientConte
     try {
         auto fileInfo = openFile(path, FileFlags::READ_ONLY, context, FileLockType::READ_LOCK);
         auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
+        if (httpFileInfo->cachedFileInfo != nullptr) {
+            return true;
+        }
         if (httpFileInfo->length == 0) {
             return false;
         }
