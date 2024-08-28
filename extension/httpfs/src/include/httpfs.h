@@ -42,6 +42,8 @@ struct HTTPFileInfo : public common::FileInfo {
 
     virtual void initializeClient();
 
+    void initMetadata();
+
     // We keep a http client stored for connection reuse with keep-alive headers.
     std::unique_ptr<httplib::Client> httpClient;
 
