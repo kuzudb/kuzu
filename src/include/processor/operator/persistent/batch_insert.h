@@ -30,7 +30,12 @@ struct BatchInsertInfo {
 struct BatchInsertSharedState {
     std::mutex mtx;
     std::atomic<common::row_idx_t> numRows;
+
+    // Use a separate mutex for numErroredRows to avoid double-locking in local error handlers
+    // As access to numErroredRows is independent of access to other shared state
+    std::mutex erroredRowMutex;
     std::shared_ptr<common::row_idx_t> numErroredRows;
+
     storage::Table* table;
     std::shared_ptr<FactorizedTable> fTable;
     storage::WAL* wal;
@@ -54,7 +59,7 @@ struct BatchInsertSharedState {
     }
     common::row_idx_t getNumRows() const { return numRows.load(); }
     common::row_idx_t getNumErroredRows() {
-        common::UniqLock lockGuard{mtx};
+        common::UniqLock lockGuard{erroredRowMutex};
         return *numErroredRows;
     }
 };

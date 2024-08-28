@@ -60,9 +60,9 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder.value().clone();
 
         auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-        nodeLocalState->errorHandler =
-            NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(),
-                nodeTable, nodeInfo->ignoreErrors, sharedState->numErroredRows, &sharedState->mtx};
+        nodeLocalState->errorHandler = NodeBatchInsertErrorHandler{context,
+            nodeSharedState->pkType.getLogicalTypeID(), nodeTable, nodeInfo->ignoreErrors,
+            sharedState->numErroredRows, &sharedState->erroredRowMutex};
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 
