@@ -49,13 +49,12 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    const auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
+    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
 
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     localState = std::make_unique<NodeBatchInsertLocalState>();
-    const auto nodeLocalState =
-        ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
+    const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     // NOLINTBEGIN(bugprone-unchecked-optional-access)
     if (nodeSharedState->globalIndexBuilder) {
         nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder.value().clone();
@@ -147,7 +146,7 @@ void NodeBatchInsert::clearToIndex(std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
     // Create a new chunked node group and move the unwritten values to it
     // TODO(bmwinger): Can probably re-use the chunk and shift the values
     const auto oldNodeGroup = std::move(nodeGroup);
-    const auto nodeInfo = ku_dynamic_cast<BatchInsertInfo*, NodeBatchInsertInfo*>(info.get());
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
     nodeGroup = std::make_unique<ChunkedNodeGroup>(nodeInfo->columnTypes, info->compressionEnabled,
         StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     nodeGroup->append(&transaction::DUMMY_TRANSACTION, *oldNodeGroup, startIndexInGroup,
@@ -158,8 +157,7 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder) const {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
-    const auto nodeLocalState =
-        ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
+    const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
     auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(transaction, *nodeGroup);
     if (indexBuilder) {
