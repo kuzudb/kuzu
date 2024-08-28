@@ -75,6 +75,10 @@ public:
     // Allocates the given number of new slots, ignoo
     void allocateSlots(uint32_t numSlots);
 
+    void reserveSpaceForAppend(uint32_t numNewEntries) {
+        reserve(indexHeader.numEntries + numNewEntries);
+    }
+
     using BufferKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
     // TODO(Ben): Ideally, `Key` should reuse `HashIndexType`.
     using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;

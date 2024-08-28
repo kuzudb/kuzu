@@ -128,17 +128,24 @@ public:
     // Appends the buffer to the index. Returns the number of values successfully inserted
     size_t append(const transaction::Transaction* transaction,
         const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset, visible_func isVisible) {
+        localStorage->reserveSpaceForAppend(buffer.size() - bufferOffset);
+
         // Check if values already exist in persistent storage
         if (indexHeaderForWriteTrx.numEntries > 0) {
+            size_t numValuesInserted = 0;
             common::offset_t result;
             for (size_t i = bufferOffset; i < buffer.size(); i++) {
                 const auto& [key, value] = buffer[i];
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
                     return i - bufferOffset;
+                } else {
+                    numValuesInserted += localStorage->append(key, value, isVisible);
                 }
             }
+            return numValuesInserted;
+        } else {
+            return localStorage->append(buffer, bufferOffset, isVisible);
         }
-        return localStorage->append(buffer, bufferOffset, isVisible);
     }
 
     bool checkpoint() override;

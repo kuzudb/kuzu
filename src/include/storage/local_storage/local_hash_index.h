@@ -52,6 +52,14 @@ public:
         return localInsertions.append(key, value, isVisible);
     }
 
+    void reserveSpaceForAppend(uint32_t numNewEntries) {
+        localInsertions.reserveSpaceForAppend(numNewEntries);
+    }
+
+    bool append(Key key, common::offset_t value, visible_func isVisible) {
+        return localInsertions.append(key, value, isVisible);
+    }
+
     size_t append(const IndexBuffer<OwnedKeyType>& buffer, uint64_t bufferOffset,
         visible_func isVisible) {
         return localInsertions.append(buffer, bufferOffset, isVisible);
