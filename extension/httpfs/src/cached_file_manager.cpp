@@ -47,6 +47,7 @@ std::string CachedFileManager::getCachedDirForTrx(common::transaction_t transact
 }
 
 void CachedFileManager::downloadFile(HTTPFileInfo* fileToDownload, FileInfo* cacheFileInfo) {
+    fileToDownload->initMetadata();
     uint64_t numBytesRead;
     uint64_t offsetToWrite = 0;
     do {

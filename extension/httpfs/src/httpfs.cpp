@@ -23,9 +23,9 @@ HTTPFileInfo::HTTPFileInfo(std::string path, FileSystem* fileSystem, int flags,
       bufferIdx{0}, fileOffset{0}, bufferStartPos{0}, bufferEndPos{0}, httpConfig{context},
       cachedFileInfo{nullptr} {}
 
-void HTTPFileInfo::initialize(main::ClientContext* context) {
-    initializeClient();
+void HTTPFileInfo::initMetadata() {
     auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
+    initializeClient();
     auto res = hfs->headRequest(this->ptrCast<HTTPFileInfo>(), path, {});
     std::string rangeLength;
     if (res->code != 200) {
@@ -105,10 +105,16 @@ void HTTPFileInfo::initialize(main::ClientContext* context) {
             // LCOV_EXCL_STOP
         }
     }
+}
+
+void HTTPFileInfo::initialize(main::ClientContext* context) {
     if (httpConfig.cacheFile) {
+        auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
         cachedFileInfo =
             hfs->getCachedFileManager().getCachedFileInfo(this, context->getTx()->getID());
+        return;
     }
+    initMetadata();
 }
 
 void HTTPFileInfo::initializeClient() {
@@ -138,6 +144,9 @@ bool HTTPFileSystem::fileOrPathExists(const std::string& path, main::ClientConte
     try {
         auto fileInfo = openFile(path, FileFlags::READ_ONLY, context, FileLockType::READ_LOCK);
         auto httpFileInfo = fileInfo->constPtrCast<HTTPFileInfo>();
+        if (httpFileInfo->cachedFileInfo != nullptr) {
+            return true;
+        }
         if (httpFileInfo->length == 0) {
             return false;
         }
@@ -155,7 +164,7 @@ void HTTPFileSystem::cleanUP(main::ClientContext* context) {
 
 void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
-    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
+    auto& httpFileInfo = fileInfo.cast<HTTPFileInfo>();
     auto numBytesToRead = numBytes;
     auto bufferOffset = 0;
     if (httpFileInfo.cachedFileInfo != nullptr) {
@@ -214,7 +223,10 @@ void HTTPFileSystem::readFromFile(common::FileInfo& fileInfo, void* buffer, uint
 }
 
 int64_t HTTPFileSystem::readFile(common::FileInfo& fileInfo, void* buf, size_t numBytes) const {
-    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
+    auto& httpFileInfo = fileInfo.constCast<HTTPFileInfo>();
+    if (httpFileInfo.cachedFileInfo != nullptr) {
+        return httpFileInfo.cachedFileInfo->readFile(buf, numBytes);
+    }
     auto maxNumBytesToRead = httpFileInfo.length - httpFileInfo.fileOffset;
     numBytes = std::min<uint64_t>(maxNumBytesToRead, numBytes);
     if (httpFileInfo.fileOffset > httpFileInfo.getFileSize()) {
@@ -228,14 +240,21 @@ void HTTPFileSystem::syncFile(const common::FileInfo&) const {
     throw NotImplementedException("syncFile is not supported in HTTPFileSystem");
 }
 
-int64_t HTTPFileSystem::seek(common::FileInfo& fileInfo, uint64_t offset, int /*whence*/) const {
-    auto& httpFileInfo = ku_dynamic_cast<FileInfo&, HTTPFileInfo&>(fileInfo);
+int64_t HTTPFileSystem::seek(common::FileInfo& fileInfo, uint64_t offset, int whence) const {
+    auto& httpFileInfo = fileInfo.cast<HTTPFileInfo>();
+    if (httpFileInfo.cachedFileInfo != nullptr) {
+        httpFileInfo.cachedFileInfo->seek(offset, whence);
+        return offset;
+    }
     httpFileInfo.fileOffset = offset;
     return offset;
 }
 
 uint64_t HTTPFileSystem::getFileSize(const common::FileInfo& fileInfo) const {
-    auto& httpFileInfo = ku_dynamic_cast<const FileInfo&, const HTTPFileInfo&>(fileInfo);
+    auto& httpFileInfo = fileInfo.constCast<HTTPFileInfo>();
+    if (httpFileInfo.cachedFileInfo != nullptr) {
+        return httpFileInfo.cachedFileInfo->getFileSize();
+    }
     return httpFileInfo.length;
 }
 

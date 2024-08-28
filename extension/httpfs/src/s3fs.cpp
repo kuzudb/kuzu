@@ -52,7 +52,7 @@ S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int fla
 
 S3FileInfo::~S3FileInfo() {
     auto s3FS = fileSystem->ptrCast<S3FileSystem>();
-    if ((((flags & O_ACCMODE) & O_WRONLY)) && !uploadFinalized) {
+    if ((flags & FileFlags::WRITE) && !uploadFinalized) {
         s3FS->flushAllBuffers(this);
         if (numPartsUploaded) {
             s3FS->finalizeMultipartUpload(this);
@@ -63,7 +63,7 @@ S3FileInfo::~S3FileInfo() {
 void S3FileInfo::initialize(main::ClientContext* context) {
     HTTPFileInfo::initialize(context);
     auto s3FS = fileSystem->constPtrCast<S3FileSystem>();
-    if ((flags & O_ACCMODE) & O_WRONLY) {
+    if (flags & FileFlags::WRITE) {
         auto maxNumParts = uploadParams.maxNumPartsPerFile;
         auto requiredPartSize = uploadParams.maxFileSize / maxNumParts;
         partSize = std::max<uint64_t>(AWS_MINIMUM_PART_SIZE, requiredPartSize);
@@ -454,6 +454,7 @@ ParsedS3URL S3FileSystem::parseS3URL(std::string url, S3AuthParams& params) {
 
 std::string S3FileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const {
     // AWS response is around 300~ chars in docs so this should be enough to not need a resize.
+    fileInfo->initMetadata();
     auto responseBufferLen = DEFAULT_RESPONSE_BUFFER_SIZE;
     auto responseBuffer = std::make_unique<uint8_t[]>(responseBufferLen);
     std::string queryParam = "uploads=";
@@ -466,7 +467,7 @@ std::string S3FileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const 
 void S3FileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
     uint64_t offset) const {
     auto s3FileInfo = fileInfo.ptrCast<S3FileInfo>();
-    if (!((s3FileInfo->flags & O_ACCMODE) & O_WRONLY)) {
+    if (!(s3FileInfo->flags & FileFlags::WRITE)) {
         throw IOException("Write called on a file which is not open in write mode.");
     }
     uint64_t numBytesWritten = 0;

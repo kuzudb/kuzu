@@ -41,6 +41,16 @@ struct KUZU_API FileInfo {
         return common::ku_dynamic_cast<const FileInfo*, const TARGET*>(this);
     }
 
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const FileInfo&, const TARGET&>(*this);
+    }
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<FileInfo&, TARGET&>(*this);
+    }
+
     const std::string path;
 
     FileSystem* fileSystem;
