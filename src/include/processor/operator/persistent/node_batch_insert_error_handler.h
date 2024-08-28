@@ -17,14 +17,14 @@ struct IndexBuilderError {
     common::nodeID_t nodeID;
 };
 
-class IndexBuilderErrorHandler {
+class NodeBatchInsertErrorHandler {
 public:
-    IndexBuilderErrorHandler(ExecutionContext* context, common::LogicalTypeID pkType,
-        storage::NodeTable* nodeTable, uint64_t queryID,
-        std::atomic<common::row_idx_t>* sharedDeletedRowCounter);
+    NodeBatchInsertErrorHandler(ExecutionContext* context, common::LogicalTypeID pkType,
+        storage::NodeTable* nodeTable, std::shared_ptr<common::row_idx_t> sharedErrorCounter,
+        std::mutex* sharedErrorCounterMtx);
 
     template<typename T>
-    void handleOrStoreError(IndexBuilderError<T> error) {
+    void handleError(IndexBuilderError<T> error) {
         if (!ignoreErrors) {
             throw common::CopyException(error.message);
         }
@@ -42,6 +42,10 @@ public:
     void flushStoredErrors();
 
 private:
+    common::row_idx_t getNumErrors() const;
+    void addNewVectors();
+    void clearErrors();
+
     static constexpr common::idx_t DELETE_VECTOR_SIZE = 1;
     static constexpr uint64_t LOCAL_WARNING_LIMIT = 1024;
 
@@ -51,15 +55,13 @@ private:
     common::LogicalTypeID pkType;
     storage::NodeTable* nodeTable;
     uint64_t queryID;
-    std::atomic<common::row_idx_t>* sharedDeletedRowCounter;
+
+    std::mutex* sharedErrorCounterMtx;
+    std::shared_ptr<common::row_idx_t> sharedErrorCounter;
 
     std::vector<std::shared_ptr<common::ValueVector>> keyVector;
     std::vector<std::shared_ptr<common::ValueVector>> offsetVector;
     std::vector<std::string> errorMessages;
-
-    uint64_t getNumErrors() const;
-    void addNewVectors();
-    void clearErrors();
 };
 } // namespace processor
 } // namespace kuzu

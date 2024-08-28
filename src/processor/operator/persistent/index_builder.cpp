@@ -29,13 +29,14 @@ PhysicalTypeID IndexBuilderGlobalQueues::pkTypeID() const {
     return nodeTable->getPKIndex()->keyTypeID();
 }
 
-void IndexBuilderGlobalQueues::consume(IndexBuilderErrorHandler& errors) {
+void IndexBuilderGlobalQueues::consume(NodeBatchInsertErrorHandler& errorHandler) {
     for (auto index = 0u; index < NUM_HASH_INDEXES; index++) {
-        maybeConsumeIndex(index, errors);
+        maybeConsumeIndex(index, errorHandler);
     }
 }
 
-void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index, IndexBuilderErrorHandler& errors) {
+void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index,
+    NodeBatchInsertErrorHandler& errorHandler) {
     if (!mutexes[index].try_lock()) {
         return;
     }
@@ -49,7 +50,7 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index, IndexBuilderError
                 auto numValuesInserted =
                     nodeTable->appendPKWithIndexPos(transaction, buffer, index);
                 if (numValuesInserted < buffer.size()) {
-                    errors.handleOrStoreError<T>(
+                    errorHandler.handleError<T>(
                         {.message = ExceptionMessage::duplicatePKException(
                              TypeUtils::toString(buffer[numValuesInserted].first)),
                             .key = buffer[numValuesInserted].first,
@@ -73,11 +74,11 @@ IndexBuilderLocalBuffers::IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& glo
         [](auto) { KU_UNREACHABLE; });
 }
 
-void IndexBuilderLocalBuffers::flush(IndexBuilderErrorHandler& errors) {
+void IndexBuilderLocalBuffers::flush(NodeBatchInsertErrorHandler& errorHandler) {
     std::visit(
         [&](auto&& buffers) {
             for (auto i = 0u; i < buffers->size(); i++) {
-                globalQueues->insert(i, std::move((*buffers)[i]), errors);
+                globalQueues->insert(i, std::move((*buffers)[i]), errorHandler);
             }
         },
         buffers);
@@ -93,14 +94,14 @@ void IndexBuilderSharedState::quitProducer() {
 }
 
 void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, offset_t numNodes,
-    IndexBuilderErrorHandler& errors) {
+    NodeBatchInsertErrorHandler& errorHandler) {
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < numNodes; i++) {
-                if (checkNonNullConstraint(chunk, nodeOffset, i, errors)) {
+                if (checkNonNullConstraint(chunk, nodeOffset, i, errorHandler)) {
                     auto value = chunk.getValue<T>(i);
-                    localBuffers.insert(value, nodeOffset + i, errors);
+                    localBuffers.insert(value, nodeOffset + i, errorHandler);
                 }
             }
         },
@@ -108,9 +109,9 @@ void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, off
             auto& stringColumnChunk =
                 ku_dynamic_cast<const ColumnChunkData&, const StringChunkData&>(chunk);
             for (auto i = 0u; i < numNodes; i++) {
-                if (checkNonNullConstraint(chunk, nodeOffset, i, errors)) {
+                if (checkNonNullConstraint(chunk, nodeOffset, i, errorHandler)) {
                     auto value = stringColumnChunk.getValue<std::string>(i);
-                    localBuffers.insert(std::move(value), nodeOffset + i, errors);
+                    localBuffers.insert(std::move(value), nodeOffset + i, errorHandler);
                 }
             }
         },
@@ -119,24 +120,25 @@ void IndexBuilder::insert(const ColumnChunkData& chunk, offset_t nodeOffset, off
         });
 }
 
-void IndexBuilder::finishedProducing(IndexBuilderErrorHandler& errors) {
-    localBuffers.flush(errors);
-    sharedState->consume(errors);
+void IndexBuilder::finishedProducing(NodeBatchInsertErrorHandler& errorHandler) {
+    localBuffers.flush(errorHandler);
+    sharedState->consume(errorHandler);
     while (!sharedState->isDone()) {
         std::this_thread::sleep_for(std::chrono::microseconds(500));
-        sharedState->consume(errors);
+        sharedState->consume(errorHandler);
     }
 }
 
-void IndexBuilder::finalize(ExecutionContext* /*context*/, IndexBuilderErrorHandler& errors) {
+void IndexBuilder::finalize(ExecutionContext* /*context*/,
+    NodeBatchInsertErrorHandler& errorHandler) {
     // Flush anything added by last node group.
-    localBuffers.flush(errors);
+    localBuffers.flush(errorHandler);
 
-    sharedState->consume(errors);
+    sharedState->consume(errorHandler);
 }
 
 bool IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk, offset_t nodeOffset,
-    offset_t chunkOffset, IndexBuilderErrorHandler& errors) {
+    offset_t chunkOffset, NodeBatchInsertErrorHandler& errorHandler) {
     const auto& nullChunk = chunk.getNullData();
     if (nullChunk.isNull(chunkOffset)) {
         TypeUtils::visit(
@@ -146,7 +148,7 @@ bool IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk, offset_t
                 KU_UNREACHABLE;
             },
             [&]<typename T>(T) {
-                errors.handleOrStoreError<T>({.message = ExceptionMessage::nullPKException(),
+                errorHandler.handleError<T>({.message = ExceptionMessage::nullPKException(),
                     .key = {},
                     .nodeID =
                         nodeID_t{nodeOffset + chunkOffset, sharedState->nodeTable->getTableID()}});

@@ -33,7 +33,6 @@ struct ClientConfig {
     uint32_t recursivePatternCardinalityScaleFactor;
     // maximum number of cached warnings
     uint64_t warningLimit;
-    // If ignoring copy errors
     bool ignoreCopyErrors;
     bool disableMapKeyCheck;
 };

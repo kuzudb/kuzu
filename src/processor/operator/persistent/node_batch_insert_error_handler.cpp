@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/index_builder_error_handler.h"
+#include "processor/operator/persistent/node_batch_insert_error_handler.h"
 
 #include "processor/execution_context.h"
 #include "storage/store/node_table.h"
@@ -7,16 +7,17 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
-IndexBuilderErrorHandler::IndexBuilderErrorHandler(ExecutionContext* context,
-    common::LogicalTypeID pkType, storage::NodeTable* nodeTable, uint64_t queryID,
-    std::atomic<common::row_idx_t>* sharedDeletedRowCounter)
+NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* context,
+    common::LogicalTypeID pkType, storage::NodeTable* nodeTable,
+    std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx)
     : ignoreErrors(context->clientContext->getClientConfig()->ignoreCopyErrors),
       warningLimit(
           std::min(context->clientContext->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
-      context(context), pkType(pkType), nodeTable(nodeTable), queryID(queryID),
-      sharedDeletedRowCounter(sharedDeletedRowCounter) {}
+      context(context), pkType(pkType), nodeTable(nodeTable), queryID(context->queryID),
+      sharedErrorCounterMtx(sharedErrorCounterMtx),
+      sharedErrorCounter(std::move(sharedErrorCounter)) {}
 
-void IndexBuilderErrorHandler::addNewVectors() {
+void NodeBatchInsertErrorHandler::addNewVectors() {
     offsetVector.push_back(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
         context->clientContext->getMemoryManager()));
     offsetVector.back()->state = DataChunkState::getSingleValueDataChunkState();
@@ -25,10 +26,10 @@ void IndexBuilderErrorHandler::addNewVectors() {
     keyVector.back()->state = DataChunkState::getSingleValueDataChunkState();
 }
 
-void IndexBuilderErrorHandler::flushStoredErrors() {
+void NodeBatchInsertErrorHandler::flushStoredErrors() {
     std::vector<PopulatedCSVError> populatedErrors;
 
-    for (idx_t i = 0; i < getNumErrors(); ++i) {
+    for (row_idx_t i = 0; i < getNumErrors(); ++i) {
         storage::NodeTableDeleteState deleteState{
             *offsetVector[i],
             *keyVector[i],
@@ -43,18 +44,22 @@ void IndexBuilderErrorHandler::flushStoredErrors() {
         });
     }
     context->appendWarningMessages(populatedErrors, queryID);
-    sharedDeletedRowCounter->fetch_add(getNumErrors());
+
+    {
+        common::UniqLock lockGuard{*sharedErrorCounterMtx};
+        *sharedErrorCounter += getNumErrors();
+    }
 
     clearErrors();
 }
 
-void IndexBuilderErrorHandler::clearErrors() {
+void NodeBatchInsertErrorHandler::clearErrors() {
     offsetVector.clear();
     keyVector.clear();
     errorMessages.clear();
 }
 
-uint64_t IndexBuilderErrorHandler::getNumErrors() const {
+row_idx_t NodeBatchInsertErrorHandler::getNumErrors() const {
     KU_ASSERT(offsetVector.size() == keyVector.size());
     KU_ASSERT(offsetVector.size() == errorMessages.size());
     return offsetVector.size();

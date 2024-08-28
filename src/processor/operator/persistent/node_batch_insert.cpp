@@ -63,8 +63,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 
         auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
         nodeLocalState->errorHandler =
-            IndexBuilderErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(), nodeTable,
-                context->queryID, &nodeSharedState->numDeletedRows};
+            NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(),
+                nodeTable, sharedState->numErroredRows, &sharedState->mtx};
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 
@@ -218,7 +218,7 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     }
 
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
-        sharedState->getNumRows() - sharedState->getNumDeletedRows(), info->tableEntry->getName());
+        sharedState->getNumRows() - sharedState->getNumErroredRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
 

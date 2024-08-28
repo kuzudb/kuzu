@@ -79,7 +79,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 };
 
 struct NodeBatchInsertLocalState final : BatchInsertLocalState {
-    std::optional<IndexBuilderErrorHandler> errorHandler;
+    std::optional<NodeBatchInsertErrorHandler> errorHandler;
 
     std::optional<IndexBuilder> localIndexBuilder;
 
