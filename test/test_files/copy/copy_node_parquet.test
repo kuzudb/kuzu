@@ -56,4 +56,19 @@
 -LOG CopyWithOptionsErrorTest
 -STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
 ---- error
-Binder exception: Copy from Parquet cannot have options.
+Binder exception: Copy from Parquet cannot have options other than IGNORE_ERRORS.
+
+-CASE IgnoreErrorsTest
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/invalid_pk_col.parquet" (IGNORE_ERRORS=true);
+---- ok
+-STATEMENT CALL show_warnings() RETURN message
+---- 2
+Found NULL, which violates the non-null constraint of the primary key column.
+Found duplicated primary key value 2, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (p:person) RETURN p.ID
+---- 5
+1
+2
+3
+4
+5
