@@ -87,15 +87,19 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnTypes.push_back(expr->getDataType().copy());
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
-    const auto* boundScanSource =
-        ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(copyFromInfo->source.get());
-    const auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-        boundScanSource->info.bindData.get());
-    const auto ignoreErrorsIt =
-        bindData->config.options.find(CopyConstants::IGNORE_ERRORS_OPTION_NAME);
-    const bool ignoreErrors = (ignoreErrorsIt == bindData->config.options.end()) ?
-                                  CopyConstants::DEFAULT_IGNORE_ERRORS :
-                                  ignoreErrorsIt->second.getValue<bool>();
+    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
+    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
+        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
+            copyFromInfo->source.get());
+        const auto* bindData =
+            ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
+                boundScanSource->info.bindData.get());
+        const auto ignoreErrorsIt =
+            bindData->config.options.find(CopyConstants::IGNORE_ERRORS_OPTION_NAME);
+        if (ignoreErrorsIt != bindData->config.options.end()) {
+            ignoreErrors = ignoreErrorsIt->second.getValue<bool>();
+        }
+    }
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
         copyFromInfo->columnEvaluateTypes, ignoreErrors);

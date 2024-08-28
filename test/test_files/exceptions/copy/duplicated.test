@@ -13,12 +13,10 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 
 -CASE DuplicateIntIDsIgnoreErrors
--STATEMENT CALL ignore_copy_errors=true;
----- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv"
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv"(IGNORE_ERRORS=true)
 ---- 2
 3 tuples have been copied to the person table.
-1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
+1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 2
 -STATEMENT MATCH (p:person) RETURN p.*
 ---- 3
 10|Guodong
@@ -26,15 +24,13 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 31|Xiyang
 -STATEMENT CALL show_warnings() RETURN *
 ---- 1
-3|Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.||0|
+2|Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.||0|
 
 -CASE DuplicateStringIDsIgnoreErrors
--STATEMENT CALL ignore_copy_errors=true;
----- ok
--STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"
+-STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"(IGNORE_ERRORS=true)
 ---- 2
 3 tuples have been copied to the org table.
-1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
+1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 2
 -STATEMENT MATCH (o:org) RETURN o.*
 ---- 3
 10|Guodong
@@ -42,4 +38,4 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 31|Xiyang
 -STATEMENT CALL show_warnings() RETURN *
 ---- 1
-3|Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.||0|
+2|Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.||0|

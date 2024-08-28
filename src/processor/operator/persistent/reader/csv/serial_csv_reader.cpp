@@ -67,7 +67,7 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
       warningCounter(std::make_shared<warning_counter_t>()) {
     for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
         errorHandlers.emplace_back(this->readerConfig.getFilePath(i), nullptr,
-            context->getClientConfig()->warningLimit, warningCounter, csvOption.ignoreErrors);
+            context->getClientConfig()->warningLimit, warningCounter, this->csvOption.ignoreErrors);
     }
     initReader(context);
 }

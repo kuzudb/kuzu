@@ -3,9 +3,7 @@
 --
 
 -CASE CastArrayIgnoreError
--STATEMENT CALL ignore_copy_errors=true;
----- ok
--STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv" RETURN *;
+-STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv"(IGNORE_ERRORS=true) RETURN *;
 ---- ok
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
 ---- 1
