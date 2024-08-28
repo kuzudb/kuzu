@@ -392,7 +392,7 @@ void NodeTable::serialize(Serializer& serializer) const {
 
 bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
-    auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
+    auto* nodeGroup = getNodeGroup(nodeGroupIdx);
     return nodeGroup->isVisible(transaction, offsetInGroup);
 }
 
