@@ -33,7 +33,6 @@ struct ClientConfig {
     uint32_t recursivePatternCardinalityScaleFactor;
     // maximum number of cached warnings
     uint64_t warningLimit;
-    bool ignoreCopyErrors;
     bool disableMapKeyCheck;
 };
 
@@ -49,7 +48,6 @@ struct ClientConfigDefault {
     static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 1;
     static constexpr bool DISABLE_MAP_KEY_CHECK = true;
     static constexpr uint64_t WARNING_LIMIT = 8 * 1024;
-    static constexpr bool IGNORE_COPY_ERRORS = false;
 };
 
 } // namespace main

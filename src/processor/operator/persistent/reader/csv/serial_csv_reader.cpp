@@ -67,8 +67,7 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(common::ReaderConfig readerCo
       warningCounter(std::make_shared<warning_counter_t>()) {
     for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
         errorHandlers.emplace_back(this->readerConfig.getFilePath(i), nullptr,
-            context->getClientConfig()->warningLimit, warningCounter,
-            context->getClientConfig()->ignoreCopyErrors);
+            context->getClientConfig()->warningLimit, warningCounter, csvOption.ignoreErrors);
     }
     initReader(context);
 }
@@ -111,7 +110,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     auto warningCounter = std::make_shared<warning_counter_t>();
     SharedCSVFileErrorHandler errorHandler{bindInput->config.getFilePath(fileIdx), nullptr,
         bindInput->context->getClientConfig()->warningLimit, warningCounter,
-        bindInput->context->getClientConfig()->ignoreCopyErrors};
+        csvOption.ignoreErrors};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], csvOption.copy(),
         columnInfo.copy(), bindInput->context, &errorHandler, bindInput);
     auto sniffedColumns = csvReader.sniffCSV();
@@ -191,7 +190,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
         auto cachedWarnings = state->errorHandlers[i].getPopulatedCachedErrors(state->reader.get());
 
         // The serial CSV reader should always be able to throw immediately if not ignoring errors
-        KU_ASSERT(state->context->getClientConfig()->ignoreCopyErrors || cachedWarnings.empty());
+        KU_ASSERT(state->csvOption.ignoreErrors || cachedWarnings.empty());
 
         RUNTIME_CHECK(totalWarningCount += cachedWarnings.size());
 

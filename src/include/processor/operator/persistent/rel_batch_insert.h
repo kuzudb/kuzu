@@ -37,12 +37,12 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
         common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, direction{direction},
+        : BatchInsertInfo{tableEntry, compressionEnabled, false}, direction{direction},
           partitioningIdx{partitioningIdx}, boundNodeOffsetColumnID{offsetColumnID},
           columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled}, direction{other.direction},
-          partitioningIdx{other.partitioningIdx},
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors},
+          direction{other.direction}, partitioningIdx{other.partitioningIdx},
           boundNodeOffsetColumnID{other.boundNodeOffsetColumnID},
           columnTypes{common::LogicalType::copy(other.columnTypes)} {}
 

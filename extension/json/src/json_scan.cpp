@@ -42,6 +42,11 @@ struct JsonScanConfig {
                     throw BinderException("Maximum depth parameter must be an int64.");
                 }
                 depth = i.second.val.int64Val;
+            } else if (i.first == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
+                // JSON reader currently doesn't do anything with IGNORE_ERRORS parameter
+                if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
+                    throw BinderException("IGNORE_ERRORS parameter must be a bool.");
+                }
             } else if (i.first == "SAMPLE_SIZE") {
                 if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64) {
                     throw BinderException("Sample size parameter must be an int64.");

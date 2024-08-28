@@ -20,8 +20,8 @@ struct IndexBuilderError {
 class NodeBatchInsertErrorHandler {
 public:
     NodeBatchInsertErrorHandler(ExecutionContext* context, common::LogicalTypeID pkType,
-        storage::NodeTable* nodeTable, std::shared_ptr<common::row_idx_t> sharedErrorCounter,
-        std::mutex* sharedErrorCounterMtx);
+        storage::NodeTable* nodeTable, bool ignoreErrors,
+        std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx);
 
     template<typename T>
     void handleError(IndexBuilderError<T> error) {

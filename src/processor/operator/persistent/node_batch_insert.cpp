@@ -12,7 +12,6 @@
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 
-using namespace kuzu::binder;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -64,7 +63,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
         nodeLocalState->errorHandler =
             NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(),
-                nodeTable, sharedState->numErroredRows, &sharedState->mtx};
+                nodeTable, nodeInfo->ignoreErrors, sharedState->numErroredRows, &sharedState->mtx};
     }
     // NOLINTEND(bugprone-unchecked-optional-access)
 

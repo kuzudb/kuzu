@@ -11,4 +11,6 @@ Runtime exception: Error unexpected character, expected a valid JSON value at li
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json'(format='unstructured') RETURN *;
 ---- error
 Runtime exception: Error unexpected character, expected a valid JSON value at line 2, column 10, character index 10
-
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(IGNORE_ERRORS="abc") RETURN *;
+---- error
+Binder exception: IGNORE_ERRORS parameter must be a bool.

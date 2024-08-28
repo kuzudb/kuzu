@@ -8,9 +8,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* context,
-    common::LogicalTypeID pkType, storage::NodeTable* nodeTable,
+    common::LogicalTypeID pkType, storage::NodeTable* nodeTable, bool ignoreErrors,
     std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx)
-    : ignoreErrors(context->clientContext->getClientConfig()->ignoreCopyErrors),
+    : ignoreErrors(ignoreErrors),
       warningLimit(
           std::min(context->clientContext->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
       context(context), pkType(pkType), nodeTable(nodeTable), queryID(context->queryID),

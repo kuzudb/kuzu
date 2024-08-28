@@ -125,8 +125,7 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(common::ReaderConfig read
       warningCounter(std::make_shared<warning_counter_t>()) {
     for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
         errorHandlers.emplace_back(this->readerConfig.getFilePath(i), &lock,
-            context->getClientConfig()->warningLimit, warningCounter,
-            context->getClientConfig()->ignoreCopyErrors);
+            context->getClientConfig()->warningLimit, warningCounter, csvOption.ignoreErrors);
     }
 }
 
@@ -162,8 +161,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             localState->fileIdx = fileIdx;
             localState->errorHandler = std::make_unique<LocalCSVFileErrorHandler>(
                 sharedState->context->getClientConfig()->warningLimit,
-                sharedState->context->getClientConfig()->ignoreCopyErrors,
-                &sharedState->errorHandlers[fileIdx]);
+                sharedState->csvOption.ignoreErrors, &sharedState->errorHandlers[fileIdx]);
             localState->reader =
                 std::make_unique<ParallelCSVReader>(sharedState->readerConfig.filePaths[fileIdx],
                     sharedState->csvOption.copy(), sharedState->columnInfo.copy(),
@@ -173,7 +171,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 
         // if there are any pending errors to throw, stop the parsing
         // the actual error will be thrown during finalize
-        if (!sharedState->context->getClientConfig()->ignoreCopyErrors &&
+        if (!sharedState->csvOption.ignoreErrors &&
             sharedState->errorHandlers[fileIdx].getNumCachedErrors() > 0) {
             numRowsRead = 0;
         }
@@ -230,8 +228,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
     auto sharedState = state->ptrCast<ParallelCSVScanSharedState>();
     localState->fileIdx = 0;
     localState->errorHandler = std::make_unique<LocalCSVFileErrorHandler>(
-        sharedState->context->getClientConfig()->warningLimit,
-        sharedState->context->getClientConfig()->ignoreCopyErrors,
+        sharedState->context->getClientConfig()->warningLimit, sharedState->csvOption.ignoreErrors,
         &sharedState->errorHandlers[localState->fileIdx]);
     localState->reader = std::make_unique<ParallelCSVReader>(sharedState->readerConfig.filePaths[0],
         sharedState->csvOption.copy(), sharedState->columnInfo.copy(), sharedState->context,

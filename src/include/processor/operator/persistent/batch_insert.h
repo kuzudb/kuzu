@@ -9,9 +9,12 @@ namespace processor {
 struct BatchInsertInfo {
     catalog::TableCatalogEntry* tableEntry;
     bool compressionEnabled;
+    bool ignoreErrors;
 
-    BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled)
-        : tableEntry{tableEntry}, compressionEnabled{compressionEnabled} {}
+    BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
+        bool ignoreErrors)
+        : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
+          ignoreErrors(ignoreErrors) {}
     virtual ~BatchInsertInfo() = default;
 
     BatchInsertInfo(const BatchInsertInfo& other) = delete;
