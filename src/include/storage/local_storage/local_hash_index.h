@@ -52,8 +52,9 @@ public:
         return localInsertions.append(key, value, isVisible);
     }
 
-    size_t append(const IndexBuffer<OwnedKeyType>& buffer, visible_func isVisible) {
-        return localInsertions.append(buffer, isVisible);
+    size_t append(const IndexBuffer<OwnedKeyType>& buffer, uint64_t bufferOffset,
+        visible_func isVisible) {
+        return localInsertions.append(buffer, bufferOffset, isVisible);
     }
 
     bool hasUpdates() const { return !(localInsertions.empty() && localDeletions.empty()); }

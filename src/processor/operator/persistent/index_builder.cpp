@@ -47,17 +47,23 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index,
             std::unique_lock lck{mutexes[index], std::adopt_lock};
             IndexBuffer<T> buffer;
             while (queues.array[index].pop(buffer)) {
-                auto numValuesInserted =
-                    nodeTable->appendPKWithIndexPos(transaction, buffer, index);
-                if (numValuesInserted < buffer.size()) {
-                    errorHandler.handleError<T>(
-                        {.message = ExceptionMessage::duplicatePKException(
-                             TypeUtils::toString(buffer[numValuesInserted].first)),
-                            .key = buffer[numValuesInserted].first,
-                            .nodeID = nodeID_t{
-                                buffer[numValuesInserted].second,
-                                nodeTable->getTableID(),
-                            }});
+                uint64_t insertBufferOffset = 0;
+                while (insertBufferOffset < buffer.size()) {
+                    auto numValuesInserted = nodeTable->appendPKWithIndexPos(transaction, buffer,
+                        insertBufferOffset, index);
+                    if (numValuesInserted < buffer.size() - insertBufferOffset) {
+                        const auto& erroneousEntry = buffer[insertBufferOffset + numValuesInserted];
+                        errorHandler.handleError<T>(
+                            {.message = ExceptionMessage::duplicatePKException(
+                                 TypeUtils::toString(erroneousEntry.first)),
+                                .key = erroneousEntry.first,
+                                .nodeID = nodeID_t{
+                                    erroneousEntry.second,
+                                    nodeTable->getTableID(),
+                                }});
+                        insertBufferOffset += 1; // skip the erroneous index then continue
+                    }
+                    insertBufferOffset += numValuesInserted;
                 }
             }
             return;

@@ -120,8 +120,8 @@ public:
         uint64_t vectorPos, common::offset_t& result) const;
     template<common::IndexHashable T>
     size_t appendPKWithIndexPos(const transaction::Transaction* transaction,
-        const IndexBuffer<T>& buffer, uint64_t indexPos) {
-        return pkIndex->appendWithIndexPos(transaction, buffer, indexPos,
+        const IndexBuffer<T>& buffer, uint64_t bufferOffset, uint64_t indexPos) {
+        return pkIndex->appendWithIndexPos(transaction, buffer, bufferOffset, indexPos,
             [&](common::offset_t offset) { return isVisible(transaction, offset); });
     }
 
