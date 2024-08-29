@@ -58,7 +58,7 @@ enum PageSizeClass : uint8_t {
 #ifdef KUZU_PAGE_SIZE_LOG2
 constexpr uint64_t PAGE_SIZE_LOG2 = KUZU_PAGE_SIZE_LOG2;
 #else
-constexpr uint64_t PAGE_SIZE_LOG2_VALUE = 12; // Default to 4KB.
+constexpr uint64_t PAGE_SIZE_LOG2 = 12; // Default to 4KB.
 #endif
 constexpr uint64_t PAGE_SIZE = static_cast<uint64_t>(1) << PAGE_SIZE_LOG2;
 // Page size for files with large pages, e.g., temporary files that are used by operators that
