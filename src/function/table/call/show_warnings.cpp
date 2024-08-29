@@ -36,7 +36,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         dataChunk.getValueVector(1)->setValue(i, tableInfo.warning.message);
         dataChunk.getValueVector(2)->setValue(i, tableInfo.warning.filePath);
         dataChunk.getValueVector(3)->setValue(i, tableInfo.warning.lineNumber);
-        dataChunk.getValueVector(4)->setValue(i, tableInfo.warning.reconstructedLine);
+        dataChunk.getValueVector(4)->setValue(i, tableInfo.warning.skippedLine);
     }
     return numWarningsToOutput;
 }

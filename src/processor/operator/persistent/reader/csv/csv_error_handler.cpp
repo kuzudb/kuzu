@@ -115,9 +115,9 @@ PopulatedCSVError SharedCSVFileErrorHandler::getPopulatedError(BaseCSVReader* re
     const char* incompleteLineSuffix = error.errorLine.isCompleteLine ? "" : "...";
     return {.message = error.message,
         .filePath = filePath,
-        .reconstructedLine = reader->reconstructLine(error.errorLine.startByteOffset,
-                                 error.errorLine.endByteOffset) +
-                             incompleteLineSuffix,
+        .skippedLine = reader->reconstructLine(error.errorLine.startByteOffset,
+                           error.errorLine.endByteOffset) +
+                       incompleteLineSuffix,
         .lineNumber = lineNumber};
 }
 

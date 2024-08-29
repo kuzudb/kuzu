@@ -2,6 +2,13 @@
 
 --
 
+-CASE CastArrayIgnoreError
+-STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv"(IGNORE_ERRORS=true) RETURN *;
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
+---- 1
+Conversion exception: Each array should have fixed number of elements. Expected: 4, Actual: 2.|${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv|1|"[123, 4321]"
+
 -CASE CastError
 -LOG CastUint64ToInt64OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int64(e.code);
@@ -642,7 +649,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv on line 1: Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16, UINT16[]) range. Line containing the error: '"{432=[432,432}"'
 -STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv" RETURN *;
 ---- error
-Copy exception: Each array should have fixed number of elements. Expected: 4, Actual: 2.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/incorrect_num.csv on line 1: Conversion exception: Each array should have fixed number of elements. Expected: 4, Actual: 2. Line containing the error: '"[123, 4321]"'
 -STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv" RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/array/error_conversion.csv on line 1: Conversion exception: Cast failed. Could not convert "4324234543543534534524" to INT16. Line containing the error: '"[4324234543543534534524]"'
@@ -653,8 +660,8 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/arra
 ---- error
 Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv" RETURN *;
----- error
-Copy exception: Invalid UTF8-encoded string.
+---- error(regex)
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8\.csv on line 1: Conversion exception: Invalid UTF8-encoded string\. Line containing the error: '.'
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv" RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv on line 1: Conversion exception: Could not convert to union type UNION(v1 INT64, v2 INT32): fdsaf. Line containing the error: 'fdsaf'
@@ -666,13 +673,13 @@ Conversion exception: Cast failed. Could not convert "-32769" to INT16.
 Conversion exception: Cast failed. [42, 42] fdaf is not in INT64[2] range.
 -STATEMENT RETURN cast("[42|42]", "DOUBLE[2]");
 ---- error
-Copy exception: Each array should have fixed number of elements. Expected: 2, Actual: 1.
+Conversion exception: Each array should have fixed number of elements. Expected: 2, Actual: 1.
 -STATEMENT RETURN cast("[42,42", "FLOAT[2]");
 ---- error
-Copy exception: Each array should have fixed number of elements. Expected: 2, Actual: 1.
+Conversion exception: Each array should have fixed number of elements. Expected: 2, Actual: 1.
 -STATEMENT RETURN cast("(42,42)", "INT32[2]");
 ---- error
-Copy exception: Each array should have fixed number of elements. Expected: 2, Actual: 0.
+Conversion exception: Each array should have fixed number of elements. Expected: 2, Actual: 0.
 
 -LOG InvalidCastTypeError
 -STATEMENT RETURN cast("dfsa", "INTERNAL_ID");

@@ -75,26 +75,27 @@ public:
     // Allocates the given number of new slots, ignoo
     void allocateSlots(uint32_t numSlots);
 
+    void reserveSpaceForAppend(uint32_t numNewEntries) {
+        reserve(indexHeader.numEntries + numNewEntries);
+    }
+
     using BufferKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
     // TODO(Ben): Ideally, `Key` should reuse `HashIndexType`.
     using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
     // Appends the buffer to the index. Returns the number of values successfully inserted.
     // I.e. if a key fails to insert, its index will be the return value
-    size_t append(const IndexBuffer<BufferKeyType>& buffer, visible_func isVisible) {
-        reserve(indexHeader.numEntries + buffer.size());
-        // Do both searches after splitting. Returning early if the key already exists isn't a
-        // particular concern and doing both after splitting allows the slotID to be reused
+    size_t append(const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset,
+        visible_func isVisible) {
+        reserve(indexHeader.numEntries + buffer.size() - bufferOffset);
         common::hash_t hashes[BUFFER_SIZE];
-        for (size_t i = 0; i < buffer.size(); i++) {
+        for (size_t i = bufferOffset; i < buffer.size(); i++) {
             hashes[i] = HashIndexUtils::hash(buffer[i].first);
-        }
-        for (size_t i = 0; i < buffer.size(); i++) {
             auto& [key, value] = buffer[i];
             if (!appendInternal(key, value, hashes[i], isVisible)) {
-                return i;
+                return i - bufferOffset;
             }
         }
-        return buffer.size();
+        return buffer.size() - bufferOffset;
     }
 
     bool append(Key key, common::offset_t value, visible_func isVisible) {

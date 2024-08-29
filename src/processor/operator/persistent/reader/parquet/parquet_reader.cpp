@@ -668,8 +668,10 @@ static void bindColumns(const ScanTableFuncBindInput* bindInput,
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::ScanTableFuncBindInput* scanInput) {
-    if (!scanInput->config.options.empty()) {
-        throw BinderException{"Copy from Parquet cannot have options."};
+    if (scanInput->config.options.size() > 1 ||
+        (scanInput->config.options.size() == 1 &&
+            !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
+        throw BinderException{"Copy from Parquet cannot have options other than IGNORE_ERRORS."};
     }
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;

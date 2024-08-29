@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "common/exception/binder.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 
 #ifdef _WIN32
@@ -294,7 +295,11 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::ScanTableFuncBindInput* scanInput) {
-    KU_ASSERT(scanInput->config.options.empty());
+    if (scanInput->config.options.size() >= 1 ||
+        (scanInput->config.options.size() == 1 &&
+            !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
+        throw BinderException{"Copy from numpy cannot have options other than IGNORE_ERRORS."};
+    }
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
     bindColumns(scanInput->config, detectedColumnNames, detectedColumnTypes);

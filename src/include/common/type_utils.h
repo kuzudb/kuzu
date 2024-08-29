@@ -30,12 +30,16 @@ public:
 
     template<typename T>
     static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
-        static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
-                      std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
-                      std::is_same<T, uint64_t>::value || std::is_same<T, uint32_t>::value ||
-                      std::is_same<T, uint16_t>::value || std::is_same<T, uint8_t>::value ||
-                      std::is_same<T, double>::value || std::is_same<T, float>::value);
-        return std::to_string(val);
+        if constexpr (std::is_same_v<T, std::string>) {
+            return val;
+        } else {
+            static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
+                          std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
+                          std::is_same<T, uint64_t>::value || std::is_same<T, uint32_t>::value ||
+                          std::is_same<T, uint16_t>::value || std::is_same<T, uint8_t>::value ||
+                          std::is_same<T, double>::value || std::is_same<T, float>::value);
+            return std::to_string(val);
+        }
     }
     static std::string nodeToString(const struct_entry_t& val, ValueVector* vector);
     static std::string relToString(const struct_entry_t& val, ValueVector* vector);

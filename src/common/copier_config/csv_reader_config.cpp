@@ -25,10 +25,10 @@ static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& op
         config.option.hasHeader = optionValue;
     } else if (optionName == "PARALLEL") {
         config.parallel = optionValue;
-    } else if (optionName == "IGNORE_ERRORS") {
-        config.option.ignoreErrors = optionValue;
     } else if (optionName == "LIST_UNBRACED") {
         config.option.allowUnbracedList = optionValue;
+    } else if (optionName == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
+        config.option.ignoreErrors = optionValue;
     } else {
         KU_UNREACHABLE;
     }

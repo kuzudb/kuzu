@@ -41,12 +41,13 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
-        std::vector<common::ColumnEvaluateType> evaluateTypes)
-        : BatchInsertInfo{tableEntry, compressionEnabled}, columnTypes{std::move(columnTypes)},
-          columnEvaluators{std::move(columnEvaluators)}, evaluateTypes{std::move(evaluateTypes)} {}
+        std::vector<common::ColumnEvaluateType> evaluateTypes, bool ignoreErrors)
+        : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors},
+          columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
+          evaluateTypes{std::move(evaluateTypes)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled},
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{cloneVector(other.columnEvaluators)},
           evaluateTypes{other.evaluateTypes} {}
@@ -79,6 +80,8 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
 };
 
 struct NodeBatchInsertLocalState final : BatchInsertLocalState {
+    std::optional<NodeBatchInsertErrorHandler> errorHandler;
+
     std::optional<IndexBuilder> localIndexBuilder;
 
     std::shared_ptr<common::DataChunkState> columnState;

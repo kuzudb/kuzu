@@ -25,6 +25,9 @@ RdfReaderConfig RdfReaderConfig::construct(
         } else if (name == RdfConstants::STRICT_OPTION) {
             validateBoolOption(op.second.getDataType(), name);
             config.strict = op.second.getValue<bool>();
+        } else if (name == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
+            // reader currently doesn't make use of IGNORE_ERRORS setting
+            validateBoolOption(op.second.getDataType(), name);
         } else {
             throw BinderException(stringFormat("Unrecognized parsing option: {}.", name));
         }

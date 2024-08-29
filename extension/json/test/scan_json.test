@@ -103,3 +103,19 @@ Cannot read from JSON Object to FLOAT
 {a: 1, b: 2024-02-11}
 {a: , b: 2000-01-01}
 
+-CASE CopyFromJsonIgnoreErrors
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT CREATE NODE TABLE person(ID UINT64, PRIMARY KEY (ID))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/json-error/pk_constraint_violation.json" (IGNORE_ERRORS=true);
+---- ok
+-STATEMENT CALL show_warnings() RETURN message
+---- 2
+Found NULL, which violates the non-null constraint of the primary key column.
+Found duplicated primary key value 2, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (p:person) RETURN p.ID
+---- 3
+1
+2
+3

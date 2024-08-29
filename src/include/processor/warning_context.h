@@ -13,7 +13,7 @@ namespace processor {
 struct PopulatedCSVError {
     std::string message;
     std::string filePath;
-    std::string reconstructedLine;
+    std::string skippedLine;
     uint64_t lineNumber;
 };
 
