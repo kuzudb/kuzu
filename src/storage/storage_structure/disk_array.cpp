@@ -28,8 +28,8 @@ static PageCursor getAPIdxAndOffsetInAP(const PageStorageInfo& info, uint64_t id
 
 PageStorageInfo::PageStorageInfo(uint64_t elementSize)
     : alignedElementSize{std::bit_ceil(elementSize)},
-      numElementsPerPage{BufferPoolConstants::PAGE_SIZE / alignedElementSize} {
-    KU_ASSERT(elementSize <= BufferPoolConstants::PAGE_SIZE);
+      numElementsPerPage{PAGE_SIZE / alignedElementSize} {
+    KU_ASSERT(elementSize <= PAGE_SIZE);
 }
 
 PIPWrapper::PIPWrapper(const FileHandle& fileHandle, page_idx_t pipPageIdx)

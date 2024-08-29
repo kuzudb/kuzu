@@ -182,7 +182,7 @@ public:
     // For files that are managed by BM, their FileHandles should be created through this function.
     FileHandle* getFileHandle(const std::string& filePath, uint8_t flags,
         common::VirtualFileSystem* vfs, main::ClientContext* context,
-        common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
+        common::PageSizeClass pageSizeClass = common::REGULAR_PAGE) {
         fileHandles.emplace_back(std::unique_ptr<FileHandle>(new FileHandle(filePath, flags, this,
             fileHandles.size(), pageSizeClass, vfs, context)));
         return fileHandles.back().get();
@@ -236,7 +236,7 @@ private:
     EvictionQueue evictionQueue;
     std::atomic<uint64_t> usedMemory;
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
-    // hold two sizes of PAGE_4KB and PAGE_256KB.
+    // hold two sizes of REGULAR_PAGE and TEMP_PAGE.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
     std::vector<std::unique_ptr<FileHandle>> fileHandles;
 };

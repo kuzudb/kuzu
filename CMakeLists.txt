@@ -96,6 +96,13 @@ option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
 option(ENABLE_LTO "Enable Link-Time Optimization" FALSE)
+option(PAGE_SIZE_LOG2 "Log2 of the page size." 12)
+# Ensure PAGE_SIZE_LOG2 is numeric by checking if it's OFF and setting a default
+if(PAGE_SIZE_LOG2 STREQUAL "none" OR PAGE_SIZE_LOG2 STREQUAL "OFF")
+    set(PAGE_SIZE_LOG2 12)
+endif()
+message(STATUS "PAGE_SIZE_LOG2: ${PAGE_SIZE_LOG2}")
+
 if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
@@ -256,6 +263,7 @@ if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.2")
+add_definitions(-DKUZU_PAGE_SIZE_LOG2=${PAGE_SIZE_LOG2})
 
 include_directories(src/include)
 

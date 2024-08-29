@@ -45,13 +45,12 @@ struct PageUtils {
         auto numBytesPerNullEntry = common::NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
         auto numNullEntries =
             hasNull ?
-                (uint32_t)ceil((double)common::BufferPoolConstants::PAGE_SIZE /
+                (uint32_t)ceil((double)common::PAGE_SIZE /
                                (double)(((uint64_t)elementSize
                                             << common::NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
                                         numBytesPerNullEntry)) :
                 0;
-        return (common::BufferPoolConstants::PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) /
-               elementSize;
+        return (common::PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
     }
 
     // This function returns the page pageIdx of the page where element will be found and the pos of

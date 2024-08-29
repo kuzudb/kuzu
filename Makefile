@@ -56,6 +56,10 @@ ifdef SKIP_SINGLE_FILE_HEADER
 	CMAKE_FLAGS += -DBUILD_SINGLE_FILE_HEADER=FALSE
 endif
 
+ifdef PAGE_SIZE_LOG2
+	CMAKE_FLAGS += -DPAGE_SIZE_LOG2=$(PAGE_SIZE_LOG2)
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)

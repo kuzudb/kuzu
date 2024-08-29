@@ -22,8 +22,7 @@ VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFra
     if (maxRegionSize > static_cast<std::size_t>(-1)) {
         throw BufferManagerException("maxRegionSize is beyond the max available mmap region size.");
     }
-    frameSize = pageSizeClass == PAGE_4KB ? BufferPoolConstants::PAGE_SIZE :
-                                            BufferPoolConstants::TEMP_PAGE_SIZE;
+    frameSize = pageSizeClass == REGULAR_PAGE ? PAGE_SIZE : TEMP_PAGE_SIZE;
     const auto numBytesForFrameGroup = frameSize * StorageConstants::PAGE_GROUP_SIZE;
     maxNumFrameGroups = (maxRegionSize + numBytesForFrameGroup - 1) / numBytesForFrameGroup;
 #ifdef _WIN32
