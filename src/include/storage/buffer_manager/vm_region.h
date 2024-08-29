@@ -23,7 +23,7 @@ public:
     common::frame_group_idx_t addNewFrameGroup();
 
     // Use `MADV_DONTNEED` to release physical memory associated with this frame.
-    void releaseFrame(common::frame_idx_t frameIdx);
+    void releaseFrame(common::frame_idx_t frameIdx) const;
 
     // Returns true if the memory address is within the reserved virtual memory region
     bool contains(const uint8_t* address) const {

@@ -52,7 +52,7 @@ VMRegion::~VMRegion() {
 #endif
 }
 
-void VMRegion::releaseFrame(frame_idx_t frameIdx) {
+void VMRegion::releaseFrame(frame_idx_t frameIdx) const {
 #ifdef _WIN32
     // TODO: VirtualAlloc(..., MEM_RESET, ...) may be faster
     // See https://arvid.io/2018/04/02/memory-mapping-on-windows/#1
