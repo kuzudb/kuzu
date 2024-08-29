@@ -49,11 +49,13 @@ void NodeBatchInsertErrorHandler::flushStoredErrors() {
             .lineNumber = 0,
         });
     }
-    context->appendWarningMessages(populatedErrors, queryID);
 
-    {
-        common::UniqLock lockGuard{*sharedErrorCounterMtx};
-        *sharedErrorCounter += getNumErrors();
+    if (!populatedErrors.empty()) {
+        context->appendWarningMessages(populatedErrors, queryID);
+        {
+            common::UniqLock lockGuard{*sharedErrorCounterMtx};
+            *sharedErrorCounter += getNumErrors();
+        }
     }
 
     clearErrors();
