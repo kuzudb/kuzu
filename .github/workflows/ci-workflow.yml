@@ -172,6 +172,14 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
+      - name: Test with page size 64KB
+        run: |
+          make test PAGE_SIZE_LOG2=16
+
+      - name: Test with page size 256KB
+        run: |
+          make test PAGE_SIZE_LOG2=18
+
   code-coverage:
     name: code coverage
     runs-on: ubuntu-22.04
