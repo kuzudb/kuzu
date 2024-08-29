@@ -27,7 +27,7 @@ class BufferManager;
 class MemoryBuffer {
 public:
     MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer,
-        uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE);
+        uint64_t size = common::BufferPoolConstants::TEMP_PAGE_SIZE);
     ~MemoryBuffer();
 
 public:
@@ -83,7 +83,7 @@ public:
     }
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
-        uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE) {
+        uint64_t size = common::BufferPoolConstants::TEMP_PAGE_SIZE) {
         return allocator->allocateBuffer(initializeToZero, size);
     }
     BufferManager* getBufferManager() const { return bm; }

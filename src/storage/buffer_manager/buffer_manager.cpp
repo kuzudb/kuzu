@@ -74,7 +74,7 @@ void EvictionQueue::clear(std::atomic<EvictionCandidate>& candidate) {
 
 BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
     : bufferPoolSize{bufferPoolSize},
-      evictionQueue{bufferPoolSize / BufferPoolConstants::PAGE_4KB_SIZE},
+      evictionQueue{bufferPoolSize / BufferPoolConstants::PAGE_SIZE},
       usedMemory{evictionQueue.getCapacity() * sizeof(EvictionCandidate)} {
     verifySizeParams(bufferPoolSize, maxDBSize);
     vmRegions.resize(2);
@@ -83,15 +83,15 @@ BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
 }
 
 void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
-    if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
+    if (bufferPoolSize < BufferPoolConstants::PAGE_SIZE) {
         throw BufferManagerException(
             stringFormat("The given buffer pool size should be at least {} bytes.",
-                BufferPoolConstants::PAGE_4KB_SIZE));
+                BufferPoolConstants::PAGE_SIZE));
     }
-    if (maxDBSize < BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+    if (maxDBSize < BufferPoolConstants::PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
         throw BufferManagerException(
             "The given max db size should be at least " +
-            std::to_string(BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
+            std::to_string(BufferPoolConstants::PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
             " bytes.");
     }
     if ((maxDBSize & (maxDBSize - 1)) != 0) {
@@ -390,7 +390,7 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutLock(file_idx_t fileIdx,
     auto& fileHandle = *fileHandles[fileIdx];
     auto state = fileHandle.getPageState(pageIdx);
     if (state && state->getState() != PageState::EVICTED) {
-        memcpy(getFrame(fileHandle, pageIdx), newPage, BufferPoolConstants::PAGE_4KB_SIZE);
+        memcpy(getFrame(fileHandle, pageIdx), newPage, BufferPoolConstants::PAGE_SIZE);
     }
 }
 

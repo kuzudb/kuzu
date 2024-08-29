@@ -15,7 +15,7 @@ ColumnChunkMetadata uncompressedFlushBuffer(const uint8_t* buffer, uint64_t buff
         memcpy(frame, buffer, bufferSize);
     } else {
         dataFH->getFileInfo()->writeFile(buffer, bufferSize,
-            startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+            startPageIdx * BufferPoolConstants::PAGE_SIZE);
     }
     return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
         metadata.compMeta);
@@ -26,14 +26,14 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(const uint8_t* buffer,
     const ColumnChunkMetadata& metadata) const {
     auto valuesRemaining = metadata.numValues;
     const uint8_t* bufferStart = buffer;
-    const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+    const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_SIZE);
     auto numPages = 0u;
     const auto numValuesPerPage =
-        metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        metadata.compMeta.numValues(BufferPoolConstants::PAGE_SIZE, dataType);
     KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
     while (valuesRemaining > 0) {
         const auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
-            compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE, metadata.compMeta);
+            compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE, metadata.compMeta);
         // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
         // UINT64_MAX)
         if (numValuesPerPage > valuesRemaining) {
@@ -41,32 +41,30 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(const uint8_t* buffer,
         } else {
             valuesRemaining -= numValuesPerPage;
         }
-        if (compressedSize < BufferPoolConstants::PAGE_4KB_SIZE) {
+        if (compressedSize < BufferPoolConstants::PAGE_SIZE) {
             memset(compressedBuffer.get() + compressedSize, 0,
-                BufferPoolConstants::PAGE_4KB_SIZE - compressedSize);
+                BufferPoolConstants::PAGE_SIZE - compressedSize);
         }
         KU_ASSERT(numPages < metadata.numPages);
         KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
         if (dataFH->isInMemoryMode()) {
             const auto frame = dataFH->getFrame(startPageIdx + numPages);
-            memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
+            memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE);
         } else {
-            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+            dataFH->getFileInfo()->writeFile(compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE,
+                (startPageIdx + numPages) * BufferPoolConstants::PAGE_SIZE);
         }
         numPages++;
     }
     // Make sure that the file is the right length
     while (numPages < metadata.numPages) {
-        memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
+        memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_SIZE);
         if (dataFH->isInMemoryMode()) {
             const auto frame = dataFH->getFrame(startPageIdx + metadata.numPages - 1);
-            memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
+            memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE);
         } else {
-            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
+            dataFH->getFileInfo()->writeFile(compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE,
+                (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_SIZE);
         }
         numPages++;
     }
@@ -89,15 +87,15 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
 
     const size_t exceptionBufferSize =
         EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity) *
-        BufferPoolConstants::PAGE_4KB_SIZE;
+        BufferPoolConstants::PAGE_SIZE;
     auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
     std::byte* exceptionBufferCursor = reinterpret_cast<std::byte*>(exceptionBuffer.get());
 
     const auto numValuesPerPage =
-        metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        metadata.compMeta.numValues(BufferPoolConstants::PAGE_SIZE, dataType);
     KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
 
-    const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+    const auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_SIZE);
     const uint8_t* bufferCursor = buffer;
     auto numPages = 0u;
     size_t remainingExceptionBufferSize = exceptionBufferSize;
@@ -107,7 +105,7 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
         uint64_t pageExceptionCount = 0;
         (void)castedAlg.compressNextPageWithExceptions(bufferCursor,
             metadata.numValues - valuesRemaining, valuesRemaining, compressedBuffer.get(),
-            BufferPoolConstants::PAGE_4KB_SIZE, EncodeExceptionView<T>{exceptionBufferCursor},
+            BufferPoolConstants::PAGE_SIZE, EncodeExceptionView<T>{exceptionBufferCursor},
             remainingExceptionBufferSize, pageExceptionCount, metadata.compMeta);
 
         exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeInBytes();
@@ -125,11 +123,10 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
         KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
         if (dataFH->isInMemoryMode()) {
             const auto frame = dataFH->getFrame(startPageIdx + numPages);
-            memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE);
+            memcpy(frame, compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE);
         } else {
-            dataFH->getFileInfo()->writeFile(compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+            dataFH->getFileInfo()->writeFile(compressedBuffer.get(), BufferPoolConstants::PAGE_SIZE,
+                (startPageIdx + numPages) * BufferPoolConstants::PAGE_SIZE);
         }
         numPages++;
     }

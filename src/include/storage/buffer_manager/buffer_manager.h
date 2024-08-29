@@ -112,9 +112,9 @@ private:
  * 1) For disk pages, BM allocates a virtual memory region of DEFAULT_VM_REGION_MAX_SIZE (defined in
  * constants.h), which is usually much larger than `maxSize`, and is expected to be large enough to
  * contain all disk pages. Each disk page in database files is directly mapped to a unique
- * PAGE_4KB_SIZE frame in the region.
+ * PAGE_SIZE frame in the region.
  * 2) For each FileHandle backed by a temp in-mem file in MM, BM allocates a virtual memory region
- * of `maxSize` for it. Each memory buffer is mapped to a unique PAGE_256KB_SIZE frame in that
+ * of `maxSize` for it. Each memory buffer is mapped to a unique TEMP_PAGE_SIZE frame in that
  * region. Both disk pages and memory buffers are all managed by the BM to make sure that actually
  * used physical memory doesn't go beyond max size specified by users. Currently, the BM uses a
  * queue based replacement policy and the MADV_DONTNEED hint to explicitly control evictions. See

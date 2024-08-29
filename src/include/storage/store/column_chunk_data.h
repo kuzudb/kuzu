@@ -159,8 +159,8 @@ public:
         const ColumnChunkMetadata& metadata) const;
 
     static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
-        return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
-               common::BufferPoolConstants::PAGE_4KB_SIZE;
+        return (numBytes + common::BufferPoolConstants::PAGE_SIZE - 1) /
+               common::BufferPoolConstants::PAGE_SIZE;
     }
 
     uint64_t getNumBytesPerValue() const { return numBytesPerValue; }

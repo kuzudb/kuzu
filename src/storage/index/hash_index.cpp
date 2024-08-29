@@ -204,7 +204,7 @@ void HashIndex<T>::reserve(const Transaction* transaction, uint64_t newEntries) 
     // page
     // Which allows safe use of multiple disk array iterators.
     numRequiredSlots = std::max(numRequiredSlots,
-        BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
+        BufferPoolConstants::PAGE_SIZE / pSlots->getAlignedElementSize());
     // If there are no entries, we can just re-size the number of primary slots and re-calculate the
     // levels
     if (this->indexHeaderForWriteTrx.numEntries == 0) {
@@ -284,7 +284,7 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     // Store sorted slot positions. Re-use to avoid re-allocating memory
     // TODO: Unify implementations to make sure this matches the size used by the disk array
     constexpr size_t NUM_SLOTS_PER_PAGE =
-        BufferPoolConstants::PAGE_4KB_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
+        BufferPoolConstants::PAGE_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
     std::array<std::vector<HashIndexEntryView>, NUM_SLOTS_PER_PAGE> partitionedEntries;
     // Sort entries for a page of slots at a time, then move vertically and process all entries
     // which map to a given page on disk, then horizontally to the next page in the set. These pages
