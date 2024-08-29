@@ -58,7 +58,7 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(const uint8_t* buffer,
         numPages++;
     }
     // Make sure that the file is the right length
-    if (numPages < metadata.numPages) {
+    while (numPages < metadata.numPages) {
         memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
         if (dataFH->isInMemoryMode()) {
             const auto frame = dataFH->getFrame(startPageIdx + metadata.numPages - 1);
@@ -68,6 +68,7 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(const uint8_t* buffer,
                 BufferPoolConstants::PAGE_4KB_SIZE,
                 (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
         }
+        numPages++;
     }
     return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
         metadata.compMeta);

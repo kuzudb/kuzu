@@ -59,8 +59,8 @@ struct PageUtils {
     // the element in the page as the offset.
     static PageCursor getPageCursorForPos(uint64_t elementPos, uint32_t numElementsPerPage) {
         KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
-        return PageCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
-            (uint16_t)(elementPos % numElementsPerPage)};
+        return PageCursor{static_cast<common::page_idx_t>(elementPos / numElementsPerPage),
+            static_cast<uint32_t>(elementPos % numElementsPerPage)};
     }
 };
 

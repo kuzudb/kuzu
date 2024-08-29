@@ -84,7 +84,9 @@ BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
 
 void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
     if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw BufferManagerException("The given buffer pool size should be at least 4KB.");
+        throw BufferManagerException(
+            stringFormat("The given buffer pool size should be at least {} bytes.",
+                BufferPoolConstants::PAGE_4KB_SIZE));
     }
     if (maxDBSize < BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
         throw BufferManagerException(

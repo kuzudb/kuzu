@@ -41,23 +41,26 @@ TEST_F(SystemConfigTest, testMaxDBSize) {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
-            "Buffer manager exception: The given max db size should be at least 4194304 bytes.");
+            "Buffer manager exception: The given max db size should be at least " +
+                std::to_string(
+                    BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
+                " bytes.");
     }
-    systemConfig->maxDBSize = 4194305;
+    systemConfig->maxDBSize = 268435457;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be a power of 2.");
     }
-    systemConfig->maxDBSize = 4194304;
+    systemConfig->maxDBSize = 268435456;
     try {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: No more frame groups can be added to the allocator.");
     }
-    systemConfig->maxDBSize = 1ull << 30;
+    systemConfig->maxDBSize = 1ull << 32;
     EXPECT_NO_THROW(auto db = std::make_unique<Database>(databasePath, *systemConfig));
 }
 
@@ -67,7 +70,8 @@ TEST_F(SystemConfigTest, testBufferPoolSize) {
         auto db = std::make_unique<Database>(databasePath, *systemConfig);
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
-            "Buffer manager exception: The given buffer pool size should be at least 4KB.");
+            "Buffer manager exception: The given buffer pool size should be at least " +
+                std::to_string(BufferPoolConstants::PAGE_4KB_SIZE) + " bytes.");
     }
     systemConfig->bufferPoolSize = BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
     EXPECT_NO_THROW(auto db = std::make_unique<Database>(databasePath, *systemConfig));
