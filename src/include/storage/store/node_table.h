@@ -115,6 +115,8 @@ public:
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
+    bool isVisibleNoLock(const transaction::Transaction* transaction,
+        common::offset_t offset) const;
 
     bool lookupPK(const transaction::Transaction* transaction, common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t& result) const;

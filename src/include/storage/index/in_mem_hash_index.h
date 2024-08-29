@@ -87,8 +87,6 @@ public:
     size_t append(const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset,
         visible_func isVisible) {
         reserve(indexHeader.numEntries + buffer.size() - bufferOffset);
-        // Do both searches after splitting. Returning early if the key already exists isn't a
-        // particular concern and doing both after splitting allows the slotID to be reused
         common::hash_t hashes[BUFFER_SIZE];
         for (size_t i = bufferOffset; i < buffer.size(); i++) {
             hashes[i] = HashIndexUtils::hash(buffer[i].first);

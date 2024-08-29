@@ -396,6 +396,12 @@ bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const
     return nodeGroup->isVisible(transaction, offsetInGroup);
 }
 
+bool NodeTable::isVisibleNoLock(const Transaction* transaction, offset_t offset) const {
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
+    return nodeGroup->isVisible(transaction, offsetInGroup);
+}
+
 bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector, uint64_t vectorPos,
     offset_t& result) const {
     if (transaction->getLocalStorage()) {
@@ -407,7 +413,7 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
         }
     }
     return pkIndex->lookup(transaction, keyVector, vectorPos, result,
-        [&](offset_t offset) { return isVisible(transaction, offset); });
+        [&](offset_t offset) { return isVisibleNoLock(transaction, offset); });
 }
 
 } // namespace storage
