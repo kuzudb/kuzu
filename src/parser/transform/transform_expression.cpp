@@ -1,6 +1,7 @@
 #include "function/aggregate/count_star.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
@@ -665,10 +666,27 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
-    ku_string_t literal{text.c_str(), text.length()};
-    double result;
-    function::CastString::operation(literal, result);
-    return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
+    if (text[0] == '-') {
+        text.erase(text.begin());
+    }
+    auto type = LogicalType::DOUBLE();
+    if (text.size() - 1 <= DECIMAL_PRECISION_LIMIT) {
+        auto decimalPoint = text.find('.');
+        KU_ASSERT(decimalPoint != std::string::npos);
+        type = LogicalType::DECIMAL(text.size() - 1, text.size() - decimalPoint - 1);
+    }
+    text = ctx.RegularDecimalReal()->getText(); // undo changes
+    if (type.getLogicalTypeID() == LogicalTypeID::DECIMAL) {
+        int128_t val;
+        decimalCast(text.c_str(), text.length(), val, type);
+        decimal_t result(val, DecimalType::getPrecision(type), DecimalType::getScale(type));
+        return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
+    } else {
+        ku_string_t literal{text.c_str(), text.length()};
+        double result;
+        function::CastString::operation(literal, result);
+        return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
+    }
 }
 
 } // namespace parser
