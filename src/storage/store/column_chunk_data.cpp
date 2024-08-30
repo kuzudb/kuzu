@@ -113,12 +113,17 @@ void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, Memo
 }
 
 void ColumnChunkData::initializeFunction(bool enableCompression) {
+    const auto compression = getCompression(dataType, enableCompression);
+    getMetadataFunction = GetCompressionMetadata(compression, dataType);
+    initializeFlushBufferFunction(compression);
+}
+
+void ColumnChunkData::initializeFlushBufferFunction(std::shared_ptr<CompressionAlg> compression) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         // Since we compress into memory, storage is the same as fixed-sized
         // values, but we need to mark it as being boolean compressed.
         flushBufferFunction = uncompressedFlushBuffer;
-        getMetadataFunction = booleanGetMetadata;
     } break;
     case PhysicalTypeID::STRING:
     case PhysicalTypeID::INT64:
@@ -133,25 +138,16 @@ void ColumnChunkData::initializeFunction(bool enableCompression) {
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::INT128: {
-        const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFlushBuffer(compression, dataType);
-        getMetadataFunction = GetBitpackingMetadata(compression, dataType);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFloatFlushBuffer<double>(compression, dataType);
-        getMetadataFunction = GetFloatCompressionMetadata<double>(compression, dataType);
-        break;
-    }
+    } break;
     case PhysicalTypeID::FLOAT: {
-        const auto compression = getCompression(dataType, enableCompression);
         flushBufferFunction = CompressedFloatFlushBuffer<float>(compression, dataType);
-        getMetadataFunction = GetFloatCompressionMetadata<float>(compression, dataType);
-        break;
-    }
+    } break;
     default: {
         flushBufferFunction = uncompressedFlushBuffer;
-        getMetadataFunction = uncompressedGetMetadata;
     }
     }
 }

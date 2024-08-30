@@ -217,7 +217,7 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
                 if (nullMask && nullMask->isNull(i)) {
                     continue;
                 }
-                if (!NullMask::isNull(reinterpret_cast<const uint64_t*>(data), i) !=
+                if (NullMask::isNull(reinterpret_cast<const uint64_t*>(data), i) !=
                     static_cast<bool>(min.unsignedInt)) {
                     return false;
                 }
@@ -1143,7 +1143,7 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
         physicalType,
         [&](bool) {
             if (numValues > 0) {
-                auto boolData = reinterpret_cast<const uint64_t*>(data);
+                const auto boolData = reinterpret_cast<const uint64_t*>(data);
                 if (!nullMask || nullMask->hasNoNullsGuarantee()) {
                     auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, numValues);
                     returnValue = std::make_pair(std::optional(StorageValue(minRaw)),
@@ -1154,13 +1154,14 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
                         if (!nullMask || !nullMask->isNull(i)) {
                             auto boolValue = NullMask::isNull(boolData, i);
                             if (!max || boolValue > max->get<bool>()) {
-                                returnValue.first = boolValue;
+                                max = boolValue;
                             }
                             if (!min || boolValue < min->get<bool>()) {
-                                returnValue.second = boolValue;
+                                min = boolValue;
                             }
                         }
                     }
+                    returnValue = std::make_pair(min, max);
                 }
             }
         },
@@ -1176,7 +1177,7 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
             requires(std::same_as<T, internalID_t>)
         {
             if (numValues > 0) {
-                auto typedData =
+                const auto typedData =
                     std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
                 returnValue = getTypedMinMax(typedData, nullMask, offset);
             }

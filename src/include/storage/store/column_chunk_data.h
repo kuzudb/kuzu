@@ -243,6 +243,7 @@ protected:
         const common::SelectionVector& selVector);
 
 private:
+    void initializeFlushBufferFunction(std::shared_ptr<CompressionAlg> compression);
     uint64_t getBufferSize(uint64_t capacity_) const;
 
 protected:

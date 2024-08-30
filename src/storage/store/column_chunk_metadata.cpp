@@ -22,6 +22,45 @@ ColumnChunkMetadata uncompressedGetMetadataInternal(uint64_t bufferSize, uint64_
 }
 } // namespace
 
+ColumnChunkMetadata GetCompressionMetadata::operator()(std::span<const uint8_t> buffer,
+    uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) const {
+    if (min == max) {
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
+            CompressionMetadata(min, max, CompressionType::CONSTANT));
+    }
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        return booleanGetMetadata(buffer, capacity, numValues, min, max);
+    }
+    case PhysicalTypeID::STRING:
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT8:
+    case PhysicalTypeID::INTERNAL_ID:
+    case PhysicalTypeID::ARRAY:
+    case PhysicalTypeID::LIST:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::INT128: {
+        return GetBitpackingMetadata(alg, dataType)(buffer, capacity, numValues, min, max);
+    }
+    case PhysicalTypeID::DOUBLE: {
+        return GetFloatCompressionMetadata<double>(alg, dataType)(buffer, capacity, numValues, min,
+            max);
+    }
+    case PhysicalTypeID::FLOAT: {
+        return GetFloatCompressionMetadata<float>(alg, dataType)(buffer, capacity, numValues, min,
+            max);
+    }
+    default: {
+        return uncompressedGetMetadata(buffer, capacity, numValues, min, max);
+    }
+    }
+}
+
 ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t /*capacity*/,
     uint64_t numValues, StorageValue min, StorageValue max) {
     return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
@@ -29,6 +68,10 @@ ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uin
 
 ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t /*capacity*/,
     uint64_t numValues, StorageValue min, StorageValue max) {
+    if (min == max) {
+        return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
+            CompressionMetadata(min, max, CompressionType::CONSTANT));
+    }
     return ColumnChunkMetadata(INVALID_PAGE_IDX,
         ColumnChunkData::getNumPagesForBytes(buffer.size()), numValues,
         CompressionMetadata(min, max, CompressionType::BOOLEAN_BITPACKING));
@@ -57,10 +100,6 @@ ColumnChunkMetadata GetBitpackingMetadata::operator()(std::span<const uint8_t> /
     // Compression is supported in this case
     // Unsupported types always return a dummy value (where min != max)
     // so that we don't constant compress them
-    if (min == max) {
-        return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
-            CompressionMetadata(min, max, CompressionType::CONSTANT));
-    }
     auto compMeta = CompressionMetadata(min, max, alg->getCompressionType());
     if (alg->getCompressionType() == CompressionType::INTEGER_BITPACKING) {
         TypeUtils::visit(

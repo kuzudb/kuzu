@@ -136,7 +136,7 @@ CompressedFloatFlushBuffer<T>::CompressedFloatFlushBuffer(std::shared_ptr<Compre
 template<std::floating_point T>
 CompressedFloatFlushBuffer<T>::CompressedFloatFlushBuffer(std::shared_ptr<CompressionAlg> alg,
     const LogicalType& dataType)
-    : kuzu::storage::CompressedFloatFlushBuffer<T>(alg, dataType.getPhysicalType()) {}
+    : CompressedFloatFlushBuffer<T>(alg, dataType.getPhysicalType()) {}
 
 template<std::floating_point T>
 ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(std::span<const uint8_t> buffer,

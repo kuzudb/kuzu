@@ -469,3 +469,18 @@ Runtime exception: Found duplicated primary key value 1, which violates the uniq
 2
 3
 4
+
+-CASE CreateWithNull
+-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, prop1 BOOL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1, name:'a', prop1:true});
+---- ok
+-STATEMENT CREATE (t:test {id:2, name:'b'});
+---- ok
+-STATEMENT CREATE (t:test {id:3, prop1:false});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 3
+1|a|True
+2|b|
+3||False

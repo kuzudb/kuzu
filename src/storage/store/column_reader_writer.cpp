@@ -15,6 +15,7 @@ namespace kuzu::storage {
 
 using namespace common;
 using namespace transaction;
+
 namespace {
 [[maybe_unused]] bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
     return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
