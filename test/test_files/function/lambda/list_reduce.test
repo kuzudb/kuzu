@@ -44,3 +44,12 @@ Runtime exception: Cannot execute list_reduce on an empty list.
 -STATEMENT RETURN LIST_REDUCE([null, 52, 223], (x, y) -> x + y)
 ---- 1
 
+-STATEMENT RETURN LIST_REDUCE(['a:', 'b:', 'c:', 'd:'], (x, y) -> y+x)
+---- 1
+d:c:b:a:
+-STATEMENT RETURN LIST_REDUCE(['a:', 'b:', 'c:', 'd:'], (x, y) -> x+y+x)
+---- 1
+a:b:a:c:a:b:a:d:a:b:a:c:a:b:a:
+-STATEMENT RETURN LIST_REDUCE(['a:', 'b:', 'c:', 'd:'], (x, y) -> y+x+y)
+---- 1
+d:c:b:a:b:c:d:

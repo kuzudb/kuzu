@@ -17,6 +17,7 @@
 #include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/pattern_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
+#include "parser/expression/parsed_lambda_expression.h"
 #include "planner/operator/schema.h"
 
 using namespace kuzu::binder;
@@ -152,6 +153,9 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getFunctionEvaluator(
         auto& lambdaExpr = expression->getChild(1)->constCast<LambdaExpression>();
         result->setLambdaRootEvaluator(
             recursiveExprMapper.getEvaluator(lambdaExpr.getFunctionExpr()));
+        result->setVarNames(lambdaExpr.getParsedLambdaExpr()
+                ->constCast<parser::ParsedLambdaExpression>()
+                .getVarNames());
         return result;
     }
     childrenEvaluators = getEvaluators(expression->getChildren());

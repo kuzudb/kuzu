@@ -77,3 +77,16 @@ Binder exception: The second argument of LIST_TRANSFORM should be a lambda expre
 [500]
 [500]
 [500]
+-STATEMENT MATCH (a:person) RETURN LIST_TRANSFORM(a.workedHours, x->x+x+2)
+---- 8
+[22,12]
+[26,18]
+[10,12]
+[4,20]
+[6]
+[8,10,12,14,16]
+[4]
+[22,24,26,8,10,12,14,16]
+-STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> size(x)+size(x))
+---- 1
+[8,12,10]
