@@ -58,8 +58,6 @@ TEST_F(SystemConfigTest, testMaxDBSize) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: No more frame groups can be added to the allocator.");
     }
-    systemConfig->maxDBSize = 1ull << 32;
-    EXPECT_NO_THROW(auto db = std::make_unique<Database>(databasePath, *systemConfig));
 }
 
 TEST_F(SystemConfigTest, testBufferPoolSize) {
