@@ -17,28 +17,29 @@ namespace kuzu {
 namespace storage {
 
 // Header can be read or write since it just needs the sizes
-static inline PageCursor getAPIdxAndOffsetInAP(const PageStorageInfo& info, uint64_t idx) {
+static PageCursor getAPIdxAndOffsetInAP(const PageStorageInfo& info, uint64_t idx) {
     // We assume that `numElementsPerPageLog2`, `elementPageOffsetMask`,
     // `alignedElementSizeLog2` are never modified throughout transactional updates, thus, we
     // directly use them from header here.
-    page_idx_t apIdx = idx / info.numElementsPerPage;
-    uint16_t byteOffsetInAP = (idx % info.numElementsPerPage) * info.alignedElementSize;
+    const page_idx_t apIdx = idx / info.numElementsPerPage;
+    const uint32_t byteOffsetInAP = (idx % info.numElementsPerPage) * info.alignedElementSize;
     return PageCursor{apIdx, byteOffsetInAP};
 }
 
 PageStorageInfo::PageStorageInfo(uint64_t elementSize)
     : alignedElementSize{std::bit_ceil(elementSize)},
-      numElementsPerPage{BufferPoolConstants::PAGE_4KB_SIZE / alignedElementSize} {
-    KU_ASSERT(elementSize <= BufferPoolConstants::PAGE_4KB_SIZE);
+      numElementsPerPage{PAGE_SIZE / alignedElementSize} {
+    KU_ASSERT(elementSize <= PAGE_SIZE);
 }
 
-PIPWrapper::PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {
+PIPWrapper::PIPWrapper(const FileHandle& fileHandle, page_idx_t pipPageIdx)
+    : pipPageIdx(pipPageIdx) {
     fileHandle.readPageFromDisk(reinterpret_cast<uint8_t*>(&pipContents), pipPageIdx);
 }
 
 DiskArrayInternal::DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
     const DiskArrayHeader& headerForReadTrx, DiskArrayHeader& headerForWriteTrx,
-    ShadowFile* shadowFile, uint64_t elementSize, bool bypassWAL)
+    ShadowFile* shadowFile, uint64_t elementSize, bool bypassShadowing)
     : storageInfo{elementSize}, fileHandle{fileHandle}, dbFileID{dbFileID},
       header{headerForReadTrx}, headerForWriteTrx{headerForWriteTrx},
       hasTransactionalUpdates{false}, shadowFile{shadowFile}, lastAPPageIdx{INVALID_PAGE_IDX},
@@ -51,7 +52,7 @@ DiskArrayInternal::DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,
     }
     // If bypassing the WAL is disabled, just leave the lastPageOnDisk as invalid, as then all pages
     // will be treated as updates to existing ones
-    if (bypassWAL) {
+    if (bypassShadowing) {
         updateLastPageOnDisk();
     }
 }
@@ -372,7 +373,7 @@ page_idx_t DiskArrayInternal::getAPIdx(uint64_t idx) const {
 
 // [] operator to be used when building an InMemDiskArrayBuilder without transactional updates.
 // This changes the contents directly in memory and not on disk (nor on the wal)
-uint8_t* BlockVectorInternal::operator[](uint64_t idx) {
+uint8_t* BlockVectorInternal::operator[](uint64_t idx) const {
     auto apCursor = getAPIdxAndOffsetInAP(storageInfo, idx);
     KU_ASSERT(apCursor.pageIdx < inMemArrayPages.size());
     return inMemArrayPages[apCursor.pageIdx].get() + apCursor.elemPosInPage;

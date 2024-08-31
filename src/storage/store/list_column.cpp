@@ -171,7 +171,7 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
         listColumnChunk.resetOffset();
     }
 
-    listColumnChunk.sanityCheck();
+    KU_ASSERT(listColumnChunk.sanityCheck());
 }
 
 void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,

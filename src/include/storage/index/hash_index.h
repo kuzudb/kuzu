@@ -36,7 +36,6 @@ class OnDiskHashIndex {
 public:
     virtual ~OnDiskHashIndex() = default;
     virtual bool checkpoint() = 0;
-    virtual void prepareRollback() = 0;
     virtual bool checkpointInMemory() = 0;
     virtual bool rollbackInMemory() = 0;
     virtual void bulkReserve(uint64_t numValuesToAppend) = 0;
@@ -148,7 +147,6 @@ public:
     }
 
     bool checkpoint() override;
-    void prepareRollback() override;
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
     inline FileHandle* getFileHandle() const { return fileHandle; }

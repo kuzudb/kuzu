@@ -23,7 +23,7 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
       oSlots{std::make_unique<BlockVector<Slot<T>>>()}, indexHeader{} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
-    allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
+    allocateSlots(PAGE_SIZE / pSlots->getAlignedElementSize());
 }
 
 template<typename T>
@@ -31,7 +31,7 @@ void InMemHashIndex<T>::clear() {
     indexHeader = HashIndexHeader();
     pSlots = std::make_unique<BlockVector<Slot<T>>>();
     oSlots = std::make_unique<BlockVector<Slot<T>>>();
-    allocateSlots(BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
+    allocateSlots(PAGE_SIZE / pSlots->getAlignedElementSize());
 }
 
 template<typename T>

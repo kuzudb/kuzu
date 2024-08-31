@@ -28,7 +28,7 @@ struct StrKeyColInfo {
 
 class MergedKeyBlocks {
 private:
-    static constexpr uint64_t DATA_BLOCK_SIZE = common::BufferPoolConstants::PAGE_256KB_SIZE;
+    static constexpr uint64_t DATA_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 
 public:
     MergedKeyBlocks(uint32_t numBytesPerTuple, uint64_t numTuples,

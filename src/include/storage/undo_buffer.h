@@ -25,7 +25,7 @@ namespace storage {
 //                For now, we use malloc to get around the limitation of 256KB from MM.
 class UndoMemoryBuffer {
 public:
-    static constexpr uint64_t UNDO_MEMORY_BUFFER_SIZE = common::BufferPoolConstants::PAGE_4KB_SIZE;
+    static constexpr uint64_t UNDO_MEMORY_BUFFER_SIZE = common::PAGE_SIZE;
 
     explicit UndoMemoryBuffer(uint64_t size) : size{size} {
         data = std::make_unique<uint8_t[]>(size);

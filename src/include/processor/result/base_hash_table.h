@@ -16,7 +16,7 @@ public:
     virtual ~BaseHashTable() = default;
 
 protected:
-    static constexpr uint64_t HASH_BLOCK_SIZE = common::BufferPoolConstants::PAGE_256KB_SIZE;
+    static constexpr uint64_t HASH_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 
     uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
     void setMaxNumHashSlots(uint64_t newSize);

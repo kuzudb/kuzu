@@ -24,12 +24,12 @@ common::LogicalType getBitpackingLogicalType() {
 template<std::floating_point T>
 size_t EncodeException<T>::numPagesFromExceptions(size_t exceptionCount) {
     return common::ceilDiv(static_cast<uint64_t>(exceptionCount),
-        common::BufferPoolConstants::PAGE_4KB_SIZE / sizeInBytes());
+        common::PAGE_SIZE / sizeInBytes());
 }
 
 template<std::floating_point T>
 size_t EncodeException<T>::exceptionBytesPerPage() {
-    return common::BufferPoolConstants::PAGE_4KB_SIZE / sizeInBytes() * sizeInBytes();
+    return common::PAGE_SIZE / sizeInBytes() * sizeInBytes();
 }
 
 template<std::floating_point T>

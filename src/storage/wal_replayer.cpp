@@ -29,7 +29,7 @@ namespace storage {
 WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{clientContext} {
     walFilePath = clientContext.getVFSUnsafe()->joinPath(clientContext.getDatabasePath(),
         StorageConstants::WAL_FILE_SUFFIX);
-    pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+    pageBuffer = std::make_unique<uint8_t[]>(PAGE_SIZE);
 }
 
 void WALReplayer::replay() const {

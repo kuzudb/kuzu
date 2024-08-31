@@ -4,6 +4,7 @@ import sys
 
 import kuzu
 import pytest
+
 from type_aliases import ConnDB
 
 
@@ -50,7 +51,7 @@ def test_max_db_size_exception() -> None:
 
 def test_buffer_pool_size_exception() -> None:
     with pytest.raises(
-        RuntimeError, match="Buffer manager exception: The given buffer pool size should be at least 4KB."
+        RuntimeError, match="Buffer manager exception: The given buffer pool size should be at least 4096 bytes."
     ):
         kuzu.Database("test.db", buffer_pool_size=1024)
 

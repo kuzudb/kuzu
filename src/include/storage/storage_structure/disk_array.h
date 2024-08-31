@@ -19,8 +19,7 @@ class FileHandle;
 class BufferManager;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
-    (common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t)) /
-    sizeof(common::page_idx_t);
+    (common::PAGE_SIZE - sizeof(common::page_idx_t)) / sizeof(common::page_idx_t);
 
 struct DiskArrayHeader {
     DiskArrayHeader() : numElements{0}, firstPIPPageIdx{common::INVALID_PAGE_IDX} {}
@@ -40,7 +39,6 @@ struct PageStorageInfo {
 
     uint64_t alignedElementSize;
     uint64_t numElementsPerPage;
-    uint64_t elementPageOffsetMask;
 };
 
 struct PIP {
@@ -49,10 +47,10 @@ struct PIP {
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
 };
-static_assert(sizeof(PIP) == common::BufferPoolConstants::PAGE_4KB_SIZE);
+static_assert(sizeof(PIP) == common::PAGE_SIZE);
 
 struct PIPWrapper {
-    PIPWrapper(FileHandle& fileHandle, common::page_idx_t pipPageIdx);
+    PIPWrapper(const FileHandle& fileHandle, common::page_idx_t pipPageIdx);
 
     explicit PIPWrapper(common::page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
 
@@ -259,7 +257,7 @@ inline std::span<std::byte> getSpan(U& val) {
 
 template<typename U>
 class DiskArray {
-    static_assert(sizeof(U) <= common::BufferPoolConstants::PAGE_4KB_SIZE);
+    static_assert(sizeof(U) <= common::PAGE_SIZE);
 
 public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
@@ -354,19 +352,15 @@ public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
     // InMemDiskArrayBuilder without transactional updates. This changes the contents directly in
     // memory and not on disk (nor on the wal).
-    uint8_t* operator[](uint64_t idx);
+    uint8_t* operator[](uint64_t idx) const;
 
-    uint64_t getMemUsage() const {
-        return inMemArrayPages.size() * common::BufferPoolConstants::PAGE_4KB_SIZE;
-    }
+    uint64_t getMemUsage() const { return inMemArrayPages.size() * common::PAGE_SIZE; }
 
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
-        inMemArrayPages.emplace_back(
-            std::make_unique<uint8_t[]>(common::BufferPoolConstants::PAGE_4KB_SIZE));
+        inMemArrayPages.emplace_back(std::make_unique<uint8_t[]>(common::PAGE_SIZE));
         if (setToZero) {
-            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0,
-                common::BufferPoolConstants::PAGE_4KB_SIZE);
+            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, common::PAGE_SIZE);
         }
         return inMemArrayPages.size() - 1;
     }

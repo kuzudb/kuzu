@@ -100,7 +100,7 @@ void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t le
             overflowFile.readFromDisk(TransactionType::CHECKPOINT, nextPosToWriteTo.pageIdx,
                 [&](auto* frame) {
                     auto page = std::make_unique<InMemPage>();
-                    memcpy(page->data, frame, BufferPoolConstants::PAGE_4KB_SIZE);
+                    memcpy(page->data, frame, PAGE_SIZE);
                     pageToWrite = page->data;
                     pageWriteCache.emplace(nextPosToWriteTo.pageIdx, std::move(page));
                 });
@@ -199,7 +199,7 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
         KU_ASSERT(shadowFile);
         ShadowUtils::updatePage(*getFileHandle(), dbFileID, pageIdx,
             true /* overwriting entire page*/, *shadowFile,
-            [&](auto* frame) { memcpy(frame, data, BufferPoolConstants::PAGE_4KB_SIZE); });
+            [&](auto* frame) { memcpy(frame, data, PAGE_SIZE); });
     } else {
         KU_ASSERT(fileHandle);
         KU_ASSERT(!fileHandle->isInMemoryMode());
@@ -219,11 +219,11 @@ void OverflowFile::checkpoint() {
         handle->checkpoint();
     }
     if (headerChanged) {
-        uint8_t page[BufferPoolConstants::PAGE_4KB_SIZE];
+        uint8_t page[PAGE_SIZE];
         header.pages = pageCounter;
         memcpy(page, &header, sizeof(header));
         // Zero free space at the end of the header page
-        std::fill(page + sizeof(header), page + BufferPoolConstants::PAGE_4KB_SIZE, 0);
+        std::fill(page + sizeof(header), page + PAGE_SIZE, 0);
         writePageToDisk(HEADER_PAGE_IDX, page);
     }
 }

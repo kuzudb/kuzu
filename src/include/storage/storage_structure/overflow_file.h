@@ -57,7 +57,7 @@ private:
 
 private:
     static constexpr common::page_idx_t END_OF_PAGE =
-        common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t);
+        common::PAGE_SIZE - sizeof(common::page_idx_t);
     // This is the index of the last free byte to which we can write.
     PageCursor& nextPosToWriteTo;
     OverflowFile& overflowFile;

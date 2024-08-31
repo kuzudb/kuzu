@@ -69,7 +69,7 @@ uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     }
     default: {
         auto size = PhysicalTypeUtils::getFixedTypeSize(dataType);
-        KU_ASSERT(size <= BufferPoolConstants::PAGE_4KB_SIZE);
+        KU_ASSERT(size <= PAGE_SIZE);
         return size;
     }
     }
@@ -730,7 +730,7 @@ void IntegerBitpacking<T>::copyValuesToTempChunkWithOffset(const U* srcBuffer, U
 template<IntegerBitpackingType T>
 uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
-    const struct CompressionMetadata& metadata) const {
+    const CompressionMetadata& metadata) const {
     // TODO(bmwinger): this is hacky; we need a better system for dynamically choosing between
     // algorithms when compressing
     if (metadata.compression == CompressionType::UNCOMPRESSED) {

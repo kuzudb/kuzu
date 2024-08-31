@@ -95,13 +95,6 @@ bool HashIndex<T>::checkpoint() {
 }
 
 template<typename T>
-void HashIndex<T>::prepareRollback() {
-    if (localStorage->hasUpdates()) {
-        // TODO(Guodong): This function should be removed.
-    }
-}
-
-template<typename T>
 bool HashIndex<T>::checkpointInMemory() {
     if (!localStorage->hasUpdates()) {
         return false;
@@ -210,8 +203,7 @@ void HashIndex<T>::reserve(const Transaction* transaction, uint64_t newEntries) 
     // This guarantees that when splitting the source and destination slot are never on the same
     // page
     // Which allows safe use of multiple disk array iterators.
-    numRequiredSlots = std::max(numRequiredSlots,
-        BufferPoolConstants::PAGE_4KB_SIZE / pSlots->getAlignedElementSize());
+    numRequiredSlots = std::max(numRequiredSlots, PAGE_SIZE / pSlots->getAlignedElementSize());
     // If there are no entries, we can just re-size the number of primary slots and re-calculate the
     // levels
     if (this->indexHeaderForWriteTrx.numEntries == 0) {
@@ -290,8 +282,7 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
 
     // Store sorted slot positions. Re-use to avoid re-allocating memory
     // TODO: Unify implementations to make sure this matches the size used by the disk array
-    constexpr size_t NUM_SLOTS_PER_PAGE =
-        BufferPoolConstants::PAGE_4KB_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
+    constexpr size_t NUM_SLOTS_PER_PAGE = PAGE_SIZE / DiskArray<Slot<T>>::getAlignedElementSize();
     std::array<std::vector<HashIndexEntryView>, NUM_SLOTS_PER_PAGE> partitionedEntries;
     // Sort entries for a page of slots at a time, then move vertically and process all entries
     // which map to a given page on disk, then horizontally to the next page in the set. These pages
@@ -495,8 +486,8 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         [&](auto) { KU_UNREACHABLE; });
 }
 
-bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t& result, visible_func isVisible) {
+bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uint64_t vectorPos,
+    offset_t& result, visible_func isVisible) {
     bool retVal = false;
     TypeUtils::visit(
         keyDataTypeID,
@@ -508,8 +499,8 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, common::ValueVector* keyVec
     return retVal;
 }
 
-bool PrimaryKeyIndex::insert(const Transaction* transaction, common::ValueVector* keyVector,
-    uint64_t vectorPos, common::offset_t value, visible_func isVisible) {
+bool PrimaryKeyIndex::insert(const Transaction* transaction, ValueVector* keyVector,
+    uint64_t vectorPos, offset_t value, visible_func isVisible) {
     bool result = false;
     TypeUtils::visit(
         keyDataTypeID,

@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 InMemPage::InMemPage() {
-    buffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+    buffer = std::make_unique<uint8_t[]>(PAGE_SIZE);
     data = buffer.get();
 }
 

@@ -23,7 +23,7 @@ struct DBFileIDAndName {
 };
 
 struct PageCursor {
-    PageCursor(common::page_idx_t pageIdx, uint16_t posInPage)
+    PageCursor(common::page_idx_t pageIdx, uint32_t posInPage)
         : pageIdx{pageIdx}, elemPosInPage{posInPage} {};
     PageCursor() : PageCursor{UINT32_MAX, UINT16_MAX} {};
 
@@ -45,22 +45,20 @@ struct PageUtils {
         auto numBytesPerNullEntry = common::NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
         auto numNullEntries =
             hasNull ?
-                (uint32_t)ceil((double)common::BufferPoolConstants::PAGE_4KB_SIZE /
+                (uint32_t)ceil((double)common::PAGE_SIZE /
                                (double)(((uint64_t)elementSize
                                             << common::NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
                                         numBytesPerNullEntry)) :
                 0;
-        return (common::BufferPoolConstants::PAGE_4KB_SIZE -
-                   (numNullEntries * numBytesPerNullEntry)) /
-               elementSize;
+        return (common::PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
     }
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
     static PageCursor getPageCursorForPos(uint64_t elementPos, uint32_t numElementsPerPage) {
         KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
-        return PageCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
-            (uint16_t)(elementPos % numElementsPerPage)};
+        return PageCursor{static_cast<common::page_idx_t>(elementPos / numElementsPerPage),
+            static_cast<uint32_t>(elementPos % numElementsPerPage)};
     }
 };
 

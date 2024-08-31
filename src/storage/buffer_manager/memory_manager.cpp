@@ -22,15 +22,15 @@ MemoryBuffer::~MemoryBuffer() {
 MemoryAllocator::MemoryAllocator(BufferManager* bm, VirtualFileSystem* vfs,
     main::ClientContext* context)
     : bm{bm} {
-    pageSize = BufferPoolConstants::PAGE_256KB_SIZE;
-    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, context, PAGE_256KB);
+    pageSize = TEMP_PAGE_SIZE;
+    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, context, TEMP_PAGE);
 }
 
 MemoryAllocator::~MemoryAllocator() = default;
 
 std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZero,
     uint64_t size) {
-    if (size > BufferPoolConstants::PAGE_256KB_SIZE) [[unlikely]] {
+    if (size > TEMP_PAGE_SIZE) [[unlikely]] {
         bm->reserve(size);
         auto buffer = malloc(size);
         if (initializeToZero) {

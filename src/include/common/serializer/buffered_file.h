@@ -36,7 +36,7 @@ protected:
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
     FileInfo& fileInfo;
-    static constexpr uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
+    static constexpr uint64_t BUFFER_SIZE = PAGE_SIZE;
 };
 
 class BufferedFileReader final : public Reader {
@@ -48,7 +48,7 @@ public:
     bool finished() override;
 
 private:
-    static constexpr uint64_t BUFFER_SIZE = BufferPoolConstants::PAGE_4KB_SIZE;
+    static constexpr uint64_t BUFFER_SIZE = PAGE_SIZE;
 
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;

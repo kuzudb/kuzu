@@ -261,8 +261,7 @@ void ColumnChunkData::initializeScanState(ChunkState& state, Column* column) con
     state.column = column;
     if (residencyState == ResidencyState::ON_DISK) {
         state.metadata = metadata;
-        state.numValuesPerPage =
-            state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        state.numValuesPerPage = state.metadata.compMeta.numValues(PAGE_SIZE, dataType);
 
         state.column->populateExtraChunkState(state);
     }

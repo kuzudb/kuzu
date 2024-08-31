@@ -112,9 +112,9 @@ private:
  * 1) For disk pages, BM allocates a virtual memory region of DEFAULT_VM_REGION_MAX_SIZE (defined in
  * constants.h), which is usually much larger than `maxSize`, and is expected to be large enough to
  * contain all disk pages. Each disk page in database files is directly mapped to a unique
- * PAGE_4KB_SIZE frame in the region.
+ * PAGE_SIZE frame in the region.
  * 2) For each FileHandle backed by a temp in-mem file in MM, BM allocates a virtual memory region
- * of `maxSize` for it. Each memory buffer is mapped to a unique PAGE_256KB_SIZE frame in that
+ * of `maxSize` for it. Each memory buffer is mapped to a unique TEMP_PAGE_SIZE frame in that
  * region. Both disk pages and memory buffers are all managed by the BM to make sure that actually
  * used physical memory doesn't go beyond max size specified by users. Currently, the BM uses a
  * queue based replacement policy and the MADV_DONTNEED hint to explicitly control evictions. See
@@ -182,7 +182,7 @@ public:
     // For files that are managed by BM, their FileHandles should be created through this function.
     FileHandle* getFileHandle(const std::string& filePath, uint8_t flags,
         common::VirtualFileSystem* vfs, main::ClientContext* context,
-        common::PageSizeClass pageSizeClass = common::PAGE_4KB) {
+        common::PageSizeClass pageSizeClass = common::REGULAR_PAGE) {
         fileHandles.emplace_back(std::unique_ptr<FileHandle>(new FileHandle(filePath, flags, this,
             fileHandles.size(), pageSizeClass, vfs, context)));
         return fileHandles.back().get();
@@ -236,7 +236,7 @@ private:
     EvictionQueue evictionQueue;
     std::atomic<uint64_t> usedMemory;
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
-    // hold two sizes of PAGE_4KB and PAGE_256KB.
+    // hold two sizes of REGULAR_PAGE and TEMP_PAGE.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
     std::vector<std::unique_ptr<FileHandle>> fileHandles;
 };

@@ -112,8 +112,7 @@ private:
     bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
     bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
     uint64_t getPageSize() const {
-        return isLargePaged() ? common::BufferPoolConstants::PAGE_256KB_SIZE :
-                                common::BufferPoolConstants::PAGE_4KB_SIZE;
+        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::PAGE_SIZE;
     }
 
     common::page_idx_t addNewPageWithoutLock();
@@ -156,7 +155,7 @@ private:
     // With a page group size of 2^10 and an 256KB index size, the access cost increases
     // only with each 128GB added to the file
     common::ConcurrentVector<PageState, common::StorageConstants::PAGE_GROUP_SIZE,
-        common::BufferPoolConstants::PAGE_256KB_SIZE / sizeof(void*)>
+        common::TEMP_PAGE_SIZE / sizeof(void*)>
         pageStates;
     // Each file page group corresponds to a frame group in the VMRegion.
     // Just one frame group for each page group, so performance is less sensitive than pageStates

@@ -73,24 +73,23 @@ void EvictionQueue::clear(std::atomic<EvictionCandidate>& candidate) {
 }
 
 BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
-    : bufferPoolSize{bufferPoolSize},
-      evictionQueue{bufferPoolSize / BufferPoolConstants::PAGE_4KB_SIZE},
+    : bufferPoolSize{bufferPoolSize}, evictionQueue{bufferPoolSize / PAGE_SIZE},
       usedMemory{evictionQueue.getCapacity() * sizeof(EvictionCandidate)} {
     verifySizeParams(bufferPoolSize, maxDBSize);
     vmRegions.resize(2);
-    vmRegions[0] = std::make_unique<VMRegion>(PAGE_4KB, maxDBSize);
-    vmRegions[1] = std::make_unique<VMRegion>(PAGE_256KB, bufferPoolSize);
+    vmRegions[0] = std::make_unique<VMRegion>(REGULAR_PAGE, maxDBSize);
+    vmRegions[1] = std::make_unique<VMRegion>(TEMP_PAGE, bufferPoolSize);
 }
 
 void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
-    if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw BufferManagerException("The given buffer pool size should be at least 4KB.");
-    }
-    if (maxDBSize < BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+    if (bufferPoolSize < PAGE_SIZE) {
         throw BufferManagerException(
-            "The given max db size should be at least " +
-            std::to_string(BufferPoolConstants::PAGE_4KB_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
-            " bytes.");
+            stringFormat("The given buffer pool size should be at least {} bytes.", PAGE_SIZE));
+    }
+    if (maxDBSize < PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+        throw BufferManagerException("The given max db size should be at least " +
+                                     std::to_string(PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
+                                     " bytes.");
     }
     if ((maxDBSize & (maxDBSize - 1)) != 0) {
         throw BufferManagerException("The given max db size should be a power of 2.");
@@ -388,7 +387,7 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutLock(file_idx_t fileIdx,
     auto& fileHandle = *fileHandles[fileIdx];
     auto state = fileHandle.getPageState(pageIdx);
     if (state && state->getState() != PageState::EVICTED) {
-        memcpy(getFrame(fileHandle, pageIdx), newPage, BufferPoolConstants::PAGE_4KB_SIZE);
+        memcpy(getFrame(fileHandle, pageIdx), newPage, PAGE_SIZE);
     }
 }
 

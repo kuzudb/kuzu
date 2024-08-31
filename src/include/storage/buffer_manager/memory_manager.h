@@ -27,7 +27,7 @@ class BufferManager;
 class MemoryBuffer {
 public:
     MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer,
-        uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE);
+        uint64_t size = common::TEMP_PAGE_SIZE);
     ~MemoryBuffer();
 
 public:
@@ -61,7 +61,7 @@ private:
 
 /*
  * The Memory Manager (MM) is used for allocating/reclaiming intermediate memory blocks.
- * It can allocate a memory buffer of size PAGE_256KB from the buffer manager backed by a
+ * It can allocate a memory buffer of size TEMP_PAGE from the buffer manager backed by a
  * FileHandle with temp in-mem file.
  *
  * Internally, MM uses a MemoryAllocator. The MemoryAllocator is holding the FileHandle backed by
@@ -83,7 +83,7 @@ public:
     }
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
-        uint64_t size = common::BufferPoolConstants::PAGE_256KB_SIZE) {
+        uint64_t size = common::TEMP_PAGE_SIZE) {
         return allocator->allocateBuffer(initializeToZero, size);
     }
     BufferManager* getBufferManager() const { return bm; }

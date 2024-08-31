@@ -21,7 +21,7 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm
         constructNewFileHandle(path);
     }
     pageStates = ConcurrentVector<PageState, StorageConstants::PAGE_GROUP_SIZE,
-        BufferPoolConstants::PAGE_256KB_SIZE / sizeof(void*)>{numPages, pageCapacity};
+        TEMP_PAGE_SIZE / sizeof(void*)>{numPages, pageCapacity};
     frameGroupIdxes = ConcurrentVector<page_group_idx_t>{getNumPageGroups(), getNumPageGroups()};
     for (auto i = 0u; i < frameGroupIdxes.size(); i++) {
         frameGroupIdxes[i] = bm->addNewFrameGroup(pageSizeClass);

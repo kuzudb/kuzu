@@ -74,7 +74,7 @@ ColumnChunkMetadata GetBitpackingMetadata::operator()(const uint8_t* /*buffer*/,
             },
             [&](auto) {});
     }
-    const auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    const auto numValuesPerPage = compMeta.numValues(PAGE_SIZE, dataType);
     const auto numPages =
         numValuesPerPage == UINT64_MAX ?
             0 :
@@ -183,7 +183,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(const uint8_t* bu
         return uncompressedGetMetadataInternal(bufferSize, numValues, min, max);
     }
 
-    const auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    const auto numValuesPerPage = compMeta.numValues(PAGE_SIZE, dataType);
     const auto numPagesForEncoded = ceilDiv(capacity, numValuesPerPage);
     const auto numPagesForExceptions =
         EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity);

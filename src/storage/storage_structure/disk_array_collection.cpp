@@ -54,10 +54,9 @@ void DiskArrayCollection::checkpoint() {
             ShadowUtils::updatePage(fileHandle, dbFileID, *headerPageIdx,
                 true /*writing full page*/, shadowFile, [&](auto* frame) {
                     memcpy(frame, headersForWriteTrx[indexInMemory].get(), sizeof(HeaderPage));
-                    if constexpr (sizeof(HeaderPage) < BufferPoolConstants::PAGE_4KB_SIZE) {
+                    if constexpr (sizeof(HeaderPage) < PAGE_SIZE) {
                         // Zero remaining data in the page
-                        std::fill(frame + sizeof(HeaderPage),
-                            frame + BufferPoolConstants::PAGE_4KB_SIZE, 0);
+                        std::fill(frame + sizeof(HeaderPage), frame + PAGE_SIZE, 0);
                     }
                 });
         }

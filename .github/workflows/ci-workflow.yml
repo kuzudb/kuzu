@@ -367,6 +367,92 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
+  clang-build-test-64KB-page-size:
+    name: clang build & test with page size 64KB
+    needs: [clang-build-test]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
+      TEST_JOBS: 16
+      CC: clang
+      CXX: clang++
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make release PAGE_SIZE_LOG2=16
+
+      - name: Generate binary demo
+        run: |
+          bash scripts/generate_binary_demo.sh
+
+      - name: Test
+        run: |
+          make test PAGE_SIZE_LOG2=16
+
+  clang-build-test-256KB-page-size:
+    name: clang build & test with page size 256KB
+    needs: [clang-build-test]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
+      TEST_JOBS: 16
+      CC: clang
+      CXX: clang++
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make release PAGE_SIZE_LOG2=18
+
+      - name: Generate binary demo
+        run: |
+          bash scripts/generate_binary_demo.sh
+
+      - name: Test
+        run: |
+          make test PAGE_SIZE_LOG2=18
+
   msvc-build-test:
     name: msvc build & test
     needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
@@ -409,13 +495,13 @@ jobs:
       - name: Visual Studio Generator Build
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make all GEN="Visual Studio 17 2022"
 
       - name: Test
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
       - name: Test compression disabled
@@ -423,7 +509,7 @@ jobs:
         env:
           ENABLE_COMPRESSION: false
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
       - name: Test in mem
@@ -431,33 +517,33 @@ jobs:
         env:
           IN_MEM_MODE: true
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
       - name: Ninja Build
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make clean
           make all GEN="Ninja"
 
       - name: Python test
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make pytest
 
       - name: Node.js test
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make nodejstest
 
       - name: Rust test
         shell: cmd
         working-directory: tools/rust_api
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set CFLAGS=/MD
           set CXXFLAGS=/MD /std:c++20
           cargo test --profile=relwithdebinfo --locked -- --test-threads=12
@@ -465,7 +551,7 @@ jobs:
       - name: Java test
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
 
       - name: Rust test with pre-built library
@@ -476,7 +562,7 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%PATH%;${{ github.workspace }}/build/release/src
           cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
@@ -851,13 +937,13 @@ jobs:
       - name: Extension test build
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make extension-test-build
 
       - name: Extension test
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd scripts/ && start /b python http-server.py && cd ..
@@ -866,5 +952,5 @@ jobs:
       - name: Clean
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make clean

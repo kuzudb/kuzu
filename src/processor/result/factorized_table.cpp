@@ -56,7 +56,7 @@ FactorizedTable::FactorizedTable(MemoryManager* memoryManager, FactorizedTableSc
     if (!this->tableSchema.isEmpty()) {
         inMemOverflowBuffer = std::make_unique<InMemOverflowBuffer>(memoryManager);
         auto numBytesPerTuple = this->tableSchema.getNumBytesPerTuple();
-        if (numBytesPerTuple > BufferPoolConstants::PAGE_256KB_SIZE) {
+        if (numBytesPerTuple > TEMP_PAGE_SIZE) {
             // I realize it's unlikely to trigger this case because the fixed size part for
             // a column is always small. A quick calculation, assume average column size is 16 bytes
             // then we need more than 16K column to test this. I choose to throw exception until
@@ -65,7 +65,7 @@ FactorizedTable::FactorizedTable(MemoryManager* memoryManager, FactorizedTableSc
                 "Trying to allocate for a large tuple of size greater than 256KB. "
                 "Allocation is disabled for performance reason.");
         }
-        flatTupleBlockSize = BufferPoolConstants::PAGE_256KB_SIZE;
+        flatTupleBlockSize = TEMP_PAGE_SIZE;
         numFlatTuplesPerBlock = flatTupleBlockSize / numBytesPerTuple;
         flatTupleBlockCollection =
             std::make_unique<DataBlockCollection>(numBytesPerTuple, numFlatTuplesPerBlock);
@@ -301,8 +301,8 @@ std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
 }
 
 uint64_t getDataBlockSize(uint32_t numBytes) {
-    if (numBytes < BufferPoolConstants::PAGE_256KB_SIZE) {
-        return BufferPoolConstants::PAGE_256KB_SIZE;
+    if (numBytes < TEMP_PAGE_SIZE) {
+        return TEMP_PAGE_SIZE;
     }
     return numBytes + 1;
 }

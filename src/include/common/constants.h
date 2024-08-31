@@ -48,39 +48,34 @@ struct InternalKeyword {
 };
 
 enum PageSizeClass : uint8_t {
-    PAGE_4KB = 0,
-    PAGE_256KB = 1,
+    REGULAR_PAGE = 0,
+    TEMP_PAGE = 1,
 };
 
 // Currently the system supports files with 2 different pages size, which we refer to as
-// PAGE_4KB_SIZE and PAGE_256KB_SIZE. PAGE_4KB_SIZE is the default size of the page which is the
-// unit of read/write to the database files, such as to store columns or lists. For now, this value
-// cannot be changed. But technically it can change from 2^12 to 2^16. 2^12 lower bound is assuming
-// the OS page size is 4K. 2^16 is because currently we leave 11 fixed number of bits for
-// relOffInPage and the maximum number of bytes needed for an edge is 20 bytes so 11 + log_2(20)
-// = 15.xxx, so certainly over 2^16-size pages, we cannot utilize the page for storing adjacency
-// lists.
+// PAGE_SIZE and TEMP_PAGE_SIZE. PAGE_SIZE is the default size of the page which is the
+// unit of read/write to the database files.
+#ifdef KUZU_PAGE_SIZE_LOG2
+constexpr uint64_t PAGE_SIZE_LOG2 = KUZU_PAGE_SIZE_LOG2;
+#else
+constexpr uint64_t PAGE_SIZE_LOG2 = 12; // Default to 4KB.
+#endif
+constexpr uint64_t PAGE_SIZE = static_cast<uint64_t>(1) << PAGE_SIZE_LOG2;
+// Page size for files with large pages, e.g., temporary files that are used by operators that
+// may require large amounts of memory.
+constexpr uint64_t TEMP_PAGE_SIZE_LOG2 = 18;
+constexpr uint64_t TEMP_PAGE_SIZE = static_cast<uint64_t>(1) << TEMP_PAGE_SIZE_LOG2;
+
 struct BufferPoolConstants {
-    static constexpr uint64_t PAGE_4KB_SIZE_LOG2 = 12;
-    static constexpr uint64_t PAGE_4KB_SIZE = static_cast<uint64_t>(1) << PAGE_4KB_SIZE_LOG2;
-    // Page size for files with large pages, e.g., temporary files that are used by operators that
-    // may require large amounts of memory.
-    static constexpr uint64_t PAGE_256KB_SIZE_LOG2 = 18;
-    static constexpr uint64_t PAGE_256KB_SIZE = static_cast<uint64_t>(1) << PAGE_256KB_SIZE_LOG2;
     // If a user does not specify a max size for BM, we by default set the max size of BM to
     // maxPhyMemSize * DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM.
     static constexpr double DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM = 0.8;
-    // For each PURGE_EVICTION_QUEUE_INTERVAL candidates added to the eviction queue, we will call
-    // `removeNonEvictableCandidates` to remove candidates that are not evictable. See
-    // `EvictionQueue::removeNonEvictableCandidates()` for more details.
-    static constexpr uint64_t EVICTION_QUEUE_PURGING_INTERVAL = 1024;
 // The default max size for a VMRegion.
 #ifdef __32BIT__
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 30; // (1GB)
 #else
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = static_cast<uint64_t>(1) << 43; // (8TB)
 #endif
-
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
 };
 
