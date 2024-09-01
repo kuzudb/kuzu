@@ -8,7 +8,6 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.build_py import build_py as _build_py
 
-num_cores = multiprocessing.cpu_count()
 base_dir = os.path.dirname(__file__)
 
 with open(os.path.join(base_dir, 'kuzu-source', 'tools', 'python_api', 'requirements_dev.txt')) as f:
@@ -78,6 +77,14 @@ class CMakeBuild(build_ext):
 
         # Clean the build directory.
         subprocess.run(['make', 'clean'], check=True, cwd=build_dir)
+
+        if os.environ['NUM_THREADS']:
+            try:
+                num_cores = int(os.environ['NUM_THREADS'])
+                self.announce("Using %d cores for building the native extension." % num_cores)
+            except ValueError:
+                self.announce("NUM_THREADS is not set. Using all available cores.")
+                num_cores = multiprocessing.cpu_count()
 
         # Build the native extension.
         full_cmd = ['make', 'python', 'NUM_THREADS=%d' % num_cores]

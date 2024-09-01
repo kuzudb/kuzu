@@ -43,6 +43,7 @@ jobs:
           CIBW_ARCHS_WINDOWS: AMD64
           CIBW_SKIP: pp* cp36*
           CIBW_BUILD_VERBOSITY: 3
+          NUM_THREADS: 40
         shell: cmd
         working-directory: ./scripts/pip-package/
         run:
