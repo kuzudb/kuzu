@@ -43,10 +43,11 @@ jobs:
           CIBW_ARCHS_WINDOWS: AMD64
           CIBW_SKIP: pp* cp36*
           CIBW_BUILD_VERBOSITY: 3
+          NUM_THREADS: 40
         shell: cmd
         working-directory: ./scripts/pip-package/
         run:
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 
           pipx run --spec cibuildwheel cibuildwheel
           "kuzu.tar.gz"
