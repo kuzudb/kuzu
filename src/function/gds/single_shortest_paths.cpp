@@ -113,7 +113,7 @@ public:
         srcNodeIDVector->setValue<nodeID_t>(0, spOutputs->sourceNodeID);
         for (auto tableID : graph->getNodeTableIDs()) {
             spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
-            for (offset_t dstNodeOffset = 0;  // dstNodeOffset < 5; // TODO(Semih): Remove
+            for (offset_t dstNodeOffset = 0;   // dstNodeOffset < 5; // TODO(Semih): Remove
                  dstNodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
                  ++dstNodeOffset) {
                 auto length =
@@ -126,18 +126,12 @@ public:
                 if (RJOutputType::LENGTHS == rjOutputType || RJOutputType::PATHS == rjOutputType) {
                     lengthVector->setValue<int64_t>(0, length);
                     if (RJOutputType::PATHS == rjOutputType) {
+                        PathVectorWriter writer(pathNodeIDsVector.get());
+                        writer.beginWritingNewPath(length);
                         nodeID_t curIntNode = dstNodeID;
-                        uint64_t curIntNbrIndex = length > 1 ? length - 1 : 0;
-                        pathNodeIDsVector->resetAuxiliaryBuffer();
-                        auto pathNodeIDsEntry =
-                            ListVector::addList(pathNodeIDsVector.get(), curIntNbrIndex);
-                        pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
-                        auto dataVector = ListVector::getDataVector(pathNodeIDsVector.get());
-                        while (curIntNbrIndex > 0) {
+                        while (writer.curIntNbrIndex > 0) {
                             curIntNode = spOutputs->singlePaths->getParent(curIntNode);
-                            dataVector->setValue(
-                                pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
-                            curIntNbrIndex--;
+                            writer.addNewNodeID(curIntNode);
                         }
                     }
                 }

@@ -31,8 +31,8 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputType output
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
         if (RJOutputType::PATHS == outputType) {
-            pathNodeIDsVector = std::make_unique<ValueVector>(
-                LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
+            pathNodeIDsVector =
+                std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
             pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
             vectors.push_back(pathNodeIDsVector.get());
         }
@@ -41,11 +41,13 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputType output
 
 // TODO(Semih): Remove
 RJCompState::RJCompState(std::unique_ptr<RJOutputs> outputs,
-    std::unique_ptr<function::Frontiers> frontiers, std::unique_ptr<function::FrontierCompute> frontierCompute)
+    std::unique_ptr<function::Frontiers> frontiers,
+    std::unique_ptr<function::FrontierCompute> frontierCompute)
     : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
       frontierCompute{std::move(frontierCompute)} {}
 
-void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder, graph::GraphEntry& graphEntry) {
+void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
+    graph::GraphEntry& graphEntry) {
     KU_ASSERT(params.size() == 4);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
@@ -57,8 +59,7 @@ void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* 
             std::to_string(upperBound) + ".");
     }
     auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-    bindData = std::make_unique<RJBindData>(
-        nodeInput, nodeOutput, outputProperty, upperBound);
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, upperBound);
 }
 
 binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
@@ -70,8 +71,8 @@ binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
     if (RJOutputType::LENGTHS == outputType || RJOutputType::PATHS == outputType) {
         columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
         if (RJOutputType::PATHS == outputType) {
-            columns.push_back(binder->createVariable(
-                PATH_NODE_IDS_COLUMN_NAME, LogicalType::LIST(LogicalType::INTERNAL_ID())));
+            columns.push_back(binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+                LogicalType::LIST(LogicalType::INTERNAL_ID())));
         }
     }
     return columns;
@@ -88,7 +89,8 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
                 continue;
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
-            std::unique_ptr<RJCompState> rjCompState = getFrontiersAndFrontiersCompute(executionContext, sourceNodeID);
+            std::unique_ptr<RJCompState> rjCompState =
+                getFrontiersAndFrontiersCompute(executionContext, sourceNodeID);
             rjCompState->initRJFromSource(sourceNodeID);
             // Note that spInfo contains an SingleSPOutputs outputs field but it is not explicitly
             // passed to GDSUtils::runFrontiersUntilConvergence below. That is because
@@ -96,14 +98,16 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             // to it as a field, so GDSUtils::runFrontiersUntilConvergence does not need
             // to pass outputs field to frontierCompute.
             GDSUtils::runFrontiersUntilConvergence(executionContext, *rjCompState,
-                sharedState->graph.get(),  bindData->ptrCast<RJBindData>()->upperBound);
-            outputWriter->materialize(sharedState->graph.get(), rjCompState->outputs.get(), *sharedState->fTable);
+                sharedState->graph.get(), bindData->ptrCast<RJBindData>()->upperBound);
+            outputWriter->materialize(sharedState->graph.get(), rjCompState->outputs.get(),
+                *sharedState->fTable);
         }
     }
 }
 
 PathLengths::PathLengths(
-    std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, storage::MemoryManager* mm) {
+    std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+    storage::MemoryManager* mm) {
     for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
         nodeTableIDAndNumNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint8_t>));
@@ -116,11 +120,11 @@ PathLengths::PathLengths(
     }
 }
 
-
 void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
     curTableID.store(tableID, std::memory_order_relaxed);
-    curFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
+    curFrontierFixedMask.store(
+        reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
         std::memory_order_relaxed);
     maxNodesInCurFrontierFixedMask.store(
         nodeTableIDAndNumNodesMap[curTableID.load(std::memory_order_relaxed)],
@@ -129,7 +133,8 @@ void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
 
 void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
-    nextFrontierFixedMask.store(reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
+    nextFrontierFixedMask.store(
+        reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
         std::memory_order_relaxed);
 }
 
@@ -139,12 +144,23 @@ bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMo
     if (beginOffset >= pathLengths->getNumNodesInCurFrontierFixedNodeTable()) {
         return false;
     }
-    auto endOffset = beginOffset + frontierMorselSize > numNodes ?
-                         numNodes :
-                         beginOffset + frontierMorselSize;
+    auto endOffset =
+        beginOffset + frontierMorselSize > numNodes ? numNodes : beginOffset + frontierMorselSize;
     frontierMorsel.initMorsel(pathLengths->curTableID, beginOffset, endOffset);
     return true;
 }
 
+void PathVectorWriter::beginWritingNewPath(uint64_t length) {
+    curIntNbrIndex = length > 1 ? length - 1 : 0;
+    pathNodeIDsVector->resetAuxiliaryBuffer();
+    pathNodeIDsEntry = ListVector::addList(pathNodeIDsVector, curIntNbrIndex);
+    pathNodeIDsVector->setValue(0, pathNodeIDsEntry);
+}
+
+void PathVectorWriter::addNewNodeID(nodeID_t curIntNode) {
+    ListVector::getDataVector(pathNodeIDsVector)
+        ->setValue(pathNodeIDsEntry.offset + curIntNbrIndex - 1, curIntNode);
+    curIntNbrIndex--;
+}
 }
 }

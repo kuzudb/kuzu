@@ -12,6 +12,7 @@ void GDSTask::run() {
     auto numApproxActiveNodesForNextIter = 0u;
     std::unique_ptr<graph::Graph> graph = sharedState->graph->copy();
     auto state = graph->prepareScan(sharedState->relTableIDToScan);
+    // TODO(Semih): Remove but this is the part where a compute function gets cloned and initialized.
     auto localFc = sharedState->fc.clone();
     localFc->init();
     while (sharedState->frontiers.getNextFrontierMorsel(frontierMorsel)) {
@@ -28,6 +29,7 @@ void GDSTask::run() {
             }
         }
     }
+    // TODO(Semih): We may need to put a finalize function here.
     sharedState->frontiers.incrementApproxActiveNodesForNextIter(numApproxActiveNodesForNextIter);
 }
 } // namespace function

@@ -4,7 +4,7 @@
 -CASE SingleSPDestinationsDoNotReturnLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_destinations(PK, a, 4, true)
+           CALL single_sp_destinations(PK, a, 30, true)
            RETURN length, count(*);
 ---- error
 Binder exception: Variable length is not in scope.
@@ -12,7 +12,7 @@ Binder exception: Variable length is not in scope.
 -CASE SingleSPLengthsDoNotReturnPathNodeIDs
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_lengths(PK, a, 4, true)
+           CALL single_sp_lengths(PK, a, 30, true)
            RETURN length, pathNodeIDs;
 ---- error
 Binder exception: Variable pathNodeIDs is not in scope.
@@ -20,7 +20,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
 -CASE SingleSPLengthsSingleLabel
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_lengths(PK, a, 4, true)
+           CALL single_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
 ---- 5
 0|1
@@ -35,7 +35,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
 -CASE SingleSPPathsSingleLabel
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_paths(PK, a, 4, true)
+           CALL single_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|11
@@ -46,17 +46,17 @@ Binder exception: Variable pathNodeIDs is not in scope.
 -CASE SingleSPDestinationsSingleLabel
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_destinations(PK, a, 4, true)
+           CALL single_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
 11111
 
-# This query will start from person1.1 and the traversal will stay in person1 nodes, visiting 10, 100, 1000, and 10000
-# nodes in 4 iterations.
+# This query will start from person1.1 and the traversal will zigzag as person2, person1, person2, person1 in 4
+# iterations.
 -CASE SingleSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_lengths(PK, a, 4, true)
+           CALL single_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
 ---- 5
 0|1
@@ -65,11 +65,11 @@ Binder exception: Variable pathNodeIDs is not in scope.
 3|1000
 4|10000
 
-# See CASEs SingleSPLengthsMultilabel1 & SingleSPPathsLargeSingleLabel for the explanation on the expected output.
+# See CASEs SingleSPLengthsMultilabel1 & SingleSPPathsSingleLabel for the explanation on the expected output.
 -CASE SingleSPPathsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_paths(PK, a, 4, true)
+           CALL single_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|11
@@ -80,17 +80,20 @@ Binder exception: Variable pathNodeIDs is not in scope.
 -CASE SingleSPDestinationsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_lengths(PK, a, 4, true)
+           CALL single_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
 11111
 
-# This query will start from person1.1 and zigzag a similar BFS as MultiLabel1 but the layers will zigzag as person2,
-# person1, person2, person1
+# 1st iteration: This query will start from person1.1 and will visit 10 person1 and 10 person2 nodes all at level 1.
+# There are no outgoing edges of person2 nodes in this graph.
+# 2nd iteration: Each 10 level-1 person1 nodes will visit each 100 level-2 person1 and person2 nodes.
+# 3rd iteration: Each 100 level-2 person1 nodes will visit each 1000 level-3 person1 and person2 nodes.
+# 4th iteration: Each 1000 level-3 person1 nodes will visit each 10000 level-4 person1 and person2 nodes.
 -CASE SingleSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_lengths(PK, a, 4, true)
+           CALL single_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
 ---- 5
 0|1
@@ -99,11 +102,11 @@ Binder exception: Variable pathNodeIDs is not in scope.
 3|2000
 4|20000
 
-# See CASEs SingleSPLengthsLargeMultilabel2 & SingleSPPathsLargeSingleLabel for the explanation on the expected output.
+# See CASEs SingleSPLengthsMultilabel2 & SingleSPPathsSingleLabel for the explanation on the expected output.
 -CASE SingleSPPathsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_paths(PK, a, 4, true)
+           CALL single_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|21
@@ -114,17 +117,18 @@ Binder exception: Variable pathNodeIDs is not in scope.
 -CASE SingleSPDestinationsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_destinations(PK, a, 4, true)
+           CALL single_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
 22221
 
-# This query will start from person1.1 and traverse person1 and person2 layers in tandem. So should give for each
-# length 2 times the result of SPLargeMultilabel2, except for length 0 (which is only person1.1)
+# This behavior of this query should be similar to SingleSPLengthsMultilabel2. At each iteration each person2 nodes
+# also visit next level's person1 nodes, but because the query is single shortest paths, this should not affect
+# the counts.
 -CASE SingleSPLengthsMultilabel3
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_lengths(PK, a, 4, true)
+           CALL single_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
 ---- 5
 0|1
@@ -133,11 +137,11 @@ Binder exception: Variable pathNodeIDs is not in scope.
 3|2000
 4|20000
 
-# See CASEs SingleSPLengthsMultilabel3 & SingleSPPathsLargeSingleLabel for the explanation on the expected output.
+# See CASEs SingleSPLengthsMultilabel3 & SingleSPPathsSingleLabel for the explanation on the expected output.
 -CASE SingleSPPathsLargeMultilabel3
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_paths(PK, a, 4, true)
+           CALL single_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|21
@@ -148,7 +152,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
 -CASE SingleSPLengthsMultilabel3
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 1
-           CALL single_sp_destinations(PK, a, 4, true)
+           CALL single_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
 22221

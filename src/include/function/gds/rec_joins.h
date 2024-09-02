@@ -82,6 +82,7 @@ public:
         processor::FactorizedTable& fTable) const = 0;
 
 protected:
+    // TODO(Semih): Rename to outputType
     RJOutputType rjOutputType;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
@@ -293,6 +294,24 @@ private:
     PathLengths* pathLengths;
     std::atomic<offset_t> nextOffset;
     uint64_t frontierMorselSize;
+};
+
+/**
+ * Helper class to write paths to a ValueVector. The ValueVector should be a ListVector. The path
+ * is written in reverse order, so the calls to addNewNodeID should be done in the reverse order of
+ * the nodes that should be placed into the ListVector.
+ */
+class PathVectorWriter {
+public:
+    explicit PathVectorWriter(common::ValueVector* pathNodeIDsVector) : pathNodeIDsVector{pathNodeIDsVector} {}
+    void beginWritingNewPath(uint64_t length);
+    void addNewNodeID(nodeID_t curIntNode);
+
+public:
+    common::ValueVector* pathNodeIDsVector;
+    // TODO(Semih): Change to curNodeIDsEntry and nextPathPos
+    list_entry_t pathNodeIDsEntry;
+    uint64_t curIntNbrIndex;
 };
 
 } // namespace function
