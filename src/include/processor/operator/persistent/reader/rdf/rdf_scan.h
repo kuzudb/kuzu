@@ -135,7 +135,7 @@ struct RdfInMemScanSharedState : public function::BaseScanSharedStateWithNumRows
     uint64_t ltCursor = 0;
     // Each triple can be read as at most 3 rows (resources). For simplicity, we read 500 triples
     // per batch to avoid exceeding DEFAULT_VECTOR_CAPACITY.
-    static constexpr uint64_t batchSize = 500;
+    static constexpr uint64_t batchSize = common::DEFAULT_VECTOR_CAPACITY / 3;
 
     explicit RdfInMemScanSharedState(std::shared_ptr<RdfStore> store)
         : function::BaseScanSharedStateWithNumRows{0 /* numRows */}, store{std::move(store)} {}
