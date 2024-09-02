@@ -5,6 +5,9 @@
 #include "function/gds/gds_frontier.h"
 #include "processor/operator/mask.h"
 
+// TODO(Semih): Remove
+#include <iostream>
+
 namespace kuzu {
 namespace common {
 class ValueVector;
@@ -68,26 +71,24 @@ public:
     }
 
 protected:
+    // TODO(Semih): Remove if it is not used
     RJOutputType outputType;
 };
 
 // TODO(Semih): Turn this into a scanner if we can find a way to pipeline the outputs to the
-// next operators in the plan.
+// next operators in the plan. Open an issue about this.
 class RJOutputWriter {
 public:
-    explicit RJOutputWriter(main::ClientContext* context, RJOutputType outputType);
+    // TODO(Semih): Remove outputType
+    explicit RJOutputWriter(main::ClientContext* context);
     virtual ~RJOutputWriter() = default;
 
     virtual void materialize(graph::Graph* graph, RJOutputs* rjOutputs,
         processor::FactorizedTable& fTable) const = 0;
 
 protected:
-    // TODO(Semih): Rename to outputType
-    RJOutputType rjOutputType;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
-    std::unique_ptr<common::ValueVector> lengthVector;
-    std::unique_ptr<common::ValueVector> pathNodeIDsVector;
     std::vector<common::ValueVector*> vectors;
 };
 
@@ -258,7 +259,7 @@ public:
     explicit PathLengthsFrontiers(PathLengths* pathLengths, uint64_t maxThreadsForExec)
         : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
               1 /* initial num active nodes */, maxThreadsForExec),
-          pathLengths{pathLengths} {}
+          pathLengths{pathLengths}, isDense{true} {}
 
     bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) override;
 
@@ -275,11 +276,27 @@ public:
         table_id_t nextFrontierTableID) override {
         pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
         pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
+        // TODO(Semih): Consider making this allocation happen from MemoryManager
+        sparseOffsets = std::make_unique<std::atomic<offset_t>[]>(numApproxActiveNodesForCurIter.load() * sizeof(std::atomic<offset_t>));
+        // TODO(Semih): Change for sparse-dense tests
+        isDense = true;
+//        if (numApproxActiveNodesForCurIter.load() < pathLengths->getNumNodesInCurFrontierFixedNodeTable()/20) {
+//            isDense = false;
+//            uint64_t counter = 0;
+//            for (offset_t off = 0; off < pathLengths->getNumNodesInCurFrontierFixedNodeTable(); ++off) {
+//                if (pathLengths->isActive({off, curFrontierTableID})) {
+//                    sparseOffsets.get()[counter++].store(off, std::memory_order_relaxed);
+//                }
+//            }
+//            sparseOffsetsSize.store(counter, std::memory_order_relaxed);
+//        } else {
+//            isDense = true;
+//        }
         nextOffset.store(0u);
         // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
         // the number of maximum threads that could be working on this frontier. However if
         // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
-        auto maxNodesInFrontier = pathLengths->getNumNodesInCurFrontierFixedNodeTable();
+        auto maxNodesInFrontier = isDense ? pathLengths->getNumNodesInCurFrontierFixedNodeTable() : sparseOffsetsSize.load(std::memory_order_relaxed);
         auto idealFrontierMorselSize = maxNodesInFrontier / (std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
                                                           maxThreadsForExec * maxThreadsForExec));
         frontierMorselSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealFrontierMorselSize);
@@ -294,6 +311,20 @@ private:
     PathLengths* pathLengths;
     std::atomic<offset_t> nextOffset;
     uint64_t frontierMorselSize;
+    bool isDense;
+    // TODO(Semih): Make these atomics if we keep this.
+    std::unique_ptr<std::atomic<offset_t>[]> sparseOffsets;
+    std::atomic<uint64_t> sparseOffsetsSize;
+};
+
+// Base class that keeps common fields across single and all shortest paths computations.
+struct SPOutputs : public RJOutputs {
+    std::unique_ptr<PathLengths> pathLengths;
+    // TODO(Reviewer): Is explicit correct here & in AllSPOutputsMultiplicities, AllSPOutputsPaths?
+    explicit SPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType,
+        storage::MemoryManager* mm = nullptr);
+protected:
+    std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
 };
 
 /**
@@ -309,10 +340,20 @@ public:
 
 public:
     common::ValueVector* pathNodeIDsVector;
-    // TODO(Semih): Change to curNodeIDsEntry and nextPathPos
-    list_entry_t pathNodeIDsEntry;
-    uint64_t curIntNbrIndex;
+    list_entry_t curPathListEntry;
+    uint64_t nextPathPos;
 };
 
+class SPOutputWriterDsts : public RJOutputWriter {
+public:
+    explicit SPOutputWriterDsts(main::ClientContext* context) : RJOutputWriter(context) {};
+    void materialize(graph::Graph* graph, RJOutputs* rjOutputs,
+        processor::FactorizedTable& fTable) const override;
+protected:
+    virtual void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs*, table_id_t) const {}
+
+    virtual void writeMoreAndAppend(
+        processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint8_t length) const;
+};
 } // namespace function
 } // namespace kuzu

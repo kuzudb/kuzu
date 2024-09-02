@@ -5,6 +5,8 @@
 
 #include "common/types/types.h"
 
+// TODO(Semih): Remove
+#include <iostream>
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -22,14 +24,16 @@ public:
 
     bool hasNextVertex() const { return nextOffset < endOffsetExclusive; }
 
-    nodeID_t getNextVertex() { return {nextOffset++, tableID}; }
+    nodeID_t getNextVertex() { return {isDense ? nextOffset++ : sparseOffsets[nextOffset++].load(std::memory_order_relaxed), tableID}; }
 
 protected:
-    void initMorsel(table_id_t _tableID, offset_t _beginOffset, offset_t _endOffsetExclusive) {
+    void initMorsel(table_id_t _tableID, offset_t _beginOffset, offset_t _endOffsetExclusive, bool _isDense,  std::atomic<offset_t>* _sparseOffsets) {
         tableID = _tableID;
         beginOffset = _beginOffset;
         endOffsetExclusive = _endOffsetExclusive;
         nextOffset = beginOffset;
+        isDense = _isDense;
+        sparseOffsets = _sparseOffsets;
     }
 
 private:
@@ -37,6 +41,8 @@ private:
     offset_t beginOffset = INVALID_OFFSET;
     offset_t endOffsetExclusive = INVALID_OFFSET;
     offset_t nextOffset = INVALID_OFFSET;
+    bool isDense;
+    std::atomic<offset_t>* sparseOffsets;
 };
 
 /**
@@ -90,6 +96,7 @@ public:
     explicit Frontiers(GDSFrontier* curFrontier, GDSFrontier* nextFrontier,
         uint64_t initialActiveNodes,  uint64_t maxThreadsForExec)
         : curFrontier{curFrontier}, nextFrontier{nextFrontier}, maxThreadsForExec{maxThreadsForExec} {
+        numApproxActiveNodesForCurIter.store(UINT64_MAX);
         numApproxActiveNodesForNextIter.store(initialActiveNodes);
         curIter.store(INVALID_IDX);
     }
@@ -103,6 +110,7 @@ public:
         // If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
         // iterations have not started, the following line will set it to 0.
         curIter.fetch_add(1u);
+        numApproxActiveNodesForCurIter.store(numApproxActiveNodesForNextIter.load());
         numApproxActiveNodesForNextIter.store(0u);
         beginNewIterationInternalNoLock();
     }
@@ -121,6 +129,7 @@ public:
 protected:
     std::mutex mtx;
     std::atomic<idx_t> curIter;
+    std::atomic<uint64_t> numApproxActiveNodesForCurIter;
     // Note: This number is not guaranteed to accurate. However if it is > 0, then there is at least
     // one active node for the next frontier. It may not be accurate because there ca be double
     // counting. Each thread will locally increment this number based on the number of times
