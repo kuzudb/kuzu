@@ -32,119 +32,6 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
-  ubuntu-2004-build-test:
-    name: ubuntu-20.04
-    runs-on: ubuntu-20.04
-    needs: [generate-binary-demo]
-    defaults:
-      run:
-        shell: bash
-    env:
-      CC: gcc-11
-      CXX: g++-11
-    steps:
-      - uses: actions/checkout@v4
-        continue-on-error: true
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        with:
-          name: binary-demo
-          path: ${{ github.workspace }}/dataset/binary-demo
-
-      - name: Install packages
-        continue-on-error: true
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential manpages-dev software-properties-common
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11
-
-      - uses: actions/setup-python@v5
-        continue-on-error: true
-        with:
-          python-version: "3.11"
-
-      - name: Ensure Python dependencies
-        continue-on-error: true
-        run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        continue-on-error: true
-        working-directory: tools/nodejs_api
-        run: npm install --include=dev
-
-      - name: Build
-        continue-on-error: true
-        run: |
-          make release NUM_THREADS=$(nproc)
-          echo "Build,$?" > status.txt
-
-      - name: Test
-        continue-on-error: true
-        run: |
-          make test NUM_THREADS=$(nproc)
-          echo "Test,$?" >> status.txt
-
-      - name: C and C++ examples
-        continue-on-error: true
-        run: |
-          make example NUM_THREADS=$(nproc)
-          echo "C and C++ examples,$?" >> status.txt
-
-      - name: Python test
-        continue-on-error: true
-        run: |
-          make pytest NUM_THREADS=$(nproc)
-          echo "Python test,$?" >> status.txt
-
-      - name: Node.js test
-        continue-on-error: true
-        run: |
-          make nodejstest NUM_THREADS=$(nproc)
-          echo "Node.js test,$?" >> status.txt
-
-      - name: Java test
-        continue-on-error: true
-        run: |
-          make javatest NUM_THREADS=$(nproc)
-          echo "Java test,$?" >> status.txt
-
-      - name: Rust share build
-        continue-on-error: true
-        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
-
-      - name: Rust set env
-        continue-on-error: true
-        run: echo "CARGO_BUILD_JOBS=$(nproc)" >> $GITHUB_ENV
-
-      - name: Rust test
-        continue-on-error: true
-        working-directory: tools/rust_api
-        run: |
-          cargo test --release --features arrow -- --test-threads=12
-          echo "Rust test,$?" >> ../../status.txt
-
-      - name: Rust example
-        continue-on-error: true
-        working-directory: examples/rust
-        run: |
-          cargo build --release --features arrow
-          echo "Rust example,$?" >> ../../status.txt
-
-      - name: Rename status.txt
-        continue-on-error: true
-        run: mv status.txt ubuntu-20.04.csv
-
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: ubuntu-20.04
-          path: ubuntu-20.04.csv
-
   macos-build-test:
     strategy:
       matrix:
@@ -185,38 +72,50 @@ jobs:
       - name: Build
         continue-on-error: true
         run: |
+          set +e
           make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Build,$?" > status.txt
 
       - name: Test
         continue-on-error: true
         run: |
+          set +e
           make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Test,$?" >> status.txt
+      
+      - name: Remove ldbc-1
+        run: rm -rf dataset/ldbc-1
 
       - name: C and C++ examples
         continue-on-error: true
         run: |
+          set +e
           make example NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
         continue-on-error: true
         run: |
+          set +e
           make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
         continue-on-error: true
         run: |
+          set +e
           make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
+          set +e
           make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
           echo "Java test,$?" >> status.txt
+        
+      - name: Cleanup
+        run: make clean
 
       - name: Rust share build
         continue-on-error: true
@@ -230,6 +129,7 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
+          set +e
           cargo test --release --features arrow -- --test-threads=12
           echo "Rust test,$?" >> ../../status.txt
 
@@ -237,6 +137,7 @@ jobs:
         continue-on-error: true
         working-directory: examples/rust
         run: |
+          set +e
           cargo build --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
@@ -317,6 +218,9 @@ jobs:
         run: |
           make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Test,%ERRORLEVEL% >> status.txt
+        
+      - name: Remove ldbc-1
+        run: rmdir /s /q dataset\ldbc-1
 
       - name: C and C++ examples
         continue-on-error: true
@@ -345,6 +249,10 @@ jobs:
         run: |
           make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
           echo Java test,%ERRORLEVEL% >> status.txt
+      
+      - name: Cleanup
+        shell: cmd
+        run: make clean
 
       - name: Rust share build
         continue-on-error: true
@@ -385,7 +293,7 @@ jobs:
   debian-ubuntu-build-test:
     strategy:
       matrix:
-        image: ["ubuntu:23.04", "ubuntu:23.10", "debian:12", "debian:sid"]
+        image: ["ubuntu:22.04", "ubuntu:23.04", "ubuntu:23.10", "debian:12", "debian:sid"]
       fail-fast: false
     name: ${{ matrix.image }}
     needs: [generate-binary-demo]
@@ -438,38 +346,50 @@ jobs:
       - name: Build
         continue-on-error: true
         run: |
+          set +e
           make release NUM_THREADS=$(nproc)
           echo "Build,$?" > status.txt
 
       - name: Test
         continue-on-error: true
         run: |
+          set +e
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
+
+      - name: Remove ldbc-1
+        run: rm -rf dataset/ldbc-1
 
       - name: C and C++ examples
         continue-on-error: true
         run: |
+          set +e
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
         continue-on-error: true
         run: |
+          set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
         continue-on-error: true
         run: |
+          set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
+          set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
+      
+      - name: Cleanup
+        run: make clean
 
       - name: Rust share build
         continue-on-error: true
@@ -483,6 +403,7 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
+          set +e
           cargo test --release --features arrow -- --test-threads=12
           echo "Rust test,$?" >> ../../status.txt
 
@@ -490,6 +411,7 @@ jobs:
         continue-on-error: true
         working-directory: examples/rust
         run: |
+          set +e
           cargo build --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
@@ -584,24 +506,31 @@ jobs:
       - name: Build
         continue-on-error: true
         run: |
+          set +e
           make release NUM_THREADS=$(nproc)
           echo "Build,$?" > status.txt
 
       - name: Test
         continue-on-error: true
         run: |
+          set +e
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
+
+      - name: Remove ldbc-1
+        run: rm -rf dataset/ldbc-1
 
       - name: C and C++ examples
         continue-on-error: true
         run: |
+          set +e
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
         continue-on-error: true
         run: |
+          set +e
           source /opt/venv/bin/activate
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
@@ -609,14 +538,19 @@ jobs:
       - name: Node.js test
         continue-on-error: true
         run: |
+          set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
+          set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
+      
+      - name: Cleanup
+        run: make clean
 
       - name: Rust share build
         continue-on-error: true
@@ -630,6 +564,7 @@ jobs:
         continue-on-error: true
         working-directory: tools/rust_api
         run: |
+          set +e
           cargo test --release --features arrow -- --test-threads=12
           echo "Rust test,$?" >> ../../status.txt
 
@@ -637,6 +572,7 @@ jobs:
         continue-on-error: true
         working-directory: examples/rust
         run: |
+          set +e
           cargo build --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
@@ -700,38 +636,50 @@ jobs:
       - name: Build
         continue-on-error: true
         run: |
+          set +e
           make release NUM_THREADS=$(nproc)
           echo "Build,$?" > status.txt
 
       - name: Test
         continue-on-error: true
         run: |
+          set +e
           make test NUM_THREADS=$(nproc)
           echo "Test,$?" >> status.txt
+
+      - name: Remove ldbc-1
+        run: rm -rf dataset/ldbc-1
 
       - name: C and C++ examples
         continue-on-error: true
         run: |
+          set +e
           make example NUM_THREADS=$(nproc)
           echo "C and C++ examples,$?" >> status.txt
 
       - name: Python test
         continue-on-error: true
         run: |
+          set +e
           make pytest NUM_THREADS=$(nproc)
           echo "Python test,$?" >> status.txt
 
       - name: Node.js test
         continue-on-error: true
         run: |
+          set +e
           make nodejstest NUM_THREADS=$(nproc)
           echo "Node.js test,$?" >> status.txt
 
       - name: Java test
         continue-on-error: true
         run: |
+          set +e
           make javatest NUM_THREADS=$(nproc)
           echo "Java test,$?" >> status.txt
+
+      - name: Cleanup
+        run: make clean
 
       - name: Rust share build
         continue-on-error: true
@@ -745,6 +693,7 @@ jobs:
         working-directory: tools/rust_api
         continue-on-error: true
         run: |
+          set +e
           cargo test --release --features arrow -- --test-threads=12
           echo "Rust test,$?" >> ../../status.txt
 
@@ -752,6 +701,7 @@ jobs:
         working-directory: examples/rust
         continue-on-error: true
         run: |
+          set +e
           cargo build --release --features arrow
           echo "Rust example,$?" >> ../../status.txt
 
@@ -774,7 +724,6 @@ jobs:
       GITHUB_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     needs:
       [
-        ubuntu-2004-build-test,
         macos-build-test,
         windows-build-test,
         debian-ubuntu-build-test,
