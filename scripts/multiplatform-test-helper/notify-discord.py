@@ -49,6 +49,7 @@ if __name__ == "__main__":
             for r in result[platform]:
                 message += f"  - {r['stage']}: {r['status']}\n"
     if GITHUB_URL:
+        message += "\n"
         message += f"  [Github]({GITHUB_URL})"
     if message:
         messages.append(message)
