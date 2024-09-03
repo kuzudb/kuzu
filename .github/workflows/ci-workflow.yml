@@ -80,7 +80,7 @@ jobs:
       - name: Generate and upload tinysnb
         run: |
           bash scripts/generate_binary_tinysnb.sh
-          s3cmd get s3://kuzu-test/tinysnb/tinysnb/version.txt || echo "0" > version.txt
+          s3cmd get s3://kuzu-test/tinysnb/version.txt || echo "0" > version.txt
           if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ]; then
             echo "TinySNB dataset is up to date, skipping upload"
             rm -rf tinysnb version.txt
@@ -88,7 +88,7 @@ jobs:
           fi
           echo "TinySNB dataset is outdated, uploading..."
           s3cmd del -r s3://kuzu-test/tinysnb/
-          s3cmd sync ./tinysnb s3://kuzu-test/tinysnb/ 
+          s3cmd sync ./tinysnb s3://kuzu-test/
           rm -rf tinysnb version.txt
       
       - name: Generate and upload ldbc-sf01
@@ -102,7 +102,7 @@ jobs:
           fi
           echo "LDBC-SF01 dataset is outdated, uploading..."
           s3cmd del -r s3://kuzu-test/ldbc01/
-          s3cmd sync ./ldbc01 s3://kuzu-test/ldbc01/
+          s3cmd sync ./ldbc01 s3://kuzu-test/
           rm -rf ldbc01 version.txt
 
       - name: Upload binary-demo
