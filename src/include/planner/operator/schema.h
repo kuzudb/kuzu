@@ -38,6 +38,9 @@ public:
     double getMultiplier() const { return cardinalityMultiplier; }
 
     void insertExpression(const std::shared_ptr<binder::Expression>& expression) {
+        if (expressionNameToPos.contains(expression->getUniqueName())) {
+            auto a = 0;
+        }
         KU_ASSERT(!expressionNameToPos.contains(expression->getUniqueName()));
         expressionNameToPos.insert({expression->getUniqueName(), expressions.size()});
         expressions.push_back(expression);

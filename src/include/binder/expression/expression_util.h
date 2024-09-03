@@ -31,6 +31,8 @@ struct ExpressionUtil {
 
     static expression_vector removeDuplication(const expression_vector& expressions);
 
+    static std::shared_ptr<Expression> tryGetAliasOrigin(std::shared_ptr<Expression> expr);
+
     static bool isEmptyPattern(const Expression& expression);
     static bool isNodePattern(const Expression& expression);
     static bool isRelPattern(const Expression& expression);

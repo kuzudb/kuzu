@@ -135,7 +135,7 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
         }
     }
     case ExpressionType::ALIAS: {
-        return collectChildren(*expression.constCast<AliasExpression>().getOrigin());
+        return expression_vector{expression.constCast<AliasExpression>().getOrigin()};
     }
     default: {
         return expression.children;

@@ -451,8 +451,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
         } else {
             fieldName = transformStringLiteral(*structField->StringLiteral());
         }
-        auto fieldNameExpr = std::make_unique<ParsedLiteralExpression>(Value(fieldName), fieldName);
-        structPack->addChild(std::move(fieldNameExpr));
+        fieldValueExpr->setAlias(fieldName);
         structPack->addChild(std::move(fieldValueExpr));
     }
     return structPack;

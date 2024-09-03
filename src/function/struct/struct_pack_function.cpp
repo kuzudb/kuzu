@@ -1,6 +1,8 @@
 #include "function/scalar_function.h"
 #include "function/struct/vector_struct_functions.h"
+#include "binder/expression/alias_expression.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -12,7 +14,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
-        fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
+        KU_ASSERT(argument->expressionType == common::ExpressionType::ALIAS);
+        auto fieldName = argument->constCast<AliasExpression>().getAliasName();
+        fields.emplace_back(fieldName, argument->getDataType().copy());
     }
     auto resultType = LogicalType::STRUCT(std::move(fields));
     return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));

@@ -6,6 +6,7 @@
 #include "binder/query/return_with_clause/bound_with_clause.h"
 #include "common/exception/binder.h"
 #include "parser/expression/parsed_property_expression.h"
+#include "binder/expression/alias_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -78,26 +79,31 @@ BoundReturnClause Binder::bindReturnClause(const ReturnClause& returnClause) {
     return BoundReturnClause(std::move(boundProjectionBody), std::move(statementResult));
 }
 
-static bool isAggregateExpression(const std::shared_ptr<Expression>& expression,
-    const BinderScope& scope) {
-    if (expression->hasAlias() && scope.contains(expression->getAlias())) {
-        return false;
-    }
-    if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
-        return true;
-    }
-    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
-        if (isAggregateExpression(child, scope)) {
-            return true;
-        }
-    }
-    return false;
-}
+//static bool isAggregateExpression(const std::shared_ptr<Expression>& expression,
+//    const BinderScope& scope) {
+//
+//    if (expression->expressionType == ExpressionType::ALIAS && scope.contains(expression->constCast<AliasExpression>().getAliasName())) {
+//        return false;
+//    }
+//
+//    if (expression->hasAlias() && scope.contains(expression->getAlias())) {
+//        return false;
+//    }
+//    if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
+//        return true;
+//    }
+//    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
+//        if (isAggregateExpression(child, scope)) {
+//            return true;
+//        }
+//    }
+//    return false;
+//}
 
 static expression_vector getAggregateExpressions(const std::shared_ptr<Expression>& expression,
     const BinderScope& scope) {
     expression_vector result;
-    if (expression->hasAlias() && scope.contains(expression->getAlias())) {
+    if (expression->expressionType == ExpressionType::ALIAS && scope.contains(expression->constCast<AliasExpression>().getAliasName())) {
         return result;
     }
     if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
@@ -120,8 +126,9 @@ BoundProjectionBody Binder::bindProjectionBody(const ProjectionBody& projectionB
     expression_vector groupByExpressions;
     expression_vector aggregateExpressions;
     for (auto& expression : projectionExpressions) {
-        if (isAggregateExpression(expression, scope)) {
-            for (auto& agg : getAggregateExpressions(expression, scope)) {
+        auto aggregateExprs = getAggregateExpressions(expression, scope);
+        if (!aggregateExprs.empty()) {
+            for (auto& agg : aggregateExprs) {
                 aggregateExpressions.push_back(agg);
             }
         } else {
@@ -261,9 +268,15 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
 
 void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {
     for (auto& expression : projectionExpressions) {
+        if (expression->expressionType == common::ExpressionType::ALIAS) {
+            auto& aliasExpr = expression->constCast<AliasExpression>();
+            addToScope(aliasExpr.getAliasName(), aliasExpr.getOrigin());
+        } else {
+            addToScope(expression->toString(), expression);
+        }
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
-        auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        addToScope(alias, expression);
+//        auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
+//        addToScope(alias, expression);
     }
 }
 

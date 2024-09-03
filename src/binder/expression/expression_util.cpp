@@ -5,6 +5,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/expression/alias_expression.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
 
@@ -136,6 +137,13 @@ expression_vector ExpressionUtil::removeDuplication(const expression_vector& exp
         expressionSet.insert(expression);
     }
     return result;
+}
+
+std::shared_ptr<Expression> ExpressionUtil::tryGetAliasOrigin(std::shared_ptr<Expression> expr) {
+    if (expr->expressionType != ExpressionType::ALIAS) {
+        return expr;
+    }
+    return expr->constCast<AliasExpression>().getOrigin();
 }
 
 bool ExpressionUtil::isEmptyPattern(const Expression& expression) {

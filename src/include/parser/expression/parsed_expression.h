@@ -8,6 +8,7 @@
 #include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 

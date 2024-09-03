@@ -18,6 +18,7 @@
 #include "expression_evaluator/pattern_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
 #include "planner/operator/schema.h"
+#include "binder/expression/alias_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -56,7 +57,9 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     auto expressionType = expression->expressionType;
     if (schema->isExpressionInScope(*expression)) {
         return getReferenceEvaluator(expression);
-    } else if (ExpressionType::LITERAL == expressionType) {
+    } else if (expressionType == ExpressionType::ALIAS) {
+        return getEvaluator(expression->constCast<AliasExpression>().getOrigin());
+    } else if (expressionType == ExpressionType::LITERAL) {
         return getLiteralEvaluator(expression);
     } else if (ExpressionUtil::isNodePattern(*expression)) {
         return getNodeEvaluator(expression);
@@ -84,7 +87,9 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     std::shared_ptr<Expression> expression) {
     KU_ASSERT(ConstantExpressionVisitor::isConstant(*expression));
     auto expressionType = expression->expressionType;
-    if (ExpressionType::LITERAL == expressionType) {
+    if (expressionType == ExpressionType::ALIAS) {
+        return getConstantEvaluator(expression->constCast<AliasExpression>().getOrigin());
+    } else if (expressionType == ExpressionType::LITERAL) {
         return getLiteralEvaluator(expression);
     } else if (ExpressionType::CASE_ELSE == expressionType) {
         return getCaseEvaluator(expression);

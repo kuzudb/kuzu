@@ -129,7 +129,12 @@ void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& exp
 
 void Binder::validateProjectionColumnsInWithClauseAreAliased(const expression_vector& expressions) {
     for (auto& expression : expressions) {
-        if (!expression->hasAlias()) {
+        switch (expression->expressionType) {
+        case ExpressionType::ALIAS:
+        case ExpressionType::PATTERN:
+        case ExpressionType::VARIABLE:
+            break;
+        default:
             throw BinderException("Expression in WITH must be aliased (use AS).");
         }
     }
