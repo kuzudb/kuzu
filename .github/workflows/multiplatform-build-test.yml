@@ -60,8 +60,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         continue-on-error: true
@@ -195,8 +195,8 @@ jobs:
         continue-on-error: true
         shell: cmd
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         continue-on-error: true
@@ -304,7 +304,8 @@ jobs:
       CXX: g++
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
-      - name: Install packages
+      - name: Setup Node.js
+        if: ${{ matrix.image != 'debian:sid' }}
         continue-on-error: true
         run: |
           apt-get update
@@ -312,8 +313,17 @@ jobs:
           mkdir -p /etc/apt/keyrings
           curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
           echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+          
+      - name: Install packages
+        continue-on-error: true
+        run: |    
           apt-get update
-          apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs
+          apt-get install -y git build-essential cmake gcc g++ python3 python3-dev python3-pip openjdk-17-jdk nodejs ca-certificates curl gnupg
+      
+      - name: Install npm
+        if: ${{ matrix.image == 'debian:sid' }}
+        continue-on-error: true
+        run: apt-get install -y npm
 
       - uses: actions/checkout@v4
         continue-on-error: true
@@ -327,8 +337,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html ${{ matrix.image != 'debian:11' && '--break-system-packages' || '' }}
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu ${{ matrix.image != 'ubuntu:22.04' && '--break-system-packages' || '' }}
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html ${{ matrix.image != 'ubuntu:22.04' && '--break-system-packages' || '' }}
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
@@ -617,8 +627,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html --break-system-packages
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html --break-system-packages
 
       - name: Ensure Node.js dependencies
         continue-on-error: true
