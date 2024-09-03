@@ -1,5 +1,6 @@
 #include "json_extension.h"
 
+#include "catalog/catalog.h"
 #include "common/types/types.h"
 #include "json_creation_functions.h"
 #include "json_export.h"

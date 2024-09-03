@@ -1,6 +1,7 @@
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 
 #include "storage/local_storage/local_rel_table.h"
+#include "storage/local_storage/local_storage.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

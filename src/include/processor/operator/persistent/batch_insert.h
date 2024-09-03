@@ -6,7 +6,8 @@
 namespace kuzu {
 namespace storage {
 class MemoryManager;
-}
+class ChunkedNodeGroup;
+} // namespace storage
 namespace processor {
 
 struct BatchInsertInfo {

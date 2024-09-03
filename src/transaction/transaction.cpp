@@ -24,6 +24,19 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
 
+Transaction::Transaction(TransactionType transactionType) noexcept
+    : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
+      commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr},
+      forceCheckpoint{false} {
+    currentTS = common::Timestamp::getCurrentTimestamp().value;
+}
+Transaction::Transaction(TransactionType transactionType, common::transaction_t ID,
+    common::transaction_t startTS) noexcept
+    : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
+      clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false} {
+    currentTS = common::Timestamp::getCurrentTimestamp().value;
+}
+
 bool Transaction::shouldLogToWAL() const {
     // When we are in recovery mode, we don't log to WAL.
     return !isRecovery() && !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath());
@@ -168,6 +181,12 @@ void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
     const common::idx_t vectorIdx, storage::VectorUpdateInfo& vectorUpdateInfo) const {
     undoBuffer->createVectorUpdateInfo(&updateInfo, vectorIdx, &vectorUpdateInfo);
 }
+
+Transaction::~Transaction() = default;
+
+Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
+Transaction DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
+    Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
 
 } // namespace transaction
 } // namespace kuzu

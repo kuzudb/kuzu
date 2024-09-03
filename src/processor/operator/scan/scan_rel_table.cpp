@@ -3,6 +3,7 @@
 #include "binder/expression/expression_util.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_rel_table.h"
+#include "storage/local_storage/local_storage.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

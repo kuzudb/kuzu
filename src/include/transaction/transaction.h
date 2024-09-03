@@ -1,9 +1,7 @@
 #pragma once
 
 #include "common/enums/statement_type.h"
-#include "common/types/timestamp_t.h"
-#include "storage/local_storage/local_storage.h"
-#include "storage/undo_buffer.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace catalog {
@@ -19,6 +17,10 @@ namespace storage {
 class LocalStorage;
 class UndoBuffer;
 class WAL;
+class VersionInfo;
+class UpdateInfo;
+struct VectorUpdateInfo;
+class ChunkedNodeGroup;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
@@ -37,18 +39,11 @@ public:
     Transaction(main::ClientContext& clientContext, TransactionType transactionType,
         common::transaction_t transactionID, common::transaction_t startTS);
 
-    explicit Transaction(TransactionType transactionType) noexcept
-        : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
-          commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr},
-          forceCheckpoint{false} {
-        currentTS = common::Timestamp::getCurrentTimestamp().value;
-    }
+    explicit Transaction(TransactionType transactionType) noexcept;
     explicit Transaction(TransactionType transactionType, common::transaction_t ID,
-        common::transaction_t startTS) noexcept
-        : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
-          clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false} {
-        currentTS = common::Timestamp::getCurrentTimestamp().value;
-    }
+        common::transaction_t startTS) noexcept;
+
+    ~Transaction();
 
     TransactionType getType() const { return type; }
     bool isReadOnly() const { return TransactionType::READ_ONLY == type; }
@@ -115,9 +110,9 @@ private:
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
-static auto DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
-static auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
-    Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
+// TODO(bmwinger): These shouldn't need to be exported
+extern KUZU_API Transaction DUMMY_TRANSACTION;
+extern KUZU_API Transaction DUMMY_CHECKPOINT_TRANSACTION;
 
 } // namespace transaction
 } // namespace kuzu

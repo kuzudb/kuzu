@@ -1,5 +1,6 @@
 #include "storage/store/null_column.h"
 
+#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "transaction/transaction.h"

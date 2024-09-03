@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
+#include <mutex>
+#include <optional>
 #include <shared_mutex>
 
 #include "common/constants.h"

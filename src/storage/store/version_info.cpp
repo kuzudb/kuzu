@@ -1,6 +1,8 @@
 #include "storage/store/version_info.h"
 
 #include "common/exception/runtime.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
 

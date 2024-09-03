@@ -8,6 +8,7 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/local_storage/local_node_table.h"
+#include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction.h"
