@@ -22,7 +22,9 @@ def main():
         for csv_file in files:
             if not csv_file.endswith(".csv"):
                 continue
-            platform = csv_file.split(".")[0]
+            name_split = csv_file.split(".")
+            name_split.pop()
+            platform = ".".join(name_split)
             df = pd.read_csv(os.path.join(root, csv_file), header=None)
             df.columns = ["stage", "exit_code"]
             results_df_hash[platform] = df
