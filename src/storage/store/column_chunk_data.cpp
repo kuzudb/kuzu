@@ -106,9 +106,6 @@ void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType) {
     numBytesPerValue = getDataTypeSizeInChunk(physicalType);
     bufferSize = getBufferSize(capacity);
     buffer = std::make_unique<uint8_t[]>(bufferSize);
-    if (nullData) {
-        nullData->initializeBuffer(physicalType);
-    }
 }
 
 void ColumnChunkData::initializeFunction(bool enableCompression) {
