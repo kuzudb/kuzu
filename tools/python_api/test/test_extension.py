@@ -9,8 +9,7 @@ def test_install_and_load_httpfs(conn_db_readonly: ConnDB) -> None:
     )
     httpfs_path = httpfs_path.resolve()
     httpfs_path_str = str(httpfs_path)
-    # Replace single `\` with double `\\` for Windows
-    httpfs_path_str = httpfs_path_str.replace("\\", "\\\\")
+    httpfs_path_str = httpfs_path_str.replace("\\", "/")
     conn, _ = conn_db_readonly
     conn.execute("INSTALL httpfs")
     conn.execute('LOAD EXTENSION "{}"'.format(httpfs_path_str))

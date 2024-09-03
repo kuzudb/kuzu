@@ -15,6 +15,8 @@ public class ExtensionTest extends TestBase {
         String currentDir = System.getProperty("user.dir");
         Path path = Path.of(currentDir, "../../extension/httpfs/build/libhttpfs.kuzu_extension");
         Path absPath = path.normalize().toAbsolutePath();
+        String absPathStr = absPath.toString();
+        absPathStr = absPathStr.replace("\\", "/");
         result = conn.query("LOAD EXTENSION " + "\"" + absPath + "\"");
         
         assertTrue(result.isSuccess());
