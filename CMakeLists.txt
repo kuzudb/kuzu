@@ -116,6 +116,8 @@ if(MSVC)
     add_compile_options("/utf-8")
     # Enables support for custom hardware exception handling
     add_compile_options("/EHa")
+    # Reduces the size of the static library by roughly 1/2
+    add_compile_options("/Zc:inline")
     # Remove the default to avoid warnings
     STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     STRING(REPLACE "/EHs" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
