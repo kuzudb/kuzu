@@ -10,7 +10,7 @@ on:
 
 jobs:
   generate-binary-demo:
-    name: Generate binary dataset
+    name: generate binary dataset
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -23,7 +23,7 @@ jobs:
       - name: Build
         run: make release
 
-      - name: Generate Datasets
+      - name: Generate datasets
         run: bash scripts/generate_binary_demo.sh
 
       - name: Upload binary-demo
