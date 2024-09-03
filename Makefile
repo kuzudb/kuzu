@@ -184,6 +184,9 @@ extension-json-test-build:
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
+extension-httpfs-release:
+	$(call run-cmake-release, -DBUILD_EXTENSIONS="httpfs" -DBUILD_KUZU=FALSE)
+
 extension-test: extension-test-build
 	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive

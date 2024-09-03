@@ -9,7 +9,7 @@
 -SKIP_MUSL
 -LOG InstallExtension
 -STATEMENT INSTALL httpfs;
-           LOAD EXTENSION httpfs;
+           LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension";
            LOAD FROM 'http://extension.kuzudb.com/dataset/test/city.csv' return *;
 ---- ok
 ---- ok
