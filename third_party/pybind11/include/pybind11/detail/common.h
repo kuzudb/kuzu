@@ -323,6 +323,7 @@ PYBIND11_WARNING_POP
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <algorithm>
 #if defined(__has_include)
 #    if __has_include(<version>)
 #        include <version>
