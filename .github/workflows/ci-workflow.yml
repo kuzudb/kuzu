@@ -855,6 +855,13 @@ jobs:
         run: |
           python3 scripts/generate-tinysnb.py
           cd scripts/ && python3 http-server.py &
+          make extension-test
+          
+      - name: Extension test in mem
+        env:
+          IN_MEM_MODE: true
+          HTTP_CACHE_FILE: false
+        run: |
           make extension-test && make clean
 
   macos-extension-test:
@@ -897,7 +904,14 @@ jobs:
         run: |
           python3 scripts/generate-tinysnb.py
           cd scripts/ && python3 http-server.py &
-          make extension-test && make clean
+          make extension-test
+
+      - name: Extension test in mem
+        env:
+          IN_MEM_MODE: true
+          HTTP_CACHE_FILE: false
+        run: |
+          make extension-test && make clean    
 
   windows-extension-test:
     name: windows extension test
@@ -953,6 +967,14 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test
+          
+      - name: Extension test in mem
+        shell: cmd
+        env:
+          IN_MEM_MODE: true
+          HTTP_CACHE_FILE: false
+        run: |
+          make extension-test 
 
       - name: Clean
         shell: cmd

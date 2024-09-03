@@ -124,7 +124,9 @@ void HTTPFileInfo::initializeClient() {
 
 std::unique_ptr<common::FileInfo> HTTPFileSystem::openFile(const std::string& path, int flags,
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
-    initCachedFileManager(context);
+    if (context->getCurrentSetting(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION).getValue<bool>()) {
+        initCachedFileManager(context);
+    }
     auto httpFileInfo = std::make_unique<HTTPFileInfo>(path, this, flags, context);
     httpFileInfo->initialize(context);
     return httpFileInfo;

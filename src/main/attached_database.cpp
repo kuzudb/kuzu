@@ -51,6 +51,10 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
                                        "path to an on-disk Kùzu database directory.");
     }
     auto path = vfs->expandPath(clientContext, dbPath);
+    // Note: S3 directory path may end with a '/'.
+    if (path.ends_with('/')) {
+        path = path.substr(0, path.size() - 1);
+    }
     initCatalog(path, clientContext);
     validateEmptyWAL(path, clientContext);
     storageManager = std::make_unique<storage::StorageManager>(path, true /* isReadOnly */,
