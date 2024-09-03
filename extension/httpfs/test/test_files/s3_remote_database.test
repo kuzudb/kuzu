@@ -2,9 +2,7 @@
 
 --
 
-#TODO(Ziyi): figure out a way to automate upload if storage has changed.
--CASE UWS3RemoteDB
--SKIP
+-DEFINE_STATEMENT_BLOCK UW_S3_SETUP [
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
 -STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
@@ -17,6 +15,12 @@
 ---- ok
 -STATEMENT CALL s3_region='US'
 ---- ok
+]
+
+#TODO(Ziyi): figure out a way to automate upload if storage has changed.
+-CASE UWS3RemoteDB
+-SKIP
+-INSERT_STATEMENT_BLOCK UW_S3_SETUP
 -STATEMENT CALL HTTP_CACHE_FILE=TRUE
 ---- ok
 -STATEMENT ATTACH 's3://kuzu-test/ldbc01' as ldbc (dbtype kuzu)
@@ -29,12 +33,23 @@ Attached database successfully.
 ---- 1
 Detached database successfully.
 
--LOG AttachWithoutCache
+-CASE AttachTinysnb
+-INSERT_STATEMENT_BLOCK UW_S3_SETUP
 -STATEMENT CALL HTTP_CACHE_FILE=FALSE
 ---- ok
--STATEMENT ATTACH 's3://kuzu-test/tinysnb' as ldbc (dbtype kuzu)
+-STATEMENT ATTACH 's3://kuzu-test/tinysnb/tinysnb/' as ldbc (dbtype kuzu)
 ---- 1
 Attached database successfully.
+-STATEMENT match (p0:person) return p0.id
+---- 8
+0
+2
+3
+5
+7
+8
+9
+10
 -STATEMENT match (p0:person)-[:knows]->(p1:person) return p0.ID, p1.ID
 ---- 14
 0|2

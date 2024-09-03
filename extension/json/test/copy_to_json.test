@@ -3,7 +3,7 @@
 --
 
 -CASE TinySnbCopyToJSON
-
+-SKIP_IN_MEM
 -STATEMENT COPY (MATCH (p:person) RETURN [id(p)], p.*) TO "${DATABASE_PATH}/tinysnb_person.json"
 ---- ok
 -STATEMENT load from "${DATABASE_PATH}/tinysnb_person.json" return *
