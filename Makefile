@@ -185,7 +185,7 @@ extension-json-test-build:
 	)
 
 extension-httpfs-release:
-	$(call run-cmake-release, -DBUILD_EXTENSIONS="httpfs" -DBUILD_KUZU=FALSE)
+	$(call run-cmake-release, -DBUILD_EXTENSIONS="httpfs")
 
 extension-test: extension-test-build
 	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
