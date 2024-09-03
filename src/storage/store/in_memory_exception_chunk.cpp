@@ -4,6 +4,7 @@
 #include "storage/compression/float_compression.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
+#include <algorithm>
 #include <concepts>
 
 namespace kuzu::storage {
