@@ -166,7 +166,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transact
         const auto rowIdx =
             nodeGroupScanState.inMemCSRList.rowIndices[nextRow + nodeGroupScanState.nextRowToScan];
         auto [chunkIdx, rowInChunk] =
-            StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
+            StorageUtils::getQuotientRemainder(rowIdx, ChunkedNodeGroup::CHUNK_CAPACITY);
         if (chunkIdx != currentChunkIdx) {
             currentChunkIdx = chunkIdx;
             const auto lock = chunkedGroups.lock();
