@@ -398,7 +398,7 @@ jobs:
     strategy:
       matrix:
         page_size_log2: [16, 18]
-    name: clang build & test with page size log2 ${{ matrix.page_size_log2 }}
+    name: clang build & test with page size log2=${{ matrix.page_size_log2 }}
     needs: [clang-build-test]
     runs-on: kuzu-self-hosted-testing
     env:
