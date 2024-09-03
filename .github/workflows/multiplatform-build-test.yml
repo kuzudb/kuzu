@@ -220,7 +220,7 @@ jobs:
           echo Test,%ERRORLEVEL% >> status.txt
         
       - name: Remove ldbc-1
-        run: rmdir /s /q dataset\ldbc-1
+        run: Remove-Item -Recurse -Force dataset\ldbc-1
 
       - name: C and C++ examples
         continue-on-error: true
