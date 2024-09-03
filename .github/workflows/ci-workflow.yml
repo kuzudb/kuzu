@@ -59,7 +59,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  generate-binary-demo:
+  generate-binary-datasets:
     name: generate binary dataset
     needs: [clang-format, sanity-checks, python-lint-check]
     runs-on: kuzu-self-hosted-testing
@@ -80,7 +80,7 @@ jobs:
       - name: Generate and upload tinysnb
         run: |
           bash scripts/generate_binary_tinysnb.sh
-          s3cmd get s3://kuzu-test/tinysnb/tinysnb/version.txt
+          s3cmd get s3://kuzu-test/tinysnb/tinysnb/version.txt || echo "0" > version.txt
           if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ]; then
             echo "TinySNB dataset is up to date, skipping upload"
             rm -rf tinysnb version.txt
@@ -90,6 +90,20 @@ jobs:
           s3cmd del -r s3://kuzu-test/tinysnb/
           s3cmd sync ./tinysnb s3://kuzu-test/tinysnb/ 
           rm -rf tinysnb version.txt
+      
+      - name: Generate and upload ldbc-sf01
+        run: |
+          bash scripts/generate_binary_ldbc-sf01.sh
+          s3cmd get s3://kuzu-test/ldbc01/version.txt || echo "0" > version.txt
+          if [ "$(cat ldbc01/version.txt)" == "$(cat version.txt)" ]; then
+            echo "LDBC-SF01 dataset is up to date, skipping upload"
+            rm -rf ldbc01 version.txt
+            exit 0
+          fi
+          echo "LDBC-SF01 dataset is outdated, uploading..."
+          s3cmd del -r s3://kuzu-test/ldbc01/
+          s3cmd sync ./ldbc01 s3://kuzu-test/ldbc01/
+          rm -rf ldbc01 version.txt
 
       - name: Upload binary-demo
         uses: actions/upload-artifact@v4
@@ -99,7 +113,7 @@ jobs:
 
   gcc-build-test:
     name: gcc build & test
-    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-datasets]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -175,7 +189,7 @@ jobs:
   code-coverage:
     name: code coverage
     runs-on: ubuntu-22.04
-    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-datasets]
     env:
       TEST_JOBS: 10
       WERROR: 0
@@ -212,7 +226,7 @@ jobs:
 
   gcc-build-test-x86:
     name: gcc build & test 32-bit
-    needs: [clang-format, sanity-checks, generate-binary-demo]
+    needs: [clang-format, sanity-checks, generate-binary-datasets]
     runs-on: ubuntu-latest
 
     steps:
@@ -265,7 +279,7 @@ jobs:
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
-    needs: [gcc-build-test, generate-binary-demo]
+    needs: [gcc-build-test, generate-binary-datasets]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -305,7 +319,7 @@ jobs:
 
   clang-build-test:
     name: clang build & test
-    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-datasets]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -455,7 +469,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
+    needs: [clang-format, sanity-checks, python-lint-check, generate-binary-datasets]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -701,7 +715,7 @@ jobs:
 
   macos-build-test-x86_64:
     name: apple clang build & test (x86_64)
-    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check, generate-binary-demo]
+    needs: [clang-format, sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets]
     runs-on: self-hosted-mac-x64
     env:
       NUM_THREADS: 32
