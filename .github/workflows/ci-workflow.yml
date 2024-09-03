@@ -860,6 +860,7 @@ jobs:
       - name: Extension test in mem
         env:
           IN_MEM_MODE: true
+          HTTP_CACHE_FILE: false
         run: |
           make extension-test && make clean
 
@@ -908,6 +909,7 @@ jobs:
       - name: Extension test in mem
         env:
           IN_MEM_MODE: true
+          HTTP_CACHE_FILE: false
         run: |
           make extension-test && make clean    
 
@@ -970,8 +972,9 @@ jobs:
         shell: cmd
         env:
           IN_MEM_MODE: true
+          HTTP_CACHE_FILE: false
         run: |
-          make extension-test
+          make extension-test 
 
       - name: Clean
         shell: cmd
