@@ -113,4 +113,5 @@ jobs:
             dataset
   
   deploy-extensions:
+    needs: package-built-extensions
     uses: ./.github/workflows/deploy-extension.yml
