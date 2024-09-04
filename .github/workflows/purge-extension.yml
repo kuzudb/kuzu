@@ -44,3 +44,7 @@ jobs:
             dataset
           name: kuzu-extensions
 
+  deploy-extensions:
+    needs: purge-extensions
+    uses: ./.github/workflows/deploy-extension.yml
+    secrets: inherit
