@@ -2,10 +2,11 @@ import pathlib
 import os
 from packaging.version import Version
 
+CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
 
-RELEASES_PATH = pathlib.Path(__file__).parent.parent.joinpath('releases').resolve()
+RELEASES_PATH = CURRENT_DIR.joinpath('releases').resolve()
 
-production_releases = open(RELEASES_PATH.joinpath('PRODUCTION_RELEASES')).read().splitlines()
+production_releases = open(CURRENT_DIR.joinpath('PRODUCTION_RELEASES')).read().splitlines()
 
 releases_to_purge = [r for r in os.listdir(RELEASES_PATH) if r.startswith('v')]
 
