@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  get-current-extensions:
+  get-dockerhub-extensions:
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space on Ubuntu runner
@@ -17,22 +17,22 @@ jobs:
           large-packages: true
           swap-storage: true
           
-      - name: Pull current extensions and run container
+      - name: Pull dockerhub extensions and run container
         run: |
           docker pull kuzudb/extension-repo:latest
           docker run --rm -d --name kuzu-extensions kuzudb/extension-repo:latest tail -f /dev/null
       
-      - name: Copy current extensions
+      - name: Copy dockerhub extensions
         run: |
-          mkdir ./current-extensions
-          docker cp kuzu-extensions:/usr/share/nginx/html ./current-extensions
-          sudo chown -R $USER:$USER current-extensions
-          sudo chmod -R 755 current-extensions
-          mv current-extensions/html/dataset current-extensions/dataset
-          mv current-extensions/html/ current-extensions/releases
+          mkdir ./dockerhub-extensions
+          docker cp kuzu-extensions:/usr/share/nginx/html ./dockerhub-extensions
+          sudo chown -R $USER:$USER dockerhub-extensions
+          sudo chmod -R 755 dockerhub-extensions
+          mv dockerhub-extensions/html/dataset dockerhub-extensions/dataset
+          mv dockerhub-extensions/html/ dockerhub-extensions/releases
 
-      - name: Upload current extensions
+      - name: Upload dockerhub extensions
         uses: actions/upload-artifact@v4
         with:
-          name: current-extensions
-          path: current-extensions
+          name: dockerhub-extensions
+          path: dockerhub-extensions
