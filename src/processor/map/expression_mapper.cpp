@@ -153,9 +153,6 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getFunctionEvaluator(
         auto& lambdaExpr = expression->getChild(1)->constCast<LambdaExpression>();
         result->setLambdaRootEvaluator(
             recursiveExprMapper.getEvaluator(lambdaExpr.getFunctionExpr()));
-        result->setVarNames(lambdaExpr.getParsedLambdaExpr()
-                ->constCast<parser::ParsedLambdaExpression>()
-                .getVarNames());
         return result;
     }
     childrenEvaluators = getEvaluators(expression->getChildren());

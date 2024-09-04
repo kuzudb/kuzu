@@ -1,7 +1,10 @@
 #pragma once
 
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression/scalar_function_expression.h"
+#include "common/exception/runtime.h"
 #include "expression_evaluator.h"
+#include "parser/expression/parsed_lambda_expression.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -17,9 +20,7 @@ class LambdaParamEvaluator : public ExpressionEvaluator {
 
 public:
     explicit LambdaParamEvaluator(std::shared_ptr<binder::Expression> expression)
-        : ExpressionEvaluator{type_, std::move(expression), false /* isResultFlat */} {
-        varName = this->getExpression()->toString();
-    }
+        : ExpressionEvaluator{type_, std::move(expression), false /* isResultFlat */} {}
 
     void evaluate() override {}
 
@@ -29,16 +30,15 @@ public:
         return std::make_unique<LambdaParamEvaluator>(expression);
     }
 
-    const std::string& getVarName() { return varName; }
+    std::string getVarName() { return this->getExpression()->toString(); }
 
 protected:
     void resolveResultVector(const processor::ResultSet&, storage::MemoryManager*) override {}
-    std::string varName;
 };
 
 struct ListLambdaBindData {
     std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
-    std::vector<std::string> varNames;
+    std::vector<common::idx_t> indexInVars;
     ExpressionEvaluator* rootEvaluator;
 };
 
@@ -62,8 +62,6 @@ public:
         lambdaRootEvaluator = std::move(evaluator);
     }
 
-    void setVarNames(const std::vector<std::string>& names) { varNames = names; }
-
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 
     void evaluate() override;
@@ -73,8 +71,28 @@ public:
     std::unique_ptr<ExpressionEvaluator> clone() override {
         auto result = std::make_unique<ListLambdaEvaluator>(expression, cloneVector(children));
         result->setLambdaRootEvaluator(lambdaRootEvaluator->clone());
-        result->setVarNames(varNames);
         return result;
+    }
+
+    std::vector<common::idx_t> getIndexInVars() {
+        const auto& paramNames = getExpression()
+                                   ->getChild(1)
+                                   ->constCast<binder::LambdaExpression>()
+                                   .getParsedLambdaExpr()
+                                   ->constCast<parser::ParsedLambdaExpression>()
+                                   .getVarNames();
+        std::vector<common::idx_t> index(lambdaParamEvaluators.size());
+        for (common::idx_t i = 0; i < lambdaParamEvaluators.size(); i++) {
+            auto paramName = lambdaParamEvaluators[i]->getVarName();
+            auto it = std::find(paramNames.begin(), paramNames.end(), paramName);
+            if (it != paramNames.end()) {
+                index[i] = it - paramNames.begin();
+            } else {
+                throw common::RuntimeException(
+                    common::stringFormat("Lambda paramName {} cannot found.", paramName));
+            }
+        }
+        return index;
     }
 
 protected:
@@ -89,7 +107,6 @@ private:
     std::unique_ptr<ExpressionEvaluator> lambdaRootEvaluator;
     std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
     std::vector<std::shared_ptr<common::ValueVector>> params;
-    std::vector<std::string> varNames;
     ListLambdaType listLambdaType;
 };
 

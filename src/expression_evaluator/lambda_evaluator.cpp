@@ -41,8 +41,8 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     resolveResultVector(resultSet, clientContext->getMemoryManager());
     params.push_back(children[0]->resultVector);
     params.push_back(lambdaRootEvaluator->resultVector);
-    bindData =
-        ListLambdaBindData{lambdaParamEvaluators, varNames, lambdaRootEvaluator.get()};
+    auto indexInVar = getIndexInVars();
+    bindData = ListLambdaBindData{lambdaParamEvaluators, indexInVar, lambdaRootEvaluator.get()};
 }
 
 void ListLambdaEvaluator::evaluate() {
