@@ -50,6 +50,8 @@ jobs:
   build-java-linux:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/linux-java-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-java-windows:
@@ -109,6 +111,8 @@ jobs:
   build-nodejs-linux:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/linux-nodejs-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-nodejs-windows:
@@ -339,6 +343,8 @@ jobs:
   build-precompiled-bin-linux:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-precompiled-bin-windows:
