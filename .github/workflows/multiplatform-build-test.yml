@@ -1,4 +1,4 @@
-name: Multiplatform Build & Test
+name: Multiplatform Build and Test
 
 env:
   USE_EXISTING_BINARY_DATASET: 1

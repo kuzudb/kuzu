@@ -1,4 +1,4 @@
-name: Build-Windows-Java-Lib
+name: Build Windows Java Lib
 
 on:
   workflow_dispatch:

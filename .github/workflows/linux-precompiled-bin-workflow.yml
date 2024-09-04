@@ -1,4 +1,4 @@
-name: Build-Linux-Precompiled-Binaries
+name: Build Linux Precompiled Binaries
 
 on:
   workflow_dispatch:

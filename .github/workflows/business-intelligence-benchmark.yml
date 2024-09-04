@@ -1,4 +1,4 @@
-name: LDBC-SNB-Business-Intelligence-Benchmark
+name: LDBC SNB Business Intelligence Benchmark
 
 on:
   schedule:

@@ -1,4 +1,4 @@
-name: Build-And-Deploy
+name: Build and Deploy
 on:
   schedule:
     - cron: "0 8 * * *"

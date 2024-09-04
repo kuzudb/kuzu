@@ -1,4 +1,4 @@
-name: Build-Windows-Precompiled-Binaries
+name: Build Windows Precompiled Binaries
 
 on:
   workflow_dispatch:

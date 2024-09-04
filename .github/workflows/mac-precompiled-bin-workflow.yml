@@ -1,4 +1,4 @@
-name: Build-Mac-Precompiled-Binaries
+name: Build Mac Precompiled Binaries
 
 on:
   workflow_dispatch:

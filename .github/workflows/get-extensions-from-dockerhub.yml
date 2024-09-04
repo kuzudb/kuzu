@@ -1,4 +1,4 @@
-name: Get-Extensions-From-Dockerhub
+name: Get Extensions from Dockerhub
 on:
   workflow_dispatch:
   workflow_call:
