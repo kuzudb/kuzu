@@ -7,5 +7,44 @@ jobs:
   get-dockerhub-extensions:
     uses: ./.github/workflows/get-extensions-from-dockerhub.yml
     
-    # purge-extensions:
-    #     needs: get-dockerhub-extensions
+  purge-extensions:
+    needs: get-dockerhub-extensions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space on Ubuntu runner
+        uses: kfir4444/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+      
+      - uses: actions/checkout@v4
+
+      - name: Restructure directories
+        run: |
+          mv scripts/extension ../extension-scripts
+          rm -rf *
+          mv ../extension-scripts/* .
+      
+      - uses: actions/download-artifact@v4
+        with:
+          name: dockerhub-extensions
+      
+      - name: Purge extensions
+        run: python3 purge-beta.py
+      
+      - name: Upload purged extensions
+        uses: actions/upload-artifact@v4
+        with:
+          path: |
+            releases
+            dataset
+          name: kuzu-extensions
+
+  deploy-extensions:
+    needs: purge-extensions
+    uses: ./.github/workflows/deploy-extension.yml
+    secrets: inherit
