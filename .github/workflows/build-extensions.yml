@@ -166,6 +166,7 @@ jobs:
 
       - name: Clear old artifacts
         run: |
+          ls -al
           rm -rf releases/$RELEASE_VERSION/
 
       - name: Create temporary directory for artifacts
