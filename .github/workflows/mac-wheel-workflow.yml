@@ -1,4 +1,4 @@
-name: Build-Mac-Wheels
+name: Build Mac Wheels
 
 on:
   workflow_dispatch:

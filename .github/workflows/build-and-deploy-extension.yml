@@ -1,0 +1,113 @@
+name: Build and Deploy Extensions
+
+on: 
+  workflow_dispatch:
+
+  workflow_call:
+
+jobs:
+  build-extensions:
+    uses: ./.github/workflows/build-extensions.yml
+
+  get-dockerhub-extensions:
+    uses: ./.github/workflows/get-extensions-from-dockerhub.yml
+
+  package-built-extensions:
+    runs-on: ubuntu-latest
+    needs:
+      - build-extensions
+      - get-dockerhub-extensions
+    steps:
+      - name: Free disk space on Ubuntu runner
+        uses: kfir4444/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+      
+      - uses: actions/checkout@v4
+
+      - name: Detect release version
+        run: |
+          echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_EXTENSION_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
+
+      - name: Delete checked out repository
+        run: cd .. && rm -rf kuzu
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dockerhub-extensions
+
+      - name: Clear old artifacts
+        run: rm -rf releases/$RELEASE_VERSION/
+
+      - name: Create temporary directory for artifacts
+        run: |
+          mkdir -p extension-artifacts
+          mkdir -p extension-artifacts/linux_amd64
+          mkdir -p extension-artifacts/linux_arm64
+          mkdir -p extension-artifacts/linux_x86
+          mkdir -p extension-artifacts/osx_amd64
+          mkdir -p extension-artifacts/osx_arm64
+          mkdir -p extension-artifacts/win_amd64
+
+      - name: Download built artifacts for linux-x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_linux-x86_64
+          path: extension-artifacts/linux_amd64
+
+      - name: Download built artifacts for linux-aarch64
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_linux-aarch64
+          path: extension-artifacts/linux_arm64
+
+      - name: Download built artifacts for linux-x86
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_linux-x86
+          path: extension-artifacts/linux_x86
+
+      - name: Download built artifacts for osx-x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_osx-x86_64
+          path: extension-artifacts/osx_amd64
+
+      - name: Download built artifacts for osx-aarch64
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_osx-arm64
+          path: extension-artifacts/osx_arm64
+
+      - name: Download built artifacts for windows-x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_win-x86_64
+          path: extension-artifacts/win_amd64
+
+      - name: Copy built artifacts
+        run: |
+          rsync -av extension-artifacts/ releases/$RELEASE_VERSION/
+
+      - name: Remove temporary directory
+        run: rm -rf extension-artifacts
+
+      - name: Set artifact permissions
+        run: |
+          chmod -R 755 releases/$RELEASE_VERSION
+
+      - name: List downloaded artifacts
+        run: ls -R releases/$RELEASE_VERSION
+      
+      - name: Upload new artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuzu-extensions
+          path: |
+            releases
+            dataset

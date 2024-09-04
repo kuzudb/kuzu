@@ -1,4 +1,4 @@
-name: LSQB-Benchmark
+name: LSQB Benchmark
 on:
   schedule:
     - cron: "0 5 * * *"

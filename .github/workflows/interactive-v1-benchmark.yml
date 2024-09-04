@@ -1,4 +1,4 @@
-name: LDBC-SNB-Interactive-V1-Benchmark
+name: LDBC SNB Interactive v1 Benchmark
 
 on:
   schedule:

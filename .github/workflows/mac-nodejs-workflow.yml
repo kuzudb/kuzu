@@ -1,4 +1,4 @@
-name: Build-Mac-NodeJS-Module
+name: Build Mac Node.js Module
 
 on:
   workflow_dispatch:

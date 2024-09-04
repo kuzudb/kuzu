@@ -1,4 +1,4 @@
-name: Build-Linux-Java-Lib
+name: Build Linux Java Lib
 on:
   workflow_dispatch:
   workflow_call:

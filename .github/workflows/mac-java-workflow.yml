@@ -1,4 +1,4 @@
-name: Build-Mac-Java-Lib
+name: Build Mac Java Lib
 on:
   workflow_dispatch:
   workflow_call:

@@ -1,4 +1,4 @@
-name: LDBC-Fintech-Benchmark
+name: LDBC Fintech Benchmark
 
 on:
   schedule:

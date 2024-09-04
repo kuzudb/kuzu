@@ -1,4 +1,4 @@
-name: Build-Linux-NodeJS-Module
+name: Build Linux Node.js Module
 
 on:
   workflow_dispatch:
