@@ -3,7 +3,8 @@
 #include "common/types/types.h"
 #include "json_creation_functions.h"
 #include "json_export.h"
-#include "json_functions.h"
+#include "json_extract_functions.h"
+#include "json_scalar_functions.h"
 #include "json_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
@@ -19,20 +20,28 @@ static void addJsonCreationFunction(main::Database& db) {
     ADD_FUNC_ALIAS(CastToJsonFunction);
     ADD_FUNC(JsonArrayFunction);
     ADD_FUNC(JsonObjectFunction);
+    ADD_FUNC(JsonMergePatchFunction);
 }
 
-void JsonExtension::load(main::ClientContext* context) {
-    auto& db = *context->getDatabase();
-    db.getCatalog()->createType(context->getTx(), "json", common::LogicalType::STRING());
-    addJsonCreationFunction(db);
-    ADD_FUNC(JsonMergePatchFunction);
+static void addJsonExtractFunction(main::Database& db) {
     ADD_FUNC(JsonExtractFunction);
+}
+
+static void addJsonScalarFunction(main::Database& db) {
     ADD_FUNC(JsonArrayLengthFunction);
     ADD_FUNC(JsonContainsFunction);
     ADD_FUNC(JsonKeysFunction);
     ADD_FUNC(JsonStructureFunction);
     ADD_FUNC(JsonValidFunction);
     ADD_FUNC(MinifyJsonFunction);
+}
+
+void JsonExtension::load(main::ClientContext* context) {
+    auto& db = *context->getDatabase();
+    db.getCatalog()->createType(context->getTx(), "json", common::LogicalType::STRING());
+    addJsonCreationFunction(db);
+    addJsonExtractFunction(db);
+    addJsonScalarFunction(db);
     ADD_FUNC(JsonExportFunction);
     extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
 }

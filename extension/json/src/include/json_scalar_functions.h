@@ -5,12 +5,6 @@
 namespace kuzu {
 namespace json_extension {
 
-struct JsonExtractFunction {
-    static constexpr const char* name = "json_extract";
-
-    static function::function_set getFunctionSet();
-};
-
 struct JsonArrayLengthFunction {
     static constexpr const char* name = "json_array_length";
 
@@ -31,6 +25,12 @@ struct JsonKeysFunction {
 
 struct JsonStructureFunction {
     static constexpr const char* name = "json_structure";
+
+    static function::function_set getFunctionSet();
+};
+
+struct JsonTypeFunction {
+    static constexpr const char* name = "json_type";
 
     static function::function_set getFunctionSet();
 };
