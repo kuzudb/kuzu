@@ -138,35 +138,7 @@ jobs:
   #         path: extension-artifacts
   
   get-old-extensions:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Free disk space on Ubuntu runner
-        uses: kfir4444/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          swap-storage: true
-      
-      - name: Pull old extensions and run container
-        run: |
-          docker pull kuzudb/extension-repo:latest
-          docker run --rm -d --name kuzu-extensions kuzudb/extension-repo:latest tail -f /dev/null
-      
-      - name: Copy old extensions
-        run: |
-          mkdir ./old-extensions
-          docker cp kuzu-extensions:/usr/share/nginx/html ./old-extensions
-          sudo chown -R $USER:$USER old-extensions
-          sudo chmod -R 755 old-extensions
-      
-      - name: Upload old extensions
-        uses: actions/upload-artifact@v4
-        with:
-          name: old-extensions
-          path: old-extensions
+    uses: ./.github/workflows/get-extensions-from-dockerhub.yml
 
   # update-extensions-repo:
   #   runs-on: ubuntu-latest
