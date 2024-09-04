@@ -1,0 +1,35 @@
+name: Deploy Extensions
+
+on: 
+  workflow_call:
+
+jobs:
+  deploy-extensions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space on Ubuntu runner
+        uses: kfir4444/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+      
+      - uses: actions/checkout@v4
+
+      - name: Restructure directories
+        run: |
+          mv scripts/extension ../extension-scripts
+          rm -rf *
+          mv ../extension-scripts/* .
+          ls -la
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions
+      
+      - name: LS
+        run: ls -la
+      

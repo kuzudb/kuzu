@@ -111,3 +111,6 @@ jobs:
           path: |
             releases
             dataset
+  
+  deploy-extensions:
+    uses: ./.github/workflows/deploy-extension.yml
