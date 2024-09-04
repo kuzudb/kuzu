@@ -17,7 +17,7 @@ public class ExtensionTest extends TestBase {
         Path absPath = path.normalize().toAbsolutePath();
         String absPathStr = absPath.toString();
         absPathStr = absPathStr.replace("\\", "/");
-        result = conn.query("LOAD EXTENSION " + "\"" + absPath + "\"");
+        result = conn.query("LOAD EXTENSION " + "\"" + absPathStr + "\"");
         
         assertTrue(result.isSuccess());
         result.destroy();
