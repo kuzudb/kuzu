@@ -1,3 +1,0 @@
-add_subdirectory(creation_functions)
-add_subdirectory(extract_functions)
-add_subdirectory(scalar_functions)

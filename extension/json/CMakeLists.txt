@@ -4,15 +4,11 @@ include_directories(
         third_party/yyjson/src
 )
 
-add_subdirectory(src/functions)
+add_subdirectory(src)
 
 add_library(kuzu_json_extension
         SHARED
         ${JSON_OBJECT_FILES}
-        src/json_export.cpp
-        src/json_extension.cpp
-        src/json_scan.cpp
-        src/json_utils.cpp
 )
 
 add_subdirectory(third_party)
