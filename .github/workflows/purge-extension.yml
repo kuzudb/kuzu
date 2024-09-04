@@ -1,0 +1,11 @@
+name: Purge Extensions
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  get-dockerhub-extensions:
+    uses: ./.github/workflows/get-extensions-from-dockerhub.yml
+    
+    # purge-extensions:
+    #     needs: get-dockerhub-extensions

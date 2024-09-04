@@ -35,7 +35,7 @@ jobs:
           echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_EXTENSION_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
 
       - name: Delete checked out repository
-        run: cd .. && rm -rf kuzu
+        run: rm -rf ./*
 
       - uses: actions/download-artifact@v4
         with:
@@ -111,3 +111,8 @@ jobs:
           path: |
             releases
             dataset
+  
+  deploy-extensions:
+    needs: package-built-extensions
+    uses: ./.github/workflows/deploy-extension.yml
+    secrets: inherit
