@@ -151,6 +151,16 @@ jobs:
       - build-windows-extensions-x86_64
       - get-dockerhub-extensions
     steps:
+      - name: Free disk space on Ubuntu runner
+        uses: kfir4444/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+      
       - uses: actions/checkout@v4
 
       - name: Detect release version
