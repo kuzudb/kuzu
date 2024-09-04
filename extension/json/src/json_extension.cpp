@@ -1,7 +1,7 @@
 #include "json_extension.h"
 
-#include "catalog/catalog.h"
 #include "common/types/types.h"
+#include "json_creation_functions.h"
 #include "json_export.h"
 #include "json_functions.h"
 #include "json_scan.h"
@@ -11,11 +11,21 @@
 namespace kuzu {
 namespace json_extension {
 
+static void addJsonCreationFunction(main::Database& db) {
+    ADD_FUNC(ToJsonFunction);
+    ADD_FUNC_ALIAS(JsonQuoteFunction);
+    ADD_FUNC_ALIAS(ArrayToJsonFunction);
+    ADD_FUNC_ALIAS(RowToJsonFunction);
+    ADD_FUNC_ALIAS(CastToJsonFunction);
+    ADD_FUNC(JsonArrayFunction);
+    ADD_FUNC(JsonObjectFunction);
+}
+
 void JsonExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ADD_FUNC(ToJsonFunction);
-    ADD_FUNC(CastToJsonFunction);
-    ADD_FUNC(JsonMergeFunction);
+    db.getCatalog()->createType(context->getTx(), "json", common::LogicalType::STRING());
+    addJsonCreationFunction(db);
+    ADD_FUNC(JsonMergePatchFunction);
     ADD_FUNC(JsonExtractFunction);
     ADD_FUNC(JsonArrayLengthFunction);
     ADD_FUNC(JsonContainsFunction);
@@ -25,10 +35,6 @@ void JsonExtension::load(main::ClientContext* context) {
     ADD_FUNC(MinifyJsonFunction);
     ADD_FUNC(JsonExportFunction);
     extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
-    if (!db.getCatalog()->containsType(&transaction::DUMMY_TRANSACTION, "json")) {
-        db.getCatalog()->createType(&transaction::DUMMY_TRANSACTION, "json",
-            common::LogicalType::STRING());
-    }
 }
 
 } // namespace json_extension

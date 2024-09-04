@@ -47,6 +47,9 @@ public:
 enum JsonScanFormat : uint8_t { ARRAY = 0, UNSTRUCTURED = 1 };
 
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
+yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos);
+yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVector& vec,
+    uint64_t pos);
 // Converts an internal Kuzu Value into json
 
 std::vector<JsonWrapper> jsonifyQueryResult(

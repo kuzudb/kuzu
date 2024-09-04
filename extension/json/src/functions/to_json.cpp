@@ -1,5 +1,5 @@
 #include "function/scalar_function.h"
-#include "json_functions.h"
+#include "json_creation_functions.h"
 #include "json_utils.h"
 
 namespace kuzu {

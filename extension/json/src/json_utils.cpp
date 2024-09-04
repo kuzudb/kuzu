@@ -29,14 +29,13 @@ JsonMutWrapper::~JsonMutWrapper() {
     }
 }
 
-static yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVector& vec,
+yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVector& vec,
     uint64_t pos) {
     auto strVal = vec.getAsValue(pos)->toString();
     return yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
 }
 
-static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
-    uint64_t pos) {
+yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos) {
     // creates a mutable value linked to wrapper.ptr, but the responsibility to integrate it into
     // wrapper is placed upon the caller
     yyjson_mut_val* result = nullptr;
@@ -123,7 +122,7 @@ static yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVecto
         } break;
         default: {
             return jsonifyAsString(wrapper, vec, pos);
-        } break;
+        }
         }
     }
     return result;

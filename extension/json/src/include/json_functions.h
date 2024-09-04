@@ -5,23 +5,6 @@
 namespace kuzu {
 namespace json_extension {
 
-struct ToJsonFunction {
-    static constexpr const char* name = "to_json";
-
-    static function::function_set getFunctionSet();
-};
-
-// alias for castany to work with json
-struct CastToJsonFunction : public ToJsonFunction {
-    static constexpr const char* name = "cast_to_json";
-};
-
-struct JsonMergeFunction {
-    static constexpr const char* name = "json_merge_patch";
-
-    static function::function_set getFunctionSet();
-};
-
 struct JsonExtractFunction {
     static constexpr const char* name = "json_extract";
 
