@@ -40,9 +40,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dockerhub-extensions
-      
-      - name: Remove PRODUCTION_RELEASES file
-        run: rm -rf releases/PRODUCTION_RELEASES
 
       - name: Clear old artifacts
         run: rm -rf releases/$RELEASE_VERSION/
