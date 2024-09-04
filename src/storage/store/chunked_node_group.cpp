@@ -245,8 +245,8 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
     ChunkedNodeGroup& output) const;
 
-row_idx_t ChunkedNodeGroup::getNumDeletedRows(const Transaction* transaction) const {
-    return versionInfo ? versionInfo->getNumDeletions(transaction) : 0;
+bool ChunkedNodeGroup::hasDeletions(const Transaction* transaction) const {
+    return versionInfo ? versionInfo->hasDeletions(transaction) : false;
 }
 
 row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,

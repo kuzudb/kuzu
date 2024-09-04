@@ -144,7 +144,7 @@ public:
         common::column_id_t columnID, const common::ValueVector& propertyVector);
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
 
-    common::row_idx_t getNumDeletedRows(const transaction::Transaction* transaction);
+    bool hasDeletions(const transaction::Transaction* transaction);
     virtual void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState, FileHandle* dataFH);
 
@@ -185,8 +185,6 @@ private:
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx);
     ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx);
-
-    common::row_idx_t getNumDeletedRows(const common::UniqLock& lock);
 
     std::unique_ptr<ChunkedNodeGroup> checkpointInMemOnly(MemoryManager& memoryManager,
         const common::UniqLock& lock, NodeGroupCheckpointState& state);
