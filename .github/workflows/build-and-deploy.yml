@@ -45,6 +45,8 @@ jobs:
   build-java-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/mac-java-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-java-linux:
@@ -106,6 +108,8 @@ jobs:
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/mac-nodejs-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-nodejs-linux:
@@ -338,6 +342,8 @@ jobs:
   build-precompiled-bin-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/mac-precompiled-bin-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-precompiled-bin-linux:
