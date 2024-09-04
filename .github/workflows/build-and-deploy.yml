@@ -59,6 +59,8 @@ jobs:
   build-java-windows:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/windows-java-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   inject-java-bins:
@@ -122,6 +124,8 @@ jobs:
   build-nodejs-windows:
     if: ${{ github.event_name == 'schedule' ||  github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/windows-nodejs-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   deploy-nodejs:
@@ -356,4 +360,6 @@ jobs:
   build-precompiled-bin-windows:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/windows-precompiled-bin-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
