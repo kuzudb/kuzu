@@ -184,8 +184,8 @@ extension-json-test-build:
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
-extension-httpfs-release:
-	$(call run-cmake-release, -DBUILD_EXTENSIONS="httpfs")
+extension-for-test:
+	$(call run-cmake-release, -DBUILD_EXTENSIONS="httpfs;duckdb")
 
 extension-test: extension-test-build
 	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}

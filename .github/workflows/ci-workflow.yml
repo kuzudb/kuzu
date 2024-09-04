@@ -152,7 +152,7 @@ jobs:
         working-directory: tools/nodejs_api
       
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
 
       - name: Test
         run: |
@@ -210,7 +210,7 @@ jobs:
         run: sudo apt-get install -y lcov
       
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
 
       - name: Test with coverage
         run: make lcov NUM_THREADS=$(nproc)
@@ -258,7 +258,7 @@ jobs:
 
       - name: Build & Test
         run: |
-          docker exec kuzu-x86 make extension-httpfs-release NUM_THREADS=$(nproc)
+          docker exec kuzu-x86 make extension-for-test NUM_THREADS=$(nproc)
           docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test NUM_THREADS=$(nproc)
 
       - name: Stop Docker container
@@ -314,7 +314,7 @@ jobs:
         working-directory: tools/nodejs_api
       
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
 
       - name: Test with ASAN
         run: make test ASAN=1
@@ -364,7 +364,7 @@ jobs:
         working-directory: tools/nodejs_api
       
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
 
       - name: Test
         run: |
@@ -433,7 +433,7 @@ jobs:
           make release PAGE_SIZE_LOG2=${{ matrix.page_size_log2 }}
 
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
   
       - name: Generate binary demo
         run: |
@@ -489,7 +489,7 @@ jobs:
           make all GEN="Visual Studio 17 2022"
       
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
 
       - name: Test
         shell: cmd
@@ -729,7 +729,7 @@ jobs:
         working-directory: tools/nodejs_api
       
       - name: Build httpfs
-        run: make extension-httpfs-release
+        run: make extension-for-test
 
       - name: Test
         run: |
