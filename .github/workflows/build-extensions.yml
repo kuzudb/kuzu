@@ -168,10 +168,7 @@ jobs:
           echo "RELEASE_VERSION=v$(cat CMakeLists.txt | grep "DKUZU_EXTENSION_VERSION" | cut -d '"' -f 2 )" >> $GITHUB_ENV
 
       - name: Delete checked out repository
-        run: |
-          pwd
-          ls -al
-          cd .. && rm -rf kuzudb
+        run: cd .. && rm -rf kuzu
 
       - uses: actions/download-artifact@v4
         with:
