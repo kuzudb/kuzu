@@ -11,7 +11,7 @@ using namespace common;
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-        ++selectedPos) {
+         ++selectedPos) {
         auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto isNull = parameters[0]->isNull(inputPos);
