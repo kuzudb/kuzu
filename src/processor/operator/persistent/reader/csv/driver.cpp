@@ -4,6 +4,7 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -107,6 +108,12 @@ bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
 
 bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     std::string_view value) {
+    uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
     auto& csvOption = reader->getCSVOption();
     if (columns.size() < columnIdx + 1 && csvOption.hasHeader && rowNum > 0) {
         reader->handleCopyException("expected {} values per row, but got more.");
@@ -148,6 +155,13 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
 }
 
 bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t columnCount) {
+    if (rowEmpty) {
+        rowEmpty = false;
+        if (reader->getNumColumns() != 1) {
+            return false;
+        }
+        // Otherwise, treat it as null.
+    }
     if (columnCount < reader->getNumColumns()) {
         // Column number mismatch.
         reader->handleCopyException(stringFormat("expected {} values per row, but got {}.",

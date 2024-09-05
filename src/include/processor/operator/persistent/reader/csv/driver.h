@@ -63,6 +63,7 @@ struct SniffCSVNameAndTypeDriver {
     std::vector<bool> sniffType;
     // if the type isn't declared in the header, sniff it
     SerialCSVReader* reader;
+    bool rowEmpty = false;
 
     SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
         const function::ScanTableFuncBindInput* bindInput);
