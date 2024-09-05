@@ -37,8 +37,8 @@ if (NOT WIN32)
     add_library(sqlite_loader
             SHARED
             ../duckdb/src/duckdb_loader.cpp)
-    set_extension_properties(sqlite_installer sqlite)
-    set_extension_properties(sqlite_loader sqlite)
+    set_extension_properties(sqlite_installer sqlite_installer)
+    set_extension_properties(sqlite_loader sqlite_loader)
 endif ()
 
 if (WIN32)
