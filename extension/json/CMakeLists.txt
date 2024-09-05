@@ -6,16 +6,16 @@ include_directories(
 
 add_subdirectory(src)
 
-add_library(json_extension
+add_library(kuzu_json_extension
         SHARED
         ${JSON_OBJECT_FILES}
 )
 
 add_subdirectory(third_party)
 
-set_extension_properties(json_extension json)
+set_extension_properties(kuzu_json_extension json)
 
-target_link_libraries(json_extension
+target_link_libraries(kuzu_json_extension
         PRIVATE
         yyjson
 )
@@ -37,9 +37,9 @@ if (WIN32)
     # for its small libraries anyways...
     # Future work could make it possible to embed extension into kuzu,
     # which would help fix this problem.
-    target_link_libraries(json_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_json_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(json_extension)
+    set_apple_dynamic_lookup(kuzu_json_extension)
 endif ()
