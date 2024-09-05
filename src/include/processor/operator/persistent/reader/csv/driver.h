@@ -62,7 +62,7 @@ private:
 
 class SniffCSVNameAndTypeDriver : public SerialParsingDriver {
     SerialCSVReader* reader;
-    static common::DataChunk dummyChunk;
+    //static common::DataChunk dummyChunk;
 
 public:
     SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
