@@ -68,12 +68,6 @@ describe("Database constructor", function () {
   });
 
   it("should create a database in read-only mode", async function () {
-    // TODO: Enable this test on Windows when the read-only mode is implemented.
-    if (process.platform === "win32") {
-      this._runnable.title += " (skipped: not implemented on Windows)";
-      this.skip();
-    }
-
     const tmpDbPath = await new Promise((resolve, reject) => {
       tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
         if (err) {
@@ -89,7 +83,7 @@ describe("Database constructor", function () {
     assert.exists(testDb._database);
     assert.isTrue(testDb._isInitialized);
     assert.notExists(testDb._initPromise);
-    delete testDb;
+    await testDb.close();
     const testDbReadOnly = new kuzu.Database(
       tmpDbPath,
       1 << 28 /* 256MB */,
@@ -193,7 +187,7 @@ describe("Database constructor", function () {
   it("should create an in-memory database when no path is provided", async function () {
     const testDb = new kuzu.Database();
     const conn = new kuzu.Connection(testDb);
-    let res = await conn.query("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));"); 
+    let res = await conn.query("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));");
     res.close();
     res = await conn.query("CREATE (:person {name: 'Alice', age: 30});");
     res.close();
@@ -249,6 +243,7 @@ describe("Database close", function () {
     });
     const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
     await testDb.init();
+    // FIXME: doesn't work properly on windows
     let subProcessResult = await openDatabaseOnSubprocess(tmpDbPath);
     assert.notEqual(subProcessResult.code, 0);
     assert.include(

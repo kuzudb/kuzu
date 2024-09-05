@@ -35,13 +35,11 @@ def test_database_close(tmp_path: Path, build_dir: Path) -> None:
     assert db._database is not None
 
     # Open the database on a subprocess. It should raise an exception.
-    # TODO: Enable this test on Windows when the read-only mode is implemented.
-    if sys.platform != "win32":
-        with pytest.raises(
-            RuntimeError,
-            match=r"RuntimeError: IO exception: Could not set lock on file",
-        ):
-            open_database_on_subprocess(db_path, build_dir)
+    with pytest.raises(
+        Exception,
+        match=r"RuntimeError: IO exception: Could not set lock on file",
+    ):
+        open_database_on_subprocess(db_path, build_dir)
 
     db.close()
     assert db.is_closed
