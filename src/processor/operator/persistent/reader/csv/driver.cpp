@@ -4,7 +4,6 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -148,7 +147,13 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
     return true;
 }
 
-bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {
+bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t columnCount) {
+    if (columnCount < reader->getNumColumns()) {
+        // Column number mismatch.
+        reader->handleCopyException(stringFormat("expected {} values per row, but got {}.",
+            reader->getNumColumns(), columnCount));
+        return false;
+    }
     return true;
 }
 
