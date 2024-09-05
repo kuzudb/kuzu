@@ -101,6 +101,11 @@ if(NOT PAGE_SIZE_LOG2)
     set(PAGE_SIZE_LOG2 12)
 endif()
 message(STATUS "PAGE_SIZE_LOG2: ${PAGE_SIZE_LOG2}")
+option(VECTOR_CAPACITY_LOG2 "Log2 of the vector capacity." 11)
+if(NOT VECTOR_CAPACITY_LOG2)
+    set(VECTOR_CAPACITY_LOG2 11)
+endif()
+message(STATUS "VECTOR_CAPACITY_LOG2: ${VECTOR_CAPACITY_LOG2}")
 
 if(MSVC)
     # Required for M_PI on Windows
@@ -265,6 +270,7 @@ add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.2")
 add_definitions(-DKUZU_PAGE_SIZE_LOG2=${PAGE_SIZE_LOG2})
+add_definitions(-DKUZU_VECTOR_CAPACITY_LOG2=${VECTOR_CAPACITY_LOG2})
 
 include_directories(src/include)
 

@@ -11,9 +11,16 @@ namespace common {
 
 extern const char* KUZU_VERSION;
 
-constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
-constexpr uint64_t DEFAULT_VECTOR_CAPACITY = static_cast<uint64_t>(1)
-                                             << DEFAULT_VECTOR_CAPACITY_LOG_2;
+#define DEFAULT_VECTOR_CAPACITY_LOG_2 11
+#ifndef KUZU_VECTOR_CAPACITY_LOG2
+#define VECTOR_CAPACITY_LOG_2 DEFAULT_VECTOR_CAPACITY_LOG_2
+#else
+#define VECTOR_CAPACITY_LOG_2 KUZU_VECTOR_CAPACITY_LOG2
+#endif
+#if VECTOR_CAPACITY_LOG_2 > 12
+#error "Vector capacity log2 should be less than or equal to 12"
+#endif
+constexpr uint64_t DEFAULT_VECTOR_CAPACITY = static_cast<uint64_t>(1) << VECTOR_CAPACITY_LOG_2;
 
 constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
 

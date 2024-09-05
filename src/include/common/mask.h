@@ -12,7 +12,7 @@ namespace common {
 // Note: Classes in this file are NOT thread-safe.
 struct MaskUtil {
     static common::offset_t getVectorIdx(common::offset_t offset) {
-        return offset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
+        return offset >> VECTOR_CAPACITY_LOG_2;
     }
 };
 

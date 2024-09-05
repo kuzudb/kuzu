@@ -60,6 +60,10 @@ ifdef PAGE_SIZE_LOG2
 	CMAKE_FLAGS += -DPAGE_SIZE_LOG2=$(PAGE_SIZE_LOG2)
 endif
 
+ifdef VECTOR_CAPACITY_LOG2
+	CMAKE_FLAGS += -DVECTOR_CAPACITY_LOG2=$(VECTOR_CAPACITY_LOG2)
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
