@@ -89,11 +89,15 @@ BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
 
-common::DataChunk SniffCSVNameAndTypeDriver::dummyChunk = DataChunk();
+//common::DataChunk SniffCSVNameAndTypeDriver::dummyChunk = DataChunk(); 
+common::DataChunk& getDummyDataChunk() {
+    static common::DataChunk dummyChunk; // static ensures it's created only once
+    return dummyChunk;
+}
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
-    : SerialParsingDriver(dummyChunk, reader) {
+    : SerialParsingDriver(getDummyDataChunk(), reader) {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
             columns.push_back(
