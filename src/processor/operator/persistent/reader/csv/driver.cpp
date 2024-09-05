@@ -89,7 +89,7 @@ BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
 
-common::DataChunk SniffCSVNameAndTypeDriver::dummyChunk; 
+common::DataChunk SniffCSVNameAndTypeDriver::dummyChunk;
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
