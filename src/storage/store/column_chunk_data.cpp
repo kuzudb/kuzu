@@ -226,9 +226,6 @@ void ColumnChunkData::initializeBuffer() {
     numBytesPerValue = getDataTypeSizeInChunk(dataType);
     bufferSize = getBufferSize(capacity);
     buffer = std::make_unique<uint8_t[]>(bufferSize);
-    if (nullData) {
-        nullData->initializeBuffer();
-    }
 }
 
 void ColumnChunkData::initializeFunction(bool enableCompression) {
