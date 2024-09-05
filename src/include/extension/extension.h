@@ -7,9 +7,13 @@
 #include "function/function.h"
 #include "main/db_config.h"
 
-#define ADD_FUNC(FUNC_STRUCT)                                                                      \
-    kuzu::extension::ExtensionUtils::registerFunctionSet(db, std::string(FUNC_STRUCT::name),       \
-        FUNC_STRUCT::getFunctionSet())
+#define ADD_FUNC_BASE(_PARAM, _NAME)                                                               \
+    kuzu::extension::ExtensionUtils::registerFunctionSet(db, std::string(_NAME),                   \
+        _PARAM::getFunctionSet())
+
+#define ADD_FUNC(FUNC_STRUCT) ADD_FUNC_BASE(FUNC_STRUCT, FUNC_STRUCT::name)
+
+#define ADD_FUNC_ALIAS(FUNC_STRUCT) ADD_FUNC_BASE(FUNC_STRUCT::alias, FUNC_STRUCT::name)
 
 namespace kuzu {
 namespace function {

@@ -1,9 +1,10 @@
 #include "json_extension.h"
 
-#include "catalog/catalog.h"
 #include "common/types/types.h"
+#include "json_creation_functions.h"
 #include "json_export.h"
-#include "json_functions.h"
+#include "json_extract_functions.h"
+#include "json_scalar_functions.h"
 #include "json_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
@@ -11,24 +12,40 @@
 namespace kuzu {
 namespace json_extension {
 
-void JsonExtension::load(main::ClientContext* context) {
-    auto& db = *context->getDatabase();
+static void addJsonCreationFunction(main::Database& db) {
     ADD_FUNC(ToJsonFunction);
-    ADD_FUNC(CastToJsonFunction);
-    ADD_FUNC(JsonMergeFunction);
+    ADD_FUNC_ALIAS(JsonQuoteFunction);
+    ADD_FUNC_ALIAS(ArrayToJsonFunction);
+    ADD_FUNC_ALIAS(RowToJsonFunction);
+    ADD_FUNC_ALIAS(CastToJsonFunction);
+    ADD_FUNC(JsonArrayFunction);
+    ADD_FUNC(JsonObjectFunction);
+    ADD_FUNC(JsonMergePatchFunction);
+}
+
+static void addJsonExtractFunction(main::Database& db) {
     ADD_FUNC(JsonExtractFunction);
+}
+
+static void addJsonScalarFunction(main::Database& db) {
     ADD_FUNC(JsonArrayLengthFunction);
     ADD_FUNC(JsonContainsFunction);
     ADD_FUNC(JsonKeysFunction);
     ADD_FUNC(JsonStructureFunction);
     ADD_FUNC(JsonValidFunction);
     ADD_FUNC(MinifyJsonFunction);
+}
+
+void JsonExtension::load(main::ClientContext* context) {
+    auto& db = *context->getDatabase();
+    KU_ASSERT(!db.getCatalog()->containsType(&transaction::DUMMY_TRANSACTION, JSON_TYPE_NAME));
+    db.getCatalog()->createType(&transaction::DUMMY_TRANSACTION, JSON_TYPE_NAME,
+        common::LogicalType::STRING());
+    addJsonCreationFunction(db);
+    addJsonExtractFunction(db);
+    addJsonScalarFunction(db);
     ADD_FUNC(JsonExportFunction);
     extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
-    if (!db.getCatalog()->containsType(&transaction::DUMMY_TRANSACTION, "json")) {
-        db.getCatalog()->createType(&transaction::DUMMY_TRANSACTION, "json",
-            common::LogicalType::STRING());
-    }
 }
 
 } // namespace json_extension
