@@ -27,19 +27,19 @@
 {"5":5}
 
 -LOG UnflatFlatJsonObject
--STATEMENT MATCH (p:person)-[e:knows]->(p1:person) RETURN JSON_ARRAY(p.fName, p.ID, p1.fName, p1.ID)
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) RETURN JSON_OBJECT(p.fName, p.ID, p1.fName, p1.ID)
 ---- 14
-["Alice",0,"Bob",2]
-["Alice",0,"Carol",3]
-["Alice",0,"Dan",5]
-["Bob",2,"Alice",0]
-["Bob",2,"Carol",3]
-["Bob",2,"Dan",5]
-["Carol",3,"Alice",0]
-["Carol",3,"Bob",2]
-["Carol",3,"Dan",5]
-["Dan",5,"Alice",0]
-["Dan",5,"Bob",2]
-["Dan",5,"Carol",3]
-["Elizabeth",7,"Farooq",8]
-["Elizabeth",7,"Greg",9]
+{"Alice":0,"Bob":2}
+{"Alice":0,"Carol":3}
+{"Alice":0,"Dan":5}
+{"Bob":2,"Alice":0}
+{"Bob":2,"Carol":3}
+{"Bob":2,"Dan":5}
+{"Carol":3,"Alice":0}
+{"Carol":3,"Bob":2}
+{"Carol":3,"Dan":5}
+{"Dan":5,"Alice":0}
+{"Dan":5,"Bob":2}
+{"Dan":5,"Carol":3}
+{"Elizabeth":7,"Farooq":8}
+{"Elizabeth":7,"Greg":9}
