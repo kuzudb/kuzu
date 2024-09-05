@@ -45,7 +45,7 @@ std::atomic<EvictionCandidate>* EvictionQueue::next() {
         // Since the buffer pool size is a power of two (as is the page size), (UINT64_MAX + 1) %
         // size == 0, which means no entries will be skipped when the cursor overflows
         candidate = &data[evictionCursor.fetch_add(1, std::memory_order_relaxed) % capacity];
-    } while (candidate->load() == EMPTY);
+    } while (candidate->load() == EMPTY && size > 0);
     return candidate;
 }
 
