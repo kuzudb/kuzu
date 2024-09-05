@@ -16,6 +16,8 @@ namespace processor {
 class BaseCSVReader;
 class ParsingDriver {
     common::DataChunk& chunk;
+
+protected:
     bool rowEmpty;
 
 public:
@@ -58,18 +60,20 @@ private:
     BaseCSVReader* getReader() override;
 };
 
-struct SniffCSVNameAndTypeDriver {
+class SniffCSVNameAndTypeDriver : public SerialParsingDriver {
+    SerialCSVReader* reader;
+    static common::DataChunk dummyChunk; 
+
+public:
+    SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
+        const function::ScanTableFuncBindInput* bindInput);
+
     std::vector<std::pair<std::string, common::LogicalType>> columns;
     std::vector<bool> sniffType;
     // if the type isn't declared in the header, sniff it
-    SerialCSVReader* reader;
-    bool rowEmpty = false;
 
-    SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
-        const function::ScanTableFuncBindInput* bindInput);
     bool done(uint64_t rowNum) const;
     bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
-    bool addRow(uint64_t rowNum, common::column_id_t columntCount);
 };
 
 } // namespace processor

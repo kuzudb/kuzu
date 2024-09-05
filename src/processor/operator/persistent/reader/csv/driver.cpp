@@ -89,9 +89,11 @@ BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
 
+common::DataChunk SniffCSVNameAndTypeDriver::dummyChunk; 
+
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
-    : reader{reader} {
+    : SerialParsingDriver(dummyChunk, reader) {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
             columns.push_back(
@@ -151,23 +153,6 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         }
     }
 
-    return true;
-}
-
-bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t columnCount) {
-    if (rowEmpty) {
-        rowEmpty = false;
-        if (reader->getNumColumns() != 1) {
-            return false;
-        }
-        // Otherwise, treat it as null.
-    }
-    if (columnCount < reader->getNumColumns()) {
-        // Column number mismatch.
-        reader->handleCopyException(stringFormat("expected {} values per row, but got {}.",
-            reader->getNumColumns(), columnCount));
-        return false;
-    }
     return true;
 }
 
