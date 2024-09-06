@@ -4,8 +4,8 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
+#include "storage/store/chunked_node_group.h"
 #include "storage/store/update_info.h"
-#include "storage/store/version_info.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -37,8 +37,7 @@ struct NodeBatchInsertRecord {
 };
 
 struct VectorVersionRecord {
-    VersionInfo* versionInfo;
-    idx_t vectorIdx;
+    ChunkedNodeGroup* chunkedNodeGroup;
     row_idx_t startRow;
     row_idx_t numRows;
 };
@@ -110,26 +109,23 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
-void UndoBuffer::createVectorInsertInfo(VersionInfo* versionInfo, const idx_t vectorIdx,
-    row_idx_t startRowInVector, row_idx_t numRows) {
-    createVectorVersionInfo(UndoRecordType::INSERT_INFO, versionInfo, vectorIdx, startRowInVector,
-        numRows);
+void UndoBuffer::createVectorInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
+    row_idx_t numRows) {
+    createVectorVersionInfo(UndoRecordType::INSERT_INFO, chunkedNodeGroup, startRow, numRows);
 }
 
-void UndoBuffer::createVectorDeleteInfo(VersionInfo* versionInfo, const idx_t vectorIdx,
-    row_idx_t startRowInVector, row_idx_t numRows) {
-    createVectorVersionInfo(UndoRecordType::DELETE_INFO, versionInfo, vectorIdx, startRowInVector,
-        numRows);
+void UndoBuffer::createVectorDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
+    row_idx_t numRows) {
+    createVectorVersionInfo(UndoRecordType::DELETE_INFO, chunkedNodeGroup, startRow, numRows);
 }
 
-void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType, VersionInfo* versionInfo,
-    const idx_t vectorIdx, row_idx_t startRowInVector, row_idx_t numRows) {
+void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType,
+    ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow, row_idx_t numRows) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorVersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VectorVersionRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    const VectorVersionRecord vectorVersionRecord{versionInfo, vectorIdx, startRowInVector,
-        numRows};
+    const VectorVersionRecord vectorVersionRecord{chunkedNodeGroup, startRow, numRows};
     *reinterpret_cast<VectorVersionRecord*>(buffer) = vectorVersionRecord;
 }
 
@@ -214,22 +210,12 @@ void UndoBuffer::commitVectorVersionInfo(UndoRecordType recordType, const uint8_
     const auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        for (auto rowIdx = undoRecord.startRow; rowIdx < undoRecord.startRow + undoRecord.numRows;
-             rowIdx++) {
-            const auto vectorInfo =
-                undoRecord.versionInfo->getVectorVersionInfo(undoRecord.vectorIdx);
-            KU_ASSERT(vectorInfo);
-            vectorInfo->insertedVersions[rowIdx] = commitTS;
-        }
+        undoRecord.chunkedNodeGroup->commitInsert(undoRecord.startRow, undoRecord.numRows,
+            commitTS);
     } break;
     case UndoRecordType::DELETE_INFO: {
-        for (auto rowIdx = undoRecord.startRow; rowIdx < undoRecord.startRow + undoRecord.numRows;
-             rowIdx++) {
-            const auto vectorInfo =
-                undoRecord.versionInfo->getVectorVersionInfo(undoRecord.vectorIdx);
-            KU_ASSERT(vectorInfo);
-            vectorInfo->deletedVersions[rowIdx] = commitTS;
-        }
+        undoRecord.chunkedNodeGroup->commitDelete(undoRecord.startRow, undoRecord.numRows,
+            commitTS);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -302,14 +288,12 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
 
 void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
-    const auto vectorInfo = undoRecord.versionInfo->getVectorVersionInfo(undoRecord.vectorIdx);
-    KU_ASSERT(vectorInfo);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        vectorInfo->rollbackInsertions(undoRecord.startRow, undoRecord.numRows);
+        undoRecord.chunkedNodeGroup->rollbackInsert(undoRecord.startRow, undoRecord.numRows);
     } break;
     case UndoRecordType::DELETE_INFO: {
-        vectorInfo->rollbackDeletions(undoRecord.startRow, undoRecord.numRows);
+        undoRecord.chunkedNodeGroup->rollbackDelete(undoRecord.startRow, undoRecord.numRows);
     } break;
     default: {
         KU_UNREACHABLE;

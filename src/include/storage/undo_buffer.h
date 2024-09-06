@@ -65,7 +65,7 @@ private:
 class UpdateInfo;
 class VersionInfo;
 struct VectorUpdateInfo;
-struct VectorVersionInfo;
+class ChunkedNodeGroup;
 class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
@@ -85,10 +85,10 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createVectorInsertInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
-        common::row_idx_t startRowInVector, common::row_idx_t numRows);
-    void createVectorDeleteInfo(VersionInfo* versionInfo, common::idx_t vectorIdx,
-        common::row_idx_t startRowInVector, common::row_idx_t numRows);
+    void createVectorInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    void createVectorDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+        common::row_idx_t numRows);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -100,8 +100,8 @@ public:
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVectorVersionInfo(UndoRecordType recordType, VersionInfo* versionInfo,
-        common::idx_t vectorIdx, common::row_idx_t startRowInVector, common::row_idx_t numRows);
+    void createVectorVersionInfo(UndoRecordType recordType, ChunkedNodeGroup* chunkedNodeGroup,
+        common::row_idx_t startRow, common::row_idx_t numRows);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;

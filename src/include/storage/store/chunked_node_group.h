@@ -134,6 +134,13 @@ public:
         transaction::Transaction* transaction, FileHandle& dataFH) const;
     virtual void flush(FileHandle& dataFH);
 
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_);
+    void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
+    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_);
+
     uint64_t getEstimatedMemoryUsage() const;
 
     virtual void serialize(common::Serializer& serializer) const;

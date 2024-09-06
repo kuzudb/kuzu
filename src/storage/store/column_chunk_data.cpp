@@ -448,7 +448,6 @@ void ColumnChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosI
 }
 
 void ColumnChunkData::setNumValues(uint64_t numValues_) {
-    KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     KU_ASSERT(numValues_ <= capacity);
     numValues = numValues_;
     if (nullData) {
