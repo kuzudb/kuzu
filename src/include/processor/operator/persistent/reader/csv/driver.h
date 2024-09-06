@@ -50,8 +50,10 @@ class SerialCSVReader;
 
 class SerialParsingDriver : public ParsingDriver {
     
-public:
+protected:
     SerialCSVReader* reader;
+    
+public:    
     SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader);
 
     bool doneEarly() override;

@@ -89,7 +89,6 @@ BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
 
-// common::DataChunk SniffCSVNameAndTypeDriver::dummyChunk = DataChunk();
 common::DataChunk& getDummyDataChunk() {
     static common::DataChunk dummyChunk = DataChunk(); // static ensures it's created only once
     return dummyChunk;
