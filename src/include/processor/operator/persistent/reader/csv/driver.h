@@ -49,9 +49,9 @@ private:
 class SerialCSVReader;
 
 class SerialParsingDriver : public ParsingDriver {
-    SerialCSVReader* reader;
-
+    
 public:
+    SerialCSVReader* reader;
     SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader);
 
     bool doneEarly() override;
@@ -61,19 +61,17 @@ private:
 };
 
 class SniffCSVNameAndTypeDriver : public SerialParsingDriver {
-    SerialCSVReader* reader;
-    // static common::DataChunk dummyChunk;
 
 public:
     SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
         const function::ScanTableFuncBindInput* bindInput);
 
+    bool done(uint64_t rowNum) const;
+    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
+
     std::vector<std::pair<std::string, common::LogicalType>> columns;
     std::vector<bool> sniffType;
     // if the type isn't declared in the header, sniff it
-
-    bool done(uint64_t rowNum) const;
-    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
 };
 
 } // namespace processor
