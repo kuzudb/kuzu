@@ -70,7 +70,7 @@ public:
     bool done(uint64_t rowNum) const;
     bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
 
-private:
+public:
     std::vector<std::pair<std::string, common::LogicalType>> columns;
     std::vector<bool> sniffType;
     // if the type isn't declared in the header, sniff it
