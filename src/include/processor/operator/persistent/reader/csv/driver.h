@@ -49,11 +49,11 @@ private:
 class SerialCSVReader;
 
 class SerialParsingDriver : public ParsingDriver {
-    
+
 protected:
     SerialCSVReader* reader;
-    
-public:    
+
+public:
     SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader);
 
     bool doneEarly() override;
