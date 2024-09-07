@@ -27,11 +27,11 @@ private:
     virtual bool doneEarly() = 0;
     virtual BaseCSVReader* getReader() = 0;
 
-protected:
-    bool rowEmpty;
-
 private:
     common::DataChunk& chunk;
+
+protected:
+    bool rowEmpty;
 };
 
 class ParallelCSVReader;
