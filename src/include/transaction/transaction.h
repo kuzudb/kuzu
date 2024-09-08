@@ -94,9 +94,9 @@ public:
         bool skipLoggingToWAL = false) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
-    void pushVectorInsertInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
+    void pushInsertInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
         common::row_idx_t startRow, common::row_idx_t numRows) const;
-    void pushVectorDeleteInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
+    void pushDeleteInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
         common::row_idx_t startRow, common::row_idx_t numRows) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;

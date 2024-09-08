@@ -275,7 +275,7 @@ row_idx_t VersionInfo::append(const transaction::Transaction* transaction,
         numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
     }
     if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushVectorInsertInfo(chunkedNodeGroup, startRow, numRows);
+        transaction->pushInsertInfo(chunkedNodeGroup, startRow, numRows);
     }
     return numAppended;
 }
@@ -293,7 +293,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction,
     }
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
     if (deleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushVectorDeleteInfo(chunkedNodeGroup, rowIdx, 1);
+        transaction->pushDeleteInfo(chunkedNodeGroup, rowIdx, 1);
     }
     return deleted;
 }

@@ -36,7 +36,7 @@ struct NodeBatchInsertRecord {
     table_id_t tableID;
 };
 
-struct VectorVersionRecord {
+struct VersionRecord {
     ChunkedNodeGroup* chunkedNodeGroup;
     row_idx_t startRow;
     row_idx_t numRows;
@@ -109,24 +109,24 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
-void UndoBuffer::createVectorInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
+void UndoBuffer::createInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
     row_idx_t numRows) {
-    createVectorVersionInfo(UndoRecordType::INSERT_INFO, chunkedNodeGroup, startRow, numRows);
+    createVersionInfo(UndoRecordType::INSERT_INFO, chunkedNodeGroup, startRow, numRows);
 }
 
-void UndoBuffer::createVectorDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
+void UndoBuffer::createDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
     row_idx_t numRows) {
-    createVectorVersionInfo(UndoRecordType::DELETE_INFO, chunkedNodeGroup, startRow, numRows);
+    createVersionInfo(UndoRecordType::DELETE_INFO, chunkedNodeGroup, startRow, numRows);
 }
 
-void UndoBuffer::createVectorVersionInfo(const UndoRecordType recordType,
+void UndoBuffer::createVersionInfo(const UndoRecordType recordType,
     ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow, row_idx_t numRows) {
-    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorVersionRecord));
-    const UndoRecordHeader recordHeader{recordType, sizeof(VectorVersionRecord)};
+    auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VersionRecord));
+    const UndoRecordHeader recordHeader{recordType, sizeof(VersionRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    const VectorVersionRecord vectorVersionRecord{chunkedNodeGroup, startRow, numRows};
-    *reinterpret_cast<VectorVersionRecord*>(buffer) = vectorVersionRecord;
+    const VersionRecord vectorVersionRecord{chunkedNodeGroup, startRow, numRows};
+    *reinterpret_cast<VersionRecord*>(buffer) = vectorVersionRecord;
 }
 
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
@@ -187,7 +187,7 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     } break;
     case UndoRecordType::INSERT_INFO:
     case UndoRecordType::DELETE_INFO: {
-        commitVectorVersionInfo(recordType, record, commitTS);
+        commitVersionInfo(recordType, record, commitTS);
     } break;
     case UndoRecordType::UPDATE_INFO: {
         commitVectorUpdateInfo(record, commitTS);
@@ -205,9 +205,9 @@ void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
     newCatalogEntry->setTimestamp(commitTS);
 }
 
-void UndoBuffer::commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
+void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
     transaction_t commitTS) const {
-    const auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
+    const auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
         undoRecord.chunkedNodeGroup->commitInsert(undoRecord.startRow, undoRecord.numRows,
@@ -238,7 +238,7 @@ void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* 
     } break;
     case UndoRecordType::INSERT_INFO:
     case UndoRecordType::DELETE_INFO: {
-        rollbackVectorVersionInfo(recordType, record);
+        rollbackVersionInfo(recordType, record);
     } break;
     case UndoRecordType::UPDATE_INFO: {
         rollbackVectorUpdateInfo(record);
@@ -286,8 +286,8 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     sequenceEntry->rollbackVal(data.usageCount, data.currVal);
 }
 
-void UndoBuffer::rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record) {
-    auto& undoRecord = *reinterpret_cast<VectorVersionRecord const*>(record);
+void UndoBuffer::rollbackVersionInfo(UndoRecordType recordType, const uint8_t* record) {
+    auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
         undoRecord.chunkedNodeGroup->rollbackInsert(undoRecord.startRow, undoRecord.numRows);

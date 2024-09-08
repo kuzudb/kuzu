@@ -407,6 +407,7 @@ void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_) {
         return;
     }
     versionInfo->rollbackInsert(startRow, numRows_);
+    numRows = startRow;
 }
 
 void ChunkedNodeGroup::commitDelete(row_idx_t startRow, row_idx_t numRows_,

@@ -85,9 +85,9 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createVectorInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void createInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
         common::row_idx_t numRows);
-    void createVectorDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void createDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
         common::row_idx_t numRows);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
@@ -100,7 +100,7 @@ public:
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVectorVersionInfo(UndoRecordType recordType, ChunkedNodeGroup* chunkedNodeGroup,
+    void createVersionInfo(UndoRecordType recordType, ChunkedNodeGroup* chunkedNodeGroup,
         common::row_idx_t startRow, common::row_idx_t numRows);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
@@ -113,9 +113,9 @@ private:
     void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS) const;
     void rollbackSequenceEntry(uint8_t const* entry);
 
-    void commitVectorVersionInfo(UndoRecordType recordType, const uint8_t* record,
+    void commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
-    void rollbackVectorVersionInfo(UndoRecordType recordType, const uint8_t* record);
+    void rollbackVersionInfo(UndoRecordType recordType, const uint8_t* record);
 
     void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackVectorUpdateInfo(const uint8_t* record) const;
