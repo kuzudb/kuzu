@@ -1360,7 +1360,6 @@ std::string linenoiseAddContinuationMarkers(const char* buf, size_t len, size_t 
     size_t cols = plen;
     size_t cpos = 0;
     size_t prev_pos = 0;
-    size_t extra_bytes = 0; // extra bytes introduced
     while (cpos < len) {
         bool is_newline = isNewline(buf[cpos]);
         nextPosition(buf, len, cpos, rows, cols, plen, l->cols);
@@ -1380,8 +1379,6 @@ std::string linenoiseAddContinuationMarkers(const char* buf, size_t len, size_t 
                 result += " ";
             }
             result += prompt;
-            size_t continuationBytes = plen - continuationRender + continuationLen;
-            extra_bytes += continuationBytes;
         }
     }
     for (; prev_pos < cpos; prev_pos++) {

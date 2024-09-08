@@ -153,7 +153,7 @@ const StructField& StructType::getField(const LogicalType& type, struct_field_id
 
 const StructField& StructType::getField(const LogicalType& type, const std::string& key) {
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
+    const auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
     return structTypeInfo->getStructField(key);
 }
 

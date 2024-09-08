@@ -133,7 +133,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
-    CSRNodeGroupScanSource source;
+    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE;
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {

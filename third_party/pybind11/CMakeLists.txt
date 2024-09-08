@@ -5,7 +5,7 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.15)
 
 # The `cmake_minimum_required(VERSION 3.4...3.22)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
