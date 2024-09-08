@@ -11,6 +11,12 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
+struct VarLenJoinsFunction {
+    static constexpr const char* name = "VAR_LEN_JOINS";
+
+    static function_set getFunctionSet();
+};
+
 struct AllSPDestinationsFunction {
     static constexpr const char* name = "ALL_SP_DESTINATIONS";
 

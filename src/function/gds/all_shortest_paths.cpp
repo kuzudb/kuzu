@@ -16,28 +16,35 @@ using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
+// TODO(Semih): Make all atomic fields of structs/classes private and provide getter functions
 
-struct ParentAndNextPtr {
+struct IterParentAndNextPtr {
     friend class ParentPtrsAtomics;
 public:
-    ParentAndNextPtr(nodeID_t parent) {
+    IterParentAndNextPtr(uint16_t _iter, nodeID_t parent) {
+        iter.store(_iter, std::memory_order_relaxed);
         offset.store(parent.offset, std::memory_order_relaxed);
         tableID.store(parent.tableID, std::memory_order_relaxed);
     }
 
-    ParentAndNextPtr& operator=(const ParentAndNextPtr& rhs) {
+    IterParentAndNextPtr& operator=(const IterParentAndNextPtr& rhs) {
+        iter.store(rhs.iter.load(std::memory_order_relaxed), std::memory_order_relaxed);
         offset.store(rhs.offset.load(std::memory_order_relaxed), std::memory_order_relaxed);
         tableID.store(rhs.tableID.load(std::memory_order_relaxed), std::memory_order_relaxed);
         nextPtr.store(rhs.nextPtr.load(std::memory_order_relaxed), std::memory_order_relaxed);
         return *this;
     }
 
-    void setNextPtr(ParentAndNextPtr* nextParentPtr) {
+    void setNextPtr(IterParentAndNextPtr* nextParentPtr) {
         nextPtr.store(nextParentPtr, std::memory_order_relaxed);
     }
 
-    ParentAndNextPtr* getNextPtr() {
+    IterParentAndNextPtr* getNextPtr() {
         return nextPtr.load(std::memory_order_relaxed);
+    }
+
+    uint16_t getIter() {
+        return iter.load(std::memory_order_relaxed);
     }
 
     nodeID_t getNodeID() {
@@ -45,13 +52,11 @@ public:
             tableID.load(std::memory_order_relaxed));
     }
 
-    // TODO(Semih): make these private and provide getter and setter functions that do the atomic
-    // operations. That way all store load operations would be localized here.
-    // TODO(Semih): Similarly do the same for other structs and fields.
 private:
+    std::atomic<uint16_t> iter;
     std::atomic<uint64_t> offset;
     std::atomic<uint64_t> tableID;
-    std::atomic<ParentAndNextPtr*> nextPtr;
+    std::atomic<IterParentAndNextPtr*> nextPtr;
 };
 
 // Each ParentPtrsBlock should be accessed by a single thread.
@@ -60,12 +65,12 @@ class ParentPtrsBlock {
 public:
     ParentPtrsBlock(std::unique_ptr<MemoryBuffer> block, uint64_t sizeInBytes)
         : block{std::move(block)} {
-        maxElements.store(sizeInBytes / (sizeof(ParentAndNextPtr)), std::memory_order_relaxed);
+        maxElements.store(sizeInBytes / (sizeof(IterParentAndNextPtr)), std::memory_order_relaxed);
         nextPosToWrite.store(0, std::memory_order_relaxed);
     }
 
-    ParentAndNextPtr* reserveNextParentAndNextPtr() {
-        auto retVal = reinterpret_cast<ParentAndNextPtr*>(block->buffer.data()) + nextPosToWrite.load(std::memory_order_relaxed);
+    IterParentAndNextPtr* reserveNextParentAndNextPtr() {
+        auto retVal = reinterpret_cast<IterParentAndNextPtr*>(block->buffer.data()) + nextPosToWrite.load(std::memory_order_relaxed);
         nextPosToWrite.fetch_add(1, std::memory_order_relaxed);
         return retVal;
     }
@@ -91,7 +96,7 @@ public:
         MemoryManager* mm)
         : mm{mm} {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            auto memBuffer = mm->allocateBuffer(false, numNodes * (sizeof(std::atomic<ParentAndNextPtr*>)));
+            auto memBuffer = mm->allocateBuffer(false, numNodes * (sizeof(std::atomic<IterParentAndNextPtr*>)));
             auto pointers =
                 reinterpret_cast<std::atomic<uint8_t*>*>(memBuffer.get()->buffer.data());
             for (uint64_t i = 0; i < numNodes; ++i) {
@@ -111,34 +116,38 @@ public:
         return blocks[blocks.size() - 1].get();
     }
 
-    ParentAndNextPtr* getInitialParentAndNextPtr(nodeID_t nodeID) {
-        return reinterpret_cast<std::atomic<ParentAndNextPtr*>*>(
+    IterParentAndNextPtr* getInitialParentAndNextPtr(nodeID_t nodeID) {
+        return reinterpret_cast<std::atomic<IterParentAndNextPtr*>*>(
             parentPtrs.at(nodeID.tableID).get()->buffer.data())[nodeID.offset].load(std::memory_order_relaxed);
     }
 
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this function.
-    void addParent(ParentPtrsBlock* parentPtrsBlock, nodeID_t child, nodeID_t parent) {
+    void addParent(uint16_t iter, ParentPtrsBlock* parentPtrsBlock, nodeID_t child, nodeID_t parent) {
         auto parentEdgePtr = parentPtrsBlock->reserveNextParentAndNextPtr();
-        *parentEdgePtr = ParentAndNextPtr(parent);
+        *parentEdgePtr = IterParentAndNextPtr(iter, parent);
         auto curPtr = currFixedParentPtrs.load(std::memory_order_relaxed);
         KU_ASSERT(curPtr != nullptr);
         // Since by default the parentPtr of each node is nullptr, that's what we start with.
-        ParentAndNextPtr* expected = nullptr;
+        IterParentAndNextPtr* expected = nullptr;
         while (!curPtr[child.offset].compare_exchange_strong(expected, parentEdgePtr));
         parentEdgePtr->setNextPtr(expected);
+    }
+
+    std::atomic<IterParentAndNextPtr*>* getCurFixedParentPtrs() {
+        return currFixedParentPtrs.load(std::memory_order_relaxed);
     }
 
     void fixNodeTable(common::table_id_t tableID) {
         KU_ASSERT(parentPtrs.contains(tableID));
         currFixedParentPtrs.store(
-            reinterpret_cast<std::atomic<ParentAndNextPtr*>*>(parentPtrs.at(tableID).get()->buffer.data()), std::memory_order_relaxed);
+            reinterpret_cast<std::atomic<IterParentAndNextPtr*>*>(parentPtrs.at(tableID).get()->buffer.data()), std::memory_order_relaxed);
     }
 
 private:
     std::mutex mtx;
     MemoryManager* mm;
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> parentPtrs;
-    std::atomic<std::atomic<ParentAndNextPtr*>*> currFixedParentPtrs;
+    std::atomic<std::atomic<IterParentAndNextPtr*>*> currFixedParentPtrs;
     std::vector<std::unique_ptr<ParentPtrsBlock>> blocks;
 };
 
@@ -219,8 +228,8 @@ private:
 struct AllSPOutputsMultiplicities : public SPOutputs {
     // Multiplicities is only used the output type is DESTINATION_NODES or LENGTHS.
     std::unique_ptr<PathMultiplicities> multiplicities;
-    explicit AllSPOutputsMultiplicities(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType,
-        MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, outputType, mm) {
+    explicit AllSPOutputsMultiplicities(graph::Graph* graph, nodeID_t sourceNodeID,
+        MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, mm) {
         multiplicities = std::make_unique<PathMultiplicities>(nodeTableIDAndNumNodes, mm);
     }
 
@@ -236,10 +245,11 @@ struct AllSPOutputsMultiplicities : public SPOutputs {
     };
 };
 
+// TODO(Semih): Rename to VarLenAndAllSPOutputPaths
 struct AllSPOutputsPaths : public SPOutputs {
     std::unique_ptr<ParentPtrsAtomics> parentPtrs;
-    explicit AllSPOutputsPaths(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType,
-        MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, outputType, mm) {
+    explicit AllSPOutputsPaths(graph::Graph* graph, nodeID_t sourceNodeID,
+        MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, mm) {
         parentPtrs = std::make_unique<ParentPtrsAtomics>(nodeTableIDAndNumNodes, mm);
     }
 
@@ -255,13 +265,16 @@ public:
     explicit AllSPOutputWriterDsts(main::ClientContext* context)
         : SPOutputWriterDsts(context) {}
 
+    std::unique_ptr<RJOutputWriter> clone() override {
+        return std::make_unique<AllSPOutputWriterDsts>(context);
+    }
 protected:
     void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
         rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->fixTargetNodeTable(tableID);
     }
 
     void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
-        nodeID_t dstNodeID, uint8_t) const override {
+        nodeID_t dstNodeID, uint16_t) const override {
         auto multiplicity =
             rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->getTargetMultiplicity(
                 dstNodeID.offset);
@@ -280,13 +293,16 @@ public:
         vectors.push_back(lengthVector.get());
     }
 
+    std::unique_ptr<RJOutputWriter> clone() override {
+        return std::make_unique<AllSPOutputWriterLengths>(context);
+    }
 protected:
     void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
         rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->fixTargetNodeTable(tableID);
     }
 
     void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
-        nodeID_t dstNodeID, uint8_t length) const override {
+        nodeID_t dstNodeID, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         auto multiplicity =
             rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->getTargetMultiplicity(
@@ -299,10 +315,10 @@ private:
     std::unique_ptr<common::ValueVector> lengthVector;
 };
 
-class AllSPOutputWriterPaths : public SPOutputWriterDsts {
+class VarLenAndAllSPOutputWriterPaths : public RJOutputWriter {
 public:
-    explicit AllSPOutputWriterPaths(main::ClientContext* context)
-        : SPOutputWriterDsts(context) {
+    explicit VarLenAndAllSPOutputWriterPaths(main::ClientContext* context, uint16_t lowerBound, uint16_t upperBound)
+        : RJOutputWriter(context), lowerBound{lowerBound}, upperBound{upperBound} {
         lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
@@ -312,55 +328,140 @@ public:
         vectors.push_back(pathNodeIDsVector.get());
     }
 
-protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
-        nodeID_t dstNodeID, uint8_t length) const override {
-        lengthVector->setValue<int64_t>(0, length);
+    void beginWritingForDstNodesInTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
+        rjOutputs->ptrCast<AllSPOutputsPaths>()->parentPtrs->fixNodeTable(tableID);
+    }
+
+    void write(RJOutputs* rjOutputs, processor::FactorizedTable& fTable,
+        nodeID_t dstNodeID) const override {
         AllSPOutputsPaths* allSpOutputs = rjOutputs->ptrCast<AllSPOutputsPaths>();
-        std::vector<ParentAndNextPtr*> curPath;
         PathVectorWriter writer(pathNodeIDsVector.get());
-        auto firstParent = allSpOutputs->parentPtrs->getInitialParentAndNextPtr(dstNodeID);
-        // If the firstParent == nullptr then this dstNodeID must be srcNodeID
+        auto firstParent = allSpOutputs->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
         if (firstParent == nullptr) {
-            KU_ASSERT(allSpOutputs->sourceNodeID == dstNodeID);
+            // This case should only run for variable length joins.
+            dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+            lengthVector->setValue<int64_t>(0, 0);
             writer.beginWritingNewPath(0);
             fTable.append(vectors);
             return;
         }
+        dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+        std::cout << "outside while loop setting length to: " << firstParent->getIter() << std::endl;
+        lengthVector->setValue<int64_t>(0, firstParent->getIter());
+        std::vector<IterParentAndNextPtr*> curPath;
+        // TODO(Semih): Remove
+//        auto firstParent = allSpOutputs->parentPtrs->getInitialParentAndNextPtr(dstNodeID);
+        // If the firstParent == nullptr then this dstNodeID must be srcNodeID
+
         curPath.push_back(firstParent);
         auto backtracking = false;
         while (!curPath.empty()) {
             auto top = curPath[curPath.size()-1];
             auto topNodeID = top->getNodeID();
             if (topNodeID == allSpOutputs->sourceNodeID) {
-                auto len = curPath.size();
-                writer.beginWritingNewPath(len);
+                auto curPathSize = curPath.size();
+                writer.beginWritingNewPath(curPathSize);
                 while (writer.nextPathPos > 0) {
-                    writer.addNewNodeID(curPath[len - (writer.nextPathPos + 1)]->getNodeID());
+                    writer.addNewNodeID(curPath[curPathSize - (writer.nextPathPos + 1)]->getNodeID());
                 }
                 fTable.append(vectors);
                 backtracking = true;
             }
             if (backtracking) {
-                if (top->getNextPtr() != nullptr) {
+                // This code checks if we should switch from backtracking to forward-tracking, i.e.,
+                // moving forward in the DFS logic to find paths. We switch from backtracking if:
+                // (i) the current top element in the stack has a nextPtr, i.e., the top node has
+                // more parent edges in the BFS graph AND:
+                // (ii.1) if this is the first element in the stack (curPath.size() == 1), i.e., we
+                // are enumerating the parents of the destination, then we should switch to
+                // forward-tracking if the next parent has visited the destination at a length
+                // that's greater than or equal to the lower bound of the recursive join. Otherwise,
+                // we'll enumerate paths that are smaller than the lower; OR
+                // (ii.2) if this is not the first element in the stack, i.e., then we should switch
+                // to forward tracking only if the next parent of the top node in the stack has the
+                // same iter value as the current parent. That's because the levels/iter need to
+                // decrease by 1 each time we add a new node in the stack.
+                if (top->getNextPtr() != nullptr &&
+                    ((curPath.size() == 1 && top->getNextPtr()->getIter() >= lowerBound) || top->getNextPtr()->getIter() == top->getIter())) {
                     curPath[curPath.size() - 1] = top->getNextPtr();
                     backtracking = false;
+                    if (curPath.size() == 1) {
+                        lengthVector->setValue<int64_t>(0, curPath[0]->getIter());
+                    }
                 } else {
                     curPath.pop_back();
                 }
             } else {
-                curPath.push_back(allSpOutputs->parentPtrs->getInitialParentAndNextPtr(topNodeID));
+                auto parent = allSpOutputs->parentPtrs->getInitialParentAndNextPtr(topNodeID);
+                while (parent->getIter() != top->getIter() - 1) {
+                    parent = parent->getNextPtr();
+                }
+                curPath.push_back(parent);
                 backtracking = false;
             }
         }
     }
-private:
+
+protected:
+    uint16_t lowerBound;
+    uint16_t upperBound;
     std::unique_ptr<common::ValueVector> lengthVector;
     std::unique_ptr<common::ValueVector> pathNodeIDsVector;
 };
 
-struct AllSPLengthsFrontierCompute : public FrontierCompute {
-    explicit AllSPLengthsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers,
+
+class AllSPOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
+public:
+    explicit AllSPOutputWriterPaths(main::ClientContext* context, uint16_t upperBound)
+        : VarLenAndAllSPOutputWriterPaths(context, 1 /* lower bound */, upperBound) {}
+
+    bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
+        auto allSpOutputsPaths = rjOutputs->ptrCast<AllSPOutputsPaths>();
+        // For all shortest path computations, we do not output any results from source to source.
+        // We also do not output any results if a destination node has not been reached.
+        return dstNodeID == allSpOutputsPaths->sourceNodeID || nullptr == allSpOutputsPaths->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(
+                   std::memory_order_relaxed);
+    }
+
+    std::unique_ptr<RJOutputWriter> clone() override {
+        return std::make_unique<AllSPOutputWriterPaths>(context, upperBound);
+    }
+};
+
+class VarLenOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
+public:
+    explicit VarLenOutputWriterPaths(
+        main::ClientContext* context, uint16_t lowerBound, uint16_t upperBound)
+        : VarLenAndAllSPOutputWriterPaths(context, lowerBound, upperBound) {}
+
+    bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
+        // TODO(Semih): Rename the variable to varlenOutputPaths or outputPaths;
+        auto allSpOutputsPaths = rjOutputs->ptrCast<AllSPOutputsPaths>();
+        auto firstIterParentAndNextPtr = allSpOutputsPaths->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(
+            std::memory_order_relaxed);
+        // For variable lengths joins, we skip a destination node d in the following conditions:
+        //    (i) if no path has reached d from the source, except when the lower bound is 0.
+        //    (ii) the longest path that has reached d, which is stored in the iter value of the
+        //    firstIterParentAndNextPtr is smaller than the lower bound.
+        // We also do not output any results if a destination node has not been reached.
+        // TODO(Semih): Remove
+        if (nullptr == firstIterParentAndNextPtr) {
+            return lowerBound > 0;
+        } else {
+            std::cout << "firstIterParentAndNextPtr->getIter(): "
+                      << firstIterParentAndNextPtr->getIter() << " lowerBound: " << lowerBound
+                      << std::endl;
+            return firstIterParentAndNextPtr->getIter() < lowerBound;
+        }
+    }
+
+    std::unique_ptr<RJOutputWriter> clone() override {
+        return std::make_unique<VarLenOutputWriterPaths>(context, lowerBound, upperBound);
+    }
+};
+
+struct AllSPLengthsEdgeCompute : public EdgeCompute {
+    explicit AllSPLengthsEdgeCompute(PathLengthsFrontiers* pathLengthsFrontiers,
         PathMultiplicities* multiplicities)
         : pathLengthsFrontiers{pathLengthsFrontiers}, multiplicities{multiplicities} {};
 
@@ -372,7 +473,7 @@ struct AllSPLengthsFrontierCompute : public FrontierCompute {
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
         // so it's value is curIter + 1.
         auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                            nbrVal == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed) + 1;
+                            nbrVal == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed);
         if (shouldUpdate) {
             // Note: This is safe because curNodeID is in the current frontier, so its
             // shortest paths multiplicity is guaranteed to not change in the current iteration.
@@ -382,8 +483,8 @@ struct AllSPLengthsFrontierCompute : public FrontierCompute {
         return nbrVal == PathLengths::UNVISITED;
     }
 
-    std::unique_ptr<FrontierCompute> clone() override {
-        return std::make_unique<AllSPLengthsFrontierCompute>(this->pathLengthsFrontiers,
+    std::unique_ptr<EdgeCompute> clone() override {
+        return std::make_unique<AllSPLengthsEdgeCompute>(this->pathLengthsFrontiers,
             this->multiplicities);
     }
 
@@ -392,36 +493,37 @@ private:
     PathMultiplicities* multiplicities;
 };
 
-struct AllSPPathsFrontierCompute : public FrontierCompute {
+struct AllSPPathsEdgeCompute : public EdgeCompute {
     PathLengthsFrontiers* pathLengthsFrontiers;
     ParentPtrsAtomics* parentPtrs;
     ParentPtrsBlock* parentPtrsBlock;
-    explicit AllSPPathsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers, ParentPtrsAtomics* parentPtrs)
+    explicit AllSPPathsEdgeCompute(PathLengthsFrontiers* pathLengthsFrontiers, ParentPtrsAtomics* parentPtrs)
         : pathLengthsFrontiers{pathLengthsFrontiers}, parentPtrs{parentPtrs} {
                                                           parentPtrsBlock = parentPtrs->addNewBlock();
                                                       };
 
     bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
-        auto nbrVal =
+        auto nbrLen =
             pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
         // the first time, i.e., when its value in the pathLengths frontier is
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
         // so it's value is curIter + 1.
-        auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                            nbrVal == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed) + 1;
+        auto shouldUpdate =
+            nbrLen == PathLengths::UNVISITED ||
+            nbrLen == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed);
         if (shouldUpdate) {
             // TODO(Semih): Add a test case that triggers this.
             if (!parentPtrsBlock->hasSpace()) {
                 parentPtrsBlock = parentPtrs->addNewBlock();
             }
-            parentPtrs->addParent(parentPtrsBlock, nbrID /* child */, curNodeID /* parent */);
+            parentPtrs->addParent(pathLengthsFrontiers->curIter.load(std::memory_order_relaxed), parentPtrsBlock, nbrID /* child */, curNodeID /* parent */);
         }
-        return nbrVal == PathLengths::UNVISITED;
+        return nbrLen == PathLengths::UNVISITED;
     }
 
-    std::unique_ptr<FrontierCompute> clone() override {
-        return std::make_unique<AllSPPathsFrontierCompute>(this->pathLengthsFrontiers,
+    std::unique_ptr<EdgeCompute> clone() override {
+        return std::make_unique<AllSPPathsEdgeCompute>(this->pathLengthsFrontiers,
             this->parentPtrs);
     }
 };
@@ -451,7 +553,8 @@ protected:
             outputWriter = std::make_unique<AllSPOutputWriterLengths>(context);
             break;
         case RJOutputType::PATHS:
-            outputWriter = std::make_unique<AllSPOutputWriterPaths>(context);
+            outputWriter = std::make_unique<AllSPOutputWriterPaths>(context,
+                bindData->ptrCast<RJBindData>()->upperBound);
             break;
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
@@ -460,40 +563,112 @@ protected:
         }
     }
 
-    std::unique_ptr<RJCompState> getFrontiersAndFrontiersCompute(
+    std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<SPOutputs> spOutputs;
         if (outputType == RJOutputType::PATHS) {
             spOutputs = std::make_unique<AllSPOutputsPaths>(sharedState->graph.get(), sourceNodeID,
-                outputType, executionContext->clientContext->getMemoryManager());
+                executionContext->clientContext->getMemoryManager());
         } else {
             spOutputs = std::make_unique<AllSPOutputsMultiplicities>(sharedState->graph.get(),
-                sourceNodeID, outputType, executionContext->clientContext->getMemoryManager());
+                sourceNodeID, executionContext->clientContext->getMemoryManager());
         }
         auto pathLengthsFrontiers =
-            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths.get(),
+            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
                 executionContext->clientContext->getMaxNumThreadForExec());
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
         case RJOutputType::LENGTHS: {
-            auto frontierCompute = std::make_unique<AllSPLengthsFrontierCompute>(
+            auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(
                 pathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities.get());
             return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers),
-                move(frontierCompute));
+                move(edgeCompute));
         }
         case RJOutputType::PATHS: {
-            auto frontierCompute = std::make_unique<AllSPPathsFrontierCompute>(
+            auto edgeCompute = std::make_unique<AllSPPathsEdgeCompute>(
                 pathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPOutputsPaths>()->parentPtrs.get());
             return std::make_unique<RJCompState>(
-                move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));
+                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
-                                   "RJAlgorithm::getFrontiersAndFrontiersCompute(): " +
+                                   "RJAlgorithm::getFrontiersAndEdgeCompute(): " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
     }
 };
+
+struct VarLenJoinsEdgeCompute : public EdgeCompute {
+    DoublePathLengthsFrontiers* doublePathLengthsFrontiers;
+    ParentPtrsAtomics* parentPtrs;
+    ParentPtrsBlock* parentPtrsBlock;
+    explicit VarLenJoinsEdgeCompute(DoublePathLengthsFrontiers* doublePathLengthsFrontiers, ParentPtrsAtomics* parentPtrs)
+        : doublePathLengthsFrontiers{doublePathLengthsFrontiers}, parentPtrs{parentPtrs} {
+        parentPtrsBlock = parentPtrs->addNewBlock();
+    };
+
+    bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
+        // We should always update the nbrID in variable length joins
+        if (!parentPtrsBlock->hasSpace()) {
+            parentPtrsBlock = parentPtrs->addNewBlock();
+        }
+        parentPtrs->addParent(doublePathLengthsFrontiers->curIter.load(std::memory_order_relaxed),
+            parentPtrsBlock, nbrID /* child */, curNodeID /* parent */);
+        return true;
+    }
+
+    std::unique_ptr<EdgeCompute> clone() override {
+        return std::make_unique<VarLenJoinsEdgeCompute>(this->doublePathLengthsFrontiers,
+            this->parentPtrs);
+    }
+};
+
+/**
+ * Algorithm for parallel all shortest paths computation, so all shortest paths from a source to
+ * is returned for each destination. If paths are not returned, multiplicities indicate the number
+ * of paths to each destination.
+ */
+class VarLenJoinsAlgorithm final : public RJAlgorithm {
+
+public:
+    explicit VarLenJoinsAlgorithm() : RJAlgorithm(RJOutputType::PATHS, true /* hasLowerBoundInput */){}
+    VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
+
+    std::unique_ptr<GDSAlgorithm> copy() const override {
+        return std::make_unique<VarLenJoinsAlgorithm>(*this);
+    }
+
+protected:
+    void initLocalState(main::ClientContext* context) override {
+        outputWriter = std::make_unique<VarLenOutputWriterPaths>(context,
+            bindData->ptrCast<RJBindData>()->lowerBound,
+            bindData->ptrCast<RJBindData>()->upperBound);
+    }
+
+    std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
+        processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
+        std::unique_ptr<RJOutputs> spOutputs =
+            std::make_unique<AllSPOutputsPaths>(sharedState->graph.get(), sourceNodeID,
+                executionContext->clientContext->getMemoryManager());
+        // TODO(Semih): We need to pass a pathLengthFrontier that uses 2 copies of masks internally.
+        // TODO(Semih): We also need a way to take in the minimum and the maximum path lengths
+        auto doublePathLengthsFrontiers =
+            std::make_unique<DoublePathLengthsFrontiers>(spOutputs->nodeTableIDAndNumNodes,
+                executionContext->clientContext->getMaxNumThreadForExec(), executionContext->clientContext->getMemoryManager());
+        auto edgeCompute = std::make_unique<VarLenJoinsEdgeCompute>(
+            doublePathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPOutputsPaths>()->parentPtrs.get());
+        return std::make_unique<RJCompState>(
+            move(spOutputs), move(doublePathLengthsFrontiers), move(edgeCompute));
+    }
+};
+
+function_set VarLenJoinsFunction::getFunctionSet() {
+    function_set result;
+    auto function = std::make_unique<GDSFunction>(name,
+        std::make_unique<VarLenJoinsAlgorithm>());
+    result.push_back(std::move(function));
+    return result;
+}
 
 function_set AllSPDestinationsFunction::getFunctionSet() {
     function_set result;

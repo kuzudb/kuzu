@@ -66,7 +66,7 @@ private:
     std::unique_ptr<ColumnChunkData> indexColumnChunk;
 
     std::unique_ptr<DictionaryChunk> dictionaryChunk;
-    // If we never update a value, we don't need to prune unused strings in finalize
+    // If we never update a value, we don't need to prune unused strings in finalizeWorkerThread
     bool needFinalize;
 };
 

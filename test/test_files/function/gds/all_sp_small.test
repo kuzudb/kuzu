@@ -7,8 +7,7 @@
            MATCH (a:person) WHERE a.ID = 0
            CALL all_sp_destinations(PK, a, 30, true)
            RETURN a.ID, _node.ID;
----- 19
-0|0
+---- 18
 0|10
 0|10
 0|20
@@ -33,8 +32,7 @@
            MATCH (a:person) WHERE a.ID = 0
            CALL all_sp_lengths(PK, a, 30, true)
            RETURN a.ID, _node.ID, length;
----- 19
-0|0|0
+---- 18
 0|10|1
 0|10|1
 0|20|1
@@ -59,8 +57,7 @@
            MATCH (a:person) WHERE a.ID = 0
            CALL all_sp_paths(PK, a, 5, true)
            RETURN a.ID, _node.ID, length, pathNodeIDs;
----- 19
-0|0|0|[]
+---- 18
 0|10|1|[]
 0|10|1|[]
 0|20|1|[]

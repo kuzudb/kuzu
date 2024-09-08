@@ -33,7 +33,7 @@ public:
     //     This function is called from inside deRegisterThreadAndFinalizeTaskIfNecessary() only
     //     once by the last registered worker that is completing this task. So the task lock is
     //     already acquired. So do not attempt to acquire the task lock inside. If needed we can
-    //     make the deregister function release the lock before calling finalize and drop this
+    //     make the deregister function release the lock before calling finalizeWorkerThread and drop this
     //     assumption.
     virtual void finalizeIfNecessary() {};
 

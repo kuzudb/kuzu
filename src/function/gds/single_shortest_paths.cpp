@@ -75,9 +75,8 @@ private:
 // TODO(Semih): Consider refactoring to two classes, one for DESTINATION_NODES and LENGTHS and the
 // other for PATHS. The code will be more explicit that way.
 struct SingleSPOutputs : public SPOutputs {
-    explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType,
-        MemoryManager* mm = nullptr)
-        : SPOutputs(graph, sourceNodeID, outputType, mm) {}
+    explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
+        : SPOutputs(graph, sourceNodeID, mm) {}
     // Note: We do not fix the node table for pathLengths, because PathLengths is a
     // Frontiers implementation and RJCompState will call beginFrontierComputeBetweenTables
     // on Frontiers (and RJOutputs). That's why this function is empty.
@@ -86,9 +85,8 @@ struct SingleSPOutputs : public SPOutputs {
 
 struct SingleSPOutputsPaths : public SPOutputs {
     std::unique_ptr<SinglePaths> singlePaths;
-    explicit SingleSPOutputsPaths(graph::Graph* graph, nodeID_t sourceNodeID,
-        RJOutputType outputType, MemoryManager* mm = nullptr)
-        : SPOutputs(graph, sourceNodeID, outputType, mm) {
+    explicit SingleSPOutputsPaths(graph::Graph* graph, nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
+        : SPOutputs(graph, sourceNodeID, mm) {
         singlePaths = std::make_unique<SinglePaths>(nodeTableIDAndNumNodes, mm);
     }
 
@@ -105,9 +103,13 @@ public:
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
     }
+
+    std::unique_ptr<RJOutputWriter> clone() override {
+        return std::make_unique<SingleSPOutputWriterLengths>(context);
+    }
 protected:
     void writeMoreAndAppend(
-        processor::FactorizedTable& fTable, RJOutputs*, nodeID_t, uint8_t length) const override {
+        processor::FactorizedTable& fTable, RJOutputs*, nodeID_t, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         fTable.append(vectors);
     }
@@ -124,8 +126,12 @@ public:
         pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(pathNodeIDsVector.get());
     }
+
+    std::unique_ptr<RJOutputWriter> clone() override {
+        return std::make_unique<SingleSPOutputWriterPaths>(context);
+    }
 protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint8_t length) const override {
+    void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         PathVectorWriter writer(pathNodeIDsVector.get());
         writer.beginWritingNewPath(length);
@@ -142,9 +148,9 @@ private:
     std::unique_ptr<common::ValueVector> pathNodeIDsVector;
 };
 
-struct SingleSPLengthsFrontierCompute : public FrontierCompute {
+struct SingleSPLengthsEdgeCompute : public EdgeCompute {
     PathLengthsFrontiers* pathLengthsFrontiers;
-    explicit SingleSPLengthsFrontierCompute(PathLengthsFrontiers* pathLengthsFrontiers)
+    explicit SingleSPLengthsEdgeCompute(PathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
     bool edgeCompute(nodeID_t, nodeID_t nbrID) override {
@@ -152,16 +158,16 @@ struct SingleSPLengthsFrontierCompute : public FrontierCompute {
                    nbrID.offset) == PathLengths::UNVISITED;
     }
 
-    std::unique_ptr<FrontierCompute> clone() override {
-        return std::make_unique<SingleSPLengthsFrontierCompute>(this->pathLengthsFrontiers);
+    std::unique_ptr<EdgeCompute> clone() override {
+        return std::make_unique<SingleSPLengthsEdgeCompute>(this->pathLengthsFrontiers);
     }
 };
 
-struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
+struct SingleSPPathsEdgeCompute : public SingleSPLengthsEdgeCompute {
     SinglePaths* singlePaths;
-    explicit SingleSPPathsFrontierCompute(
+    explicit SingleSPPathsEdgeCompute(
         PathLengthsFrontiers* pathLengthsFrontiers, SinglePaths* singlePaths)
-        : SingleSPLengthsFrontierCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
+        : SingleSPLengthsEdgeCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
 
     bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
         auto retVal = pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
@@ -173,8 +179,8 @@ struct SingleSPPathsFrontierCompute : public SingleSPLengthsFrontierCompute {
         return retVal;
     }
 
-    std::unique_ptr<FrontierCompute> clone() override {
-        return std::make_unique<SingleSPPathsFrontierCompute>(
+    std::unique_ptr<EdgeCompute> clone() override {
+        return std::make_unique<SingleSPPathsEdgeCompute>(
             this->pathLengthsFrontiers, this->singlePaths);
     }
 };
@@ -214,37 +220,37 @@ protected:
         }
     }
 
-    std::unique_ptr<RJCompState> getFrontiersAndFrontiersCompute(
+    std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<SPOutputs> spOutputs;
         if (outputType == RJOutputType::PATHS) {
             spOutputs = std::make_unique<SingleSPOutputsPaths>(sharedState->graph.get(),
-                sourceNodeID, outputType, executionContext->clientContext->getMemoryManager());
+                sourceNodeID, executionContext->clientContext->getMemoryManager());
         } else {
             spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
-                outputType, executionContext->clientContext->getMemoryManager());
+                executionContext->clientContext->getMemoryManager());
         }
         auto pathLengthsFrontiers =
-            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths.get(),
+            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
                 executionContext->clientContext->getMaxNumThreadForExec());
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
         case RJOutputType::LENGTHS: {
-            auto frontierCompute =
-                std::make_unique<SingleSPLengthsFrontierCompute>(pathLengthsFrontiers.get());
+            auto edgeCompute =
+                std::make_unique<SingleSPLengthsEdgeCompute>(pathLengthsFrontiers.get());
             return std::make_unique<RJCompState>(
-                move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));
+                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
         }
         case RJOutputType::PATHS: {
-            auto frontierCompute =
-                std::make_unique<SingleSPPathsFrontierCompute>(pathLengthsFrontiers.get(),
+            auto edgeCompute =
+                std::make_unique<SingleSPPathsEdgeCompute>(pathLengthsFrontiers.get(),
                     spOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths.get());
             return std::make_unique<RJCompState>(
-                move(spOutputs), move(pathLengthsFrontiers), move(frontierCompute));
+                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
-                                   "SingleSPAlgorithm::getFrontiersAndFrontiersCompute(): " +
+                                   "SingleSPAlgorithm::getFrontiersAndEdgeCompute(): " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
     }

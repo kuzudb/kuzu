@@ -9,6 +9,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
+#include <thread>
 
 // TODO(Semih): Remove
 #include <iostream>
@@ -18,7 +19,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context) {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context) : context{context} {
     auto mm = context->getMemoryManager();
     srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
@@ -27,28 +28,52 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context) {
     vectors.push_back(srcNodeIDVector.get());
     vectors.push_back(dstNodeIDVector.get());
 }
+void RJOutputWriter::initWritingFromSource(nodeID_t sourceNodeID) {
+    srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
+}
 
 // TODO(Semih): Remove
 RJCompState::RJCompState(std::unique_ptr<RJOutputs> outputs,
     std::unique_ptr<function::Frontiers> frontiers,
-    std::unique_ptr<function::FrontierCompute> frontierCompute)
+    std::unique_ptr<function::EdgeCompute> frontierCompute)
     : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
       frontierCompute{std::move(frontierCompute)} {}
 
 void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 4);
+    // TODO(Semih): Remove
+    std::cout << " RJAlgorithm::bind. hasLowerBoundInput: " << (hasLowerBoundInput ? " true." : " false." ) << std::endl;
+    KU_ASSERT(hasLowerBoundInput ? params.size() == 5 : params.size() == 4);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
-    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
-    if (upperBound < 1 || upperBound >= 255) {
-        throw RuntimeException(
-            "shortest_paths function only works for positive max iterations that are up to "
-            "254. Given upper bound is: " +
-            std::to_string(upperBound) + ".");
+    // Note: This is where we ensure that for any recursive join algorithm other than variable
+    // length joins, lower bound is 1. See the comment in RJBindData::lowerBound field.
+    auto lowerBound = hasLowerBoundInput ? ExpressionUtil::getLiteralValue<int64_t>(*params[2]) : 1;
+    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[hasLowerBoundInput ? 3 : 2]);
+    if (lowerBound < 0 || upperBound < 0) {
+        // TODO(Semih): Add test case covering this.
+        throw RuntimeException("Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: " +
+                               std::to_string(lowerBound) + " and upper bound is: " + std::to_string(upperBound) + ".");
     }
-    auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, upperBound);
+    if (lowerBound > upperBound) {
+        throw RuntimeException("Lower bound length of recursive join operations need to be less than or equal to upper bound. Given lower bound is: " +
+            std::to_string(lowerBound) + " and upper bound is: " + std::to_string(upperBound) + ".");
+    }
+    if (upperBound >= RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND) {
+        // TODO(Semih): Add test case covering this.
+        throw RuntimeException(
+            "Recursive join operations only works for non-positive upper bound iterations that are up to " +
+            std::to_string(RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND) +
+            ". Given upper bound is: " + std::to_string(upperBound) + ".");
+    }
+    if (!hasLowerBoundInput && upperBound == 0) {
+        // TODO(Semih): Add test case covering this.
+        throw RuntimeException("Shortest path operations only works for positive upper bound "
+                               "iterations. Given upper bound is: " +
+                               std::to_string(upperBound) + ".");
+    }
+    auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[hasLowerBoundInput ? 4 : 3]);
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
 }
 
 binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
@@ -67,6 +92,65 @@ binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
     return columns;
 }
 
+class RJOutputWriterVCSharedState {
+public:
+    RJOutputWriterVCSharedState(storage::MemoryManager* mm, processor::FactorizedTable* globalFT,
+        RJOutputs* rjOutputs, RJOutputWriter* rjOutputWriter)
+        : mm{mm}, globalFT{globalFT}, rjOutputs{rjOutputs}, rjOutputWriter{rjOutputWriter} {}
+
+    std::mutex mtx;
+    storage::MemoryManager* mm;
+    processor::FactorizedTable* globalFT;
+    RJOutputs* rjOutputs;
+    RJOutputWriter* rjOutputWriter;
+};
+
+class RJOutputWriterVC : public VertexCompute {
+public:
+    RJOutputWriterVC(RJOutputWriterVCSharedState* sharedState) : sharedState{sharedState} {
+        localFT = std::make_unique<processor::FactorizedTable>(sharedState->mm,
+            sharedState->globalFT->getTableSchema()->copy());
+        localRJOutputWriter = sharedState->rjOutputWriter->clone();
+        localRJOutputWriter->initWritingFromSource(sharedState->rjOutputs->sourceNodeID);
+    }
+
+    void beginComputingOnTable(table_id_t tableID) override {
+        localRJOutputWriter->beginWritingForDstNodesInTable(sharedState->rjOutputs, tableID);
+    }
+
+    void vertexCompute(nodeID_t nodeID) override {
+        if (localRJOutputWriter->skipWriting(sharedState->rjOutputs, nodeID)) {
+            return;
+        }
+        localRJOutputWriter->write(sharedState->rjOutputs, *localFT, nodeID);
+    }
+
+    void finalizeWorkerThread() override {
+        std::cout << "Thread: " << std::this_thread::get_id() << " calling finalizeWorkerThread "
+                  << std::endl;
+        std::unique_lock lck(sharedState->mtx);
+        sharedState->globalFT->merge(*localFT);
+        std::cout << "Thread: " << std::this_thread::get_id()
+                  << " bytesAllocated: " << localFT->bytesAllocated << std::endl;
+    }
+
+    std::unique_ptr<VertexCompute> clone() override {
+        return std::make_unique<RJOutputWriterVC>(sharedState);
+    }
+
+private:
+    RJOutputWriterVCSharedState* sharedState;
+    std::unique_ptr<processor::FactorizedTable> localFT;
+    std::unique_ptr<RJOutputWriter> localRJOutputWriter;
+};
+
+void SPOutputWriterDsts::write(RJOutputs* rjOutputs, processor::FactorizedTable& fTable,
+    nodeID_t dstNodeID) const {
+    auto length = rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
+    dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+    writeMoreAndAppend(fTable, rjOutputs, dstNodeID, length);
+}
+
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
     for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
         if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
@@ -79,17 +163,17 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
             std::unique_ptr<RJCompState> rjCompState =
-                getFrontiersAndFrontiersCompute(executionContext, sourceNodeID);
+                getFrontiersAndEdgeCompute(executionContext, sourceNodeID);
             rjCompState->initRJFromSource(sourceNodeID);
-            // Note that spInfo contains an SingleSPOutputs outputs field but it is not explicitly
-            // passed to GDSUtils::runFrontiersUntilConvergence below. That is because
-            // whatever the frontierCompute function is needed should already be passed
-            // to it as a field, so GDSUtils::runFrontiersUntilConvergence does not need
-            // to pass outputs field to frontierCompute.
             GDSUtils::runFrontiersUntilConvergence(executionContext, *rjCompState,
                 sharedState->graph.get(), bindData->ptrCast<RJBindData>()->upperBound);
-            outputWriter->materialize(sharedState->graph.get(), rjCompState->outputs.get(),
-                *sharedState->fTable);
+            outputWriter->initWritingFromSource(sourceNodeID);
+            auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
+                executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
+                rjCompState->outputs.get(), outputWriter.get());
+            auto writerVC = std::make_unique<RJOutputWriterVC>(writerVCSharedState.get());
+            GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
+                *writerVC);
         }
     }
 }
@@ -99,9 +183,9 @@ PathLengths::PathLengths(
     storage::MemoryManager* mm) {
     for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
         nodeTableIDAndNumNodesMap[tableID] = numNodes;
-        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint8_t>));
-        std::atomic<uint8_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint8_t>*>(memBuffer.get()->buffer.data());
+        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
+        std::atomic<uint16_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->buffer.data());
         for (uint64_t i = 0; i < numNodes; ++i) {
             memBufferPtr[i].store(UNVISITED, std::memory_order_relaxed);
         }
@@ -113,7 +197,7 @@ void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
     curTableID.store(tableID, std::memory_order_relaxed);
     curFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
+        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->buffer.data()),
         std::memory_order_relaxed);
     maxNodesInCurFrontierFixedMask.store(
         nodeTableIDAndNumNodesMap[curTableID.load(std::memory_order_relaxed)],
@@ -123,31 +207,49 @@ void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
 void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
     nextFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint8_t>*>(masks.at(tableID).get()->buffer.data()),
+        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->buffer.data()),
         std::memory_order_relaxed);
 }
 
-bool PathLengthsFrontiers::getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) {
-    auto numNodesInFrontier = isDense ? pathLengths->getNumNodesInCurFrontierFixedNodeTable() : sparseOffsetsSize.load(std::memory_order_relaxed);
-    auto beginOffset = nextOffset.fetch_add(frontierMorselSize, std::memory_order_acq_rel);
-    if (beginOffset >= numNodesInFrontier) {
-        return false;
-    }
-    auto endOffsetExclusive =
-        beginOffset + frontierMorselSize > numNodesInFrontier ?
-                         numNodesInFrontier : beginOffset + frontierMorselSize;
-    frontierMorsel.initMorsel(pathLengths->curTableID, beginOffset, endOffsetExclusive, isDense,
-        sparseOffsets.get());
-    return true;
+void PathLengthsFrontiers::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+    table_id_t nextFrontierTableID) {
+    pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
+    pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
+    morselizer->init(curFrontierTableID, pathLengths->getNumNodesInCurFrontierFixedNodeTable());
+}
+// TODO(Semih): Consider removing this function and directly getting morsels from the FrontierMorselizer.
+bool PathLengthsFrontiers::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
+    return morselizer->getNextRangeMorsel(frontierMorsel);
 }
 
-SPOutputs::SPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, RJOutputType outputType,
-    storage::MemoryManager* mm) : RJOutputs(sourceNodeID, outputType) {
+DoublePathLengthsFrontiers::DoublePathLengthsFrontiers(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+    uint64_t maxThreadsForExec, storage::MemoryManager* mm)
+    : Frontiers(move(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm)),
+          move(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm)), 1 /* initial num active nodes */, maxThreadsForExec) {
+    morselizer = std::make_unique<FrontierMorselizer>(maxThreadsForExec);
+}
+
+bool DoublePathLengthsFrontiers::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
+    return morselizer->getNextRangeMorsel(frontierMorsel);
+}
+
+void DoublePathLengthsFrontiers::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+    table_id_t nextFrontierTableID) {
+    curFrontier->ptrCast<PathLengths>()->fixCurFrontierNodeTable(curFrontierTableID);
+    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(nextFrontierTableID);
+    morselizer->init(curFrontierTableID, curFrontier->ptrCast<PathLengths>()->getNumNodesInCurFrontierFixedNodeTable());
+}
+
+RJOutputs::RJOutputs(graph::Graph* graph, nodeID_t sourceNodeID)
+    : sourceNodeID{sourceNodeID} {
     for (common::table_id_t tableID : graph->getNodeTableIDs()) {
         auto numNodes = graph->getNumNodes(tableID);
         nodeTableIDAndNumNodes.push_back({tableID, numNodes});
     }
-    pathLengths = std::make_unique<PathLengths>(nodeTableIDAndNumNodes, mm);
+}
+
+SPOutputs::SPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, storage::MemoryManager* mm) : RJOutputs(graph, sourceNodeID) {
+    pathLengths = std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm);
 }
 
 void PathVectorWriter::beginWritingNewPath(uint64_t length) {
@@ -163,30 +265,8 @@ void PathVectorWriter::addNewNodeID(nodeID_t curIntNode) {
     nextPathPos--;
 }
 
-void SPOutputWriterDsts::materialize(
-    graph::Graph* graph, RJOutputs* rjOutputs, processor::FactorizedTable& fTable) const {
-    auto spOutputs = rjOutputs->ptrCast<SPOutputs>();
-    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
-    for (auto tableID : graph->getNodeTableIDs()) {
-        spOutputs->pathLengths->fixCurFrontierNodeTable(tableID);
-        fixOtherStructuresToOutputDstsFromNodeTable(rjOutputs, tableID);
-        for (offset_t dstNodeOffset = 0;  dstNodeOffset < 5;
-             // dstNodeOffset < spOutputs->pathLengths->getNumNodesInCurFrontierFixedNodeTable();
-             ++dstNodeOffset) {
-            auto length =
-                spOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeOffset);
-            if (length == PathLengths::UNVISITED) {
-                continue;
-            }
-            auto dstNodeID = nodeID_t{dstNodeOffset, tableID};
-            dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-            writeMoreAndAppend(fTable, rjOutputs, dstNodeID, length);
-        }
-    }
-}
-
-void SPOutputWriterDsts::writeMoreAndAppend(
-    processor::FactorizedTable& fTable, RJOutputs*, nodeID_t, uint8_t) const {
+void SPOutputWriterDsts::writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs*,
+    nodeID_t, uint16_t) const {
     fTable.append(vectors);
 }
 }

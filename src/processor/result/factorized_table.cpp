@@ -286,6 +286,8 @@ std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
     std::vector<BlockAppendingInfo> appendingInfos;
     while (numTuplesToAppend > 0) {
         if (flatTupleBlockCollection->needAllocation(numBytesPerTuple)) {
+            // TODO(Semih): Remove
+            bytesAllocated += flatTupleBlockSize;
             auto newBlock = std::make_unique<DataBlock>(memoryManager, flatTupleBlockSize);
             flatTupleBlockCollection->append(std::move(newBlock));
         }
@@ -318,7 +320,10 @@ uint8_t* FactorizedTable::allocateUnflatTupleBlock(uint32_t numBytes) {
         lastBlock->freeSize -= numBytes;
         return writableData;
     }
-    auto newBlock = std::make_unique<DataBlock>(memoryManager, getDataBlockSize(numBytes));
+    // TODO(Semih): Remove and inline getDataBlockSize(numBytes)
+    auto blockSizeAllocated = getDataBlockSize(numBytes);
+    bytesAllocated += blockSizeAllocated;
+    auto newBlock = std::make_unique<DataBlock>(memoryManager, blockSizeAllocated);
     unFlatTupleBlockCollection->append(std::move(newBlock));
     lastBlock = unFlatTupleBlockCollection->getLastBlock();
     lastBlock->freeSize -= numBytes;

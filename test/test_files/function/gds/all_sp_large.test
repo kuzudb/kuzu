@@ -22,8 +22,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            MATCH (a:person1) WHERE a.ID = 1
            CALL all_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
----- 5
-0|1
+---- 4
 1|10
 2|100
 3|1000
@@ -35,7 +34,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
-0|11
+0|10
 1|100
 2|1000
 3|10000
@@ -46,7 +45,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
-11111
+11110
 
 # This query will start from person1.1 and the traversal will zigzag as person2, person1, person2, person1 in 4
 # iterations.
@@ -55,8 +54,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            MATCH (a:person1) WHERE a.ID = 1
            CALL all_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
----- 5
-0|1
+---- 4
 1|10
 2|100
 3|1000
@@ -69,7 +67,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
-0|11
+0|10
 1|100
 2|1000
 3|10000
@@ -80,7 +78,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
-11111
+11110
 
 
 # 1st iteration: This query will start from person1.1 and will visit 10 person1 and 10 person2 nodes all at level 1.
@@ -96,8 +94,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            MATCH (a:person1) WHERE a.ID = 1
            CALL all_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
----- 5
-0|1
+---- 4
 1|20
 2|200
 3|2000
@@ -110,7 +107,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
-0|21
+0|20
 1|200
 2|2000
 3|20000
@@ -121,7 +118,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
-22221
+22220
 
 # 1st iteration: This query will start from person1.1 and will visit 10 person1 and 10 person2 nodes all at level 1.
 # 2nd iteration: Each 10 level-1 person1 nodes will visit each 10 person1 and each 10 person2 nodes at level-2. Further,
@@ -138,8 +135,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            MATCH (a:person1) WHERE a.ID = 1
            CALL all_sp_lengths(PK, a, 30, true)
            RETURN length, count(*);
----- 5
-0|1
+---- 4
 1|20
 2|300
 3|5000
@@ -152,7 +148,7 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_paths(PK, a, 30, true)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
-0|21
+0|20
 1|300
 2|5000
 3|80000
@@ -163,4 +159,4 @@ Binder exception: Variable pathNodeIDs is not in scope.
            CALL all_sp_destinations(PK, a, 30, true)
            RETURN count(*);
 ---- 1
-85321
+85320

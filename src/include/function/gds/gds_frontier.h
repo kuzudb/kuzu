@@ -16,44 +16,15 @@ class Graph;
 
 namespace function {
 
-class RangeFrontierMorsel {
-    friend class PathLengthsFrontiers;
-
-public:
-    RangeFrontierMorsel() {}
-
-    bool hasNextVertex() const { return nextOffset < endOffsetExclusive; }
-
-    nodeID_t getNextVertex() { return {isDense ? nextOffset++ : sparseOffsets[nextOffset++].load(std::memory_order_relaxed), tableID}; }
-
-protected:
-    void initMorsel(table_id_t _tableID, offset_t _beginOffset, offset_t _endOffsetExclusive, bool _isDense,  std::atomic<offset_t>* _sparseOffsets) {
-        tableID = _tableID;
-        beginOffset = _beginOffset;
-        endOffsetExclusive = _endOffsetExclusive;
-        nextOffset = beginOffset;
-        isDense = _isDense;
-        sparseOffsets = _sparseOffsets;
-    }
-
-private:
-    table_id_t tableID = INVALID_TABLE_ID;
-    offset_t beginOffset = INVALID_OFFSET;
-    offset_t endOffsetExclusive = INVALID_OFFSET;
-    offset_t nextOffset = INVALID_OFFSET;
-    bool isDense;
-    std::atomic<offset_t>* sparseOffsets;
-};
-
 /**
- * Base interface for algorithms that can be implemented in Pregel-like vertex-centric manner.
- * More specifically, this interface mimics Ligra's edgeUpdate function (though we call it
- * edgeCompute). Intended to be used when using the helper functions in GDSUtils. The name
- * FrontierCompute comes from vertex.compute() or edge.compute() functions of these systems.
+ * Base interface for algorithms that can be implemented in Pregel-like vertex-centric manner or
+ * more specifically Ligra's edgeCompute (called edgeUpdate in Ligra paper) function. Intended to be
+ * used when using the helper functions in GDSUtils.
  */
-class FrontierCompute {
+class EdgeCompute {
 public:
-    virtual ~FrontierCompute() = default;
+    virtual ~EdgeCompute() = default;
+
     // Does any work that is needed while extending the (curNodeID, nbrID) edge. curNodeID is the
     // nodeID that is in the current frontier and currently executing. Returns true if the neighbor
     // should be put in the next frontier. So if the implementing class has access to the next
@@ -61,11 +32,105 @@ public:
     // work.
     virtual bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) = 0;
 
-    // This function will be called by each worker thread on its copy of the FrontierCompute.
+    // This function will be called by each worker thread on its copy of the EdgeCompute.
     // TODO(Semih): See if this has any implementations. If not remove.
     virtual void init() {}
 
-    virtual std::unique_ptr<FrontierCompute> clone() = 0;
+    virtual std::unique_ptr<EdgeCompute> clone() = 0;
+};
+
+class VertexCompute  {
+public:
+    virtual ~VertexCompute() = default;
+
+    // This function is called once on the "main" copy of VertexCompute in the
+    // GDSUtils::runVertexComputeIteration function. runVertexComputeIteration loops through
+    // each node table T on the graph on which vertexCompute should run and then before
+    // parallelizing the computation on T calls this function.
+    virtual void beginComputingOnTable(table_id_t tableID) {}
+
+    // This function is called by each worker thread T on each node in the morsel that T grabs.
+    // Does any vertex-centric work that is needed while running on the curNodeID. This function
+    // should do the work of checking if any work should be done on the vertex or not itself. Note
+    // that this contrasts with how EdgeCompute::edgeCompute() should be implemented, where the
+    // GDSUtils helper functions call isActive on nodes to check if any work should be done for
+    // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
+    // the function on each node in a graph.
+    virtual void vertexCompute(nodeID_t curNodeID) = 0;
+
+    // This function is called by each worker thread T once at the end of
+    // GDSUtils::runVertexComputeIteration().
+    virtual void finalizeWorkerThread() {}
+
+    virtual std::unique_ptr<VertexCompute> clone() = 0;
+};
+
+class FrontierMorsel {
+    friend class FrontierMorselizer;
+
+public:
+    FrontierMorsel() {}
+
+    bool hasNextOffset() const { return nextOffset < endOffsetExclusive; }
+
+    nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
+
+protected:
+    void initMorsel(table_id_t _tableID, offset_t _beginOffset, offset_t _endOffsetExclusive) {
+        tableID = _tableID;
+        beginOffset = _beginOffset;
+        endOffsetExclusive = _endOffsetExclusive;
+        nextOffset = beginOffset;
+    }
+
+private:
+    table_id_t tableID = INVALID_TABLE_ID;
+    offset_t beginOffset = INVALID_OFFSET;
+    offset_t endOffsetExclusive = INVALID_OFFSET;
+    offset_t nextOffset = INVALID_OFFSET;
+};
+
+class FrontierMorselizer {
+    static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
+    // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
+    // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
+    // morselSize computation for details.
+    static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
+
+public:
+    explicit FrontierMorselizer(uint64_t _maxThreadsForExec) {
+        maxThreadsForExec.store(_maxThreadsForExec);
+    }
+
+    void init(table_id_t _tableID, uint64_t _numOffsets) {
+        tableID.store(_tableID);
+        numOffsets.store(_numOffsets);
+        nextOffset.store(0u);
+        // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
+        // the number of maximum threads that could be working on this frontier. However if
+        // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
+        auto idealMorselSize = numOffsets.load(std::memory_order_relaxed) / (std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
+                                                                                        maxThreadsForExec.load(std::memory_order_relaxed) * maxThreadsForExec.load(std::memory_order_relaxed)));
+        morselSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealMorselSize);
+    }
+
+    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
+        auto beginOffset = nextOffset.fetch_add(morselSize, std::memory_order_acq_rel);
+        if (beginOffset >= numOffsets.load(std::memory_order_relaxed)) {
+            return false;
+        }
+        auto endOffsetExclusive =
+            beginOffset + morselSize > numOffsets.load(std::memory_order_relaxed) ?
+                numOffsets.load(std::memory_order_relaxed) : beginOffset + morselSize;
+        frontierMorsel.initMorsel(tableID.load(std::memory_order_relaxed), beginOffset, endOffsetExclusive);
+        return true;
+    }
+private:
+    std::atomic<uint64_t> maxThreadsForExec;
+    std::atomic<table_id_t > tableID;
+    std::atomic<uint64_t> numOffsets;
+    std::atomic<offset_t> nextOffset;
+    uint64_t morselSize;
 };
 
 /**
@@ -80,6 +145,10 @@ public:
     virtual ~GDSFrontier() = default;
     virtual bool isActive(nodeID_t nodeID) = 0;
     virtual void setActive(nodeID_t nodeID) = 0;
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<GDSFrontier*, TARGET*>(this);
+    }
 };
 
 /**
@@ -91,45 +160,47 @@ public:
  * All functions supported in this base interface are thread-safe.
  */
 class Frontiers {
-    friend class GDSTask;
+    friend class FrontierTask;
 public:
-    explicit Frontiers(GDSFrontier* curFrontier, GDSFrontier* nextFrontier,
+    explicit Frontiers(std::shared_ptr<GDSFrontier> curFrontier, std::shared_ptr<GDSFrontier> nextFrontier,
         uint64_t initialActiveNodes,  uint64_t maxThreadsForExec)
         : curFrontier{curFrontier}, nextFrontier{nextFrontier}, maxThreadsForExec{maxThreadsForExec} {
-        numApproxActiveNodesForCurIter.store(UINT64_MAX);
+        numApproxActiveNodesForCurLevel.store(UINT64_MAX);
         numApproxActiveNodesForNextIter.store(initialActiveNodes);
-        curIter.store(INVALID_IDX);
+        curIter.store((uint16_t) 0);
     }
     virtual ~Frontiers() = default;
-    virtual bool getNextFrontierMorsel(RangeFrontierMorsel& frontierMorsel) = 0;
+    virtual bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) = 0;
     void incrementApproxActiveNodesForNextIter(uint64_t i) {
         numApproxActiveNodesForNextIter.fetch_add(i);
     }
     void beginNewIteration() {
         std::unique_lock<std::mutex> lck{mtx};
-        // If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
-        // iterations have not started, the following line will set it to 0.
         curIter.fetch_add(1u);
-        numApproxActiveNodesForCurIter.store(numApproxActiveNodesForNextIter.load());
+        numApproxActiveNodesForCurLevel.store(numApproxActiveNodesForNextIter.load());
         numApproxActiveNodesForNextIter.store(0u);
+        std::swap(curFrontier, nextFrontier);
         beginNewIterationInternalNoLock();
     }
     virtual void initRJFromSource(nodeID_t source) = 0;
     virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) = 0;
+    // TODO(Semih): Remove if not used
     idx_t getNextIter() {
-        // Note: If curIter is INVALID_IDX (which should be UINT32_MAX), which indicates that the
-        // iterations have not started, this will return 0.
         return curIter.load() + 1u;
     }
-    bool hasActiveNodesForNextIter() { return numApproxActiveNodesForNextIter.load() > 0; }
+    // TODO(Semih): Remove if note used
+    bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
     // Note: If the implementing class stores 2 frontiers, this function should swap them.
     virtual void beginNewIterationInternalNoLock() {}
 
 protected:
     std::mutex mtx;
-    std::atomic<idx_t> curIter;
-    std::atomic<uint64_t> numApproxActiveNodesForCurIter;
+    // curIter is the iteration number of the algorithm and starts from 0.
+    // TODO(Semih): Currently both the actual Frontier class PathLengths and this class keeps
+    // track of curIter. See if this is necessary.
+    std::atomic<uint16_t> curIter;
+    std::atomic<uint64_t> numApproxActiveNodesForCurLevel;
     // Note: This number is not guaranteed to accurate. However if it is > 0, then there is at least
     // one active node for the next frontier. It may not be accurate because there ca be double
     // counting. Each thread will locally increment this number based on the number of times
@@ -137,8 +208,8 @@ protected:
     // across threads, the same node can be set active. So do not make any reliance on the accuracy
     // of this value.
     std::atomic<uint64_t> numApproxActiveNodesForNextIter;
-    GDSFrontier* curFrontier;
-    GDSFrontier* nextFrontier;
+    std::shared_ptr<GDSFrontier> curFrontier;
+    std::shared_ptr<GDSFrontier> nextFrontier;
     uint64_t maxThreadsForExec;
 };
 
