@@ -1,6 +1,5 @@
 #include "storage/store/node_group.h"
 
-#include "common/utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
@@ -136,7 +135,6 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         *chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
     const auto rowIdxInChunkToScan =
         nodeGroupScanState.nextRowToScan - chunkedGroupToScan.getStartRowIdx();
-    KU_ASSERT(rowIdxInChunkToScan < chunkedGroupToScan.getNumRows());
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
     if (state.source == TableScanSource::COMMITTED && state.semiMask &&
@@ -323,34 +321,17 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(const UniqLock&
 std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lock,
     const Transaction* transaction) {
     auto checkpointVersionInfo = std::make_unique<VersionInfo>();
-    row_idx_t numRows = 0;
-    for (const auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        numRows += chunkedGroup->getNumRows();
-    }
-    const auto numVectors = common::ceilDiv(numRows, DEFAULT_VECTOR_CAPACITY);
-    for (auto i = 0u; i < numVectors; i++) {
-        checkpointVersionInfo->getOrCreateVersionInfo(i);
-    }
     row_idx_t currRow = 0;
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         if (chunkedGroup->hasVersionInfo()) {
+            // TODO(Guodong): Optimize the for loop here to directly acess the version info.
             for (auto i = 0u; i < chunkedGroup->getNumRows(); i++) {
                 if (chunkedGroup->isDeleted(transaction, i)) {
-                    checkpointVersionInfo->delete_(transaction, currRow + i);
-                } else if (chunkedGroup->isInserted(transaction, i)) {
-                    checkpointVersionInfo->append(transaction, currRow + i, 1);
+                    checkpointVersionInfo->delete_(transaction, nullptr, currRow + i);
                 }
             }
-        } else {
-            // No version info created on the chunked node group, so all tuples in the chunked node
-            // group are inserted.
-            checkpointVersionInfo->append(transaction, currRow, chunkedGroup->getNumRows());
         }
         currRow += chunkedGroup->getNumRows();
-    }
-    // TODO(Guodong): When finalize, should consider numRows as well.
-    if (!checkpointVersionInfo->finalizeStatusFromVersions()) {
-        return nullptr;
     }
     return checkpointVersionInfo;
 }

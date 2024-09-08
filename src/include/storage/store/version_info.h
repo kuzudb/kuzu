@@ -67,18 +67,17 @@ struct VectorVersionInfo {
     common::row_idx_t getNumDeletions(common::transaction_t startTS,
         common::transaction_t transactionID, common::row_idx_t startRow,
         common::length_t numRows) const;
-
-    // Return true if this vectorInfo needs to be kept after finalize.
-    bool finalizeStatusFromVersions();
 };
 
+class ChunkedNodeGroup;
 class VersionInfo {
 public:
     VersionInfo() {}
 
     common::row_idx_t append(const transaction::Transaction* transaction,
-        common::row_idx_t startRow, common::row_idx_t numRows);
-    bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdx);
+        ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow, common::row_idx_t numRows);
+    bool delete_(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
+        common::row_idx_t rowIdx);
 
     void getSelVectorToScan(common::transaction_t startTS, common::transaction_t transactionID,
         common::SelectionVector& selVector, common::row_idx_t startRow,
@@ -101,7 +100,12 @@ public:
     common::idx_t getNumVectors() const { return vectorsInfo.size(); }
     VectorVersionInfo& getOrCreateVersionInfo(common::idx_t vectorIdx);
 
-    bool finalizeStatusFromVersions();
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows,
+        common::transaction_t commitTS);
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows);
+    void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows,
+        common::transaction_t commitTS);
+    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows);
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<VersionInfo> deserialize(common::Deserializer& deSer);
