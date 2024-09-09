@@ -47,6 +47,7 @@ env:
   ENABLE_COMPRESSION: ${{ github.event.inputs.enable_compression }}
   CHECKPOINT_THRESHOLD: ${{ github.event.inputs.checkpoint_threshold }}
   WERROR: 1
+  RUSTFLAGS: --deny warnings
 
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.

@@ -735,7 +735,11 @@ impl TryFrom<&ffi::Value> for Value {
             }
             LogicalTypeID::DECIMAL => {
                 let logical_type: LogicalType = ffi::value_get_data_type(value).into();
-                if let LogicalType::Decimal { scale, precision } = logical_type {
+                if let LogicalType::Decimal {
+                    scale,
+                    precision: _,
+                } = logical_type
+                {
                     let decimal_value: i128 = match ffi::value_get_physical_type(value) {
                         PhysicalTypeID::INT128 => get_i128(value),
                         PhysicalTypeID::INT64 => value.get_value_i64() as i128,

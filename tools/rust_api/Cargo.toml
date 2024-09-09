@@ -27,7 +27,7 @@ edition = "2018"
 [dependencies]
 cxx = "1.0"
 time = "0.3"
-arrow = {version="43", optional=true, default-features=false, features=["ffi"]}
+arrow = {version="53", optional=true, default-features=false, features=["ffi"]}
 uuid = "1.6"
 rust_decimal = {version="1.35", default-features=false}
 
