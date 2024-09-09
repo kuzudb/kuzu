@@ -1,6 +1,9 @@
 PYPI_URL = "https://pypi.org/pypi/kuzu/json"
 CMAKE_KEYWORD = "project(Kuzu VERSION "
 CMAKE_SUFFIX = " LANGUAGES CXX C)\n"
+EXTENSION_KEYWORD = 'add_definitions(-DKUZU_EXTENSION_VERSION="'
+EXTENSION_SUFFIX = '")\n'
+EXTENSION_DEV_VERSION = "dev"
 
 import urllib.request
 import json
@@ -44,9 +47,15 @@ def main():
     print("Updating %s..." % cmake_lists_path)
     with open(cmake_lists_path, "r") as cmake_lists_file:
         cmake_lists = cmake_lists_file.readlines()
+    counter = 2
     for i, line in enumerate(cmake_lists):
         if CMAKE_KEYWORD in line:
             cmake_lists[i] = CMAKE_KEYWORD + cmake_version + CMAKE_SUFFIX
+            counter -= 1
+        if EXTENSION_KEYWORD in line:
+            cmake_lists[i] = EXTENSION_KEYWORD + EXTENSION_DEV_VERSION + EXTENSION_SUFFIX
+            counter -= 1
+        if counter == 0:
             break
     with open(cmake_lists_path, "w") as cmake_lists_file:
         cmake_lists_file.writelines(cmake_lists)
@@ -55,7 +64,7 @@ def main():
     os.system("git config user.email ci@kuzudb.com")
     os.system("git config user.name \"Kuzu CI\"")
     os.system("git add %s" % cmake_lists_path)
-    os.system("git commit -m \"Update CMake version to %s.\"" % cmake_version)
+    os.system("git commit -m \"Update CMake version to %s and change extension version to dev.\"" % cmake_version)
     sys.stdout.flush()
     sys.stderr.flush()
     print("All done!")

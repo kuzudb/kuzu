@@ -35,6 +35,11 @@ on:
         type: boolean
         required: true
         default: false
+      skipExtensions:
+        description: "Skip building extensions?"
+        type: boolean
+        required: true
+        default: false
       isNightly:
         description: "Whether the build is a nightly build?"
         type: boolean
@@ -42,19 +47,32 @@ on:
         default: false
 
 jobs:
+  build-extension:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.skipExtensions != 'true' }}
+    uses: ./.github/workflows/build-and-deploy-extension.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
+    secrets: inherit
+
   build-java-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/mac-java-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-java-linux:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/linux-java-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-java-windows:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/windows-java-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   inject-java-bins:
@@ -104,16 +122,22 @@ jobs:
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/mac-nodejs-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-nodejs-linux:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/linux-nodejs-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-nodejs-windows:
     if: ${{ github.event_name == 'schedule' ||  github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/windows-nodejs-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   deploy-nodejs:
@@ -127,7 +151,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Create prebuilt folder
@@ -221,7 +247,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Package Python sdist
@@ -308,7 +336,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging --break-system-package
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Update Cargo.toml version
@@ -334,14 +364,20 @@ jobs:
   build-precompiled-bin-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/mac-precompiled-bin-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-precompiled-bin-linux:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
   build-precompiled-bin-windows:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/windows-precompiled-bin-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
