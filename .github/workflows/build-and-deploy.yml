@@ -151,7 +151,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Create prebuilt folder
@@ -245,7 +247,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Package Python sdist
@@ -332,7 +336,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Update Cargo.toml version

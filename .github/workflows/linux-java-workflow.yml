@@ -16,7 +16,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
-        run: /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        run: |
+          /opt/python/cp310-cp310/bin/python -m pip install packaging
+          /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
         working-directory: scripts
 
       - name: Build Java lib for Linux
@@ -40,7 +42,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
-        run: /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        run: |
+          /opt/python/cp310-cp310/bin/python -m pip install packaging
+          /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
         working-directory: scripts
 
       - name: Build Java lib for Linux
