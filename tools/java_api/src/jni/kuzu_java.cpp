@@ -303,17 +303,15 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1connection_1destroy(JNIEnv* 
     delete conn;
 }
 
-JNIEXPORT void JNICALL
-Java_com_kuzudb_Native_kuzu_1connection_1set_1max_1num_1thread_1for_1exec(JNIEnv* env, jclass,
-    jobject thisConn, jlong num_threads) {
+JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1connection_1set_1max_1num_1thread_1for_1exec(
+    JNIEnv* env, jclass, jobject thisConn, jlong num_threads) {
     Connection* conn = getConnection(env, thisConn);
     uint64_t threads = static_cast<uint64_t>(num_threads);
     conn->setMaxNumThreadForExec(threads);
 }
 
-JNIEXPORT jlong JNICALL
-Java_com_kuzudb_Native_kuzu_1connection_1get_1max_1num_1thread_1for_1exec(JNIEnv* env, jclass,
-    jobject thisConn) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1connection_1get_1max_1num_1thread_1for_1exec(
+    JNIEnv* env, jclass, jobject thisConn) {
     Connection* conn = getConnection(env, thisConn);
     uint64_t threads = conn->getMaxNumThreadForExec();
     jlong num_threads = static_cast<jlong>(threads);
@@ -364,8 +362,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1connection_1execute(JNIEn
         return nullptr;
     }
 
-    jobject ret =
-        createJavaObject(env, query_result, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
+    jobject ret = createJavaObject(env, query_result, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
     return ret;
 }
 
@@ -430,14 +427,14 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1error
     return msg;
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1num_1columns(
-    JNIEnv* env, jclass, jobject thisQR) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1num_1columns(JNIEnv* env,
+    jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
     return static_cast<jlong>(qr->getNumColumns());
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1column_1name(
-    JNIEnv* env, jclass, jobject thisQR, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1column_1name(JNIEnv* env,
+    jclass, jobject thisQR, jlong index) {
     QueryResult* qr = getQueryResult(env, thisQR);
     auto column_names = qr->getColumnNames();
     uint64_t idx = static_cast<uint64_t>(index);
@@ -468,8 +465,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1colum
     return newDTObject;
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1num_1tuples(
-    JNIEnv* env, jclass, jobject thisQR) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1num_1tuples(JNIEnv* env,
+    jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
     return static_cast<jlong>(qr->getNumTuples());
 }
@@ -493,8 +490,8 @@ JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1has_1next
     return static_cast<jboolean>(qr->hasNext());
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next(JNIEnv* env,
-    jclass, jobject thisQR) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next(JNIEnv* env, jclass,
+    jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
     auto flat_tuple = qr->getNext();
 
@@ -536,8 +533,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1destroy(JNIEnv*
     delete flat_tuple_shared_ptr;
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1get_1value(JNIEnv* env,
-    jclass, jobject thisFT, jlong index) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1get_1value(JNIEnv* env, jclass,
+    jobject thisFT, jlong index) {
     FlatTuple* ft = getFlatTuple(env, thisFT);
     Value* value;
     try {
@@ -552,8 +549,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1get_1value(J
     return v;
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1to_1string(JNIEnv* env,
-    jclass, jobject thisFT) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1to_1string(JNIEnv* env, jclass,
+    jobject thisFT) {
     FlatTuple* ft = getFlatTuple(env, thisFT);
     std::string result_string = ft->toString();
     jstring ret = env->NewStringUTF(result_string.c_str());
@@ -640,8 +637,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1get_1child_1t
         return nullptr;
     }
     auto* new_child_type = new LogicalType(std::move(child_type));
-    jobject ret =
-        createJavaObject(env, new_child_type, J_C_DataType, J_C_DataType_F_dt_ref);
+    jobject ret = createJavaObject(env, new_child_type, J_C_DataType, J_C_DataType_F_dt_ref);
     return ret;
 }
 
@@ -658,8 +654,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1get_1num_1eleme
  * All Value native functions
  */
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1null(JNIEnv* env,
-    jclass) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1null(JNIEnv* env, jclass) {
     Value* v = new Value(Value::createNullValue());
     jobject ret = createJavaObject(env, v, J_C_Value, J_C_Value_F_v_ref);
     return ret;
@@ -685,8 +680,8 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1value_1set_1null(JNIEnv* env
     v->setNull(static_cast<bool>(is_null));
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1default(JNIEnv* env,
-    jclass, jobject data_type) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1default(JNIEnv* env, jclass,
+    jobject data_type) {
     auto* dt = getDataType(env, data_type);
     Value* v = new Value(Value::createDefaultValue(*dt));
     jobject ret = createJavaObject(env, v, J_C_Value, J_C_Value_F_v_ref);
@@ -805,8 +800,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1list_1element
     return element;
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1data_1type(JNIEnv* env,
-    jclass, jobject thisValue) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1data_1type(JNIEnv* env, jclass,
+    jobject thisValue) {
     Value* v = getValue(env, thisValue);
     auto* dt = new LogicalType(v->getDataType().copy());
     return createJavaObject(env, dt, J_C_DataType, J_C_DataType_F_dt_ref);
@@ -984,8 +979,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1id(JNIEnv
         return NULL;
     }
     auto id = idVal->getValue<internalID_t>();
-    jobject ret =
-        env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
+    jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
 }
 
@@ -1023,37 +1017,35 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1get_1property_
     return ret;
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1to_1string(JNIEnv* env,
-    jclass, jobject thisNV) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1to_1string(JNIEnv* env, jclass,
+    jobject thisNV) {
     auto* nv = getValue(env, thisNV);
     std::string result_string = NodeVal::toString(nv);
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1src_1id(JNIEnv* env,
-    jclass, jobject thisRV) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1src_1id(JNIEnv* env, jclass,
+    jobject thisRV) {
     auto* rv = getValue(env, thisRV);
     auto srcIdVal = RelVal::getSrcNodeIDVal(rv);
     if (srcIdVal == nullptr) {
         return NULL;
     }
     internalID_t id = srcIdVal->getValue<internalID_t>();
-    jobject ret =
-        env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
+    jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1dst_1id(JNIEnv* env,
-    jclass, jobject thisRV) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1dst_1id(JNIEnv* env, jclass,
+    jobject thisRV) {
     auto* rv = getValue(env, thisRV);
     auto dstIdVal = RelVal::getDstNodeIDVal(rv);
     if (dstIdVal == nullptr) {
         return NULL;
     }
     internalID_t id = dstIdVal->getValue<internalID_t>();
-    jobject ret =
-        env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
+    jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
     return ret;
 }
 
@@ -1101,8 +1093,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1to_1string(JNIE
     return ret;
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field_1name(
-    JNIEnv* env, jclass, jobject thisSV, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field_1name(JNIEnv* env,
+    jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
     const auto& dataType = sv->getDataType();
     auto fieldNames = StructType::getFieldNames(dataType);
@@ -1113,8 +1105,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
     return env->NewStringUTF(name.c_str());
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(JNIEnv* env,
-    jclass, jobject thisSV, jstring field_name) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(JNIEnv* env, jclass,
+    jobject thisSV, jstring field_name) {
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     const auto& dataType = sv->getDataType();
@@ -1128,16 +1120,16 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
 }
 
 // protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1data_1type(
-    JNIEnv* env, jclass, jobject thisValue) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1data_1type(JNIEnv* env,
+    jclass, jobject thisValue) {
     auto* value = getValue(env, thisValue);
     auto logicalTypeId = RdfVariant::getLogicalTypeID(value);
     auto* dt = new LogicalType(logicalTypeId);
     return createJavaObject(env, dt, J_C_DataType, J_C_DataType_F_dt_ref);
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1value(JNIEnv* env,
-    jclass, jobject thisValue) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1value(JNIEnv* env, jclass,
+    jobject thisValue) {
     auto* value = getValue(env, thisValue);
     auto logicalTypeId = RdfVariant::getLogicalTypeID(value);
     switch (logicalTypeId) {
