@@ -50,10 +50,8 @@ def main():
     for i, line in enumerate(cmake_lists):
         if CMAKE_KEYWORD in line:
             cmake_lists[i] = CMAKE_KEYWORD + cmake_version + CMAKE_SUFFIX
-            break
         if EXTENSION_KEYWORD in line:
             cmake_lists[i] = EXTENSION_KEYWORD + EXTENSION_DEV_VERSION + EXTENSION_SUFFIX
-            break
     with open(cmake_lists_path, "w") as cmake_lists_file:
         cmake_lists_file.writelines(cmake_lists)
     print("Committing changes...")
