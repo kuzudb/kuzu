@@ -5,6 +5,8 @@
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 
+#include "common/string_utils.h"
+
 namespace kuzu {
 namespace common {
 
@@ -84,6 +86,25 @@ static bool validateIntParsingOptionName(const std::string& parsingOptionName) {
     return hasOption(CopyConstants::INT_CSV_PARSING_OPTIONS, parsingOptionName);
 }
 
+static bool isValidBooleanOptionValue(const Value& value, std::string name) {
+
+    // Normalize and check if the string is a valid Boolean representation
+    auto strValue = value.toString();
+    StringUtils::toUpper(strValue);
+
+    // Check for valid Boolean string representations
+    if (strValue == "TRUE" || strValue == "1" || strValue == "ON") {
+        return true;
+    } else if (strValue == "FALSE" || strValue == "0" || strValue == "OFF") {
+        return false;
+    } else {
+        // In this case the boolean is not valid
+        throw BinderException(
+                    stringFormat("The type of csv parsing option {} must be a boolean.", name));
+    }
+            
+}
+
 CSVReaderConfig CSVReaderConfig::construct(
     const std::unordered_map<std::string, common::Value>& options) {
     auto config = CSVReaderConfig();
@@ -93,11 +114,7 @@ CSVReaderConfig CSVReaderConfig::construct(
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
         auto isValidIntParsingOption = validateIntParsingOptionName(name);
         if (isValidBoolParsingOption) {
-            if (op.second.getDataType() != LogicalType::BOOL()) {
-                throw BinderException(
-                    stringFormat("The type of csv parsing option {} must be a boolean.", name));
-            }
-            bindBoolParsingOption(config, name, op.second.getValue<bool>());
+            bindBoolParsingOption(config, name, isValidBooleanOptionValue(op.second, name));
         } else if (isValidStringParsingOption) {
             if (op.second.getDataType() != LogicalType::STRING()) {
                 throw BinderException(
