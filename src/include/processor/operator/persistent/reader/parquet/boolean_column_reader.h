@@ -18,7 +18,7 @@ public:
         uint64_t maxRepeat)
         : TemplatedColumnReader<bool, BooleanParquetValueConversion>(reader, std::move(type),
               schema, schemaIdx, maxDefine, maxRepeat),
-          bytePos(0){};
+          bytePos(0) {};
 
     uint8_t bytePos;
 
