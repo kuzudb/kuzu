@@ -33,7 +33,7 @@ public:
         std::transform(input.begin(), input.end(), input.begin(), ::tolower);
     }
 
-    static bool CharacterIsSpace(char c) {
+    static bool isSpace(char c) {
         return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
     }
     static bool characterIsNewLine(char c) { return c == '\n' || c == '\r'; }
