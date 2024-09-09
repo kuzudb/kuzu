@@ -10,22 +10,22 @@ import java.nio.file.Files;
 import com.kuzudb.*;
 
 public class TestHelper {
-    private static KuzuDatabase db;
-    private static KuzuConnection conn;
+    private static Database db;
+    private static Connection conn;
 
-    public static KuzuDatabase getDatabase() {
+    public static Database getDatabase() {
         return db;
     }
 
-    public static KuzuConnection getConnection() {
+    public static Connection getConnection() {
         return conn;
     }
 
-    public static void loadData(String dbPath) throws IOException, KuzuObjectRefDestroyedException {
+    public static void loadData(String dbPath) throws IOException, ObjectRefDestroyedException {
         BufferedReader reader;
-        db = new KuzuDatabase(dbPath);
-        conn = new KuzuConnection(db);
-        KuzuQueryResult result;
+        db = new Database(dbPath);
+        conn = new Connection(db);
+        QueryResult result;
 
         reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
         String line;

@@ -16,45 +16,45 @@ import java.util.UUID;
 public class ValueTest extends TestBase {
 
     @Test
-    void ValueCreateNull() throws KuzuObjectRefDestroyedException {
-        KuzuValue value = KuzuValue.createNull();
+    void ValueCreateNull() throws ObjectRefDestroyedException {
+        Value value = Value.createNull();
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.ANY);
+        assertEquals(value.getDataType().getID(), DataTypeID.ANY);
         value.destroy();
     }
 
     @Test
-    void ValueCreateNullWithDatatype() throws KuzuObjectRefDestroyedException {
-        KuzuDataType type = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
-        KuzuValue value = KuzuValue.createNullWithDataType(type);
+    void ValueCreateNullWithDatatype() throws ObjectRefDestroyedException {
+        DataType type = new DataType(DataTypeID.INT64, null, 0);
+        Value value = Value.createNullWithDataType(type);
         assertFalse(value.isOwnedByCPP());
         type.destroy();
 
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT64);
+        assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         value.destroy();
     }
 
     @Test
-    void ValueIsNull() throws KuzuObjectRefDestroyedException {
-        KuzuValue value = new KuzuValue(123L);
+    void ValueIsNull() throws ObjectRefDestroyedException {
+        Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
         value.destroy();
 
-        value = KuzuValue.createNull();
+        value = Value.createNull();
         assertTrue(value.isNull());
         value.destroy();
 
-        KuzuDataType type = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
-        value = KuzuValue.createNullWithDataType(type);
+        DataType type = new DataType(DataTypeID.INT64, null, 0);
+        value = Value.createNullWithDataType(type);
         assertTrue(value.isNull());
         type.destroy();
         value.destroy();
     }
 
     @Test
-    void ValueSetNull() throws KuzuObjectRefDestroyedException {
-        KuzuValue value = new KuzuValue(123L);
+    void ValueSetNull() throws ObjectRefDestroyedException {
+        Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -67,100 +67,100 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateDefault() throws KuzuObjectRefDestroyedException {
-        KuzuDataType type = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
-        KuzuValue value = KuzuValue.createDefault(type);
+    void ValueCreateDefault() throws ObjectRefDestroyedException {
+        DataType type = new DataType(DataTypeID.INT64, null, 0);
+        Value value = Value.createDefault(type);
         assertFalse(value.isOwnedByCPP());
         type.destroy();
 
         assertFalse(value.isNull());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT64);
+        assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(0L));
         value.destroy();
 
-        type = new KuzuDataType(KuzuDataTypeID.STRING, null, 0);
-        value = KuzuValue.createDefault(type);
+        type = new DataType(DataTypeID.STRING, null, 0);
+        value = Value.createDefault(type);
         assertFalse(value.isOwnedByCPP());
         type.destroy();
 
         assertFalse(value.isNull());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.STRING);
+        assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         assertTrue(value.getValue().equals(""));
         value.destroy();
     }
 
     @Test
-    void ValueCreateBool() throws KuzuObjectRefDestroyedException {
+    void ValueCreateBool() throws ObjectRefDestroyedException {
         // bool
-        KuzuValue value = new KuzuValue(true);
+        Value value = new Value(true);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.BOOL);
+        assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(true));
         value.destroy();
 
-        value = new KuzuValue(false);
+        value = new Value(false);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.BOOL);
+        assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(false));
         value.destroy();
     }
 
     @Test
-    void ValueCreateINT16() throws KuzuObjectRefDestroyedException {
+    void ValueCreateINT16() throws ObjectRefDestroyedException {
         // INT16
-        KuzuValue value = new KuzuValue((short) 123);
+        Value value = new Value((short) 123);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT16);
+        assertEquals(value.getDataType().getID(), DataTypeID.INT16);
         assertTrue(value.getValue().equals((short) 123));
         value.destroy();
     }
 
     @Test
-    void ValueCreateINT32() throws KuzuObjectRefDestroyedException {
+    void ValueCreateINT32() throws ObjectRefDestroyedException {
         // INT32
-        KuzuValue value = new KuzuValue(123);
+        Value value = new Value(123);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT32);
+        assertEquals(value.getDataType().getID(), DataTypeID.INT32);
         assertTrue(value.getValue().equals(123));
         value.destroy();
     }
 
     @Test
-    void ValueCreateINT64() throws KuzuObjectRefDestroyedException {
+    void ValueCreateINT64() throws ObjectRefDestroyedException {
         // INT64
-        KuzuValue value = new KuzuValue(123L);
+        Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT64);
+        assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(123L));
         value.destroy();
     }
 
     @Test
-    void ValueCreateFloat() throws KuzuObjectRefDestroyedException {
+    void ValueCreateFloat() throws ObjectRefDestroyedException {
         // float
-        KuzuValue value = new KuzuValue((float) 123.456);
+        Value value = new Value((float) 123.456);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.FLOAT);
+        assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
         value.destroy();
     }
 
     @Test
-    void ValueCreateDouble() throws KuzuObjectRefDestroyedException {
+    void ValueCreateDouble() throws ObjectRefDestroyedException {
         // double
-        KuzuValue value = new KuzuValue((float) 123.456);
+        Value value = new Value((float) 123.456);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.FLOAT);
+        assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
         value.destroy();
     }
 
     @Test
-    void ValueCreateDecimal() throws KuzuObjectRefDestroyedException {
+    void ValueCreateDecimal() throws ObjectRefDestroyedException {
         // decimal
-        KuzuValue value = new KuzuValue(new BigDecimal("-3.140"));
+        Value value = new Value(new BigDecimal("-3.140"));
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.DECIMAL);
+        assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
         System.out.println(value.getValue().toString());
         BigDecimal val = (BigDecimal)value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
@@ -168,42 +168,42 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateInternalID() throws KuzuObjectRefDestroyedException {
+    void ValueCreateInternalID() throws ObjectRefDestroyedException {
         // InternalID
-        KuzuValue value = new KuzuValue(new KuzuInternalID(1, 123));
+        Value value = new Value(new InternalID(1, 123));
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INTERNAL_ID);
-        KuzuInternalID id = value.getValue();
+        assertEquals(value.getDataType().getID(), DataTypeID.INTERNAL_ID);
+        InternalID id = value.getValue();
         assertEquals(id.tableId, 1);
         assertEquals(id.offset, 123);
         value.destroy();
     }
 
     @Test
-    void ValueCreateDate() throws KuzuObjectRefDestroyedException {
+    void ValueCreateDate() throws ObjectRefDestroyedException {
         // date
-        KuzuValue value = new KuzuValue(LocalDate.ofEpochDay(123));
+        Value value = new Value(LocalDate.ofEpochDay(123));
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.DATE);
+        assertEquals(value.getDataType().getID(), DataTypeID.DATE);
         LocalDate date = value.getValue();
         assertEquals(date.toEpochDay(), 123);
         value.destroy();
     }
 
     @Test
-    void ValueCreateTimeStamp() throws KuzuObjectRefDestroyedException {
+    void ValueCreateTimeStamp() throws ObjectRefDestroyedException {
         // timestamp
-        KuzuValue value = new KuzuValue(Instant.ofEpochSecond(123 / 1000000L, 123 % 1000000 * 1000)); // 123 microseconds
+        Value value = new Value(Instant.ofEpochSecond(123 / 1000000L, 123 % 1000000 * 1000)); // 123 microseconds
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.TIMESTAMP);
+        assertEquals(value.getDataType().getID(), DataTypeID.TIMESTAMP);
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 0);
         assertEquals(stamp.getNano(), 123000);
         value.destroy();
 
-        value = new KuzuValue(Instant.ofEpochSecond(123123123L / 1000000L, 123123123L % 1000000 * 1000));
+        value = new Value(Instant.ofEpochSecond(123123123L / 1000000L, 123123123L % 1000000 * 1000));
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.TIMESTAMP);
+        assertEquals(value.getDataType().getID(), DataTypeID.TIMESTAMP);
         stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 123);
         assertEquals(stamp.getNano(), 123123000);
@@ -211,73 +211,73 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateInterval() throws KuzuObjectRefDestroyedException {
+    void ValueCreateInterval() throws ObjectRefDestroyedException {
         // interval
         Duration inputDuration = Duration.ofMillis(31795200003L);
-        KuzuValue value = new KuzuValue(inputDuration);
+        Value value = new Value(inputDuration);
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.INTERVAL);
+        assertEquals(value.getDataType().getID(), DataTypeID.INTERVAL);
         Duration interval = value.getValue();
         assertEquals(interval.toMillis(), inputDuration.toMillis());
         value.destroy();
     }
 
     @Test
-    void ValueCreateString() throws KuzuObjectRefDestroyedException {
+    void ValueCreateString() throws ObjectRefDestroyedException {
         // String
-        KuzuValue value = new KuzuValue("abcdefg");
+        Value value = new Value("abcdefg");
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.STRING);
+        assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
         value.destroy();
     }
 
     @Test
-    void ValueClone() throws KuzuObjectRefDestroyedException {
-        KuzuValue value = new KuzuValue("abcdefg");
+    void ValueClone() throws ObjectRefDestroyedException {
+        Value value = new Value("abcdefg");
         assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.STRING);
+        assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
 
-        KuzuValue clone = value.clone();
+        Value clone = value.clone();
         value.destroy();
 
         assertFalse(clone.isOwnedByCPP());
-        assertEquals(clone.getDataType().getID(), KuzuDataTypeID.STRING);
+        assertEquals(clone.getDataType().getID(), DataTypeID.STRING);
         str = clone.getValue();
         assertTrue(str.equals("abcdefg"));
         clone.destroy();
     }
 
     @Test
-    void ValueCopy() throws KuzuObjectRefDestroyedException {
-        KuzuValue value = new KuzuValue("abc");
-        KuzuValue value2 = new KuzuValue("abcdefg");
+    void ValueCopy() throws ObjectRefDestroyedException {
+        Value value = new Value("abc");
+        Value value2 = new Value("abcdefg");
 
         value.copy(value2);
         value2.destroy();
 
         assertFalse(value.isNull());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.STRING);
+        assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
         value.destroy();
     }
 
     @Test
-    void ValueGetListSize() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
+    void ValueGetListSize() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
 
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
 
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-        assertEquals(KuzuValueListUtil.getListSize(value), 2);
+        assertEquals(ValueListUtil.getListSize(value), 2);
 
         value.destroy();
         flatTuple.destroy();
@@ -285,28 +285,28 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetListElement() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
+    void ValueGetListElement() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
 
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-        assertEquals(KuzuValueListUtil.getListSize(value), 2);
+        assertEquals(ValueListUtil.getListSize(value), 2);
 
-        KuzuValue listElement = KuzuValueListUtil.getListElement(value, 0);
+        Value listElement = ValueListUtil.getListElement(value, 0);
         assertTrue(listElement.isOwnedByCPP());
         assertTrue(listElement.getValue().equals(10L));
         listElement.destroy();
 
-        listElement = KuzuValueListUtil.getListElement(value, 1);
+        listElement = ValueListUtil.getListElement(value, 1);
         assertTrue(listElement.isOwnedByCPP());
         assertTrue(listElement.getValue().equals(5L));
         listElement.destroy();
 
-        listElement = KuzuValueListUtil.getListElement(value, 222);
+        listElement = ValueListUtil.getListElement(value, 222);
         assertNull(listElement);
 
         value.destroy();
@@ -315,30 +315,30 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDatatype() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
+    void ValueGetDatatype() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
 
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
 
-        KuzuDataType dataType = value.getDataType();
-        assertEquals(dataType.getID(), KuzuDataTypeID.STRING);
+        DataType dataType = value.getDataType();
+        assertEquals(dataType.getID(), DataTypeID.STRING);
         dataType.destroy();
         value.destroy();
 
         value = flatTuple.getValue(1);
         dataType = value.getDataType();
-        assertEquals(dataType.getID(), KuzuDataTypeID.BOOL);
+        assertEquals(dataType.getID(), DataTypeID.BOOL);
         dataType.destroy();
         value.destroy();
 
         value = flatTuple.getValue(2);
         dataType = value.getDataType();
-        assertEquals(dataType.getID(), KuzuDataTypeID.LIST);
-        KuzuDataType childDataType = dataType.getChildType();
-        assertEquals(childDataType.getID(), KuzuDataTypeID.INT64);
+        assertEquals(dataType.getID(), DataTypeID.LIST);
+        DataType childDataType = dataType.getChildType();
+        assertEquals(childDataType.getID(), DataTypeID.INT64);
         childDataType.destroy();
         dataType.destroy();
         value.destroy();
@@ -348,13 +348,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetBool() throws KuzuObjectRefDestroyedException {
+    void ValueGetBool() throws ObjectRefDestroyedException {
         // bool
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.isStudent ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.isStudent ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -365,13 +365,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT8() throws KuzuObjectRefDestroyedException {
+    void ValueGetINT8() throws ObjectRefDestroyedException {
         // INT8
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -382,13 +382,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT16() throws KuzuObjectRefDestroyedException {
+    void ValueGetINT16() throws ObjectRefDestroyedException {
         // INT16
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -399,13 +399,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT32() throws KuzuObjectRefDestroyedException {
+    void ValueGetINT32() throws ObjectRefDestroyedException {
         // INT32
-        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.length ORDER BY m.name");
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.length ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -416,13 +416,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetINT64() throws KuzuObjectRefDestroyedException {
+    void ValueGetINT64() throws ObjectRefDestroyedException {
         // INT64
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.ID ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.ID ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -433,13 +433,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT8() throws KuzuObjectRefDestroyedException {
+    void ValueGetUINT8() throws ObjectRefDestroyedException {
         // UINT8
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -450,13 +450,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT16() throws KuzuObjectRefDestroyedException {
+    void ValueGetUINT16() throws ObjectRefDestroyedException {
         // UINT16
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -467,13 +467,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT32() throws KuzuObjectRefDestroyedException {
+    void ValueGetUINT32() throws ObjectRefDestroyedException {
         // UINT32
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temperature ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temperature ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -484,13 +484,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUINT64() throws KuzuObjectRefDestroyedException {
+    void ValueGetUINT64() throws ObjectRefDestroyedException {
         // UINT64
-        KuzuQueryResult result = conn.query("RETURN cast(1000043524, \"UINT64\")");
+        QueryResult result = conn.query("RETURN cast(1000043524, \"UINT64\")");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -501,13 +501,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetInt128() throws KuzuObjectRefDestroyedException {
+    void ValueGetInt128() throws ObjectRefDestroyedException {
         // INT128
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
 
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
@@ -519,13 +519,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetSERIAL() throws KuzuObjectRefDestroyedException {
+    void ValueGetSERIAL() throws ObjectRefDestroyedException {
         // SERIAL
-        KuzuQueryResult result = conn.query("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;");
+        QueryResult result = conn.query("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -537,13 +537,13 @@ public class ValueTest extends TestBase {
 
 
     @Test
-    void ValueGetFloat() throws KuzuObjectRefDestroyedException {
+    void ValueGetFloat() throws ObjectRefDestroyedException {
         // FLOAT
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.height ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.height ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -554,13 +554,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDouble() throws KuzuObjectRefDestroyedException {
+    void ValueGetDouble() throws ObjectRefDestroyedException {
         // Double
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.eyeSight ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.eyeSight ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -571,13 +571,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetDate() throws KuzuObjectRefDestroyedException {
+    void ValueGetDate() throws ObjectRefDestroyedException {
         // Date
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.birthdate ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.birthdate ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -589,13 +589,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStamp() throws KuzuObjectRefDestroyedException {
+    void ValueGetTimeStamp() throws ObjectRefDestroyedException {
         // timestamp
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.registerTime ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.registerTime ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -607,13 +607,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampTz() throws KuzuObjectRefDestroyedException {
+    void ValueGetTimeStampTz() throws ObjectRefDestroyedException {
         // timestamp_tz
-        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_tz");
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_tz");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -625,13 +625,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampNs() throws KuzuObjectRefDestroyedException {
+    void ValueGetTimeStampNs() throws ObjectRefDestroyedException {
         // timestamp_ns
-        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ns");
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ns");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -643,13 +643,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampMs() throws KuzuObjectRefDestroyedException {
+    void ValueGetTimeStampMs() throws ObjectRefDestroyedException {
         // timestamp_ms
-        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ms");
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ms");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -661,13 +661,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetTimeStampSec() throws KuzuObjectRefDestroyedException {
+    void ValueGetTimeStampSec() throws ObjectRefDestroyedException {
         // timestamp_sec
-        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_sec");
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_sec");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -680,13 +680,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetInterval() throws KuzuObjectRefDestroyedException {
+    void ValueGetInterval() throws ObjectRefDestroyedException {
         // Interval
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -703,13 +703,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetString() throws KuzuObjectRefDestroyedException {
+    void ValueGetString() throws ObjectRefDestroyedException {
         // String
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName ORDER BY a.ID");
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -721,12 +721,12 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetBlob() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');");
+    void ValueGetBlob() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -739,12 +739,12 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueGetUUID() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("RETURN UUID(\"A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11\");");
+    void ValueGetUUID() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("RETURN UUID(\"A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11\");");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
@@ -756,13 +756,13 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueToString() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
+    void ValueToString() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
 
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         String str = value.toString();
         assertTrue(str.equals("Alice"));
         value.destroy();
@@ -782,16 +782,16 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetID() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
+    void NodeValGetID() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        KuzuInternalID id = KuzuValueNodeUtil.getID(value);
+        InternalID id = ValueNodeUtil.getID(value);
         assertEquals(id.tableId, 0);
         assertEquals(id.offset, 0);
         value.destroy();
@@ -801,16 +801,16 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetLabelName() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
+    void NodeValGetLabelName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        String label = KuzuValueNodeUtil.getLabelName(value);
+        String label = ValueNodeUtil.getLabelName(value);
         assertEquals(label, "person");
         value.destroy();
         flatTuple.destroy();
@@ -818,35 +818,35 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValGetProperty() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
+    void NodeValGetProperty() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        String propertyName = KuzuValueNodeUtil.getPropertyNameAt(value, 0);
+        String propertyName = ValueNodeUtil.getPropertyNameAt(value, 0);
         assertTrue(propertyName.equals("ID"));
-        propertyName = KuzuValueNodeUtil.getPropertyNameAt(value, 1);
+        propertyName = ValueNodeUtil.getPropertyNameAt(value, 1);
         assertTrue(propertyName.equals("fName"));
-        propertyName = KuzuValueNodeUtil.getPropertyNameAt(value, 2);
+        propertyName = ValueNodeUtil.getPropertyNameAt(value, 2);
         assertTrue(propertyName.equals("gender"));
-        propertyName = KuzuValueNodeUtil.getPropertyNameAt(value, 3);
+        propertyName = ValueNodeUtil.getPropertyNameAt(value, 3);
         assertTrue(propertyName.equals("isStudent"));
 
-        KuzuValue propertyValue = KuzuValueNodeUtil.getPropertyValueAt(value, 0);
+        Value propertyValue = ValueNodeUtil.getPropertyValueAt(value, 0);
         long propertyValueID = propertyValue.getValue();
         assertEquals(propertyValueID, 0);
         propertyValue.destroy();
-        propertyValue = KuzuValueNodeUtil.getPropertyValueAt(value, 1);
+        propertyValue = ValueNodeUtil.getPropertyValueAt(value, 1);
         String propertyValuefName = propertyValue.getValue();
         assertTrue(propertyValuefName.equals("Alice"));
         propertyValue.destroy();
-        propertyValue = KuzuValueNodeUtil.getPropertyValueAt(value, 2);
+        propertyValue = ValueNodeUtil.getPropertyValueAt(value, 2);
         long propertyValueGender = propertyValue.getValue();
         assertEquals(propertyValueGender, 1);
         propertyValue.destroy();
-        propertyValue = KuzuValueNodeUtil.getPropertyValueAt(value, 3);
+        propertyValue = ValueNodeUtil.getPropertyValueAt(value, 3);
         boolean propertyValueIsStudent = propertyValue.getValue();
         assertEquals(propertyValueIsStudent, true);
         propertyValue.destroy();
@@ -857,14 +857,14 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void NodeValToString() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (b:organisation) RETURN b ORDER BY b.ID");
+    void NodeValToString() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (b:organisation) RETURN b ORDER BY b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        String str = KuzuValueNodeUtil.toString(value);
+        String str = ValueNodeUtil.toString(value);
         assertEquals(str, "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, " +
                 "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years " +
                 "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], " +
@@ -876,27 +876,27 @@ public class ValueTest extends TestBase {
 
 
     @Test
-    void RelValGetIDsAndLabel() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
+    void RelValGetIDsAndLabel() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        KuzuInternalID srcId = KuzuValueRelUtil.getSrcID(value);
+        InternalID srcId = ValueRelUtil.getSrcID(value);
         assertEquals(srcId.tableId, 0);
         assertEquals(srcId.offset, 0);
 
-        KuzuInternalID dstId = KuzuValueRelUtil.getDstID(value);
+        InternalID dstId = ValueRelUtil.getDstID(value);
         assertEquals(dstId.tableId, 0);
         assertEquals(dstId.offset, 1);
 
-        String label = KuzuValueRelUtil.getLabelName(value);
+        String label = ValueRelUtil.getLabelName(value);
         assertTrue(label.equals("knows"));
 
-        long size = KuzuValueRelUtil.getPropertySize(value);
+        long size = ValueRelUtil.getPropertySize(value);
         assertEquals(size, 7);
 
         value.destroy();
@@ -905,24 +905,24 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValGetProperty() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
+    void RelValGetProperty() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
 
-        String propertyName = KuzuValueRelUtil.getPropertyNameAt(value, 0);
+        String propertyName = ValueRelUtil.getPropertyNameAt(value, 0);
         assertEquals(propertyName, "year");
 
-        propertyName = KuzuValueRelUtil.getPropertyNameAt(value, 1);
+        propertyName = ValueRelUtil.getPropertyNameAt(value, 1);
         assertEquals(propertyName, "grading");
 
-        propertyName = KuzuValueRelUtil.getPropertyNameAt(value, 2);
+        propertyName = ValueRelUtil.getPropertyNameAt(value, 2);
         assertEquals(propertyName, "rating");
 
-        KuzuValue propertyValue = KuzuValueRelUtil.getPropertyValueAt(value, 0);
+        Value propertyValue = ValueRelUtil.getPropertyValueAt(value, 0);
         long propertyValueYear = propertyValue.getValue();
         assertEquals(propertyValueYear, 2015);
 
@@ -933,14 +933,14 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RelValToString() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
+    void RelValToString() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        String str = KuzuValueRelUtil.toString(value);
+        String str = ValueRelUtil.toString(value);
         assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], " +
                 "rating: 8.200000}->(1:1)");
         value.destroy();
@@ -949,76 +949,76 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetNumFields() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    void StructValGetNumFields() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertEquals(KuzuValueStructUtil.getNumFields(value), 14);
+        assertEquals(ValueStructUtil.getNumFields(value), 14);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
     }
 
     @Test
-    void StructValGetIndexByFieldName() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    void StructValGetIndexByFieldName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "NOT_EXIST"), -1);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "NOT_EXIST"), -1);
 
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "rating"), 0);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "views"), 2);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release"), 3);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_ns"), 4);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_ms"), 5);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_sec"), 6);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_tz"), 7);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "film"), 8);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "rating"), 0);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "views"), 2);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "release"), 3);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_ns"), 4);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_ms"), 5);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_sec"), 6);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_tz"), 7);
+        assertEquals(ValueStructUtil.getIndexByFieldName(value, "film"), 8);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
     }
 
     @Test
-    void StructValGetFieldNameByIndex() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    void StructValGetFieldNameByIndex() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertNull(KuzuValueStructUtil.getFieldNameByIndex(value, 1024));
-        assertNull(KuzuValueStructUtil.getFieldNameByIndex(value, -1));
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 0), "rating");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 2), "views");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 3), "release");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 4), "release_ns");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 5), "release_ms");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 6), "release_sec");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 7), "release_tz");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 8), "film");
+        assertNull(ValueStructUtil.getFieldNameByIndex(value, 1024));
+        assertNull(ValueStructUtil.getFieldNameByIndex(value, -1));
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 0), "rating");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 2), "views");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 3), "release");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 4), "release_ns");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 5), "release_ms");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 6), "release_sec");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 7), "release_tz");
+        assertEquals(ValueStructUtil.getFieldNameByIndex(value, 8), "film");
         value.destroy();
         flatTuple.destroy();
         result.destroy();
     }
 
     @Test
-    void StructValGetValueByFieldName() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
+    void StructValGetValueByFieldName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        KuzuValue fieldValue = KuzuValueStructUtil.getValueByFieldName(value, "NOT_EXIST");
+        Value fieldValue = ValueStructUtil.getValueByFieldName(value, "NOT_EXIST");
         assertNull(fieldValue);
-        fieldValue = KuzuValueStructUtil.getValueByFieldName(value, "rating");
+        fieldValue = ValueStructUtil.getValueByFieldName(value, "rating");
         assertEquals(fieldValue.getValue(), 1223.0);
         fieldValue.destroy();
         value.destroy();
@@ -1027,18 +1027,18 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void StructValGetValueByIndex() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
+    void StructValGetValueByIndex() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description ORDER BY m.name");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        KuzuValue fieldValue = KuzuValueStructUtil.getValueByIndex(value, 1024);
+        Value fieldValue = ValueStructUtil.getValueByIndex(value, 1024);
         assertNull(fieldValue);
-        fieldValue = KuzuValueStructUtil.getValueByIndex(value, -1);
+        fieldValue = ValueStructUtil.getValueByIndex(value, -1);
         assertNull(fieldValue);
-        fieldValue = KuzuValueStructUtil.getValueByIndex(value, 0);
+        fieldValue = ValueStructUtil.getValueByIndex(value, 0);
         assertEquals(fieldValue.getValue(), 1223.0);
         fieldValue.destroy();
         value.destroy();
@@ -1047,30 +1047,30 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RecursiveRelGetNodeAndRelList() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;");
+    void RecursiveRelGetNodeAndRelList() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
 
-        KuzuValue nodeList = KuzuValueRecursiveRelUtil.getNodeList(value);
+        Value nodeList = ValueRecursiveRelUtil.getNodeList(value);
         assertTrue(nodeList.isOwnedByCPP());
-        assertEquals(KuzuValueListUtil.getListSize(nodeList), 0);
+        assertEquals(ValueListUtil.getListSize(nodeList), 0);
         nodeList.destroy();
 
-        KuzuValue relList = KuzuValueRecursiveRelUtil.getRelList(value);
+        Value relList = ValueRecursiveRelUtil.getRelList(value);
         assertTrue(relList.isOwnedByCPP());
-        assertEquals(KuzuValueListUtil.getListSize(relList), 1);
+        assertEquals(ValueListUtil.getListSize(relList), 1);
 
-        KuzuValue rel = KuzuValueListUtil.getListElement(relList, 0);
+        Value rel = ValueListUtil.getListElement(relList, 0);
         assertTrue(rel.isOwnedByCPP());
-        KuzuInternalID srcId = KuzuValueRelUtil.getSrcID(rel);
+        InternalID srcId = ValueRelUtil.getSrcID(rel);
         assertEquals(srcId.tableId, 0);
         assertEquals(srcId.offset, 0);
 
-        KuzuInternalID dstId = KuzuValueRelUtil.getDstID(rel);
+        InternalID dstId = ValueRelUtil.getDstID(rel);
         assertEquals(dstId.tableId, 1);
         assertEquals(dstId.offset, 0);
 
@@ -1082,91 +1082,91 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void RdfVariantTest() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:T_l) RETURN a.val ORDER BY a.id;");
+    void RdfVariantTest() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:T_l) RETURN a.val ORDER BY a.id;");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         int i = 0;
         while (result.hasNext()) {
-            KuzuFlatTuple flatTuple = result.getNext();
-            KuzuValue value = flatTuple.getValue(0);
-            KuzuDataType dataType = KuzuValueRdfVariantUtil.getDataType(value);
+            FlatTuple flatTuple = result.getNext();
+            Value value = flatTuple.getValue(0);
+            DataType dataType = ValueRdfVariantUtil.getDataType(value);
             switch (i) {
                 case 0: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.INT64);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals(12L);
+                    assertEquals(dataType.getID(), DataTypeID.INT64);
+                    assert ValueRdfVariantUtil.getValue(value).equals(12L);
                     break;
                 }
                 case 1: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.INT32);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals(43);
+                    assertEquals(dataType.getID(), DataTypeID.INT32);
+                    assert ValueRdfVariantUtil.getValue(value).equals(43);
                     break;
                 }
                 case 2: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.INT16);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals((short) 33);
+                    assertEquals(dataType.getID(), DataTypeID.INT16);
+                    assert ValueRdfVariantUtil.getValue(value).equals((short) 33);
                     break;
                 }
                 case 3: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.INT8);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals((byte) 2);
+                    assertEquals(dataType.getID(), DataTypeID.INT8);
+                    assert ValueRdfVariantUtil.getValue(value).equals((byte) 2);
                     break;
                 }
                 case 4: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT64);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals(BigInteger.valueOf(90));
+                    assertEquals(dataType.getID(), DataTypeID.UINT64);
+                    assert ValueRdfVariantUtil.getValue(value).equals(BigInteger.valueOf(90));
                     break;
                 }
                 case 5: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT32);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals(77);
+                    assertEquals(dataType.getID(), DataTypeID.UINT32);
+                    assert ValueRdfVariantUtil.getValue(value).equals(77);
                     break;
                 }
                 case 6: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT16);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals((short) 12);
+                    assertEquals(dataType.getID(), DataTypeID.UINT16);
+                    assert ValueRdfVariantUtil.getValue(value).equals((short) 12);
                     break;
                 }
                 case 7: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.UINT8);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals((byte) 1);
+                    assertEquals(dataType.getID(), DataTypeID.UINT8);
+                    assert ValueRdfVariantUtil.getValue(value).equals((byte) 1);
                     break;
                 }
                 case 8: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.DOUBLE);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals((double) 4.4);
+                    assertEquals(dataType.getID(), DataTypeID.DOUBLE);
+                    assert ValueRdfVariantUtil.getValue(value).equals((double) 4.4);
                     break;
                 }
                 case 9: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.FLOAT);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals((float) 1.2);
+                    assertEquals(dataType.getID(), DataTypeID.FLOAT);
+                    assert ValueRdfVariantUtil.getValue(value).equals((float) 1.2);
                     break;
                 }
                 case 10: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.BOOL);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals(true);
+                    assertEquals(dataType.getID(), DataTypeID.BOOL);
+                    assert ValueRdfVariantUtil.getValue(value).equals(true);
                     break;
                 }
                 case 11: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.STRING);
-                    assert KuzuValueRdfVariantUtil.getValue(value).equals("hhh");
+                    assertEquals(dataType.getID(), DataTypeID.STRING);
+                    assert ValueRdfVariantUtil.getValue(value).equals("hhh");
                     break;
                 }
                 case 12: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.DATE);
-                    LocalDate date = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals(dataType.getID(), DataTypeID.DATE);
+                    LocalDate date = ValueRdfVariantUtil.getValue(value);
                     assertEquals((long) date.toEpochDay(), 19723L);
                     break;
                 }
                 case 13: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.TIMESTAMP);
-                    Instant stamp = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals(dataType.getID(), DataTypeID.TIMESTAMP);
+                    Instant stamp = ValueRdfVariantUtil.getValue(value);
                     assertEquals(stamp.toEpochMilli(), 1704108330000L);
                     break;
                 }
                 case 14: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.INTERVAL);
-                    Duration interval = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals(dataType.getID(), DataTypeID.INTERVAL);
+                    Duration interval = ValueRdfVariantUtil.getValue(value);
                     long month = (long) (interval.toDays() / 30);
                     long day = interval.toDays() - (long) (month * 30);
                     long micros = interval.minusDays(interval.toDays()).toMillis() * 1000;
@@ -1176,8 +1176,8 @@ public class ValueTest extends TestBase {
                     break;
                 }
                 case 15: {
-                    assertEquals(dataType.getID(), KuzuDataTypeID.BLOB);
-                    byte[] bytes = KuzuValueRdfVariantUtil.getValue(value);
+                    assertEquals(dataType.getID(), DataTypeID.BLOB);
+                    byte[] bytes = ValueRdfVariantUtil.getValue(value);
                     assertEquals(bytes.length, 1);
                     assertEquals(bytes[0], (byte) 0xB2);
                     break;
