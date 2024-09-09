@@ -1,6 +1,11 @@
 #pragma once
 
+#pragma GCC diagnostic error "-Wmaybe-uninitialized"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <functional>
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>

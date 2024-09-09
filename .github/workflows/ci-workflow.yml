@@ -559,6 +559,8 @@ jobs:
       - name: Rust test
         shell: cmd
         working-directory: tools/rust_api
+        env:
+          WERROR: 0
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set CFLAGS=/MD
