@@ -1,16 +1,6 @@
 #pragma once
 
-#if defined(__clang__)
 #include <functional>
-#elif defined(__GNUC__)
-#pragma GCC diagnostic error "-Wmaybe-uninitialized"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#include <functional>
-#pragma GCC diagnostic pop
-#else
-#include <functional>
-#endif
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
