@@ -35,6 +35,11 @@ on:
         type: boolean
         required: true
         default: false
+      skipExtensions:
+        description: "Skip building extensions?"
+        type: boolean
+        required: true
+        default: false
       isNightly:
         description: "Whether the build is a nightly build?"
         type: boolean
@@ -42,6 +47,13 @@ on:
         default: false
 
 jobs:
+  build-extension:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.skipExtensions != 'true' }}
+    uses: ./.github/workflows/build-and-deploy-extension.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
+    secrets: inherit
+
   build-java-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/mac-java-workflow.yml
