@@ -337,7 +337,7 @@ jobs:
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
         run: |
-          pip3 install packaging
+          pip3 install packaging --break-system-package
           python3 update-nightly-build-version.py
         working-directory: scripts
 
