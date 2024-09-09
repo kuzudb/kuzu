@@ -91,6 +91,7 @@ public:
 
     const std::vector<WarningInfo>& getPopulatedWarnings() const;
     uint64_t getWarningCount(uint64_t queryID);
+    void clearPopulatedWarnings();
 
     main::ClientConfig* getClientConfig();
 

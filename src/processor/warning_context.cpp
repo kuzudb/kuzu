@@ -76,6 +76,11 @@ void WarningContext::populateWarnings(common::idx_t fileIdx, uint64_t queryID,
     unpopulatedWarnings[fileIdx].warnings.clear();
 }
 
+void WarningContext::clearPopulatedWarnings() {
+    populatedWarnings.clear();
+    numStoredWarnings = 0;
+}
+
 uint64_t WarningContext::getWarningCount(uint64_t) {
     auto ret = queryWarningCount;
     queryWarningCount = 0;
