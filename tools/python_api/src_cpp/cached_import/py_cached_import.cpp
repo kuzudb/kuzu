@@ -20,6 +20,11 @@ py::handle PythonCachedImport::addToCache(py::object obj) {
 bool doesPyModuleExist(std::string moduleName) {
     py::gil_scoped_acquire acquire;
     auto find_spec = importCache->importlib.util.find_spec();
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
     return find_spec(moduleName) != Py_None;
 }
 

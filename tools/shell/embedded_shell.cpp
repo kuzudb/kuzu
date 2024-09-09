@@ -901,7 +901,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (queryResult.getNumColumns() == 1) {
             printf("(1 column)\n");
         } else {
-            printf("(%" PRIu64 " columns)\n", queryResult.getNumColumns());
+            printf("(%" PRIu64 " columns)\n", static_cast<uint64_t>(queryResult.getNumColumns()));
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());

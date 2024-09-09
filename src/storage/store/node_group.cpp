@@ -34,19 +34,19 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
-        if (chunkedGroups.getLastGroup(lock)->isFullOrOnDisk()) {
+        auto lastChunkedGroup = chunkedGroups.getLastGroup(lock);
+        if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
                 std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
                     ChunkedNodeGroup::CHUNK_CAPACITY, numRowsBeforeAppend + numRowsAppended,
                     ResidencyState::IN_MEMORY));
         }
-        const auto& chunkedGroupToCopyInto = chunkedGroups.getLastGroup(lock);
-        KU_ASSERT(ChunkedNodeGroup::CHUNK_CAPACITY >= chunkedGroupToCopyInto->getNumRows());
-        auto numToCopyIntoChunk =
-            ChunkedNodeGroup::CHUNK_CAPACITY - chunkedGroupToCopyInto->getNumRows();
+        lastChunkedGroup = chunkedGroups.getLastGroup(lock);
+        KU_ASSERT(ChunkedNodeGroup::CHUNK_CAPACITY >= lastChunkedGroup->getNumRows());
+        auto numToCopyIntoChunk = ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows();
         const auto numToAppendInChunk =
             std::min(numRowsToAppend - numRowsAppended, numToCopyIntoChunk);
-        chunkedGroupToCopyInto->append(transaction, chunkedGroup, numRowsAppended + startRowIdx,
+        lastChunkedGroup->append(transaction, chunkedGroup, numRowsAppended + startRowIdx,
             numToAppendInChunk);
         numRowsAppended += numToAppendInChunk;
     }
@@ -65,13 +65,14 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
     }
     row_idx_t numRowsAppended = 0;
     while (numRowsAppended < numRowsToAppend) {
-        if (chunkedGroups.getLastGroup(lock)->isFullOrOnDisk()) {
+        auto lastChunkedGroup = chunkedGroups.getLastGroup(lock);
+        if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
                 std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
                     ChunkedNodeGroup::CHUNK_CAPACITY, numRowsBeforeAppend + numRowsAppended,
                     ResidencyState::IN_MEMORY));
         }
-        const auto& lastChunkedGroup = chunkedGroups.getLastGroup(lock);
+        lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
         lastChunkedGroup->append(transaction, vectors, startRowIdx + numRowsAppended,
@@ -123,9 +124,9 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     const auto lock = chunkedGroups.lock();
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     KU_ASSERT(nodeGroupScanState.chunkedGroupIdx < chunkedGroups.getNumGroups(lock));
-    if (const auto chunkedGroup = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
-        nodeGroupScanState.nextRowToScan >=
-        chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
+    const auto chunkedGroup = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
+    if (chunkedGroup && nodeGroupScanState.nextRowToScan >=
+                            chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
         nodeGroupScanState.chunkedGroupIdx++;
     }
     if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {

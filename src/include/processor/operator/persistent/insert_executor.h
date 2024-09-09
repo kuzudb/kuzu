@@ -45,14 +45,15 @@ struct NodeTableInsertInfo {
 
     NodeTableInsertInfo(storage::NodeTable* table,
         evaluator::evaluator_vector_t columnDataEvaluators)
-        : table{table}, columnDataEvaluators{std::move(columnDataEvaluators)} {}
+        : table{table}, columnDataEvaluators{std::move(columnDataEvaluators)}, pkVector{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeTableInsertInfo);
 
     void init(const ResultSet& resultSet, main::ClientContext* context);
 
 private:
     NodeTableInsertInfo(const NodeTableInsertInfo& other)
-        : table{other.table}, columnDataEvaluators{cloneVector(other.columnDataEvaluators)} {}
+        : table{other.table}, columnDataEvaluators{cloneVector(other.columnDataEvaluators)},
+          pkVector{nullptr} {}
 };
 
 class NodeInsertExecutor {
@@ -91,8 +92,8 @@ struct RelInsertInfo {
     std::vector<common::ValueVector*> columnVectors;
 
     RelInsertInfo(DataPos srcNodeIDPos, DataPos dstNodeIDPos, std::vector<DataPos> columnsPos)
-        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos},
-          columnsPos{std::move(columnsPos)} {}
+        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, columnsPos{std::move(columnsPos)},
+          srcNodeIDVector{nullptr}, dstNodeIDVector{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelInsertInfo);
 
     void init(const ResultSet& resultSet);
@@ -100,7 +101,7 @@ struct RelInsertInfo {
 private:
     RelInsertInfo(const RelInsertInfo& other)
         : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
-          columnsPos{other.columnsPos} {}
+          columnsPos{other.columnsPos}, srcNodeIDVector{nullptr}, dstNodeIDVector{nullptr} {}
 };
 
 struct RelTableInsertInfo {

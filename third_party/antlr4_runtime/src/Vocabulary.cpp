@@ -9,7 +9,22 @@
 
 using namespace antlr4::dfa;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 const Vocabulary Vocabulary::EMPTY_VOCABULARY;
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 Vocabulary::Vocabulary(std::vector<std::string> literalNames, std::vector<std::string> symbolicNames)
 : Vocabulary(std::move(literalNames), std::move(symbolicNames), {}) {

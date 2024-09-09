@@ -64,11 +64,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<ResultSetDescriptor>(nodeBuildSchema),
             PhysicalOperatorType::HASH_JOIN_BUILD, nodeBuildSharedState, std::move(nodeBuildInfo),
             std::move(nodeBuildPrevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
-        const auto& relDataType = rel->getDataType();
-        const auto& nodesField = StructType::getField(relDataType, InternalKeyword::NODES);
-        const auto& nodeStructType = ListType::getChildType(nodesField.getType());
-        auto [fieldIndices, columnIndices] =
-            getColIdxToScan(nodePayloads, nodeKeys.size(), nodeStructType);
+        auto [fieldIndices, columnIndices] = getColIdxToScan(nodePayloads, nodeKeys.size(),
+            ListType::getChildType(
+                StructType::getField(rel->getDataType(), InternalKeyword::NODES).getType()));
         nodeFieldIndices = std::move(fieldIndices);
         nodeTableColumnIndices = std::move(columnIndices);
     }
@@ -92,11 +90,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(relBuildSchema),
                 PhysicalOperatorType::HASH_JOIN_BUILD, relBuildSharedState, std::move(relBuildInfo),
                 std::move(relBuildPrvOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
-        const auto& relDataType = rel->getDataType();
-        const auto& relsField = StructType::getField(relDataType, InternalKeyword::RELS);
-        const auto& relStructType = ListType::getChildType(relsField.getType());
-        auto [fieldIndices, columnIndices] =
-            getColIdxToScan(relPayloads, relKeys.size(), relStructType);
+        auto [fieldIndices, columnIndices] = getColIdxToScan(relPayloads, relKeys.size(),
+            ListType::getChildType(
+                StructType::getField(rel->getDataType(), InternalKeyword::RELS).getType()));
         relFieldIndices = std::move(fieldIndices);
         relTableColumnIndices = std::move(columnIndices);
     }
