@@ -89,9 +89,14 @@ BaseCSVReader* SerialParsingDriver::getReader() {
     return reader;
 }
 
+common::DataChunk& getDummyDataChunk() {
+    static common::DataChunk dummyChunk = DataChunk(); // static ensures it's created only once
+    return dummyChunk;
+}
+
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
-    : reader{reader} {
+    : SerialParsingDriver(getDummyDataChunk(), reader) {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
             columns.push_back(
@@ -108,6 +113,12 @@ bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
 
 bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     std::string_view value) {
+    uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
     auto& csvOption = reader->getCSVOption();
     if (columns.size() < columnIdx + 1 && csvOption.hasHeader && rowNum > 0) {
         reader->handleCopyException("expected {} values per row, but got more.");
@@ -145,10 +156,6 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         }
     }
 
-    return true;
-}
-
-bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {
     return true;
 }
 

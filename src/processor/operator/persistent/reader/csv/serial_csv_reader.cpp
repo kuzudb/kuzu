@@ -106,7 +106,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
-    auto columnInfo = CSVColumnInfo(0 /* numColumns */, {} /* columnSkips */);
+    auto columnInfo =
+        CSVColumnInfo(bindInput->expectedColumnNames.size() /* numColumns */, {} /* columnSkips */);
     auto warningCounter = std::make_shared<warning_counter_t>();
     SharedCSVFileErrorHandler errorHandler{bindInput->config.getFilePath(fileIdx), nullptr,
         bindInput->context->getClientConfig()->warningLimit, warningCounter,
