@@ -7,7 +7,7 @@
 #endif
 
 // This header is generated at build time. See CMakeLists.txt.
-#include "com_kuzudb_KuzuNative.h"
+#include "com_kuzudb_Native.h"
 #include "common/constants.h"
 #include "common/exception/conversion.h"
 #include "common/exception/exception.h"
