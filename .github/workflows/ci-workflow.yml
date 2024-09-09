@@ -46,6 +46,7 @@ env:
   MAX_NUM_THREADS: ${{ github.event.inputs.max_num_threads }}
   ENABLE_COMPRESSION: ${{ github.event.inputs.enable_compression }}
   CHECKPOINT_THRESHOLD: ${{ github.event.inputs.checkpoint_threshold }}
+  WERROR: 1
 
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
@@ -273,6 +274,8 @@ jobs:
     name: gcc build & test 32-bit
     needs: [clang-format, sanity-checks, generate-binary-datasets]
     runs-on: ubuntu-latest
+    env:
+      WERROR: 0
 
     steps:
       - uses: actions/checkout@v4
@@ -297,7 +300,7 @@ jobs:
 
       - name: Build & Test
         run: |
-          docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test WERROR=0 NUM_THREADS=$(nproc)
+          docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test NUM_THREADS=$(nproc)
 
       - name: Stop Docker container
         run: docker stop kuzu-x86
@@ -332,6 +335,7 @@ jobs:
       GEN: Ninja
       CC: gcc
       CXX: g++
+      WERROR: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -491,6 +495,7 @@ jobs:
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
+      WERROR: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -513,13 +518,13 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make all GEN="Visual Studio 17 2022" WERROR=0
+          make all GEN="Visual Studio 17 2022"
 
       - name: Test
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test WERROR=0
+          make test
 
       - name: Test compression disabled
         shell: cmd
@@ -527,7 +532,7 @@ jobs:
           ENABLE_COMPRESSION: false
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test WERROR=0
+          make test
 
       - name: Test in mem
         shell: cmd
@@ -535,14 +540,14 @@ jobs:
           IN_MEM_MODE: true
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test WERROR=0
+          make test
 
       - name: Ninja Build
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make clean
-          make all GEN="Ninja" WERROR=0
+          make all GEN="Ninja"
 
       - name: Python test
         shell: cmd
@@ -559,8 +564,6 @@ jobs:
       - name: Rust test
         shell: cmd
         working-directory: tools/rust_api
-        env:
-          WERROR: 0
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set CFLAGS=/MD
@@ -948,6 +951,7 @@ jobs:
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
+      WERROR: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -972,7 +976,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make extension-test-build WERROR=0
+          make extension-test-build
 
       - name: Extension test
         shell: cmd
@@ -981,7 +985,7 @@ jobs:
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd scripts/ && start /b python http-server.py && cd ..
-          make extension-test WERROR=0
+          make extension-test
           
       - name: Extension test in mem
         shell: cmd
@@ -989,7 +993,7 @@ jobs:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
         run: |
-          make extension-test  WERROR=0
+          make extension-test
 
       - name: Clean
         shell: cmd
