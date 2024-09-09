@@ -18,7 +18,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithArgs() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            KuzuDatabase database = new KuzuDatabase(
+            Database database = new Database(
                     dbPath,
                     1 << 28 /* 256 MB */,
                     true /* compression */,
@@ -35,7 +35,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithPathOnly() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            KuzuDatabase database = new KuzuDatabase(dbPath);
+            Database database = new Database(dbPath);
             database.destroy();
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithPathOnly failed");
@@ -45,7 +45,7 @@ public class DatabaseTest extends TestBase {
     @Test
     void DBCreationAndDestroyWithNoParam(){
         try {
-            KuzuDatabase database = new KuzuDatabase();
+            Database database = new Database();
             database.destroy();
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithNoParam failed");

@@ -9,13 +9,13 @@ public class VersionTest extends TestBase {
 
     @Test
     void GetVersion() {
-        String version = KuzuVersion.getVersion();
+        String version = Version.getVersion();
         assertTrue(!version.equals(""));
     }
 
     @Test
     void GetStorageVersion() {
-        long storage_version = KuzuVersion.getStorageVersion();
+        long storage_version = Version.getStorageVersion();
         assertTrue(storage_version > 0);
     }
 }
