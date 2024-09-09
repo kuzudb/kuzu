@@ -47,11 +47,16 @@ def main():
     print("Updating %s..." % cmake_lists_path)
     with open(cmake_lists_path, "r") as cmake_lists_file:
         cmake_lists = cmake_lists_file.readlines()
+    counter = 2
     for i, line in enumerate(cmake_lists):
         if CMAKE_KEYWORD in line:
             cmake_lists[i] = CMAKE_KEYWORD + cmake_version + CMAKE_SUFFIX
+            counter -= 1
         if EXTENSION_KEYWORD in line:
             cmake_lists[i] = EXTENSION_KEYWORD + EXTENSION_DEV_VERSION + EXTENSION_SUFFIX
+            counter -= 1
+        if counter == 0:
+            break
     with open(cmake_lists_path, "w") as cmake_lists_file:
         cmake_lists_file.writelines(cmake_lists)
     print("Committing changes...")
