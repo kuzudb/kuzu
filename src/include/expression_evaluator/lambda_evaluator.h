@@ -38,7 +38,7 @@ protected:
 
 struct ListLambdaBindData {
     std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
-    std::vector<common::idx_t> indexInVars;
+    std::vector<common::idx_t> paramIndices;
     ExpressionEvaluator* rootEvaluator;
 };
 
@@ -74,26 +74,7 @@ public:
         return result;
     }
 
-    std::vector<common::idx_t> getIndexInVars() {
-        const auto& paramNames = getExpression()
-                                   ->getChild(1)
-                                   ->constCast<binder::LambdaExpression>()
-                                   .getParsedLambdaExpr()
-                                   ->constCast<parser::ParsedLambdaExpression>()
-                                   .getVarNames();
-        std::vector<common::idx_t> index(lambdaParamEvaluators.size());
-        for (common::idx_t i = 0; i < lambdaParamEvaluators.size(); i++) {
-            auto paramName = lambdaParamEvaluators[i]->getVarName();
-            auto it = std::find(paramNames.begin(), paramNames.end(), paramName);
-            if (it != paramNames.end()) {
-                index[i] = it - paramNames.begin();
-            } else {
-                throw common::RuntimeException(
-                    common::stringFormat("Lambda paramName {} cannot found.", paramName));
-            }
-        }
-        return index;
-    }
+    std::vector<common::idx_t> getParamIndices();
 
 protected:
     void resolveResultVector(const processor::ResultSet& resultSet,

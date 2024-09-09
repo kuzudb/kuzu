@@ -25,7 +25,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::ValueVector& result,
     common::ValueVector& inputDataVector, const common::ValueVector& tmpResultVector,
     evaluator::ListLambdaBindData& bindData) {
-    const auto& indexInVars = bindData.indexInVars;
+    const auto& paramIndices = bindData.paramIndices;
     std::vector<ValueVector*> params(bindData.lambdaParamEvaluators.size());
     for (auto i = 0u; i < bindData.lambdaParamEvaluators.size(); i++) {
         auto param = bindData.lambdaParamEvaluators[i]->resultVector.get();
@@ -42,11 +42,11 @@ static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::Valu
     } else {
         for (auto j = 0u; j < listEntry.size - 1; j++) {
             for (auto k = 0u; k < params.size(); k++) {
-                if (0u == indexInVars[k] && 0u != j) {
+                if (0u == paramIndices[k] && 0u != j) {
                     params[k]->copyFromVectorData(paramPos, &tmpResultVector, tmpResultPos);
                 } else {
                     params[k]->copyFromVectorData(paramPos, &inputDataVector,
-                        listEntry.offset + j + indexInVars[k]);
+                        listEntry.offset + j + paramIndices[k]);
                 }
                 params[k]->state->getSelVectorUnsafe().setSelSize(1);
             }
