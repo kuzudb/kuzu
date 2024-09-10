@@ -57,15 +57,6 @@ std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZ
     return memoryBuffer;
 }
 
-MemoryBuffer MemoryAllocator::allocateBufferObject(bool initializeToZero, uint64_t size) {
-    //    auto buffer = allocateBuffer(initializeToZero, size);
-    //    MemoryBuffer mBuffer;
-    //    mBuffer.buffer = std::move(buffer->buffer);
-    //    mBuffer.pageIdx = buffer->pageIdx;
-    //    mBuffer.allocator = buffer->allocator;
-    //    return mBuffer;
-}
-
 void MemoryAllocator::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
     if (pageIdx == INVALID_PAGE_IDX) {
         bm->freeUsedMemory(buffer.size());

@@ -48,7 +48,6 @@ public:
     ~MemoryAllocator();
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero, uint64_t size);
-    MemoryBuffer allocateBufferObject(bool initializeToZero, uint64_t size);
     common::page_offset_t getPageSize() const { return pageSize; }
 
 private:
@@ -88,11 +87,6 @@ public:
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
         uint64_t size = common::TEMP_PAGE_SIZE) {
         return allocator->allocateBuffer(initializeToZero, size);
-    }
-
-    MemoryBuffer allocateBufferObject(bool initializeToZero = false,
-        uint64_t size = common::TEMP_PAGE_SIZE) {
-        return allocator->allocateBufferObject(initializeToZero, size);
     }
 
     BufferManager* getBufferManager() const { return bm; }
