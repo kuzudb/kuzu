@@ -56,7 +56,7 @@ def test_extension_install_httpfs(
         .resolve()
     )
     if Path.exists(extension_path):
-        os.remove(extension_path)
+        Path.unlink(extension_path)
     opener = urllib.request.build_opener()
     opener.addheaders = [("User-agent", "Kùzu Test Suite")]
     urllib.request.install_opener(opener)
