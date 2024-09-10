@@ -1,10 +1,7 @@
 #pragma once
 
-#include "binder/expression/lambda_expression.h"
 #include "binder/expression/scalar_function_expression.h"
-#include "common/exception/runtime.h"
 #include "expression_evaluator.h"
-#include "parser/expression/parsed_lambda_expression.h"
 
 namespace kuzu {
 namespace evaluator {
