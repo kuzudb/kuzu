@@ -16,9 +16,10 @@ struct TableInfo {
     std::string databaseName;
     std::string comment;
 
-    TableInfo(std::string name, common::table_id_t id, std::string type, std::string databaseName, std::string comment)
-        : name{std::move(name)}, id{std::move(id)}, type{std::move(type)}, databaseName{std::move(databaseName)},
-          comment{std::move(comment)} {}
+    TableInfo(std::string name, common::table_id_t id, std::string type, std::string databaseName,
+        std::string comment)
+        : name{std::move(name)}, id{std::move(id)}, type{std::move(type)},
+          databaseName{std::move(databaseName)}, comment{std::move(comment)} {}
 };
 
 struct ShowTablesBindData : public CallTableFuncBindData {
@@ -72,9 +73,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<TableInfo> tableInfos;
     if (!context->hasDefaultDatabase()) {
         for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {
-            auto tableInfo =
-                TableInfo{entry->getName(), entry->getTableID(), TableTypeUtils::toString(entry->getTableType()),
-                    LOCAL_DB_NAME, entry->getComment()};
+            auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
+                TableTypeUtils::toString(entry->getTableType()), LOCAL_DB_NAME,
+                entry->getComment()};
             tableInfos.push_back(std::move(tableInfo));
         }
     }
@@ -84,9 +85,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         auto databaseName = attachedDatabase->getDBName();
         auto databaseType = attachedDatabase->getDBType();
         for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(context->getTx())) {
-            auto tableInfo =
-                TableInfo{entry->getName(), entry->getTableID(), TableTypeUtils::toString(entry->getTableType()),
-                    stringFormat("{}({})", databaseName, databaseType), entry->getComment()};
+            auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
+                TableTypeUtils::toString(entry->getTableType()),
+                stringFormat("{}({})", databaseName, databaseType), entry->getComment()};
             tableInfos.push_back(std::move(tableInfo));
         }
     }
