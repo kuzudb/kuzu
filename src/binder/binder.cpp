@@ -127,14 +127,6 @@ void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& exp
     }
 }
 
-void Binder::validateProjectionColumnsInWithClauseAreAliased(const expression_vector& expressions) {
-    for (auto& expression : expressions) {
-        if (!expression->hasAlias()) {
-            throw BinderException("Expression in WITH must be aliased (use AS).");
-        }
-    }
-}
-
 void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
