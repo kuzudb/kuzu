@@ -25,9 +25,13 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::ValueVector& result,
     common::ValueVector& inputDataVector, const common::ValueVector& tmpResultVector,
     evaluator::ListLambdaBindData& bindData) {
-    auto xParam = bindData.lambdaParamEvaluators[0]->resultVector.get();
-    auto yParam = bindData.lambdaParamEvaluators[1]->resultVector.get();
-    auto paramPos = xParam->state->getSelVector()[0];
+    const auto& paramIndices = bindData.paramIndices;
+    std::vector<ValueVector*> params(bindData.lambdaParamEvaluators.size());
+    for (auto i = 0u; i < bindData.lambdaParamEvaluators.size(); i++) {
+        auto param = bindData.lambdaParamEvaluators[i]->resultVector.get();
+        params[i] = param;
+    }
+    auto paramPos = params[0]->state->getSelVector()[0];
     auto tmpResultPos = tmpResultVector.state->getSelVector()[0];
     if (listEntry.size == 0) {
         throw common::RuntimeException{"Cannot execute list_reduce on an empty list."};
@@ -37,13 +41,15 @@ static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::Valu
             listEntry.offset);
     } else {
         for (auto j = 0u; j < listEntry.size - 1; j++) {
-            if (j == 0u) {
-                xParam->copyFromVectorData(paramPos, &inputDataVector, listEntry.offset + j);
-            } else {
-                xParam->copyFromVectorData(paramPos, &tmpResultVector, tmpResultPos);
+            for (auto k = 0u; k < params.size(); k++) {
+                if (0u == paramIndices[k] && 0u != j) {
+                    params[k]->copyFromVectorData(paramPos, &tmpResultVector, tmpResultPos);
+                } else {
+                    params[k]->copyFromVectorData(paramPos, &inputDataVector,
+                        listEntry.offset + j + paramIndices[k]);
+                }
+                params[k]->state->getSelVectorUnsafe().setSelSize(1);
             }
-            yParam->copyFromVectorData(paramPos, &inputDataVector, listEntry.offset + j + 1);
-            xParam->state->getSelVectorUnsafe().setSelSize(1);
             bindData.rootEvaluator->evaluate();
         }
         result.copyFromVectorData(result.state->getSelVector()[pos], &tmpResultVector,
