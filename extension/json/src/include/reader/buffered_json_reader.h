@@ -2,26 +2,19 @@
 #include "common/json_common.h"
 #include "common/json_enums.h"
 #include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace json_extension {
 
-struct JsonScanBuffer {
-    std::unique_ptr<uint8_t[]> data;
-
-    JsonScanBuffer() : data{std::make_unique<uint8_t[]>(JsonConstant::SCAN_BUFFER_CAPACITY)} {}
-
-    uint8_t* getData() const { return data.get(); }
-
-    uint64_t getCapacity() { return JsonConstant::SCAN_BUFFER_CAPACITY; }
-};
-
 struct JsonScanBufferHandle {
     uint64_t bufferIdx;
-    JsonScanBuffer buffer;
+    std::unique_ptr<storage::MemoryBuffer> buffer;
     uint64_t bufferSize;
 
-    JsonScanBufferHandle(uint64_t buffer_index, JsonScanBuffer&& buffer, uint64_t bufferSize);
+    JsonScanBufferHandle(uint64_t bufferIdx, std::unique_ptr<storage::MemoryBuffer> buffer,
+        uint64_t bufferSize)
+        : bufferIdx{bufferIdx}, buffer{std::move(buffer)}, bufferSize{bufferSize} {}
 };
 
 struct JsonFileHandle {
@@ -32,7 +25,9 @@ struct JsonFileHandle {
     std::atomic<uint64_t> actualReads;
     std::atomic<bool> lastReadRequested;
 
-    explicit JsonFileHandle(std::unique_ptr<common::FileInfo> fileInfo);
+    explicit JsonFileHandle(std::unique_ptr<common::FileInfo> fileInfo)
+        : fileInfo{std::move(fileInfo)}, filesSize{this->fileInfo->getFileSize()}, readPosition{0},
+          requestedReads{0}, actualReads{0}, lastReadRequested{false} {}
 
     bool isLastReadRequested() const { return lastReadRequested; }
 
@@ -44,7 +39,7 @@ struct JsonFileHandle {
 };
 
 struct BufferedJSONReaderOptions {
-    JsonScanFormat format = JsonScanFormat::UNSTRUCTURED;
+    JsonScanFormat format;
 
     explicit BufferedJSONReaderOptions(JsonScanFormat format) : format{format} {}
 };
@@ -77,7 +72,7 @@ private:
     std::unique_ptr<JsonFileHandle> fileHandle;
     std::string fileName;
     BufferedJSONReaderOptions options;
-    uint64_t bufferIdx = 0;
+    common::idx_t bufferIdx;
     std::unordered_map<uint64_t, std::unique_ptr<JsonScanBufferHandle>> bufferMap;
 };
 

@@ -82,13 +82,18 @@ struct JSONScanLocalState : public TableFuncLocalState {
     JsonScanBufferHandle* currentBufferHandle = nullptr;
     bool isLast = false;
     uint64_t prevBufferRemainder = 0;
-    JsonScanBuffer reconstructBuffer;
+    std::unique_ptr<storage::MemoryBuffer> reconstructBuffer;
     uint8_t* bufferPtr = nullptr;
     uint64_t bufferOffset = 0;
     uint64_t bufferSize = 0;
     uint64_t numValuesToOutput = 0;
+    storage::MemoryManager& mm;
 
-    explicit JSONScanLocalState(BufferedJsonReader* reader) : currentReader{reader} {}
+    JSONScanLocalState(storage::MemoryManager& mm, BufferedJsonReader* reader)
+        : currentReader{reader}, reconstructBuffer{mm.allocateBuffer(false /* initializeToZero */,
+                                     JsonConstant::SCAN_BUFFER_CAPACITY)},
+          mm{mm} {}
+
     uint64_t readNext();
     bool readNextBuffer();
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
@@ -120,13 +125,12 @@ bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone)
             return false;
         }
         if (!fileHandle->getPositionAndSize(readPosition, readSize, requestSize)) {
-            return false; // We weren't able to read
+            return false;
         }
         bufferIdx = currentReader->getBufferIdx();
         isLast = readSize == 0;
     }
     bufferSize = prevBufferRemainder + readSize;
-    // Now read the file lock-free!
     fileHandle->readAtPosition(bufferPtr + prevBufferRemainder, readSize, readPosition, fileDone);
     return true;
 }
@@ -279,7 +283,7 @@ void JSONScanLocalState::parseNextChunk() {
         if (jsonEnd == nullptr) {
             if (!isLast) {
                 if (format != JsonScanFormat::NEWLINE_DELIMITED) {
-                    memcpy(reconstructBuffer.getData(), jsonStart, remaining);
+                    memcpy(reconstructBuffer->getData(), jsonStart, remaining);
                     prevBufferRemainder = remaining;
                 }
                 bufferOffset = bufferSize;
@@ -308,11 +312,12 @@ void JSONScanLocalState::parseNextChunk() {
 }
 
 bool JSONScanLocalState::readNextBuffer() {
-    JsonScanBuffer buffer;
-    bufferPtr = buffer.getData();
+    auto buffer =
+        mm.allocateBuffer(false /* initializeToZero */, JsonConstant::SCAN_BUFFER_CAPACITY);
+    bufferPtr = buffer->getData();
     if (currentReader && currentReader->getFormat() != JsonScanFormat::NEWLINE_DELIMITED &&
         !isLast) {
-        memcpy(bufferPtr, reconstructBuffer.getData(), prevBufferRemainder);
+        memcpy(bufferPtr, reconstructBuffer->getData(), prevBufferRemainder);
     }
 
     uint64_t bufferIdx;
@@ -409,9 +414,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto scanFromList = false;
     auto scanFromStruct = false;
     if (scanInput->expectedColumnNames.size() > 0) {
-        columnTypes = LogicalType::copy(scanInput->expectedColumnTypes);
+        columnTypes = copyVector(scanInput->expectedColumnTypes);
         columnNames = scanInput->expectedColumnNames;
-        // still need determine scanning mode
+        // still need determine scanning mode.
         if (scanConfig.depth == -1 || scanConfig.depth > 3) {
             scanConfig.depth = 3;
         }
@@ -483,9 +488,9 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& /*input*/,
-    TableFuncSharedState* state, storage::MemoryManager* /*mm*/) {
+    TableFuncSharedState* state, storage::MemoryManager* mm) {
     auto sharedState = state->ptrCast<JSONScanSharedState>();
-    return std::make_unique<JSONScanLocalState>(sharedState->jsonReader.get());
+    return std::make_unique<JSONScanLocalState>(*mm, sharedState->jsonReader.get());
 }
 
 static double progressFunc(TableFuncSharedState* /*state*/) {

@@ -8,14 +8,6 @@ namespace json_extension {
 
 using namespace common;
 
-JsonScanBufferHandle::JsonScanBufferHandle(uint64_t bufferIdx, JsonScanBuffer&& buffer,
-    uint64_t bufferSize)
-    : bufferIdx{bufferIdx}, buffer{std::move(buffer)}, bufferSize{bufferSize} {}
-
-JsonFileHandle::JsonFileHandle(std::unique_ptr<common::FileInfo> fileInfo)
-    : fileInfo{std::move(fileInfo)}, filesSize{this->fileInfo->getFileSize()}, readPosition(0),
-      requestedReads{0}, actualReads{0}, lastReadRequested{false} {}
-
 bool JsonFileHandle::getPositionAndSize(uint64_t& position, uint64_t& size,
     uint64_t requestedSize) {
     KU_ASSERT(requestedSize != 0);
@@ -43,7 +35,7 @@ void JsonFileHandle::readAtPosition(uint8_t* pointer, uint64_t size, uint64_t po
 
 BufferedJsonReader::BufferedJsonReader(main::ClientContext& context, std::string fileName,
     BufferedJSONReaderOptions options)
-    : context{context}, fileName{std::move(fileName)}, options{std::move(options)} {
+    : context{context}, fileName{std::move(fileName)}, options{std::move(options)}, bufferIdx{0} {
     auto fileInfo = context.getVFSUnsafe()->openFile(this->fileName, FileFlags::READ_ONLY);
     fileHandle = std::make_unique<JsonFileHandle>(std::move(fileInfo));
 }
