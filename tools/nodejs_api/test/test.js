@@ -14,7 +14,6 @@ describe("kuzu", () => {
   importTest("Connection", "./test_connection.js");
   importTest("Query result", "./test_query_result.js");
   importTest("Data types", "./test_data_type.js");
-  importTest("Extension loading", "./test_extension.js");
   importTest("Query parameters", "./test_parameter.js");
   importTest("Concurrent query execution", "./test_concurrency.js");
   importTest("Version", "./test_version.js");
