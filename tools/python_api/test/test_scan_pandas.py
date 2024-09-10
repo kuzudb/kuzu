@@ -41,7 +41,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         ["Alice", None],
         datetime.date(1996, 2, 15),
         "12331",
-        UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc'),
+        UUID("d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc"),
     ]
     assert results.get_next() == [
         False,
@@ -68,7 +68,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         [],
         datetime.date(2013, 2, 22),
         "test string",
-        UUID('9a2fc988-5c5d-4217-af9e-220aef5ce7b8'),
+        UUID("9a2fc988-5c5d-4217-af9e-220aef5ce7b8"),
     ]
     assert results.get_next() == [
         None,
@@ -95,7 +95,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         None,
         datetime.date(2055, 1, 14),
         "5.623",
-        UUID('166055ee-a481-4e67-a4fc-98682d3a3e20'),
+        UUID("166055ee-a481-4e67-a4fc-98682d3a3e20"),
     ]
     assert results.get_next() == [
         False,
@@ -122,7 +122,7 @@ def validate_scan_pandas_results(results: kuzu.QueryResult) -> None:
         ["Dan, Ella", "George"],
         datetime.date(2018, 3, 17),
         None,
-        UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc'),
+        UUID("d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc"),
     ]
 
 
@@ -194,10 +194,12 @@ def test_scan_pandas(tmp_path: Path) -> None:
             dtype=object,
         ),
         "mixed_type": np.array([12331, "test string", 5.623, None], dtype="object"),
-        "uuid_type": [UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc'),
-            UUID('9a2fc988-5c5d-4217-af9e-220aef5ce7b8'),
-            UUID('166055ee-a481-4e67-a4fc-98682d3a3e20'),
-            UUID('d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc')]
+        "uuid_type": [
+            UUID("d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc"),
+            UUID("9a2fc988-5c5d-4217-af9e-220aef5ce7b8"),
+            UUID("166055ee-a481-4e67-a4fc-98682d3a3e20"),
+            UUID("d5a8ed71-6fc4-4cb3-acbc-2f5b73fd14bc"),
+        ],
     }
     df = pd.DataFrame(data)
     df["datetime_microseconds_tz"] = df["datetime_microseconds_tz"].dt.tz_localize("US/Eastern")
@@ -386,24 +388,24 @@ def test_copy_from_pandas_object(tmp_path: Path) -> None:
     conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
     conn.execute("COPY Person FROM df;")
     result = conn.execute("match (p:Person) return p.*")
-    assert result.get_next() == ["Adam", '30']
-    assert result.get_next() == ["Karissa", '40']
-    assert result.get_next() == ["Zhang", '50']
-    assert result.get_next() == ["Noura", '25']
+    assert result.get_next() == ["Adam", "30"]
+    assert result.get_next() == ["Karissa", "40"]
+    assert result.get_next() == ["Zhang", "50"]
+    assert result.get_next() == ["Noura", "25"]
     assert result.has_next() is False
     df = pd.DataFrame({"f": ["Adam", "Karissa"], "t": ["Zhang", "Zhang"]})
     conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
     conn.execute("COPY Knows FROM df")
     result = conn.execute("match (p:Person)-[]->(:Person {name: 'Zhang'}) return p.*")
-    assert result.get_next() == ["Adam", '30']
-    assert result.get_next() == ["Karissa", '40']
+    assert result.get_next() == ["Adam", "30"]
+    assert result.get_next() == ["Karissa", "40"]
     assert result.has_next() is False
 
 
 def test_copy_from_pandas_date(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({"id": [1, 2], "date": [pd.Timestamp('2024-01-03'), pd.Timestamp('2023-10-10')]})
+    df = pd.DataFrame({"id": [1, 2], "date": [pd.Timestamp("2024-01-03"), pd.Timestamp("2023-10-10")]})
     conn.execute("CREATE NODE TABLE Person(id INT16, d TIMESTAMP, PRIMARY KEY (id));")
     conn.execute("COPY Person FROM df;")
     result = conn.execute("match (p:Person) return p.*")
@@ -415,10 +417,17 @@ def test_copy_from_pandas_date(tmp_path: Path) -> None:
 def test_scan_string_to_nested(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({"id": ["1"], "lstcol": ["[1,2,3]"], "mapcol": ["{'a'=1,'b'=2}"], "structcol": ["{a:1,b:2}"], "lstlstcol": ["[[],[1,2,3],[4,5,6]]"]})
-    conn.execute("CREATE NODE TABLE tab(id INT64, lstcol INT64[], mapcol MAP(STRING, INT64), structcol STRUCT(a INT64, b INT64), lstlstcol INT64[][], PRIMARY KEY(id))")
+    df = pd.DataFrame({
+        "id": ["1"],
+        "lstcol": ["[1,2,3]"],
+        "mapcol": ["{'a'=1,'b'=2}"],
+        "structcol": ["{a:1,b:2}"],
+        "lstlstcol": ["[[],[1,2,3],[4,5,6]]"],
+    })
+    conn.execute(
+        "CREATE NODE TABLE tab(id INT64, lstcol INT64[], mapcol MAP(STRING, INT64), structcol STRUCT(a INT64, b INT64), lstlstcol INT64[][], PRIMARY KEY(id))"
+    )
     conn.execute("COPY tab from df")
     result = conn.execute("match (t:tab) return t.*")
     assert result.get_next() == [1, [1, 2, 3], {"'a'": 1, "'b'": 2}, {"a": 1, "b": 2}, [[], [1, 2, 3], [4, 5, 6]]]
     assert not result.has_next()
-

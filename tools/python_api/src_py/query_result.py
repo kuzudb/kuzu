@@ -234,7 +234,8 @@ class QueryResult:
         self._query_result.resetIterator()
 
     def get_as_networkx(
-        self, directed: bool = True  # noqa: FBT001
+        self,
+        directed: bool = True,  # noqa: FBT001
     ) -> nx.MultiGraph | nx.MultiDiGraph:
         """
         Convert the nodes and rels in query result into a NetworkX directed or undirected graph
