@@ -66,6 +66,9 @@ protected:
     static storage::BufferManager* getBufferManager(const main::Database& database) {
         return database.bufferManager.get();
     }
+    static storage::MemoryManager* getMemoryManager(const main::Database& database) {
+        return database.memoryManager.get();
+    }
     static common::VirtualFileSystem* getFileSystem(const main::Database& database) {
         return database.vfs.get();
     }

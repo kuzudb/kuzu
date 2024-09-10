@@ -51,7 +51,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
-            relInfo.initScanState();
+            relInfo.initScanState(*context->clientContext->getMemoryManager());
             initVectors(*relInfo.scanState, *resultSet);
             // TODO(Guodong/Xiyang): Temp solution here. Should be moved to `info`.
             boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
@@ -62,9 +62,9 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
                         relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
                 auto localTableColumnIDs = LocalRelTable::rewriteLocalColumnIDs(relInfo.direction,
                     relInfo.scanState->columnIDs);
-                relInfo.scanState->localTableScanState =
-                    std::make_unique<LocalRelTableScanState>(*relInfo.scanState,
-                        localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+                relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
+                    *context->clientContext->getMemoryManager(), *relInfo.scanState,
+                    localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
             }
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =

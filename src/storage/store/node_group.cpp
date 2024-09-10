@@ -1,5 +1,7 @@
 #include "storage/store/node_group.h"
 
+#include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
@@ -27,9 +29,10 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
     row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
+    auto& mm = *transaction->getClientContext()->getMemoryManager();
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
-            std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+            std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
                 ChunkedNodeGroup::CHUNK_CAPACITY, 0, ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0u;
@@ -37,7 +40,7 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
         auto lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
-                std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+                std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
                     ChunkedNodeGroup::CHUNK_CAPACITY, numRowsBeforeAppend + numRowsAppended,
                     ResidencyState::IN_MEMORY));
         }
@@ -58,9 +61,10 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
     const row_idx_t startRowIdx, const row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
+    auto& mm = *transaction->getClientContext()->getMemoryManager();
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
-            std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+            std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
                 ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0;
@@ -68,14 +72,14 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
         auto lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
-                std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+                std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
                     ChunkedNodeGroup::CHUNK_CAPACITY, numRowsBeforeAppend + numRowsAppended,
                     ResidencyState::IN_MEMORY));
         }
         lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
-        lastChunkedGroup->append(transaction, vectors, startRowIdx + numRowsAppended,
+        lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowIdx + numRowsAppended,
             numRowsToAppendInGroup);
         numRowsAppended += numRowsToAppendInGroup;
     }
@@ -217,18 +221,18 @@ void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColu
     }
 }
 
-void NodeGroup::flush(FileHandle& dataFH) {
+void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.getNumGroups(lock) == 1) {
         const auto chunkedGroupToFlush = chunkedGroups.getFirstGroup(lock);
         chunkedGroupToFlush->flush(dataFH);
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
-        auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(dataTypes, enableCompression,
+        auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
+            *transaction->getClientContext()->getMemoryManager(), dataTypes, enableCompression,
             StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
         for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-            mergedChunkedGroup->append(&DUMMY_TRANSACTION, *chunkedGroup, 0,
-                chunkedGroup->getNumRows());
+            mergedChunkedGroup->append(transaction, *chunkedGroup, 0, chunkedGroup->getNumRows());
         }
         mergedChunkedGroup->flush(dataFH);
         chunkedGroups.replaceGroup(lock, 0, std::move(mergedChunkedGroup));
@@ -237,7 +241,7 @@ void NodeGroup::flush(FileHandle& dataFH) {
     chunkedGroups.resize(lock, 1);
 }
 
-void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
+void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
     // We don't need to consider deletions here, as they are flushed separately as metadata.
     // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
     // flushing the data.
@@ -249,17 +253,17 @@ void NodeGroup::checkpoint(NodeGroupCheckpointState& state) {
     auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
     std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
     if (hasPersistentData) {
-        checkpointedChunkedGroup = checkpointInMemAndOnDisk(lock, state);
+        checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
     } else {
-        checkpointedChunkedGroup = checkpointInMemOnly(lock, state);
+        checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
     }
     checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
     chunkedGroups.clear(lock);
     chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
 }
 
-std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock,
-    NodeGroupCheckpointState& state) {
+std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryManager& memoryManager,
+    const UniqLock& lock, NodeGroupCheckpointState& state) {
     const auto firstGroup = chunkedGroups.getFirstGroup(lock);
     const auto numPersistentRows = firstGroup->getNumRows();
     std::vector<Column*> columnPtrs;
@@ -267,8 +271,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
     for (auto& column : state.columns) {
         columnPtrs.push_back(column.get());
     }
-    const auto insertChunkedGroup =
-        scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(lock, state.columnIDs, columnPtrs);
+    const auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(
+        memoryManager, lock, state.columnIDs, columnPtrs);
     const auto numInsertedRows = insertChunkedGroup->getNumRows();
     for (auto i = 0u; i < state.columnIDs.size(); i++) {
         const auto columnID = state.columnIDs[i];
@@ -282,8 +286,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
         std::vector<ChunkCheckpointState> chunkCheckpointStates;
         if (columnHasUpdates) {
             // TODO(Guodong): Optimize this to scan only vectors with updates.
-            const auto updateChunk = scanAllInsertedAndVersions<ResidencyState::ON_DISK>(lock,
-                {columnID}, {state.columns[columnID].get()});
+            const auto updateChunk = scanAllInsertedAndVersions<ResidencyState::ON_DISK>(
+                memoryManager, lock, {columnID}, {state.columns[columnID].get()});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
             chunkCheckpointStates.push_back(ChunkCheckpointState{
                 updateChunk->getColumnChunk(0).moveData(), 0, updateChunk->getNumRows()});
@@ -305,16 +309,16 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(const Uniq
     return checkpointedChunkedGroup;
 }
 
-std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(const UniqLock& lock,
-    NodeGroupCheckpointState& state) {
+std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& memoryManager,
+    const UniqLock& lock, NodeGroupCheckpointState& state) {
     // Flush insertChunkedGroup to persistent one.
     std::vector<Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
     for (auto& column : state.columns) {
         columnPtrs.push_back(column.get());
     }
-    auto insertChunkedGroup =
-        scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(lock, state.columnIDs, columnPtrs);
+    auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
+        lock, state.columnIDs, columnPtrs);
     insertChunkedGroup->flush(state.dataFH);
     return insertChunkedGroup;
 }
@@ -390,7 +394,8 @@ void NodeGroup::serialize(Serializer& serializer) {
     }
 }
 
-std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
+std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
     std::string key;
     node_group_idx_t nodeGroupIdx;
     bool enableCompression;
@@ -411,12 +416,12 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(Deserializer& deSer) {
     std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup;
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {
-        chunkedNodeGroup = ChunkedNodeGroup::deserialize(deSer);
+        chunkedNodeGroup = ChunkedNodeGroup::deserialize(memoryManager, deSer);
         return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
             std::move(chunkedNodeGroup));
     }
     case NodeGroupDataFormat::CSR: {
-        chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(deSer);
+        chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(memoryManager, deSer);
         return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
             std::move(chunkedNodeGroup));
     }
@@ -459,13 +464,14 @@ row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) {
 }
 
 template<ResidencyState RESIDENCY_STATE>
-std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(const UniqLock& lock,
-    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns) {
+std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
+    MemoryManager& memoryManager, const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
+    const std::vector<Column*>& columns) {
     auto numRows = getNumResidentRows<RESIDENCY_STATE>(lock);
     const auto columnTypes = columns | std::views::transform([](const auto* column) {
         return column->getDataType().copy();
     });
-    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(
+    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager,
         std::vector<LogicalType>{columnTypes.begin(), columnTypes.end()}, enableCompression,
         numRows, 0, ResidencyState::IN_MEMORY);
     TableScanState scanState(columnIDs, columns);
@@ -485,11 +491,13 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(const Un
 }
 
 template std::unique_ptr<ChunkedNodeGroup>
-NodeGroup::scanAllInsertedAndVersions<ResidencyState::ON_DISK>(const UniqLock& lock,
-    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns);
+NodeGroup::scanAllInsertedAndVersions<ResidencyState::ON_DISK>(MemoryManager& memoryManager,
+    const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
+    const std::vector<Column*>& columns);
 template std::unique_ptr<ChunkedNodeGroup>
-NodeGroup::scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(const UniqLock& lock,
-    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns);
+NodeGroup::scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(MemoryManager& memoryManager,
+    const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
+    const std::vector<Column*>& columns);
 
 bool NodeGroup::isVisible(const Transaction* transaction, row_idx_t rowIdxInGroup) {
     const auto* chunkedGroup = findChunkedGroupFromRowIdxNoLock(rowIdxInGroup);

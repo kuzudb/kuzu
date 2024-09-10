@@ -4,6 +4,8 @@
 
 #include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
+#include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include "transaction/transaction.h"
@@ -14,19 +16,19 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-ColumnChunk::ColumnChunk(const LogicalType& dataType, uint64_t capacity, bool enableCompression,
-    ResidencyState residencyState)
+ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataType,
+    uint64_t capacity, bool enableCompression, ResidencyState residencyState)
     : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, capacity,
-        residencyState);
+    data = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
+        enableCompression, capacity, residencyState);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
 }
 
-ColumnChunk::ColumnChunk(const LogicalType& dataType, bool enableCompression,
-    ColumnChunkMetadata metadata)
+ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataType,
+    bool enableCompression, ColumnChunkMetadata metadata)
     : enableCompression{enableCompression} {
-    data = ColumnChunkFactory::createColumnChunkData(dataType.copy(), enableCompression, metadata,
-        true);
+    data = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
+        enableCompression, metadata, true);
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
@@ -194,8 +196,8 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     }
     const auto vectorIdx = offsetInChunk / DEFAULT_VECTOR_CAPACITY;
     const auto rowIdxInVector = offsetInChunk % DEFAULT_VECTOR_CAPACITY;
-    const auto vectorUpdateInfo =
-        updateInfo->update(transaction, vectorIdx, rowIdxInVector, values);
+    const auto vectorUpdateInfo = updateInfo->update(data->getMemoryManager(), transaction,
+        vectorIdx, rowIdxInVector, values);
     transaction->pushVectorUpdateInfo(*updateInfo, vectorIdx, *vectorUpdateInfo);
 }
 
@@ -205,12 +207,13 @@ void ColumnChunk::serialize(Serializer& serializer) const {
     data->serialize(serializer);
 }
 
-std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(Deserializer& deSer) {
+std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
     std::string key;
     bool enableCompression;
     deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
-    auto data = ColumnChunkData::deserialize(deSer);
+    auto data = ColumnChunkData::deserialize(memoryManager, deSer);
     return std::make_unique<ColumnChunk>(enableCompression, std::move(data));
 }
 
@@ -221,10 +224,11 @@ row_idx_t ColumnChunk::getNumUpdatedRows(const Transaction* transaction) const {
 std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ColumnChunk::scanUpdates(
     const Transaction* transaction) const {
     auto numUpdatedRows = getNumUpdatedRows(transaction);
+    auto& mm = *transaction->getClientContext()->getMemoryManager();
     // TODO(Guodong): Actually for row idx in a column chunk, UINT32 should be enough.
-    auto updatedRows = std::make_unique<ColumnChunk>(LogicalType::UINT64(), numUpdatedRows, false,
-        ResidencyState::IN_MEMORY);
-    auto updatedData = std::make_unique<ColumnChunk>(getDataType(), numUpdatedRows, false,
+    auto updatedRows = std::make_unique<ColumnChunk>(mm, LogicalType::UINT64(), numUpdatedRows,
+        false, ResidencyState::IN_MEMORY);
+    auto updatedData = std::make_unique<ColumnChunk>(mm, getDataType(), numUpdatedRows, false,
         ResidencyState::IN_MEMORY);
     const auto numUpdateVectors = updateInfo->getNumVectors();
     row_idx_t numAppendedRows = 0;

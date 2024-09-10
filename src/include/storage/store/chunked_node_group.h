@@ -18,6 +18,7 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
+class MemoryManager;
 
 class Column;
 struct TableScanState;
@@ -34,9 +35,9 @@ public:
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     ChunkedNodeGroup(ChunkedNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns);
-    ChunkedNodeGroup(const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
-        uint64_t capacity, common::row_idx_t startRowIdx, ResidencyState residencyState,
-        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
+    ChunkedNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression, uint64_t capacity, common::row_idx_t startRowIdx,
+        ResidencyState residencyState, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     virtual ~ChunkedNodeGroup() = default;
 
     common::idx_t getNumColumns() const { return chunks.size(); }
@@ -144,7 +145,8 @@ public:
     uint64_t getEstimatedMemoryUsage() const;
 
     virtual void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<ChunkedNodeGroup> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<ChunkedNodeGroup> deserialize(MemoryManager& memoryManager,
+        common::Deserializer& deSer);
 
     template<class TARGET>
     TARGET& cast() {

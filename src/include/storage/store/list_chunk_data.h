@@ -6,6 +6,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class ListChunkData final : public ColumnChunkData {
 public:
@@ -14,9 +15,9 @@ public:
     static constexpr common::idx_t OFFSET_COLUMN_CHILD_READ_STATE_IDX = 2;
     static constexpr size_t CHILD_COLUMN_COUNT = 3;
 
-    ListChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression,
-        ResidencyState residencyState);
-    ListChunkData(common::LogicalType dataType, bool enableCompression,
+    ListChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
+        bool enableCompression, ResidencyState residencyState);
+    ListChunkData(MemoryManager& mm, common::LogicalType dataType, bool enableCompression,
         const ColumnChunkMetadata& metadata);
 
     ColumnChunkData* getOffsetColumnChunk() const { return offsetColumnChunk.get(); }

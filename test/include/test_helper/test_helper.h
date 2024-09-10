@@ -59,7 +59,8 @@ public:
             bufferPoolSizeEnv.empty() ?
                 common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
                 std::stoull(bufferPoolSizeEnv);
-        systemConfig->maxNumThreads = maxNumThreadsEnv.empty() ? 2 : std::stoull(maxNumThreadsEnv);
+        systemConfig->maxNumThreads =
+            2; // maxNumThreadsEnv.empty() ? 2 : std::stoull(maxNumThreadsEnv);
         if (!enableCompressionEnv.empty()) {
             systemConfig->enableCompression = enableCompressionEnv == "true";
         }

@@ -3,19 +3,21 @@
 #include "common/vector/value_vector.h"
 #include "graph.h"
 #include "graph_entry.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace graph {
 
 struct OnDiskGraphScanState {
     std::unique_ptr<storage::RelTableScanState> fwdScanState;
     std::unique_ptr<storage::RelTableScanState> bwdScanState;
 
-    explicit OnDiskGraphScanState(common::ValueVector* srcNodeIDVector,
-        common::ValueVector* dstNodeIDVector);
+    explicit OnDiskGraphScanState(storage::MemoryManager& memoryManager,
+        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector);
 };
 
 class OnDiskGraphScanStates : public GraphScanState {

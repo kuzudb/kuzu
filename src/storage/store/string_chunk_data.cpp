@@ -5,6 +5,7 @@
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 #include "storage/store/string_column.h"
@@ -14,24 +15,25 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringChunkData::StringChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    ResidencyState residencyState)
-    : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
+StringChunkData::StringChunkData(MemoryManager& mm, LogicalType dataType, uint64_t capacity,
+    bool enableCompression, ResidencyState residencyState)
+    : ColumnChunkData{mm, std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/},
-      indexColumnChunk{ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
+      indexColumnChunk{ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT32(),
           enableCompression, capacity, residencyState)},
-      dictionaryChunk{std::make_unique<DictionaryChunk>(
+      dictionaryChunk{std::make_unique<DictionaryChunk>(mm,
           residencyState == ResidencyState::IN_MEMORY ? 0 : capacity, enableCompression,
           residencyState)},
       needFinalize{false} {}
 
-StringChunkData::StringChunkData(bool enableCompression, const ColumnChunkMetadata& metadata)
-    : ColumnChunkData{LogicalType::STRING(), enableCompression, metadata, true /*hasNullData*/},
+StringChunkData::StringChunkData(MemoryManager& mm, bool enableCompression,
+    const ColumnChunkMetadata& metadata)
+    : ColumnChunkData{mm, LogicalType::STRING(), enableCompression, metadata, true /*hasNullData*/},
       dictionaryChunk{
-          std::make_unique<DictionaryChunk>(0, enableCompression, ResidencyState::IN_MEMORY)},
+          std::make_unique<DictionaryChunk>(mm, 0, enableCompression, ResidencyState::IN_MEMORY)},
       needFinalize{false} {
     // create index chunk
-    indexColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
+    indexColumnChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT32(),
         enableCompression, capacity, ResidencyState::ON_DISK);
 }
 
@@ -244,8 +246,8 @@ void StringChunkData::finalize() {
     // We already de-duplicate as we go, but when out of place updates occur new values will be
     // appended to the end and the original values may be able to be pruned before flushing them to
     // disk
-    auto newDictionaryChunk =
-        std::make_unique<DictionaryChunk>(numValues, enableCompression, residencyState);
+    auto newDictionaryChunk = std::make_unique<DictionaryChunk>(*buffer->mm, numValues,
+        enableCompression, residencyState);
     // Each index is replaced by a new one for the de-duplicated data in the new dictionary.
     for (auto i = 0u; i < numValues; i++) {
         if (nullData->isNull(i)) {
@@ -279,9 +281,11 @@ void StringChunkData::serialize(Serializer& serializer) const {
 void StringChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
     std::string key;
     deSer.validateDebuggingInfo(key, "index_column_chunk");
-    chunkData.cast<StringChunkData>().indexColumnChunk = ColumnChunkData::deserialize(deSer);
+    chunkData.cast<StringChunkData>().indexColumnChunk =
+        ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
     deSer.validateDebuggingInfo(key, "dictionary_chunk");
-    chunkData.cast<StringChunkData>().dictionaryChunk = DictionaryChunk::deserialize(deSer);
+    chunkData.cast<StringChunkData>().dictionaryChunk =
+        DictionaryChunk::deserialize(chunkData.getMemoryManager(), deSer);
 }
 
 template<>

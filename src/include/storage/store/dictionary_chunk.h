@@ -5,13 +5,15 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class DictionaryChunk {
 public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
 
-    DictionaryChunk(uint64_t capacity, bool enableCompression, ResidencyState residencyState);
+    DictionaryChunk(MemoryManager& mm, uint64_t capacity, bool enableCompression,
+        ResidencyState residencyState);
     // A pointer to the dictionary chunk is stored in the StringOps for the indexTable
     // and can't be modified easily. Moving would invalidate that pointer
     DictionaryChunk(DictionaryChunk&& other) = delete;
@@ -43,7 +45,8 @@ public:
     uint64_t getEstimatedMemoryUsage() const;
 
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<DictionaryChunk> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<DictionaryChunk> deserialize(MemoryManager& memoryManager,
+        common::Deserializer& deSer);
 
     void flush(FileHandle& dataFH);
 

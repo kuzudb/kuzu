@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/dictionary_column.h"
 
 namespace kuzu {
@@ -11,7 +12,7 @@ public:
     static constexpr size_t CHILD_STATE_COUNT = 3;
 
     StringColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
-        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
+        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         FileHandle& dataFH);

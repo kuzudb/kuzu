@@ -33,10 +33,10 @@ NodeTable::NodeTable(StorageManager* storageManager, const NodeTableCatalogEntry
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
-            dataFH, bufferManager, shadowFile, enableCompression);
+            dataFH, memoryManager, shadowFile, enableCompression);
     }
-    nodeGroups = std::make_unique<NodeGroupCollection>(getNodeTableColumnTypes(*this),
-        enableCompression, storageManager->getDataFH(), deSer);
+    nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
+        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -63,8 +63,8 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
         main::DBConfig::isDBPathInMemory(databasePath),
-        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *bufferManager,
-        shadowFile, vfs, context);
+        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(),
+        *memoryManager->getBufferManager(), shadowFile, vfs, context);
 }
 
 void NodeTable::initializeScanState(Transaction* transaction, TableScanState& scanState) {
@@ -172,7 +172,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
     validatePkNotExists(transaction, (ValueVector*)&nodeInsertState.pkVector);
-    localTable->insert(&DUMMY_TRANSACTION, insertState);
+    localTable->insert(transaction, insertState);
     if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         KU_ASSERT(transaction->getClientContext());
@@ -260,7 +260,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
-        dataFH, bufferManager, shadowFile, enableCompression));
+        dataFH, memoryManager, shadowFile, enableCompression));
     LocalTable* localTable = nullptr;
     if (transaction->getLocalStorage()) {
         localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -376,7 +376,7 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         }
         NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH,
             memoryManager};
-        nodeGroups->checkpoint(state);
+        nodeGroups->checkpoint(*memoryManager, state);
         pkIndex->checkpoint();
         hasChanges = false;
         columns = std::move(state.columns);

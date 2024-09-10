@@ -1,5 +1,6 @@
 #include "storage/store/csr_node_group.h"
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
@@ -312,7 +313,7 @@ void CSRNodeGroup::serialize(Serializer& serializer) {
     }
 }
 
-void CSRNodeGroup::checkpoint(NodeGroupCheckpointState& state) {
+void CSRNodeGroup::checkpoint(MemoryManager&, NodeGroupCheckpointState& state) {
     const auto lock = chunkedGroups.lock();
     if (!persistentChunkGroup) {
         // No persistent data in the node group.
@@ -327,8 +328,8 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
     // the csr header. Case: No insertions/deletions in persistent chunk and no in-mem chunks.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
     // Scan old csr header from disk and construct new csr header.
-    persistentChunkGroup->cast<ChunkedCSRNodeGroup>().scanCSRHeader(csrState);
-    csrState.newHeader = std::make_unique<ChunkedCSRHeader>(false,
+    persistentChunkGroup->cast<ChunkedCSRNodeGroup>().scanCSRHeader(*state.mm, csrState);
+    csrState.newHeader = std::make_unique<ChunkedCSRHeader>(*state.mm, false,
         StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     // TODO(Guodong): Find max node offset in the node group.
     csrState.newHeader->setNumValues(StorageConstants::NODE_GROUP_SIZE);
@@ -427,8 +428,8 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     const auto leftCSROffset = csrState.oldHeader->getStartCSROffset(region.leftNodeOffset);
     const auto rightCSROffset = csrState.oldHeader->getEndCSROffset(region.rightNodeOffset);
     const auto numOldRowsInRegion = rightCSROffset - leftCSROffset;
-    const auto oldChunkWithUpdates = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(),
-        numOldRowsInRegion, false, ResidencyState::IN_MEMORY);
+    const auto oldChunkWithUpdates = std::make_unique<ColumnChunk>(*csrState.mm,
+        dataTypes[columnID].copy(), numOldRowsInRegion, false, ResidencyState::IN_MEMORY);
     ChunkState chunkState;
     const auto& persistentChunk = persistentChunkGroup->getColumnChunk(columnID);
     persistentChunk.initializeScanState(chunkState, csrState.columns[columnID].get());
@@ -437,10 +438,10 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
     const auto numRowsInRegion =
         csrState.newHeader->getEndCSROffset(region.rightNodeOffset) - leftCSROffset;
-    const auto newChunk = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(), numRowsInRegion,
-        false, ResidencyState::IN_MEMORY);
-    const auto dummyChunkForNulls = std::make_unique<ColumnChunk>(dataTypes[columnID].copy(),
-        DEFAULT_VECTOR_CAPACITY, false, ResidencyState::IN_MEMORY);
+    const auto newChunk = std::make_unique<ColumnChunk>(*csrState.mm, dataTypes[columnID].copy(),
+        numRowsInRegion, false, ResidencyState::IN_MEMORY);
+    const auto dummyChunkForNulls = std::make_unique<ColumnChunk>(*csrState.mm,
+        dataTypes[columnID].copy(), DEFAULT_VECTOR_CAPACITY, false, ResidencyState::IN_MEMORY);
     dummyChunkForNulls->getData().resetToAllNull();
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
@@ -611,7 +612,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     }
     // Construct in-mem csr header chunks.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
-    csrState.newHeader = std::make_unique<ChunkedCSRHeader>(false /*enableCompression*/,
+    csrState.newHeader = std::make_unique<ChunkedCSRHeader>(*state.mm, false /*enableCompression*/,
         StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     const auto numNodes = csrIndex->getMaxOffsetWithRels() + 1;
     csrState.newHeader->setNumValues(numNodes);
@@ -634,8 +635,8 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     for (auto i = 0u; i < numColumnsToCheckpoint; i++) {
         const auto columnID = csrState.columnIDs[i];
         KU_ASSERT(columnID < dataTypes.size());
-        dataChunksToFlush[i] = std::make_unique<ColumnChunk>(dataTypes[columnID], chunkCapacity,
-            enableCompression, ResidencyState::IN_MEMORY);
+        dataChunksToFlush[i] = std::make_unique<ColumnChunk>(*state.mm, dataTypes[columnID],
+            chunkCapacity, enableCompression, ResidencyState::IN_MEMORY);
     }
 
     // Scan tuples from in mem node groups and append to data chunks to flush.

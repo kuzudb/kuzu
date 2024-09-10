@@ -9,6 +9,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 template<class T>
 class GroupCollection {
@@ -17,9 +18,10 @@ public:
 
     common::UniqLock lock() { return common::UniqLock{mtx}; }
 
-    void loadGroups(common::Deserializer& deSer) {
+    void loadGroups(MemoryManager& memoryManager, common::Deserializer& deSer) {
         lock();
-        deSer.deserializeVectorOfPtrs<T>(groups);
+        deSer.deserializeVectorOfPtrs<T>(groups,
+            [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
     }
     void serializeGroups(common::Serializer& ser) {
         lock();

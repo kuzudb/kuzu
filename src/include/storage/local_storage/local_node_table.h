@@ -10,6 +10,7 @@ namespace storage {
 
 class ChunkedNodeGroup;
 struct TableScanState;
+class MemoryManager;
 
 struct TableReadState;
 class LocalNodeTable final : public LocalTable {

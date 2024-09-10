@@ -10,6 +10,9 @@
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace transaction {
 class Transaction;
 } // namespace transaction
@@ -71,8 +74,9 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     std::unique_ptr<storage::ChunkedNodeGroup> sharedNodeGroup;
 
     NodeBatchInsertSharedState(storage::Table* table, common::column_id_t pkColumnID,
-        common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal)
-        : BatchInsertSharedState{table, std::move(fTable), wal}, pkColumnID{pkColumnID},
+        common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal,
+        storage::MemoryManager* mm)
+        : BatchInsertSharedState{table, std::move(fTable), wal, mm}, pkColumnID{pkColumnID},
           pkType{std::move(pkType)}, readerSharedState{nullptr}, distinctSharedState{nullptr},
           sharedNodeGroup{nullptr} {}
 
@@ -117,16 +121,17 @@ public:
     // written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
-        std::optional<IndexBuilder>& indexBuilder) const;
+        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
 
 private:
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
-        std::optional<IndexBuilder>& indexBuilder) const;
-    void clearToIndex(std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
+    void clearToIndex(storage::MemoryManager* mm,
+        std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         common::offset_t startIndexInGroup) const;
 
-    void copyToNodeGroup(transaction::Transaction* transaction) const;
+    void copyToNodeGroup(transaction::Transaction* transaction, storage::MemoryManager* mm) const;
 };
 
 } // namespace processor

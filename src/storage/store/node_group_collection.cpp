@@ -1,9 +1,11 @@
 #include "storage/store/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -11,15 +13,16 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroupCollection::NodeGroupCollection(const std::vector<LogicalType>& types,
-    const bool enableCompression, FileHandle* dataFH, Deserializer* deSer)
+NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
+    const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
+    Deserializer* deSer)
     : enableCompression{enableCompression}, numRows{0}, types{LogicalType::copy(types)},
       dataFH{dataFH} {
     if (deSer) {
         std::string key;
         deSer->validateDebuggingInfo(key, "node_groups");
         KU_ASSERT(dataFH);
-        nodeGroups.loadGroups(*deSer);
+        nodeGroups.loadGroups(memoryManager, *deSer);
     }
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
@@ -184,11 +187,12 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
     return estimatedMemUsage;
 }
 
-void NodeGroupCollection::checkpoint(NodeGroupCheckpointState& state) {
+void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
+    NodeGroupCheckpointState& state) {
     KU_ASSERT(dataFH);
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->checkpoint(state);
+        nodeGroup->checkpoint(memoryManager, state);
     }
 }
 

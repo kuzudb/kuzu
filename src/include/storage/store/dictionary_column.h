@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dictionary_chunk.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
 
 namespace kuzu {
@@ -8,7 +9,7 @@ namespace storage {
 
 class DictionaryColumn {
 public:
-    DictionaryColumn(const std::string& name, FileHandle* dataFH, BufferManager* bufferManager,
+    DictionaryColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,

@@ -140,8 +140,7 @@ def init_db(path: Path) -> Path:
     if Path(path).exists():
         shutil.rmtree(path)
 
-    db = kuzu.Database(path, buffer_pool_size=_POOL_SIZE_)
-    conn = kuzu.Connection(db)
+    conn, db = create_conn_db(path, read_only=False)
     init_tinysnb(conn)
     init_npy(conn)
     init_tensor(conn)
@@ -154,9 +153,9 @@ def init_db(path: Path) -> Path:
 _READONLY_CONN_DB_: ConnDB | None = None
 
 
-def _create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
+def create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
     """Return a new connection and database."""
-    db = kuzu.Database(init_db(path), buffer_pool_size=_POOL_SIZE_, read_only=read_only)
+    db = kuzu.Database(path, buffer_pool_size=_POOL_SIZE_, read_only=read_only)
     conn = kuzu.Connection(db, num_threads=4)
     return conn, db
 
@@ -170,14 +169,14 @@ def conn_db_readonly(tmp_path: Path) -> ConnDB:
         # Therefore, we create a writable database on Windows.
         # However, the caller should ensure that the database is not modified.
         # TODO: Remove this workaround when the read-only mode is implemented on Windows.
-        _READONLY_CONN_DB_ = _create_conn_db(tmp_path, read_only=sys.platform != "win32")
+        _READONLY_CONN_DB_ = create_conn_db(init_db(tmp_path), read_only=sys.platform != "win32")
     return _READONLY_CONN_DB_
 
 
 @pytest.fixture()
 def conn_db_readwrite(tmp_path: Path) -> ConnDB:
     """Return a new writable connection and database."""
-    return _create_conn_db(tmp_path, read_only=False)
+    return create_conn_db(init_db(tmp_path), read_only=False)
 
 
 @pytest.fixture()

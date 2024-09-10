@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -83,6 +84,17 @@ public:
         values.resize(vectorSize);
         for (auto i = 0u; i < vectorSize; i++) {
             values[i] = T::deserialize(*this);
+        }
+    }
+
+    template<typename T>
+    void deserializeVectorOfPtrs(std::vector<std::unique_ptr<T>>& values,
+        std::function<std::unique_ptr<T>(Deserializer&)> deserializeFunc) {
+        uint64_t vectorSize;
+        deserializeValue(vectorSize);
+        values.resize(vectorSize);
+        for (auto i = 0u; i < vectorSize; i++) {
+            values[i] = deserializeFunc(*this);
         }
     }
 

@@ -11,6 +11,7 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
+class MemoryManager;
 
 struct TableAddColumnState;
 class NodeGroup;
@@ -147,15 +148,16 @@ public:
     virtual void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState, FileHandle* dataFH);
 
-    void flush(FileHandle& dataFH);
+    void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 
-    virtual void checkpoint(NodeGroupCheckpointState& state);
+    virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
     bool hasChanges();
     uint64_t getEstimatedMemoryUsage();
 
     virtual void serialize(common::Serializer& serializer);
-    static std::unique_ptr<NodeGroup> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<NodeGroup> deserialize(MemoryManager& memoryManager,
+        common::Deserializer& deSer);
 
     common::node_group_idx_t getNumChunkedGroups() {
         const auto lock = chunkedGroups.lock();
@@ -186,18 +188,19 @@ private:
 
     common::row_idx_t getNumDeletedRows(const common::UniqLock& lock);
 
-    std::unique_ptr<ChunkedNodeGroup> checkpointInMemOnly(const common::UniqLock& lock,
-        NodeGroupCheckpointState& state);
-    std::unique_ptr<ChunkedNodeGroup> checkpointInMemAndOnDisk(const common::UniqLock& lock,
-        NodeGroupCheckpointState& state);
+    std::unique_ptr<ChunkedNodeGroup> checkpointInMemOnly(MemoryManager& memoryManager,
+        const common::UniqLock& lock, NodeGroupCheckpointState& state);
+    std::unique_ptr<ChunkedNodeGroup> checkpointInMemAndOnDisk(MemoryManager& memoryManager,
+        const common::UniqLock& lock, NodeGroupCheckpointState& state);
     std::unique_ptr<VersionInfo> checkpointVersionInfo(const common::UniqLock& lock,
         const transaction::Transaction* transaction);
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     common::row_idx_t getNumResidentRows(const common::UniqLock& lock);
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    std::unique_ptr<ChunkedNodeGroup> scanAllInsertedAndVersions(const common::UniqLock& lock,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns);
+    std::unique_ptr<ChunkedNodeGroup> scanAllInsertedAndVersions(MemoryManager& memoryManager,
+        const common::UniqLock& lock, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<Column*>& columns);
 
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);
