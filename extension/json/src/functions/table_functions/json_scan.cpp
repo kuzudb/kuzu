@@ -452,7 +452,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 }
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState = input.sharedState->ptrCast<JSONScanSharedState>();
     auto localState = input.localState->ptrCast<JSONScanLocalState>();
     auto bindData = input.bindData->constPtrCast<JsonScanBindData>();
     auto projectionSkips = bindData->getColumnSkips();
