@@ -41,8 +41,6 @@ def test_extension_install_httpfs(conn_db_readonly: ConnDB, tmpdir: str, expecte
     opener.addheaders = [("User-agent", "Kùzu Test Suite")]
     urllib.request.install_opener(opener)
     expected_download_url = f"http://extension.kuzudb.com/v{extension_version}/{expected_extension_dir_prefix}/httpfs/libhttpfs.kuzu_extension"
-    print(f"Expected path: {expected_path}")
-    print(f"Expected download URL: {expected_download_url}")
     urllib.request.urlretrieve(expected_download_url, os.path.join(tmpdir, "libhttpfs.kuzu_extension"))
 
     conn, _ = conn_db_readonly
