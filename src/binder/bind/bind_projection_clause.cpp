@@ -27,12 +27,14 @@ namespace binder {
 // TODO(Xiyang): the above rewrite is creating problem for alias handling. Consider move this out of
 //  binder.
 
-static void addToProjectionList(std::shared_ptr<Expression> expr, const std::string& alias, expression_vector& exprs, std::vector<std::string>& aliases) {
+static void addToProjectionList(std::shared_ptr<Expression> expr, const std::string& alias,
+    expression_vector& exprs, std::vector<std::string>& aliases) {
     exprs.push_back(expr);
     aliases.push_back(alias);
 }
 
-static void tryAddToProjectionList(expression_set& set, std::shared_ptr<Expression> expr,  const std::string& alias, expression_vector& exprs, std::vector<std::string>& aliases) {
+static void tryAddToProjectionList(expression_set& set, std::shared_ptr<Expression> expr,
+    const std::string& alias, expression_vector& exprs, std::vector<std::string>& aliases) {
     if (set.contains(expr)) {
         return;
     }
@@ -40,7 +42,8 @@ static void tryAddToProjectionList(expression_set& set, std::shared_ptr<Expressi
     addToProjectionList(expr, alias, exprs, aliases);
 }
 
-static std::pair<expression_vector, std::vector<std::string>> rewriteProjectionInWithClause(const expression_vector& expressions, const std::vector<std::string>& aliases) {
+static std::pair<expression_vector, std::vector<std::string>> rewriteProjectionInWithClause(
+    const expression_vector& expressions, const std::vector<std::string>& aliases) {
     expression_vector newExprs;
     std::vector<std::string> newAliases;
     auto set = expression_set{};
@@ -52,8 +55,10 @@ static std::pair<expression_vector, std::vector<std::string>> rewriteProjectionI
             tryAddToProjectionList(set, node.getInternalID(), "", newExprs, newAliases);
         } else if (ExpressionUtil::isRelPattern(*expression)) {
             auto& rel = expression->constCast<RelExpression>();
-            tryAddToProjectionList(set, rel.getSrcNode()->getInternalID(), "", newExprs, newAliases);
-            tryAddToProjectionList(set, rel.getDstNode()->getInternalID(), "", newExprs, newAliases);
+            tryAddToProjectionList(set, rel.getSrcNode()->getInternalID(), "", newExprs,
+                newAliases);
+            tryAddToProjectionList(set, rel.getDstNode()->getInternalID(), "", newExprs,
+                newAliases);
             tryAddToProjectionList(set, rel.getInternalIDProperty(), "", newExprs, newAliases);
             if (rel.hasDirectionExpr()) {
                 tryAddToProjectionList(set, rel.getDirectionExpr(), "", newExprs, newAliases);
@@ -71,8 +76,7 @@ static std::pair<expression_vector, std::vector<std::string>> rewriteProjectionI
 
 BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
-    auto boundProjectionBody =
-        bindProjectionBody(*projectionBody, true /* isWithClause */);
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, true /* isWithClause */);
     validateOrderByFollowedBySkipOrLimitInWithClause(boundProjectionBody);
     auto boundWithClause = BoundWithClause(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
@@ -109,7 +113,8 @@ static expression_vector getAggregateExpressions(const std::shared_ptr<Expressio
     return result;
 }
 
-BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody, bool isWithClause) {
+BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
+    bool isWithClause) {
     expression_vector projectionExprs;
     std::vector<std::string> aliases;
     for (auto& parsedExpr : projectionBody.getProjectionExpressions()) {
@@ -172,12 +177,11 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
         expr->setAlias(aliases[i]);
     }
 
-    for (auto i =0u; i <originProjectionExprs.size(); ++i) {
+    for (auto i = 0u; i < originProjectionExprs.size(); ++i) {
         originProjectionExprs[i]->setAlias(originAliases[i]);
     }
     validateProjectionColumnNamesAreUnique(originProjectionExprs);
-    auto boundProjectionBody =
-        BoundProjectionBody(projectionBody.getIsDistinct());
+    auto boundProjectionBody = BoundProjectionBody(projectionBody.getIsDistinct());
     boundProjectionBody.setProjectionExpressions(projectionExprs);
 
     if (!aggregateExprs.empty()) {

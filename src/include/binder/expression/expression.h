@@ -54,8 +54,6 @@ public:
     DELETE_COPY_DEFAULT_MOVE(Expression);
     virtual ~Expression() = default;
 
-
-
     void setUniqueName(const std::string& name) { uniqueName = name; }
     std::string getUniqueName() const {
         KU_ASSERT(!uniqueName.empty());
@@ -65,9 +63,7 @@ public:
     virtual void cast(const common::LogicalType& type);
     const common::LogicalType& getDataType() const { return dataType; }
 
-    void setAlias(const std::string& newAlias) {
-        alias = newAlias;
-    }
+    void setAlias(const std::string& newAlias) { alias = newAlias; }
     bool hasAlias() const { return !alias.empty(); }
     std::string getAlias() const { return alias; }
 
