@@ -28,7 +28,7 @@ public:
         const kuzu_parquet::format::SchemaElement& schema_p, uint64_t file_idx_p,
         uint64_t maxDefine, uint64_t maxRepeat)
         : TemplatedColumnReader<common::ku_uuid_t, UUIDValueConversion>(reader, std::move(dataType),
-              schema_p, file_idx_p, maxDefine, maxRepeat) {};
+              schema_p, file_idx_p, maxDefine, maxRepeat){};
 
 protected:
     void dictionary(const std::shared_ptr<ResizeableBuffer>& dictionaryData,
