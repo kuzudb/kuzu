@@ -497,7 +497,7 @@ std::unique_ptr<TableFunction> JsonScan::getFunction() {
     auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
         initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
     func->canParallelFunc = []() { return false; };
-    return std::move(func);
+    return func;
 }
 
 } // namespace json_extension
