@@ -229,11 +229,9 @@ public:
     /*** bind projection clause ***/
     BoundWithClause bindWithClause(const parser::WithClause& withClause);
     BoundReturnClause bindReturnClause(const parser::ReturnClause& returnClause);
-    BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
-        const expression_vector& projectionExpressions);
 
-    expression_vector bindProjectionExpressions(
-        const parser::parsed_expr_vector& parsedExpressions);
+    BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
+        bool isWithClause);
 
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
@@ -291,10 +289,6 @@ public:
     /*** validations ***/
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
-
-    // E.g. ... WITH COUNT(*) MATCH ...
-    static void validateProjectionColumnsInWithClauseAreAliased(
-        const expression_vector& expressions);
 
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);

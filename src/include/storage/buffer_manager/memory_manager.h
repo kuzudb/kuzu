@@ -24,11 +24,13 @@ class MemoryAllocator;
 class FileHandle;
 class BufferManager;
 
-class MemoryBuffer {
+class KUZU_API MemoryBuffer {
 public:
     MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer,
         uint64_t size = common::TEMP_PAGE_SIZE);
     ~MemoryBuffer();
+
+    uint8_t* getData() const { return buffer.data(); }
 
 public:
     std::span<uint8_t> buffer;
@@ -36,7 +38,7 @@ public:
     MemoryAllocator* allocator;
 };
 
-class MemoryAllocator {
+class KUZU_API MemoryAllocator {
     friend class MemoryBuffer;
 
 public:
@@ -46,7 +48,7 @@ public:
     ~MemoryAllocator();
 
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero, uint64_t size);
-    inline common::page_offset_t getPageSize() const { return pageSize; }
+    common::page_offset_t getPageSize() const { return pageSize; }
 
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
@@ -74,7 +76,7 @@ private:
  * MM will return a MemoryBuffer to the caller, which is a wrapper of the allocated memory block,
  * and it will automatically call its allocator to reclaim the memory block when it is destroyed.
  */
-class MemoryManager {
+class KUZU_API MemoryManager {
 public:
     explicit MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs,
         main::ClientContext* context)
@@ -86,6 +88,7 @@ public:
         uint64_t size = common::TEMP_PAGE_SIZE) {
         return allocator->allocateBuffer(initializeToZero, size);
     }
+
     BufferManager* getBufferManager() const { return bm; }
 
 private:

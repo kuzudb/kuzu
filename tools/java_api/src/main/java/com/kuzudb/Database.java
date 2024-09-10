@@ -1,9 +1,9 @@
 package com.kuzudb;
 
 /**
-* The KuzuDatabase class is the main class of KuzuDB. It manages all database components.
+* The Database class is the main class of KuzuDB. It manages all database components.
 */
-public class KuzuDatabase {
+public class Database {
     long db_ref;
     String db_path;
     long buffer_size;
@@ -15,7 +15,7 @@ public class KuzuDatabase {
     /**
      * Creates a database object. The database will be created in memory with default settings.
      */
-    public KuzuDatabase() {
+    public Database() {
         this("");
     }
 
@@ -23,11 +23,11 @@ public class KuzuDatabase {
      * Creates a database object.
      * @param databasePath: Database path. If the database does not already exist, it will be created.
      */
-    public KuzuDatabase(String databasePath) {
+    public Database(String databasePath) {
         this.db_path = databasePath;
         this.buffer_size = 0;
         this.max_db_size = 0;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, 0, true, false, max_db_size);
+        db_ref = Native.kuzu_database_init(databasePath, 0, true, false, max_db_size);
     }
 
     /**
@@ -41,40 +41,40 @@ public class KuzuDatabase {
     * temporarily for now to get around with the default 8TB mmap address space limit some
     * environment.
     */
-    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression, boolean readOnly, long maxDBSize) {
+    public Database(String databasePath, long bufferPoolSize, boolean enableCompression, boolean readOnly, long maxDBSize) {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
         this.enableCompression = enableCompression;
         this.readOnly = readOnly;
         this.max_db_size = maxDBSize;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, readOnly, maxDBSize);
+        db_ref = Native.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, readOnly, maxDBSize);
     }
 
     /**
     * Checks if the database instance has been destroyed.
-    * @throws KuzuObjectRefDestroyedException If the database instance is destroyed.
+    * @throws ObjectRefDestroyedException If the database instance is destroyed.
     */
-    private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
+    private void checkNotDestroyed() throws ObjectRefDestroyedException {
         if (destroyed)
-            throw new KuzuObjectRefDestroyedException("KuzuDatabase has been destroyed.");
+            throw new ObjectRefDestroyedException("Database has been destroyed.");
     }
 
     /**
     * Finalize.
-    * @throws KuzuObjectRefDestroyedException If the database instance has been destroyed.
+    * @throws ObjectRefDestroyedException If the database instance has been destroyed.
     */
     @Override
-    protected void finalize() throws KuzuObjectRefDestroyedException {
+    protected void finalize() throws ObjectRefDestroyedException {
         destroy();
     }
 
     /**
     * Destroy the database instance.
-    * @throws KuzuObjectRefDestroyedException If the database instance has been destroyed.
+    * @throws ObjectRefDestroyedException If the database instance has been destroyed.
     */
-    public void destroy() throws KuzuObjectRefDestroyedException {
+    public void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
-        KuzuNative.kuzu_database_destroy(this);
+        Native.kuzu_database_destroy(this);
         destroyed = true;
     }
 }

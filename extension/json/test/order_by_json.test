@@ -9,6 +9,7 @@
 # In total: we need 23 pages for this test case
 
 -DATASET JSON CSV_TO_JSON(order-by-tests)
+-BUFFER_POOL_SIZE 512000000
 
 --
 

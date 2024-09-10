@@ -20,7 +20,7 @@ public:
     virtual ~ParsingDriver() = default;
 
     bool done(uint64_t rowNum);
-    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
+    virtual bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columnCount);
 
 private:
@@ -68,7 +68,7 @@ public:
         const function::ScanTableFuncBindInput* bindInput);
 
     bool done(uint64_t rowNum) const;
-    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
+    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;
 
 public:
     std::vector<std::pair<std::string, common::LogicalType>> columns;

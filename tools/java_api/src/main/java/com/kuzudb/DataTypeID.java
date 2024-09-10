@@ -1,9 +1,9 @@
 package com.kuzudb;
 
 /**
-* Kuzu data type ID.
+*  data type ID.
 */
-public enum KuzuDataTypeID {
+public enum DataTypeID {
     ANY(0),
     NODE(10),
     REL(11),
@@ -41,7 +41,7 @@ public enum KuzuDataTypeID {
 
     public final int value;
 
-    private KuzuDataTypeID(int v) {
+    private DataTypeID(int v) {
         this.value = v;
     }
 }

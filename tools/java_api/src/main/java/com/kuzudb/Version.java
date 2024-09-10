@@ -1,16 +1,16 @@
 package com.kuzudb;
 
 /**
- * KuzuVersion is a class to get the version of the Kùzu.
+ * Version is a class to get the version of the Kùzu.
  */
-public class KuzuVersion {
+public class Version {
 
     /**
      * Get the version of the Kùzu.
      * @return The version of the Kùzu.
      */
     public static String getVersion() {
-        return KuzuNative.kuzu_get_version();
+        return Native.kuzu_get_version();
     }
 
     /**
@@ -18,6 +18,6 @@ public class KuzuVersion {
      * @return The storage version of the Kùzu.
      */
     public static long getStorageVersion() {
-        return KuzuNative.kuzu_get_storage_version();
+        return Native.kuzu_get_storage_version();
     }
 }

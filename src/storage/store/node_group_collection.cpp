@@ -43,12 +43,13 @@ void NodeGroupCollection::append(const Transaction* transaction,
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
-        if (nodeGroups.getLastGroup(lock)->isFull()) {
+        auto lastNodeGroup = nodeGroups.getLastGroup(lock);
+        if (!lastNodeGroup || lastNodeGroup->isFull()) {
             auto newGroup = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
                 enableCompression, LogicalType::copy(types));
             nodeGroups.appendGroup(lock, std::move(newGroup));
         }
-        const auto& lastNodeGroup = nodeGroups.getLastGroup(lock);
+        lastNodeGroup = nodeGroups.getLastGroup(lock);
         const auto numToAppendInNodeGroup =
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
@@ -80,12 +81,13 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
         const auto numRowsToAppendInChunkedGroup = chunkedGrouoToAppend->getNumRows();
         row_idx_t numRowsAppendedInChunkedGroup = 0;
         while (numRowsAppendedInChunkedGroup < numRowsToAppendInChunkedGroup) {
-            if (nodeGroups.getLastGroup(lock)->isFull()) {
+            auto lastNodeGroup = nodeGroups.getLastGroup(lock);
+            if (!lastNodeGroup || lastNodeGroup->isFull()) {
                 auto newGroup = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
                     enableCompression, LogicalType::copy(types));
                 nodeGroups.appendGroup(lock, std::move(newGroup));
             }
-            const auto& lastNodeGroup = nodeGroups.getLastGroup(lock);
+            lastNodeGroup = nodeGroups.getLastGroup(lock);
             const auto numToAppendInBatch =
                 std::min(numRowsToAppendInChunkedGroup - numRowsAppendedInChunkedGroup,
                     lastNodeGroup->getNumRowsLeftToAppend());

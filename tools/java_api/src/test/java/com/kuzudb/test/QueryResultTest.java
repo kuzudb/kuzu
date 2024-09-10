@@ -18,8 +18,8 @@ public class QueryResultTest extends TestBase {
     static Path tempDir;
 
     @Test
-    void QueryResultGetErrorMessage() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN COUNT(*)");
+    void QueryResultGetErrorMessage() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN COUNT(*)");
         assertTrue(result.isSuccess());
         String errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.equals(""));
@@ -33,16 +33,16 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetNumColumns() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
+    void QueryResultGetNumColumns() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
         assertEquals(result.getNumColumns(), 3);
         result.destroy();
     }
 
     @Test
-    void QueryResultGetColumnName() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
+    void QueryResultGetColumnName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
         String columnName = result.getColumnName(0);
         assertTrue(columnName.equals("a.fName"));
@@ -60,21 +60,21 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetColumnDataType() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height, cast(1 as decimal)");
+    void QueryResultGetColumnDataType() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height, cast(1 as decimal)");
         assertTrue(result.isSuccess());
-        KuzuDataType type = result.getColumnDataType(0);
-        assertEquals(type.getID(), KuzuDataTypeID.STRING);
+        DataType type = result.getColumnDataType(0);
+        assertEquals(type.getID(), DataTypeID.STRING);
         type.destroy();
 
         type = result.getColumnDataType(1);
-        assertEquals(type.getID(), KuzuDataTypeID.INT64);
+        assertEquals(type.getID(), DataTypeID.INT64);
         type.destroy();
         type = result.getColumnDataType(2);
-        assertEquals(type.getID(), KuzuDataTypeID.FLOAT);
+        assertEquals(type.getID(), DataTypeID.FLOAT);
         type.destroy();
         type = result.getColumnDataType(3);
-        assertEquals(type.getID(), KuzuDataTypeID.DECIMAL);
+        assertEquals(type.getID(), DataTypeID.DECIMAL);
         type.destroy();
 
         type = result.getColumnDataType(222);
@@ -82,10 +82,10 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetQuerySummary() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
+    void QueryResultGetQuerySummary() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
-        KuzuQuerySummary summary = result.getQuerySummary();
+        QuerySummary summary = result.getQuerySummary();
         assertNotNull(summary);
         double compilingTime = summary.getCompilingTime();
         assertTrue(compilingTime > 0);
@@ -95,12 +95,12 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultGetNext() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    void QueryResultGetNext() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
         assertTrue(result.isSuccess());
 
         assertTrue(result.hasNext());
-        KuzuFlatTuple row = result.getNext();
+        FlatTuple row = result.getNext();
         assertNotNull(row);
         assertTrue(row.getValue(0).getValue().equals("Alice"));
         assertTrue(row.getValue(1).getValue().equals(35L));
@@ -117,12 +117,12 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultResetIterator() throws KuzuObjectRefDestroyedException {
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+    void QueryResultResetIterator() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
 
-        KuzuFlatTuple row = result.getNext();
+        FlatTuple row = result.getNext();
         assertTrue(row.getValue(0).getValue().equals("Alice"));
         assertTrue(row.getValue(1).getValue().equals(35L));
         row.destroy();

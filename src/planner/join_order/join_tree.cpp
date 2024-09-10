@@ -47,6 +47,9 @@ std::string JoinTreeNode::toString() const {
         }
         return result;
     }
+    default: {
+        KU_UNREACHABLE;
+    }
     }
 }
 
