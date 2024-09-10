@@ -109,7 +109,7 @@ bool JSONScanLocalState::readNextBufferInternal(uint64_t& bufferIdx, bool& fileD
 }
 
 bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone) {
-    auto fileHandle = currentReader->fileHandle.get();
+    auto fileHandle = currentReader->getFileHandle();
     auto requestSize =
         JsonConstant::SCAN_BUFFER_CAPACITY - prevBufferRemainder - YYJSON_PADDING_SIZE;
     uint64_t readPosition;
@@ -151,20 +151,20 @@ void JSONScanLocalState::skipOverArrayStart() {
             "Expected top-level JSON array with format='array', but first character is '{}' in "
             "file \"{}\"."
             "\n Try setting format='auto' or format='newline_delimited'.",
-            bufferPtr[bufferOffset], currentReader->fileName));
+            bufferPtr[bufferOffset], currentReader->getFileName()));
     }
     skipWhitespace(bufferPtr, ++bufferOffset, bufferSize);
     if (bufferOffset >= bufferSize) {
         throw Exception(common::stringFormat(
             "Missing closing brace ']' in JSON array with format='array' in file \"{}\"",
-            currentReader->fileName));
+            currentReader->getFileName()));
     }
     if (bufferPtr[bufferOffset] == ']') {
         skipWhitespace(bufferPtr, ++bufferOffset, bufferSize);
         if (bufferOffset != bufferSize) {
             throw Exception(common::stringFormat("Empty array with trailing data when parsing JSON "
                                                  "array with format='array' in file \"{}\"",
-                currentReader->fileName));
+                currentReader->getFileName()));
         }
         return;
     }

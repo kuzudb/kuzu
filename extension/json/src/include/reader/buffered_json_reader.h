@@ -36,7 +36,7 @@ struct JsonFileHandle {
 
     bool isLastReadRequested() const { return lastReadRequested; }
 
-    common::FileInfo* getFileInfo() { return fileInfo.get(); }
+    common::FileInfo* getFileInfo() const { return fileInfo.get(); }
 
     bool getPositionAndSize(uint64_t& position, uint64_t& size, uint64_t requestedSize);
 
@@ -56,30 +56,29 @@ public:
 
     JsonScanFormat getFormat() const { return options.format; }
 
-public:
     void insertBuffer(uint64_t bufferIdx, std::unique_ptr<JsonScanBufferHandle>&& buffer) {
         std::lock_guard<std::mutex> mtx(lock);
         bufferMap.insert(make_pair(bufferIdx, std::move(buffer)));
     }
 
-    uint64_t getBufferIdx() {
-        buffer_line_or_object_counts.push_back(-1);
-        return bufferIdx++;
-    }
+    uint64_t getBufferIdx() { return bufferIdx++; }
+
     void throwParseError(yyjson_read_err& err, const std::string& extra = "") const;
 
-public:
-    main::ClientContext& context;
-    std::string fileName;
-    BufferedJSONReaderOptions options;
-    std::unique_ptr<JsonFileHandle> fileHandle;
-    uint64_t bufferIdx;
-    std::unordered_map<uint64_t, std::unique_ptr<JsonScanBufferHandle>> bufferMap;
-    std::vector<int64_t> buffer_line_or_object_counts;
-    bool thrown;
+    JsonFileHandle* getFileHandle() const { return fileHandle.get(); }
+
+    std::string getFileName() const { return fileName; }
 
 public:
     std::mutex lock;
+
+private:
+    main::ClientContext& context;
+    std::unique_ptr<JsonFileHandle> fileHandle;
+    std::string fileName;
+    BufferedJSONReaderOptions options;
+    uint64_t bufferIdx = 0;
+    std::unordered_map<uint64_t, std::unique_ptr<JsonScanBufferHandle>> bufferMap;
 };
 
 } // namespace json_extension

@@ -43,18 +43,17 @@ void JsonFileHandle::readAtPosition(uint8_t* pointer, uint64_t size, uint64_t po
 
 BufferedJsonReader::BufferedJsonReader(main::ClientContext& context, std::string fileName,
     BufferedJSONReaderOptions options)
-    : context{context}, fileName{std::move(fileName)}, options{std::move(options)}, thrown{false} {
+    : context{context}, fileName{std::move(fileName)}, options{std::move(options)} {
     auto fileInfo = context.getVFSUnsafe()->openFile(this->fileName, FileFlags::READ_ONLY);
     fileHandle = std::make_unique<JsonFileHandle>(std::move(fileInfo));
 }
 
 void BufferedJsonReader::throwParseError(yyjson_read_err& err, const std::string& extra) const {
     auto unit = options.format == JsonScanFormat::NEWLINE_DELIMITED ? "line" : "record/value";
-    auto line = 0;
     // TODO(Ziyi): report error line number.
     throw common::RuntimeException{
-        common::stringFormat("Malformed JSON in file \"{}\", at byte {} in {} {}: {}. {}", fileName,
-            err.pos + 1, unit, line + 1, err.msg, extra)};
+        common::stringFormat("Malformed JSON in file \"{}\", at byte {} in {}: {}. {}", fileName,
+            err.pos + 1, unit, err.msg, extra)};
 }
 
 } // namespace json_extension
