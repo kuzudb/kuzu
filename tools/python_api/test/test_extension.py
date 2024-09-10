@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import platform
 import urllib.request
+import os
 from pathlib import Path
 
 import pytest
@@ -34,7 +35,7 @@ def test_extension_install_httpfs(conn_db_readonly: ConnDB, tmpdir: str, expecte
             if EXTENSION_CMAKE_PREFIX in line:
                 extension_version = line.split(EXTENSION_CMAKE_PREFIX)[1].split('"')[0]
                 break
-    userdir = Path.expanduser("~")
+    userdir = os.path.expanduser("~")  # noqa: PTH111
     expected_path = (
         Path(userdir)
         .joinpath(".kuzu", "extension", extension_version, expected_extension_dir_prefix, "httpfs", "libhttpfs.kuzu_extension")
