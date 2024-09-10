@@ -4,7 +4,6 @@ import sys
 
 import kuzu
 import pytest
-
 from type_aliases import ConnDB
 
 
@@ -20,9 +19,7 @@ def test_exception(conn_db_readonly: ConnDB) -> None:
 
 def test_db_path_exception() -> None:
     path = ":memory:"
-    error_message = (
-        "Cannot open an in-memory database under READ ONLY mode."
-    )
+    error_message = "Cannot open an in-memory database under READ ONLY mode."
     with pytest.raises(RuntimeError, match=error_message):
         kuzu.Database(path, read_only=True)
 

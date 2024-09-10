@@ -1,8 +1,11 @@
 #include "expression_evaluator/lambda_evaluator.h"
 
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression/scalar_function_expression.h"
+#include "common/exception/runtime.h"
 #include "expression_evaluator/expression_evaluator_visitor.h"
 #include "function/list/vector_list_functions.h"
+#include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;

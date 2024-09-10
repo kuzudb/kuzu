@@ -237,7 +237,7 @@ class Connection:
         return_type: Type | str = "",
         *,
         default_null_handling: bool = True,
-        catch_exceptions: bool = False
+        catch_exceptions: bool = False,
     ) -> None:
         """
         Sets a User Defined Function (UDF) to use in cypher queries.
@@ -275,7 +275,8 @@ class Connection:
             params_type=parsed_params_type,
             return_value=return_type,
             default_null=default_null_handling,
-            catch_exceptions=catch_exceptions)
+            catch_exceptions=catch_exceptions,
+        )
 
     def remove_function(self, name: str) -> None:
         """
