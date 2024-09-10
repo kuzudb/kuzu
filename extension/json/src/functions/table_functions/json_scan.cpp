@@ -494,8 +494,10 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
 }
 
 std::unique_ptr<TableFunction> JsonScan::getFunction() {
-    return std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
+    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
         initLocalState, progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    func->canParallelFunc = []() { return false; };
+    return std::move(func);
 }
 
 } // namespace json_extension
