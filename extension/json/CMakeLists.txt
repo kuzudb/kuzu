@@ -13,18 +13,7 @@ add_library(kuzu_json_extension
 
 add_subdirectory(third_party)
 
-set_target_properties(kuzu_json_extension PROPERTIES
-        OUTPUT_NAME json
-        PREFIX "lib"
-        SUFFIX ".kuzu_extension"
-)
-
-set_target_properties(kuzu_json_extension
-        PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
-)
+set_extension_properties(kuzu_json_extension json)
 
 target_link_libraries(kuzu_json_extension
         PRIVATE
@@ -52,5 +41,5 @@ if (WIN32)
 endif ()
 
 if (APPLE)
-    set_target_properties(kuzu_json_extension PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_apple_dynamic_lookup(kuzu_json_extension)
 endif ()
