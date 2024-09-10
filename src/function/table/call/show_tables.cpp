@@ -46,8 +46,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableInfo = tables[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, tableInfo.name);
-        dataChunk.getValueVector(1)->setValue(i, tableInfo.id);
+        dataChunk.getValueVector(0)->setValue(i, tableInfo.id);
+        dataChunk.getValueVector(1)->setValue(i, tableInfo.name);
         dataChunk.getValueVector(2)->setValue(i, tableInfo.type);
         dataChunk.getValueVector(3)->setValue(i, tableInfo.databaseName);
         dataChunk.getValueVector(4)->setValue(i, tableInfo.comment);
@@ -59,10 +59,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     ScanTableFuncBindInput*) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    columnNames.emplace_back("name");
-    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("id");
     columnTypes.emplace_back(LogicalType::UINT64());
+    columnNames.emplace_back("name");
+    columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("type");
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("database name");

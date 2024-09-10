@@ -15,24 +15,24 @@ Table knows comment updated.
 
 -STATEMENT CALL show_tables() RETURN *
 ---- 8
-knows|3|REL|local(kuzu)|Another test comment
-marries|7|REL|local(kuzu)|
-meets|6|REL|local(kuzu)|
-movies|2|NODE|local(kuzu)|
-organisation|1|NODE|local(kuzu)|
-person|0|NODE|local(kuzu)|A test comment
-studyAt|4|REL|local(kuzu)|
-workAt|5|REL|local(kuzu)|
+0|person|NODE|local(kuzu)|A test comment
+1|organisation|NODE|local(kuzu)|
+2|movies|NODE|local(kuzu)|
+3|knows|REL|local(kuzu)|Another test comment
+4|studyAt|REL|local(kuzu)|
+5|workAt|REL|local(kuzu)|
+6|meets|REL|local(kuzu)|
+7|marries|REL|local(kuzu)|
 
 -STATEMENT COMMIT
 
 -STATEMENT CALL show_tables() RETURN *
 ---- 8
-knows|3|REL|local(kuzu)|Another test comment
-marries|7|REL|local(kuzu)|
-meets|6|REL|local(kuzu)|
-movies|2|NODE|local(kuzu)|
-organisation|1|NODE|local(kuzu)|
-person|0|NODE|local(kuzu)|A test comment
-studyAt|4|REL|local(kuzu)|
-workAt|5|REL|local(kuzu)|
+0|person|NODE|local(kuzu)|A test comment
+1|organisation|NODE|local(kuzu)|
+2|movies|NODE|local(kuzu)|
+3|knows|REL|local(kuzu)|Another test comment
+4|studyAt|REL|local(kuzu)|
+5|workAt|REL|local(kuzu)|
+6|meets|REL|local(kuzu)|
+7|marries|REL|local(kuzu)|

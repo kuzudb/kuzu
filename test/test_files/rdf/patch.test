@@ -9,12 +9,12 @@
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 6
-N|5|NODE|local(kuzu)|
-X_lt|3|REL|local(kuzu)|
-X_l|1|NODE|local(kuzu)|
-X_rt|2|REL|local(kuzu)|
-X_r|0|NODE|local(kuzu)|
-X|4|RDFGraph|local(kuzu)|
+0|X_r|NODE|local(kuzu)|
+1|X_l|NODE|local(kuzu)|
+2|X_rt|REL|local(kuzu)|
+3|X_lt|REL|local(kuzu)|
+4|X|RDFGraph|local(kuzu)|
+5|N|NODE|local(kuzu)|
 -STATEMENT CALL table_info("X_r") RETURN *;
 ---- 1
 0|iri|NULL|STRING|True
