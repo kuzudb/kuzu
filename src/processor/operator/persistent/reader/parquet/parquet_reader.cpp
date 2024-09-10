@@ -64,7 +64,9 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
         }
 
         uint64_t toScanCompressedBytes = 0;
-        for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
+        // parquet reader does not support populating extra data for warnings
+        const auto numColsToScan = result.getNumValueVectors() - state.numExtraDataColumns;
+        for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
             prepareRowGroupBuffer(state, colIdx);
 
             auto fileColIdx = colIdx;
@@ -100,7 +102,8 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
                 }
             } else {
                 // Prefetch column-wise.
-                for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
+                const auto numColsToScan = result.getNumValueVectors() - state.numExtraDataColumns;
+                for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
                     auto fileColIdx = colIdx;
                     auto rootReader =
                         ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
@@ -141,8 +144,8 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
     auto repeatPtr = (uint8_t*)state.repeatBuf.ptr;
 
     auto rootReader = ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
-
-    for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
+    const auto numColsToScan = result.getNumValueVectors() - state.numExtraDataColumns;
+    for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
         if (!columnSkips.empty() && columnSkips[colIdx]) {
             continue;
         }
@@ -699,11 +702,11 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         bindData->context, bindData->getColumnSkips());
 }
 
-static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-    TableFunctionInitInput& /*input*/, TableFuncSharedState* state,
-    storage::MemoryManager* /*mm*/) {
+static std::unique_ptr<function::TableFuncLocalState> initLocalState(TableFunctionInitInput& input,
+    TableFuncSharedState* state, storage::MemoryManager* /*mm*/) {
     auto sharedState = state->ptrCast<ParquetScanSharedState>();
     auto localState = std::make_unique<ParquetScanLocalState>();
+    localState->state->numExtraDataColumns = input.numExtraDataColumns;
     if (!parquetSharedStateNext(*localState, *sharedState)) {
         return nullptr;
     }

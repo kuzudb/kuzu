@@ -60,16 +60,6 @@ void ChunkedNodeGroup::merge(ChunkedNodeGroup& base,
     }
 }
 
-std::vector<ColumnChunk*> ChunkedNodeGroup::getSlice(
-    const std::vector<common::column_id_t>& columns) const {
-    std::vector<ColumnChunk*> ret;
-    for (auto columnId : columns) {
-        KU_ASSERT(columnId < chunks.size());
-        ret.push_back(chunks[columnId].get());
-    }
-    return ret;
-}
-
 void ChunkedNodeGroup::resetToEmpty() {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     numRows = 0;

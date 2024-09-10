@@ -52,7 +52,6 @@ public:
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
     }
-    std::vector<ColumnChunk*> getSlice(const std::vector<common::column_id_t>& columns) const;
     std::unique_ptr<ColumnChunk> moveColumnChunk(const common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
         return std::move(chunks[columnID]);
