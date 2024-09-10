@@ -115,18 +115,6 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     return expression;
 }
 
-void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
-    auto existColumnNames = std::unordered_set<std::string>();
-    for (auto& expression : expressions) {
-        auto columnName = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        if (existColumnNames.contains(columnName)) {
-            throw BinderException(
-                "Multiple result column with the same name " + columnName + " are not supported.");
-        }
-        existColumnNames.insert(columnName);
-    }
-}
-
 void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
