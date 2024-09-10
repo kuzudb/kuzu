@@ -17,6 +17,7 @@
 #include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/pattern_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
+#include "parser/expression/parsed_lambda_expression.h"
 #include "planner/operator/schema.h"
 
 using namespace kuzu::binder;

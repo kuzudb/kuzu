@@ -29,7 +29,7 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
         // For list_reduce:
         // We should create two vectors for each lambda variable resultVector since we are going to
         // update the list elements during execution.
-        evaluator->resultVector = evaluators.size() == 1 ?
+        evaluator->resultVector = listLambdaType != ListLambdaType::LIST_REDUCE ?
                                       ListVector::getSharedDataVector(listInputVector) :
                                       std::make_shared<ValueVector>(
                                           ListType::getChildType(listInputVector->dataType).copy(),
@@ -41,7 +41,8 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     resolveResultVector(resultSet, clientContext->getMemoryManager());
     params.push_back(children[0]->resultVector);
     params.push_back(lambdaRootEvaluator->resultVector);
-    bindData = ListLambdaBindData{lambdaParamEvaluators, lambdaRootEvaluator.get()};
+    auto paramIndices = getParamIndices();
+    bindData = ListLambdaBindData{lambdaParamEvaluators, paramIndices, lambdaRootEvaluator.get()};
 }
 
 void ListLambdaEvaluator::evaluate() {
@@ -59,6 +60,37 @@ void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* m
         ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
     }
     isResultFlat_ = children[0]->isResultFlat();
+}
+std::vector<common::idx_t> ListLambdaEvaluator::getParamIndices() {
+    const auto& paramNames = getExpression()
+                                 ->getChild(1)
+                                 ->constCast<binder::LambdaExpression>()
+                                 .getParsedLambdaExpr()
+                                 ->constCast<parser::ParsedLambdaExpression>()
+                                 .getVarNames();
+    std::vector<common::idx_t> index(lambdaParamEvaluators.size());
+    for (common::idx_t i = 0; i < lambdaParamEvaluators.size(); i++) {
+        auto paramName = lambdaParamEvaluators[i]->getVarName();
+        auto it = std::find(paramNames.begin(), paramNames.end(), paramName);
+        if (it != paramNames.end()) {
+            index[i] = it - paramNames.begin();
+        } else {
+            throw common::RuntimeException(
+                common::stringFormat("Lambda paramName {} cannot found.", paramName));
+        }
+    }
+    return index;
+}
+ListLambdaType ListLambdaEvaluator::checkListLambdaTypeWithFunctionName(std::string functionName) {
+    if (0 == functionName.compare(function::ListTransformFunction::name)) {
+        return ListLambdaType::LIST_TRANSFORM;
+    } else if (0 == functionName.compare(function::ListFilterFunction::name)) {
+        return ListLambdaType::LIST_FILTER;
+    } else if (0 == functionName.compare(function::ListReduceFunction::name)) {
+        return ListLambdaType::LIST_REDUCE;
+    } else {
+        return ListLambdaType::DEFAULT;
+    }
 }
 
 } // namespace evaluator

@@ -21,7 +21,7 @@ class DataChunk {
 public:
     DataChunk() : DataChunk{0} {}
     explicit DataChunk(uint32_t numValueVectors)
-        : DataChunk(numValueVectors, std::make_shared<DataChunkState>()){};
+        : DataChunk(numValueVectors, std::make_shared<DataChunkState>()) {};
 
     DataChunk(uint32_t numValueVectors, const std::shared_ptr<DataChunkState>& state)
         : valueVectors(numValueVectors), state{state} {};
