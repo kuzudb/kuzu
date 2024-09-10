@@ -277,7 +277,7 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     char sep;
 
     // skip leading spaces
-    while (pos < len && StringUtils::CharacterIsSpace(buf[pos])) {
+    while (pos < len && StringUtils::isSpace(buf[pos])) {
         pos++;
     }
 
@@ -330,7 +330,7 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     }
 
     // skip trailing spaces
-    while (pos < len && StringUtils::CharacterIsSpace((unsigned char)buf[pos])) {
+    while (pos < len && StringUtils::isSpace((unsigned char)buf[pos])) {
         pos++;
     }
     // check position. if end was not reached, non-space chars remaining

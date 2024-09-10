@@ -613,7 +613,6 @@ static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffe
 
 JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
     JsonScanFormat format) {
-
     auto file = context->getVFSUnsafe()->openFile(path, FileFlags::READ_ONLY, context);
     auto fileSize = file->getFileSize();
     auto buffer = std::make_shared<char[]>(fileSize + 9);

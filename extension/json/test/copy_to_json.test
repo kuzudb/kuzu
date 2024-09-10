@@ -1,5 +1,5 @@
 -DATASET JSON tinysnb_json
-
+-BUFFER_POOL_SIZE 512000000
 --
 
 -CASE TinySnbCopyToJSON
