@@ -102,33 +102,33 @@ False
 -LOG NodeTableInfo
 -STATEMENT CALL table_info('person') RETURN *
 ---- 16
-0|ID|INT64|True
-1|fName|STRING|False
-2|gender|INT64|False
-3|isStudent|BOOL|False
-4|isWorker|BOOL|False
-5|age|INT64|False
-6|eyeSight|DOUBLE|False
-7|birthdate|DATE|False
-8|registerTime|TIMESTAMP|False
-9|lastJobDuration|INTERVAL|False
-10|workedHours|INT64[]|False
-11|usedNames|STRING[]|False
-12|courseScoresPerTerm|INT64[][]|False
-13|grades|INT64[4]|False
-14|height|FLOAT|False
-15|u|UUID|False
+0|ID|NULL|INT64|True
+10|workedHours|NULL|INT64[]|False
+11|usedNames|NULL|STRING[]|False
+12|courseScoresPerTerm|NULL|INT64[][]|False
+13|grades|NULL|INT64[4]|False
+14|height|NULL|FLOAT|False
+15|u|NULL|UUID|False
+1|fName|NULL|STRING|False
+2|gender|NULL|INT64|False
+3|isStudent|NULL|BOOL|False
+4|isWorker|NULL|BOOL|False
+5|age|NULL|INT64|False
+6|eyeSight|NULL|DOUBLE|False
+7|birthdate|NULL|DATE|False
+8|registerTime|NULL|TIMESTAMP|False
+9|lastJobDuration|NULL|INTERVAL|False
 
 -LOG RelTableInfo
 -STATEMENT CALL table_info('knows') RETURN *
 ---- 7
-1|date|DATE
-2|meetTime|TIMESTAMP
-3|validInterval|INTERVAL
-4|comments|STRING[]
-5|summary|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
-6|notes|UNION(firstmet DATE, type INT16, comment STRING)
-7|someMap|MAP(STRING, STRING)
+1|date|NULL|DATE
+2|meetTime|NULL|TIMESTAMP
+3|validInterval|NULL|INTERVAL
+4|comments|NULL|STRING[]
+5|summary|NULL|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
+6|notes|NULL|UNION(firstmet DATE, type INT16, comment STRING)
+7|someMap|NULL|MAP(STRING, STRING)
 
 -LOG ReturnNodeName
 -STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name

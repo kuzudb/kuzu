@@ -38,26 +38,26 @@ Binder exception: Cannot copy into knows table with type REL_GROUP.
 Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
 -STATEMENT CALL show_tables() RETURN *;
 ---- 10
-knows_personA_personB|REL|local(kuzu)|
-knows_personA_personC|REL|local(kuzu)|
-knows_personB_personC|REL|local(kuzu)|
-knows|REL_GROUP|local(kuzu)|
-likes_personA_personB|REL|local(kuzu)|
-likes_personB_personA|REL|local(kuzu)|
-likes|REL_GROUP|local(kuzu)|
-personA|NODE|local(kuzu)|
-personB|NODE|local(kuzu)|
-personC|NODE|local(kuzu)|
+knows_personA_personB|3|REL|local(kuzu)|
+knows_personA_personC|4|REL|local(kuzu)|
+knows_personB_personC|5|REL|local(kuzu)|
+knows|6|REL_GROUP|local(kuzu)|
+likes_personA_personB|7|REL|local(kuzu)|
+likes_personB_personA|8|REL|local(kuzu)|
+likes|9|REL_GROUP|local(kuzu)|
+personA|0|NODE|local(kuzu)|
+personB|1|NODE|local(kuzu)|
+personC|2|NODE|local(kuzu)|
 -STATEMENT DROP TABLE knows;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 6
-likes_personA_personB|REL|local(kuzu)|
-likes_personB_personA|REL|local(kuzu)|
-likes|REL_GROUP|local(kuzu)|
-personA|NODE|local(kuzu)|
-personB|NODE|local(kuzu)|
-personC|NODE|local(kuzu)|
+likes_personA_personB|7|REL|local(kuzu)|
+likes_personB_personA|8|REL|local(kuzu)|
+likes|9|REL_GROUP|local(kuzu)|
+personA|0|NODE|local(kuzu)|
+personB|1|NODE|local(kuzu)|
+personC|2|NODE|local(kuzu)|
 -STATEMENT MATCH (a:personA)-[e:knows]->(b) RETURN COUNT(*)
 ---- error
 Binder exception: Table knows does not exist.
@@ -70,12 +70,12 @@ Binder exception: Table knows_personA_personB does not exist.
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 6
-likes_A_B|REL|local(kuzu)|
-likes_personB_personA|REL|local(kuzu)|
-hates|REL_GROUP|local(kuzu)|
-personA|NODE|local(kuzu)|
-personB|NODE|local(kuzu)|
-personC|NODE|local(kuzu)|
+hates|9|REL_GROUP|local(kuzu)|
+likes_A_B|7|REL|local(kuzu)|
+likes_personB_personA|8|REL|local(kuzu)|
+personA|0|NODE|local(kuzu)|
+personB|1|NODE|local(kuzu)|
+personC|2|NODE|local(kuzu)|
 -STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
 ---- 3
 likes_A_B|personB|2|Bob
@@ -94,4 +94,4 @@ Binder exception: Cannot rename property on table hates with type REL_GROUP.
 ---- ok
 -STATEMENT CALL table_info("likes_A_B") RETURN *;
 ---- 1
-1|s|DATE
+1|s|NULL|DATE
