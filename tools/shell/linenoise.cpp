@@ -2268,7 +2268,7 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     append_buffer.abAppend(seq);
 
     append_buffer.abAppend("\033[0m"); // reset all attributes
-    
+
     /* Write the prompt and the current buffer content */
     append_buffer.abAppend(l->prompt);
     if (maskmode == 1) {
