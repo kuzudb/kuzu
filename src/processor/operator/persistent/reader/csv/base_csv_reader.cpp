@@ -209,25 +209,25 @@ template<typename Driver>
 static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
     const CSVColumnInfo& columnInfo, const CSVOption& option,
     const WarningSourceData& warningData) {
-    std::optional<WarningDataWithColumnInfo> extraData;
+    std::optional<WarningDataWithColumnInfo> warningData;
     if constexpr (std::is_same_v<Driver, ParallelParsingDriver> ||
                   std::is_same_v<Driver, SerialParsingDriver>) {
         // we only care about populating the extra warning data when actually parsing the CSV
         // and not when performing actions like sniffing
         if (option.ignoreErrors) {
-            KU_ASSERT(columnInfo.numExtraDataColumns == 5);
-            extraData.emplace();
-            extraData->startByteOffset =
+            KU_ASSERT(columnInfo.numWarningDataColumns == 5);
+            warningData.emplace();
+            warningData->startByteOffset =
                 std::make_pair(warningData.startByteOffset, columnInfo.numColumns);
-            extraData->endByteOffset =
+            warningData->endByteOffset =
                 std::make_pair(warningData.endByteOffset, columnInfo.numColumns + 1);
-            extraData->fileIdx = std::make_pair(warningData.fileIdx, columnInfo.numColumns + 2);
-            extraData->blockIdx = std::make_pair(warningData.blockIdx, columnInfo.numColumns + 3);
-            extraData->rowOffsetInBlock =
+            warningData->fileIdx = std::make_pair(warningData.fileIdx, columnInfo.numColumns + 2);
+            warningData->blockIdx = std::make_pair(warningData.blockIdx, columnInfo.numColumns + 3);
+            warningData->rowOffsetInBlock =
                 std::make_pair(warningData.rowOffsetInBlock, columnInfo.numColumns + 4);
         }
     }
-    return extraData;
+    return warningData;
 }
 
 WarningSourceData BaseCSVReader::getWarningSourceData() const {

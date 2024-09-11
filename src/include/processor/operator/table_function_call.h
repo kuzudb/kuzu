@@ -31,7 +31,7 @@ struct TableFunctionCallInfo {
     function::TableFunction function;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outPosV;
-    common::column_id_t numExtraDataColumns;
+    common::column_id_t numWarningDataColumns;
     DataPos rowOffsetPos;
     TableScanOutputType outputType;
 
@@ -43,7 +43,7 @@ private:
         function = other.function;
         bindData = other.bindData->copy();
         outPosV = other.outPosV;
-        numExtraDataColumns = other.numExtraDataColumns;
+        numWarningDataColumns = other.numWarningDataColumns;
         rowOffsetPos = other.rowOffsetPos;
         outputType = other.outputType;
     }
@@ -117,7 +117,7 @@ public:
 
     double getProgress(ExecutionContext* context) const override;
 
-    common::column_id_t getNumExtraDataColumns() const;
+    common::column_id_t getnumWarningDataColumns() const;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<TableFunctionCall>(info.copy(), sharedState, id, printInfo->copy());

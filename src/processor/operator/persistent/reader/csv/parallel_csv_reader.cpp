@@ -213,7 +213,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     auto csvOption = CSVReaderConfig::construct(bindData->config.options).option;
     row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns(), bindData->getColumnSkips(),
-        input.numExtraDataColumns);
+        input.numWarningDataColumns);
     auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->config.copy(),
         numRows, bindData->context, csvOption.copy(), columnInfo.copy());
 

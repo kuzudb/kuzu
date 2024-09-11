@@ -12,20 +12,20 @@ struct BoundTableScanSourceInfo {
     std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector columns;
 
-    // the last {numExtraDataColumns} columns are for temporary internal use
-    common::column_id_t numExtraDataColumns;
+    // the last {numWarningDataColumns} columns are for temporary internal use
+    common::column_id_t numWarningDataColumns;
 
     BoundTableScanSourceInfo(function::TableFunction func,
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns,
-        common::column_id_t numExtraDataColumns = 0)
+        common::column_id_t numWarningDataColumns = 0)
         : func{func}, bindData{std::move(bindData)}, columns{std::move(columns)},
-          numExtraDataColumns(numExtraDataColumns) {}
+          numWarningDataColumns(numWarningDataColumns) {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundTableScanSourceInfo);
 
 private:
     BoundTableScanSourceInfo(const BoundTableScanSourceInfo& other)
         : func{other.func}, bindData{other.bindData->copy()}, columns{other.columns},
-          numExtraDataColumns{other.numExtraDataColumns} {}
+          numWarningDataColumns{other.numWarningDataColumns} {}
 };
 
 } // namespace binder

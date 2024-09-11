@@ -88,23 +88,24 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
     }
 }
 
-[[maybe_unused]] static void checkExtraDataColumnTypes(const expression_vector& extraDataColumns) {
-    KU_ASSERT(extraDataColumns.size() == 5);
+[[maybe_unused]] static void checkWarningDataColumnTypes(
+    const expression_vector& warningDataColumns) {
+    KU_ASSERT(warningDataColumns.size() == 5);
     KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
                   decltype(processor::WarningSourceData::startByteOffset)>() ==
-              extraDataColumns[0]->getDataType().getPhysicalType());
+              warningDataColumns[0]->getDataType().getPhysicalType());
     KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
                   decltype(processor::WarningSourceData::endByteOffset)>() ==
-              extraDataColumns[1]->getDataType().getPhysicalType());
+              warningDataColumns[1]->getDataType().getPhysicalType());
     KU_ASSERT(
         TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::fileIdx)>() ==
-        extraDataColumns[2]->getDataType().getPhysicalType());
+        warningDataColumns[2]->getDataType().getPhysicalType());
     KU_ASSERT(
         TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::blockIdx)>() ==
-        extraDataColumns[3]->getDataType().getPhysicalType());
+        warningDataColumns[3]->getDataType().getPhysicalType());
     KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
                   decltype(processor::WarningSourceData::rowOffsetInBlock)>() ==
-              extraDataColumns[4]->getDataType().getPhysicalType());
+              warningDataColumns[4]->getDataType().getPhysicalType());
 }
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSource& scanSource,
@@ -126,20 +127,20 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
 
     const bool ignoreErrors = config->getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
-    column_id_t numExtraDataColumns = 0;
+    column_id_t numWarningDataColumns = 0;
     if (ignoreErrors) {
-        numExtraDataColumns = CopyConstants::WARNING_METADATA_NUM_COLUMNS;
+        numWarningDataColumns = CopyConstants::WARNING_METADATA_NUM_COLUMNS;
         for (idx_t i = 0; i < CopyConstants::WARNING_METADATA_NUM_COLUMNS; ++i) {
             inputColumns.push_back(
                 createVariable(std::string_view{CopyConstants::WARNING_METADATA_COLUMN_NAMES[i]},
                     CopyConstants::WARNING_METADATA_COLUMN_TYPES[i]));
         }
-        RUNTIME_CHECK(checkExtraDataColumnTypes(expression_vector{
+        RUNTIME_CHECK(checkWarningDataColumnTypes(expression_vector{
             inputColumns.end() - CopyConstants::WARNING_METADATA_NUM_COLUMNS, inputColumns.end()}));
     }
 
     auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(inputColumns),
-        numExtraDataColumns);
+        numWarningDataColumns);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 

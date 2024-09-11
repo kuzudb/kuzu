@@ -36,7 +36,7 @@ public:
     bool done(uint64_t rowNum);
     virtual bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columnCount,
-        std::optional<WarningDataWithColumnInfo> extraData);
+        std::optional<WarningDataWithColumnInfo> warningData);
 
 private:
     virtual bool doneEarly() = 0;

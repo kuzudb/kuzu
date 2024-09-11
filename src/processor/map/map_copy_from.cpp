@@ -73,12 +73,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         pkDefinition.getType().copy(), fTable, &storageManager->getWAL(),
         clientContext->getMemoryManager());
 
-    column_id_t numExtraDataColumns = 0;
+    column_id_t numWarningDataColumns = 0;
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
 
-        numExtraDataColumns = call->getNumExtraDataColumns();
+        numWarningDataColumns = call->getnumWarningDataColumns();
     } else {
         KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::AGGREGATE_SCAN);
         const auto hashScan = prevOperator->ptrCast<HashAggregateScan>();
@@ -102,10 +102,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
             CopyConstants::DEFAULT_IGNORE_ERRORS);
     }
 
-    KU_ASSERT(columnTypes.size() >= numExtraDataColumns);
+    KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        copyFromInfo->columnEvaluateTypes, ignoreErrors, numExtraDataColumns);
+        copyFromInfo->columnEvaluateTypes, ignoreErrors, numWarningDataColumns);
 
     auto printInfo =
         std::make_unique<NodeBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());

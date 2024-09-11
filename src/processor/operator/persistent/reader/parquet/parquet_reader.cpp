@@ -65,7 +65,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
 
         uint64_t toScanCompressedBytes = 0;
         // parquet reader does not support populating extra data for warnings
-        const auto numColsToScan = result.getNumValueVectors() - state.numExtraDataColumns;
+        const auto numColsToScan = result.getNumValueVectors() - state.numWarningDataColumns;
         for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
             prepareRowGroupBuffer(state, colIdx);
 
@@ -102,7 +102,8 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
                 }
             } else {
                 // Prefetch column-wise.
-                const auto numColsToScan = result.getNumValueVectors() - state.numExtraDataColumns;
+                const auto numColsToScan =
+                    result.getNumValueVectors() - state.numWarningDataColumns;
                 for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
                     auto fileColIdx = colIdx;
                     auto rootReader =
@@ -144,7 +145,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
     auto repeatPtr = (uint8_t*)state.repeatBuf.ptr;
 
     auto rootReader = ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
-    const auto numColsToScan = result.getNumValueVectors() - state.numExtraDataColumns;
+    const auto numColsToScan = result.getNumValueVectors() - state.numWarningDataColumns;
     for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
         if (!columnSkips.empty() && columnSkips[colIdx]) {
             continue;
@@ -706,7 +707,7 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(TableFuncti
     TableFuncSharedState* state, storage::MemoryManager* /*mm*/) {
     auto sharedState = state->ptrCast<ParquetScanSharedState>();
     auto localState = std::make_unique<ParquetScanLocalState>();
-    localState->state->numExtraDataColumns = input.numExtraDataColumns;
+    localState->state->numWarningDataColumns = input.numWarningDataColumns;
     if (!parquetSharedStateNext(*localState, *sharedState)) {
         return nullptr;
     }

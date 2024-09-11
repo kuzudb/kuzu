@@ -50,14 +50,14 @@ bool ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
 }
 
 template<typename T>
-static void updateExtraDataInChunk(DataChunk& chunk, uint64_t rowNum,
-    WarningDataWithColumnInfo::EntryWithColumnIdx<T> extraData) {
-    KU_ASSERT(extraData.second < chunk.getNumValueVectors());
-    chunk.getValueVector(extraData.second)->setValue(rowNum, extraData.first);
+static void updateWarningDataInChunk(DataChunk& chunk, uint64_t rowNum,
+    WarningDataWithColumnInfo::EntryWithColumnIdx<T> warningData) {
+    KU_ASSERT(warningData.second < chunk.getNumValueVectors());
+    chunk.getValueVector(warningData.second)->setValue(rowNum, warningData.first);
 }
 
 bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
-    std::optional<WarningDataWithColumnInfo> extraData) {
+    std::optional<WarningDataWithColumnInfo> warningData) {
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;
@@ -73,12 +73,12 @@ bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
         return false;
     }
 
-    if (extraData.has_value()) {
-        updateExtraDataInChunk(chunk, rowNum, extraData->startByteOffset);
-        updateExtraDataInChunk(chunk, rowNum, extraData->endByteOffset);
-        updateExtraDataInChunk(chunk, rowNum, extraData->fileIdx);
-        updateExtraDataInChunk(chunk, rowNum, extraData->blockIdx);
-        updateExtraDataInChunk(chunk, rowNum, extraData->rowOffsetInBlock);
+    if (warningData.has_value()) {
+        updateWarningDataInChunk(chunk, rowNum, warningData->startByteOffset);
+        updateWarningDataInChunk(chunk, rowNum, warningData->endByteOffset);
+        updateWarningDataInChunk(chunk, rowNum, warningData->fileIdx);
+        updateWarningDataInChunk(chunk, rowNum, warningData->blockIdx);
+        updateWarningDataInChunk(chunk, rowNum, warningData->rowOffsetInBlock);
     }
     return true;
 }

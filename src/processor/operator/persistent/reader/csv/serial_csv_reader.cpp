@@ -110,7 +110,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
     auto columnInfo = CSVColumnInfo(bindInput->expectedColumnNames.size() /* numColumns */,
-        {} /* columnSkips */, {} /*extraDataColumns*/);
+        {} /* columnSkips */, {} /*warningDataColumns*/);
     auto warningCounter = std::make_shared<warning_counter_t>();
     SharedCSVFileErrorHandler sharedErrorHandler{bindInput->config.getFilePath(fileIdx), nullptr};
     // We don't want to cache CSV errors encountered during sniffing, they will be re-encountered
@@ -160,7 +160,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
     auto csvOption = CSVReaderConfig::construct(bindData->config.options).option;
     row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns(), bindData->getColumnSkips(),
-        input.numExtraDataColumns);
+        input.numWarningDataColumns);
     auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
         bindData->context, csvOption.copy(), columnInfo.copy());
     for (idx_t i = 0; i < sharedState->readerConfig.filePaths.size(); ++i) {

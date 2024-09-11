@@ -66,11 +66,11 @@ struct TableFuncOutput {
 
 struct TableFunctionInitInput {
     TableFuncBindData* bindData;
-    common::column_id_t numExtraDataColumns;
+    common::column_id_t numWarningDataColumns;
 
     explicit TableFunctionInitInput(TableFuncBindData* bindData,
-        common::column_id_t numExtraDataColumns)
-        : bindData{bindData}, numExtraDataColumns(numExtraDataColumns) {}
+        common::column_id_t numWarningDataColumns)
+        : bindData{bindData}, numWarningDataColumns(numWarningDataColumns) {}
 
     virtual ~TableFunctionInitInput() = default;
 };

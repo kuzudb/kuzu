@@ -42,27 +42,28 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
     std::vector<common::column_id_t> outputDataColumns;
-    std::vector<common::column_id_t> extraDataColumns;
+    std::vector<common::column_id_t> warningDataColumns;
 
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes, bool ignoreErrors,
-        common::column_id_t numExtraDataColumns)
+        common::column_id_t numWarningDataColumns)
         : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors},
           columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
           evaluateTypes{std::move(evaluateTypes)},
-          outputDataColumns(this->columnTypes.size() - numExtraDataColumns),
-          extraDataColumns(numExtraDataColumns) {
+          outputDataColumns(this->columnTypes.size() - numWarningDataColumns),
+          warningDataColumns(numWarningDataColumns) {
         std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
-        std::iota(extraDataColumns.begin(), extraDataColumns.end(), outputDataColumns.size());
+        std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
     }
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
         : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
           columnEvaluators{cloneVector(other.columnEvaluators)}, evaluateTypes{other.evaluateTypes},
-          outputDataColumns(other.outputDataColumns), extraDataColumns(other.extraDataColumns) {}
+          outputDataColumns(other.outputDataColumns), warningDataColumns(other.warningDataColumns) {
+    }
 
     std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);

@@ -21,18 +21,18 @@ namespace processor {
 struct CSVColumnInfo {
     uint64_t numColumns;
     std::vector<bool> columnSkips;
-    common::column_id_t numExtraDataColumns;
+    common::column_id_t numWarningDataColumns;
 
     CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips,
-        common::column_id_t numExtraDataColumns)
+        common::column_id_t numWarningDataColumns)
         : numColumns{numColumns}, columnSkips{columnSkips},
-          numExtraDataColumns(numExtraDataColumns) {}
+          numWarningDataColumns(numWarningDataColumns) {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVColumnInfo);
 
 private:
     CSVColumnInfo(const CSVColumnInfo& other)
         : numColumns{other.numColumns}, columnSkips{other.columnSkips},
-          numExtraDataColumns(other.numExtraDataColumns) {}
+          numWarningDataColumns(other.numWarningDataColumns) {}
 };
 
 class BaseCSVReader {
