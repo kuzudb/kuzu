@@ -12,6 +12,9 @@
 65
 -STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 DELETE e;
 ---- ok
--STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 HINT n JOIN (e JOIN m) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 HINT (n JOIN e) JOIN m RETURN COUNT(*);
 ---- 1
 0

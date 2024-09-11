@@ -202,14 +202,15 @@ bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup)
     return groupToDelete->delete_(transaction, rowIdxInChunkedGroup);
 }
 
-row_idx_t NodeGroup::getNumDeletedRows(const Transaction* transaction) {
+bool NodeGroup::hasDeletions(const Transaction* transaction) {
     const auto lock = chunkedGroups.lock();
-    row_idx_t numDeletedRows = 0;
     for (auto i = 0u; i < chunkedGroups.getNumGroups(lock); i++) {
         const auto chunkedGroup = chunkedGroups.getGroup(lock, i);
-        numDeletedRows += chunkedGroup->getNumDeletedRows(transaction);
+        if (chunkedGroup->hasDeletions(transaction)) {
+            return true;
+        }
     }
-    return numDeletedRows;
+    return false;
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
@@ -365,14 +366,6 @@ uint64_t NodeGroup::getEstimatedMemoryUsage() {
         memUsage += chunkedGroup->getEstimatedMemoryUsage();
     }
     return memUsage;
-}
-
-row_idx_t NodeGroup::getNumDeletedRows(const UniqLock& lock) {
-    row_idx_t rows = 0;
-    for (const auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        rows += chunkedGroup->getNumDeletedRows(&DUMMY_CHECKPOINT_TRANSACTION);
-    }
-    return rows;
 }
 
 void NodeGroup::serialize(Serializer& serializer) {

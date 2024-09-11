@@ -293,7 +293,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
          localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
-        if (localNodeGroup->getNumDeletedRows(transaction) > 0) {
+        if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
             // grabbing a set of deleted rows.
             for (auto row = 0u; row < localNodeGroup->getNumRows(); row++) {

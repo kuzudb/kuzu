@@ -24,26 +24,31 @@ struct VectorVersionInfo {
     // of `array` if all are inserted/deleted in the same transaction.
     // Also, avoid allocate `array` when status are NO_INSERTED and NO_DELETED.
     // We can even consider separating the insertion and deletion into two separate Vectors.
-    std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> insertedVersions;
-    std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY> deletedVersions;
+    std::unique_ptr<std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY>>
+        insertedVersions;
+    std::unique_ptr<std::array<common::transaction_t, common::DEFAULT_VECTOR_CAPACITY>>
+        deletedVersions;
+    // If all values in the Vector are inserted/deleted in the same transaction, we can use this to
+    // aovid the allocation of `array`.
+    common::transaction_t sameInsertionVersion;
+    common::transaction_t sameDeletionVersion;
     InsertionStatus insertionStatus;
     DeletionStatus deletionStatus;
 
     VectorVersionInfo()
-        : insertedVersions{}, deletedVersions{}, insertionStatus{InsertionStatus::NO_INSERTED},
-          deletionStatus{DeletionStatus::NO_DELETED} {
-        insertedVersions.fill(common::INVALID_TRANSACTION);
-        deletedVersions.fill(common::INVALID_TRANSACTION);
-    }
+        : sameInsertionVersion{common::INVALID_TRANSACTION},
+          sameDeletionVersion{common::INVALID_TRANSACTION},
+          insertionStatus{InsertionStatus::NO_INSERTED},
+          deletionStatus{DeletionStatus::NO_DELETED} {}
     DELETE_COPY_DEFAULT_MOVE(VectorVersionInfo);
 
-    bool anyVersions() const {
-        return insertionStatus == InsertionStatus::CHECK_VERSION ||
-               deletionStatus == DeletionStatus::CHECK_VERSION;
-    }
-    common::row_idx_t append(common::transaction_t transactionID, common::row_idx_t startRow,
+    void append(common::transaction_t transactionID, common::row_idx_t startRow,
         common::row_idx_t numRows);
     bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
+    void setInsertCommitTS(common::transaction_t commitTS, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    void setDeleteCommitTS(common::transaction_t commitTS, common::row_idx_t startRow,
+        common::row_idx_t numRows);
 
     void getSelVectorForScan(common::transaction_t startTS, common::transaction_t transactionID,
         common::SelectionVector& selVector, common::row_idx_t startRow, common::row_idx_t numRows,
@@ -52,10 +57,7 @@ struct VectorVersionInfo {
     void rollbackInsertions(common::row_idx_t startRowInVector, common::row_idx_t numRows);
     void rollbackDeletions(common::row_idx_t startRowInVector, common::row_idx_t numRows);
 
-    void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<VectorVersionInfo> deSerialize(common::Deserializer& deSer);
-
-    common::row_idx_t numCommittedDeletions(const transaction::Transaction* transaction) const;
+    bool hasDeletions(const transaction::Transaction* transaction) const;
 
     // Given startTS and transactionID, if the row is deleted to the transaction, return true.
     bool isDeleted(common::transaction_t startTS, common::transaction_t transactionID,
@@ -67,6 +69,16 @@ struct VectorVersionInfo {
     common::row_idx_t getNumDeletions(common::transaction_t startTS,
         common::transaction_t transactionID, common::row_idx_t startRow,
         common::length_t numRows) const;
+
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<VectorVersionInfo> deSerialize(common::Deserializer& deSer);
+
+private:
+    void initInsertionVersionArray();
+    void initDeletionVersionArray();
+
+    bool isSameInsertionVersion() const;
+    bool isSameDeletionVersion() const;
 };
 
 class ChunkedNodeGroup;
@@ -74,8 +86,8 @@ class VersionInfo {
 public:
     VersionInfo() {}
 
-    common::row_idx_t append(const transaction::Transaction* transaction,
-        ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow, common::row_idx_t numRows);
+    void append(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
+        common::row_idx_t startRow, common::row_idx_t numRows);
     bool delete_(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
         common::row_idx_t rowIdx);
 
@@ -93,7 +105,7 @@ public:
     bool isInserted(const transaction::Transaction* transaction,
         common::row_idx_t rowInChunk) const;
 
-    common::row_idx_t getNumDeletions(const transaction::Transaction* transaction) const;
+    bool hasDeletions(const transaction::Transaction* transaction) const;
 
     // Return nullptr when vectorIdx is out of range or when the vector is not created.
     VectorVersionInfo* getVectorVersionInfo(common::idx_t vectorIdx) const;

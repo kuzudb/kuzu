@@ -94,7 +94,7 @@ public:
         NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const;
 
     bool hasUpdates() const;
-    common::row_idx_t getNumDeletedRows(const transaction::Transaction* transaction) const;
+    bool hasDeletions(const transaction::Transaction* transaction) const;
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction,
         common::column_id_t columnID);
 
