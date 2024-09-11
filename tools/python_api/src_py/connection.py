@@ -169,9 +169,9 @@ class Connection:
         results = {}
         while query_result.has_next():
             row = query_result.get_next()
-            prop_name = row[1]
-            prop_type = row[2]
-            is_primary_key = row[3] is True
+            prop_name = row[2]
+            prop_type = row[3]
+            is_primary_key = row[4] is True
             dimension = prop_type.count(LIST_START_SYMBOL)
             splitted = prop_type.split(LIST_START_SYMBOL)
             shape = []
