@@ -576,59 +576,6 @@ JsonWrapper stringToJsonNoError(const std::string& str) {
     return JsonWrapper(yyjson_read(str.c_str(), str.size(), 0 /* flg */));
 }
 
-static JsonWrapper fileToJsonArrayFormatted(std::shared_ptr<char[]> buffer, uint64_t fileSize) {
-    yyjson_read_err err;
-    auto json = yyjson_read_opts(reinterpret_cast<char*>(buffer.get()), fileSize,
-        YYJSON_READ_INSITU, nullptr /* alc */, &err);
-    if (json == nullptr) {
-        invalidJsonError(buffer.get(), fileSize, &err);
-    }
-    return JsonWrapper(json, buffer);
-}
-
-static JsonWrapper fileToJsonUnstructuredFormatted(std::shared_ptr<char[]> buffer,
-    uint64_t fileSize) {
-    // TODO: This function could be optimized by around
-    // 2-3 times if the extra copies could be omitted
-    JsonMutWrapper result;
-    auto root = yyjson_mut_arr(result.ptr);
-    yyjson_mut_doc_set_root(result.ptr, root);
-    auto filePos = 0u;
-    while (true) {
-        yyjson_read_err err;
-        auto curDoc = yyjson_read_opts(buffer.get() + filePos, fileSize - filePos,
-            YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_INSITU, nullptr, &err);
-        if (err.code == YYJSON_READ_ERROR_EMPTY_CONTENT) {
-            break;
-        }
-        if (curDoc == nullptr) {
-            invalidJsonError(buffer.get(), fileSize, &err);
-        }
-        filePos += yyjson_doc_get_read_size(curDoc);
-        yyjson_mut_arr_append(root, yyjson_val_mut_copy(result.ptr, yyjson_doc_get_root(curDoc)));
-        yyjson_doc_free(curDoc);
-    }
-    return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr), buffer);
-}
-
-JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
-    JsonScanFormat format) {
-    auto file = context->getVFSUnsafe()->openFile(path, FileFlags::READ_ONLY, context);
-    auto fileSize = file->getFileSize();
-    auto buffer = std::make_shared<char[]>(fileSize + 9);
-    memset(buffer.get() + fileSize, 0 /* valueToSet */, 9 /* len */);
-    file->readFile(buffer.get(), fileSize);
-
-    switch (format) {
-    case JsonScanFormat::ARRAY:
-        return fileToJsonArrayFormatted(buffer, fileSize);
-    case JsonScanFormat::UNSTRUCTURED:
-        return fileToJsonUnstructuredFormatted(buffer, fileSize);
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
 JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B) {
     JsonMutWrapper ret;
     auto root = yyjson_merge_patch(ret.ptr, yyjson_doc_get_root(A.ptr), yyjson_doc_get_root(B.ptr));
