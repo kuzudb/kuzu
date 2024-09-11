@@ -443,7 +443,7 @@ static void autoDetect(main::ClientContext* context, const std::string& filePath
                     std::regex pattern(R"(^[^.]+\.(.*))");
                     std::smatch match;
                     if (std::regex_match(fieldName, match, pattern) && match.size() > 1) {
-                        fieldName = match[1]; // Return the part of the string after the "xxx."
+                        fieldName = match[1];
                     }
                 }
                 idx_t colIdx;
