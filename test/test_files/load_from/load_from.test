@@ -148,3 +148,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- 2
 1|Some sample text.
 2|Some more sample "text".
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/escape-char/double_quote_escape_char.csv' (header=true) RETURN id AS a, id AS b
+---- 2
+1|1
+2|2

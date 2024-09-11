@@ -74,10 +74,55 @@ static std::pair<expression_vector, std::vector<std::string>> rewriteProjectionI
     return {newExprs, newAliases};
 }
 
+void validateColumnNamesAreUnique(const std::vector<std::string>& columnNames) {
+    auto existColumnNames = std::unordered_set<std::string>();
+    for (auto& name : columnNames) {
+        if (existColumnNames.contains(name)) {
+            throw BinderException(
+                "Multiple result column with the same name " + name + " are not supported.");
+        }
+        existColumnNames.insert(name);
+    }
+}
+
+std::vector<std::string> getColumnNames(const expression_vector& exprs,
+    const std::vector<std::string>& aliases) {
+    std::vector<std::string> columnNames;
+    for (auto i = 0u; i < exprs.size(); ++i) {
+        if (aliases[i].empty()) {
+            columnNames.push_back(exprs[i]->toString());
+        } else {
+            columnNames.push_back(aliases[i]);
+        }
+    }
+    return columnNames;
+}
+
 BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
-    auto boundProjectionBody = bindProjectionBody(*projectionBody, true /* isWithClause */);
+    auto [projectionExprs, aliases] = bindProjectionList(*projectionBody);
+    // Check all expressions are aliased
+    for (auto& alias : aliases) {
+        if (alias.empty()) {
+            throw BinderException("Expression in WITH must be aliased (use AS).");
+        }
+    }
+    auto columnNames = getColumnNames(projectionExprs, aliases);
+    validateColumnNamesAreUnique(columnNames);
+    // Rewrite projection list
+    auto originalProjectionExprs = projectionExprs;
+    auto originalAliases = aliases;
+    auto [newExprs, newAliases] = rewriteProjectionInWithClause(projectionExprs, aliases);
+    projectionExprs = newExprs;
+    aliases = newAliases;
+
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, projectionExprs, aliases);
     validateOrderByFollowedBySkipOrLimitInWithClause(boundProjectionBody);
+    // Update scope
+    scope.clear();
+    for (auto i = 0u; i < originalProjectionExprs.size(); ++i) {
+        addToScope(originalAliases[i], originalProjectionExprs[i]);
+    }
     auto boundWithClause = BoundWithClause(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
         boundWithClause.setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
@@ -87,10 +132,14 @@ BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
 
 BoundReturnClause Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
-    auto boundProjectionBody = bindProjectionBody(*projectionBody, false /* isWithClause */);
+    auto [projectionExprs, aliases] = bindProjectionList(*projectionBody);
+    auto columnNames = getColumnNames(projectionExprs, aliases);
+    validateColumnNamesAreUnique(columnNames);
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, projectionExprs, aliases);
     auto statementResult = BoundStatementResult();
-    for (auto& expression : boundProjectionBody.getProjectionExpressions()) {
-        statementResult.addColumn(expression);
+    KU_ASSERT(columnNames.size() == projectionExprs.size());
+    for (auto i = 0u; i < columnNames.size(); ++i) {
+        statementResult.addColumn(columnNames[i], projectionExprs[i]);
     }
     return BoundReturnClause(std::move(boundProjectionBody), std::move(statementResult));
 }
@@ -113,8 +162,8 @@ static expression_vector getAggregateExpressions(const std::shared_ptr<Expressio
     return result;
 }
 
-BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
-    bool isWithClause) {
+std::pair<expression_vector, std::vector<std::string>> Binder::bindProjectionList(
+    const ProjectionBody& projectionBody) {
     expression_vector projectionExprs;
     std::vector<std::string> aliases;
     for (auto& parsedExpr : projectionBody.getProjectionExpressions()) {
@@ -147,19 +196,11 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
             aliases.push_back(parsedExpr->hasAlias() ? parsedExpr->getAlias() : expr->getAlias());
         }
     }
-    auto originProjectionExprs = projectionExprs;
-    auto originAliases = aliases;
+    return {projectionExprs, aliases};
+}
 
-    if (isWithClause) {
-        for (auto& alias : aliases) {
-            if (alias.empty()) {
-                throw BinderException("Expression in WITH must be aliased (use AS).");
-            }
-        }
-        auto [a, b] = rewriteProjectionInWithClause(projectionExprs, aliases);
-        projectionExprs = a;
-        aliases = b;
-    }
+BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
+    const expression_vector& projectionExprs, const std::vector<std::string>& aliases) {
 
     expression_vector groupByExprs;
     expression_vector aggregateExprs;
@@ -177,10 +218,6 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
         expr->setAlias(aliases[i]);
     }
 
-    for (auto i = 0u; i < originProjectionExprs.size(); ++i) {
-        originProjectionExprs[i]->setAlias(originAliases[i]);
-    }
-    validateProjectionColumnNamesAreUnique(originProjectionExprs);
     auto boundProjectionBody = BoundProjectionBody(projectionBody.getIsDistinct());
     boundProjectionBody.setProjectionExpressions(projectionExprs);
 
@@ -234,11 +271,6 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
     if (projectionBody.hasLimitExpression()) {
         boundProjectionBody.setLimitNumber(
             bindSkipLimitExpression(*projectionBody.getLimitExpression()));
-    }
-    // Update scope.
-    if (isWithClause) {
-        scope.clear();
-        addExpressionsToScope(originProjectionExprs);
     }
     return boundProjectionBody;
 }

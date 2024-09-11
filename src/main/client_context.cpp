@@ -498,8 +498,9 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->initResultTableAndIterator(std::move(resultFT),
-        preparedStatement->statementResult->getColumns());
+    auto sResult = preparedStatement->statementResult.get();
+    queryResult->setColumnHeader(sResult->getColumnNames(), sResult->getColumnTypes());
+    queryResult->initResultTableAndIterator(std::move(resultFT));
     return queryResult;
 }
 
