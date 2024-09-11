@@ -96,8 +96,8 @@ public:
             globalQueues->insert(indexPos, std::move(stringBuffer), errorHandler);
         }
 
-        // NOLINTNEXTLINE (bugprone-use-after-move) moving the buffer clears it which is the
-        // expected behaviour
+        // moving the buffer clears it which is the expected behaviour
+        // NOLINTNEXTLINE (bugprone-use-after-move)
         stringBuffer.append(std::move(key), value, std::move(warningData));
     }
 
@@ -111,8 +111,8 @@ public:
             globalQueues->insert(indexPos, std::move(buffer), errorHandler);
         }
 
-        // NOLINTNEXTLINE (bugprone-use-after-move) moving the buffer clears it which is the
-        // expected behaviour
+        // moving the buffer clears it which is the expected behaviour
+        // NOLINTNEXTLINE (bugprone-use-after-move)
         buffer.append(key, value, std::move(warningData));
     }
 

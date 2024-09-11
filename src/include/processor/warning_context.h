@@ -71,11 +71,11 @@ struct WarningInfo {
         : queryID(queryID), warning(std::move(warning)) {}
 };
 
-using populate_func_t = std::function<PopulatedCSVError(CSVError, SerialCSVReader*)>;
-
 struct UnpopulatedWarnings {
     std::vector<CSVError> warnings;
 };
+
+using populate_func_t = std::function<PopulatedCSVError(CSVError, SerialCSVReader*)>;
 
 class KUZU_API WarningContext {
 public:

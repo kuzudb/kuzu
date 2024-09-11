@@ -10,7 +10,6 @@ class NodeTable;
 }
 
 namespace processor {
-
 template<typename T>
 struct IndexBuilderError {
     std::string message;

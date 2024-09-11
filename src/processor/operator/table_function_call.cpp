@@ -80,7 +80,7 @@ double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {
     return info.function.progressFunc(sharedState->funcState.get());
 }
 
-common::column_id_t TableFunctionCall::getnumWarningDataColumns() const {
+common::column_id_t TableFunctionCall::getNumWarningDataColumns() const {
     return info.numWarningDataColumns;
 }
 

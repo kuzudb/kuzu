@@ -210,10 +210,13 @@ static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
     const CSVColumnInfo& columnInfo, const CSVOption& option,
     const WarningSourceData& warningSourceData) {
     std::optional<WarningDataWithColumnInfo> warningData;
+
+    // we only care about populating the extra warning data when actually parsing the CSV
+    // and not when performing actions like sniffing
     if constexpr (std::is_same_v<Driver, ParallelParsingDriver> ||
                   std::is_same_v<Driver, SerialParsingDriver>) {
-        // we only care about populating the extra warning data when actually parsing the CSV
-        // and not when performing actions like sniffing
+
+        // For now we only populate extra warning data when IGNORE_ERRORS is enabled
         if (option.ignoreErrors) {
             KU_ASSERT(
                 columnInfo.numWarningDataColumns == CopyConstants::WARNING_METADATA_NUM_COLUMNS);

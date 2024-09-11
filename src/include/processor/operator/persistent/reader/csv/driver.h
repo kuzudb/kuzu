@@ -68,7 +68,6 @@ class SerialCSVReader;
 class SerialParsingDriver : public ParsingDriver {
 public:
     SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader);
-
     bool doneEarly() override;
 
 private:

@@ -32,7 +32,7 @@ public:
     void computeFactorizedSchema() override;
 
     binder::expression_vector getColumns() const { return columns; }
-    common::column_id_t getnumWarningDataColumns() const { return numWarningDataColumns; }
+    common::column_id_t getNumWarningDataColumns() const { return numWarningDataColumns; }
 
     std::shared_ptr<binder::Expression> getOffset() const { return offset; }
 

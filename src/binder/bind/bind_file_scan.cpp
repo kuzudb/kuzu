@@ -89,7 +89,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
 }
 
 [[maybe_unused]] static void checkWarningDataColumnTypes(
-    const expression_vector& warningDataColumns) {
+    [[maybe_unused]] const expression_vector& warningDataColumns) {
     KU_ASSERT(warningDataColumns.size() == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
     KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
                   decltype(processor::WarningSourceData::startByteOffset)>() ==

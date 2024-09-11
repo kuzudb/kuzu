@@ -117,7 +117,7 @@ public:
 
     double getProgress(ExecutionContext* context) const override;
 
-    common::column_id_t getnumWarningDataColumns() const;
+    common::column_id_t getNumWarningDataColumns() const;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<TableFunctionCall>(info.copy(), sharedState, id, printInfo->copy());

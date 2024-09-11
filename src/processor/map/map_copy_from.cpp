@@ -78,7 +78,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
 
-        numWarningDataColumns = call->getnumWarningDataColumns();
+        numWarningDataColumns = call->getNumWarningDataColumns();
     } else {
         KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::AGGREGATE_SCAN);
         const auto hashScan = prevOperator->ptrCast<HashAggregateScan>();
