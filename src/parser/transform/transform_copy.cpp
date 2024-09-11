@@ -1,8 +1,8 @@
 #include "common/assert.h"
 #include "parser/copy.h"
+#include "parser/expression/parsed_literal_expression.h"
 #include "parser/scan_source.h"
 #include "parser/transformer.h"
-#include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
 
@@ -89,7 +89,8 @@ options_t Transformer::transformOptions(CypherParser::KU_OptionsContext& ctx) {
             options.emplace(optionName, transformLiteral(*loadOption->oC_Literal()));
         } else {
             // If no literal is provided, set the default value to true
-            options.emplace(optionName, std::make_unique<ParsedLiteralExpression>(Value(true), "true"));
+            options.emplace(optionName,
+                std::make_unique<ParsedLiteralExpression>(Value(true), "true"));
         }
     }
     return options;

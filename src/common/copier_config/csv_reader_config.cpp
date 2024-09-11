@@ -4,7 +4,6 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
-
 #include "common/string_utils.h"
 
 namespace kuzu {
@@ -100,9 +99,8 @@ static bool isValidBooleanOptionValue(const Value& value, const std::string& nam
     } else {
         // In this case the boolean is not valid
         throw BinderException(
-                    stringFormat("The type of csv parsing option {} must be a boolean.", name));
+            stringFormat("The type of csv parsing option {} must be a boolean.", name));
     }
-            
 }
 
 CSVReaderConfig CSVReaderConfig::construct(
