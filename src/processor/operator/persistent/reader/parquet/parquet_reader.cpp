@@ -726,12 +726,8 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(totalReadSize) / state->totalRowsGroups;
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
-    TableFuncLocalState*) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, ParquetScanSharedState*>(sharedState);
-    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
-        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
-    }
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState*, TableFuncLocalState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set ParquetScanFunction::getFunctionSet() {

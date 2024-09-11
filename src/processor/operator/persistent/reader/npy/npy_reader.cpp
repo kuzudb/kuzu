@@ -329,12 +329,9 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* /*sharedState*/,
     TableFuncLocalState*) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, NpyScanSharedState*>(sharedState);
-    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
-        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
-    }
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(

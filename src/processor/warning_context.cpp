@@ -51,6 +51,12 @@ const std::vector<WarningInfo>& WarningContext::getPopulatedWarnings() const {
     return populatedWarnings;
 }
 
+void WarningContext::defaultPopulateAllWarnings(uint64_t queryID) {
+    for (const auto& [fileIdx, _] : unpopulatedWarnings) {
+        populateWarnings(fileIdx, queryID);
+    }
+}
+
 void WarningContext::populateWarnings(uint64_t fileIdx, uint64_t queryID,
     std::optional<populate_func_t> populateFunc, SerialCSVReader* populateReader) {
     if (!populateFunc.has_value()) {

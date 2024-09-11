@@ -86,6 +86,8 @@ public:
     void populateWarnings(uint64_t fileIdx, uint64_t queryID,
         std::optional<populate_func_t> populateFunc = {},
         SerialCSVReader* populateReader = nullptr);
+    void defaultPopulateAllWarnings(uint64_t queryID);
+
     const std::vector<WarningInfo>& getPopulatedWarnings() const;
     uint64_t getWarningCount(uint64_t queryID);
 
