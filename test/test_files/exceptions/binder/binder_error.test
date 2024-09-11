@@ -212,7 +212,7 @@ Conversion exception: Error occurred during parsing date. Given: "2012". Expecte
 -LOG OrderByVariableNotInScope
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;
 ---- error
-Binder exception: Order by expression a.ID is not in RETURN or WITH clause.
+Binder exception: Variable a is not in scope.
 
 -LOG NestedAggregation
 -STATEMENT MATCH (a:person) RETURN SUM(SUM(a.age));

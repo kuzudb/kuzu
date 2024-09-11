@@ -58,7 +58,7 @@ void Planner::planAggregate(const expression_vector& expressionsToAggregate,
 
 void Planner::planOrderBy(const binder::expression_vector& expressionsToProject,
     const binder::expression_vector& expressionsToOrderBy, const std::vector<bool>& isAscOrders,
-    kuzu::planner::LogicalPlan& plan) {
+    LogicalPlan& plan) {
     auto expressionsToProjectBeforeOrderBy = expressionsToProject;
     auto expressionsToProjectSet =
         expression_set{expressionsToProject.begin(), expressionsToProject.end()};
