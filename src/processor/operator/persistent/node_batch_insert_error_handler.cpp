@@ -17,35 +17,35 @@ NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* conte
     : ignoreErrors(ignoreErrors),
       warningLimit(
           std::min(context->clientContext->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
-      context(context), pkType(pkType), nodeTable(nodeTable), queryID(context->queryID),
-      currentInsertIdx(0), sharedErrorCounterMtx(sharedErrorCounterMtx),
-      sharedErrorCounter(std::move(sharedErrorCounter)) {}
+      context(context), nodeTable(nodeTable), queryID(context->queryID), currentInsertIdx(0),
+      sharedErrorCounterMtx(sharedErrorCounterMtx),
+      sharedErrorCounter(std::move(sharedErrorCounter)),
+      keyVector(std::make_shared<ValueVector>(pkType, context->clientContext->getMemoryManager())),
+      offsetVector(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
+          context->clientContext->getMemoryManager())) {
+    keyVector->state = DataChunkState::getSingleValueDataChunkState();
+    offsetVector->state = DataChunkState::getSingleValueDataChunkState();
+}
 
 void NodeBatchInsertErrorHandler::addNewVectorsIfNeeded() {
-    KU_ASSERT(offsetVector.size() == keyVector.size());
-    KU_ASSERT(offsetVector.size() == cachedErrors.size());
-    KU_ASSERT(currentInsertIdx <= offsetVector.size());
-    if (currentInsertIdx == offsetVector.size()) {
-        offsetVector.push_back(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
-            context->clientContext->getMemoryManager()));
-        offsetVector.back()->state = DataChunkState::getSingleValueDataChunkState();
-        keyVector.push_back(
-            std::make_shared<ValueVector>(pkType, context->clientContext->getMemoryManager()));
-        keyVector.back()->state = DataChunkState::getSingleValueDataChunkState();
+    KU_ASSERT(currentInsertIdx <= cachedErrors.size());
+    if (currentInsertIdx == cachedErrors.size()) {
         cachedErrors.emplace_back();
     }
+}
+
+void NodeBatchInsertErrorHandler::deleteCurrentErroneousRow() {
+    storage::NodeTableDeleteState deleteState{
+        *offsetVector,
+        *keyVector,
+    };
+    nodeTable->delete_(context->clientContext->getTx(), deleteState);
 }
 
 void NodeBatchInsertErrorHandler::flushStoredErrors() {
     std::map<uint64_t, std::vector<CSVError>> unpopulatedErrors;
 
     for (row_idx_t i = 0; i < getNumErrors(); ++i) {
-        storage::NodeTableDeleteState deleteState{
-            *offsetVector[i],
-            *keyVector[i],
-        };
-        nodeTable->delete_(context->clientContext->getTx(), deleteState);
-
         auto& error = cachedErrors[i];
         CSVError warningToAdd{std::move(error.message), {}, false};
         if (error.warningData.has_value()) {

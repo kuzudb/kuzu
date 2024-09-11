@@ -47,14 +47,15 @@ public:
             throw common::CopyException(error.message);
         }
 
+        setCurrentErroneousRow(error.key, error.nodeID);
+        deleteCurrentErroneousRow();
+
         if (getNumErrors() >= warningLimit) {
             flushStoredErrors();
         }
 
         addNewVectorsIfNeeded();
-        KU_ASSERT(currentInsertIdx < offsetVector.size());
-        keyVector[currentInsertIdx]->setValue<T>(0, error.key);
-        offsetVector[currentInsertIdx]->setValue(0, error.nodeID);
+        KU_ASSERT(currentInsertIdx < cachedErrors.size());
         cachedErrors[currentInsertIdx] = IndexBuilderCachedError::constructFrom(std::move(error));
         ++currentInsertIdx;
     }
@@ -66,13 +67,20 @@ private:
     void addNewVectorsIfNeeded();
     void clearErrors();
 
+    template<typename T>
+    void setCurrentErroneousRow(const T& key, common::nodeID_t nodeID) {
+        keyVector->setValue<T>(0, key);
+        offsetVector->setValue(0, nodeID);
+    }
+
+    void deleteCurrentErroneousRow();
+
     static constexpr common::idx_t DELETE_VECTOR_SIZE = 1;
     static constexpr uint64_t LOCAL_WARNING_LIMIT = 1024;
 
     bool ignoreErrors;
     uint64_t warningLimit;
     ExecutionContext* context;
-    common::LogicalTypeID pkType;
     storage::NodeTable* nodeTable;
     uint64_t queryID;
     uint64_t currentInsertIdx;
@@ -80,8 +88,10 @@ private:
     std::mutex* sharedErrorCounterMtx;
     std::shared_ptr<common::row_idx_t> sharedErrorCounter;
 
-    std::vector<std::shared_ptr<common::ValueVector>> keyVector;
-    std::vector<std::shared_ptr<common::ValueVector>> offsetVector;
+    // vectors that are reused by each deletion
+    std::shared_ptr<common::ValueVector> keyVector;
+    std::shared_ptr<common::ValueVector> offsetVector;
+
     std::vector<IndexBuilderCachedError> cachedErrors;
 };
 } // namespace processor
