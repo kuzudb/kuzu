@@ -7,10 +7,20 @@
 ---- ok
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json' RETURN *;
 ---- error
-Runtime exception: Error unexpected character, expected a valid JSON value at line 3, column 10, character index 35
+Runtime exception: Malformed JSON in file "${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json", at byte 6 in record/value: unexpected character, expected a valid JSON value.
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json'(format='unstructured') RETURN *;
 ---- error
-Runtime exception: Error unexpected character, expected a valid JSON value at line 2, column 10, character index 10
+Runtime exception: Malformed JSON in file "${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json", at byte 6 in record/value: unexpected character, expected a valid JSON value.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(IGNORE_ERRORS="abc") RETURN *;
 ---- error
 Binder exception: IGNORE_ERRORS parameter must be a bool.
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(AUTO_DETECT=false) RETURN *;
+---- error
+Binder exception: When auto-detect is set to false, Kuzu requires the user to provide column names and types in the LOAD FROM clause.
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(AUTO_DETECT=false) RETURN *;
+---- error
+Binder exception: When auto-detect is set to false, Kuzu requires the user to provide column names and types in the LOAD FROM clause.
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies_unstructured.json"(FORMAT='ARRAY') RETURN *;
+---- error
+Expected top-level JSON array with format='array', but first character is '{' in file "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies_unstructured.json".
+Try setting format='auto' or format='newline_delimited'.

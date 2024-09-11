@@ -58,6 +58,7 @@ std::vector<JsonWrapper> jsonifyQueryResult(
 
 common::LogicalType jsonSchema(const JsonWrapper& wrapper, int64_t depth = -1,
     int64_t breadth = -1);
+common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth);
 // depth indicates at what nested depth to stop
 // breadth indicates the limit of how many children the root nested type is sampled
 // -1 means to scan the whole thing

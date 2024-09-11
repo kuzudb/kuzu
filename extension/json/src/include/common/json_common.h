@@ -25,9 +25,10 @@ struct JsonConstant {
     // 16MB
     static constexpr uint64_t MAXIMUM_OBJECT_SIZE = 16777216;
     static constexpr uint64_t SCAN_BUFFER_CAPACITY = MAXIMUM_OBJECT_SIZE * 2;
-    static constexpr JsonScanFormat DEFAULT_JSON_FORMAT = JsonScanFormat::ARRAY;
+    static constexpr JsonScanFormat DEFAULT_JSON_FORMAT = JsonScanFormat::AUTO_DETECT;
     static constexpr uint64_t DEFAULT_JSON_DETECT_DEPTH = 10;
     static constexpr uint64_t DEFAULT_JSON_DETECT_BREADTH = 2048;
+    static constexpr bool DEFAULT_AUTO_DETECT_VALUE = true;
 };
 
 } // namespace json_extension
