@@ -77,7 +77,6 @@ enum class HighlightingType {
 struct highlightToken {
     tokenType type;
     size_t start = 0;
-    bool search_match = false;
 };
 
 typedef void(linenoiseCompletionCallback)(const char*, linenoiseCompletions*);

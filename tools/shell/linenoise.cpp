@@ -1279,7 +1279,6 @@ void insertToken(tokenType insert_type, uint64_t insert_pos, std::vector<highlig
             highlightToken token;
             token.start = insert_pos;
             token.type = insert_type;
-            token.search_match = false;
             new_tokens.push_back(token);
 
             // now we need to insert the other token ONLY if the other token is not immediately
@@ -1287,7 +1286,6 @@ void insertToken(tokenType insert_type, uint64_t insert_pos, std::vector<highlig
             if (i + 1 >= tokens.size() || tokens[i + 1].start > insert_pos + 1) {
                 token.start = insert_pos + 1;
                 token.type = tokens[i].type;
-                token.search_match = false;
                 new_tokens.push_back(token);
             }
             i++;
@@ -1299,7 +1297,6 @@ void insertToken(tokenType insert_type, uint64_t insert_pos, std::vector<highlig
             highlightToken token;
             token.start = insert_pos;
             token.type = insert_type;
-            token.search_match = false;
             new_tokens.push_back(token);
 
             // now just insert the next token
@@ -1321,7 +1318,6 @@ void insertToken(tokenType insert_type, uint64_t insert_pos, std::vector<highlig
         highlightToken token;
         token.start = insert_pos;
         token.type = insert_type;
-        token.search_match = false;
         new_tokens.push_back(token);
     }
     tokens = std::move(new_tokens);
@@ -1565,7 +1561,6 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
             highlightToken comment_token;
             comment_token.start = c_start;
             comment_token.type = tokenType::TOKEN_COMMENT;
-            comment_token.search_match = false;
 
             for (; token_idx < tokens.size(); token_idx++) {
                 if (tokens[token_idx].start >= c_start) {
@@ -1596,7 +1591,6 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
 
 std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size_t end_pos,
     const std::vector<highlightToken>& tokens) {
-    static std::string bold = "\033[1m";
     static std::string underline = "\033[4m";
     static std::string keyword = "\033[32m";
     static std::string continuation_selected = "\033[32m";
@@ -1605,6 +1599,7 @@ std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size
     static std::string comment = "\033[90m";
     static std::string error = "\033[31m";
     static std::string reset = "\033[39m";
+    static std::string reset_underline = "\033[24m";
 
     std::stringstream ss;
     size_t prev_pos = 0;
@@ -1628,9 +1623,6 @@ std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size
         }
         prev_pos = start;
         std::string text = std::string(buf + start, end - start);
-        if (token.search_match) {
-            ss << underline;
-        }
         switch (token.type) {
         case tokenType::TOKEN_KEYWORD:
             ss << keyword << text << reset;
@@ -1646,7 +1638,7 @@ std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size
             ss << continuation_selected << text << reset;
             break;
         case tokenType::TOKEN_BRACKET:
-            ss << underline << text << reset;
+            ss << underline << text << reset_underline;
             break;
         case tokenType::TOKEN_ERROR:
             ss << error << text << reset;
@@ -1656,9 +1648,6 @@ std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size
             break;
         default:
             ss << text;
-            if (token.search_match) {
-                ss << reset;
-            }
         }
     }
     ss << reset;
@@ -1904,12 +1893,10 @@ std::string linenoiseAddContinuationMarkers(const char* buf, size_t len, size_t 
                 token.start = cpos + extra_bytes;
                 token.type = is_cursor_row ? tokenType::TOKEN_CONTINUATION_SELECTED :
                                              tokenType::TOKEN_CONTINUATION;
-                token.search_match = false;
                 new_tokens.push_back(token);
 
                 token.start = cpos + extra_bytes + continuationBytes;
                 token.type = prev_type;
-                token.search_match = false;
                 new_tokens.push_back(token);
             }
             extra_bytes += continuationBytes;
