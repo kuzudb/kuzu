@@ -41,7 +41,7 @@ static void bindStringParsingOption(CSVReaderConfig& config, const std::string& 
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
         config.option.escapeChar = parsingOptionValue;
-    } else if (optionName == "DELIM") {
+    } else if (optionName == "DELIM" || optionName == "DELIMITER") {
         config.option.delimiter = parsingOptionValue;
     } else if (optionName == "QUOTE") {
         config.option.quoteChar = parsingOptionValue;
