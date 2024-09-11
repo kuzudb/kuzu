@@ -328,6 +328,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         dict["_dst"] = dstIdVal ? convertValueToPyObject(*dstIdVal) : py::none();
         auto labelVal = RelVal::getLabelVal(&value);
         dict["_label"] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
+        auto internalIdVal = RelVal::getIDVal(&value);
+        dict["_id"] = internalIdVal ? convertValueToPyObject(*internalIdVal) : py::none();
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(RelVal::getPropertyName(&value, i));
