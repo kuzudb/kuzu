@@ -3496,6 +3496,8 @@ static int linenoiseRaw(char* buf, size_t buflen, const char* prompt, const char
  * to its standard input. In this case, we want to be able to return the
  * line regardless of its length (by default we are limited to 4k). */
 static char* linenoiseNoTTY(void) {
+    const int EOF = -1;
+
     char* line = NULL;
     size_t len = 0, maxlen = 0;
 
@@ -3513,8 +3515,8 @@ static char* linenoiseNoTTY(void) {
             }
         }
         int c = fgetc(stdin);
-        if (c == -1 || c == '\n') {
-            if (c == -1 && len == 0) {
+        if (c == EOF || c == '\n') {
+            if (c == EOF && len == 0) {
                 free(line);
                 return NULL;
             } else {
