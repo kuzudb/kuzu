@@ -230,7 +230,8 @@ public:
     BoundWithClause bindWithClause(const parser::WithClause& withClause);
     BoundReturnClause bindReturnClause(const parser::ReturnClause& returnClause);
 
-    std::pair<expression_vector, std::vector<std::string>> bindProjectionList(const parser::ProjectionBody& projectionBody);
+    std::pair<expression_vector, std::vector<std::string>> bindProjectionList(
+        const parser::ProjectionBody& projectionBody);
     BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
         const expression_vector& projectionExprs, const std::vector<std::string>& aliases);
 

@@ -85,7 +85,8 @@ void validateColumnNamesAreUnique(const std::vector<std::string>& columnNames) {
     }
 }
 
-std::vector<std::string> getColumnNames(const expression_vector& exprs, const std::vector<std::string>& aliases) {
+std::vector<std::string> getColumnNames(const expression_vector& exprs,
+    const std::vector<std::string>& aliases) {
     std::vector<std::string> columnNames;
     for (auto i = 0u; i < exprs.size(); ++i) {
         if (aliases[i].empty()) {
@@ -161,7 +162,8 @@ static expression_vector getAggregateExpressions(const std::shared_ptr<Expressio
     return result;
 }
 
-std::pair<expression_vector, std::vector<std::string>> Binder::bindProjectionList(const ProjectionBody& projectionBody) {
+std::pair<expression_vector, std::vector<std::string>> Binder::bindProjectionList(
+    const ProjectionBody& projectionBody) {
     expression_vector projectionExprs;
     std::vector<std::string> aliases;
     for (auto& parsedExpr : projectionBody.getProjectionExpressions()) {

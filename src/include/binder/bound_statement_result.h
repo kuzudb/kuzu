@@ -37,8 +37,8 @@ public:
     }
 
 private:
-    BoundStatementResult(const BoundStatementResult& other) : columns{other.columns},
-          columnNames{other.columnNames} {}
+    BoundStatementResult(const BoundStatementResult& other)
+        : columns{other.columns}, columnNames{other.columnNames} {}
 
 private:
     expression_vector columns;

@@ -133,7 +133,8 @@ public:
     KUZU_API std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
 
 private:
-    void setColumnHeader(std::vector<std::string> columnNames, std::vector<common::LogicalType> columnTypes);
+    void setColumnHeader(std::vector<std::string> columnNames,
+        std::vector<common::LogicalType> columnTypes);
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_);
     void validateQuerySucceed() const;
 

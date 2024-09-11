@@ -56,7 +56,8 @@ void QueryResult::resetIterator() {
     iterator->resetState();
 }
 
-void QueryResult::setColumnHeader(std::vector<std::string> columnNames_, std::vector<LogicalType> columnTypes_) {
+void QueryResult::setColumnHeader(std::vector<std::string> columnNames_,
+    std::vector<LogicalType> columnTypes_) {
     columnNames = std::move(columnNames_);
     columnDataTypes = std::move(columnTypes_);
 }
@@ -67,8 +68,7 @@ void QueryResult::initResultTableAndIterator(
     tuple = std::make_shared<FlatTuple>();
     std::vector<Value*> valuesToCollect;
     for (auto& type : columnDataTypes) {
-        auto value =
-            std::make_unique<Value>(Value::createDefaultValue(type.copy()));
+        auto value = std::make_unique<Value>(Value::createDefaultValue(type.copy()));
         valuesToCollect.push_back(value.get());
         tuple->addValue(std::move(value));
     }
