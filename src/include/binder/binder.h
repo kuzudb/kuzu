@@ -235,11 +235,13 @@ public:
     BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
         const expression_vector& projectionExprs, const std::vector<std::string>& aliases);
 
+    expression_vector bindOrderByExpressions(const parser::ProjectionBody& projectionBody,
+        const expression_vector& projectionExprs);
     expression_vector bindOrderByExpressions(
-        const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
+        const std::vector<std::unique_ptr<parser::ParsedExpression>>& parsedExprs);
     uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
 
-    void addExpressionsToScope(const expression_vector& projectionExpressions);
+    void addToScope(const expression_vector& projectionExpressions);
 
     /*** bind graph pattern ***/
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);
