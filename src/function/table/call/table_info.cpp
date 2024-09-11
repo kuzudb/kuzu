@@ -59,8 +59,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         dataChunk.getValueVector(0)->setValue(vectorPos,
             tableEntry->getPropertyIdx(property.getName()));
         dataChunk.getValueVector(1)->setValue(vectorPos, property.getName());
-        dataChunk.getValueVector(2)->setValue(vectorPos, property.getDefaultExpressionName());
-        dataChunk.getValueVector(3)->setValue(vectorPos, property.getType().toString());
+        dataChunk.getValueVector(2)->setValue(vectorPos, property.getType().toString());
+        dataChunk.getValueVector(3)->setValue(vectorPos, property.getDefaultExpressionName());
 
         if (tableEntry->getTableType() == TableType::NODE) {
             auto nodeTableEntry = tableEntry->constPtrCast<NodeTableCatalogEntry>();
@@ -102,9 +102,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnTypes.push_back(LogicalType::INT32());
     columnNames.emplace_back("name");
     columnTypes.push_back(LogicalType::STRING());
-    columnNames.emplace_back("deault expression");
-    columnTypes.push_back(LogicalType::STRING());
     columnNames.emplace_back("type");
+    columnTypes.push_back(LogicalType::STRING());
+    columnNames.emplace_back("deault expression");
     columnTypes.push_back(LogicalType::STRING());
     if (tableEntry->getTableType() == TableType::NODE) {
         columnNames.emplace_back("primary key");
