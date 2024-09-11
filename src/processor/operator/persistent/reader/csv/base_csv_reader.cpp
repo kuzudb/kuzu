@@ -208,7 +208,7 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
 template<typename Driver>
 static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
     const CSVColumnInfo& columnInfo, const CSVOption& option,
-    const WarningSourceData& warningData) {
+    const WarningSourceData& warningSourceData) {
     std::optional<WarningDataWithColumnInfo> warningData;
     if constexpr (std::is_same_v<Driver, ParallelParsingDriver> ||
                   std::is_same_v<Driver, SerialParsingDriver>) {
@@ -218,13 +218,15 @@ static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
             KU_ASSERT(columnInfo.numWarningDataColumns == 5);
             warningData.emplace();
             warningData->startByteOffset =
-                std::make_pair(warningData.startByteOffset, columnInfo.numColumns);
+                std::make_pair(warningSourceData.startByteOffset, columnInfo.numColumns);
             warningData->endByteOffset =
-                std::make_pair(warningData.endByteOffset, columnInfo.numColumns + 1);
-            warningData->fileIdx = std::make_pair(warningData.fileIdx, columnInfo.numColumns + 2);
-            warningData->blockIdx = std::make_pair(warningData.blockIdx, columnInfo.numColumns + 3);
+                std::make_pair(warningSourceData.endByteOffset, columnInfo.numColumns + 1);
+            warningData->fileIdx =
+                std::make_pair(warningSourceData.fileIdx, columnInfo.numColumns + 2);
+            warningData->blockIdx =
+                std::make_pair(warningSourceData.blockIdx, columnInfo.numColumns + 3);
             warningData->rowOffsetInBlock =
-                std::make_pair(warningData.rowOffsetInBlock, columnInfo.numColumns + 4);
+                std::make_pair(warningSourceData.rowOffsetInBlock, columnInfo.numColumns + 4);
         }
     }
     return warningData;
