@@ -197,7 +197,7 @@ class Connection:
         query_result = self.execute("CALL show_tables() RETURN *;")
         while query_result.has_next():
             row = query_result.get_next()
-            if row[1] == "NODE":
+            if row[2] == "NODE":
                 results.append(row[0])
         return results
 
@@ -207,7 +207,7 @@ class Connection:
         tables_result = self.execute("CALL show_tables() RETURN *;")
         while tables_result.has_next():
             row = tables_result.get_next()
-            if row[1] == "REL":
+            if row[2] == "REL":
                 name = row[0]
                 connections_result = self.execute(f"CALL show_connection({name!r}) RETURN *;")
                 src_dst_row = connections_result.get_next()
