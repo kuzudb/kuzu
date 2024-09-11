@@ -177,10 +177,10 @@ LocalCSVFileErrorHandler::LocalCSVFileErrorHandler(SharedCSVFileErrorHandler* sh
           std::min(this->context->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
       ignoreErrors(ignoreErrors), cacheIgnoredErrors(cacheErrors) {}
 
-void LocalCSVFileErrorHandler::handleError(BaseCSVReader* reader, const CSVError& error) {
+void LocalCSVFileErrorHandler::handleError(BaseCSVReader* reader, CSVError error) {
     if (error.mustThrow || !ignoreErrors) {
         // we delegate throwing to the shared error handler
-        sharedErrorHandler->handleError(reader, error);
+        sharedErrorHandler->handleError(reader, std::move(error));
         return;
     }
 
@@ -191,7 +191,7 @@ void LocalCSVFileErrorHandler::handleError(BaseCSVReader* reader, const CSVError
 
     ++linesPerBlock[error.warningData.blockIdx].invalidLines;
     if (cacheIgnoredErrors) {
-        cachedErrors.push_back(error);
+        cachedErrors.push_back(std::move(error));
     }
 }
 

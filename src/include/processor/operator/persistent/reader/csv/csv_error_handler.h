@@ -65,7 +65,7 @@ public:
     LocalCSVFileErrorHandler(SharedCSVFileErrorHandler* sharedErrorHandler, bool ignoreErrors,
         main::ClientContext* context, bool cacheIgnoredErrors = true);
 
-    void handleError(BaseCSVReader* reader, const CSVError& error);
+    void handleError(BaseCSVReader* reader, CSVError error);
     void reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead);
     void setHeaderNumRows(uint64_t numRows);
     void finalize();

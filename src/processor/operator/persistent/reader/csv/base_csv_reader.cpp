@@ -215,7 +215,8 @@ static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
         // we only care about populating the extra warning data when actually parsing the CSV
         // and not when performing actions like sniffing
         if (option.ignoreErrors) {
-            KU_ASSERT(columnInfo.numWarningDataColumns == 5);
+            KU_ASSERT(
+                columnInfo.numWarningDataColumns == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
             warningData.emplace();
             warningData->startByteOffset =
                 std::make_pair(warningSourceData.startByteOffset, columnInfo.numColumns);

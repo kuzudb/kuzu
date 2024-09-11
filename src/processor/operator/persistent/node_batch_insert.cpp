@@ -173,12 +173,9 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
 
     if (indexBuilder) {
         KU_ASSERT(nodeLocalState->errorHandler.has_value());
-        std::optional<std::vector<ColumnChunkData*>> extraChunkData;
-        if (!nodeInfo->warningDataColumns.empty()) {
-            extraChunkData.emplace();
-            for (const auto warningDataColumn : nodeInfo->warningDataColumns) {
-                extraChunkData->push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
-            }
+        std::vector<ColumnChunkData*> extraChunkData;
+        for (const auto warningDataColumn : nodeInfo->warningDataColumns) {
+            extraChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
         }
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
             extraChunkData, nodeOffset, numRowsWritten, nodeLocalState->errorHandler.value());

@@ -17,6 +17,23 @@ namespace processor {
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
+template<typename T>
+bool IndexBufferWithWarningData<T>::full() const {
+    return indexBuffer.full() || (warningDataBuffer != nullptr && warningDataBuffer->full());
+}
+
+template<typename T>
+void IndexBufferWithWarningData<T>::append(T key, common::offset_t value,
+    OptionalWarningSourceData warningData) {
+    indexBuffer.push_back(std::make_pair(key, value));
+    if (warningData.has_value()) {
+        if (warningDataBuffer == nullptr) {
+            warningDataBuffer = std::make_unique<OptionalWarningDataBuffer::element_type>();
+        }
+        warningDataBuffer->push_back(warningData.value());
+    }
+}
+
 IndexBuilderGlobalQueues::IndexBuilderGlobalQueues(transaction::Transaction* transaction,
     NodeTable* nodeTable)
     : nodeTable(nodeTable), transaction{transaction} {
@@ -45,10 +62,10 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index,
         [&](auto&& queues) {
             using T = std::decay_t<decltype(queues.type)>;
             std::unique_lock lck{mutexes[index], std::adopt_lock};
-            IndexBuffer<T> buffer;
-            OptionalWarningDataBuffer warningDataBuffer;
-            while (queues.array[index].pop(buffer)) {
-                queues.warningDataArray[index].pop(warningDataBuffer);
+            IndexBufferWithWarningData<T> bufferWithWarningData;
+            while (queues.array[index].pop(bufferWithWarningData)) {
+                auto& buffer = bufferWithWarningData.indexBuffer;
+                auto& warningDataBuffer = bufferWithWarningData.warningDataBuffer;
                 uint64_t insertBufferOffset = 0;
                 while (insertBufferOffset < buffer.size()) {
                     auto numValuesInserted = nodeTable->appendPKWithIndexPos(transaction, buffer,
@@ -56,9 +73,9 @@ void IndexBuilderGlobalQueues::maybeConsumeIndex(size_t index,
                     if (numValuesInserted < buffer.size() - insertBufferOffset) {
                         const auto& erroneousEntry = buffer[insertBufferOffset + numValuesInserted];
                         OptionalWarningSourceData erroneousEntryWarningData;
-                        if (warningDataBuffer.has_value()) {
+                        if (warningDataBuffer != nullptr) {
                             erroneousEntryWarningData =
-                                warningDataBuffer.value()[insertBufferOffset + numValuesInserted];
+                                (*warningDataBuffer)[insertBufferOffset + numValuesInserted];
                         }
                         errorHandler.handleError(
                             IndexBuilderError<T>{.message = ExceptionMessage::duplicatePKException(
@@ -89,24 +106,11 @@ IndexBuilderLocalBuffers::IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& glo
         [](auto) { KU_UNREACHABLE; });
 }
 
-void IndexBuilderLocalBuffers::optionalAppendWarningData(OptionalWarningDataBuffer& buffer,
-    OptionalWarningSourceData data) {
-    if (data.has_value()) {
-        if (!buffer.has_value()) {
-            // if the buffer is an empty optional construct an empty buffer that we can append the
-            // data to
-            buffer = OptionalWarningDataBuffer::value_type{};
-        }
-        buffer->push_back(std::move(data.value()));
-    }
-}
-
 void IndexBuilderLocalBuffers::flush(NodeBatchInsertErrorHandler& errorHandler) {
     std::visit(
         [&](auto&& buffers) {
             for (auto i = 0u; i < buffers->size(); i++) {
-                globalQueues->insert(i, std::move((*buffers)[i]), std::move(warningDataBuffers[i]),
-                    errorHandler);
+                globalQueues->insert(i, std::move((*buffers)[i]), errorHandler);
             }
         },
         buffers);
@@ -121,34 +125,32 @@ void IndexBuilderSharedState::quitProducer() {
     }
 }
 
-namespace {
-OptionalWarningSourceData getWarningDataFromChunks(
-    const std::optional<std::vector<storage::ColumnChunkData*>>& chunks, common::idx_t posInChunk) {
+static OptionalWarningSourceData getWarningDataFromChunks(
+    const std::vector<storage::ColumnChunkData*>& chunks, common::idx_t posInChunk) {
     OptionalWarningSourceData ret;
-    if (chunks.has_value()) {
-        KU_ASSERT(chunks->size() == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
+    if (!chunks.empty()) {
+        KU_ASSERT(chunks.size() == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
         ret = WarningSourceData{
-            chunks.value()[0]->getValue<decltype(WarningSourceData::startByteOffset)>(posInChunk),
-            chunks.value()[1]->getValue<decltype(WarningSourceData::endByteOffset)>(posInChunk),
-            chunks.value()[2]->getValue<decltype(WarningSourceData::fileIdx)>(posInChunk),
-            chunks.value()[3]->getValue<decltype(WarningSourceData::blockIdx)>(posInChunk),
-            chunks.value()[4]->getValue<decltype(WarningSourceData::rowOffsetInBlock)>(posInChunk)};
+            chunks[0]->getValue<decltype(WarningSourceData::startByteOffset)>(posInChunk),
+            chunks[1]->getValue<decltype(WarningSourceData::endByteOffset)>(posInChunk),
+            chunks[2]->getValue<decltype(WarningSourceData::fileIdx)>(posInChunk),
+            chunks[3]->getValue<decltype(WarningSourceData::blockIdx)>(posInChunk),
+            chunks[4]->getValue<decltype(WarningSourceData::rowOffsetInBlock)>(posInChunk)};
     }
     return ret;
 }
-} // namespace
 
 void IndexBuilder::insert(const ColumnChunkData& chunk,
-    const std::optional<std::vector<ColumnChunkData*>>& warningData, offset_t nodeOffset,
-    offset_t numNodes, NodeBatchInsertErrorHandler& errorHandler) {
+    const std::vector<ColumnChunkData*>& warningData, offset_t nodeOffset, offset_t numNodes,
+    NodeBatchInsertErrorHandler& errorHandler) {
     TypeUtils::visit(
         chunk.getDataType().getPhysicalType(),
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < numNodes; i++) {
                 if (checkNonNullConstraint(chunk, warningData, nodeOffset, i, errorHandler)) {
                     auto value = chunk.getValue<T>(i);
-                    localBuffers.insert(value, getWarningDataFromChunks(warningData, i),
-                        nodeOffset + i, errorHandler);
+                    localBuffers.insert(value, nodeOffset + i,
+                        getWarningDataFromChunks(warningData, i), errorHandler);
                 }
             }
         },
@@ -158,8 +160,8 @@ void IndexBuilder::insert(const ColumnChunkData& chunk,
             for (auto i = 0u; i < numNodes; i++) {
                 if (checkNonNullConstraint(chunk, warningData, nodeOffset, i, errorHandler)) {
                     auto value = stringColumnChunk.getValue<std::string>(i);
-                    localBuffers.insert(std::move(value), getWarningDataFromChunks(warningData, i),
-                        nodeOffset + i, errorHandler);
+                    localBuffers.insert(std::move(value), nodeOffset + i,
+                        getWarningDataFromChunks(warningData, i), errorHandler);
                 }
             }
         },
@@ -186,7 +188,7 @@ void IndexBuilder::finalize(ExecutionContext* /*context*/,
 }
 
 bool IndexBuilder::checkNonNullConstraint(const ColumnChunkData& chunk,
-    const std::optional<std::vector<storage::ColumnChunkData*>>& warningData, offset_t nodeOffset,
+    const std::vector<storage::ColumnChunkData*>& warningData, offset_t nodeOffset,
     offset_t chunkOffset, NodeBatchInsertErrorHandler& errorHandler) {
     const auto& nullChunk = chunk.getNullData();
     if (nullChunk.isNull(chunkOffset)) {
