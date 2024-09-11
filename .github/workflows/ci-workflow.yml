@@ -186,7 +186,7 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
-  gcc-build-test-in-mem-vector-size:
+  gcc-build-test-vector-size:
     name: gcc build & test in-mem only with various vector size
     needs: [gcc-build-test]
     runs-on: kuzu-self-hosted-testing
@@ -226,12 +226,41 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Test vector 1024
+      - name: Test vector capacity of 1024
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test VECTOR_CAPACITY_LOG2=10
+
+      - name: Test vector capacity of 1024 under in-memory mode
         env:
           IN_MEM_MODE: true
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test VECTOR_CAPACITY_LOG2=10
+
+      - name: Test vector capacity of 64
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test VECTOR_CAPACITY_LOG2=6
+
+      - name: Test vector capacity of 64 under in-memory mode
+        env:
+          IN_MEM_MODE: true
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test VECTOR_CAPACITY_LOG2=6
+
+      - name: Test vector capacity of 2
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test VECTOR_CAPACITY_LOG2=1
+
+      - name: Test vector capacity of 2 under in-memory mode
+        env:
+          IN_MEM_MODE: true
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test VECTOR_CAPACITY_LOG2=1
 
   code-coverage:
     name: code coverage
