@@ -1650,7 +1650,7 @@ std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size
             ss << text;
         }
     }
-    ss << reset;
+    ss << "\033[0m";
     return ss.str();
 }
 
@@ -2016,6 +2016,8 @@ static void refreshMultiLine(struct linenoiseState* l) {
     /* Clean the top line. */
     lndebug("clear");
     append_buffer.abAppend("\r\x1b[0K");
+
+    append_buffer.abAppend("\033[0m"); // reset all attributes
 
     /* Write the prompt and the current buffer content */
     if (l->y_scroll == 0) {
