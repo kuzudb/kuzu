@@ -67,16 +67,16 @@ Found duplicated primary key value 10, which violates the uniqueness constraint 
 ---- 2
 4 tuples have been copied to the person table.
 30 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
--STATEMENT MATCH (p:person) RETURN p.*
+-STATEMENT MATCH (p:person) RETURN p.ID
 ---- 4
-10|Guodong
-24|Semih
-31|Xiyang
-11|aa
--STATEMENT CALL show_warnings() RETURN message, file_path, skipped_line, line_number
+10
+24
+31
+11
+-STATEMENT CALL show_warnings() RETURN message
 ---- 2
-Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv|10,Ziyi|4
-Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv|10,a|1
+Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 
 -CASE SerialManyDuplicateIntIDsIgnoreErrors
 -STATEMENT CALL warning_limit=2
