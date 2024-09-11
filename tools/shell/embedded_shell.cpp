@@ -162,71 +162,6 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     }
 }
 
-void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cursorPos) {
-    std::string buf(buffer);
-    auto bufLen = buf.length();
-    std::ostringstream highlightBuffer;
-    std::string word;
-    std::vector<std::string> tokenList;
-    if (cursorPos > renderWidth) {
-        uint32_t counter = 0;
-        uint32_t thisChar = 0;
-        uint32_t lineLen = 0;
-        while (counter < cursorPos) {
-            counter += Utf8Proc::renderWidth(buffer, thisChar);
-            thisChar = utf8proc_next_grapheme(buffer, bufLen, thisChar);
-        }
-        lineLen = thisChar;
-        while (counter > cursorPos - renderWidth + 1) {
-            counter -= Utf8Proc::renderWidth(buffer, thisChar);
-            thisChar = Utf8Proc::previousGraphemeCluster(buffer, bufLen, thisChar);
-        }
-        lineLen -= thisChar;
-        buf = buf.substr(thisChar, lineLen);
-    } else if (buf.length() > renderWidth) {
-        uint32_t counter = 0;
-        uint32_t lineLen = 0;
-        while (counter < renderWidth) {
-            counter += Utf8Proc::renderWidth(buffer, lineLen);
-            lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
-        }
-        buf = buf.substr(0, lineLen);
-    }
-    for (auto i = 0u; i < buf.length(); i++) {
-        if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||
-            (buf[i] == ' ' && !word.empty() && word[0] != ' ')) {
-            tokenList.emplace_back(word);
-            word = "";
-        }
-        word += buf[i];
-    }
-    tokenList.emplace_back(word);
-    for (std::string& token : tokenList) {
-        if (token.find(' ') == std::string::npos) {
-            for (const std::string keyword : keywordList) {
-                if (regex_search(token,
-                        std::regex("^" + keyword + "$", std::regex_constants::icase)) ||
-                    regex_search(token,
-                        std::regex("^" + keyword + "\\(", std::regex_constants::icase)) ||
-                    regex_search(token,
-                        std::regex("^" + keyword + "\\]", std::regex_constants::icase)) ||
-                    regex_search(token,
-                        std::regex("\\(" + keyword + "$", std::regex_constants::icase))) {
-                    token = regex_replace(token,
-                        std::regex(std::string("(").append(keyword).append(")"),
-                            std::regex_constants::icase),
-                        std::string(keywordColorPrefix).append("$1").append(keywordResetPostfix));
-                    break;
-                }
-            }
-        }
-        highlightBuffer << token;
-    }
-    // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
-    // the length.
-    strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
-}
-
 uint64_t damerauLevenshteinDistance(const std::string& s1, const std::string& s2) {
     const uint64_t m = s1.size(), n = s2.size();
     std::vector<std::vector<uint64_t>> dp(m + 1, std::vector<uint64_t>(n + 1, 0));
@@ -301,7 +236,6 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     path_to_history = shellConfig.path_to_history;
     linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
-    linenoiseSetHighlightCallback(highlight);
     this->database = database;
     this->conn = conn;
     globalConnection = conn.get();

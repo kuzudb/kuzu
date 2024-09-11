@@ -156,6 +156,9 @@
 #include "linenoise.h"
 
 #include <regex>
+
+#include "cypher_lexer.h"
+#include "keywords.h"
 #ifndef _WIN32
 #include <termios.h>
 #include <unistd.h>
@@ -1160,6 +1163,497 @@ uint32_t linenoiseComputeRenderWidth(const char* buf, size_t len) {
     return renderWidth;
 }
 
+std::vector<highlightToken> getShellCommandTokens(char* buf, size_t len) {
+    std::vector<highlightToken> tokens;
+
+    // identifier token for the shell command itself
+    highlightToken shell_token;
+    shell_token.type = tokenType::TOKEN_KEYWORD;
+    shell_token.start = 0;
+    tokens.push_back(shell_token);
+
+    for (uint64_t i = 0; i + 1 < len; i++) {
+        if (isspace(buf[i])) {
+            highlightToken argument_token;
+            argument_token.type = tokenType::TOKEN_STRING_CONSTANT;
+            argument_token.start = i + 1;
+            tokens.push_back(argument_token);
+        }
+    }
+    return tokens;
+}
+
+static tokenType convertToken(antlr4::Token* token) {
+    auto tokenType = token->getType();
+    auto tokenText = token->getText();
+    std::transform(tokenText.begin(), tokenText.end(), tokenText.begin(), ::toupper);
+
+    switch (tokenType) {
+    case CypherLexer::StringLiteral:
+        return tokenType::TOKEN_STRING_CONSTANT;
+    case CypherLexer::SP: // comments can show up as SP
+        if (tokenText.length() > 1 && tokenText[0] == '/' && tokenText[1] == '/') {
+            return tokenType::TOKEN_COMMENT;
+        } else {
+            return tokenType::TOKEN_IDENTIFIER;
+        }
+    case CypherLexer::CypherComment:
+        return tokenType::TOKEN_COMMENT;
+    case CypherLexer::DecimalInteger:
+    case CypherLexer::Digit:
+    case CypherLexer::HexDigit:
+    case CypherLexer::HexLetter:
+    case CypherLexer::ZeroDigit:
+    case CypherLexer::NonZeroDigit:
+    case CypherLexer::NonZeroOctDigit:
+    case CypherLexer::RegularDecimalReal:
+        return tokenType::TOKEN_NUMERIC_CONSTANT;
+    default:
+        break;
+    }
+
+    for (auto& keyword : _keywordList) {
+        if (tokenText == keyword) {
+            return tokenType::TOKEN_KEYWORD;
+        }
+    }
+
+    return tokenType::TOKEN_IDENTIFIER;
+}
+
+std::vector<highlightToken> getParseTokens(char* buf, size_t len) {
+    std::string cypher(buf, len);
+    auto inputStream = antlr4::ANTLRInputStream(cypher);
+
+    auto cypherLexer = CypherLexer(&inputStream);
+    auto lexerTokens = antlr4::CommonTokenStream(&cypherLexer);
+    lexerTokens.fill();
+
+    std::vector<highlightToken> tokens;
+    for (auto& token : lexerTokens.getTokens()) {
+        highlightToken new_token;
+        new_token.type = convertToken(token);
+        new_token.start = token->getStartIndex();
+        tokens.push_back(new_token);
+    }
+
+    if (!tokens.empty() && tokens[0].start > 0) {
+        highlightToken new_token;
+        new_token.type = tokenType::TOKEN_IDENTIFIER;
+        new_token.start = 0;
+        tokens.insert(tokens.begin(), new_token);
+    }
+    if (tokens.empty() && cypher.size() > 0) {
+        highlightToken new_token;
+        new_token.type = tokenType::TOKEN_IDENTIFIER;
+        new_token.start = 0;
+        tokens.push_back(new_token);
+    }
+    return tokens;
+}
+
+std::vector<highlightToken> highlightingTokenize(char* buf, size_t len, bool is_shell_command) {
+    std::vector<highlightToken> tokens;
+    if (!is_shell_command) {
+        // SQL query - use parser to obtain tokens
+        tokens = getParseTokens(buf, len);
+    } else {
+        // . command
+        tokens = getShellCommandTokens(buf, len);
+    }
+    return tokens;
+}
+
+// insert a token of length 1 of the specified type
+void insertToken(tokenType insert_type, uint64_t insert_pos, std::vector<highlightToken>& tokens) {
+    std::vector<highlightToken> new_tokens;
+    new_tokens.reserve(tokens.size() + 1);
+    uint64_t i;
+    bool found = false;
+    for (i = 0; i < tokens.size(); i++) {
+        // find the exact position where we need to insert the token
+        if (tokens[i].start == insert_pos) {
+            // this token is exactly at this render position
+
+            // insert highlighting for the bracket
+            highlightToken token;
+            token.start = insert_pos;
+            token.type = insert_type;
+            new_tokens.push_back(token);
+
+            // now we need to insert the other token ONLY if the other token is not immediately
+            // following this one
+            if (i + 1 >= tokens.size() || tokens[i + 1].start > insert_pos + 1) {
+                token.start = insert_pos + 1;
+                token.type = tokens[i].type;
+                new_tokens.push_back(token);
+            }
+            i++;
+            found = true;
+            break;
+        } else if (tokens[i].start > insert_pos) {
+            // the next token is AFTER the render position
+            // insert highlighting for the bracket
+            highlightToken token;
+            token.start = insert_pos;
+            token.type = insert_type;
+            new_tokens.push_back(token);
+
+            // now just insert the next token
+            new_tokens.push_back(tokens[i]);
+            i++;
+            found = true;
+            break;
+        } else {
+            // insert the token
+            new_tokens.push_back(tokens[i]);
+        }
+    }
+    // copy over the remaining tokens
+    for (; i < tokens.size(); i++) {
+        new_tokens.push_back(tokens[i]);
+    }
+    if (!found) {
+        // token was not added - add it to the end
+        highlightToken token;
+        token.start = insert_pos;
+        token.type = insert_type;
+        new_tokens.push_back(token);
+    }
+    tokens = std::move(new_tokens);
+}
+
+static void openBracket(std::vector<uint64_t>& brackets, std::vector<uint64_t>& cursor_brackets,
+    uint64_t pos, uint64_t i) {
+    // check if the cursor is at this position
+    if (pos == i) {
+        // cursor is exactly on this position - always highlight this bracket
+        if (!cursor_brackets.empty()) {
+            cursor_brackets.clear();
+        }
+        cursor_brackets.push_back(i);
+    }
+    if (cursor_brackets.empty() && ((i + 1) == pos || (pos + 1) == i)) {
+        // cursor is either BEFORE or AFTER this bracket and we don't have any highlighted bracket
+        // yet highlight this bracket
+        cursor_brackets.push_back(i);
+    }
+    brackets.push_back(i);
+}
+
+static void closeBracket(std::vector<uint64_t>& brackets, std::vector<uint64_t>& cursor_brackets,
+    uint64_t pos, uint64_t i, std::vector<uint64_t>& errors) {
+    if (pos == i) {
+        // cursor is on this closing bracket
+        // clear any selected brackets - we always select this one
+        cursor_brackets.clear();
+    }
+    if (brackets.empty()) {
+        // closing bracket without matching opening bracket
+        errors.push_back(i);
+    } else {
+        if (cursor_brackets.size() == 1) {
+            if (cursor_brackets.back() == brackets.back()) {
+                // this closing bracket matches the highlighted opening cursor bracket - highlight
+                // both
+                cursor_brackets.push_back(i);
+            }
+        } else if (cursor_brackets.empty() && (pos == i || (i + 1) == pos || (pos + 1) == i)) {
+            // no cursor bracket selected yet and cursor is BEFORE or AFTER this bracket
+            // add this bracket
+            cursor_brackets.push_back(i);
+            cursor_brackets.push_back(brackets.back());
+        }
+        brackets.pop_back();
+    }
+}
+
+static void HandleBracketErrors(const std::vector<uint64_t>& brackets,
+    std::vector<uint64_t>& errors) {
+    if (brackets.empty()) {
+        return;
+    }
+    // if there are unclosed brackets remaining not all brackets were closed
+    for (auto& bracket : brackets) {
+        errors.push_back(bracket);
+    }
+}
+
+void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
+    std::vector<highlightToken>& tokens, struct linenoiseState* l) {
+    enum class ScanState {
+        STANDARD,
+        IN_SINGLE_QUOTE,
+        IN_DOUBLE_QUOTE,
+        IN_COMMENT,
+        IN_MULTILINE_COMMENT
+    };
+
+    static constexpr const uint64_t MAX_ERROR_LENGTH = 2000;
+    if (l->len >= MAX_ERROR_LENGTH) {
+        return;
+    }
+    // do a pass over the buffer to collect errors:
+    // * brackets without matching closing/opening bracket
+    // * single quotes without matching closing single quote
+    // * double quote without matching double quote
+    ScanState state = ScanState::STANDARD;
+    std::vector<uint64_t> brackets;        // ()
+    std::vector<uint64_t> square_brackets; // []
+    std::vector<uint64_t> curly_brackets;  // {}
+    std::vector<uint64_t> errors;
+    std::vector<uint64_t> cursor_brackets;
+    std::vector<uint64_t> comment_start;
+    std::vector<uint64_t> comment_end;
+    std::string dollar_quote_marker;
+    uint64_t quote_pos = 0;
+    for (uint64_t i = 0; i < l->len; i++) {
+        auto c = l->buf[i];
+        switch (state) {
+        case ScanState::STANDARD:
+            switch (c) {
+            case '/':
+                if (i + 1 < l->len && l->buf[i + 1] == '/') {
+                    // // puts us in a comment
+                    comment_start.push_back(i);
+                    i++;
+                    state = ScanState::IN_COMMENT;
+                    break;
+                } else if (i + 1 < l->len && l->buf[i + 1] == '*') {
+                    // /* puts us in a multiline comment
+                    comment_start.push_back(i);
+                    i++;
+                    state = ScanState::IN_MULTILINE_COMMENT;
+                    break;
+                }
+                break;
+            case '\'':
+                state = ScanState::IN_SINGLE_QUOTE;
+                quote_pos = i;
+                break;
+            case '\"':
+                state = ScanState::IN_DOUBLE_QUOTE;
+                quote_pos = i;
+                break;
+            case '(':
+                openBracket(brackets, cursor_brackets, l->pos, i);
+                break;
+            case '[':
+                openBracket(square_brackets, cursor_brackets, l->pos, i);
+                break;
+            case '{':
+                openBracket(curly_brackets, cursor_brackets, l->pos, i);
+                break;
+            case ')':
+                closeBracket(brackets, cursor_brackets, l->pos, i, errors);
+                break;
+            case ']':
+                closeBracket(square_brackets, cursor_brackets, l->pos, i, errors);
+                break;
+            case '}':
+                closeBracket(curly_brackets, cursor_brackets, l->pos, i, errors);
+                break;
+            default:
+                break;
+            }
+            break;
+        case ScanState::IN_COMMENT:
+            // comment state - the only thing that will get us out is a newline
+            switch (c) {
+            case '\r':
+            case '\n':
+                // newline - left comment state
+                state = ScanState::STANDARD;
+                comment_end.push_back(i);
+                break;
+            default:
+                break;
+            }
+            break;
+        case ScanState::IN_MULTILINE_COMMENT:
+            // multiline comment state - the only thing that will get us out is a */
+            if (c == '*' && i + 1 < l->len && l->buf[i + 1] == '/') {
+                // found the end of the multiline comment
+                state = ScanState::STANDARD;
+                comment_end.push_back(i + 1);
+                i++;
+            }
+            break;
+        case ScanState::IN_SINGLE_QUOTE:
+            // single quote - all that will get us out is an unescaped single-quote
+            if (c == '\'') {
+                if (i + 1 < l->len && l->buf[i + 1] == '\'') {
+                    // double single-quote means the quote is escaped - continue
+                    i++;
+                    break;
+                } else {
+                    // otherwise revert to standard scan state
+                    state = ScanState::STANDARD;
+                    break;
+                }
+            }
+            break;
+        case ScanState::IN_DOUBLE_QUOTE:
+            // double quote - all that will get us out is an unescaped quote
+            if (c == '"') {
+                if (i + 1 < l->len && l->buf[i + 1] == '"') {
+                    // double quote means the quote is escaped - continue
+                    i++;
+                    break;
+                } else {
+                    // otherwise revert to standard scan state
+                    state = ScanState::STANDARD;
+                    break;
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    if (state == ScanState::IN_DOUBLE_QUOTE || state == ScanState::IN_SINGLE_QUOTE) {
+        // quote is never closed
+        errors.push_back(quote_pos);
+    }
+    HandleBracketErrors(brackets, errors);
+    HandleBracketErrors(square_brackets, errors);
+    HandleBracketErrors(curly_brackets, errors);
+
+    // insert all the errors for highlighting
+    for (auto& error : errors) {
+        lndebug("Error found at position %llu\n", error);
+        if (error < render_start || error > render_end) {
+            continue;
+        }
+        auto render_error = error - render_start;
+        insertToken(tokenType::TOKEN_ERROR, render_error, tokens);
+    }
+    if (cursor_brackets.size() != 2) {
+        // no matching cursor brackets found
+        cursor_brackets.clear();
+    }
+    // insert bracket for highlighting
+    for (auto& bracket_position : cursor_brackets) {
+        lndebug("Highlight bracket at position %d\n", bracket_position);
+        if (bracket_position < render_start || bracket_position > render_end) {
+            continue;
+        }
+
+        uint64_t render_position = bracket_position - render_start;
+        insertToken(tokenType::TOKEN_BRACKET, render_position, tokens);
+    }
+    // insert comments
+    if (!comment_start.empty()) {
+        std::vector<highlightToken> new_tokens;
+        new_tokens.reserve(tokens.size());
+        uint64_t token_idx = 0;
+        for (uint64_t c = 0; c < comment_start.size(); c++) {
+            auto c_start = comment_start[c];
+            auto c_end = c < comment_end.size() ? comment_end[c] : l->len;
+            if (c_start < render_start || c_end > render_end) {
+                continue;
+            }
+            lndebug("Comment at position %d to %d\n", c_start, c_end);
+            c_start -= render_start;
+            c_end -= render_start;
+            bool inserted_comment = false;
+
+            highlightToken comment_token;
+            comment_token.start = c_start;
+            comment_token.type = tokenType::TOKEN_COMMENT;
+
+            for (; token_idx < tokens.size(); token_idx++) {
+                if (tokens[token_idx].start >= c_start) {
+                    // insert the comment here
+                    new_tokens.push_back(comment_token);
+                    inserted_comment = true;
+                    break;
+                }
+                new_tokens.push_back(tokens[token_idx]);
+            }
+            if (!inserted_comment) {
+                new_tokens.push_back(comment_token);
+            } else {
+                // skip all tokens until we exit the comment again
+                for (; token_idx < tokens.size(); token_idx++) {
+                    if (tokens[token_idx].start > c_end) {
+                        break;
+                    }
+                }
+            }
+        }
+        for (; token_idx < tokens.size(); token_idx++) {
+            new_tokens.push_back(tokens[token_idx]);
+        }
+        tokens = std::move(new_tokens);
+    }
+}
+
+std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size_t end_pos,
+    const std::vector<highlightToken>& tokens) {
+    static std::string underline = "\033[4m";
+    static std::string keyword = "\033[32m";
+    static std::string continuation_selected = "\033[32m";
+    static std::string constant = "\033[33m";
+    static std::string continuation = "\033[90m";
+    static std::string comment = "\033[90m";
+    static std::string error = "\033[31m";
+    static std::string reset = "\033[39m";
+    static std::string reset_underline = "\033[24m";
+
+    std::stringstream ss;
+    size_t prev_pos = 0;
+    for (size_t i = 0; i < tokens.size(); i++) {
+        size_t next = i + 1 < tokens.size() ? tokens[i + 1].start : len;
+        if (next < start_pos) {
+            // this token is not rendered at all
+            continue;
+        }
+
+        auto& token = tokens[i];
+        size_t start = token.start > start_pos ? token.start : start_pos;
+        size_t end = next > end_pos ? end_pos : next;
+        if (end <= start) {
+            continue;
+        }
+        if (prev_pos > start) {
+            lndebug("ERROR - Rendering at position %llu after rendering at position %llu\n", start,
+                prev_pos);
+            continue;
+        }
+        prev_pos = start;
+        std::string text = std::string(buf + start, end - start);
+        switch (token.type) {
+        case tokenType::TOKEN_KEYWORD:
+            ss << keyword << text << reset;
+            break;
+        case tokenType::TOKEN_NUMERIC_CONSTANT:
+        case tokenType::TOKEN_STRING_CONSTANT:
+            ss << constant << text << reset;
+            break;
+        case tokenType::TOKEN_CONTINUATION:
+            ss << continuation << text << reset;
+            break;
+        case tokenType::TOKEN_CONTINUATION_SELECTED:
+            ss << continuation_selected << text << reset;
+            break;
+        case tokenType::TOKEN_BRACKET:
+            ss << underline << text << reset_underline;
+            break;
+        case tokenType::TOKEN_ERROR:
+            ss << error << text << reset;
+            break;
+        case tokenType::TOKEN_COMMENT:
+            ss << comment << text << reset;
+            break;
+        default:
+            ss << text;
+        }
+    }
+    ss << "\033[0m";
+    return ss.str();
+}
+
 static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_t plen,
     bool highlight, size_t& render_pos, char* highlightBuf) {
     if (Utf8Proc::isValid(buf, len)) {
@@ -1169,13 +1663,10 @@ static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_
         size_t charPos = 0;
         size_t prevPos = 0;
         size_t totalRenderWidth = 0;
-        size_t renderWidth = 0;
-        size_t posCounter = 0;
         while (charPos < len) {
             uint32_t charRenderWidth = Utf8Proc::renderWidth(buf, charPos);
             prevPos = charPos;
             charPos = utf8proc_next_grapheme(buf, len, charPos);
-            posCounter++;
             totalRenderWidth += charPos - prevPos;
             if (totalRenderWidth >= remainingRenderWidth) {
                 if (prevPos >= pos) {
@@ -1194,16 +1685,17 @@ static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_
                     }
                 }
             }
-            if (posCounter <= pos) {
-                renderWidth += charRenderWidth;
-            }
             if (prevPos < pos) {
                 render_pos += charRenderWidth;
             }
         }
         if (highlight) {
-            highlightCallback(buf, highlightBuf, totalRenderWidth, renderWidth);
-            len = strlen(highlightBuf);
+            bool is_shell_command = buf[0] == ':';
+            std::string highlight_buffer;
+            auto tokens = highlightingTokenize(buf, len, is_shell_command);
+            highlight_buffer = linenoiseHighlightText(buf, len, startPos, charPos, tokens);
+            std::strcpy(highlightBuf, highlight_buffer.c_str());
+            len = highlight_buffer.size();
         } else {
             buf = buf + startPos;
             len = charPos - startPos;
@@ -1354,12 +1846,16 @@ size_t colAndRowToPosition(size_t target_row, size_t target_col, struct linenois
 }
 
 std::string linenoiseAddContinuationMarkers(const char* buf, size_t len, size_t plen,
-    int cursor_row, struct linenoiseState* l) {
+    int cursor_row, struct linenoiseState* l, std::vector<highlightToken>& tokens) {
     std::string result;
     size_t rows = 1;
     size_t cols = plen;
     size_t cpos = 0;
     size_t prev_pos = 0;
+    size_t extra_bytes = 0;    // extra bytes introduced
+    size_t token_position = 0; // token position
+    std::vector<highlightToken> new_tokens;
+    new_tokens.reserve(tokens.size());
     while (cpos < len) {
         bool is_newline = isNewline(buf[cpos]);
         nextPosition(buf, len, cpos, rows, cols, plen, l->cols);
@@ -1379,11 +1875,41 @@ std::string linenoiseAddContinuationMarkers(const char* buf, size_t len, size_t 
                 result += " ";
             }
             result += prompt;
+            size_t continuationBytes = plen - continuationRender + continuationLen;
+            if (token_position < tokens.size()) {
+                for (; token_position < tokens.size(); token_position++) {
+                    if (tokens[token_position].start >= cpos) {
+                        // not there yet
+                        break;
+                    }
+                    tokens[token_position].start += extra_bytes;
+                    new_tokens.push_back(tokens[token_position]);
+                }
+                tokenType prev_type = tokenType::TOKEN_IDENTIFIER;
+                if (token_position > 0 && token_position < tokens.size() + 1) {
+                    prev_type = tokens[token_position - 1].type;
+                }
+                highlightToken token;
+                token.start = cpos + extra_bytes;
+                token.type = is_cursor_row ? tokenType::TOKEN_CONTINUATION_SELECTED :
+                                             tokenType::TOKEN_CONTINUATION;
+                new_tokens.push_back(token);
+
+                token.start = cpos + extra_bytes + continuationBytes;
+                token.type = prev_type;
+                new_tokens.push_back(token);
+            }
+            extra_bytes += continuationBytes;
         }
     }
     for (; prev_pos < cpos; prev_pos++) {
         result += buf[prev_pos];
     }
+    for (; token_position < tokens.size(); token_position++) {
+        tokens[token_position].start += extra_bytes;
+        new_tokens.push_back(tokens[token_position]);
+    }
+    tokens = std::move(new_tokens);
     return result;
 }
 
@@ -1404,7 +1930,6 @@ static void refreshMultiLine(struct linenoiseState* l) {
     int col; /* colum position, zero-based. */
     int old_rows = l->maxrows ? l->maxrows : 1;
     int fd = l->ofd;
-    char highlight_buffer[LINENOISE_MAX_LINE];
     auto render_buf = l->buf;
     auto render_len = l->len;
     uint64_t render_start = 0;
@@ -1450,20 +1975,26 @@ static void refreshMultiLine(struct linenoiseState* l) {
         l->maxrows = rows;
     }
 
+    std::vector<highlightToken> tokens;
+    bool is_shell_command = l->buf[0] == ':';
+    tokens = highlightingTokenize(render_buf, render_len, is_shell_command);
+
+    // add error highlighting
+    addErrorHighlighting(render_start, render_end, tokens, l);
+
     std::string continue_buffer;
     if (rows > 1) {
         // add continuation markers
         continue_buffer = linenoiseAddContinuationMarkers(render_buf, render_len, plen,
-            l->y_scroll > 0 ? new_cursor_row + 1 : new_cursor_row, l);
+            l->y_scroll > 0 ? new_cursor_row + 1 : new_cursor_row, l, tokens);
         render_buf = (char*)continue_buffer.c_str();
         render_len = continue_buffer.size();
     }
+    std::string highlight_buffer;
     if (Utf8Proc::isValid(render_buf, render_len)) {
-        if (highlightCallback) {
-            highlightCallback(render_buf, highlight_buffer, render_len, render_len);
-            render_buf = highlight_buffer;
-            render_len = strlen(highlight_buffer);
-        }
+        highlight_buffer = linenoiseHighlightText(render_buf, render_len, 0, render_len, tokens);
+        render_buf = (char*)highlight_buffer.c_str();
+        render_len = highlight_buffer.size();
     }
 
     /* First step: clear all the lines used before. To do so start by
@@ -1485,6 +2016,8 @@ static void refreshMultiLine(struct linenoiseState* l) {
     /* Clean the top line. */
     lndebug("clear");
     append_buffer.abAppend("\r\x1b[0K");
+
+    append_buffer.abAppend("\033[0m"); // reset all attributes
 
     /* Write the prompt and the current buffer content */
     if (l->y_scroll == 0) {
@@ -2963,6 +3496,8 @@ static int linenoiseRaw(char* buf, size_t buflen, const char* prompt, const char
  * to its standard input. In this case, we want to be able to return the
  * line regardless of its length (by default we are limited to 4k). */
 static char* linenoiseNoTTY(void) {
+    const int EOF = -1;
+
     char* line = NULL;
     size_t len = 0, maxlen = 0;
 

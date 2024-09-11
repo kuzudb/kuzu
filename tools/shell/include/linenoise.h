@@ -52,6 +52,33 @@ typedef struct linenoiseCompletions {
     char** cvec;
 } linenoiseCompletions;
 
+enum class tokenType : uint8_t {
+    TOKEN_IDENTIFIER,
+    TOKEN_NUMERIC_CONSTANT,
+    TOKEN_STRING_CONSTANT,
+    TOKEN_OPERATOR,
+    TOKEN_KEYWORD,
+    TOKEN_COMMENT,
+    TOKEN_CONTINUATION,
+    TOKEN_CONTINUATION_SELECTED,
+    TOKEN_BRACKET,
+    TOKEN_ERROR
+};
+
+enum class HighlightingType {
+    KEYWORD,
+    CONSTANT,
+    COMMENT,
+    ERROR,
+    CONTINUATION,
+    CONTINUATION_SELECTED
+};
+
+struct highlightToken {
+    tokenType type;
+    size_t start = 0;
+};
+
 typedef void(linenoiseCompletionCallback)(const char*, linenoiseCompletions*);
 typedef char*(linenoiseHintsCallback)(const char*, int* color, int* bold);
 typedef void(linenoiseFreeHintsCallback)(void*);
