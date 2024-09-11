@@ -1,6 +1,5 @@
 #include "main/query_result.h"
 
-#include "binder/expression/expression.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/runtime.h"
 #include "common/types/value/node.h"
@@ -57,20 +56,19 @@ void QueryResult::resetIterator() {
     iterator->resetState();
 }
 
+void QueryResult::setColumnHeader(std::vector<std::string> columnNames_,
+    std::vector<LogicalType> columnTypes_) {
+    columnNames = std::move(columnNames_);
+    columnDataTypes = std::move(columnTypes_);
+}
+
 void QueryResult::initResultTableAndIterator(
-    std::shared_ptr<processor::FactorizedTable> factorizedTable_,
-    const binder::expression_vector& columns) {
+    std::shared_ptr<processor::FactorizedTable> factorizedTable_) {
     factorizedTable = std::move(factorizedTable_);
     tuple = std::make_shared<FlatTuple>();
     std::vector<Value*> valuesToCollect;
-    for (auto i = 0u; i < columns.size(); ++i) {
-        auto column = columns[i].get();
-        const auto& columnType = column->getDataType();
-        auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
-        columnDataTypes.push_back(columnType.copy());
-        columnNames.push_back(columnName);
-        std::unique_ptr<Value> value =
-            std::make_unique<Value>(Value::createDefaultValue(columnType.copy()));
+    for (auto& type : columnDataTypes) {
+        auto value = std::make_unique<Value>(Value::createDefaultValue(type.copy()));
         valuesToCollect.push_back(value.get());
         tuple->addValue(std::move(value));
     }

@@ -45,7 +45,7 @@ std::atomic<EvictionCandidate>* EvictionQueue::next() {
         // Since the buffer pool size is a power of two (as is the page size), (UINT64_MAX + 1) %
         // size == 0, which means no entries will be skipped when the cursor overflows
         candidate = &data[evictionCursor.fetch_add(1, std::memory_order_relaxed) % capacity];
-    } while (candidate->load() == EMPTY);
+    } while (candidate->load() == EMPTY && size > 0);
     return candidate;
 }
 
@@ -307,23 +307,25 @@ bool BufferManager::claimAFrame(FileHandle& fileHandle, page_idx_t pageIdx,
 
 bool BufferManager::reserve(uint64_t sizeToReserve) {
     // Reserve the memory for the page.
-    auto currentUsedMem = reserveUsedMemory(sizeToReserve);
+    usedMemory += sizeToReserve;
     uint64_t totalClaimedMemory = 0;
+    const auto needMoreMemory = [&]() {
+        // The only time we should exceed the buffer pool size should be when threads are currently
+        // attempting to reserve space and have pre-allocated space. So if we've claimed enough
+        // space for what we're trying to reserve, then we can continue even if the current total is
+        // higher than the buffer pool size as we should never actually exceed the buffer pool size.
+        return sizeToReserve > totalClaimedMemory &&
+               (usedMemory - totalClaimedMemory) > bufferPoolSize.load();
+    };
     // Evict pages if necessary until we have enough memory.
-    while ((currentUsedMem + sizeToReserve - totalClaimedMemory) > bufferPoolSize.load()) {
+    while (needMoreMemory()) {
         auto memoryClaimed = evictPages();
-        if (memoryClaimed == 0) {
+        if (memoryClaimed == 0 && needMoreMemory()) {
             // Cannot find more pages to be evicted. Free the memory we reserved and return false.
             freeUsedMemory(sizeToReserve + totalClaimedMemory);
             return false;
         }
         totalClaimedMemory += memoryClaimed;
-        currentUsedMem = usedMemory.load();
-    }
-    if ((currentUsedMem + sizeToReserve - totalClaimedMemory) > bufferPoolSize.load()) {
-        // Cannot claim the memory needed. Free the memory we reserved and return false.
-        freeUsedMemory(sizeToReserve + totalClaimedMemory);
-        return false;
     }
     // Have enough memory available now
     freeUsedMemory(totalClaimedMemory);

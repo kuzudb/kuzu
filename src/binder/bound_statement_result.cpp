@@ -12,7 +12,7 @@ BoundStatementResult BoundStatementResult::createSingleStringColumnResult(
     auto result = BoundStatementResult();
     auto value = Value(LogicalType::STRING(), columnName);
     auto stringColumn = std::make_shared<LiteralExpression>(std::move(value), columnName);
-    result.addColumn(stringColumn);
+    result.addColumn(columnName, stringColumn);
     return result;
 }
 

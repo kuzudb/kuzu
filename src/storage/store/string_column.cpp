@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/null_mask.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/store/column.h"
 #include "storage/store/null_column.h"
@@ -20,14 +21,14 @@ using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
 StringColumn::StringColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), dataFH, bufferManager, shadowFile,
-          enableCompression, true /* requireNullColumn */},
-      dictionary{this->name, dataFH, bufferManager, shadowFile, enableCompression} {
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
+          true /* requireNullColumn */},
+      dictionary{this->name, dataFH, mm, shadowFile, enableCompression} {
     auto indexColumnName =
         StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::INDEX, "index");
-    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), dataFH,
-        bufferManager, shadowFile, enableCompression, false /*requireNullColumn*/);
+    indexColumn = std::make_unique<Column>(indexColumnName, LogicalType::UINT32(), dataFH, mm,
+        shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
 ChunkState& StringColumn::getChildState(ChunkState& state, ChildStateIndex child) {

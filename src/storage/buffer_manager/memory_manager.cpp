@@ -1,7 +1,10 @@
 #include "storage/buffer_manager/memory_manager.h"
 
+#include <cstdint>
 #include <cstring>
 
+#include "common/constants.h"
+#include "common/exception/buffer_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::common;
@@ -9,35 +12,43 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-MemoryBuffer::MemoryBuffer(MemoryAllocator* allocator, page_idx_t pageIdx, uint8_t* buffer,
-    uint64_t size)
-    : buffer{buffer, size}, pageIdx{pageIdx}, allocator{allocator} {}
+MemoryBuffer::MemoryBuffer(MemoryManager* mm, page_idx_t pageIdx, uint8_t* buffer, uint64_t size)
+    : buffer{buffer, size}, pageIdx{pageIdx}, mm{mm} {}
 
 MemoryBuffer::~MemoryBuffer() {
     if (buffer.data() != nullptr) {
-        allocator->freeBlock(pageIdx, buffer);
+        mm->freeBlock(pageIdx, buffer);
+        buffer = std::span<uint8_t>();
     }
 }
 
-MemoryAllocator::MemoryAllocator(BufferManager* bm, VirtualFileSystem* vfs,
+MemoryManager::MemoryManager(BufferManager* bm, VirtualFileSystem* vfs,
     main::ClientContext* context)
     : bm{bm} {
     pageSize = TEMP_PAGE_SIZE;
     fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, context, TEMP_PAGE);
 }
 
-MemoryAllocator::~MemoryAllocator() = default;
+MemoryManager::~MemoryManager() = default;
 
-std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZero,
-    uint64_t size) {
+std::unique_ptr<MemoryBuffer> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t size) {
+    if (!bm->reserve(size)) {
+        throw BufferManagerException(
+            "Unable to allocate memory! The buffer pool is full and no memory could be freed!");
+    }
+    void* buffer;
+    if (initializeToZero) {
+        buffer = calloc(size, 1);
+    } else {
+        buffer = malloc(size);
+    }
+    return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX,
+        reinterpret_cast<uint8_t*>(buffer), size);
+}
+
+std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZero, uint64_t size) {
     if (size > TEMP_PAGE_SIZE) [[unlikely]] {
-        bm->reserve(size);
-        auto buffer = malloc(size);
-        if (initializeToZero) {
-            memset(buffer, 0, size);
-        }
-        return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX,
-            reinterpret_cast<uint8_t*>(buffer), size);
+        return mallocBuffer(initializeToZero, size);
     }
     page_idx_t pageIdx;
     {
@@ -57,7 +68,7 @@ std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZ
     return memoryBuffer;
 }
 
-void MemoryAllocator::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
+void MemoryManager::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
     if (pageIdx == INVALID_PAGE_IDX) {
         bm->freeUsedMemory(buffer.size());
         std::free(buffer.data());

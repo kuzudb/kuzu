@@ -1,6 +1,7 @@
 #pragma once
 
 #include "column.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 // List is a nested data type which is stored as three chunks:
 // 1. Offset column (type: INT64). Using offset to partition the data column into multiple lists.
@@ -50,7 +51,7 @@ class ListColumn final : public Column {
 
 public:
     ListColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
-        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
+        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         FileHandle& dataFH);

@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/exception/runtime.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "transaction/transaction.h"
@@ -13,10 +14,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-VectorUpdateInfo* UpdateInfo::update(const Transaction* transaction, const idx_t vectorIdx,
-    const sel_t rowIdxInVector, const ValueVector& values) {
-    auto& vectorUpdateInfo =
-        getOrCreateVectorInfo(transaction, vectorIdx, rowIdxInVector, values.dataType);
+VectorUpdateInfo* UpdateInfo::update(MemoryManager& memoryManager, const Transaction* transaction,
+    const idx_t vectorIdx, const sel_t rowIdxInVector, const ValueVector& values) {
+    auto& vectorUpdateInfo = getOrCreateVectorInfo(memoryManager, transaction, vectorIdx,
+        rowIdxInVector, values.dataType);
     // Check if the row is already updated in this transaction. Overwrite if so.
     idx_t idxInUpdateData = INVALID_IDX;
     for (auto i = 0u; i < vectorUpdateInfo.numRowsUpdated; i++) {
@@ -91,14 +92,15 @@ bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     return false;
 }
 
-VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transaction, idx_t vectorIdx,
-    sel_t rowIdxInVector, const LogicalType& dataType) {
+VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(MemoryManager& memoryManager,
+    const Transaction* transaction, idx_t vectorIdx, sel_t rowIdxInVector,
+    const LogicalType& dataType) {
     if (vectorIdx >= vectorsInfo.size()) {
         vectorsInfo.resize(vectorIdx + 1);
     }
     if (!vectorsInfo[vectorIdx]) {
-        vectorsInfo[vectorIdx] =
-            std::make_unique<VectorUpdateInfo>(transaction->getID(), dataType.copy());
+        vectorsInfo[vectorIdx] = std::make_unique<VectorUpdateInfo>(memoryManager,
+            transaction->getID(), dataType.copy());
         return *vectorsInfo[vectorIdx];
     }
     auto* current = vectorsInfo[vectorIdx].get();
@@ -121,7 +123,8 @@ VectorUpdateInfo& UpdateInfo::getOrCreateVectorInfo(const Transaction* transacti
     }
     if (!info) {
         // Create a new version here.
-        auto newInfo = std::make_unique<VectorUpdateInfo>(transaction->getID(), dataType.copy());
+        auto newInfo = std::make_unique<VectorUpdateInfo>(memoryManager, transaction->getID(),
+            dataType.copy());
         vectorsInfo[vectorIdx]->next = newInfo.get();
         newInfo->prev = std::move(vectorsInfo[vectorIdx]);
         vectorsInfo[vectorIdx] = std::move(newInfo);

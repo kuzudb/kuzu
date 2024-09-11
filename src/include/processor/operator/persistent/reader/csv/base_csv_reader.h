@@ -33,7 +33,7 @@ private:
 
 class BaseCSVReader {
     friend class ParsingDriver;
-    friend struct SniffCSVNameAndTypeDriver;
+    friend class SniffCSVNameAndTypeDriver;
 
 public:
     BaseCSVReader(const std::string& filePath, common::CSVOption option, CSVColumnInfo columnInfo,

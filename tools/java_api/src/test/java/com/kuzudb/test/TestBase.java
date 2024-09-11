@@ -13,20 +13,20 @@ import java.io.IOException;
 
 public class TestBase {
 
-    protected static KuzuDatabase db;
-    protected static KuzuConnection conn;
+    protected static Database db;
+    protected static Connection conn;
     @TempDir
     static Path tempDir;
 
     @BeforeAll
-    static void getDBandConn() throws IOException, KuzuObjectRefDestroyedException {
+    static void getDBandConn() throws IOException, ObjectRefDestroyedException {
         TestHelper.loadData(tempDir.toFile().getAbsolutePath());
         db = TestHelper.getDatabase();
         conn = TestHelper.getConnection();
     }
 
     @AfterAll
-    static void destroyDBandConn() throws KuzuObjectRefDestroyedException {
+    static void destroyDBandConn() throws ObjectRefDestroyedException {
         try {
             db.destroy();
             conn.destroy();

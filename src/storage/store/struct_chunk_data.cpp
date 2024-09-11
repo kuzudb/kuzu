@@ -5,6 +5,7 @@
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/struct_column.h"
 
@@ -13,25 +14,25 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StructChunkData::StructChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    ResidencyState residencyState)
-    : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
+StructChunkData::StructChunkData(MemoryManager& mm, LogicalType dataType, uint64_t capacity,
+    bool enableCompression, ResidencyState residencyState)
+    : ColumnChunkData{mm, std::move(dataType), capacity, enableCompression, residencyState,
           true /*hasNullData*/} {
     const auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunkData(fieldTypes[i]->copy(),
+        childChunks[i] = ColumnChunkFactory::createColumnChunkData(mm, fieldTypes[i]->copy(),
             enableCompression, capacity, residencyState);
     }
 }
 
-StructChunkData::StructChunkData(LogicalType dataType, bool enableCompression,
+StructChunkData::StructChunkData(MemoryManager& mm, LogicalType dataType, bool enableCompression,
     const ColumnChunkMetadata& metadata)
-    : ColumnChunkData{std::move(dataType), enableCompression, metadata, true /*hasNullData*/} {
+    : ColumnChunkData{mm, std::move(dataType), enableCompression, metadata, true /*hasNullData*/} {
     const auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunkData(fieldTypes[i]->copy(),
+        childChunks[i] = ColumnChunkFactory::createColumnChunkData(mm, fieldTypes[i]->copy(),
             enableCompression, 0, ResidencyState::IN_MEMORY);
     }
 }
@@ -73,7 +74,10 @@ void StructChunkData::serialize(Serializer& serializer) const {
 void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
     std::string key;
     deSer.validateDebuggingInfo(key, "struct_children");
-    deSer.deserializeVectorOfPtrs(chunkData.cast<StructChunkData>().childChunks);
+    deSer.deserializeVectorOfPtrs<ColumnChunkData>(chunkData.cast<StructChunkData>().childChunks,
+        [&](Deserializer& deser) {
+            return ColumnChunkData::deserialize(chunkData.getMemoryManager(), deser);
+        });
 }
 
 void StructChunkData::flush(FileHandle& dataFH) {

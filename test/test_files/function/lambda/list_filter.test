@@ -69,3 +69,16 @@ Binder exception: LIST_FILTER requires the result type of lambda expression be B
 [Fesdwe]
 [Grad]
 [Wolfeschlegelstein,Daniel]
+-STATEMENT RETURN LIST_FILTER(['Duckdb', 'Alice', 'kuzu', 'long long string'], x -> size(x) > 4 and size(x) < 6)
+---- 1
+[Alice]
+-STATEMENT MATCH (a:person) RETURN LIST_FILTER(a.workedHours, x->x > 5 and x<=10)
+---- 8
+[10]
+[8]
+[]
+[9]
+[]
+[6,7]
+[]
+[10,6,7]

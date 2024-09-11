@@ -26,12 +26,12 @@ public class test {
         }
     }
 
-    public static void main(String[] args) throws KuzuObjectRefDestroyedException {
+    public static void main(String[] args) throws ObjectRefDestroyedException {
         String db_path = "./test_db";
         deleteFolder(new File(db_path));
         BufferedReader reader;
-        KuzuDatabase db = new KuzuDatabase(db_path);
-        KuzuConnection conn = new KuzuConnection(db);
+        Database db = new Database(db_path);
+        Connection conn = new Connection(db);
         try {
 			reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
 			String line = reader.readLine();
@@ -59,12 +59,12 @@ public class test {
         String query = "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName";
         System.out.println(query);
 
-        KuzuQueryResult result = conn.query(query);
+        QueryResult result = conn.query(query);
         System.out.println("error: " + result.getErrorMessage());
         System.out.println("tuples: " + result.getNumTuples());
 
         while (result.hasNext()) {
-            KuzuFlatTuple row = result.getNext();
+            FlatTuple row = result.getNext();
             System.out.println("row: " + row);
             row.destroy();
         }

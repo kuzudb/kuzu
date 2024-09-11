@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
@@ -155,14 +156,15 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             partitionIdxes->state = keyVector->state;
             partitionInfo.partitionerFunc(keyVector.get(), partitionIdxes.get());
             auto chunkToCopyFrom = constructDataChunk(keyVector->state);
-            copyDataToPartitions(partitioningIdx, std::move(chunkToCopyFrom));
+            copyDataToPartitions(*context->clientContext->getMemoryManager(), partitioningIdx,
+                std::move(chunkToCopyFrom));
         }
     }
     sharedState->merge(std::move(localState->partitioningBuffers));
 }
 
-void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx,
-    DataChunk chunkToCopyFrom) const {
+void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
+    partition_idx_t partitioningIdx, DataChunk chunkToCopyFrom) const {
     std::vector<ValueVector*> vectorsToAppend;
     vectorsToAppend.reserve(chunkToCopyFrom.getNumValueVectors());
     for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
@@ -175,7 +177,7 @@ void Partitioner::copyDataToPartitions(partition_idx_t partitioningIdx,
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         const auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        partition->append(&transaction::DUMMY_TRANSACTION, vectorsToAppend, posToCopyFrom, 1);
+        partition->append(memoryManager, vectorsToAppend, posToCopyFrom, 1);
     }
 }
 

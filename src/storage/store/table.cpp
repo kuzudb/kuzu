@@ -16,7 +16,6 @@ Table::Table(const catalog::TableCatalogEntry* tableEntry, StorageManager* stora
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
       tableName{tableEntry->getName()}, enableCompression{storageManager->compressionEnabled()},
       dataFH{storageManager->getDataFH()}, memoryManager{memoryManager},
-      bufferManager{memoryManager->getBufferManager()},
       shadowFile{&storageManager->getShadowFile()}, hasChanges{false} {}
 
 std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Catalog& catalog,

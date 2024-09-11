@@ -71,7 +71,7 @@ jobs:
       - name: Update implementation
         working-directory: ldbc_snb_interactive_v1_impl
         run: |
-          rm -rf kuzu/src/main/resources/kuzu_java.jar
+          mkdir -p kuzu/src/main/resources
           ln -s $KUZU_DIR/tools/java_api/build/kuzu_java.jar kuzu/src/main/resources/kuzu_java.jar
           mvn clean package -DskipTests
 

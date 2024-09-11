@@ -17,7 +17,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging --break-system-packages
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Create source distribution
@@ -50,7 +52,9 @@ jobs:
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == true }}
-        run: python3 update-nightly-build-version.py
+        run: |
+          pip3 install packaging --break-system-packages
+          python3 update-nightly-build-version.py
         working-directory: scripts
 
       - name: Create source distribution

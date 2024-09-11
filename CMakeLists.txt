@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.6.0.2 LANGUAGES CXX C)
+project(Kuzu VERSION 0.6.0.4 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -18,7 +18,7 @@ set(CMAKE_ENABLE_EXPORTS TRUE)
 option(ENABLE_WERROR "Treat all warnings as errors" FALSE)
 if(ENABLE_WERROR)
     if (CMAKE_VERSION VERSION_GREATER "3.24.0" OR CMAKE_VERSION VERSION_EQUAL "3.24.0")
-        set(COMPILE_WARNING_AS_ERROR TRUE)
+        set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
     elseif (MSVC)
         add_compile_options(\WX)
     else ()
@@ -101,6 +101,11 @@ if(NOT PAGE_SIZE_LOG2)
     set(PAGE_SIZE_LOG2 12)
 endif()
 message(STATUS "PAGE_SIZE_LOG2: ${PAGE_SIZE_LOG2}")
+option(VECTOR_CAPACITY_LOG2 "Log2 of the vector capacity." 11)
+if(NOT VECTOR_CAPACITY_LOG2)
+    set(VECTOR_CAPACITY_LOG2 11)
+endif()
+message(STATUS "VECTOR_CAPACITY_LOG2: ${VECTOR_CAPACITY_LOG2}")
 
 if(MSVC)
     # Required for M_PI on Windows
@@ -263,8 +268,9 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.1")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.4")
 add_definitions(-DKUZU_PAGE_SIZE_LOG2=${PAGE_SIZE_LOG2})
+add_definitions(-DKUZU_VECTOR_CAPACITY_LOG2=${VECTOR_CAPACITY_LOG2})
 
 include_directories(src/include)
 

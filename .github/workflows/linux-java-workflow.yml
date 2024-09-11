@@ -2,12 +2,24 @@ name: Build Linux Java Lib
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-linux-java-x86_64:
     runs-on: kuzu-self-hosted-linux-building-x86_64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          /opt/python/cp310-cp310/bin/python -m pip install packaging
+          /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
 
       - name: Build Java lib for Linux
         run: |
@@ -27,6 +39,13 @@ jobs:
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          /opt/python/cp310-cp310/bin/python -m pip install packaging
+          /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
 
       - name: Build Java lib for Linux
         run: make java NUM_THREADS=$(nproc)

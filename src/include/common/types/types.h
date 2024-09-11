@@ -450,6 +450,8 @@ public:
     StructField(std::string name, LogicalType type)
         : name{std::move(name)}, type{std::move(type)} {};
 
+    DELETE_COPY_DEFAULT_MOVE(StructField);
+
     std::string getName() const { return name; }
 
     const LogicalType& getType() const { return type; }

@@ -8,6 +8,7 @@
 #include "common/types/types.h"
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/list_column.h"
 
@@ -16,33 +17,36 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ListChunkData::ListChunkData(LogicalType dataType, uint64_t capacity, bool enableCompression,
-    ResidencyState residencyState)
-    : ColumnChunkData{std::move(dataType), capacity, enableCompression, residencyState,
-          true /*hasNullData*/} {
+ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType, uint64_t capacity,
+    bool enableCompression, ResidencyState residencyState)
+    : ColumnChunkData{memoryManager, std::move(dataType), capacity, enableCompression,
+          residencyState, true /*hasNullData*/} {
     // TODO(Guodong): offset/size should contain no nulls.
-    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(),
-        enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
-    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
-        enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
-    dataColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
-            enableCompression, 0 /* capacity */, ResidencyState::IN_MEMORY);
+    offsetColumnChunk =
+        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT64(),
+            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
+    sizeColumnChunk =
+        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT32(),
+            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
+    dataColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
+        ResidencyState::IN_MEMORY);
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
               this->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
 }
 
-ListChunkData::ListChunkData(LogicalType dataType, bool enableCompression,
-    const ColumnChunkMetadata& metadata)
-    : ColumnChunkData{std::move(dataType), enableCompression, metadata, true /*hasNullData*/},
-      offsetColumnChunk{ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(),
-          enableCompression, 0, ResidencyState::ON_DISK)},
-      sizeColumnChunk{ColumnChunkFactory::createColumnChunkData(LogicalType::UINT32(),
-          enableCompression, 0, ResidencyState::ON_DISK)},
-      dataColumnChunk{
-          ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
-              enableCompression, 0 /* capacity */, ResidencyState::ON_DISK)},
+ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType,
+    bool enableCompression, const ColumnChunkMetadata& metadata)
+    : ColumnChunkData{memoryManager, std::move(dataType), enableCompression, metadata,
+          true /*hasNullData*/},
+      offsetColumnChunk{ColumnChunkFactory::createColumnChunkData(memoryManager,
+          LogicalType::UINT64(), enableCompression, 0, ResidencyState::ON_DISK)},
+      sizeColumnChunk{ColumnChunkFactory::createColumnChunkData(memoryManager,
+          LogicalType::UINT32(), enableCompression, 0, ResidencyState::ON_DISK)},
+      dataColumnChunk{ColumnChunkFactory::createColumnChunkData(memoryManager,
+          ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
+          ResidencyState::ON_DISK)},
       checkOffsetSortedAsc{false} {}
 
 bool ListChunkData::isOffsetsConsecutiveAndSortedAscending(uint64_t startPos,
@@ -113,9 +117,7 @@ void ListChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     sizeColumnChunk->resetToEmpty();
     offsetColumnChunk->resetToEmpty();
-    dataColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(ListType::getChildType(this->dataType).copy(),
-            enableCompression, 0 /* capacity */, ResidencyState::IN_MEMORY);
+    dataColumnChunk->resetToEmpty();
 }
 
 void ListChunkData::resetNumValuesFromMetadata() {
@@ -350,8 +352,8 @@ void ListChunkData::resetOffset() {
 
 void ListChunkData::finalize() {
     // rewrite the column chunk for better scanning performance
-    auto newColumnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(),
-        enableCompression, capacity, ResidencyState::IN_MEMORY);
+    auto newColumnChunk = ColumnChunkFactory::createColumnChunkData(getMemoryManager(),
+        dataType.copy(), enableCompression, capacity, ResidencyState::IN_MEMORY);
     uint64_t totalListLen = dataColumnChunk->getNumValues();
     uint64_t resizeThreshold = dataColumnChunk->getCapacity() / 2;
     // if the list is not very long, we do not need to rewrite
@@ -428,11 +430,14 @@ void ListChunkData::serialize(Serializer& serializer) const {
 void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData) {
     std::string key;
     deSer.validateDebuggingInfo(key, "size_column_chunk");
-    chunkData.cast<ListChunkData>().sizeColumnChunk = ColumnChunkData::deserialize(deSer);
+    chunkData.cast<ListChunkData>().sizeColumnChunk =
+        ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
     deSer.validateDebuggingInfo(key, "data_column_chunk");
-    chunkData.cast<ListChunkData>().dataColumnChunk = ColumnChunkData::deserialize(deSer);
+    chunkData.cast<ListChunkData>().dataColumnChunk =
+        ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
     deSer.validateDebuggingInfo(key, "offset_column_chunk");
-    chunkData.cast<ListChunkData>().offsetColumnChunk = ColumnChunkData::deserialize(deSer);
+    chunkData.cast<ListChunkData>().offsetColumnChunk =
+        ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
 }
 
 void ListChunkData::flush(FileHandle& dataFH) {

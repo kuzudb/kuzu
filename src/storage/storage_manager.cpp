@@ -11,6 +11,7 @@
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "storage/wal_replayer.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

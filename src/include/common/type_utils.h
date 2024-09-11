@@ -206,13 +206,9 @@ public:
         case LogicalTypeID::UNION:
             return func(union_entry_t());
         /* NOLINTEND(bugprone-branch-clone)*/
-        case LogicalTypeID::ANY:
-        case LogicalTypeID::POINTER:
-        case LogicalTypeID::RDF_VARIANT:
+        default:
             // Unsupported type
             KU_UNREACHABLE;
-            // Needed for return type deduction to work
-            return func(uint8_t());
         }
     }
 

@@ -3,6 +3,11 @@ name: Build Linux Node.js Module
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-linux-nodejs-x86_64:
@@ -10,6 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          /opt/python/cp310-cp310/bin/python -m pip install packaging
+          /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
+      
       - name: Create Node.js source distribution
         working-directory: tools/nodejs_api
         run: |
@@ -38,6 +50,13 @@ jobs:
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          /opt/python/cp310-cp310/bin/python -m pip install packaging
+          /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
 
       - name: Create Node.js source distribution
         working-directory: tools/nodejs_api

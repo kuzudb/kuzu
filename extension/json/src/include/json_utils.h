@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/copy_constructors.h"
+#include "common/json_enums.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
 #include "yyjson.h"
@@ -44,9 +45,10 @@ public:
     yyjson_mut_doc* ptr;
 };
 
-enum JsonScanFormat : uint8_t { ARRAY = 0, UNSTRUCTURED = 1 };
-
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
+yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos);
+yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVector& vec,
+    uint64_t pos);
 // Converts an internal Kuzu Value into json
 
 std::vector<JsonWrapper> jsonifyQueryResult(

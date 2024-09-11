@@ -1,5 +1,6 @@
 #include "storage/store/null_column.h"
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "transaction/transaction.h"
 
@@ -28,9 +29,9 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, BufferManager* bufferManager,
+NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
     ShadowFile* shadowFile, bool enableCompression)
-    : Column{name, LogicalType::BOOL(), dataFH, bufferManager, shadowFile, enableCompression,
+    : Column{name, LogicalType::BOOL(), dataFH, mm, shadowFile, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
 }

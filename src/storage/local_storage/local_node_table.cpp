@@ -4,6 +4,7 @@
 #include "common/exception/message.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
+#include "storage/storage_utils.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
@@ -13,7 +14,8 @@ namespace kuzu {
 namespace storage {
 
 LocalNodeTable::LocalNodeTable(Table& table)
-    : LocalTable{table}, nodeGroups{NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
+    : LocalTable{table}, nodeGroups{this->table.getMemoryManager(),
+                             NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
                              false /*enableCompression*/} {
     initLocalHashIndex();
 }
@@ -45,7 +47,6 @@ offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transac
 }
 
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
-    KU_ASSERT(transaction->isDummy());
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto numRowsInLocalTable = nodeGroups.getNumRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;

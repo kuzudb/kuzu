@@ -167,8 +167,8 @@ private:
  */
 
 class BufferManager {
-    friend class MemoryAllocator;
     friend class FileHandle;
+    friend class MemoryManager;
 
 public:
     BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);
@@ -219,7 +219,6 @@ private:
         PageReadPolicy pageReadPolicy);
     void removePageFromFrame(FileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
 
-    uint64_t reserveUsedMemory(uint64_t size) { return usedMemory.fetch_add(size); }
     uint64_t freeUsedMemory(uint64_t size) {
         KU_ASSERT(usedMemory.load() >= size);
         return usedMemory.fetch_sub(size);

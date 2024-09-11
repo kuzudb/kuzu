@@ -70,7 +70,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     auto sharedState = std::make_shared<NodeBatchInsertSharedState>(nodeTable, pkColumnID,
-        pkDefinition.getType().copy(), fTable, &storageManager->getWAL());
+        pkDefinition.getType().copy(), fTable, &storageManager->getWAL(),
+        clientContext->getMemoryManager());
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
@@ -137,7 +138,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
     }
     auto dataInfo = PartitionerDataInfo(LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.columnEvaluateTypes);
-    auto sharedState = std::make_shared<PartitionerSharedState>();
+    auto sharedState = std::make_shared<PartitionerSharedState>(*clientContext->getMemoryManager());
     binder::expression_vector expressions;
     for (auto& info : partitionerInfo.infos) {
         expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);
@@ -189,8 +190,8 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     }
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    const auto batchInsertSharedState =
-        std::make_shared<BatchInsertSharedState>(relTable, fTable, &storageManager->getWAL());
+    const auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable, fTable,
+        &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
         RelDataDirection::FWD, LogicalType::copy(columnTypes));
     auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,

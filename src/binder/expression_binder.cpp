@@ -73,9 +73,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         throw NotImplementedException(
             "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");
     }
-    if (parsedExpression.hasAlias()) {
-        expression->setAlias(parsedExpression.getAlias());
-    }
     validateAggregationExpressionIsNotNested(expression);
     if (ConstantExpressionVisitor::needFold(*expression)) {
         return foldExpression(expression);

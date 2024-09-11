@@ -1,6 +1,7 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
 #include "binder/expression/expression_util.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_rel_table.h"
 
 using namespace kuzu::common;
@@ -49,7 +50,7 @@ std::string ScanRelTablePrintInfo::toString() const {
     return result;
 }
 
-void ScanRelTableInfo::initScanState() {
+void ScanRelTableInfo::initScanState(MemoryManager& memoryManager) {
     std::vector<Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
@@ -59,22 +60,23 @@ void ScanRelTableInfo::initScanState() {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(columnIDs, columns,
+    scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs, columns,
         table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
         copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanTable::initLocalStateInternal(resultSet, context);
-    relInfo.initScanState();
+    relInfo.initScanState(*context->clientContext->getMemoryManager());
     initVectors(*relInfo.scanState, *resultSet);
     if (const auto localRelTable =
             context->clientContext->getTx()->getLocalStorage()->getLocalTable(
                 relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(relInfo.direction, relInfo.scanState->columnIDs);
-        relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
-            *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+        relInfo.scanState->localTableScanState =
+            std::make_unique<LocalRelTableScanState>(*context->clientContext->getMemoryManager(),
+                *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
     }
 }
 

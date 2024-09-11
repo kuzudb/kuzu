@@ -9,8 +9,11 @@ namespace kuzu {
 namespace storage {
 class NodeTable;
 class RelTable;
+class MemoryManager;
 } // namespace storage
-
+namespace transaction {
+class Transaction;
+}
 namespace processor {
 
 using partitioner_func_t =
@@ -39,6 +42,10 @@ struct PartitionerSharedState {
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
     storage::RelTable* relTable;
+    storage::MemoryManager& mm;
+
+    explicit PartitionerSharedState(storage::MemoryManager& mm)
+        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, mm{mm} {}
 
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
@@ -159,8 +166,8 @@ private:
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
-    void copyDataToPartitions(common::partition_idx_t partitioningIdx,
-        common::DataChunk chunkToCopyFrom) const;
+    void copyDataToPartitions(storage::MemoryManager& memoryManager,
+        common::partition_idx_t partitioningIdx, common::DataChunk chunkToCopyFrom) const;
 
 private:
     PartitionerDataInfo dataInfo;

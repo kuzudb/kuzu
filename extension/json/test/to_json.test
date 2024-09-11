@@ -1,0 +1,45 @@
+-DATASET CSV empty
+
+--
+
+-CASE ToJsonTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['1', '2', '3'] AS STR RETURN to_json(STR)
+---- 3
+"1"
+"2"
+"3"
+
+-STATEMENT UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN to_json(NSTD)
+---- 3
+{"a":1,"b":{"x":"a"}}
+{"a":2,"b":{"x":"b"}}
+{"a":3,"b":{"x":"c"}}
+
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP RETURN to_json(MP)
+---- 3
+{"1":"a","2":"b","3":"c"}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh"}
+{"0":""}
+
+-STATEMENT UNWIND [True, False, Null] AS BLS RETURN to_json(BLS)
+---- 3
+true
+false
+
+
+-STATEMENT UNWIND [[5,2,3], [], [2,5,6,1,3,7]] AS lst RETURN JSON_QUOTE(lst)
+---- 3
+[2,5,6,1,3,7]
+[5,2,3]
+[]
+
+-STATEMENT UNWIND [[[5],[2],[3]], []] AS lst RETURN array_to_json(lst)
+---- 2
+[[5],[2],[3]]
+[]
+
+-STATEMENT RETURN row_to_json('kuzu')
+---- 1
+"kuzu"

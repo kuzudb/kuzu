@@ -1,7 +1,5 @@
 #include "storage/store/version_info.h"
 
-#include <algorithm>
-
 #include "common/exception/runtime.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
@@ -109,8 +107,6 @@ void VectorVersionInfo::rollbackInsertions(row_idx_t startRowInVector, row_idx_t
     for (auto row = startRowInVector; row < startRowInVector + numRows; row++) {
         insertedVersions[row] = INVALID_TRANSACTION;
     }
-    // TODO(Guodong): We can choose to vaccum inserted key/values in this transaction from
-    // index.
     bool hasAnyInsertions = false;
     for (const auto& version : insertedVersions) {
         if (version != INVALID_TRANSACTION) {
@@ -138,46 +134,6 @@ void VectorVersionInfo::rollbackDeletions(row_idx_t startRowInVector, row_idx_t 
     if (!hasAnyDeletions) {
         deletionStatus = DeletionStatus::NO_DELETED;
     }
-}
-
-bool VectorVersionInfo::finalizeStatusFromVersions() {
-    if (insertionStatus == InsertionStatus::NO_INSERTED) {
-        KU_ASSERT(deletionStatus == VectorVersionInfo::DeletionStatus::NO_DELETED);
-        return true;
-    }
-    const auto hasAnyDeletions =
-        std::any_of(deletedVersions.begin(), deletedVersions.end(), [](auto version) {
-            KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
-            return version == 0;
-        });
-    if (!hasAnyDeletions) {
-        deletionStatus = DeletionStatus::NO_DELETED;
-    }
-    const auto allValidInsertions =
-        std::all_of(insertedVersions.begin(), insertedVersions.end(), [](auto version) {
-            KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
-            return version == 0;
-        });
-    if (allValidInsertions) {
-        insertionStatus = InsertionStatus::ALWAYS_INSERTED;
-    } else {
-        const auto hasAnyValidInsertions =
-            std::any_of(insertedVersions.begin(), insertedVersions.end(), [](auto version) {
-                KU_ASSERT(version == 0 || version == INVALID_TRANSACTION);
-                return version == 0;
-            });
-        if (!hasAnyValidInsertions) {
-            insertionStatus = InsertionStatus::NO_INSERTED;
-        } else {
-            insertionStatus = InsertionStatus::CHECK_VERSION;
-        }
-    }
-    if (insertionStatus == InsertionStatus::ALWAYS_INSERTED &&
-        deletionStatus == DeletionStatus::NO_DELETED) {
-        // No need to keep vector info as all tuples are valid and no deletions.
-        return false;
-    }
-    return true;
 }
 
 void VectorVersionInfo::serialize(Serializer& serializer) const {
@@ -303,8 +259,8 @@ VectorVersionInfo* VersionInfo::getVectorVersionInfo(idx_t vectorIdx) const {
     return vectorsInfo[vectorIdx].get();
 }
 
-row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const row_idx_t startRow,
-    const row_idx_t numRows) {
+row_idx_t VersionInfo::append(const transaction::Transaction* transaction,
+    ChunkedNodeGroup* chunkedNodeGroup, const row_idx_t startRow, const row_idx_t numRows) {
     auto [startVectorIdx, startRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
     auto [endVectorIdx, endRowIdxInVector] =
@@ -317,14 +273,15 @@ row_idx_t VersionInfo::append(const transaction::Transaction* transaction, const
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
         const auto numRowsInVector = endRowIdx - startRowIdx;
         numAppended += vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
-        if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushVectorInsertInfo(*this, vectorIdx, startRowIdx, numRowsInVector);
-        }
+    }
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushInsertInfo(chunkedNodeGroup, startRow, numRows);
     }
     return numAppended;
 }
 
-bool VersionInfo::delete_(const transaction::Transaction* transaction, const row_idx_t rowIdx) {
+bool VersionInfo::delete_(const transaction::Transaction* transaction,
+    ChunkedNodeGroup* chunkedNodeGroup, const row_idx_t rowIdx) {
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
@@ -336,7 +293,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
     }
     const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
     if (deleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushVectorDeleteInfo(*this, vectorIdx, rowIdxInVector, 1);
+        transaction->pushDeleteInfo(chunkedNodeGroup, rowIdx, 1);
     }
     return deleted;
 }
@@ -453,24 +410,64 @@ row_idx_t VersionInfo::getNumDeletions(const transaction::Transaction* transacti
     return numDeletions;
 }
 
-bool VersionInfo::finalizeStatusFromVersions() {
-    for (auto vectorIdx = 0u; vectorIdx < getNumVectors(); vectorIdx++) {
-        const auto vectorInfo = getVectorVersionInfo(vectorIdx);
-        if (!vectorInfo) {
-            continue;
-        }
-        if (!vectorInfo->finalizeStatusFromVersions()) {
-            clearVectorInfo(vectorIdx);
-        }
-    }
-    bool hasAnyVectorVersionInfo = false;
-    for (const auto& info : vectorsInfo) {
-        if (info) {
-            hasAnyVectorVersionInfo = true;
-            break;
+void VersionInfo::commitInsert(row_idx_t startRow, row_idx_t numRows, transaction_t commitTS) {
+    auto [startVectorIdx, startRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    for (auto vectorIdx = startVectorIdx; vectorIdx <= endVectorIdx; vectorIdx++) {
+        auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
+        const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
+        const auto endRowIdx =
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        for (auto i = startRowIdx; i < endRowIdx; i++) {
+            vectorVersionInfo.insertedVersions[i] = commitTS;
         }
     }
-    return hasAnyVectorVersionInfo;
+}
+
+void VersionInfo::rollbackInsert(row_idx_t startRow, row_idx_t numRows) {
+    auto [startVectorIdx, startRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    for (auto vectorIdx = startVectorIdx; vectorIdx <= endVectorIdx; vectorIdx++) {
+        auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
+        const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
+        const auto endRowIdx =
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        vectorVersionInfo.rollbackInsertions(startRowIdx, endRowIdx - startRowIdx);
+    }
+}
+
+void VersionInfo::commitDelete(row_idx_t startRow, row_idx_t numRows, transaction_t commitTS) {
+    auto [startVectorIdx, startRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    for (auto vectorIdx = startVectorIdx; vectorIdx <= endVectorIdx; vectorIdx++) {
+        auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
+        const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
+        const auto endRowIdx =
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        for (auto i = startRowIdx; i < endRowIdx; i++) {
+            vectorVersionInfo.deletedVersions[i] = commitTS;
+        }
+    }
+}
+
+void VersionInfo::rollbackDelete(row_idx_t startRow, row_idx_t numRows) {
+    auto [startVectorIdx, startRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
+    auto [endVectorIdx, endRowIdxInVector] =
+        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
+    for (auto vectorIdx = startVectorIdx; vectorIdx <= endVectorIdx; vectorIdx++) {
+        auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
+        const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
+        const auto endRowIdx =
+            vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY;
+        vectorVersionInfo.rollbackDeletions(startRowIdx, endRowIdx - startRowIdx);
+    }
 }
 
 void VersionInfo::serialize(Serializer& serializer) const {

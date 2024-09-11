@@ -23,9 +23,7 @@ def open_database_on_subprocess(tmp_path: Path, build_dir: Path) -> None:
         print(r"{tmp_path!s}")
     """
     )
-    result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True
-    )
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr)
 
@@ -116,9 +114,7 @@ def test_in_mem_database_no_db_path() -> None:
 
         # Open the database on a subprocess. It should raise an exception.
         conn = kuzu.Connection(db)
-        conn.execute(
-            "CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));"
-        )
+        conn.execute("CREATE NODE TABLE person(name STRING, age INT64, PRIMARY KEY(name));")
         conn.execute("CREATE (:person {name: 'Alice', age: 30});")
         conn.execute("CREATE (:person {name: 'Bob', age: 40});")
         with conn.execute("MATCH (p:person) RETURN p.*") as result:

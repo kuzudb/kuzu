@@ -8,7 +8,11 @@ namespace kuzu {
 namespace evaluator {
 class ExpressionEvaluator;
 } // namespace evaluator
+namespace transaction {
+class Transaction;
+}
 namespace storage {
+class MemoryManager;
 
 struct LocalRelTableScanState;
 struct RelTableScanState : TableScanState {
@@ -21,27 +25,32 @@ struct RelTableScanState : TableScanState {
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.
-    explicit RelTableScanState(const std::vector<common::column_id_t>& columnIDs)
-        : RelTableScanState(columnIDs, {}, nullptr, nullptr,
+    RelTableScanState(MemoryManager& memoryManager,
+        const std::vector<common::column_id_t>& columnIDs)
+        : RelTableScanState(memoryManager, columnIDs, {}, nullptr, nullptr,
               common::RelDataDirection::FWD /* This is a dummy direction */,
               std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
+        nodeGroupScanState =
+            std::make_unique<CSRNodeGroupScanState>(memoryManager, this->columnIDs.size());
     }
-    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
-        common::RelDataDirection direction)
-        : RelTableScanState(columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
-              std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
+    RelTableScanState(MemoryManager& memoryManager,
+        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
+        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction)
+        : RelTableScanState(memoryManager, columnIDs, columns, csrOffsetCol, csrLengthCol,
+              direction, std::vector<ColumnPredicateSet>{}) {
+        nodeGroupScanState =
+            std::make_unique<CSRNodeGroupScanState>(memoryManager, this->columnIDs.size());
     }
-    RelTableScanState(const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
-        common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
+    RelTableScanState(MemoryManager& memoryManager,
+        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
+        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction,
+        std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{columnIDs, columns, std::move(columnPredicateSets)}, direction{direction},
           boundNodeIDVector{nullptr}, boundNodeOffset{common::INVALID_OFFSET},
           csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol},
           localTableScanState{nullptr} {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
+        nodeGroupScanState =
+            std::make_unique<CSRNodeGroupScanState>(memoryManager, this->columnIDs.size());
         if (!this->columnPredicateSets.empty()) {
             // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
             this->columnPredicateSets.insert(this->columnPredicateSets.begin(),
@@ -64,9 +73,9 @@ struct LocalRelTableScanState final : RelTableScanState {
     row_idx_vec_t rowIndices;
     common::row_idx_t nextRowToScan = 0;
 
-    LocalRelTableScanState(const RelTableScanState& state,
+    LocalRelTableScanState(MemoryManager& memoryManager, const RelTableScanState& state,
         const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
-        : RelTableScanState{columnIDs}, localRelTable{localRelTable} {
+        : RelTableScanState{memoryManager, columnIDs}, localRelTable{localRelTable} {
         IDVector = state.IDVector;
         direction = state.direction;
         boundNodeIDVector = state.boundNodeIDVector;

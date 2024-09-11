@@ -3,7 +3,10 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
@@ -36,15 +39,15 @@ ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
     }
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
-    bool enableCompression, uint64_t capacity, row_idx_t startRowIdx, ResidencyState residencyState,
-    NodeGroupDataFormat format)
+ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& memoryManager,
+    const std::vector<LogicalType>& columnTypes, bool enableCompression, uint64_t capacity,
+    row_idx_t startRowIdx, ResidencyState residencyState, NodeGroupDataFormat format)
     : format{format}, residencyState{residencyState}, startRowIdx{startRowIdx}, capacity{capacity},
       numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(std::make_unique<ColumnChunk>(type.copy(), capacity, enableCompression,
-            residencyState));
+        chunks.push_back(std::make_unique<ColumnChunk>(memoryManager, type.copy(), capacity,
+            enableCompression, residencyState));
     }
 }
 
@@ -95,7 +98,6 @@ void ChunkedNodeGroup::resetVersionAndUpdateInfo() {
 }
 
 void ChunkedNodeGroup::setNumRows(const offset_t numRows_) {
-    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     for (const auto& chunk : chunks) {
         chunk->setNumValues(numRows_);
     }
@@ -124,7 +126,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction, numRows, numRowsToAppendInChunk);
+        versionInfo->append(transaction, this, numRows, numRowsToAppendInChunk);
     }
     numRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
@@ -155,7 +157,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction, numRows, numToAppendInChunkedGroup);
+        versionInfo->append(transaction, this, numRows, numToAppendInChunkedGroup);
     }
     numRows += numToAppendInChunkedGroup;
     return numToAppendInChunkedGroup;
@@ -299,15 +301,16 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     if (!versionInfo) {
         versionInfo = std::make_unique<VersionInfo>();
     }
-    return versionInfo->delete_(transaction, rowIdxInChunk);
+    return versionInfo->delete_(transaction, this, rowIdxInChunk);
 }
 
-void ChunkedNodeGroup::addColumn(Transaction*, const TableAddColumnState& addColumnState,
-    bool enableCompression, FileHandle* dataFH) {
+void ChunkedNodeGroup::addColumn(Transaction* transaction,
+    const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& dataType = addColumnState.propertyDefinition.getType();
-    chunks.push_back(std::make_unique<ColumnChunk>(dataType, capacity, enableCompression,
-        ResidencyState::IN_MEMORY));
+    chunks.push_back(
+        std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
+            dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
     if (residencyState == ResidencyState::ON_DISK) {
@@ -360,7 +363,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(flushedChunkedGroup->getNumRows() == numRows);
-    flushedChunkedGroup->versionInfo->append(transaction, 0, numRows);
+    flushedChunkedGroup->versionInfo->append(transaction, flushedChunkedGroup.get(), 0, numRows);
     return flushedChunkedGroup;
 }
 
@@ -393,6 +396,33 @@ bool ChunkedNodeGroup::hasUpdates() const {
     return false;
 }
 
+void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRows, transaction_t commitTS) {
+    versionInfo->commitInsert(startRow, numRows, commitTS);
+}
+
+void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_) {
+    if (startRow == 0) {
+        setNumRows(0);
+        versionInfo.reset();
+        return;
+    }
+    if (startRow >= numRows) {
+        // Nothing to rollback.
+        return;
+    }
+    versionInfo->rollbackInsert(startRow, numRows_);
+    numRows = startRow;
+}
+
+void ChunkedNodeGroup::commitDelete(row_idx_t startRow, row_idx_t numRows_,
+    transaction_t commitTS) {
+    versionInfo->commitDelete(startRow, numRows_, commitTS);
+}
+
+void ChunkedNodeGroup::rollbackDelete(row_idx_t startRow, row_idx_t numRows_) {
+    versionInfo->rollbackDelete(startRow, numRows_);
+}
+
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     serializer.writeDebuggingInfo("chunks");
@@ -405,12 +435,14 @@ void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     }
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(Deserializer& deSer) {
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
     std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     bool hasVersions;
     deSer.validateDebuggingInfo(key, "chunks");
-    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
+    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
+        [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
     auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startRowIdx*/);
     deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);

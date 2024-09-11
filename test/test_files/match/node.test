@@ -4,6 +4,10 @@
 
 -CASE MatchNode
 
+-STATEMENT MATCH (a) WITH COUNT(a) AS b RETURN b AS c;
+---- 1
+14
+
 -LOG node1
 -STATEMENT MATCH (a:person /* returns all person */) RETURN COUNT(*)
 ---- 1

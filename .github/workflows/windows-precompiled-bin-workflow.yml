@@ -3,12 +3,24 @@ name: Build Windows Precompiled Binaries
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-precompiled-bin:
     runs-on: self-hosted-windows
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
+        working-directory: ./scripts
 
       - name: Build precompiled binaries
         shell: cmd

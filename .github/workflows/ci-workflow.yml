@@ -40,13 +40,13 @@ on:
         type: number
 env:
   RUNTIME_CHECKS: 1
-  WERROR: 1
   USE_EXISTING_BINARY_DATASET: 1
   AUTO_CHECKPOINT: ${{ github.event.inputs.auto_checkpoint }}
   BUFFER_POOL_SIZE: ${{ github.event.inputs.buffer_pool_size }}
   MAX_NUM_THREADS: ${{ github.event.inputs.max_num_threads }}
   ENABLE_COMPRESSION: ${{ github.event.inputs.enable_compression }}
   CHECKPOINT_THRESHOLD: ${{ github.event.inputs.checkpoint_threshold }}
+  WERROR: 1
 
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
@@ -186,13 +186,59 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
+  gcc-build-test-in-mem-vector-size:
+    name: gcc build & test in-mem only with various vector size
+    needs: [gcc-build-test]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      CMAKE_BUILD_PARALLEL_LEVEL: 32
+      TEST_JOBS: 16
+      CLANGD_DIAGNOSTIC_JOBS: 32
+      CLANGD_DIAGNOSTIC_INSTANCES: 6
+      GEN: Ninja
+      CC: gcc
+      CXX: g++
+      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
+      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      RUN_ID: "$(hostname)-$(date +%s)"
+      HTTP_CACHE_FILE: TRUE
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: ${{ github.workspace }}/dataset/binary-demo
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Test vector 1024
+        env:
+          IN_MEM_MODE: true
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test VECTOR_CAPACITY_LOG2=10
+
   code-coverage:
     name: code coverage
     runs-on: ubuntu-22.04
     needs: [clang-format, sanity-checks, python-lint-check, generate-binary-datasets]
     env:
       TEST_JOBS: 10
-      WERROR: 0
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -224,10 +270,12 @@ jobs:
         with:
           file: cover.info
 
-  gcc-build-test-x86:
+  gcc-build-test-32bit:
     name: gcc build & test 32-bit
     needs: [clang-format, sanity-checks, generate-binary-datasets]
     runs-on: ubuntu-latest
+    env:
+      WERROR: 0
 
     steps:
       - uses: actions/checkout@v4
@@ -381,8 +429,11 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
-  clang-build-test-64KB-page-size:
-    name: clang build & test with page size 64KB
+  clang-build-test-various-page-sizes:
+    strategy:
+      matrix:
+        page_size_log2: [16, 18]
+    name: clang build & test with page_size_log2=${{ matrix.page_size_log2 }}
     needs: [clang-build-test]
     runs-on: kuzu-self-hosted-testing
     env:
@@ -414,7 +465,7 @@ jobs:
       - name: Build
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make release PAGE_SIZE_LOG2=16
+          make release PAGE_SIZE_LOG2=${{ matrix.page_size_log2 }}
 
       - name: Generate binary demo
         run: |
@@ -422,50 +473,7 @@ jobs:
 
       - name: Test
         run: |
-          make test PAGE_SIZE_LOG2=16
-
-  clang-build-test-256KB-page-size:
-    name: clang build & test with page size 256KB
-    needs: [clang-build-test]
-    runs-on: kuzu-self-hosted-testing
-    env:
-      NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
-      TEST_JOBS: 16
-      CC: clang
-      CXX: clang++
-      UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
-      UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
-      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-      AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-      RUN_ID: "$(hostname)-$(date +%s)"
-      HTTP_CACHE_FILE: TRUE
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
-
-      - name: Build
-        run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make release PAGE_SIZE_LOG2=18
-
-      - name: Generate binary demo
-        run: |
-          bash scripts/generate_binary_demo.sh
-
-      - name: Test
-        run: |
-          make test PAGE_SIZE_LOG2=18
+          make test PAGE_SIZE_LOG2=${{ matrix.page_size_log2 }}
 
   msvc-build-test:
     name: msvc build & test
@@ -478,7 +486,6 @@ jobs:
       NUM_THREADS: 18
       CMAKE_BUILD_PARALLEL_LEVEL: 18
       TEST_JOBS: 9
-      WERROR: 0
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
       AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
@@ -488,6 +495,7 @@ jobs:
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
+      WERROR: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -809,8 +817,6 @@ jobs:
     name: shell test
     runs-on: ubuntu-latest
     needs: [clang-format, sanity-checks]
-    env:
-      WERROR: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -844,7 +850,6 @@ jobs:
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
       ASAN_OPTIONS: detect_leaks=0
-      WERROR: 0
 
     steps:
       - uses: actions/checkout@v4
@@ -937,7 +942,6 @@ jobs:
       CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
       TEST_JOBS: 9
-      WERROR: 0
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
       UW_S3_SECRET_ACCESS_KEY: ${{ secrets.UW_S3_SECRET_ACCESS_KEY }}
       AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
@@ -947,6 +951,7 @@ jobs:
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
+      WERROR: 0
     steps:
       - uses: actions/checkout@v4
 
@@ -988,7 +993,7 @@ jobs:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
         run: |
-          make extension-test 
+          make extension-test
 
       - name: Clean
         shell: cmd

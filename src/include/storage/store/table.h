@@ -12,6 +12,7 @@ namespace evaluator {
 class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
+class MemoryManager;
 
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 };
 
@@ -183,6 +184,8 @@ public:
         return common::ku_dynamic_cast<Table*, TARGET*>(this);
     }
 
+    MemoryManager& getMemoryManager() const { return *memoryManager; }
+
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
 
@@ -198,7 +201,6 @@ protected:
     bool enableCompression;
     FileHandle* dataFH;
     MemoryManager* memoryManager;
-    BufferManager* bufferManager;
     ShadowFile* shadowFile;
     bool hasChanges;
 };
