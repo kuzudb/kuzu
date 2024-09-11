@@ -2,7 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
-#include "common/serializer/buffered_reader.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
 #include "function/query_fts_index.h"
@@ -15,7 +14,8 @@ namespace fts_extension {
 
 using namespace extension;
 
-static void initFTSEntries(const transaction::Transaction* transaction, catalog::Catalog& catalog) {
+static void initFTSEntries(const transaction::Transaction* transaction,
+    const catalog::Catalog& catalog) {
     for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
             indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
@@ -23,12 +23,12 @@ static void initFTSEntries(const transaction::Transaction* transaction, catalog:
     }
 }
 
-void FTSExtension::load(main::ClientContext* context) {
+void FTSExtension::load(const main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ExtensionUtils::addScalarFunc<StemFunction>(db);
-    ExtensionUtils::addGDSFunc<QueryFTSFunction>(db);
-    ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
-    ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
+    ExtensionUtils::addScalarFunc<StemFunction>(context->getTransaction(), db);
+    ExtensionUtils::addGDSFunc<QueryFTSFunction>(context->getTransaction(), db);
+    ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(context->getTransaction(), db);
+    ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(context->getTransaction(), db);
     initFTSEntries(context->getTransaction(), *db.getCatalog());
 }
 

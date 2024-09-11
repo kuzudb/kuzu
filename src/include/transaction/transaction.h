@@ -155,9 +155,8 @@ private:
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
-// TODO(bmwinger): These shouldn't need to be exported
-extern KUZU_API Transaction DUMMY_TRANSACTION;
-extern KUZU_API Transaction DUMMY_CHECKPOINT_TRANSACTION;
+extern Transaction DUMMY_TRANSACTION;
+extern Transaction DUMMY_CHECKPOINT_TRANSACTION;
 
 } // namespace transaction
 } // namespace kuzu

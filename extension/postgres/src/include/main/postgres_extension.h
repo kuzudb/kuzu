@@ -10,7 +10,7 @@ public:
     static constexpr char EXTENSION_NAME[] = "POSTGRES";
 
 public:
-    static void load(main::ClientContext* context);
+    static void load(const main::ClientContext* context);
 };
 
 } // namespace postgres_extension

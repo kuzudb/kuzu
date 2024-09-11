@@ -135,8 +135,12 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         case CatalogEntryType::SEQUENCE_ENTRY: {
             wal->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
-        case CatalogEntryType::INDEX_ENTRY:
-        case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
+        case CatalogEntryType::FOREIGN_TABLE_ENTRY:
+        case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY:
+        case CatalogEntryType::GDS_FUNCTION_ENTRY:
+        case CatalogEntryType::TABLE_FUNCTION_ENTRY:
+        case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+        case CatalogEntryType::INDEX_ENTRY: {
             // DO NOTHING. We don't persistent index/function entries.
         } break;
         case CatalogEntryType::SCALAR_MACRO_ENTRY:
@@ -148,6 +152,10 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         }
         }
     } break;
+    case CatalogEntryType::FOREIGN_TABLE_ENTRY:
+    case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY:
+    case CatalogEntryType::GDS_FUNCTION_ENTRY:
+    case CatalogEntryType::TABLE_FUNCTION_ENTRY:
     case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
     case CatalogEntryType::INDEX_ENTRY: {
         // DO NOTHING. We don't persistent function/index entries.
@@ -155,7 +163,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     default: {
         throw common::RuntimeException(
             common::stringFormat("Not supported catalog entry type {} yet.",
-                CatalogEntryTypeUtils::toString(catalogEntry.getType())));
+                CatalogEntryTypeUtils::toString(newCatalogEntry->getType())));
     }
     }
 }

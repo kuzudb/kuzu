@@ -258,7 +258,11 @@ void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
 void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto entryToRollback = catalogEntry->getNext();
-    KU_ASSERT(entryToRollback);
+    if (!entryToRollback) {
+        // This is to handle a special case when attaching database fails, the whole Catalog is
+        // dropped before rolling back this entry.
+        return;
+    }
     if (entryToRollback->getNext()) {
         // If entryToRollback has a newer entry (next) in the version chain. Simple remove
         // entryToRollback from the chain.

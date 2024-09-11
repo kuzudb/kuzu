@@ -30,6 +30,7 @@ private:
     void visitUpdatingClause(const UpdatingClause* /*updatingClause*/) override {
         readOnly = false;
     }
+    void visitAttachDatabase(const Statement& /*statement*/) override { readOnly = false; }
 
 private:
     bool readOnly;

@@ -11,10 +11,10 @@
 namespace kuzu {
 namespace main {
 
-void AttachedDatabase::invalidateCache() {
+void AttachedDatabase::invalidateCache(transaction::Transaction* transaction) {
     if (dbType != common::ATTACHED_KUZU_DB_TYPE) {
         auto catalogExtension = catalog->ptrCast<extension::CatalogExtension>();
-        catalogExtension->invalidateCache();
+        catalogExtension->invalidateCache(transaction);
     }
 }
 

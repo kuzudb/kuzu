@@ -2,6 +2,7 @@
 
 #include "catalog/duckdb_catalog.h"
 #include "main/database_manager.h"
+#include "processor/execution_context.h"
 #include "storage/duckdb_storage.h"
 
 using namespace kuzu::function;
@@ -11,20 +12,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace duckdb_extension {
 
-static offset_t clearCacheTableFunc(const TableFuncInput& input,
-    const TableFuncOutput& /*output*/) {
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t clearCacheTableFunc(const TableFuncInput& input, const TableFuncOutput&) {
     const auto bindData = input.bindData->constPtrCast<ClearCacheBindData>();
-    bindData->databaseManager->invalidateCache();
-    return 1;
+    bindData->databaseManager->invalidateCache(input.context->clientContext->getTransaction());
+    return 0;
 }
 
 static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(const ClientContext* context,
-    const TableFuncBindInput* /*input*/) {
+    const TableFuncBindInput*) {
     return std::make_unique<ClearCacheBindData>(context->getDatabaseManager());
 }
 
@@ -35,6 +30,7 @@ function_set ClearCacheFunction::getFunctionSet() {
     function->bindFunc = clearCacheBindFunc;
     function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    function->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(function));
     return functionSet;
 }

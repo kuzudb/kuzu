@@ -10,7 +10,7 @@ public:
     static constexpr char EXTENSION_NAME[] = "FTS";
 
 public:
-    static void load(main::ClientContext* context);
+    static void load(const main::ClientContext* context);
 
     static constexpr const char* EN_STOP_WORDS[] = {"a", "a's", "able", "about", "above",
         "according", "accordingly", "across", "actually", "after", "afterwards", "again", "against",
