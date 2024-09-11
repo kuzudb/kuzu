@@ -62,7 +62,7 @@ concurrency:
 jobs:
   generate-binary-datasets:
     name: generate binary dataset
-    needs: [sanity-checks, python-lint-check]
+    needs: [ sanity-checks, python-lint-check ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -114,7 +114,7 @@ jobs:
 
   gcc-build-test:
     name: gcc build & test
-    needs: [sanity-checks, python-lint-check, generate-binary-datasets]
+    needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -186,9 +186,9 @@ jobs:
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
         run: make rusttest
 
-  gcc-build-test-in-mem-vector-size:
+  gcc-build-test-vector-size:
     name: gcc build & test in-mem only with various vector size
-    needs: [gcc-build-test]
+    needs: [ gcc-build-test ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -233,10 +233,33 @@ jobs:
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test VECTOR_CAPACITY_LOG2=10
 
+      - name: Test vector capacity of 1024 under in-memory mode
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test VECTOR_CAPACITY_LOG2=10
+
+      - name: Test vector capacity of 64
+        run: |
+          make test VECTOR_CAPACITY_LOG2=6
+      - name: Test vector capacity of 64 under in-memory mode
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test VECTOR_CAPACITY_LOG2=6
+      - name: Test vector capacity of 2
+        run: |
+          make test VECTOR_CAPACITY_LOG2=1
+      - name: Test vector capacity of 2 under in-memory mode
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test VECTOR_CAPACITY_LOG2=1
+
   code-coverage:
     name: code coverage
     runs-on: ubuntu-22.04
-    needs: [sanity-checks, python-lint-check, generate-binary-datasets]
+    needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     env:
       TEST_JOBS: 10
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -272,7 +295,7 @@ jobs:
 
   webassembly-build-test:
     name: webassembly build & test
-    needs: [sanity-checks, generate-binary-datasets]
+    needs: [ sanity-checks, generate-binary-datasets ]
     runs-on: kuzu-self-hosted-testing
     env:
       WERROR: 0
@@ -321,7 +344,7 @@ jobs:
 
   rust-build-test:
     name: rust build & test
-    needs: [rustfmt-check]
+    needs: [ rustfmt-check ]
     runs-on: kuzu-self-hosted-testing
     env:
       # CARGO_BUILD_JOBS is set using this in the Makefile
@@ -341,7 +364,7 @@ jobs:
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
-    needs: [gcc-build-test, generate-binary-datasets]
+    needs: [ gcc-build-test, generate-binary-datasets ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -388,7 +411,7 @@ jobs:
 
   clang-build-test:
     name: clang build & test
-    needs: [sanity-checks, python-lint-check, generate-binary-datasets]
+    needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -460,9 +483,9 @@ jobs:
   clang-build-test-various-page-sizes:
     strategy:
       matrix:
-        page_size_log2: [16, 18]
+        page_size_log2: [ 16, 18 ]
     name: clang build & test with page_size_log2=${{ matrix.page_size_log2 }}
-    needs: [clang-build-test]
+    needs: [ clang-build-test ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -505,7 +528,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    needs: [sanity-checks, python-lint-check, generate-binary-datasets]
+    needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
@@ -717,12 +740,12 @@ jobs:
 
   benchmark:
     name: benchmark
-    needs: [gcc-build-test, clang-build-test]
+    needs: [ gcc-build-test, clang-build-test ]
     uses: ./.github/workflows/benchmark-workflow.yml
 
   report-benchmark-result:
     name: report benchmark result
-    needs: [benchmark]
+    needs: [ benchmark ]
     runs-on: ubuntu-22.04
     if: github.event_name == 'pull_request'
     steps:
@@ -738,7 +761,7 @@ jobs:
 
   clang-tidy:
     name: clang tidy & clangd diagnostics check
-    needs: [sanity-checks]
+    needs: [ sanity-checks ]
     runs-on: kuzu-self-hosted-testing
     env:
       GEN: Ninja
@@ -765,8 +788,8 @@ jobs:
 
   macos-build-test:
     name: apple clang build & test
-    needs: [sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets]
-    runs-on: [self-hosted, macOS]
+    needs: [ sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets ]
+    runs-on: [ self-hosted, macOS ]
     env:
       TEST_JOBS: 16
       GEN: Ninja
@@ -869,7 +892,7 @@ jobs:
   shell-test:
     name: shell test
     runs-on: ubuntu-latest
-    needs: [sanity-checks]
+    needs: [ sanity-checks ]
     steps:
       - uses: actions/checkout@v4
 
@@ -884,7 +907,7 @@ jobs:
 
   linux-extension-test:
     name: linux extension test
-    needs: [gcc-build-test, clang-build-test]
+    needs: [ gcc-build-test, clang-build-test ]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -943,8 +966,8 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    needs: [macos-build-test]
-    runs-on: [self-hosted, macOS]
+    needs: [ macos-build-test ]
+    runs-on: [ self-hosted, macOS ]
     env:
       TEST_JOBS: 16
       GEN: Ninja
@@ -1000,7 +1023,7 @@ jobs:
 
   windows-extension-test:
     name: windows extension test
-    needs: [msvc-build-test]
+    needs: [ msvc-build-test ]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
