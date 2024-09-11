@@ -33,7 +33,7 @@ DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
 void DuckDBCatalog::init() {
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
-        "table_schema = '{}';",
+        "table_schema = '{}' order by table_name;",
         catalogName, defaultSchemaName);
     auto result = connector.executeQuery(query);
     std::unique_ptr<duckdb::DataChunk> resultChunk;
