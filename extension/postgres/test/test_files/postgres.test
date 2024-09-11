@@ -70,10 +70,10 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 9
 0|person_copy|NODE|local(kuzu)|
-0|persontest|ATTACHED|pgscan(POSTGRES)|
-0|persontest|ATTACHED|tinysnb(POSTGRES)|
-1|person|ATTACHED|pgscan(POSTGRES)|
-1|person|ATTACHED|tinysnb(POSTGRES)|
+0|person|ATTACHED|pgscan(POSTGRES)|
+0|person|ATTACHED|tinysnb(POSTGRES)|
+1|persontest|ATTACHED|pgscan(POSTGRES)|
+1|persontest|ATTACHED|tinysnb(POSTGRES)|
 2|organisation|ATTACHED|pgscan(POSTGRES)|
 2|organisation|ATTACHED|tinysnb(POSTGRES)|
 3|movies|ATTACHED|pgscan(POSTGRES)|
