@@ -185,9 +185,7 @@ def test_to_df(conn_db_readonly: ConnDB) -> None:
                 "release_ns": datetime.datetime(2011, 8, 20, 11, 25, 30, 123456),
                 "release_ms": datetime.datetime(2011, 8, 20, 11, 25, 30, 123000),
                 "release_sec": datetime.datetime(2011, 8, 20, 11, 25, 30),
-                "release_tz": datetime.datetime(
-                    2011, 8, 20, 11, 25, 30, 123456, pytz.UTC
-                ),
+                "release_tz": datetime.datetime(2011, 8, 20, 11, 25, 30, 123456, pytz.UTC),
                 "film": datetime.date(2012, 5, 11),
                 "u8": 220,
                 "u16": 20,
@@ -203,9 +201,7 @@ def test_to_df(conn_db_readonly: ConnDB) -> None:
                 "release_ns": datetime.datetime(2011, 2, 11, 16, 44, 22, 123456),
                 "release_ms": datetime.datetime(2011, 2, 11, 16, 44, 22, 123000),
                 "release_sec": datetime.datetime(2011, 2, 11, 16, 44, 22),
-                "release_tz": datetime.datetime(
-                    2011, 2, 11, 16, 44, 22, 123456, pytz.UTC
-                ),
+                "release_tz": datetime.datetime(2011, 2, 11, 16, 44, 22, 123456, pytz.UTC),
                 "film": datetime.date(2013, 2, 22),
                 "u8": 1,
                 "u16": 15,
@@ -221,9 +217,7 @@ def test_to_df(conn_db_readonly: ConnDB) -> None:
                 "release_ns": datetime.datetime(2018, 11, 13, 13, 33, 11, 123456),
                 "release_ms": datetime.datetime(2018, 11, 13, 13, 33, 11, 123000),
                 "release_sec": datetime.datetime(2018, 11, 13, 13, 33, 11),
-                "release_tz": datetime.datetime(
-                    2018, 11, 13, 13, 33, 11, 123456, pytz.UTC
-                ),
+                "release_tz": datetime.datetime(2018, 11, 13, 13, 33, 11, 123456, pytz.UTC),
                 "film": datetime.date(2014, 9, 12),
                 "u8": 12,
                 "u16": 120,
@@ -376,9 +370,7 @@ def test_df_get_node(conn_db_readonly: ConnDB) -> None:
 
 def test_df_get_node_rel(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
-    res = conn.execute(
-        "MATCH (p:person)-[r:workAt]->(o:organisation) RETURN p, r, o ORDER BY p.fName"
-    )
+    res = conn.execute("MATCH (p:person)-[r:workAt]->(o:organisation) RETURN p, r, o ORDER BY p.fName")
 
     df = res.get_as_df()
     p_list = df["p"].tolist()
@@ -474,9 +466,7 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                 "u": UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"),
                 "isStudent": True,
                 "isWorker": False,
-                "lastJobDuration": datetime.timedelta(
-                    days=3750, seconds=46800, microseconds=24
-                ),
+                "lastJobDuration": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
                 "registerTime": datetime.datetime(2008, 11, 3, 15, 25, 30, 526),
                 "usedNames": ["Bobby"],
                 "workedHours": [12, 8],
@@ -503,9 +493,7 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                     },
                 },
                 "someMap": {"a": "b"},
-                "validInterval": datetime.timedelta(
-                    days=3750, seconds=46800, microseconds=24
-                ),
+                "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
             },
             {
                 "_id": {
@@ -527,9 +515,7 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                     },
                 },
                 "someMap": {"a": "b"},
-                "validInterval": datetime.timedelta(
-                    days=3750, seconds=46800, microseconds=24
-                ),
+                "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
             },
         ],
     }
@@ -573,32 +559,28 @@ def test_get_df_decimal(conn_db_readonly: ConnDB) -> None:
     res = conn.execute(
         "UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B RETURN CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD"
     ).get_as_df()
-    assert sorted(res["PROD"].tolist()) == sorted(
-        [
-            Decimal("5.7"),
-            Decimal("8.3"),
-            Decimal("2.9"),
-            Decimal("11.4"),
-            Decimal("16.6"),
-            Decimal("5.8"),
-            Decimal("17.1"),
-            Decimal("24.9"),
-            Decimal("8.7"),
-        ]
-    )
+    assert sorted(res["PROD"].tolist()) == sorted([
+        Decimal("5.7"),
+        Decimal("8.3"),
+        Decimal("2.9"),
+        Decimal("11.4"),
+        Decimal("16.6"),
+        Decimal("5.8"),
+        Decimal("17.1"),
+        Decimal("24.9"),
+        Decimal("8.7"),
+    ])
     res = conn.execute(
         "UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B RETURN CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(4, 1)) AS PROD"
     ).get_as_df()
-    assert sorted(res["PROD"].tolist()) == sorted(
-        [
-            Decimal("5.7"),
-            Decimal("8.3"),
-            Decimal("2.9"),
-            Decimal("11.4"),
-            Decimal("16.6"),
-            Decimal("5.8"),
-            Decimal("17.1"),
-            Decimal("24.9"),
-            Decimal("8.7"),
-        ]
-    )
+    assert sorted(res["PROD"].tolist()) == sorted([
+        Decimal("5.7"),
+        Decimal("8.3"),
+        Decimal("2.9"),
+        Decimal("11.4"),
+        Decimal("16.6"),
+        Decimal("5.8"),
+        Decimal("17.1"),
+        Decimal("24.9"),
+        Decimal("8.7"),
+    ])

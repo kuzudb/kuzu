@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import os
 import platform
 import urllib.request
-import os
 from pathlib import Path
-import hashlib
 
 import pytest
 from type_aliases import ConnDB
@@ -20,20 +20,14 @@ def extension_extension_dir_prefix() -> str:
         extension_extension_dir_prefix = "win_amd64"
     elif system == "Linux":
         extension_extension_dir_prefix = (
-            "linux_arm64"
-            if platform.machine() == "aarch64" or platform.machine() == "arm64"
-            else "linux_amd64"
+            "linux_arm64" if platform.machine() == "aarch64" or platform.machine() == "arm64" else "linux_amd64"
         )
     elif system == "Darwin":
-        extension_extension_dir_prefix = (
-            "osx_arm64" if platform.machine() == "arm64" else "osx_amd64"
-        )
+        extension_extension_dir_prefix = "osx_arm64" if platform.machine() == "arm64" else "osx_amd64"
     return extension_extension_dir_prefix
 
 
-def test_extension_install_httpfs(
-    conn_db_readonly: ConnDB, tmpdir: str, extension_extension_dir_prefix: str
-) -> None:
+def test_extension_install_httpfs(conn_db_readonly: ConnDB, tmpdir: str, extension_extension_dir_prefix: str) -> None:
     current_dir = Path(__file__).resolve().parent
     cmake_list_file = Path(current_dir).parent.parent.parent / "CMakeLists.txt"
     extension_version = None
