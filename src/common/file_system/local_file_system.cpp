@@ -42,7 +42,14 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
     auto fullPath = expandPath(context, path);
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
-    auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
+    int dwCreationDisposition;
+    if (flags & FileFlags::CREATE_IF_NOT_EXISTS) {
+        dwCreationDisposition = OPEN_ALWAYS;
+    } else if (flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS) {
+        dwCreationDisposition = CREATE_ALWAYS;
+    } else {
+        dwCreationDisposition = OPEN_EXISTING;
+    }
     auto dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
     if (flags & (O_CREAT | O_WRONLY | O_RDWR)) {
         dwDesiredAccess |= GENERIC_WRITE;
