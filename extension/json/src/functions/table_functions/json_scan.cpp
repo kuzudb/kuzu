@@ -678,7 +678,7 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
 
 static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*,
     TableFuncLocalState*) {
-    ctx->clientContext->getWarningContextUnsafe().populateWarnings(0, ctx->queryID);
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 std::unique_ptr<TableFunction> JsonScan::getFunction() {
