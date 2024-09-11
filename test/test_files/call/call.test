@@ -16,6 +16,27 @@
 ---- 1
 10
 
+-STATEMENT CREATE NODE TABLE personOne(id INT64, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE personTwo(id INT64, prop STRING DEFAULT gen_random_uuid(), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE personThree(id INT64, prop INT64 default 10+20, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL TABLE_INFO('personOne') RETURN *
+---- 2
+0|id|NULL|INT64|True
+1|prop|'Alice'|STRING|False
+
+-STATEMENT CALL TABLE_INFO('personTwo') RETURN *
+---- 2
+0|id|NULL|INT64|True
+1|prop|gen_random_uuid()|STRING|False
+
+-STATEMENT CALL TABLE_INFO('personThree') RETURN *
+---- 2
+0|id|NULL|INT64|True
+1|prop|10 + 20|INT64|False
+
 -LOG SetGetTimeout
 -STATEMENT CALL timeout=40000
 ---- ok
