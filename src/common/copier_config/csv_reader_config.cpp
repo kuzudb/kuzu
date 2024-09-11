@@ -86,7 +86,7 @@ static bool validateIntParsingOptionName(const std::string& parsingOptionName) {
     return hasOption(CopyConstants::INT_CSV_PARSING_OPTIONS, parsingOptionName);
 }
 
-static bool isValidBooleanOptionValue(const Value& value, std::string name) {
+static bool isValidBooleanOptionValue(const Value& value, const std::string& name) {
 
     // Normalize and check if the string is a valid Boolean representation
     auto strValue = value.toString();
