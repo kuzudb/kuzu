@@ -198,7 +198,7 @@ class Connection:
         while query_result.has_next():
             row = query_result.get_next()
             if row[2] == "NODE":
-                results.append(row[0])
+                results.append(row[1])
         return results
 
     def _get_rel_table_names(self) -> list[dict[str, Any]]:
@@ -208,7 +208,7 @@ class Connection:
         while tables_result.has_next():
             row = tables_result.get_next()
             if row[2] == "REL":
-                name = row[0]
+                name = row[1]
                 connections_result = self.execute(f"CALL show_connection({name!r}) RETURN *;")
                 src_dst_row = connections_result.get_next()
                 src_node = src_dst_row[0]
