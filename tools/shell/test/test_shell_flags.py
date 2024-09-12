@@ -10,7 +10,7 @@ def test_database_path(temp_db) -> None:
     # no database path
     test = ShellTest()
     result = test.run()
-    result.check_stdout("Opened the database under in-memory mode.")
+    result.check_stdout("Opening the database under in-memory mode.")
 
     # valid database path
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a;')
@@ -57,7 +57,7 @@ def test_default_bp_size(temp_db, flag) -> None:
     # successful flag
     test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("1000")
     result = test.run()
-    result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
+    result.check_stdout(f"Opening the database at path: {temp_db} in read-write mode.")
 
 
 @pytest.mark.parametrize(
@@ -70,7 +70,7 @@ def test_default_bp_size(temp_db, flag) -> None:
 def test_no_compression(temp_db, flag) -> None:
     test = ShellTest().add_argument(temp_db).add_argument(flag)
     result = test.run()
-    result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
+    result.check_stdout(f"Opening the database at path: {temp_db} in read-write mode.")
 
 
 @pytest.mark.parametrize(
@@ -85,7 +85,7 @@ def test_read_only(temp_db, flag) -> None:
     # cannot open an empty database in read only mode so initialize database
     test = ShellTest().add_argument(temp_db)
     result = test.run()
-    result.check_stdout(f"Opened the database at path: {temp_db} in read-write mode.")
+    result.check_stdout(f"Opening the database at path: {temp_db} in read-write mode.")
 
     # test read only
     test = (
@@ -97,7 +97,7 @@ def test_read_only(temp_db, flag) -> None:
         .statement('RETURN "kuzu is cool" AS b;')
     )
     result = test.run()
-    result.check_stdout(f"Opened the database at path: {temp_db} in read-only mode.")
+    result.check_stdout(f"Opening the database at path: {temp_db} in read-only mode.")
     result.check_stdout("databases rule")
     result.check_stdout(
         "Error: Connection exception: Cannot execute write operations in a read-only database!",

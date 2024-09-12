@@ -188,9 +188,9 @@ int main(int argc, char* argv[]) {
         auto shell = EmbeddedShell(database, conn, shellConfig);
         processRunCommands(shell, initFile);
         if (DBConfig::isDBPathInMemory(databasePath)) {
-            std::cout << "Opened the database under in-memory mode." << '\n';
+            std::cout << "Opening the database under in-memory mode." << '\n';
         } else {
-            std::cout << "Opened the database at path: " << databasePath << " in "
+            std::cout << "Opening the database at path: " << databasePath << " in "
                       << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
         }
         std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
