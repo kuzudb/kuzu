@@ -120,3 +120,18 @@ Found duplicated primary key value 2, which violates the uniqueness constraint o
 1
 2
 3
+
+-CASE ScanFromNewLineDelimitedJson
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-misc/newline-delimited.json' RETURN *;
+---- 9
+4947802324993|2011-08-17 14:26:59.961|103.246.108.57|Safari|yes|3
+4947802324994|2011-08-17 11:10:21.57|196.1.96.86|Chrome|thanks|6
+8246337208325|2012-07-20 05:22:51.283|31.47.225.63|Firefox|LOL|3
+8246337208326|2012-07-20 16:55:45.373|84.243.112.60|Firefox|I see|5
+8246337208327|2012-07-20 04:34:17.5|84.243.112.60|Firefox|fine|4
+8246337208328|2012-07-20 17:35:11.096|196.1.96.86|Chrome|right|5
+8246337208329|2012-07-20 23:08:15.828|31.13.184.200|Firefox|About George Frideric Handel, ful with hisAbout Erwin Rommel, mandy. As onAbout|79
+8246337208330|2012-07-20 06:31:37.85|62.100.246.118|Internet Explorer|good|4
+8246337208331|2012-07-21 03:07:22.319|46.30.7.107|Firefox|no|2

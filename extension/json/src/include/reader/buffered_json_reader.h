@@ -11,10 +11,12 @@ struct JsonScanBufferHandle {
     uint64_t bufferIdx;
     std::unique_ptr<storage::MemoryBuffer> buffer;
     uint64_t bufferSize;
+    uint64_t numReaders;
 
     JsonScanBufferHandle(uint64_t bufferIdx, std::unique_ptr<storage::MemoryBuffer> buffer,
-        uint64_t bufferSize)
-        : bufferIdx{bufferIdx}, buffer{std::move(buffer)}, bufferSize{bufferSize} {}
+        uint64_t bufferSize, uint64_t numReaders)
+        : bufferIdx{bufferIdx}, buffer{std::move(buffer)}, bufferSize{bufferSize},
+          numReaders{numReaders} {}
 };
 
 struct JsonFileHandle {
@@ -58,6 +60,8 @@ public:
         bufferMap.insert(make_pair(bufferIdx, std::move(buffer)));
     }
 
+    std::unique_ptr<storage::MemoryBuffer> removeBuffer(JsonScanBufferHandle& handle);
+
     uint64_t getBufferIdx() { return bufferIdx++; }
 
     void throwParseError(yyjson_read_err& err, const std::string& extra = "") const;
@@ -65,6 +69,11 @@ public:
     JsonFileHandle* getFileHandle() const { return fileHandle.get(); }
 
     std::string getFileName() const { return fileName; }
+
+    JsonScanBufferHandle* getBuffer(common::idx_t bufferIdx) {
+        std::lock_guard<std::mutex> guard(lock);
+        return bufferMap.contains(bufferIdx) ? bufferMap.at(bufferIdx).get() : nullptr;
+    }
 
 public:
     std::mutex lock;
