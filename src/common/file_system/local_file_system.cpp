@@ -116,7 +116,9 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
         overlapped.Offset = 0;
         BOOL rc = LockFileEx(handle, dwFlags, 0, 0, 0, &overlapped);
         if (!rc) {
-            throw IOException("Could not set lock on file : " + fullPath);
+            throw IOException(
+                "Could not set lock on file : " + fullPath + "\n" +
+                "See the docs: https://docs.kuzudb.com/concurrency for more information.");
         }
     }
     return std::make_unique<LocalFileInfo>(fullPath, handle, this);
@@ -134,7 +136,9 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
         fl.l_len = 0;
         int rc = fcntl(fd, F_SETLK, &fl);
         if (rc == -1) {
-            throw IOException("Could not set lock on file : " + fullPath);
+            throw IOException(
+                "Could not set lock on file : " + fullPath + "\n" +
+                "See the docs: https://docs.kuzudb.com/concurrency for more information.");
         }
     }
     return std::make_unique<LocalFileInfo>(fullPath, fd, this);
