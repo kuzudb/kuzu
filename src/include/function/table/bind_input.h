@@ -12,20 +12,24 @@ class ClientContext;
 
 namespace function {
 
+struct TableFunction;
 struct ScanTableFuncBindInput {
     std::vector<common::Value> inputs;
     common::ReaderConfig config;
     std::vector<std::string> expectedColumnNames;
     std::vector<common::LogicalType> expectedColumnTypes;
     main::ClientContext* context;
+    function::TableFunction* tableFunction;
 
     ScanTableFuncBindInput() {}
     explicit ScanTableFuncBindInput(common::ReaderConfig config) : config{std::move(config)} {};
     ScanTableFuncBindInput(common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
-        std::vector<common::LogicalType> expectedColumnTypes, main::ClientContext* context)
+        std::vector<common::LogicalType> expectedColumnTypes, main::ClientContext* context,
+        function::TableFunction* tableFunction)
         : config{std::move(config)}, expectedColumnNames{std::move(expectedColumnNames)},
-          expectedColumnTypes{std::move(expectedColumnTypes)}, context{context} {
+          expectedColumnTypes{std::move(expectedColumnTypes)}, context{context},
+          tableFunction{tableFunction} {
         inputs.push_back(common::Value::createValue(this->config.filePaths[0]));
     }
     EXPLICIT_COPY_DEFAULT_MOVE(ScanTableFuncBindInput);
@@ -35,7 +39,7 @@ private:
         : inputs{other.inputs}, config{other.config.copy()},
           expectedColumnNames{other.expectedColumnNames},
           expectedColumnTypes{common::LogicalType::copy(other.expectedColumnTypes)},
-          context{other.context} {}
+          context{other.context}, tableFunction{other.tableFunction} {}
 };
 
 } // namespace function

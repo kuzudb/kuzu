@@ -40,6 +40,15 @@ BufferedJsonReader::BufferedJsonReader(main::ClientContext& context, std::string
     fileHandle = std::make_unique<JsonFileHandle>(std::move(fileInfo));
 }
 
+std::unique_ptr<storage::MemoryBuffer> BufferedJsonReader::removeBuffer(
+    JsonScanBufferHandle& handle) {
+    std::lock_guard<std::mutex> guard(lock);
+    KU_ASSERT(bufferMap.contains(handle.bufferIdx));
+    auto result = std::move(bufferMap.at(handle.bufferIdx)->buffer);
+    bufferMap.erase(handle.bufferIdx);
+    return result;
+}
+
 void BufferedJsonReader::throwParseError(yyjson_read_err& err, const std::string& extra) const {
     auto unit = options.format == JsonScanFormat::NEWLINE_DELIMITED ? "line" : "record/value";
     // TODO(Ziyi): report error line number.
