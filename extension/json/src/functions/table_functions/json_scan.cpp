@@ -368,8 +368,6 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
         }
         return JsonScanFormat::ARRAY;
     }
-    skipWhitespace(buffer_ptr, ++buffer_offset, --remaining);
-    remaining = buffer_size - buffer_offset;
     return JsonScanFormat::ARRAY;
 }
 
