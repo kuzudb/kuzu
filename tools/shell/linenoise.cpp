@@ -2008,7 +2008,8 @@ static void refreshMultiLine(struct linenoiseState* l) {
     std::string highlight_buffer;
     if (highlightEnabled) {
         if (Utf8Proc::isValid(render_buf, render_len)) {
-            highlight_buffer = linenoiseHighlightText(render_buf, render_len, 0, render_len, tokens);
+            highlight_buffer =
+                linenoiseHighlightText(render_buf, render_len, 0, render_len, tokens);
             render_buf = (char*)highlight_buffer.c_str();
             render_len = highlight_buffer.size();
         }

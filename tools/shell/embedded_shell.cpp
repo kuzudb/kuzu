@@ -510,8 +510,8 @@ void EmbeddedShell::setStats(const std::string& statsString) {
 
 void EmbeddedShell::setHighlighting(const std::string& highlightString) {
     std::string highlightStringLower = highlightString;
-    std::transform(highlightStringLower.begin(), highlightStringLower.end(), highlightStringLower.begin(),
-        [](unsigned char c) { return std::tolower(c); });
+    std::transform(highlightStringLower.begin(), highlightStringLower.end(),
+        highlightStringLower.begin(), [](unsigned char c) { return std::tolower(c); });
     if (highlightStringLower == "on") {
         linenoiseSetHighlighting(1);
         printf("enabled syntax highlighting\n");
@@ -519,10 +519,10 @@ void EmbeddedShell::setHighlighting(const std::string& highlightString) {
         linenoiseSetHighlighting(0);
         printf("disabled syntax highlighting\n");
     } else {
-        printf("Cannot parse '%s' to toggle highlighting. Expect 'on' or 'off'.\n", highlightString.c_str());
+        printf("Cannot parse '%s' to toggle highlighting. Expect 'on' or 'off'.\n",
+            highlightString.c_str());
         return;
     }
-    
 }
 
 void EmbeddedShell::setErrors(const std::string& errorsString) {
@@ -536,12 +536,11 @@ void EmbeddedShell::setErrors(const std::string& errorsString) {
         linenoiseSetErrors(0);
         printf("disabled error highlighting\n");
     } else {
-        printf("Cannot parse '%s' to toggle error highlighting. Expect 'on' or 'off'.\n", errorsStringLower.c_str());
+        printf("Cannot parse '%s' to toggle error highlighting. Expect 'on' or 'off'.\n",
+            errorsStringLower.c_str());
         return;
     }
 }
-
-
 
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
@@ -555,7 +554,8 @@ void EmbeddedShell::printHelp() {
     printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
     printf("%s%s %sset multiline mode\n", TAB, shellCommand.MULTI, TAB);
     printf("%s%s %sset singleline mode (default)\n", TAB, shellCommand.SINGLE, TAB);
-    printf("%s%s [on|off] %stoggle syntax highlighting on or off\n", TAB, shellCommand.HIGHLIGHT, TAB);
+    printf("%s%s [on|off] %stoggle syntax highlighting on or off\n", TAB, shellCommand.HIGHLIGHT,
+        TAB);
     printf("%s%s [on|off] %stoggle error highlighting on or off\n", TAB, shellCommand.ERRORS, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
