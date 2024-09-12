@@ -13,67 +13,6 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-// WITH clause is like SQL CTE. So the projection list of WITH clause should be explicitly
-// evaluated. This, however, creates problem in the following case
-// MATCH (a) WITH a RETURN a.age;
-// Although only a.age is needed for further processing. The CTE "MATCH (a) WITH a" require us to
-// fully materialize all columns of "a". Note that we cannot rely on projection push down to
-// optimize this because projection pushdown assumes all columns in WITH/RETURN are needed.
-// Our solution is:
-// First rewrite node and rel as their INTERNAL ID property in WITH clause. So
-// MATCH (a) WITH a._id RETURN a.age;
-// And then apply WithClauseProjectionRewriter after binding to rewrite as
-// MATCH (a) WITH a._id, a.age RETURN a.age
-// TODO(Xiyang): the above rewrite is creating problem for alias handling. Consider move this out of
-//  binder.
-
-static void addToProjectionList(std::shared_ptr<Expression> expr, const std::string& alias,
-    expression_vector& exprs, std::vector<std::string>& aliases) {
-    exprs.push_back(expr);
-    aliases.push_back(alias);
-}
-
-static void tryAddToProjectionList(expression_set& set, std::shared_ptr<Expression> expr,
-    const std::string& alias, expression_vector& exprs, std::vector<std::string>& aliases) {
-    if (set.contains(expr)) {
-        return;
-    }
-    set.insert(expr);
-    addToProjectionList(expr, alias, exprs, aliases);
-}
-
-static std::pair<expression_vector, std::vector<std::string>> rewriteProjectionInWithClause(
-    const expression_vector& expressions, const std::vector<std::string>& aliases) {
-    expression_vector newExprs;
-    std::vector<std::string> newAliases;
-    auto set = expression_set{};
-    for (auto i = 0u; i < expressions.size(); ++i) {
-        auto expression = expressions[i];
-        if (ExpressionUtil::isNodePattern(*expression)) {
-            auto& node = expression->constCast<NodeExpression>();
-            auto id = node.getInternalID();
-            tryAddToProjectionList(set, node.getInternalID(), "", newExprs, newAliases);
-        } else if (ExpressionUtil::isRelPattern(*expression)) {
-            auto& rel = expression->constCast<RelExpression>();
-            tryAddToProjectionList(set, rel.getSrcNode()->getInternalID(), "", newExprs,
-                newAliases);
-            tryAddToProjectionList(set, rel.getDstNode()->getInternalID(), "", newExprs,
-                newAliases);
-            tryAddToProjectionList(set, rel.getInternalIDProperty(), "", newExprs, newAliases);
-            if (rel.hasDirectionExpr()) {
-                tryAddToProjectionList(set, rel.getDirectionExpr(), "", newExprs, newAliases);
-            }
-        } else if (ExpressionUtil::isRecursiveRelPattern(*expression)) {
-            auto& rel = expression->constCast<RelExpression>();
-            tryAddToProjectionList(set, expression, "", newExprs, newAliases);
-            tryAddToProjectionList(set, rel.getLengthExpression(), "", newExprs, newAliases);
-        } else {
-            addToProjectionList(expression, aliases[i], newExprs, newAliases);
-        }
-    }
-    return {newExprs, newAliases};
-}
-
 void validateColumnNamesAreUnique(const std::vector<std::string>& columnNames) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& name : columnNames) {
@@ -109,19 +48,12 @@ BoundWithClause Binder::bindWithClause(const WithClause& withClause) {
     }
     auto columnNames = getColumnNames(projectionExprs, aliases);
     validateColumnNamesAreUnique(columnNames);
-    // Rewrite projection list
-    auto originalProjectionExprs = projectionExprs;
-    auto originalAliases = aliases;
-    auto [newExprs, newAliases] = rewriteProjectionInWithClause(projectionExprs, aliases);
-    projectionExprs = newExprs;
-    aliases = newAliases;
-
     auto boundProjectionBody = bindProjectionBody(*projectionBody, projectionExprs, aliases);
     validateOrderByFollowedBySkipOrLimitInWithClause(boundProjectionBody);
     // Update scope
     scope.clear();
-    for (auto i = 0u; i < originalProjectionExprs.size(); ++i) {
-        addToScope(originalAliases[i], originalProjectionExprs[i]);
+    for (auto i = 0u; i < projectionExprs.size(); ++i) {
+        addToScope(aliases[i], projectionExprs[i]);
     }
     auto boundWithClause = BoundWithClause(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
