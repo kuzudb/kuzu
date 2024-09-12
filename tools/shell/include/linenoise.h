@@ -87,6 +87,8 @@ void linenoiseSetCompletionCallback(linenoiseCompletionCallback*);
 void linenoiseSetHintsCallback(linenoiseHintsCallback*);
 void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback*);
 void linenoiseSetHighlightCallback(linenoiseHighlightCallback*);
+void linenoiseSetErrors(int enabled);
+void linenoiseSetHighlighting(int enabled);
 void linenoiseAddCompletion(linenoiseCompletions*, const char*);
 
 char* linenoise(const char* prompt, const char* continuePrompt, const char* selectedContinuePrompt);
