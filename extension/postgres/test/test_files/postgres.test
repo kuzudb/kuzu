@@ -69,7 +69,6 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 # be displayed.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 9
-
 0|movies|ATTACHED|pgscan(POSTGRES)|
 0|movies|ATTACHED|tinysnb(POSTGRES)|
 0|person_copy|NODE|local(kuzu)|
