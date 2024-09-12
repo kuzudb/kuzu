@@ -46,6 +46,16 @@ struct ReaderConfig {
         return filePaths[fileIdx];
     }
 
+    template<typename T>
+    T getOption(std::string optionName, T defaultValue) const {
+        const auto optionIt = options.find(optionName);
+        if (optionIt != options.end()) {
+            return optionIt->second.getValue<T>();
+        } else {
+            return defaultValue;
+        }
+    }
+
 private:
     ReaderConfig(const ReaderConfig& other)
         : fileTypeInfo{other.fileTypeInfo}, filePaths{other.filePaths}, options{other.options} {}

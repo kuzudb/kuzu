@@ -56,16 +56,13 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     localState = std::make_unique<NodeBatchInsertLocalState>();
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
-    // NOLINTBEGIN(bugprone-unchecked-optional-access)
-    if (nodeSharedState->globalIndexBuilder) {
-        nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder.value().clone();
+    KU_ASSERT(nodeSharedState->globalIndexBuilder);
+    nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder->clone();
 
-        auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-        nodeLocalState->errorHandler = NodeBatchInsertErrorHandler{context,
-            nodeSharedState->pkType.getLogicalTypeID(), nodeTable, nodeInfo->ignoreErrors,
-            sharedState->numErroredRows, &sharedState->erroredRowMutex};
-    }
-    // NOLINTEND(bugprone-unchecked-optional-access)
+    auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
+    nodeLocalState->errorHandler =
+        NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(), nodeTable,
+            nodeInfo->ignoreErrors, sharedState->numErroredRows, &sharedState->erroredRowMutex};
 
     const auto numColumns = nodeInfo->columnEvaluators.size();
     nodeLocalState->columnVectors.resize(numColumns);
@@ -165,11 +162,23 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
-    auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(transaction, *nodeGroup);
+    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+
+    // we only need to write the main data in the chunked node group, the extra data is only used
+    // during the lifetime of this operator to populate error messages
+    ChunkedNodeGroup sliceToWriteToDisk(*nodeGroup, nodeInfo->outputDataColumns);
+    auto [nodeOffset, numRowsWritten] =
+        nodeTable->appendToLastNodeGroup(transaction, sliceToWriteToDisk);
+    nodeGroup->merge(sliceToWriteToDisk, nodeInfo->outputDataColumns);
+
     if (indexBuilder) {
         KU_ASSERT(nodeLocalState->errorHandler.has_value());
+        std::vector<ColumnChunkData*> extraChunkData;
+        for (const auto warningDataColumn : nodeInfo->warningDataColumns) {
+            extraChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
+        }
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
-            nodeOffset, numRowsWritten, nodeLocalState->errorHandler.value());
+            extraChunkData, nodeOffset, numRowsWritten, nodeLocalState->errorHandler.value());
     }
     if (numRowsWritten == nodeGroup->getNumRows()) {
         nodeGroup->resetToEmpty();
@@ -202,7 +211,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     KU_ASSERT(numNodesAppended == localNodeGroup->getNumRows());
 }
 
-void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
+void NodeBatchInsert::finalize(ExecutionContext* context) {
     const auto nodeSharedState =
         ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
     if (nodeSharedState->sharedNodeGroup) {
@@ -221,19 +230,25 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
         localNodeState->errorHandler->flushStoredErrors();
     }
 
+    // we want to flush all index errors before children call finalize
+    // as the children are resposible for populating the errors and sending it to the warning
+    // context
+    PhysicalOperator::finalize(context);
+}
+
+void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows() - sharedState->getNumErroredRows(), info->tableEntry->getName());
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
         context->clientContext->getMemoryManager());
 
-    const auto warningCount = context->warningCount;
-    bool atWarningLimit = (warningCount == context->clientContext->getClientConfig()->warningLimit);
+    const auto warningCount =
+        context->clientContext->getWarningContextUnsafe().getWarningCount(context->queryID);
     if (warningCount > 0) {
-        const auto warningLimitSuffix = atWarningLimit ? "+" : "";
         auto warningMsg =
-            stringFormat("{}{} warnings encountered during copy. Use 'CALL "
+            stringFormat("{} warnings encountered during copy. Use 'CALL "
                          "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
-                warningCount, warningLimitSuffix, context->queryID);
+                warningCount, context->queryID);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
             context->clientContext->getMemoryManager());
     }

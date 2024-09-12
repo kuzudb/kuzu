@@ -5,6 +5,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "function/table/bind_data.h"
+#include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
@@ -140,7 +141,6 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
     auto repeatPtr = (uint8_t*)state.repeatBuf.ptr;
 
     auto rootReader = ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
-
     for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
         if (!columnSkips.empty() && columnSkips[colIdx]) {
             continue;
@@ -682,7 +682,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         detectedColumnNames = scanInput->expectedColumnNames;
     }
     return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
-        std::move(detectedColumnNames), scanInput->config.copy(), scanInput->context);
+        std::move(detectedColumnNames), 0 /* numWarningColumns */, scanInput->config.copy(),
+        scanInput->context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -721,11 +722,15 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(totalReadSize) / state->totalRowsGroups;
 }
 
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState*, TableFuncLocalState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+}
+
 function_set ParquetScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
 }
 

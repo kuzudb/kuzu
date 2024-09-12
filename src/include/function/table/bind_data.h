@@ -16,13 +16,18 @@ struct TableFuncBindData {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
 
+    // the last {numWarningDataColumns} columns are for temporary internal use
+    common::column_id_t numWarningDataColumns;
+
     TableFuncBindData() = default;
     TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames)
-        : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
+        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns)
+        : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
+          numWarningDataColumns(numWarningDataColumns) {}
     TableFuncBindData(const TableFuncBindData& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
-          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
+          numWarningDataColumns(other.numWarningDataColumns), columnSkips{other.columnSkips},
+          columnPredicates{copyVector(other.columnPredicates)} {}
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columnTypes.size(); }
@@ -53,8 +58,9 @@ struct ScanBindData : public TableFuncBindData {
     main::ClientContext* context;
 
     ScanBindData(std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
-        common::ReaderConfig config, main::ClientContext* context)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)},
+        common::column_id_t numWarningDataColumns, common::ReaderConfig config,
+        main::ClientContext* context)
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numWarningDataColumns},
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}

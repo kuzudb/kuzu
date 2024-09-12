@@ -15,7 +15,7 @@ class ParallelCSVReader final : public BaseCSVReader {
     friend class ParallelParsingDriver;
 
 public:
-    ParallelCSVReader(const std::string& filePath, common::CSVOption option,
+    ParallelCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
         CSVColumnInfo columnInfo, main::ClientContext* context,
         LocalCSVFileErrorHandler* errorHandler);
 
@@ -36,14 +36,13 @@ private:
 struct ParallelCSVLocalState final : public function::TableFuncLocalState {
     std::unique_ptr<ParallelCSVReader> reader;
     std::unique_ptr<LocalCSVFileErrorHandler> errorHandler;
-    uint64_t fileIdx;
+    common::idx_t fileIdx;
 };
 
 struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
     common::CSVOption csvOption;
     CSVColumnInfo columnInfo;
     uint64_t numBlocksReadByFiles = 0;
-    std::shared_ptr<warning_counter_t> warningCounter;
     std::vector<SharedCSVFileErrorHandler> errorHandlers;
 
     ParallelCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,

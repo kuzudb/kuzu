@@ -25,13 +25,28 @@ namespace processor {
 
 const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
+constexpr size_t WARNING_DATA_BUFFER_SIZE = 64;
+using OptionalWarningDataBuffer =
+    std::unique_ptr<common::StaticVector<WarningSourceData, WARNING_DATA_BUFFER_SIZE>>;
+
+using OptionalWarningSourceData = std::optional<WarningSourceData>;
+
+template<typename T>
+struct IndexBufferWithWarningData {
+    storage::IndexBuffer<T> indexBuffer;
+    OptionalWarningDataBuffer warningDataBuffer;
+
+    bool full() const;
+    void append(T key, common::offset_t value, OptionalWarningSourceData warningData);
+};
+
 class IndexBuilderGlobalQueues {
 public:
     explicit IndexBuilderGlobalQueues(transaction::Transaction* transaction,
         storage::NodeTable* nodeTable);
 
     template<typename T>
-    void insert(size_t index, storage::IndexBuffer<T> elem,
+    void insert(size_t index, IndexBufferWithWarningData<T> elem,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto& typedQueues = std::get<Queue<T>>(queues).array;
         typedQueues[index].push(std::move(elem));
@@ -53,7 +68,8 @@ private:
 
     template<typename T>
     struct Queue {
-        std::array<common::MPSCQueue<storage::IndexBuffer<T>>, storage::NUM_HASH_INDEXES> array;
+        std::array<common::MPSCQueue<IndexBufferWithWarningData<T>>, storage::NUM_HASH_INDEXES>
+            array;
         // Type information to help std::visit. Value is not used
         T type;
     };
@@ -70,25 +86,34 @@ class IndexBuilderLocalBuffers {
 public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
-    void insert(std::string key, common::offset_t value,
+    void insert(std::string key, common::offset_t value, OptionalWarningSourceData warningData,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
         auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
+
         if (stringBuffer.full()) {
             // StaticVector's move constructor leaves the original vector valid and empty
             globalQueues->insert(indexPos, std::move(stringBuffer), errorHandler);
         }
-        stringBuffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
+
+        // moving the buffer clears it which is the expected behaviour
+        // NOLINTNEXTLINE (bugprone-use-after-move)
+        stringBuffer.append(std::move(key), value, std::move(warningData));
     }
 
     template<common::HashablePrimitive T>
-    void insert(T key, common::offset_t value, NodeBatchInsertErrorHandler& errorHandler) {
+    void insert(T key, common::offset_t value, OptionalWarningSourceData warningData,
+        NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];
+
         if (buffer.full()) {
             globalQueues->insert(indexPos, std::move(buffer), errorHandler);
         }
-        buffer.push_back(std::make_pair(key, value)); // NOLINT(bugprone-use-after-move)
+
+        // moving the buffer clears it which is the expected behaviour
+        // NOLINTNEXTLINE (bugprone-use-after-move)
+        buffer.append(key, value, std::move(warningData));
     }
 
     void flush(NodeBatchInsertErrorHandler& errorHandler);
@@ -98,7 +123,7 @@ private:
 
     // These arrays are much too large to be inline.
     template<typename T>
-    using Buffers = std::array<storage::IndexBuffer<T>, storage::NUM_HASH_INDEXES>;
+    using Buffers = std::array<IndexBufferWithWarningData<T>, storage::NUM_HASH_INDEXES>;
     template<typename T>
     using UniqueBuffers = std::unique_ptr<Buffers<T>>;
     std::variant<UniqueBuffers<std::string>, UniqueBuffers<int64_t>, UniqueBuffers<int32_t>,
@@ -162,7 +187,8 @@ public:
 
     IndexBuilder clone() { return IndexBuilder(sharedState); }
 
-    void insert(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
+    void insert(const storage::ColumnChunkData& chunk,
+        const std::vector<storage::ColumnChunkData*>& warningData, common::offset_t nodeOffset,
         common::offset_t numNodes, NodeBatchInsertErrorHandler& errorHandler);
 
     ProducerToken getProducerToken() const { return ProducerToken(sharedState); }
@@ -171,8 +197,9 @@ public:
     void finalize(ExecutionContext* context, NodeBatchInsertErrorHandler& errorHandler);
 
 private:
-    bool checkNonNullConstraint(const storage::ColumnChunkData& chunk, common::offset_t nodeOffset,
-        common::offset_t numNodes, NodeBatchInsertErrorHandler& errorHandler);
+    bool checkNonNullConstraint(const storage::ColumnChunkData& chunk,
+        const std::vector<storage::ColumnChunkData*>& warningData, common::offset_t nodeOffset,
+        common::offset_t chunkOffset, NodeBatchInsertErrorHandler& errorHandler);
     std::shared_ptr<IndexBuilderSharedState> sharedState;
 
     IndexBuilderLocalBuffers localBuffers;

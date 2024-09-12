@@ -7,55 +7,67 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+IndexBuilderCachedError::IndexBuilderCachedError(std::string message,
+    std::optional<WarningSourceData> warningData)
+    : message(message), warningData(warningData) {}
+
 NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* context,
     common::LogicalTypeID pkType, storage::NodeTable* nodeTable, bool ignoreErrors,
     std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx)
     : ignoreErrors(ignoreErrors),
       warningLimit(
           std::min(context->clientContext->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
-      context(context), pkType(pkType), nodeTable(nodeTable), queryID(context->queryID),
-      currentInsertIdx(0), sharedErrorCounterMtx(sharedErrorCounterMtx),
-      sharedErrorCounter(std::move(sharedErrorCounter)) {}
+      context(context), nodeTable(nodeTable), queryID(context->queryID), currentInsertIdx(0),
+      sharedErrorCounterMtx(sharedErrorCounterMtx),
+      sharedErrorCounter(std::move(sharedErrorCounter)),
+      keyVector(std::make_shared<ValueVector>(pkType, context->clientContext->getMemoryManager())),
+      offsetVector(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
+          context->clientContext->getMemoryManager())) {
+    keyVector->state = DataChunkState::getSingleValueDataChunkState();
+    offsetVector->state = DataChunkState::getSingleValueDataChunkState();
+}
 
 void NodeBatchInsertErrorHandler::addNewVectorsIfNeeded() {
-    KU_ASSERT(offsetVector.size() == keyVector.size());
-    KU_ASSERT(offsetVector.size() == errorMessages.size());
-    KU_ASSERT(currentInsertIdx <= offsetVector.size());
-    if (currentInsertIdx == offsetVector.size()) {
-        offsetVector.push_back(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
-            context->clientContext->getMemoryManager()));
-        offsetVector.back()->state = DataChunkState::getSingleValueDataChunkState();
-        keyVector.push_back(
-            std::make_shared<ValueVector>(pkType, context->clientContext->getMemoryManager()));
-        keyVector.back()->state = DataChunkState::getSingleValueDataChunkState();
-        errorMessages.emplace_back();
+    KU_ASSERT(currentInsertIdx <= cachedErrors.size());
+    if (currentInsertIdx == cachedErrors.size()) {
+        cachedErrors.emplace_back();
     }
 }
 
+void NodeBatchInsertErrorHandler::deleteCurrentErroneousRow() {
+    storage::NodeTableDeleteState deleteState{
+        *offsetVector,
+        *keyVector,
+    };
+    nodeTable->delete_(context->clientContext->getTx(), deleteState);
+}
+
 void NodeBatchInsertErrorHandler::flushStoredErrors() {
-    std::vector<PopulatedCSVError> populatedErrors;
+    std::map<uint64_t, std::vector<CSVError>> unpopulatedErrors;
 
     for (row_idx_t i = 0; i < getNumErrors(); ++i) {
-        storage::NodeTableDeleteState deleteState{
-            *offsetVector[i],
-            *keyVector[i],
-        };
-        nodeTable->delete_(context->clientContext->getTx(), deleteState);
-
-        populatedErrors.push_back({
-            .message = errorMessages[i],
-            .filePath = "",
-            .skippedLine = "",
-            .lineNumber = 0,
-        });
+        auto& error = cachedErrors[i];
+        CSVError warningToAdd{std::move(error.message), {}, false};
+        if (error.warningData.has_value()) {
+            warningToAdd.completedLine = true;
+            warningToAdd.warningData = error.warningData.value();
+        }
+        unpopulatedErrors[warningToAdd.warningData.fileIdx].push_back(warningToAdd);
     }
 
-    if (!populatedErrors.empty()) {
-        context->appendWarningMessages(populatedErrors, queryID);
-        {
-            common::UniqLock lockGuard{*sharedErrorCounterMtx};
-            *sharedErrorCounter += getNumErrors();
+    uint64_t numErrorsFlushed = 0;
+    for (const auto& [fileIdx, unpopulatedErrorsByFile] : unpopulatedErrors) {
+        KU_ASSERT(ignoreErrors);
+        if (!unpopulatedErrorsByFile.empty()) {
+            context->clientContext->getWarningContextUnsafe().appendWarningMessages(
+                unpopulatedErrorsByFile);
+            numErrorsFlushed += unpopulatedErrorsByFile.size();
         }
+    }
+
+    if (numErrorsFlushed > 0) {
+        common::UniqLock lockGuard{*sharedErrorCounterMtx};
+        *sharedErrorCounter += numErrorsFlushed;
     }
 
     clearErrors();

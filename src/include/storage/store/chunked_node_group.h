@@ -62,6 +62,7 @@ public:
     ResidencyState getResidencyState() const { return residencyState; }
     NodeGroupDataFormat getFormat() const { return format; }
 
+    void merge(ChunkedNodeGroup& base, const std::vector<common::column_id_t>& columnsToMergeInfo);
     void resetToEmpty();
     void resetToAllNull() const;
     void resetNumRowsFromChunks();

@@ -6,6 +6,8 @@
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/system_message.h"
+#include "common/type_utils.h"
+#include "common/utils.h"
 #include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
@@ -14,11 +16,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVOption option,
-    CSVColumnInfo columnInfo, main::ClientContext* context, CSVFileErrorHandler* errorHandler)
+BaseCSVReader::BaseCSVReader(const std::string& filePath, common::idx_t fileIdx,
+    common::CSVOption option, CSVColumnInfo columnInfo, main::ClientContext* context,
+    LocalCSVFileErrorHandler* errorHandler)
     : context{context}, option{std::move(option)}, columnInfo{std::move(columnInfo)},
       currentBlockIdx(0), numRowsInCurrentBlock(0), curRowIdx(0), numErrors(0), buffer{nullptr},
-      bufferIdx(0), bufferSize{0}, position{0}, lineContext(), osFileOffset{0},
+      bufferIdx(0), bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, fileIdx(fileIdx),
       errorHandler(errorHandler), rowEmpty{false} {
     fileInfo = context->getVFSUnsafe()->openFile(filePath,
         FileFlags::READ_ONLY
@@ -61,7 +64,7 @@ bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
 struct SkipRowDriver {
     explicit SkipRowDriver(uint64_t skipNum) : skipNum{skipNum} {}
     bool done(uint64_t rowNum) const { return rowNum >= skipNum; }
-    bool addRow(uint64_t, column_id_t) { return true; }
+    bool addRow(uint64_t, column_id_t, std::optional<WarningDataWithColumnInfo>) { return true; }
     bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
 
     uint64_t skipNum;
@@ -92,7 +95,7 @@ void BaseCSVReader::readBOM() {
 // Dummy driver that just skips a row.
 struct HeaderDriver {
     bool done(uint64_t) { return true; }
-    bool addRow(uint64_t, column_id_t) { return true; }
+    bool addRow(uint64_t, column_id_t, std::optional<WarningDataWithColumnInfo>) { return true; }
     bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
 };
 
@@ -190,18 +193,55 @@ void BaseCSVReader::skipCurrentLine() {
 }
 
 void BaseCSVReader::handleCopyException(const std::string& message, bool mustThrow) {
-    CSVError error{.message = message,
-        .errorLine = lineContext,
-        .blockIdx = currentBlockIdx,
-        .numRowsReadInBlock = numRowsInCurrentBlock + curRowIdx + numErrors,
-        .mustThrow = mustThrow};
-    if (!error.errorLine.isCompleteLine) {
-        error.errorLine.endByteOffset = getFileOffset();
+    CSVError error{message,
+        {lineContext.startByteOffset, lineContext.endByteOffset, fileIdx, currentBlockIdx,
+            numRowsInCurrentBlock + curRowIdx + numErrors},
+        lineContext.isCompleteLine, mustThrow};
+    if (!error.completedLine) {
+        error.warningData.endByteOffset = getFileOffset();
     }
     errorHandler->handleError(this, error);
 
     // if we reach here it means we are ignoring the error
     ++numErrors;
+}
+
+template<typename Driver>
+static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
+    const CSVColumnInfo& columnInfo, const CSVOption& option,
+    const WarningSourceData& warningSourceData) {
+    std::optional<WarningDataWithColumnInfo> warningData;
+
+    // we only care about populating the extra warning data when actually parsing the CSV
+    // and not when performing actions like sniffing
+    if constexpr (std::is_same_v<Driver, ParallelParsingDriver> ||
+                  std::is_same_v<Driver, SerialParsingDriver>) {
+
+        // For now we only populate extra warning data when IGNORE_ERRORS is enabled
+        if (option.ignoreErrors) {
+            KU_ASSERT(
+                columnInfo.numWarningDataColumns == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
+            warningData.emplace();
+            warningData->startByteOffset =
+                std::make_pair(warningSourceData.startByteOffset, columnInfo.numColumns);
+            warningData->endByteOffset =
+                std::make_pair(warningSourceData.endByteOffset, columnInfo.numColumns + 1);
+            warningData->fileIdx =
+                std::make_pair(warningSourceData.fileIdx, columnInfo.numColumns + 2);
+            warningData->blockIdx =
+                std::make_pair(warningSourceData.blockIdx, columnInfo.numColumns + 3);
+            warningData->rowOffsetInBlock =
+                std::make_pair(warningSourceData.rowOffsetInBlock, columnInfo.numColumns + 4);
+        }
+    }
+    return warningData;
+}
+
+WarningSourceData BaseCSVReader::getWarningSourceData() const {
+    return {lineContext.startByteOffset, lineContext.endByteOffset,
+        safeIntegerConversion<decltype(WarningSourceData::fileIdx)>(fileIdx), currentBlockIdx,
+        safeIntegerConversion<decltype(WarningSourceData::rowOffsetInBlock)>(
+            numRowsInCurrentBlock + curRowIdx + numErrors)};
 }
 
 template<typename Driver>
@@ -294,7 +334,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         }
         column++;
 
-        curRowIdx += driver.addRow(curRowIdx, column);
+        curRowIdx += driver.addRow(curRowIdx, column,
+            getOptionalWarningData<Driver>(columnInfo, option, getWarningSourceData()));
 
         column = 0;
         position++;
@@ -415,7 +456,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             column++;
         }
         if (column > 0) {
-            curRowIdx += driver.addRow(curRowIdx, column);
+            curRowIdx += driver.addRow(curRowIdx, column,
+                getOptionalWarningData<Driver>(columnInfo, option, getWarningSourceData()));
         }
         return curRowIdx;
     ignore_error:
@@ -424,6 +466,42 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         continue;
     }
     KU_UNREACHABLE;
+}
+
+[[maybe_unused]] static void checkWarningDataColumnTypes(
+    [[maybe_unused]] const std::vector<LogicalType>& warningDataColumnTypes) {
+    KU_ASSERT(warningDataColumnTypes.size() >= CopyConstants::WARNING_METADATA_NUM_COLUMNS);
+    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
+                  decltype(processor::WarningSourceData::startByteOffset)>() ==
+              warningDataColumnTypes[warningDataColumnTypes.size() - 5].getPhysicalType());
+    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
+                  decltype(processor::WarningSourceData::endByteOffset)>() ==
+              warningDataColumnTypes[warningDataColumnTypes.size() - 4].getPhysicalType());
+    KU_ASSERT(
+        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::fileIdx)>() ==
+        warningDataColumnTypes[warningDataColumnTypes.size() - 3].getPhysicalType());
+    KU_ASSERT(
+        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::blockIdx)>() ==
+        warningDataColumnTypes[warningDataColumnTypes.size() - 2].getPhysicalType());
+    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
+                  decltype(processor::WarningSourceData::rowOffsetInBlock)>() ==
+              warningDataColumnTypes[warningDataColumnTypes.size() - 1].getPhysicalType());
+}
+
+column_id_t BaseCSVReader::appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
+    std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config) {
+    const bool ignoreErrors = config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+        CopyConstants::DEFAULT_IGNORE_ERRORS);
+    column_id_t numWarningDataColumns = 0;
+    if (ignoreErrors) {
+        numWarningDataColumns = CopyConstants::WARNING_METADATA_NUM_COLUMNS;
+        for (idx_t i = 0; i < CopyConstants::WARNING_METADATA_NUM_COLUMNS; ++i) {
+            resultColumnNames.emplace_back(CopyConstants::WARNING_METADATA_COLUMN_NAMES[i]);
+            resultColumnTypes.emplace_back(CopyConstants::WARNING_METADATA_COLUMN_TYPES[i]);
+        }
+        RUNTIME_CHECK(checkWarningDataColumnTypes(resultColumnTypes));
+    }
+    return numWarningDataColumns;
 }
 
 template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);

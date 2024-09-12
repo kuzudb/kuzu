@@ -5,12 +5,12 @@ namespace planner {
 
 void LogicalTableFunctionCall::computeFlatSchema() {
     createEmptySchema();
-    schema->createGroup();
+    auto groupPos = schema->createGroup();
     for (auto& expr : columns) {
-        schema->insertToGroupAndScope(expr, 0);
+        schema->insertToGroupAndScope(expr, groupPos);
     }
     if (offset != nullptr) {
-        schema->insertToGroupAndScope(offset, 0);
+        schema->insertToGroupAndScope(offset, groupPos);
     }
 }
 

@@ -21,14 +21,18 @@ namespace processor {
 struct CSVColumnInfo {
     uint64_t numColumns;
     std::vector<bool> columnSkips;
+    common::column_id_t numWarningDataColumns;
 
-    CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips)
-        : numColumns{numColumns}, columnSkips{columnSkips} {}
+    CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips,
+        common::column_id_t numWarningDataColumns)
+        : numColumns{numColumns}, columnSkips{columnSkips},
+          numWarningDataColumns(numWarningDataColumns) {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVColumnInfo);
 
 private:
     CSVColumnInfo(const CSVColumnInfo& other)
-        : numColumns{other.numColumns}, columnSkips{other.columnSkips} {}
+        : numColumns{other.numColumns}, columnSkips{other.columnSkips},
+          numWarningDataColumns(other.numWarningDataColumns) {}
 };
 
 class BaseCSVReader {
@@ -36,8 +40,9 @@ class BaseCSVReader {
     friend class SniffCSVNameAndTypeDriver;
 
 public:
-    BaseCSVReader(const std::string& filePath, common::CSVOption option, CSVColumnInfo columnInfo,
-        main::ClientContext* context, CSVFileErrorHandler* errorHandler);
+    BaseCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
+        CSVColumnInfo columnInfo, main::ClientContext* context,
+        LocalCSVFileErrorHandler* errorHandler);
 
     virtual ~BaseCSVReader() = default;
 
@@ -57,6 +62,9 @@ public:
     uint64_t getFileOffset() const;
 
     std::string reconstructLine(uint64_t startPosition, uint64_t endPosition);
+
+    static common::column_id_t appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
+        std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config);
 
 protected:
     template<typename Driver>
@@ -98,6 +106,8 @@ protected:
     void increaseNumRowsInCurrentBlock(uint64_t numRows);
     uint64_t getNumRowsInCurrentBlock() const;
 
+    WarningSourceData getWarningSourceData() const;
+
 protected:
     main::ClientContext* context;
     common::CSVOption option;
@@ -116,8 +126,9 @@ protected:
     uint64_t position;
     LineContext lineContext;
     uint64_t osFileOffset;
+    common::idx_t fileIdx;
 
-    CSVFileErrorHandler* errorHandler;
+    LocalCSVFileErrorHandler* errorHandler;
 
     bool rowEmpty = false;
 };
