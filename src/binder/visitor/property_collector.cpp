@@ -1,5 +1,6 @@
 #include "binder/visitor/property_collector.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
@@ -23,6 +24,30 @@ expression_vector PropertyCollector::getProperties() {
     return result;
 }
 
+void PropertyCollector::visitSingleQuerySkipNodeRel(const NormalizedSingleQuery& singleQuery) {
+    KU_ASSERT(singleQuery.getNumQueryParts() != 0);
+    auto numQueryParts = singleQuery.getNumQueryParts();
+    for (auto i = 0u; i < numQueryParts - 1; ++i) {
+        visitQueryPartSkipNodeRel(*singleQuery.getQueryPart(i));
+    }
+    visitQueryPart(*singleQuery.getQueryPart(numQueryParts - 1));
+}
+
+void PropertyCollector::visitQueryPartSkipNodeRel(const NormalizedQueryPart& queryPart) {
+    for (auto i = 0u; i < queryPart.getNumReadingClause(); ++i) {
+        visitReadingClause(*queryPart.getReadingClause(i));
+    }
+    for (auto i = 0u; i < queryPart.getNumUpdatingClause(); ++i) {
+        visitUpdatingClause(*queryPart.getUpdatingClause(i));
+    }
+    if (queryPart.hasProjectionBody()) {
+        visitProjectionBodySkipNodeRel(*queryPart.getProjectionBody());
+        if (queryPart.hasProjectionBodyPredicate()) {
+            visitProjectionBodyPredicate(queryPart.getProjectionBodyPredicate());
+        }
+    }
+}
+
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = readingClause.constCast<BoundMatchClause>();
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
@@ -33,26 +58,26 @@ void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
         properties.insert(rel->getInternalIDProperty());
     }
     if (matchClause.hasPredicate()) {
-        collectPropertyExpressions(matchClause.getPredicate());
+        collectProperties(matchClause.getPredicate());
     }
 }
 
 void PropertyCollector::visitUnwind(const BoundReadingClause& readingClause) {
     auto& unwindClause = readingClause.constCast<BoundUnwindClause>();
-    collectPropertyExpressions(unwindClause.getInExpr());
+    collectProperties(unwindClause.getInExpr());
 }
 
 void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
     auto& loadFromClause = readingClause.constCast<BoundLoadFrom>();
     if (loadFromClause.hasPredicate()) {
-        collectPropertyExpressions(loadFromClause.getPredicate());
+        collectProperties(loadFromClause.getPredicate());
     }
 }
 
 void PropertyCollector::visitTableFunctionCall(const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     if (call.hasPredicate()) {
-        collectPropertyExpressions(call.getPredicate());
+        collectProperties(call.getPredicate());
     }
 }
 
@@ -60,9 +85,9 @@ void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
     auto& boundSetClause = updatingClause.constCast<BoundSetClause>();
     for (auto& info : boundSetClause.getInfos()) {
         if (info.updatePk) {
-            collectPropertyExpressions(info.column);
+            collectProperties(info.column);
         }
-        collectPropertyExpressions(info.columnData);
+        collectProperties(info.columnData);
     }
 }
 
@@ -86,7 +111,7 @@ void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
     auto& insertClause = (BoundInsertClause&)updatingClause;
     for (auto& info : insertClause.getInfos()) {
         for (auto& expr : info.columnDataExprs) {
-            collectPropertyExpressions(expr);
+            collectProperties(expr);
         }
     }
 }
@@ -99,40 +124,58 @@ void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
         }
     }
     if (boundMergeClause.hasPredicate()) {
-        collectPropertyExpressions(boundMergeClause.getPredicate());
+        collectProperties(boundMergeClause.getPredicate());
     }
     for (auto& info : boundMergeClause.getInsertInfosRef()) {
         for (auto& expr : info.columnDataExprs) {
-            collectPropertyExpressions(expr);
+            collectProperties(expr);
         }
     }
     for (auto& info : boundMergeClause.getOnMatchSetInfosRef()) {
-        collectPropertyExpressions(info.columnData);
+        collectProperties(info.columnData);
     }
     for (auto& info : boundMergeClause.getOnCreateSetInfosRef()) {
-        collectPropertyExpressions(info.columnData);
+        collectProperties(info.columnData);
+    }
+}
+
+void PropertyCollector::visitProjectionBodySkipNodeRel(const BoundProjectionBody& projectionBody) {
+    for (auto& expression : projectionBody.getProjectionExpressions()) {
+        collectPropertiesSkipNodeRel(expression);
+    }
+    for (auto& expression : projectionBody.getOrderByExpressions()) {
+        collectPropertiesSkipNodeRel(expression);
     }
 }
 
 void PropertyCollector::visitProjectionBody(const BoundProjectionBody& projectionBody) {
     for (auto& expression : projectionBody.getProjectionExpressions()) {
-        collectPropertyExpressions(expression);
+        collectProperties(expression);
     }
     for (auto& expression : projectionBody.getOrderByExpressions()) {
-        collectPropertyExpressions(expression);
+        collectProperties(expression);
     }
 }
 
 void PropertyCollector::visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) {
-    collectPropertyExpressions(predicate);
+    collectProperties(predicate);
 }
 
-void PropertyCollector::collectPropertyExpressions(const std::shared_ptr<Expression>& expression) {
+void PropertyCollector::collectProperties(const std::shared_ptr<Expression>& expression) {
     auto collector = PropertyExprCollector();
     collector.visit(expression);
     for (auto& expr : collector.getPropertyExprs()) {
         properties.insert(expr);
     }
+}
+
+void PropertyCollector::collectPropertiesSkipNodeRel(
+    const std::shared_ptr<Expression>& expression) {
+    if (ExpressionUtil::isNodePattern(*expression) || ExpressionUtil::isRelPattern(*expression) ||
+        ExpressionUtil::isRecursiveRelPattern(*expression)) {
+        return;
+    }
+    collectProperties(expression);
 }
 
 } // namespace binder
