@@ -1738,6 +1738,9 @@ static void refreshSingleLine(struct linenoiseState* l) {
     /* Cursor to left edge */
     snprintf(seq, 64, "\r");
     append_buffer.abAppend(seq);
+
+    append_buffer.abAppend("\033[0m"); // reset all attributes
+
     /* Write the prompt and the current buffer content */
     append_buffer.abAppend(l->prompt);
     if (maskmode == 1) {
@@ -2263,6 +2266,9 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     /* Cursor to left edge */
     snprintf(seq, 64, "\r");
     append_buffer.abAppend(seq);
+
+    append_buffer.abAppend("\033[0m"); // reset all attributes
+
     /* Write the prompt and the current buffer content */
     append_buffer.abAppend(l->prompt);
     if (maskmode == 1) {
