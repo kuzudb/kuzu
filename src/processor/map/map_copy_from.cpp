@@ -159,9 +159,28 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto outFSchema = copyFrom.getSchema();
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
+
+    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
+    column_id_t numWarningDataColumns = 0;
+    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
+        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
+            copyFromInfo->source.get());
+        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
+            boundScanSource->info.bindData.get());
+        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+            CopyConstants::DEFAULT_IGNORE_ERRORS);
+        numWarningDataColumns = bindData->numWarningDataColumns;
+    }
+
+    KU_ASSERT(numWarningDataColumns <= copyFromInfo->columnExprs.size());
+    for (column_id_t i = copyFromInfo->columnExprs.size() - numWarningDataColumns;
+         i < copyFromInfo->columnExprs.size(); ++i) {
+        columnTypes.push_back(copyFromInfo->columnExprs[i]->getDataType().copy());
+    }
+
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
-        offsetVectorIdx, std::move(columnTypes));
+        offsetVectorIdx, std::move(columnTypes), ignoreErrors, numWarningDataColumns);
     auto printInfo =
         std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),

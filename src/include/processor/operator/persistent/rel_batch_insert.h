@@ -37,12 +37,17 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
-        common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes)
-        : BatchInsertInfo{tableEntry, compressionEnabled, false}, direction{direction},
-          partitioningIdx{partitioningIdx}, boundNodeOffsetColumnID{offsetColumnID},
-          columnTypes{std::move(columnTypes)} {}
+        common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes,
+        bool ignoreErrors, common::column_id_t numWarningDataColumns)
+        : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors,
+              static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns),
+              numWarningDataColumns},
+          direction{direction}, partitioningIdx{partitioningIdx},
+          boundNodeOffsetColumnID{offsetColumnID}, columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors},
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors,
+              static_cast<common::column_id_t>(other.outputDataColumns.size()),
+              static_cast<common::column_id_t>(other.warningDataColumns.size())},
           direction{other.direction}, partitioningIdx{other.partitioningIdx},
           boundNodeOffsetColumnID{other.boundNodeOffsetColumnID},
           columnTypes{common::LogicalType::copy(other.columnTypes)} {}

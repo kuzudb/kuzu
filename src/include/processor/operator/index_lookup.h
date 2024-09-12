@@ -1,5 +1,6 @@
 #pragma once
 
+#include "processor/operator/persistent/batch_insert_error_handler.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -46,15 +47,30 @@ private:
         : OPPrintInfo{other}, expressions{other.expressions} {}
 };
 
+struct IndexLookupSharedState {
+    std::shared_ptr<common::row_idx_t> errorCounter;
+    std::mutex mtx;
+};
+
+struct IndexLookupLocalState {
+    explicit IndexLookupLocalState(std::unique_ptr<BatchInsertErrorHandler> errorHandler)
+        : errorHandler(std::move(errorHandler)) {}
+
+    std::unique_ptr<BatchInsertErrorHandler> errorHandler;
+};
+
 class IndexLookup : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 
 public:
     IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos,
+        std::shared_ptr<IndexLookupSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          infos{std::move(infos)} {}
+          infos{std::move(infos)}, sharedState(std::move(sharedState)) {}
+
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);
 
@@ -71,6 +87,8 @@ private:
 
 private:
     std::vector<std::unique_ptr<IndexLookupInfo>> infos;
+    std::unique_ptr<IndexLookupLocalState> localState;
+    std::shared_ptr<IndexLookupSharedState> sharedState;
 };
 
 } // namespace processor

@@ -41,29 +41,24 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     evaluator::evaluator_vector_t columnEvaluators;
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
-    std::vector<common::column_id_t> outputDataColumns;
-    std::vector<common::column_id_t> warningDataColumns;
-
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes, bool ignoreErrors,
         common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors},
+        : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors,
+              static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns),
+              numWarningDataColumns},
           columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
-          evaluateTypes{std::move(evaluateTypes)},
-          outputDataColumns(this->columnTypes.size() - numWarningDataColumns),
-          warningDataColumns(numWarningDataColumns) {
-        std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
-        std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
-    }
+          evaluateTypes{std::move(evaluateTypes)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors},
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors,
+              static_cast<common::column_id_t>(other.outputDataColumns.size()),
+              static_cast<common::column_id_t>(other.warningDataColumns.size())},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{cloneVector(other.columnEvaluators)}, evaluateTypes{other.evaluateTypes},
-          outputDataColumns(other.outputDataColumns), warningDataColumns(other.warningDataColumns) {
-    }
+          columnEvaluators{cloneVector(other.columnEvaluators)},
+          evaluateTypes{other.evaluateTypes} {}
 
     std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);

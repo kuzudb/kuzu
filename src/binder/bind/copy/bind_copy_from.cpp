@@ -132,6 +132,14 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         expectedColumnTypes, clientContext);
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
+    expression_vector warningDataExprs;
+    if (boundSource->type == ScanSourceType::FILE) {
+        auto& source = boundSource->constCast<BoundTableScanSource>();
+        for (column_id_t i = source.info.bindData->numWarningDataColumns; i >= 1; --i) {
+            KU_ASSERT(i < source.info.columns.size());
+            warningDataExprs.push_back(source.info.columns[source.info.columns.size() - i]);
+        }
+    }
     auto columns = boundSource->getColumns();
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
@@ -152,6 +160,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         columnExprs.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
+    columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
     auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey);
     auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
