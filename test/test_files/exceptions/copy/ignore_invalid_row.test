@@ -97,6 +97,26 @@ neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
 
+-CASE ParallelSkipInvalidNodeTableRowsClearWarnings
+-STATEMENT CALL warning_limit=2
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
+---- 2
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+-STATEMENT CALL clear_warnings() RETURN status;
+---- ok
+-STATEMENT CALL show_warnings() RETURN *;
+---- 0
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
+---- 2
+Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
+Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
+
 -CASE ParallelSkipInvalidRelMixed
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, ESCAPE="~")
 ---- ok
