@@ -198,19 +198,12 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
     bool hasValuesToScan = true;
     std::unique_ptr<SelectionVector> selVector = nullptr;
-    if (versionInfo) {
-        selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
-            rowIdxInGroup, numRowsToScan);
-        hasValuesToScan = selVector->getSelSize() > 0;
-    }
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
-    if (selVector && selVector->getSelSize() != numRowsToScan) {
-        std::memcpy(anchorSelVector.getMultableBuffer().data(),
-            selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));
-        anchorSelVector.setToFiltered(selVector->getSelSize());
-    } else {
-        anchorSelVector.setToUnfiltered(numRowsToScan);
+    anchorSelVector.setToUnfiltered(numRowsToScan);
+    if (versionInfo) {
+        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(),
+            anchorSelVector, rowIdxInGroup, numRowsToScan);
+        hasValuesToScan = anchorSelVector.getSelSize() > 0;
     }
     if (hasValuesToScan) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {

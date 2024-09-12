@@ -626,7 +626,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     const auto numColumnsToCheckpoint = csrState.columnIDs.size();
     const auto scanChunkState = std::make_shared<DataChunkState>();
     DataChunk scanChunk(csrState.columnIDs.size(), scanChunkState);
-    const auto scanState = std::make_unique<TableScanState>(csrState.columnIDs);
+    const auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, csrState.columnIDs);
     initInMemScanChunkAndScanState(csrState, scanChunk, *scanState);
 
     // Init data chunks to be appended and flushed.

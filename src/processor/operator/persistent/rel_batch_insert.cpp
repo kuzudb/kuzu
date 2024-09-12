@@ -4,7 +4,6 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
