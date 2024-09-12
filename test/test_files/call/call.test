@@ -16,6 +16,27 @@
 ---- 1
 10
 
+-STATEMENT CREATE NODE TABLE personOne(id INT64, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE personTwo(id INT64, prop STRING DEFAULT gen_random_uuid(), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE personThree(id INT64, prop INT64 default 10+20, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL TABLE_INFO('personOne') RETURN *
+---- 2
+0|id|INT64|NULL|True
+1|prop|STRING|'Alice'|False
+
+-STATEMENT CALL TABLE_INFO('personTwo') RETURN *
+---- 2
+0|id|INT64|NULL|True
+1|prop|STRING|gen_random_uuid()|False
+
+-STATEMENT CALL TABLE_INFO('personThree') RETURN *
+---- 2
+0|id|INT64|NULL|True
+1|prop|INT64|10 + 20|False
+
 -LOG SetGetTimeout
 -STATEMENT CALL timeout=40000
 ---- ok
@@ -102,33 +123,33 @@ False
 -LOG NodeTableInfo
 -STATEMENT CALL table_info('person') RETURN *
 ---- 16
-0|ID|INT64|True
-1|fName|STRING|False
-2|gender|INT64|False
-3|isStudent|BOOL|False
-4|isWorker|BOOL|False
-5|age|INT64|False
-6|eyeSight|DOUBLE|False
-7|birthdate|DATE|False
-8|registerTime|TIMESTAMP|False
-9|lastJobDuration|INTERVAL|False
-10|workedHours|INT64[]|False
-11|usedNames|STRING[]|False
-12|courseScoresPerTerm|INT64[][]|False
-13|grades|INT64[4]|False
-14|height|FLOAT|False
-15|u|UUID|False
+0|ID|INT64|NULL|True
+10|workedHours|INT64[]|NULL|False
+11|usedNames|STRING[]|NULL|False
+12|courseScoresPerTerm|INT64[][]|NULL|False
+13|grades|INT64[4]|NULL|False
+14|height|FLOAT|NULL|False
+15|u|UUID|NULL|False
+1|fName|STRING|NULL|False
+2|gender|INT64|NULL|False
+3|isStudent|BOOL|NULL|False
+4|isWorker|BOOL|NULL|False
+5|age|INT64|NULL|False
+6|eyeSight|DOUBLE|NULL|False
+7|birthdate|DATE|NULL|False
+8|registerTime|TIMESTAMP|NULL|False
+9|lastJobDuration|INTERVAL|NULL|False
 
 -LOG RelTableInfo
 -STATEMENT CALL table_info('knows') RETURN *
 ---- 7
-1|date|DATE
-2|meetTime|TIMESTAMP
-3|validInterval|INTERVAL
-4|comments|STRING[]
-5|summary|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
-6|notes|UNION(firstmet DATE, type INT16, comment STRING)
-7|someMap|MAP(STRING, STRING)
+1|date|DATE|NULL
+2|meetTime|TIMESTAMP|NULL
+3|validInterval|INTERVAL|NULL
+4|comments|STRING[]|NULL
+5|summary|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))|NULL
+6|notes|UNION(firstmet DATE, type INT16, comment STRING)|NULL
+7|someMap|MAP(STRING, STRING)|NULL
 
 -LOG ReturnNodeName
 -STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name

@@ -57,11 +57,11 @@ x|c||hh
 -CASE Basic
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 5
-example_lt|REL|local(kuzu)|
-example_l|NODE|local(kuzu)|
-example_rt|REL|local(kuzu)|
-example_r|NODE|local(kuzu)|
-example|RDFGraph|local(kuzu)|
+0|example_r|NODE|local(kuzu)|
+1|example_l|NODE|local(kuzu)|
+2|example_rt|REL|local(kuzu)|
+3|example_lt|REL|local(kuzu)|
+4|example|RDFGraph|local(kuzu)|
 
 -STATEMENT MATCH (s:example_r) RETURN s.iri ORDER BY offset(id(s));
 ---- 16

@@ -62,12 +62,13 @@ Attached database successfully.
 Mismatch Type Error: Invalid type in column "id": column was declared as integer, found "abc" of type "text" instead.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 6
-movies|ATTACHED|tinysnb(SQLITE)|
-organisation|ATTACHED|tinysnb(SQLITE)|
-person|ATTACHED|flextype(SQLITE)|
-person|ATTACHED|tinysnb(SQLITE)|
-person_copy|NODE|local(kuzu)|
-tableOfTypes|ATTACHED|tinysnb(SQLITE)|
+0|movies|ATTACHED|tinysnb(SQLITE)|
+0|person_copy|NODE|local(kuzu)|
+0|person|ATTACHED|flextype(SQLITE)|
+1|organisation|ATTACHED|tinysnb(SQLITE)|
+2|person|ATTACHED|tinysnb(SQLITE)|
+3|tableOfTypes|ATTACHED|tinysnb(SQLITE)|
+
 -STATEMENT DETACH tinysnb;
 ---- 1
 Detached database successfully.

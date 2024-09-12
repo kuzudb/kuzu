@@ -57,14 +57,14 @@ Guelph|75000
 -LOG validateTableExistsAfterAttach
 -STATEMENT CALL SHOW_TABLES() RETURN *
 ---- 8
-knows|REL|test(KUZU)|
-marries|REL|test(KUZU)|
-meets|REL|test(KUZU)|
-movies|NODE|test(KUZU)|
-organisation|NODE|test(KUZU)|
-person|NODE|test(KUZU)|
-studyAt|REL|test(KUZU)|
-workAt|REL|test(KUZU)|
+0|person|NODE|test(KUZU)|
+1|organisation|NODE|test(KUZU)|
+2|movies|NODE|test(KUZU)|
+3|knows|REL|test(KUZU)|
+4|studyAt|REL|test(KUZU)|
+5|workAt|REL|test(KUZU)|
+6|meets|REL|test(KUZU)|
+7|marries|REL|test(KUZU)|
 
 -LOG QueryRemoteNodeTable
 -STATEMENT match (p:person) return p.*

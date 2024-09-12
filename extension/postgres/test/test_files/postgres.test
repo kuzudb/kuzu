@@ -69,29 +69,29 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 # be displayed.
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 9
-movies|ATTACHED|pgscan(POSTGRES)|
-movies|ATTACHED|tinysnb(POSTGRES)|
-organisation|ATTACHED|pgscan(POSTGRES)|
-organisation|ATTACHED|tinysnb(POSTGRES)|
-person_copy|NODE|local(kuzu)|
-persontest|ATTACHED|pgscan(POSTGRES)|
-persontest|ATTACHED|tinysnb(POSTGRES)|
-person|ATTACHED|pgscan(POSTGRES)|
-person|ATTACHED|tinysnb(POSTGRES)|
+0|movies|ATTACHED|pgscan(POSTGRES)|
+0|movies|ATTACHED|tinysnb(POSTGRES)|
+0|person_copy|NODE|local(kuzu)|
+1|organisation|ATTACHED|pgscan(POSTGRES)|
+1|organisation|ATTACHED|tinysnb(POSTGRES)|
+2|person|ATTACHED|pgscan(POSTGRES)|
+2|person|ATTACHED|tinysnb(POSTGRES)|
+3|persontest|ATTACHED|pgscan(POSTGRES)|
+3|persontest|ATTACHED|tinysnb(POSTGRES)|
 
 -STATEMENT CALL TABLE_INFO('pgscan.person') RETURN *;
 ---- 14
-0|id|INT64
-1|fname|STRING
-2|gender|INT64
-3|isstudent|BOOL
-4|isworker|BOOL
-5|age|INT64
-6|eyesight|DOUBLE
-7|birthdate|DATE
-8|registertime|TIMESTAMP
-9|lastjobduration|INTERVAL
-10|workedhours|INT64[]
-11|usednames|STRING[]
-12|height|DOUBLE
-13|u|UUID
+0|id|INT64|NULL
+1|fname|STRING|NULL
+2|gender|INT64|NULL
+3|isstudent|BOOL|NULL
+4|isworker|BOOL|NULL
+5|age|INT64|NULL
+6|eyesight|DOUBLE|NULL
+7|birthdate|DATE|NULL
+8|registertime|TIMESTAMP|NULL
+9|lastjobduration|INTERVAL|NULL
+10|workedhours|INT64[]|NULL
+11|usednames|STRING[]|NULL
+12|height|DOUBLE|NULL
+13|u|UUID|NULL

@@ -11,13 +11,15 @@ namespace function {
 
 struct TableInfo {
     std::string name;
+    common::table_id_t id;
     std::string type;
     std::string databaseName;
     std::string comment;
 
-    TableInfo(std::string name, std::string type, std::string databaseName, std::string comment)
-        : name{std::move(name)}, type{std::move(type)}, databaseName{std::move(databaseName)},
-          comment{std::move(comment)} {}
+    TableInfo(std::string name, common::table_id_t id, std::string type, std::string databaseName,
+        std::string comment)
+        : name{std::move(name)}, id{std::move(id)}, type{std::move(type)},
+          databaseName{std::move(databaseName)}, comment{std::move(comment)} {}
 };
 
 struct ShowTablesBindData : public CallTableFuncBindData {
@@ -45,10 +47,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableInfo = tables[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, tableInfo.name);
-        dataChunk.getValueVector(1)->setValue(i, tableInfo.type);
-        dataChunk.getValueVector(2)->setValue(i, tableInfo.databaseName);
-        dataChunk.getValueVector(3)->setValue(i, tableInfo.comment);
+        dataChunk.getValueVector(0)->setValue(i, tableInfo.id);
+        dataChunk.getValueVector(1)->setValue(i, tableInfo.name);
+        dataChunk.getValueVector(2)->setValue(i, tableInfo.type);
+        dataChunk.getValueVector(3)->setValue(i, tableInfo.databaseName);
+        dataChunk.getValueVector(4)->setValue(i, tableInfo.comment);
     }
     return numTablesToOutput;
 }
@@ -57,6 +60,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     ScanTableFuncBindInput*) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
+    columnNames.emplace_back("id");
+    columnTypes.emplace_back(LogicalType::UINT64());
     columnNames.emplace_back("name");
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("type");
@@ -68,9 +73,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<TableInfo> tableInfos;
     if (!context->hasDefaultDatabase()) {
         for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {
-            auto tableInfo =
-                TableInfo{entry->getName(), TableTypeUtils::toString(entry->getTableType()),
-                    LOCAL_DB_NAME, entry->getComment()};
+            auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
+                TableTypeUtils::toString(entry->getTableType()), LOCAL_DB_NAME,
+                entry->getComment()};
             tableInfos.push_back(std::move(tableInfo));
         }
     }
@@ -80,9 +85,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         auto databaseName = attachedDatabase->getDBName();
         auto databaseType = attachedDatabase->getDBType();
         for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(context->getTx())) {
-            auto tableInfo =
-                TableInfo{entry->getName(), TableTypeUtils::toString(entry->getTableType()),
-                    stringFormat("{}({})", databaseName, databaseType), entry->getComment()};
+            auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
+                TableTypeUtils::toString(entry->getTableType()),
+                stringFormat("{}({})", databaseName, databaseType), entry->getComment()};
             tableInfos.push_back(std::move(tableInfo));
         }
     }

@@ -23,7 +23,7 @@ No active transaction for ROLLBACK.
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 1
-PERSON|NODE|local(kuzu)|
+0|PERSON|NODE|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- error
 Connection already has an active transaction. Cannot start a transaction within another one. For concurrent multiple transactions, please open other connections.

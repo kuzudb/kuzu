@@ -11,7 +11,7 @@
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 1
-test|NODE|local(kuzu)|
+0|test|NODE|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;
@@ -34,8 +34,8 @@ test|NODE|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 2
-base|NODE|local(kuzu)|
-test|REL|local(kuzu)|
+0|base|NODE|local(kuzu)|
+1|test|REL|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;
@@ -45,7 +45,7 @@ test|REL|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 1
-base|NODE|local(kuzu)|
+0|base|NODE|local(kuzu)|
 
 -CASE CreateDropRdfTableRecovery
 -STATEMENT BEGIN TRANSACTION;
@@ -57,11 +57,11 @@ base|NODE|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 5
-test_lt|REL|local(kuzu)|
-test_l|NODE|local(kuzu)|
-test_rt|REL|local(kuzu)|
-test_r|NODE|local(kuzu)|
-test|RDFGraph|local(kuzu)|
+0|test_r|NODE|local(kuzu)|
+1|test_l|NODE|local(kuzu)|
+2|test_rt|REL|local(kuzu)|
+3|test_lt|REL|local(kuzu)|
+4|test|RDFGraph|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;
@@ -86,11 +86,11 @@ test|RDFGraph|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 5
-base1|NODE|local(kuzu)|
-base2|NODE|local(kuzu)|
-test_base1_base1|REL|local(kuzu)|
-test_base1_base2|REL|local(kuzu)|
-test|REL_GROUP|local(kuzu)|
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+2|test_base1_base1|REL|local(kuzu)|
+3|test_base1_base2|REL|local(kuzu)|
+4|test|REL_GROUP|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;
@@ -100,8 +100,8 @@ test|REL_GROUP|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
 ---- 2
-base1|NODE|local(kuzu)|
-base2|NODE|local(kuzu)|
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
 
 -CASE InsertAndDropNodeColumnCheckpointRecovery
 -STATEMENT CREATE NODE TABLE test(id INT64, age INT64, name STRING, prop2 INT64, PRIMARY KEY(id));
