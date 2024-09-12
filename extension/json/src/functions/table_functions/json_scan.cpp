@@ -517,7 +517,7 @@ struct JsonScanBindData : public ScanBindData {
     JsonScanBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, ReaderConfig config, main::ClientContext* ctx,
         case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
-        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx),
+        : ScanBindData(std::move(columnTypes), std::move(columnNames), 0, std::move(config), ctx),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
