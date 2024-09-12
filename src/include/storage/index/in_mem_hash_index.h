@@ -16,9 +16,9 @@ namespace storage {
 
 using visible_func = std::function<bool(common::offset_t)>;
 
-constexpr size_t BUFFER_SIZE = 1024;
+constexpr size_t INDEX_BUFFER_SIZE = 1024;
 template<typename T>
-using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, BUFFER_SIZE>;
+using IndexBuffer = common::StaticVector<std::pair<T, common::offset_t>, INDEX_BUFFER_SIZE>;
 
 template<typename T>
 using HashIndexType =
@@ -87,7 +87,7 @@ public:
     size_t append(const IndexBuffer<BufferKeyType>& buffer, uint64_t bufferOffset,
         visible_func isVisible) {
         reserve(indexHeader.numEntries + buffer.size() - bufferOffset);
-        common::hash_t hashes[BUFFER_SIZE];
+        common::hash_t hashes[INDEX_BUFFER_SIZE];
         for (size_t i = bufferOffset; i < buffer.size(); i++) {
             hashes[i] = HashIndexUtils::hash(buffer[i].first);
             auto& [key, value] = buffer[i];

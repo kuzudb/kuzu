@@ -57,7 +57,6 @@ struct TableFuncInput {
 // to use ResultSet as TableFuncOutput.
 struct TableFuncOutput {
     common::DataChunk dataChunk;
-
     std::vector<common::ValueVector*> vectors;
 
     TableFuncOutput() = default;
@@ -66,11 +65,8 @@ struct TableFuncOutput {
 
 struct TableFunctionInitInput {
     TableFuncBindData* bindData;
-    common::column_id_t numWarningDataColumns;
 
-    explicit TableFunctionInitInput(TableFuncBindData* bindData,
-        common::column_id_t numWarningDataColumns)
-        : bindData{bindData}, numWarningDataColumns(numWarningDataColumns) {}
+    explicit TableFunctionInitInput(TableFuncBindData* bindData) : bindData{bindData} {}
 
     virtual ~TableFunctionInitInput() = default;
 };

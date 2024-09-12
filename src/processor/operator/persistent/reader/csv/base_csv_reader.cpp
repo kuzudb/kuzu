@@ -6,6 +6,7 @@
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/system_message.h"
+#include "common/type_utils.h"
 #include "common/utils.h"
 #include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
@@ -15,7 +16,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(const std::string& filePath, uint64_t fileIdx,
+BaseCSVReader::BaseCSVReader(const std::string& filePath, common::idx_t fileIdx,
     common::CSVOption option, CSVColumnInfo columnInfo, main::ClientContext* context,
     LocalCSVFileErrorHandler* errorHandler)
     : context{context}, option{std::move(option)}, columnInfo{std::move(columnInfo)},
@@ -465,6 +466,42 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         continue;
     }
     KU_UNREACHABLE;
+}
+
+[[maybe_unused]] static void checkWarningDataColumnTypes(
+    [[maybe_unused]] const std::vector<LogicalType>& warningDataColumnTypes) {
+    KU_ASSERT(warningDataColumnTypes.size() >= CopyConstants::WARNING_METADATA_NUM_COLUMNS);
+    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
+                  decltype(processor::WarningSourceData::startByteOffset)>() ==
+              warningDataColumnTypes[warningDataColumnTypes.size() - 5].getPhysicalType());
+    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
+                  decltype(processor::WarningSourceData::endByteOffset)>() ==
+              warningDataColumnTypes[warningDataColumnTypes.size() - 4].getPhysicalType());
+    KU_ASSERT(
+        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::fileIdx)>() ==
+        warningDataColumnTypes[warningDataColumnTypes.size() - 3].getPhysicalType());
+    KU_ASSERT(
+        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::blockIdx)>() ==
+        warningDataColumnTypes[warningDataColumnTypes.size() - 2].getPhysicalType());
+    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
+                  decltype(processor::WarningSourceData::rowOffsetInBlock)>() ==
+              warningDataColumnTypes[warningDataColumnTypes.size() - 1].getPhysicalType());
+}
+
+column_id_t BaseCSVReader::appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
+    std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config) {
+    const bool ignoreErrors = config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+        CopyConstants::DEFAULT_IGNORE_ERRORS);
+    column_id_t numWarningDataColumns = 0;
+    if (ignoreErrors) {
+        numWarningDataColumns = CopyConstants::WARNING_METADATA_NUM_COLUMNS;
+        for (idx_t i = 0; i < CopyConstants::WARNING_METADATA_NUM_COLUMNS; ++i) {
+            resultColumnNames.emplace_back(CopyConstants::WARNING_METADATA_COLUMN_NAMES[i]);
+            resultColumnTypes.emplace_back(CopyConstants::WARNING_METADATA_COLUMN_TYPES[i]);
+        }
+        RUNTIME_CHECK(checkWarningDataColumnTypes(resultColumnTypes));
+    }
+    return numWarningDataColumns;
 }
 
 template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);

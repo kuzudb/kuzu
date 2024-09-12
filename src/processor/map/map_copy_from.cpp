@@ -73,12 +73,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         pkDefinition.getType().copy(), fTable, &storageManager->getWAL(),
         clientContext->getMemoryManager());
 
-    column_id_t numWarningDataColumns = 0;
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
-
-        numWarningDataColumns = call->getNumWarningDataColumns();
     } else {
         KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::AGGREGATE_SCAN);
         const auto hashScan = prevOperator->ptrCast<HashAggregateScan>();
@@ -92,6 +89,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnTypes.push_back(expr->getDataType().copy());
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
+
+    column_id_t numWarningDataColumns = 0;
     bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
     if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
         const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
@@ -100,6 +99,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
             boundScanSource->info.bindData.get());
         ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
             CopyConstants::DEFAULT_IGNORE_ERRORS);
+        numWarningDataColumns = bindData->numWarningDataColumns;
     }
 
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);

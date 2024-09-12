@@ -25,9 +25,9 @@ namespace processor {
 
 const size_t SHOULD_FLUSH_QUEUE_SIZE = 32;
 
-constexpr size_t BUFFER_SIZE = 64;
+constexpr size_t WARNING_DATA_BUFFER_SIZE = 64;
 using OptionalWarningDataBuffer =
-    std::unique_ptr<common::StaticVector<WarningSourceData, BUFFER_SIZE>>;
+    std::unique_ptr<common::StaticVector<WarningSourceData, WARNING_DATA_BUFFER_SIZE>>;
 
 using OptionalWarningSourceData = std::optional<WarningSourceData>;
 

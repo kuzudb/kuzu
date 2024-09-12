@@ -47,8 +47,7 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         KU_UNREACHABLE;
     }
     // Init table function input.
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(),
-        info.numWarningDataColumns};
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
@@ -56,8 +55,7 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
 }
 
 void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(),
-        info.numWarningDataColumns};
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get()};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
 }
 
@@ -78,10 +76,6 @@ void TableFunctionCall::finalizeInternal(ExecutionContext* context) {
 
 double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {
     return info.function.progressFunc(sharedState->funcState.get());
-}
-
-common::column_id_t TableFunctionCall::getNumWarningDataColumns() const {
-    return info.numWarningDataColumns;
 }
 
 } // namespace processor

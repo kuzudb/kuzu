@@ -10,7 +10,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-SerialCSVReader::SerialCSVReader(const std::string& filePath, uint64_t fileIdx,
+SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t fileIdx,
     common::CSVOption option, CSVColumnInfo columnInfo, main::ClientContext* context,
     LocalCSVFileErrorHandler* errorHandler, const function::ScanTableFuncBindInput* bindInput)
     : BaseCSVReader{filePath, fileIdx, std::move(option), std::move(columnInfo), context,
@@ -151,16 +151,21 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
     std::vector<LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
+
+    const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
+        resultColumnNames, resultColumnTypes, scanInput->config);
+
     return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
+        std::move(resultColumnNames), numWarningDataColumns, scanInput->config.copy(),
+        scanInput->context);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
     auto csvOption = CSVReaderConfig::construct(bindData->config.options).option;
     row_idx_t numRows = 0;
-    auto columnInfo = CSVColumnInfo(bindData->getNumColumns(), bindData->getColumnSkips(),
-        input.numWarningDataColumns);
+    auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
+        bindData->getColumnSkips(), bindData->numWarningDataColumns);
     auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
         bindData->context, csvOption.copy(), columnInfo.copy());
     for (idx_t i = 0; i < sharedState->readerConfig.filePaths.size(); ++i) {

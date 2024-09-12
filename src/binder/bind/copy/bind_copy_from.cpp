@@ -96,7 +96,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
                 bindData->config.fileTypeInfo.fileTypeStr));
         }
 
-        for (column_id_t i = source.info.numWarningDataColumns; i >= 1; --i) {
+        for (column_id_t i = source.info.bindData->numWarningDataColumns; i >= 1; --i) {
             KU_ASSERT(i < source.info.columns.size());
             warningDataExprs.push_back(source.info.columns[source.info.columns.size() - i]);
         }

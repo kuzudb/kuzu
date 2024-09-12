@@ -8,7 +8,6 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "common/type_utils.h"
 #include "function/table/bind_input.h"
 #include "main/database_manager.h"
 #include "parser/scan_source.h"
@@ -88,26 +87,6 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* sour
     }
 }
 
-[[maybe_unused]] static void checkWarningDataColumnTypes(
-    [[maybe_unused]] const expression_vector& warningDataColumns) {
-    KU_ASSERT(warningDataColumns.size() == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
-    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
-                  decltype(processor::WarningSourceData::startByteOffset)>() ==
-              warningDataColumns[0]->getDataType().getPhysicalType());
-    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
-                  decltype(processor::WarningSourceData::endByteOffset)>() ==
-              warningDataColumns[1]->getDataType().getPhysicalType());
-    KU_ASSERT(
-        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::fileIdx)>() ==
-        warningDataColumns[2]->getDataType().getPhysicalType());
-    KU_ASSERT(
-        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::blockIdx)>() ==
-        warningDataColumns[3]->getDataType().getPhysicalType());
-    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
-                  decltype(processor::WarningSourceData::rowOffsetInBlock)>() ==
-              warningDataColumns[4]->getDataType().getPhysicalType());
-}
-
 std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSource& scanSource,
     const options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<LogicalType>& columnTypes) {
@@ -125,22 +104,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
         inputColumns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
 
-    const bool ignoreErrors = config->getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-        CopyConstants::DEFAULT_IGNORE_ERRORS);
-    column_id_t numWarningDataColumns = 0;
-    if (ignoreErrors) {
-        numWarningDataColumns = CopyConstants::WARNING_METADATA_NUM_COLUMNS;
-        for (idx_t i = 0; i < CopyConstants::WARNING_METADATA_NUM_COLUMNS; ++i) {
-            inputColumns.push_back(
-                createVariable(std::string_view{CopyConstants::WARNING_METADATA_COLUMN_NAMES[i]},
-                    CopyConstants::WARNING_METADATA_COLUMN_TYPES[i]));
-        }
-        RUNTIME_CHECK(checkWarningDataColumnTypes(expression_vector{
-            inputColumns.end() - CopyConstants::WARNING_METADATA_NUM_COLUMNS, inputColumns.end()}));
-    }
-
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(inputColumns),
-        numWarningDataColumns);
+    auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(inputColumns));
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 

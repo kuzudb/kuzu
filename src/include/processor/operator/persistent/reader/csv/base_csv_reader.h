@@ -40,7 +40,7 @@ class BaseCSVReader {
     friend class SniffCSVNameAndTypeDriver;
 
 public:
-    BaseCSVReader(const std::string& filePath, uint64_t fileIdx, common::CSVOption option,
+    BaseCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
         CSVColumnInfo columnInfo, main::ClientContext* context,
         LocalCSVFileErrorHandler* errorHandler);
 
@@ -62,6 +62,9 @@ public:
     uint64_t getFileOffset() const;
 
     std::string reconstructLine(uint64_t startPosition, uint64_t endPosition);
+
+    static common::column_id_t appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
+        std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config);
 
 protected:
     template<typename Driver>
@@ -123,7 +126,7 @@ protected:
     uint64_t position;
     LineContext lineContext;
     uint64_t osFileOffset;
-    uint64_t fileIdx;
+    common::idx_t fileIdx;
 
     LocalCSVFileErrorHandler* errorHandler;
 

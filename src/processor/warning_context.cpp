@@ -10,7 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 WarningSourceData::WarningSourceData(uint64_t startByteOffset, uint64_t endByteOffset,
-    uint64_t fileIdx, uint64_t blockIdx, uint64_t rowOffsetInBlock)
+    common::idx_t fileIdx, uint64_t blockIdx, uint64_t rowOffsetInBlock)
     : startByteOffset(startByteOffset), endByteOffset(endByteOffset), fileIdx(fileIdx),
       blockIdx(blockIdx), rowOffsetInBlock(rowOffsetInBlock) {}
 
@@ -57,7 +57,7 @@ void WarningContext::defaultPopulateAllWarnings(uint64_t queryID) {
     }
 }
 
-void WarningContext::populateWarnings(uint64_t fileIdx, uint64_t queryID,
+void WarningContext::populateWarnings(common::idx_t fileIdx, uint64_t queryID,
     std::optional<populate_func_t> populateFunc, SerialCSVReader* populateReader) {
     if (!populateFunc.has_value()) {
         // if no populate functor is provided we default to just copying the message over

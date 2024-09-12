@@ -64,9 +64,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
         }
 
         uint64_t toScanCompressedBytes = 0;
-        // parquet reader does not support populating extra data for warnings
-        const auto numColsToScan = result.getNumValueVectors() - state.numWarningDataColumns;
-        for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
+        for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
             prepareRowGroupBuffer(state, colIdx);
 
             auto fileColIdx = colIdx;
@@ -102,9 +100,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
                 }
             } else {
                 // Prefetch column-wise.
-                const auto numColsToScan =
-                    result.getNumValueVectors() - state.numWarningDataColumns;
-                for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
+                for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
                     auto fileColIdx = colIdx;
                     auto rootReader =
                         ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
@@ -145,8 +141,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
     auto repeatPtr = (uint8_t*)state.repeatBuf.ptr;
 
     auto rootReader = ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
-    const auto numColsToScan = result.getNumValueVectors() - state.numWarningDataColumns;
-    for (auto colIdx = 0u; colIdx < numColsToScan; colIdx++) {
+    for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
         if (!columnSkips.empty() && columnSkips[colIdx]) {
             continue;
         }
@@ -687,7 +682,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         detectedColumnNames = scanInput->expectedColumnNames;
     }
     return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
-        std::move(detectedColumnNames), scanInput->config.copy(), scanInput->context);
+        std::move(detectedColumnNames), 0, scanInput->config.copy(), scanInput->context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -703,11 +698,11 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         bindData->context, bindData->getColumnSkips());
 }
 
-static std::unique_ptr<function::TableFuncLocalState> initLocalState(TableFunctionInitInput& input,
-    TableFuncSharedState* state, storage::MemoryManager* /*mm*/) {
+static std::unique_ptr<function::TableFuncLocalState> initLocalState(
+    TableFunctionInitInput& /*input*/, TableFuncSharedState* state,
+    storage::MemoryManager* /*mm*/) {
     auto sharedState = state->ptrCast<ParquetScanSharedState>();
     auto localState = std::make_unique<ParquetScanLocalState>();
-    localState->state->numWarningDataColumns = input.numWarningDataColumns;
     if (!parquetSharedStateNext(*localState, *sharedState)) {
         return nullptr;
     }

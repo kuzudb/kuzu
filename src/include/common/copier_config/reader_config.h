@@ -47,7 +47,7 @@ struct ReaderConfig {
     }
 
     template<typename T>
-    T getOption(std::string optionName, T defaultValue) {
+    T getOption(std::string optionName, T defaultValue) const {
         const auto optionIt = options.find(optionName);
         if (optionIt != options.end()) {
             return optionIt->second.getValue<T>();

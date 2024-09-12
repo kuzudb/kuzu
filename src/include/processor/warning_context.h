@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "common/api.h"
+#include "common/types/types.h"
 #include "main/client_config.h"
 
 namespace kuzu {
@@ -19,7 +20,7 @@ class SerialCSVReader;
 // TODO(Royi) for performance reasons we may want to reduce the number of fields here since each
 // field is essentially an extra column during copy
 struct WarningSourceData {
-    WarningSourceData(uint64_t startByteOffset, uint64_t endByteOffset, uint64_t fileIdx,
+    WarningSourceData(uint64_t startByteOffset, uint64_t endByteOffset, common::idx_t fileIdx,
         uint64_t blockIdx, uint64_t rowOffsetInBlock);
 
     WarningSourceData() = default;
@@ -83,7 +84,7 @@ public:
 
     void appendWarningMessages(const std::vector<CSVError>& messages);
 
-    void populateWarnings(uint64_t fileIdx, uint64_t queryID,
+    void populateWarnings(common::idx_t fileIdx, uint64_t queryID,
         std::optional<populate_func_t> populateFunc = {},
         SerialCSVReader* populateReader = nullptr);
     void defaultPopulateAllWarnings(uint64_t queryID);

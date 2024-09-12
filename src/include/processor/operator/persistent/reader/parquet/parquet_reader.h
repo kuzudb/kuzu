@@ -27,7 +27,6 @@ struct ParquetReaderScanState {
     std::unique_ptr<common::FileInfo> fileInfo;
     std::unique_ptr<ColumnReader> rootReader;
     std::unique_ptr<kuzu_apache::thrift::protocol::TProtocol> thriftFileProto;
-    uint64_t numWarningDataColumns;
 
     bool finished;
 
