@@ -1,17 +1,18 @@
 #include "binder/rewriter/with_clause_projection_rewriter.h"
 
-#include "binder/expression/property_expression.h"
-#include "binder/visitor/property_collector.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_expression.h"
+#include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "binder/visitor/property_collector.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
 
-static void rewrite(std::shared_ptr<Expression> expr, expression_vector& projectionList, const std::unordered_map<std::string, expression_vector>& varNameToProperties) {
+static void rewrite(std::shared_ptr<Expression> expr, expression_vector& projectionList,
+    const std::unordered_map<std::string, expression_vector>& varNameToProperties) {
     std::string varName;
     if (ExpressionUtil::isNodePattern(*expr)) {
         auto& node = expr->constCast<NodeExpression>();
@@ -43,7 +44,8 @@ static void rewrite(std::shared_ptr<Expression> expr, expression_vector& project
     }
 }
 
-static expression_vector rewrite(const expression_vector& exprs, const std::unordered_map<std::string, expression_vector>& varNameToProperties) {
+static expression_vector rewrite(const expression_vector& exprs,
+    const std::unordered_map<std::string, expression_vector>& varNameToProperties) {
     expression_vector projectionList;
     for (auto& expr : exprs) {
         rewrite(expr, projectionList, varNameToProperties);

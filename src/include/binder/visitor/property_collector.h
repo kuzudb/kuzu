@@ -12,7 +12,7 @@ public:
 
     // Skip collecting node/rel properties if they are in WITH projection list.
     // See with_clause_projection_rewriter for more details.
-    void visitSingleQuerySkipNodeRel(const NormalizedSingleQuery &singleQuery);
+    void visitSingleQuerySkipNodeRel(const NormalizedSingleQuery& singleQuery);
 
 private:
     void visitQueryPartSkipNodeRel(const NormalizedQueryPart& queryPart);

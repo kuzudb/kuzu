@@ -1,5 +1,6 @@
 #include "binder/visitor/property_collector.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
@@ -9,7 +10,6 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::common;
 
@@ -169,9 +169,9 @@ void PropertyCollector::collectProperties(const std::shared_ptr<Expression>& exp
     }
 }
 
-void PropertyCollector::collectPropertiesSkipNodeRel(const std::shared_ptr<Expression>& expression) {
-    if (ExpressionUtil::isNodePattern(*expression) ||
-        ExpressionUtil::isRelPattern(*expression) ||
+void PropertyCollector::collectPropertiesSkipNodeRel(
+    const std::shared_ptr<Expression>& expression) {
+    if (ExpressionUtil::isNodePattern(*expression) || ExpressionUtil::isRelPattern(*expression) ||
         ExpressionUtil::isRecursiveRelPattern(*expression)) {
         return;
     }
