@@ -682,7 +682,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         detectedColumnNames = scanInput->expectedColumnNames;
     }
     return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
-        std::move(detectedColumnNames), 0, scanInput->config.copy(), scanInput->context);
+        std::move(detectedColumnNames), 0 /* numWarningColumns */, scanInput->config.copy(),
+        scanInput->context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
