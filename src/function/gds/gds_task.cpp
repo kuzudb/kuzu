@@ -12,7 +12,6 @@ void FrontierTask::run() {
     auto numApproxActiveNodesForNextIter = 0u;
     std::unique_ptr<graph::Graph> graph = sharedState->graph->copy();
     auto state = graph->prepareScan(sharedState->relTableIDToScan);
-    // TODO(Semih): Remove but this is the part where a compute function gets cloned and initialized.
     auto localEc = sharedState->ec.clone();
     localEc->init();
     while (sharedState->frontiers.getNextRangeMorsel(frontierMorsel)) {

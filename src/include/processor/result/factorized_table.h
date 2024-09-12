@@ -163,8 +163,7 @@ public:
     bool isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx);
     void clear();
-    // TODO(Semih): Remove
-    uint64_t bytesAllocated = 0;
+
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 

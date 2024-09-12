@@ -17,17 +17,18 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 // TODO(Semih): Make all atomic fields of structs/classes private and provide getter functions
-
-struct IterParentAndNextPtr {
+// TODO(Reviewer): Which classes should be used with function:: namespace? Is anything that's not in the
+// function namespace have a namespace? For example, should nodeID_t be common::nodeID_t below?
+struct ParentIterAndNextPtr {
     friend class ParentPtrsAtomics;
 public:
-    IterParentAndNextPtr(uint16_t _iter, nodeID_t parent) {
+    ParentIterAndNextPtr(uint16_t _iter, nodeID_t parent) {
         iter.store(_iter, std::memory_order_relaxed);
         offset.store(parent.offset, std::memory_order_relaxed);
         tableID.store(parent.tableID, std::memory_order_relaxed);
     }
 
-    IterParentAndNextPtr& operator=(const IterParentAndNextPtr& rhs) {
+    ParentIterAndNextPtr& operator=(const ParentIterAndNextPtr& rhs) {
         iter.store(rhs.iter.load(std::memory_order_relaxed), std::memory_order_relaxed);
         offset.store(rhs.offset.load(std::memory_order_relaxed), std::memory_order_relaxed);
         tableID.store(rhs.tableID.load(std::memory_order_relaxed), std::memory_order_relaxed);
@@ -35,11 +36,11 @@ public:
         return *this;
     }
 
-    void setNextPtr(IterParentAndNextPtr* nextParentPtr) {
+    void setNextPtr(ParentIterAndNextPtr* nextParentPtr) {
         nextPtr.store(nextParentPtr, std::memory_order_relaxed);
     }
 
-    IterParentAndNextPtr* getNextPtr() {
+    ParentIterAndNextPtr* getNextPtr() {
         return nextPtr.load(std::memory_order_relaxed);
     }
 
@@ -56,7 +57,7 @@ private:
     std::atomic<uint16_t> iter;
     std::atomic<uint64_t> offset;
     std::atomic<uint64_t> tableID;
-    std::atomic<IterParentAndNextPtr*> nextPtr;
+    std::atomic<ParentIterAndNextPtr*> nextPtr;
 };
 
 // Each ParentPtrsBlock should be accessed by a single thread.
@@ -65,12 +66,12 @@ class ParentPtrsBlock {
 public:
     ParentPtrsBlock(std::unique_ptr<MemoryBuffer> block, uint64_t sizeInBytes)
         : block{std::move(block)} {
-        maxElements.store(sizeInBytes / (sizeof(IterParentAndNextPtr)), std::memory_order_relaxed);
+        maxElements.store(sizeInBytes / (sizeof(ParentIterAndNextPtr)), std::memory_order_relaxed);
         nextPosToWrite.store(0, std::memory_order_relaxed);
     }
 
-    IterParentAndNextPtr* reserveNextParentAndNextPtr() {
-        auto retVal = reinterpret_cast<IterParentAndNextPtr*>(block->buffer.data()) + nextPosToWrite.load(std::memory_order_relaxed);
+    ParentIterAndNextPtr* reserveNextParentAndNextPtr() {
+        auto retVal = reinterpret_cast<ParentIterAndNextPtr*>(block->buffer.data()) + nextPosToWrite.load(std::memory_order_relaxed);
         nextPosToWrite.fetch_add(1, std::memory_order_relaxed);
         return retVal;
     }
@@ -87,7 +88,6 @@ private:
 };
 
 class ParentPtrsAtomics {
-    // TODO(Semih/Xiyang): Make this configurable.
     static constexpr uint64_t ALL_PATHS_BLOCK_SIZE = (std::uint64_t)1 << 19;
 
 public:
@@ -96,7 +96,7 @@ public:
         MemoryManager* mm)
         : mm{mm} {
         for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            auto memBuffer = mm->allocateBuffer(false, numNodes * (sizeof(std::atomic<IterParentAndNextPtr*>)));
+            auto memBuffer = mm->allocateBuffer(false, numNodes * (sizeof(std::atomic<ParentIterAndNextPtr*>)));
             auto pointers =
                 reinterpret_cast<std::atomic<uint8_t*>*>(memBuffer.get()->buffer.data());
             for (uint64_t i = 0; i < numNodes; ++i) {
@@ -109,6 +109,8 @@ public:
         }
     }
 
+    // This function is thread safe and should be called by a worker thread Ti to grab a block
+    // of memory that Ti owns and writes to.
     ParentPtrsBlock* addNewBlock() {
         std::unique_lock lck{mtx};
         auto memBlock = mm->allocateBuffer(false /* don't init to 0 */, ALL_PATHS_BLOCK_SIZE);
@@ -116,38 +118,38 @@ public:
         return blocks[blocks.size() - 1].get();
     }
 
-    IterParentAndNextPtr* getInitialParentAndNextPtr(nodeID_t nodeID) {
-        return reinterpret_cast<std::atomic<IterParentAndNextPtr*>*>(
+    ParentIterAndNextPtr* getInitialParentAndNextPtr(nodeID_t nodeID) {
+        return reinterpret_cast<std::atomic<ParentIterAndNextPtr*>*>(
             parentPtrs.at(nodeID.tableID).get()->buffer.data())[nodeID.offset].load(std::memory_order_relaxed);
     }
 
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this function.
     void addParent(uint16_t iter, ParentPtrsBlock* parentPtrsBlock, nodeID_t child, nodeID_t parent) {
         auto parentEdgePtr = parentPtrsBlock->reserveNextParentAndNextPtr();
-        *parentEdgePtr = IterParentAndNextPtr(iter, parent);
+        *parentEdgePtr = ParentIterAndNextPtr(iter, parent);
         auto curPtr = currFixedParentPtrs.load(std::memory_order_relaxed);
         KU_ASSERT(curPtr != nullptr);
         // Since by default the parentPtr of each node is nullptr, that's what we start with.
-        IterParentAndNextPtr* expected = nullptr;
+        ParentIterAndNextPtr* expected = nullptr;
         while (!curPtr[child.offset].compare_exchange_strong(expected, parentEdgePtr));
         parentEdgePtr->setNextPtr(expected);
     }
 
-    std::atomic<IterParentAndNextPtr*>* getCurFixedParentPtrs() {
+    std::atomic<ParentIterAndNextPtr*>* getCurFixedParentPtrs() {
         return currFixedParentPtrs.load(std::memory_order_relaxed);
     }
 
     void fixNodeTable(common::table_id_t tableID) {
         KU_ASSERT(parentPtrs.contains(tableID));
         currFixedParentPtrs.store(
-            reinterpret_cast<std::atomic<IterParentAndNextPtr*>*>(parentPtrs.at(tableID).get()->buffer.data()), std::memory_order_relaxed);
+            reinterpret_cast<std::atomic<ParentIterAndNextPtr*>*>(parentPtrs.at(tableID).get()->buffer.data()), std::memory_order_relaxed);
     }
 
 private:
     std::mutex mtx;
     MemoryManager* mm;
     common::table_id_map_t<std::unique_ptr<MemoryBuffer>> parentPtrs;
-    std::atomic<std::atomic<IterParentAndNextPtr*>*> currFixedParentPtrs;
+    std::atomic<std::atomic<ParentIterAndNextPtr*>*> currFixedParentPtrs;
     std::vector<std::unique_ptr<ParentPtrsBlock>> blocks;
 };
 
@@ -225,10 +227,10 @@ private:
     std::atomic<std::atomic<uint64_t>*> curBoundMultiplicities;
 };
 
-struct AllSPOutputsMultiplicities : public SPOutputs {
-    // Multiplicities is only used the output type is DESTINATION_NODES or LENGTHS.
-    std::unique_ptr<PathMultiplicities> multiplicities;
-    explicit AllSPOutputsMultiplicities(graph::Graph* graph, nodeID_t sourceNodeID,
+struct AllSPMultiplicitiesOutputs : public SPOutputs {
+
+public:
+    explicit AllSPMultiplicitiesOutputs(graph::Graph* graph, nodeID_t sourceNodeID,
         MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, mm) {
         multiplicities = std::make_unique<PathMultiplicities>(nodeTableIDAndNumNodes, mm);
     }
@@ -243,12 +245,14 @@ struct AllSPOutputsMultiplicities : public SPOutputs {
         multiplicities->fixBoundNodeTable(curFrontierTableID);
         multiplicities->fixTargetNodeTable(nextFrontierTableID);
     };
+    // TODO(Reviewer): Should this go up or bottom?
+    // Multiplicities is only used the output type is DESTINATION_NODES or LENGTHS.
+    std::unique_ptr<PathMultiplicities> multiplicities;
 };
 
-// TODO(Semih): Rename to VarLenAndAllSPOutputPaths
-struct AllSPOutputsPaths : public SPOutputs {
+struct VarLenOrAllSPPathsOutputs : public SPOutputs {
     std::unique_ptr<ParentPtrsAtomics> parentPtrs;
-    explicit AllSPOutputsPaths(graph::Graph* graph, nodeID_t sourceNodeID,
+    explicit VarLenOrAllSPPathsOutputs(graph::Graph* graph, nodeID_t sourceNodeID,
         MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, mm) {
         parentPtrs = std::make_unique<ParentPtrsAtomics>(nodeTableIDAndNumNodes, mm);
     }
@@ -262,21 +266,21 @@ struct AllSPOutputsPaths : public SPOutputs {
 
 class AllSPOutputWriterDsts : public SPOutputWriterDsts {
 public:
-    explicit AllSPOutputWriterDsts(main::ClientContext* context)
-        : SPOutputWriterDsts(context) {}
+    explicit AllSPOutputWriterDsts(main::ClientContext* context, RJOutputs* rjOutputs)
+        : SPOutputWriterDsts(context, rjOutputs) {}
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<AllSPOutputWriterDsts>(context);
+        return std::make_unique<AllSPOutputWriterDsts>(context, rjOutputs);
     }
 protected:
     void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
-        rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->fixTargetNodeTable(tableID);
+        rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
     }
 
     void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
         nodeID_t dstNodeID, uint16_t) const override {
         auto multiplicity =
-            rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->getTargetMultiplicity(
+            rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->getTargetMultiplicity(
                 dstNodeID.offset);
         for (uint64_t i = 0; i < multiplicity; ++i) {
             fTable.append(vectors);
@@ -286,26 +290,26 @@ protected:
 
 class AllSPOutputWriterLengths : public SPOutputWriterDsts {
 public:
-    explicit AllSPOutputWriterLengths(main::ClientContext* context)
-        : SPOutputWriterDsts(context) {
+    explicit AllSPOutputWriterLengths(main::ClientContext* context, RJOutputs* rjOutputs)
+        : SPOutputWriterDsts(context, rjOutputs) {
         lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
     }
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<AllSPOutputWriterLengths>(context);
+        return std::make_unique<AllSPOutputWriterLengths>(context, rjOutputs);
     }
 protected:
     void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
-        rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->fixTargetNodeTable(tableID);
+        rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
     }
 
     void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
         nodeID_t dstNodeID, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         auto multiplicity =
-            rjOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities->getTargetMultiplicity(
+            rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->getTargetMultiplicity(
                 dstNodeID.offset);
         for (uint64_t i = 0; i < multiplicity; ++i) {
             fTable.append(vectors);
@@ -317,8 +321,8 @@ private:
 
 class VarLenAndAllSPOutputWriterPaths : public RJOutputWriter {
 public:
-    explicit VarLenAndAllSPOutputWriterPaths(main::ClientContext* context, uint16_t lowerBound, uint16_t upperBound)
-        : RJOutputWriter(context), lowerBound{lowerBound}, upperBound{upperBound} {
+    explicit VarLenAndAllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound, uint16_t upperBound)
+        : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound} {
         lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
@@ -329,12 +333,12 @@ public:
     }
 
     void beginWritingForDstNodesInTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
-        rjOutputs->ptrCast<AllSPOutputsPaths>()->parentPtrs->fixNodeTable(tableID);
+        rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs->fixNodeTable(tableID);
     }
 
     void write(RJOutputs* rjOutputs, processor::FactorizedTable& fTable,
         nodeID_t dstNodeID) const override {
-        AllSPOutputsPaths* allSpOutputs = rjOutputs->ptrCast<AllSPOutputsPaths>();
+        VarLenOrAllSPPathsOutputs* allSpOutputs = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
         PathVectorWriter writer(pathNodeIDsVector.get());
         auto firstParent = allSpOutputs->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
         if (firstParent == nullptr) {
@@ -348,7 +352,7 @@ public:
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         std::cout << "outside while loop setting length to: " << firstParent->getIter() << std::endl;
         lengthVector->setValue<int64_t>(0, firstParent->getIter());
-        std::vector<IterParentAndNextPtr*> curPath;
+        std::vector<ParentIterAndNextPtr*> curPath;
         // TODO(Semih): Remove
 //        auto firstParent = allSpOutputs->parentPtrs->getInitialParentAndNextPtr(dstNodeID);
         // If the firstParent == nullptr then this dstNodeID must be srcNodeID
@@ -412,11 +416,11 @@ protected:
 
 class AllSPOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
 public:
-    explicit AllSPOutputWriterPaths(main::ClientContext* context, uint16_t upperBound)
-        : VarLenAndAllSPOutputWriterPaths(context, 1 /* lower bound */, upperBound) {}
+    explicit AllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t upperBound)
+        : VarLenAndAllSPOutputWriterPaths(context, rjOutputs, 1 /* lower bound */, upperBound) {}
 
     bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
-        auto allSpOutputsPaths = rjOutputs->ptrCast<AllSPOutputsPaths>();
+        auto allSpOutputsPaths = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
         // For all shortest path computations, we do not output any results from source to source.
         // We also do not output any results if a destination node has not been reached.
         return dstNodeID == allSpOutputsPaths->sourceNodeID || nullptr == allSpOutputsPaths->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(
@@ -424,30 +428,30 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<AllSPOutputWriterPaths>(context, upperBound);
+        return std::make_unique<AllSPOutputWriterPaths>(context, rjOutputs, upperBound);
     }
 };
 
 class VarLenOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
 public:
     explicit VarLenOutputWriterPaths(
-        main::ClientContext* context, uint16_t lowerBound, uint16_t upperBound)
-        : VarLenAndAllSPOutputWriterPaths(context, lowerBound, upperBound) {}
+        main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound, uint16_t upperBound)
+        : VarLenAndAllSPOutputWriterPaths(context, rjOutputs, lowerBound, upperBound) {}
 
     bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
-        // TODO(Semih): Rename the variable to varlenOutputPaths or outputPaths;
-        auto allSpOutputsPaths = rjOutputs->ptrCast<AllSPOutputsPaths>();
-        auto firstIterParentAndNextPtr = allSpOutputsPaths->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(
+        auto pathsOutputs = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
+        auto firstIterParentAndNextPtr =
+            pathsOutputs->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(
             std::memory_order_relaxed);
         // For variable lengths joins, we skip a destination node d in the following conditions:
         //    (i) if no path has reached d from the source, except when the lower bound is 0.
         //    (ii) the longest path that has reached d, which is stored in the iter value of the
         //    firstIterParentAndNextPtr is smaller than the lower bound.
         // We also do not output any results if a destination node has not been reached.
-        // TODO(Semih): Remove
         if (nullptr == firstIterParentAndNextPtr) {
             return lowerBound > 0;
         } else {
+            // TODO(Semih): Remove
             std::cout << "firstIterParentAndNextPtr->getIter(): "
                       << firstIterParentAndNextPtr->getIter() << " lowerBound: " << lowerBound
                       << std::endl;
@@ -456,7 +460,7 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<VarLenOutputWriterPaths>(context, lowerBound, upperBound);
+        return std::make_unique<VarLenOutputWriterPaths>(context, rjOutputs, lowerBound, upperBound);
     }
 };
 
@@ -544,57 +548,109 @@ public:
     }
 
 protected:
-    void initLocalState(main::ClientContext* context) override {
-        switch (outputType) {
-        case RJOutputType::DESTINATION_NODES:
-            outputWriter = std::make_unique<AllSPOutputWriterDsts>(context);
-            break;
-        case RJOutputType::LENGTHS:
-            outputWriter = std::make_unique<AllSPOutputWriterLengths>(context);
-            break;
-        case RJOutputType::PATHS:
-            outputWriter = std::make_unique<AllSPOutputWriterPaths>(context,
-                bindData->ptrCast<RJBindData>()->upperBound);
-            break;
-        default:
-            throw RuntimeException("Unrecognized RJOutputType in "
-                                   "AllSPAlgorithm::initLocalState(): " +
-                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
-        }
-    }
+//    void initLocalState(main::ClientContext* context) override {
+//        switch (outputType) {
+//        case RJOutputType::DESTINATION_NODES:
+//            outputWriter = std::make_unique<AllSPOutputWriterDsts>(context);
+//            break;
+//        case RJOutputType::LENGTHS:
+//            outputWriter = std::make_unique<AllSPOutputWriterLengths>(context);
+//            break;
+//        case RJOutputType::PATHS:
+//            outputWriter = std::make_unique<AllSPOutputWriterPaths>(context,
+//                bindData->ptrCast<RJBindData>()->upperBound);
+//            break;
+//        default:
+//            throw RuntimeException("Unrecognized RJOutputType in "
+//                                   "AllSPAlgorithm::initLocalState(): " +
+//                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
+//        }
+//    }
 
-    std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
+    std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<SPOutputs> spOutputs;
-        if (outputType == RJOutputType::PATHS) {
-            spOutputs = std::make_unique<AllSPOutputsPaths>(sharedState->graph.get(), sourceNodeID,
-                executionContext->clientContext->getMemoryManager());
-        } else {
-            spOutputs = std::make_unique<AllSPOutputsMultiplicities>(sharedState->graph.get(),
+        std::unique_ptr<RJOutputWriter> outputWriter;
+        switch (outputType) {
+        case RJOutputType::DESTINATION_NODES:
+            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph.get(),
                 sourceNodeID, executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<AllSPOutputWriterDsts>(executionContext->clientContext, spOutputs.get());
+            break;
+        case RJOutputType::LENGTHS: {
+            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph.get(),
+                sourceNodeID, executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<AllSPOutputWriterLengths>(executionContext->clientContext, spOutputs.get());
+            break;
+        }
+        case RJOutputType::PATHS: {
+            spOutputs = std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph.get(), sourceNodeID,
+                executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<AllSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get(),
+                bindData->ptrCast<RJBindData>()->upperBound);
+        }
+        default:
+            throw RuntimeException("Unrecognized RJOutputType in "
+                                   "RJAlgorithm::getRJCompState() setting output and outputWriter: " +
+                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
         auto pathLengthsFrontiers =
             std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
                 executionContext->clientContext->getMaxNumThreadForExec());
+        std::unique_ptr<EdgeCompute> edgeCompute;
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
         case RJOutputType::LENGTHS: {
-            auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(
-                pathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPOutputsMultiplicities>()->multiplicities.get());
-            return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers),
-                move(edgeCompute));
+            edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(pathLengthsFrontiers.get(),
+                spOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities.get());
+            break;
         }
         case RJOutputType::PATHS: {
-            auto edgeCompute = std::make_unique<AllSPPathsEdgeCompute>(
-                pathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPOutputsPaths>()->parentPtrs.get());
-            return std::make_unique<RJCompState>(
-                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
+            edgeCompute = std::make_unique<AllSPPathsEdgeCompute>(pathLengthsFrontiers.get(),
+                spOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs.get());
+            break;
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
-                                   "RJAlgorithm::getFrontiersAndEdgeCompute(): " +
+                                   "RJAlgorithm::getRJCompState() setting edgeCompute: " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
+        return std::make_unique<RJCompState>(std::move(pathLengthsFrontiers),
+            std::move(edgeCompute), std::move(spOutputs), std::move(outputWriter));
+
+//        std::unique_ptr<SPOutputs> spOutputs;
+//        std::unique_ptr<RJOutputWriter> outputWriter;
+//        if (outputType == RJOutputType::PATHS) {
+//            spOutputs = std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph.get(), sourceNodeID,
+//                executionContext->clientContext->getMemoryManager());
+//            outputWriter = std::make_unique<AllSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get(),
+//                bindData->ptrCast<RJBindData>()->upperBound);
+//        } else {
+//            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph.get(),
+//                sourceNodeID, executionContext->clientContext->getMemoryManager());
+//        }
+//        auto pathLengthsFrontiers =
+//            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
+//                executionContext->clientContext->getMaxNumThreadForExec());
+//        switch (outputType) {
+//        case RJOutputType::DESTINATION_NODES:
+//        case RJOutputType::LENGTHS: {
+//            auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(
+//                pathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities.get());
+//            return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers),
+//                move(edgeCompute));
+//        }
+//        case RJOutputType::PATHS: {
+//            auto edgeCompute = std::make_unique<AllSPPathsEdgeCompute>(
+//                pathLengthsFrontiers.get(), spOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs.get());
+//            return std::make_unique<RJCompState>(
+//                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
+//        }
+//        default:
+//            throw RuntimeException("Unrecognized RJOutputType in "
+//                                   "RJAlgorithm::getRJCompState(): " +
+//                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
+//        }
     }
 };
 
@@ -638,27 +694,28 @@ public:
         return std::make_unique<VarLenJoinsAlgorithm>(*this);
     }
 
-protected:
-    void initLocalState(main::ClientContext* context) override {
-        outputWriter = std::make_unique<VarLenOutputWriterPaths>(context,
-            bindData->ptrCast<RJBindData>()->lowerBound,
-            bindData->ptrCast<RJBindData>()->upperBound);
-    }
+//    void initLocalState(main::ClientContext* context) override {
+//        outputWriter = std::make_unique<VarLenOutputWriterPaths>(context,
+//            bindData->ptrCast<RJBindData>()->lowerBound,
+//            bindData->ptrCast<RJBindData>()->upperBound);
+//    }
 
-    std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
+    std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<RJOutputs> spOutputs =
-            std::make_unique<AllSPOutputsPaths>(sharedState->graph.get(), sourceNodeID,
+            std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph.get(), sourceNodeID,
                 executionContext->clientContext->getMemoryManager());
-        // TODO(Semih): We need to pass a pathLengthFrontier that uses 2 copies of masks internally.
-        // TODO(Semih): We also need a way to take in the minimum and the maximum path lengths
+        std::unique_ptr<RJOutputWriter> outputWriter =
+            std::make_unique<VarLenOutputWriterPaths>(executionContext->clientContext,
+                spOutputs.get(), bindData->ptrCast<RJBindData>()->lowerBound,
+                bindData->ptrCast<RJBindData>()->upperBound);
         auto doublePathLengthsFrontiers =
             std::make_unique<DoublePathLengthsFrontiers>(spOutputs->nodeTableIDAndNumNodes,
                 executionContext->clientContext->getMaxNumThreadForExec(), executionContext->clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<VarLenJoinsEdgeCompute>(
-            doublePathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPOutputsPaths>()->parentPtrs.get());
+            doublePathLengthsFrontiers.get(), spOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs.get());
         return std::make_unique<RJCompState>(
-            move(spOutputs), move(doublePathLengthsFrontiers), move(edgeCompute));
+            move(doublePathLengthsFrontiers), move(edgeCompute), move(spOutputs), move(outputWriter));
     }
 };
 

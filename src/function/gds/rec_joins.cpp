@@ -19,25 +19,28 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context) : context{context} {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs) : context{context}, rjOutputs{rjOutputs} {
     auto mm = context->getMemoryManager();
     srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
+    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
     dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
     vectors.push_back(srcNodeIDVector.get());
     vectors.push_back(dstNodeIDVector.get());
 }
-void RJOutputWriter::initWritingFromSource(nodeID_t sourceNodeID) {
-    srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
-}
+// TODO(Semih): Remove
+//void RJOutputWriter::initWritingFromSource(nodeID_t sourceNodeID) {
+//    srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
+//}
 
 // TODO(Semih): Remove
-RJCompState::RJCompState(std::unique_ptr<RJOutputs> outputs,
-    std::unique_ptr<function::Frontiers> frontiers,
-    std::unique_ptr<function::EdgeCompute> frontierCompute)
+RJCompState::RJCompState(std::unique_ptr<function::Frontiers> frontiers,
+    std::unique_ptr<function::EdgeCompute> frontierCompute,
+    std::unique_ptr<RJOutputs> outputs,
+    std::unique_ptr<RJOutputWriter> outputWriter)
     : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
-      frontierCompute{std::move(frontierCompute)} {}
+      edgeCompute{std::move(frontierCompute)}, outputWriter{std::move(outputWriter)} {}
 
 void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
@@ -95,13 +98,14 @@ binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
 class RJOutputWriterVCSharedState {
 public:
     RJOutputWriterVCSharedState(storage::MemoryManager* mm, processor::FactorizedTable* globalFT,
-        RJOutputs* rjOutputs, RJOutputWriter* rjOutputWriter)
-        : mm{mm}, globalFT{globalFT}, rjOutputs{rjOutputs}, rjOutputWriter{rjOutputWriter} {}
+        RJOutputWriter* rjOutputWriter)
+        : mm{mm}, globalFT{globalFT},  rjOutputWriter{rjOutputWriter} {}
 
     std::mutex mtx;
     storage::MemoryManager* mm;
     processor::FactorizedTable* globalFT;
-    RJOutputs* rjOutputs;
+    // TODO(Semih): Remove
+//    RJOutputs* rjOutputs;
     RJOutputWriter* rjOutputWriter;
 };
 
@@ -111,10 +115,10 @@ public:
         localFT = std::make_unique<processor::FactorizedTable>(sharedState->mm,
             sharedState->globalFT->getTableSchema()->copy());
         localRJOutputWriter = sharedState->rjOutputWriter->clone();
-        localRJOutputWriter->initWritingFromSource(sharedState->rjOutputs->sourceNodeID);
+//        localRJOutputWriter->initWritingFromSource();
     }
 
-    void beginComputingOnTable(table_id_t tableID) override {
+    void beginVertexComputeOnTable(table_id_t tableID) override {
         localRJOutputWriter->beginWritingForDstNodesInTable(sharedState->rjOutputs, tableID);
     }
 
@@ -126,12 +130,8 @@ public:
     }
 
     void finalizeWorkerThread() override {
-        std::cout << "Thread: " << std::this_thread::get_id() << " calling finalizeWorkerThread "
-                  << std::endl;
         std::unique_lock lck(sharedState->mtx);
         sharedState->globalFT->merge(*localFT);
-        std::cout << "Thread: " << std::this_thread::get_id()
-                  << " bytesAllocated: " << localFT->bytesAllocated << std::endl;
     }
 
     std::unique_ptr<VertexCompute> clone() override {
@@ -163,14 +163,14 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
             std::unique_ptr<RJCompState> rjCompState =
-                getFrontiersAndEdgeCompute(executionContext, sourceNodeID);
+                getRJCompState(executionContext, sourceNodeID);
             rjCompState->initRJFromSource(sourceNodeID);
             GDSUtils::runFrontiersUntilConvergence(executionContext, *rjCompState,
                 sharedState->graph.get(), bindData->ptrCast<RJBindData>()->upperBound);
-            outputWriter->initWritingFromSource(sourceNodeID);
+//            outputWriter->initWritingFromSource(sourceNodeID);
             auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
                 executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
-                rjCompState->outputs.get(), outputWriter.get());
+                outputWriter.get());
             auto writerVC = std::make_unique<RJOutputWriterVC>(writerVCSharedState.get());
             GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
                 *writerVC);

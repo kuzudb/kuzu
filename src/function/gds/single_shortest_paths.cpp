@@ -97,15 +97,15 @@ struct SingleSPOutputsPaths : public SPOutputs {
 
 class SingleSPOutputWriterLengths : public SPOutputWriterDsts {
 public:
-    explicit SingleSPOutputWriterLengths(main::ClientContext* context)
-        : SPOutputWriterDsts(context) {
+    explicit SingleSPOutputWriterLengths(main::ClientContext* context, RJOutputs* rjOutputs)
+        : SPOutputWriterDsts(context, rjOutputs) {
         lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(lengthVector.get());
     }
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<SingleSPOutputWriterLengths>(context);
+        return std::make_unique<SingleSPOutputWriterLengths>(context, rjOutputs);
     }
 protected:
     void writeMoreAndAppend(
@@ -119,8 +119,8 @@ protected:
 
 class SingleSPOutputWriterPaths : public SingleSPOutputWriterLengths {
 public:
-    explicit SingleSPOutputWriterPaths(main::ClientContext* context)
-        : SingleSPOutputWriterLengths(context) {
+    explicit SingleSPOutputWriterPaths(main::ClientContext* context,  RJOutputs* rjOutputs)
+        : SingleSPOutputWriterLengths(context, rjOutputs) {
         pathNodeIDsVector =
             std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
         pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -128,7 +128,7 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<SingleSPOutputWriterPaths>(context);
+        return std::make_unique<SingleSPOutputWriterPaths>(context, rjOutputs);
     }
 protected:
     void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint16_t length) const override {
@@ -220,7 +220,7 @@ protected:
         }
     }
 
-    std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
+    std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<SPOutputs> spOutputs;
         if (outputType == RJOutputType::PATHS) {
@@ -250,7 +250,7 @@ protected:
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
-                                   "SingleSPAlgorithm::getFrontiersAndEdgeCompute(): " +
+                                   "SingleSPAlgorithm::getRJCompState(): " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
     }

@@ -33,7 +33,7 @@ void GDSUtils::parallelizeFrontierCompute(processor::ExecutionContext* execution
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
     RJCompState& rjCompState, graph::Graph* graph, uint64_t maxIters) {
     auto frontiers = rjCompState.frontiers.get();
-    auto fc = rjCompState.frontierCompute.get();
+    auto fc = rjCompState.edgeCompute.get();
     while (frontiers->hasActiveNodesForNextLevel() && frontiers->getNextIter() <= maxIters) {
         frontiers->beginNewIteration();
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
@@ -53,7 +53,7 @@ void GDSUtils::runVertexComputeIteration(
             .getValue<uint64_t>());
     for (auto& tableID : graph->getNodeTableIDs()) {
         std::cout << "Running runVertexComputeIteration on tableID: " << tableID << std::endl;
-        vc.beginComputingOnTable(tableID);
+        vc.beginVertexComputeOnTable(tableID);
         sharedState->morselizer->init(tableID, graph->getNumNodes(tableID));
         auto task = std::make_shared<VertexComputeTask>(
             executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)

@@ -35,9 +35,9 @@ struct PageRankBindData final : public GDSBindData {
     }
 };
 
-class PageRankLocalState {
+class PageRankOutputWriter {
 public:
-    explicit PageRankLocalState(main::ClientContext* context) {
+    explicit PageRankOutputWriter(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         rankVector = std::make_unique<ValueVector>(LogicalType::DOUBLE(), mm);
@@ -103,7 +103,7 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<PageRankLocalState>(context);
+        localState = std::make_unique<PageRankOutputWriter>(context);
     }
 
     void exec(processor::ExecutionContext*) override {
@@ -154,8 +154,7 @@ public:
         return std::make_unique<PageRank>(*this);
     }
 private:
-    // TODO(Semih): Rename to PROutputs
-    std::unique_ptr<PageRankLocalState> localState;
+    std::unique_ptr<PageRankOutputWriter> localState;
 };
 
 function_set PageRankFunction::getFunctionSet() {

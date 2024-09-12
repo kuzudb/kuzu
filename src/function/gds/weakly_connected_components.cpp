@@ -18,9 +18,9 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class WeaklyConnectedComponentLocalState {
+class WeaklyConnectedComponentOutputWriter {
 public:
-    explicit WeaklyConnectedComponentLocalState(main::ClientContext* context) {
+    explicit WeaklyConnectedComponentOutputWriter(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         groupVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
@@ -86,7 +86,7 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<WeaklyConnectedComponentLocalState>(context);
+        localState = std::make_unique<WeaklyConnectedComponentOutputWriter>(context);
     }
 
     void exec(processor::ExecutionContext*) override {
@@ -127,8 +127,7 @@ private:
 
 private:
     common::node_id_map_t<int64_t> visitedMap;
-    // TODO(Semih): Rename to WCCOutputs.
-    std::unique_ptr<WeaklyConnectedComponentLocalState> localState;
+    std::unique_ptr<WeaklyConnectedComponentOutputWriter> localState;
 };
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {

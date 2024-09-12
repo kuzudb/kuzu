@@ -267,16 +267,20 @@ public:
     uint64_t nextPathPos;
 };
 
-// TODO(Semih): Turn this into a scanner if we can find a way to pipeline the outputs to the
-// next operators in the plan. Open an issue about this.
 class RJOutputWriter {
 public:
-    explicit RJOutputWriter(main::ClientContext* context);
+    // TODO(Semih): Consider changing raw pointers with shared pointers
+    explicit RJOutputWriter(main::ClientContext* contex, RJOutputs* rjOutputs);
     virtual ~RJOutputWriter() = default;
 
     // This is called once by the "master" thread.
     void initWritingFromSource(nodeID_t sourceNodeID);
 
+    // TODO(Semih): Have this function implemented in RJOutputs. Then don't make
+    // RJOutputWriter::beginWritingForDstNodesInTable be a virtual class but instead make it
+    // directly call RJOutputs::beginWritingForDstNodesInTable. Also make RJOutputWriter keep the
+    // RJOutputs as a field so we don't need to keep passing it as an argument to skipWriting and
+    // write functions.
     virtual void beginWritingForDstNodesInTable(RJOutputs* rjOutputs, table_id_t tableID) const = 0;
 
     virtual bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const = 0;
@@ -287,6 +291,7 @@ public:
     virtual std::unique_ptr<RJOutputWriter> clone() = 0;
 protected:
     main::ClientContext* context;
+    RJOutputs* rjOutputs;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::vector<common::ValueVector*> vectors;
@@ -295,13 +300,15 @@ protected:
 // Wrapper around the data that needs to be stored during the computation of a recursive joins
 // computation from one source. Also contains several initialization functions.
 struct RJCompState {
-    std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<function::Frontiers> frontiers;
-    std::unique_ptr<function::EdgeCompute> frontierCompute;
+    std::unique_ptr<function::EdgeCompute> edgeCompute;
+    std::unique_ptr<RJOutputs> outputs;
+    std::unique_ptr<RJOutputWriter> outputWriter;
 
-    explicit RJCompState(std::unique_ptr<RJOutputs> outputs,
-        std::unique_ptr<function::Frontiers> frontiers,
-        std::unique_ptr<function::EdgeCompute> frontierCompute);
+    explicit RJCompState(std::unique_ptr<function::Frontiers> frontiers,
+        std::unique_ptr<function::EdgeCompute> frontierCompute,
+        std::unique_ptr<RJOutputs> outputs,
+        std::unique_ptr<RJOutputWriter> outputWriter);
 
     void initRJFromSource(nodeID_t sourceNodeID) {
         frontiers->initRJFromSource(sourceNodeID);
@@ -325,7 +332,7 @@ struct RJCompState {
 
 class SPOutputWriterDsts : public RJOutputWriter {
 public:
-    explicit SPOutputWriterDsts(main::ClientContext* context) : RJOutputWriter(context) {};
+    explicit SPOutputWriterDsts(main::ClientContext* context, RJOutputs* rjOutputs) : RJOutputWriter(context, rjOutputs) {};
 
     void write(RJOutputs* rjOutputs,
         processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override;
@@ -336,15 +343,12 @@ public:
     }
 
     bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
-        // TODO(Semih): Change this to write all output.
-//        return dstNodeID.offset > 4 || PathLengths::UNVISITED ==
-//               rjOutputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
         return dstNodeID == rjOutputs->ptrCast<SPOutputs>()->sourceNodeID || PathLengths::UNVISITED ==
             rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
     }
 
     std::unique_ptr<RJOutputWriter> clone() override {
-        return std::make_unique<SPOutputWriterDsts>(context);
+        return std::make_unique<SPOutputWriterDsts>(context, rjOutputs);
     }
 protected:
     virtual void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs*, table_id_t) const {}
@@ -353,7 +357,7 @@ protected:
         processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint16_t length) const;
 };
 
-class RJAlgorithm : public function::GDSAlgorithm {
+class RJAlgorithm : public GDSAlgorithm {
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
 
@@ -392,13 +396,12 @@ public:
         graph::GraphEntry& graphEntry) override;
 
     void exec(processor::ExecutionContext* executionContext) override;
-    virtual std::unique_ptr<RJCompState> getFrontiersAndEdgeCompute(
+    virtual std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) = 0;
 
 protected:
     RJOutputType outputType;
     bool hasLowerBoundInput;
-    std::unique_ptr<RJOutputWriter> outputWriter;
 };
 } // namespace function
 } // namespace kuzu
