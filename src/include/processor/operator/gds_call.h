@@ -56,7 +56,9 @@ public:
         std::shared_ptr<GDSCallSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{std::move(descriptor), operatorType_, id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+          info{std::move(info)}, sharedState{std::move(sharedState)} {
+        info.gds->init(sharedState.get());
+    }
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
     std::vector<NodeSemiMask*> getSemiMasks() const;

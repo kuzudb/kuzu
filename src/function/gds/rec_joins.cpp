@@ -29,23 +29,16 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutput
     vectors.push_back(srcNodeIDVector.get());
     vectors.push_back(dstNodeIDVector.get());
 }
-// TODO(Semih): Remove
-//void RJOutputWriter::initWritingFromSource(nodeID_t sourceNodeID) {
-//    srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
-//}
 
-// TODO(Semih): Remove
 RJCompState::RJCompState(std::unique_ptr<function::Frontiers> frontiers,
-    std::unique_ptr<function::EdgeCompute> frontierCompute,
+    std::unique_ptr<function::EdgeCompute> edgeCompute,
     std::unique_ptr<RJOutputs> outputs,
     std::unique_ptr<RJOutputWriter> outputWriter)
     : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
-      edgeCompute{std::move(frontierCompute)}, outputWriter{std::move(outputWriter)} {}
+      edgeCompute{std::move(edgeCompute)}, outputWriter{std::move(outputWriter)} {}
 
 void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
-    // TODO(Semih): Remove
-    std::cout << " RJAlgorithm::bind. hasLowerBoundInput: " << (hasLowerBoundInput ? " true." : " false." ) << std::endl;
     KU_ASSERT(hasLowerBoundInput ? params.size() == 5 : params.size() == 4);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
@@ -104,8 +97,6 @@ public:
     std::mutex mtx;
     storage::MemoryManager* mm;
     processor::FactorizedTable* globalFT;
-    // TODO(Semih): Remove
-//    RJOutputs* rjOutputs;
     RJOutputWriter* rjOutputWriter;
 };
 
@@ -119,14 +110,14 @@ public:
     }
 
     void beginVertexComputeOnTable(table_id_t tableID) override {
-        localRJOutputWriter->beginWritingForDstNodesInTable(sharedState->rjOutputs, tableID);
+        localRJOutputWriter->beginWritingForDstNodesInTable(tableID);
     }
 
     void vertexCompute(nodeID_t nodeID) override {
-        if (localRJOutputWriter->skipWriting(sharedState->rjOutputs, nodeID)) {
+        if (localRJOutputWriter->skipWriting(nodeID)) {
             return;
         }
-        localRJOutputWriter->write(sharedState->rjOutputs, *localFT, nodeID);
+        localRJOutputWriter->write(*localFT, nodeID);
     }
 
     void finalizeWorkerThread() override {
@@ -144,11 +135,10 @@ private:
     std::unique_ptr<RJOutputWriter> localRJOutputWriter;
 };
 
-void SPOutputWriterDsts::write(RJOutputs* rjOutputs, processor::FactorizedTable& fTable,
-    nodeID_t dstNodeID) const {
+void SPOutputWriterDsts::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {
     auto length = rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-    writeMoreAndAppend(fTable, rjOutputs, dstNodeID, length);
+    writeMoreAndAppend(fTable, dstNodeID, length);
 }
 
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
@@ -170,7 +160,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
 //            outputWriter->initWritingFromSource(sourceNodeID);
             auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
                 executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
-                outputWriter.get());
+                rjCompState->outputWriter.get());
             auto writerVC = std::make_unique<RJOutputWriterVC>(writerVCSharedState.get());
             GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
                 *writerVC);
@@ -265,8 +255,7 @@ void PathVectorWriter::addNewNodeID(nodeID_t curIntNode) {
     nextPathPos--;
 }
 
-void SPOutputWriterDsts::writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs*,
-    nodeID_t, uint16_t) const {
+void SPOutputWriterDsts::writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t, uint16_t) const {
     fTable.append(vectors);
 }
 }

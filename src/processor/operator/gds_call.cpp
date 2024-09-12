@@ -18,8 +18,8 @@ std::vector<NodeSemiMask*> GDSCall::getSemiMasks() const {
     return masks;
 }
 
-void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    info.gds->init(sharedState.get(), context->clientContext);
+void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext*) {
+    info.gds->init(sharedState.get());
 }
 
 void GDSCall::executeInternal(ExecutionContext* executionContext) {

@@ -273,12 +273,11 @@ public:
         return std::make_unique<AllSPOutputWriterDsts>(context, rjOutputs);
     }
 protected:
-    void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
+    void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t tableID) const override {
         rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
     }
 
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
-        nodeID_t dstNodeID, uint16_t) const override {
+    void writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t) const override {
         auto multiplicity =
             rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->getTargetMultiplicity(
                 dstNodeID.offset);
@@ -301,12 +300,11 @@ public:
         return std::make_unique<AllSPOutputWriterLengths>(context, rjOutputs);
     }
 protected:
-    void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
+    void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t tableID) const override {
         rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
     }
 
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs,
-        nodeID_t dstNodeID, uint16_t length) const override {
+    void writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         auto multiplicity =
             rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->getTargetMultiplicity(
@@ -332,12 +330,11 @@ public:
         vectors.push_back(pathNodeIDsVector.get());
     }
 
-    void beginWritingForDstNodesInTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
+    void beginWritingForDstNodesInTable(table_id_t tableID) const override {
         rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs->fixNodeTable(tableID);
     }
 
-    void write(RJOutputs* rjOutputs, processor::FactorizedTable& fTable,
-        nodeID_t dstNodeID) const override {
+    void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override {
         VarLenOrAllSPPathsOutputs* allSpOutputs = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
         PathVectorWriter writer(pathNodeIDsVector.get());
         auto firstParent = allSpOutputs->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
@@ -350,13 +347,8 @@ public:
             return;
         }
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-        std::cout << "outside while loop setting length to: " << firstParent->getIter() << std::endl;
         lengthVector->setValue<int64_t>(0, firstParent->getIter());
         std::vector<ParentIterAndNextPtr*> curPath;
-        // TODO(Semih): Remove
-//        auto firstParent = allSpOutputs->parentPtrs->getInitialParentAndNextPtr(dstNodeID);
-        // If the firstParent == nullptr then this dstNodeID must be srcNodeID
-
         curPath.push_back(firstParent);
         auto backtracking = false;
         while (!curPath.empty()) {
@@ -419,7 +411,7 @@ public:
     explicit AllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t upperBound)
         : VarLenAndAllSPOutputWriterPaths(context, rjOutputs, 1 /* lower bound */, upperBound) {}
 
-    bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
+    bool skipWriting(nodeID_t dstNodeID) const override {
         auto allSpOutputsPaths = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
         // For all shortest path computations, we do not output any results from source to source.
         // We also do not output any results if a destination node has not been reached.
@@ -438,7 +430,7 @@ public:
         main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound, uint16_t upperBound)
         : VarLenAndAllSPOutputWriterPaths(context, rjOutputs, lowerBound, upperBound) {}
 
-    bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
+    bool skipWriting(nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
         auto firstIterParentAndNextPtr =
             pathsOutputs->parentPtrs->getCurFixedParentPtrs()[dstNodeID.offset].load(
@@ -451,10 +443,6 @@ public:
         if (nullptr == firstIterParentAndNextPtr) {
             return lowerBound > 0;
         } else {
-            // TODO(Semih): Remove
-            std::cout << "firstIterParentAndNextPtr->getIter(): "
-                      << firstIterParentAndNextPtr->getIter() << " lowerBound: " << lowerBound
-                      << std::endl;
             return firstIterParentAndNextPtr->getIter() < lowerBound;
         }
     }
@@ -517,7 +505,6 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
             nbrLen == PathLengths::UNVISITED ||
             nbrLen == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed);
         if (shouldUpdate) {
-            // TODO(Semih): Add a test case that triggers this.
             if (!parentPtrsBlock->hasSpace()) {
                 parentPtrsBlock = parentPtrs->addNewBlock();
             }
@@ -541,31 +528,12 @@ class AllSPAlgorithm final : public RJAlgorithm {
 
 public:
     explicit AllSPAlgorithm(RJOutputType outputType) : RJAlgorithm(outputType){};
+
     AllSPAlgorithm(const AllSPAlgorithm& other) : RJAlgorithm(other) {}
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPAlgorithm>(*this);
     }
-
-protected:
-//    void initLocalState(main::ClientContext* context) override {
-//        switch (outputType) {
-//        case RJOutputType::DESTINATION_NODES:
-//            outputWriter = std::make_unique<AllSPOutputWriterDsts>(context);
-//            break;
-//        case RJOutputType::LENGTHS:
-//            outputWriter = std::make_unique<AllSPOutputWriterLengths>(context);
-//            break;
-//        case RJOutputType::PATHS:
-//            outputWriter = std::make_unique<AllSPOutputWriterPaths>(context,
-//                bindData->ptrCast<RJBindData>()->upperBound);
-//            break;
-//        default:
-//            throw RuntimeException("Unrecognized RJOutputType in "
-//                                   "AllSPAlgorithm::initLocalState(): " +
-//                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
-//        }
-//    }
 
     std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
@@ -588,10 +556,11 @@ protected:
                 executionContext->clientContext->getMemoryManager());
             outputWriter = std::make_unique<AllSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get(),
                 bindData->ptrCast<RJBindData>()->upperBound);
+            break;
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
-                                   "RJAlgorithm::getRJCompState() setting output and outputWriter: " +
+                                   "AllSPAlgorithm::getRJCompState() setting output and outputWriter: " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
         auto pathLengthsFrontiers =
@@ -612,45 +581,11 @@ protected:
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
-                                   "RJAlgorithm::getRJCompState() setting edgeCompute: " +
+                                   "AllSPAlgorithm::getRJCompState() setting edgeCompute: " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
         return std::make_unique<RJCompState>(std::move(pathLengthsFrontiers),
             std::move(edgeCompute), std::move(spOutputs), std::move(outputWriter));
-
-//        std::unique_ptr<SPOutputs> spOutputs;
-//        std::unique_ptr<RJOutputWriter> outputWriter;
-//        if (outputType == RJOutputType::PATHS) {
-//            spOutputs = std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph.get(), sourceNodeID,
-//                executionContext->clientContext->getMemoryManager());
-//            outputWriter = std::make_unique<AllSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get(),
-//                bindData->ptrCast<RJBindData>()->upperBound);
-//        } else {
-//            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph.get(),
-//                sourceNodeID, executionContext->clientContext->getMemoryManager());
-//        }
-//        auto pathLengthsFrontiers =
-//            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
-//                executionContext->clientContext->getMaxNumThreadForExec());
-//        switch (outputType) {
-//        case RJOutputType::DESTINATION_NODES:
-//        case RJOutputType::LENGTHS: {
-//            auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(
-//                pathLengthsFrontiers.get(), spOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities.get());
-//            return std::make_unique<RJCompState>(move(spOutputs), move(pathLengthsFrontiers),
-//                move(edgeCompute));
-//        }
-//        case RJOutputType::PATHS: {
-//            auto edgeCompute = std::make_unique<AllSPPathsEdgeCompute>(
-//                pathLengthsFrontiers.get(), spOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs.get());
-//            return std::make_unique<RJCompState>(
-//                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
-//        }
-//        default:
-//            throw RuntimeException("Unrecognized RJOutputType in "
-//                                   "RJAlgorithm::getRJCompState(): " +
-//                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
-//        }
     }
 };
 
@@ -687,18 +622,13 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
 class VarLenJoinsAlgorithm final : public RJAlgorithm {
 
 public:
+    // TODO(Semih): Remove the true argument with an enum.
     explicit VarLenJoinsAlgorithm() : RJAlgorithm(RJOutputType::PATHS, true /* hasLowerBoundInput */){}
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<VarLenJoinsAlgorithm>(*this);
     }
-
-//    void initLocalState(main::ClientContext* context) override {
-//        outputWriter = std::make_unique<VarLenOutputWriterPaths>(context,
-//            bindData->ptrCast<RJBindData>()->lowerBound,
-//            bindData->ptrCast<RJBindData>()->upperBound);
-//    }
 
     std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {

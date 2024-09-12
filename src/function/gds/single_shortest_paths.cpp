@@ -72,8 +72,6 @@ private:
     std::atomic<std::atomic<uint64_t>*> currentFixedParentEdges;
 };
 
-// TODO(Semih): Consider refactoring to two classes, one for DESTINATION_NODES and LENGTHS and the
-// other for PATHS. The code will be more explicit that way.
 struct SingleSPOutputs : public SPOutputs {
     explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
         : SPOutputs(graph, sourceNodeID, mm) {}
@@ -109,7 +107,7 @@ public:
     }
 protected:
     void writeMoreAndAppend(
-        processor::FactorizedTable& fTable, RJOutputs*, nodeID_t, uint16_t length) const override {
+        processor::FactorizedTable& fTable, nodeID_t, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         fTable.append(vectors);
     }
@@ -131,7 +129,7 @@ public:
         return std::make_unique<SingleSPOutputWriterPaths>(context, rjOutputs);
     }
 protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint16_t length) const override {
+    void writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
         PathVectorWriter writer(pathNodeIDsVector.get());
         writer.beginWritingNewPath(length);
@@ -202,57 +200,58 @@ public:
     }
 
 protected:
-    void initLocalState(main::ClientContext* context) override {
-        switch (outputType) {
-        case RJOutputType::DESTINATION_NODES:
-            outputWriter = std::make_unique<SPOutputWriterDsts>(context);
-            break;
-        case RJOutputType::LENGTHS:
-            outputWriter = std::make_unique<SingleSPOutputWriterLengths>(context);
-            break;
-        case RJOutputType::PATHS:
-            outputWriter = std::make_unique<SingleSPOutputWriterPaths>(context);
-            break;
-        default:
-            throw RuntimeException("Unrecognized RJOutputType in "
-                                   "SingleSPAlgorithm::initLocalState(): " +
-                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
-        }
-    }
 
     std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<SPOutputs> spOutputs;
-        if (outputType == RJOutputType::PATHS) {
-            spOutputs = std::make_unique<SingleSPOutputsPaths>(sharedState->graph.get(),
-                sourceNodeID, executionContext->clientContext->getMemoryManager());
-        } else {
+        std::unique_ptr<RJOutputWriter> outputWriter;
+        switch (outputType) {
+        case RJOutputType::DESTINATION_NODES:
             spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
                 executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<SPOutputWriterDsts>(executionContext->clientContext, spOutputs.get());
+            break;
+        case RJOutputType::LENGTHS: {
+            spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
+                executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<SingleSPOutputWriterLengths>(executionContext->clientContext, spOutputs.get());
+            break;
+        }
+        case RJOutputType::PATHS: {
+            spOutputs = std::make_unique<SingleSPOutputsPaths>(sharedState->graph.get(),
+                sourceNodeID, executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<SingleSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get());
+            break;
+        }
+        default:
+            throw RuntimeException("Unrecognized RJOutputType in "
+                                   "SingleSPAlgorithm::getRJCompState() setting output and outputWriter: " +
+                                   std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
         auto pathLengthsFrontiers =
             std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
                 executionContext->clientContext->getMaxNumThreadForExec());
+        std::unique_ptr<EdgeCompute> edgeCompute;
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
         case RJOutputType::LENGTHS: {
-            auto edgeCompute =
+            edgeCompute =
                 std::make_unique<SingleSPLengthsEdgeCompute>(pathLengthsFrontiers.get());
-            return std::make_unique<RJCompState>(
-                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
+            break;
         }
         case RJOutputType::PATHS: {
-            auto edgeCompute =
-                std::make_unique<SingleSPPathsEdgeCompute>(pathLengthsFrontiers.get(),
+            edgeCompute = std::make_unique<SingleSPPathsEdgeCompute>(pathLengthsFrontiers.get(),
                     spOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths.get());
-            return std::make_unique<RJCompState>(
-                move(spOutputs), move(pathLengthsFrontiers), move(edgeCompute));
+            break;
         }
         default:
             throw RuntimeException("Unrecognized RJOutputType in "
                                    "SingleSPAlgorithm::getRJCompState(): " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
+        return std::make_unique<RJCompState>(
+            std::move(pathLengthsFrontiers), std::move(edgeCompute), move(spOutputs), move(outputWriter));
+
     }
 };
 

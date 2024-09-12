@@ -117,8 +117,6 @@ class PathLengthsFrontiers : public Frontiers {
     friend struct AllSPPathsEdgeCompute;
     friend struct SingleSPLengthsEdgeCompute;
     friend struct SingleSPPathsEdgeCompute;
-    // TODO(Semih): Remove
-    friend struct VarLenJoinsEdgeCompute;
 
 public:
     explicit PathLengthsFrontiers(std::shared_ptr<PathLengths> pathLengths, uint64_t maxThreadsForExec)
@@ -222,11 +220,7 @@ enum class RJOutputType : uint8_t {
     PATHS = 2,
 };
 
-// TODO(Semih): PathLengths should be a member of a new class SPOutputs. It could also be a
-// raw pointer, where the unique_ptr is stored in SinglePathLengthsFrontiers. Also document
-// the SinglePathLengthsFrontiers optimization.
 struct RJOutputs {
-    // TODO(Semih): Refactor sourceNodeID and pathLengths into RJOutputs.
     nodeID_t sourceNodeID;
     // TODO(Semih): Make private or move somewhere else
     std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
@@ -273,20 +267,16 @@ public:
     explicit RJOutputWriter(main::ClientContext* contex, RJOutputs* rjOutputs);
     virtual ~RJOutputWriter() = default;
 
-    // This is called once by the "master" thread.
-    void initWritingFromSource(nodeID_t sourceNodeID);
-
     // TODO(Semih): Have this function implemented in RJOutputs. Then don't make
     // RJOutputWriter::beginWritingForDstNodesInTable be a virtual class but instead make it
     // directly call RJOutputs::beginWritingForDstNodesInTable. Also make RJOutputWriter keep the
     // RJOutputs as a field so we don't need to keep passing it as an argument to skipWriting and
     // write functions.
-    virtual void beginWritingForDstNodesInTable(RJOutputs* rjOutputs, table_id_t tableID) const = 0;
+    virtual void beginWritingForDstNodesInTable(table_id_t tableID) const = 0;
 
-    virtual bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const = 0;
+    virtual bool skipWriting(nodeID_t dstNodeID) const = 0;
 
-    virtual void write(RJOutputs* rjOutputs,
-        processor::FactorizedTable& fTable, nodeID_t dstNodeID) const = 0;
+    virtual void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const = 0;
 
     virtual std::unique_ptr<RJOutputWriter> clone() = 0;
 protected:
@@ -306,7 +296,7 @@ struct RJCompState {
     std::unique_ptr<RJOutputWriter> outputWriter;
 
     explicit RJCompState(std::unique_ptr<function::Frontiers> frontiers,
-        std::unique_ptr<function::EdgeCompute> frontierCompute,
+        std::unique_ptr<function::EdgeCompute> edgeCompute,
         std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter);
 
@@ -334,15 +324,14 @@ class SPOutputWriterDsts : public RJOutputWriter {
 public:
     explicit SPOutputWriterDsts(main::ClientContext* context, RJOutputs* rjOutputs) : RJOutputWriter(context, rjOutputs) {};
 
-    void write(RJOutputs* rjOutputs,
-        processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override;
+    void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override;
 
-    void beginWritingForDstNodesInTable(RJOutputs* rjOutputs, table_id_t tableID) const override {
+    void beginWritingForDstNodesInTable(table_id_t tableID) const override {
         rjOutputs->ptrCast<SPOutputs>()->pathLengths->fixCurFrontierNodeTable(tableID);
-        fixOtherStructuresToOutputDstsFromNodeTable(rjOutputs, tableID);
+        fixOtherStructuresToOutputDstsFromNodeTable(tableID);
     }
 
-    bool skipWriting(RJOutputs* rjOutputs, nodeID_t dstNodeID) const override {
+    bool skipWriting(nodeID_t dstNodeID) const override {
         return dstNodeID == rjOutputs->ptrCast<SPOutputs>()->sourceNodeID || PathLengths::UNVISITED ==
             rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
     }
@@ -351,10 +340,10 @@ public:
         return std::make_unique<SPOutputWriterDsts>(context, rjOutputs);
     }
 protected:
-    virtual void fixOtherStructuresToOutputDstsFromNodeTable(RJOutputs*, table_id_t) const {}
+    virtual void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t) const {}
 
     virtual void writeMoreAndAppend(
-        processor::FactorizedTable& fTable, RJOutputs* rjOutputs, nodeID_t dstNodeID, uint16_t length) const;
+        processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t length) const;
 };
 
 class RJAlgorithm : public GDSAlgorithm {
