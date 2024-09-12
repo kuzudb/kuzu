@@ -51,6 +51,8 @@ public:
 
     JsonScanFormat getFormat() const { return options.format; }
 
+    void setFormat(JsonScanFormat format) { options.format = format; }
+
     void insertBuffer(uint64_t bufferIdx, std::unique_ptr<JsonScanBufferHandle>&& buffer) {
         std::lock_guard<std::mutex> mtx(lock);
         bufferMap.insert(make_pair(bufferIdx, std::move(buffer)));

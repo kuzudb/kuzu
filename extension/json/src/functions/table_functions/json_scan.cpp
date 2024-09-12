@@ -22,6 +22,7 @@ struct JsonScanConfig {
     JsonScanFormat format = JsonConstant::DEFAULT_JSON_FORMAT;
     int64_t depth = JsonConstant::DEFAULT_JSON_DETECT_DEPTH;
     int64_t breadth = JsonConstant::DEFAULT_JSON_DETECT_BREADTH;
+    bool autoDetect = JsonConstant::DEFAULT_AUTO_DETECT_VALUE;
 
     explicit JsonScanConfig(const std::unordered_map<std::string, Value>& options);
 };
@@ -32,11 +33,13 @@ JsonScanConfig::JsonScanConfig(const std::unordered_map<std::string, Value>& opt
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
                 throw BinderException("Format parameter must be a string.");
             }
-            auto tmp = StringUtils::getUpper(i.second.strVal);
-            if (tmp == "ARRAY") {
+            auto formatVal = StringUtils::getUpper(i.second.strVal);
+            if (formatVal == "ARRAY") {
                 format = JsonScanFormat::ARRAY;
-            } else if (tmp == "UNSTRUCTURED") {
+            } else if (formatVal == "UNSTRUCTURED") {
                 format = JsonScanFormat::UNSTRUCTURED;
+            } else if (formatVal == "AUTO") {
+                format = JsonScanFormat::AUTO_DETECT;
             } else {
                 throw RuntimeException(
                     "Invalid JSON file format: Must either be 'unstructured' or 'array'");
@@ -56,6 +59,11 @@ JsonScanConfig::JsonScanConfig(const std::unordered_map<std::string, Value>& opt
                 throw BinderException("Sample size parameter must be an int64.");
             }
             breadth = i.second.val.int64Val;
+        } else if (i.first == "AUTO_DETECT") {
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
+                throw BinderException("Auto detect option must be a bool.");
+            }
+            autoDetect = i.second.val.booleanVal;
         } else {
             throw BinderException(stringFormat("Unrecognized parameter: {}", i.first));
         }
@@ -98,8 +106,6 @@ struct JSONScanLocalState : public TableFuncLocalState {
     bool readNextBuffer();
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
     bool readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone);
-    static void skipWhitespace(uint8_t* bufferPtr, uint64_t& bufferOffset,
-        const uint64_t& bufferSize);
     void skipOverArrayStart();
     void parseNextChunk();
     void parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining);
@@ -135,8 +141,7 @@ bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone)
     return true;
 }
 
-void JSONScanLocalState::skipWhitespace(uint8_t* bufferPtr, uint64_t& bufferOffset,
-    const uint64_t& bufferSize) {
+static void skipWhitespace(uint8_t* bufferPtr, uint64_t& bufferOffset, const uint64_t& bufferSize) {
     for (; bufferOffset != bufferSize; bufferOffset++) {
         if (!common::StringUtils::isSpace(bufferPtr[bufferOffset])) {
             break;
@@ -154,8 +159,8 @@ void JSONScanLocalState::skipOverArrayStart() {
         throw Exception(common::stringFormat(
             "Expected top-level JSON array with format='array', but first character is '{}' in "
             "file \"{}\"."
-            "\n Try setting format='auto' or format='newline_delimited'.",
-            bufferPtr[bufferOffset], currentReader->getFileName()));
+            "\nTry setting format='auto' or format='newline_delimited'.",
+            (reinterpret_cast<char*>(bufferPtr))[bufferOffset], currentReader->getFileName()));
     }
     skipWhitespace(bufferPtr, ++bufferOffset, bufferSize);
     if (bufferOffset >= bufferSize) {
@@ -311,6 +316,17 @@ void JSONScanLocalState::parseNextChunk() {
     }
 }
 
+static JsonScanFormat autoDetectFormat(uint8_t* bufferPtr, uint64_t bufferSize) {
+    uint64_t bufferOffset = 0;
+    skipWhitespace(bufferPtr, bufferOffset, bufferSize);
+    auto remaining = bufferSize - bufferOffset;
+    if (remaining == 0 || bufferPtr[bufferOffset] == '{') {
+        return JsonScanFormat::UNSTRUCTURED;
+    } else {
+        return JsonScanFormat::ARRAY;
+    }
+}
+
 bool JSONScanLocalState::readNextBuffer() {
     auto buffer =
         mm.allocateBuffer(false /* initializeToZero */, JsonConstant::SCAN_BUFFER_CAPACITY);
@@ -327,6 +343,10 @@ bool JSONScanLocalState::readNextBuffer() {
             bool canRead = readNextBufferInternal(bufferIdx, doneRead);
             if (!isLast && canRead) {
                 // We read something
+                if (currentReader->getFormat() == JsonScanFormat::AUTO_DETECT) {
+                    currentReader->setFormat(autoDetectFormat(bufferPtr, bufferSize));
+                }
+
                 if (bufferIdx == 0 && currentReader->getFormat() == JsonScanFormat::ARRAY) {
                     skipOverArrayStart();
                 }
@@ -364,19 +384,14 @@ uint64_t JSONScanLocalState::readNext() {
 }
 
 struct JsonScanBindData : public ScanBindData {
-    case_insensitive_map_t<uint64_t> colNameToIdx;
-    bool scanFromList;
-    bool scanFromStruct;
+    case_insensitive_map_t<idx_t> colNameToIdx;
     JsonScanFormat format;
-    uint64_t numRows;
 
     JsonScanBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, ReaderConfig config, main::ClientContext* ctx,
-        case_insensitive_map_t<uint64_t> colNameToIdx, bool scanFromList, bool scanFromStruct,
-        JsonScanFormat format, uint64_t numRows)
+        case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
         : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx),
-          colNameToIdx{std::move(colNameToIdx)}, scanFromList{scanFromList},
-          scanFromStruct{scanFromStruct}, format{format}, numRows{numRows} {}
+          colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
 
@@ -386,8 +401,7 @@ struct JsonScanBindData : public ScanBindData {
 
 private:
     JsonScanBindData(const JsonScanBindData& other)
-        : ScanBindData{other}, colNameToIdx{other.colNameToIdx}, scanFromList{other.scanFromList},
-          scanFromStruct{other.scanFromStruct}, format{other.format}, numRows{other.numRows} {}
+        : ScanBindData{other}, colNameToIdx{other.colNameToIdx}, format{other.format} {}
 };
 
 uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
@@ -405,55 +419,78 @@ uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
     return colNameToIdx.contains(normalizedName) ? colNameToIdx.at(normalizedName) : UINT64_MAX;
 }
 
+static void autoDetect(main::ClientContext* context, const std::string& filePath,
+    JsonScanConfig& config, std::vector<common::LogicalType>& types,
+    std::vector<std::string>& names, common::case_insensitive_map_t<idx_t>& colNameToIdx) {
+    auto numRowsToDetect = config.breadth;
+    JSONScanSharedState sharedState(*context, filePath, config.format, 0);
+    JSONScanLocalState localState(*context->getMemoryManager(), sharedState.jsonReader.get());
+    while (numRowsToDetect != 0) {
+        auto numTuplesRead = localState.readNext();
+        if (numTuplesRead == 0) {
+            break;
+        }
+        auto next = std::min<uint64_t>(numTuplesRead, numRowsToDetect);
+        yyjson_val *key, *ele;
+        for (auto i = 0u; i < next; i++) {
+            const auto& val = localState.values[i];
+            auto objIter = yyjson_obj_iter_with(val);
+            while ((key = yyjson_obj_iter_next(&objIter))) {
+                ele = yyjson_obj_iter_get_val(key);
+                KU_ASSERT(yyjson_get_type(val) == YYJSON_TYPE_OBJ);
+                std::string fieldName = yyjson_get_str(key);
+                if (!colNameToIdx.contains(fieldName)) {
+                    std::regex pattern(R"(^[^.]+\.(.*))");
+                    std::smatch match;
+                    if (std::regex_match(fieldName, match, pattern) && match.size() > 1) {
+                        fieldName = match[1];
+                    }
+                }
+                idx_t colIdx;
+                if (colNameToIdx.contains(fieldName)) {
+                    colIdx = colNameToIdx.at(fieldName);
+                    types[colIdx] = LogicalTypeUtils::combineTypes(types[colIdx],
+                        jsonSchema(ele, config.depth, config.breadth));
+                } else {
+                    colIdx = names.size();
+                    colNameToIdx.emplace(fieldName, colIdx);
+                    names.push_back(fieldName);
+                    types.push_back(jsonSchema(ele, config.depth, config.breadth));
+                }
+            }
+        }
+        numRowsToDetect -= next;
+    }
+
+    for (auto& type : types) {
+        LogicalTypeUtils::purgeAny(type, LogicalType::STRING());
+    }
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     ScanTableFuncBindInput* scanInput) {
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     JsonScanConfig scanConfig(scanInput->config.options);
-    auto parsedJson = fileToJson(context, scanInput->inputs[0].strVal, scanConfig.format);
-    auto scanFromList = false;
-    auto scanFromStruct = false;
-    if (scanInput->expectedColumnNames.size() > 0) {
+    case_insensitive_map_t<idx_t> colNameToIdx;
+    if (!scanInput->expectedColumnNames.empty() || !scanConfig.autoDetect) {
+        if (scanInput->expectedColumnNames.empty()) {
+            throw common::BinderException{
+                "When auto-detect is set to false, Kuzu requires the "
+                "user to provide column names and types in the LOAD FROM clause."};
+        }
         columnTypes = copyVector(scanInput->expectedColumnTypes);
         columnNames = scanInput->expectedColumnNames;
-        // still need determine scanning mode.
-        if (scanConfig.depth == -1 || scanConfig.depth > 3) {
-            scanConfig.depth = 3;
-        }
-        auto schema = LogicalTypeUtils::purgeAny(
-            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth), LogicalType::STRING());
-        if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
-            schema = ListType::getChildType(schema).copy();
-            scanFromList = true;
-        }
-        if (schema.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-            scanFromStruct = true;
+        idx_t colIdx = 0;
+        for (auto& columnName : columnNames) {
+            colNameToIdx.emplace(columnName, colIdx++);
         }
     } else {
-        auto schema = LogicalTypeUtils::purgeAny(
-            jsonSchema(parsedJson, scanConfig.depth, scanConfig.breadth), LogicalType::STRING());
-        if (schema.getLogicalTypeID() == LogicalTypeID::LIST) {
-            schema = ListType::getChildType(schema).copy();
-            scanFromList = true;
-        }
-        if (schema.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-            for (const auto& i : StructType::getFields(schema)) {
-                columnTypes.push_back(i.getType().copy());
-                columnNames.push_back(i.getName());
-            }
-            scanFromStruct = true;
-        } else {
-            columnTypes.push_back(std::move(schema));
-            columnNames.push_back("json");
-        }
-    }
-    case_insensitive_map_t<uint64_t> colNameToIdx;
-    for (auto i = 0u; i < columnNames.size(); i++) {
-        colNameToIdx.emplace(columnNames[i], i);
+        autoDetect(context, scanInput->config.getFilePath(0), scanConfig, columnTypes, columnNames,
+            colNameToIdx);
     }
     return std::make_unique<JsonScanBindData>(std::move(columnTypes), std::move(columnNames),
-        scanInput->config.copy(), context, std::move(colNameToIdx), scanFromList, scanFromStruct,
-        scanConfig.format, 0);
+        scanInput->config.copy(), context, std::move(colNameToIdx), scanConfig.format);
 }
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
@@ -484,7 +521,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
     auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     return std::make_unique<JSONScanSharedState>(*jsonBindData->context,
-        jsonBindData->config.filePaths[0], jsonBindData->format, jsonBindData->numRows);
+        jsonBindData->config.filePaths[0], jsonBindData->format, 0);
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& /*input*/,
