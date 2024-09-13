@@ -208,6 +208,8 @@ static linenoiseCompletionCallback* completionCallback = NULL;
 static linenoiseHintsCallback* hintsCallback = NULL;
 static linenoiseFreeHintsCallback* freeHintsCallback = NULL;
 static linenoiseHighlightCallback* highlightCallback = NULL;
+static int highlightEnabled = 1; /* Enable syntax highlighting by default */
+static int errorsEnabled = 1;    /* Enable error highlighting by default */
 
 #ifndef _WIN32
 static struct termios orig_termios; /* In order to restore at exit.*/
@@ -979,6 +981,14 @@ void linenoiseSetHighlightCallback(linenoiseHighlightCallback* fn) {
     highlightCallback = fn;
 }
 
+void linenoiseSetErrors(int enabled) {
+    errorsEnabled = enabled;
+}
+
+void linenoiseSetHighlighting(int enabled) {
+    highlightEnabled = enabled;
+}
+
 /* ============================== Completion ================================ */
 
 /* Free a list of completion option populated by linenoiseAddCompletion(). */
@@ -1689,17 +1699,16 @@ static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_
                 render_pos += charRenderWidth;
             }
         }
+        std::string highlight_buffer;
         if (highlight) {
             bool is_shell_command = buf[0] == ':';
-            std::string highlight_buffer;
             auto tokens = highlightingTokenize(buf, len, is_shell_command);
             highlight_buffer = linenoiseHighlightText(buf, len, startPos, charPos, tokens);
-            std::strcpy(highlightBuf, highlight_buffer.c_str());
-            len = highlight_buffer.size();
         } else {
-            buf = buf + startPos;
-            len = charPos - startPos;
+            highlight_buffer = std::string(buf + startPos, charPos - startPos);
         }
+        std::strcpy(highlightBuf, highlight_buffer.c_str());
+        len = highlight_buffer.size();
     } else {
         // Invalid UTF8: fallback.
         while ((plen + pos) >= cols) {
@@ -1733,7 +1742,7 @@ static void refreshSingleLine(struct linenoiseState* l) {
     AppendBuffer append_buffer;
     size_t renderPos = 0;
 
-    truncateText(l->buf, len, pos, l->cols, plen, true, renderPos, buf);
+    truncateText(l->buf, len, pos, l->cols, plen, highlightEnabled, renderPos, buf);
 
     /* Cursor to left edge */
     snprintf(seq, 64, "\r");
@@ -1979,12 +1988,15 @@ static void refreshMultiLine(struct linenoiseState* l) {
     }
 
     std::vector<highlightToken> tokens;
-    bool is_shell_command = l->buf[0] == ':';
-    tokens = highlightingTokenize(render_buf, render_len, is_shell_command);
+    if (highlightEnabled) {
+        bool is_shell_command = l->buf[0] == ':';
+        tokens = highlightingTokenize(render_buf, render_len, is_shell_command);
 
-    // add error highlighting
-    addErrorHighlighting(render_start, render_end, tokens, l);
-
+        if (errorsEnabled) {
+            // add error highlighting
+            addErrorHighlighting(render_start, render_end, tokens, l);
+        }
+    }
     std::string continue_buffer;
     if (rows > 1) {
         // add continuation markers
@@ -1994,10 +2006,13 @@ static void refreshMultiLine(struct linenoiseState* l) {
         render_len = continue_buffer.size();
     }
     std::string highlight_buffer;
-    if (Utf8Proc::isValid(render_buf, render_len)) {
-        highlight_buffer = linenoiseHighlightText(render_buf, render_len, 0, render_len, tokens);
-        render_buf = (char*)highlight_buffer.c_str();
-        render_len = highlight_buffer.size();
+    if (highlightEnabled) {
+        if (Utf8Proc::isValid(render_buf, render_len)) {
+            highlight_buffer =
+                linenoiseHighlightText(render_buf, render_len, 0, render_len, tokens);
+            render_buf = (char*)highlight_buffer.c_str();
+            render_len = highlight_buffer.size();
+        }
     }
 
     /* First step: clear all the lines used before. To do so start by
@@ -2215,7 +2230,7 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
     }
 
     char* buffer = (char*)strBuf.c_str();
-    truncateText(buffer, len, l->pos, l->cols, plen, true, render_pos, highlightBuf);
+    truncateText(buffer, len, l->pos, l->cols, plen, highlightEnabled, render_pos, highlightBuf);
     if (strlen(highlightBuf) > 0) {
         highlightSearchMatch(highlightBuf, buf, searchText);
     } else {

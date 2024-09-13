@@ -50,18 +50,20 @@ If `ctrl c` is pressed outside of linenoise, we process it using the `interruptH
 After the `ctrl_c` check is done, we check if the input is a shell command. Shell commands start with a `:` and if the input starts with a `:` we can send it to the `processShellCommands()` function. Shell commands are marked in the shell command array defined near the top of the file. 
 ```c++
 // build-in shell command
-struct  ShellCommand {
-const  char* HELP = ":help";
-const  char* CLEAR = ":clear";
-const  char* QUIT = ":quit";
-const  char* MAX_ROWS = ":max_rows";
-const  char* MAX_WIDTH = ":max_width";
-const  char* MODE = ":mode";
-const  char* STATS = ":stats";
-const  char* MULTI = ":multiline";
-const  char* SINGLE = ":singleline";
-const  std::array<const  char*, 9> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
-STATS, MULTI, SINGLE};
+struct ShellCommand {
+    const char* HELP = ":help";
+    const char* CLEAR = ":clear";
+    const char* QUIT = ":quit";
+    const char* MAX_ROWS = ":max_rows";
+    const char* MAX_WIDTH = ":max_width";
+    const char* MODE = ":mode";
+    const char* STATS = ":stats";
+    const char* MULTI = ":multiline";
+    const char* SINGLE = ":singleline";
+    const char* HIGHLIGHT = ":highlight";
+    const char* ERRORS = ":render_errors";
+    const std::array<const char*, 11> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS, MULTI, SINGLE, HIGHLIGHT, ERRORS};
 } shellCommand;
 ```
 The `processShellCommands()` matches the first word in the input with its corresponding command and calls the function which handles that command. The second word can be used as the argument. If no command is matched, an error is thrown, using the `damerauLevenshteinDistance()` function to find the closest command to the input.

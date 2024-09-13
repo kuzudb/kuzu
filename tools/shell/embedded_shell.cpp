@@ -55,8 +55,10 @@ struct ShellCommand {
     const char* STATS = ":stats";
     const char* MULTI = ":multiline";
     const char* SINGLE = ":singleline";
-    const std::array<const char*, 9> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
-        STATS, MULTI, SINGLE};
+    const char* HIGHLIGHT = ":highlight";
+    const char* ERRORS = ":render_errors";
+    const std::array<const char*, 11> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS, MULTI, SINGLE, HIGHLIGHT, ERRORS};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -224,6 +226,10 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setLinenoiseMode(1);
     } else if (command == shellCommand.SINGLE) {
         setLinenoiseMode(0);
+    } else if (command == shellCommand.HIGHLIGHT) {
+        setHighlighting(arg);
+    } else if (command == shellCommand.ERRORS) {
+        setErrors(arg);
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -502,6 +508,40 @@ void EmbeddedShell::setStats(const std::string& statsString) {
     printf("stats set as %s\n", stats ? "on" : "off");
 }
 
+void EmbeddedShell::setHighlighting(const std::string& highlightString) {
+    std::string highlightStringLower = highlightString;
+    std::transform(highlightStringLower.begin(), highlightStringLower.end(),
+        highlightStringLower.begin(), [](unsigned char c) { return std::tolower(c); });
+    if (highlightStringLower == "on") {
+        linenoiseSetHighlighting(1);
+        printf("enabled syntax highlighting\n");
+    } else if (highlightStringLower == "off") {
+        linenoiseSetHighlighting(0);
+        printf("disabled syntax highlighting\n");
+    } else {
+        printf("Cannot parse '%s' to toggle highlighting. Expect 'on' or 'off'.\n",
+            highlightString.c_str());
+        return;
+    }
+}
+
+void EmbeddedShell::setErrors(const std::string& errorsString) {
+    std::string errorsStringLower = errorsString;
+    std::transform(errorsStringLower.begin(), errorsStringLower.end(), errorsStringLower.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    if (errorsStringLower == "on") {
+        linenoiseSetErrors(1);
+        printf("enabled error highlighting\n");
+    } else if (errorsStringLower == "off") {
+        linenoiseSetErrors(0);
+        printf("disabled error highlighting\n");
+    } else {
+        printf("Cannot parse '%s' to toggle error highlighting. Expect 'on' or 'off'.\n",
+            errorsStringLower.c_str());
+        return;
+    }
+}
+
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
@@ -514,6 +554,9 @@ void EmbeddedShell::printHelp() {
     printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
     printf("%s%s %sset multiline mode\n", TAB, shellCommand.MULTI, TAB);
     printf("%s%s %sset singleline mode (default)\n", TAB, shellCommand.SINGLE, TAB);
+    printf("%s%s [on|off] %stoggle syntax highlighting on or off\n", TAB, shellCommand.HIGHLIGHT,
+        TAB);
+    printf("%s%s [on|off] %stoggle error highlighting on or off\n", TAB, shellCommand.ERRORS, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);

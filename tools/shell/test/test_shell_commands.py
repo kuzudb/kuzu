@@ -15,6 +15,8 @@ def test_help(temp_db) -> None:
             "    :stats [on|off]     toggle query stats on or off",  
             "    :multiline     set multiline mode",
             "    :singleline     set singleline mode (default)",
+            "    :highlight [on|off]     toggle syntax highlighting on or off",
+            "    :render_errors [on|off]     toggle error highlighting on or off",
             "",
             "    Note: you can change and see several system configurations, such as num-threads, ",
             "          timeout, and progress_bar using Cypher CALL statements.",
@@ -546,6 +548,42 @@ def test_singleline(temp_db) -> None:
     )
     result = test.run()
     result.check_stdout("a" * 80)
+
+
+def test_highlight(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":highlight off")
+    )
+    result = test.run()
+    result.check_stdout("disabled syntax highlighting")
+
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":highlight on")
+    )
+    result = test.run()
+    result.check_stdout("enabled syntax highlighting")
+
+
+def test_render_errors(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":render_errors off")
+    )
+    result = test.run()
+    result.check_stdout("disabled error highlighting")
+
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":render_errors on")
+    )
+    result = test.run()
+    result.check_stdout("enabled error highlighting")
 
 
 def test_bad_command(temp_db) -> None:
