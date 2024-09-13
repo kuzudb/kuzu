@@ -1,6 +1,6 @@
 #include "binder/expression/expression_util.h"
-#include "binder/expression/subquery_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/planner.h"
@@ -40,14 +40,16 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan);
 }
 
-static bool isInternalIDCorrelated(const QueryGraphCollection& queryGraphCollection, const expression_vector& exprs) {
+static bool isInternalIDCorrelated(const QueryGraphCollection& queryGraphCollection,
+    const expression_vector& exprs) {
     for (auto& expr : exprs) {
         if (expr->getDataType().getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
             return false;
         }
         // Internal ID might be collected from exists subquery so we need to further check if
         // it is in query graph.
-        if (!queryGraphCollection.contains(expr->constCast<PropertyExpression>().getVariableName())) {
+        if (!queryGraphCollection.contains(
+                expr->constCast<PropertyExpression>().getVariableName())) {
             return false;
         }
     }
