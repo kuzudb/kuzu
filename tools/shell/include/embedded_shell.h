@@ -63,6 +63,10 @@ private:
 
     void setLinenoiseMode(int mode);
 
+    void setHighlighting(const std::string& highlightingString);
+
+    void setErrors(const std::string& errorsString);
+
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> conn;

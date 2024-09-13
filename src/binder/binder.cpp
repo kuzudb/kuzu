@@ -181,6 +181,13 @@ bool Binder::reservedInPropertyLookup(const std::string& name) {
     return ReservedNames::getPropertyLookupName().contains(normalizedName);
 }
 
+void Binder::addToScope(const std::vector<std::string>& names, const expression_vector& exprs) {
+    KU_ASSERT(names.size() == exprs.size());
+    for (auto i = 0u; i < names.size(); ++i) {
+        addToScope(names[i], exprs[i]);
+    }
+}
+
 void Binder::addToScope(const std::string& name, std::shared_ptr<Expression> expr) {
     // TODO(Xiyang): assert name not in scope.
     scope.addExpression(name, std::move(expr));

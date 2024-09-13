@@ -133,7 +133,6 @@ std::pair<expression_vector, std::vector<std::string>> Binder::bindProjectionLis
 
 BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
     const expression_vector& projectionExprs, const std::vector<std::string>& aliases) {
-
     expression_vector groupByExprs;
     expression_vector aggregateExprs;
     KU_ASSERT(projectionExprs.size() == aliases.size());
@@ -160,11 +159,11 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
             expression_vector augmentedGroupByExpressions = groupByExprs;
             for (auto& expression : groupByExprs) {
                 if (ExpressionUtil::isNodePattern(*expression)) {
-                    auto node = (NodeExpression*)expression.get();
-                    augmentedGroupByExpressions.push_back(node->getInternalID());
+                    auto& node = expression->constCast<NodeExpression>();
+                    augmentedGroupByExpressions.push_back(node.getInternalID());
                 } else if (ExpressionUtil::isRelPattern(*expression)) {
-                    auto rel = (RelExpression*)expression.get();
-                    augmentedGroupByExpressions.push_back(rel->getInternalIDProperty());
+                    auto& rel = expression->constCast<RelExpression>();
+                    augmentedGroupByExpressions.push_back(rel.getInternalIDProperty());
                 }
             }
             boundProjectionBody.setGroupByExpressions(std::move(augmentedGroupByExpressions));
@@ -173,25 +172,26 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
     }
     // Bind order by
     if (projectionBody.hasOrderByExpressions()) {
-        addExpressionsToScope(projectionExprs);
-        auto orderByExpressions = bindOrderByExpressions(projectionBody.getOrderByExpressions());
         // Cypher rule of ORDER BY expression scope: if projection contains aggregation, only
         // expressions in projection are available. Otherwise, expressions before projection are
         // also available
+        expression_vector orderByExprs;
         if (boundProjectionBody.hasAggregateExpressions()) {
-            // TODO(Xiyang): abstract return/with clause as a temporary table and introduce
-            // reference expression to solve this. Our property expression should also be changed to
-            // reference expression.
-            auto projectionExpressionSet =
-                expression_set{projectionExprs.begin(), projectionExprs.end()};
-            for (auto& orderByExpression : orderByExpressions) {
-                if (!projectionExpressionSet.contains(orderByExpression)) {
-                    throw BinderException("Order by expression " + orderByExpression->toString() +
-                                          " is not in RETURN or WITH clause.");
-                }
+            scope.clear();
+            KU_ASSERT(projectionBody.getProjectionExpressions().size() == projectionExprs.size());
+            std::vector<std::string> tmpAliases;
+            for (auto& expr : projectionBody.getProjectionExpressions()) {
+                tmpAliases.push_back(expr->hasAlias() ? expr->getAlias() : expr->toString());
             }
+            addToScope(tmpAliases, projectionExprs);
+            expressionBinder.bindOrderByAfterAggregation = true;
+            orderByExprs = bindOrderByExpressions(projectionBody.getOrderByExpressions());
+            expressionBinder.bindOrderByAfterAggregation = false;
+        } else {
+            addToScope(aliases, projectionExprs);
+            orderByExprs = bindOrderByExpressions(projectionBody.getOrderByExpressions());
         }
-        boundProjectionBody.setOrderByExpressions(std::move(orderByExpressions),
+        boundProjectionBody.setOrderByExpressions(std::move(orderByExprs),
             projectionBody.getSortOrders());
     }
     // Bind skip
@@ -208,18 +208,18 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
 }
 
 expression_vector Binder::bindOrderByExpressions(
-    const std::vector<std::unique_ptr<ParsedExpression>>& orderByExpressions) {
-    expression_vector boundOrderByExpressions;
-    for (auto& expression : orderByExpressions) {
-        auto boundExpression = expressionBinder.bindExpression(*expression);
-        if (boundExpression->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
-            boundExpression->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
-            throw BinderException("Cannot order by " + boundExpression->toString() +
-                                  ". Order by node or rel is not supported.");
+    const std::vector<std::unique_ptr<ParsedExpression>>& parsedExprs) {
+    expression_vector exprs;
+    for (auto& parsedExpr : parsedExprs) {
+        auto expr = expressionBinder.bindExpression(*parsedExpr);
+        if (expr->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
+            expr->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
+            throw BinderException(
+                "Cannot order by " + expr->toString() + ". Order by node or rel is not supported.");
         }
-        boundOrderByExpressions.push_back(std::move(boundExpression));
+        exprs.push_back(std::move(expr));
     }
-    return boundOrderByExpressions;
+    return exprs;
 }
 
 uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
@@ -249,14 +249,6 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
         throw BinderException(errorMsg);
     }
     return num;
-}
-
-void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {
-    for (auto& expression : projectionExpressions) {
-        // In RETURN clause, if expression is not aliased, its input name will serve its alias.
-        auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        addToScope(alias, expression);
-    }
 }
 
 } // namespace binder
