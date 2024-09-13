@@ -20,7 +20,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
         auto nodeTable = storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>();
         auto offsetPos = DataPos(outSchema->getExpressionPos(*info.offset));
         auto keyPos = DataPos(outSchema->getExpressionPos(*info.key));
-        indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(nodeTable, keyPos, offsetPos));
+        std::vector<DataPos> warningDataPos;
+        for (const auto& warningDataExpr : info.warningData) {
+            warningDataPos.push_back(DataPos(outSchema->getExpressionPos(*warningDataExpr)));
+        }
+        indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(nodeTable, keyPos, offsetPos,
+            std::move(warningDataPos)));
     }
     binder::expression_vector expressions;
     for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
@@ -28,8 +33,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
     }
     auto printInfo = std::make_unique<IndexLookupPrintInfo>(expressions);
     auto sharedState = std::make_shared<IndexLookupSharedState>();
-    return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(sharedState),
-        std::move(prevOperator), getOperatorID(), std::move(printInfo));
+    return std::make_unique<IndexLookup>(std::move(indexLookupInfos),
+        logicalIndexScan.getIgnoreErrors(), std::move(sharedState), std::move(prevOperator),
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

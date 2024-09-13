@@ -15,9 +15,9 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace planner {
 
-static void appendIndexScan(std::vector<IndexLookupInfo> infos, LogicalPlan& plan) {
-    auto indexScan =
-        std::make_shared<LogicalPrimaryKeyLookup>(std::move(infos), plan.getLastOperator());
+static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan& plan) {
+    auto indexScan = std::make_shared<LogicalPrimaryKeyLookup>(extraInfo.infos,
+        extraInfo.ignoreErrors, plan.getLastOperator());
     indexScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(indexScan));
 }
@@ -114,7 +114,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
         KU_UNREACHABLE;
     }
     auto& extraInfo = info->extraInfo->constCast<ExtraBoundCopyRelInfo>();
-    appendIndexScan(extraInfo.infos, *plan);
+    appendIndexScan(extraInfo, *plan);
     appendPartitioner(*info, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;

@@ -32,6 +32,8 @@ public:
     static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
         if constexpr (std::is_same_v<T, std::string>) {
             return val;
+        } else if constexpr (std::is_same_v<T, ku_string_t>) {
+            return val.getAsString();
         } else {
             static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
                           std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||

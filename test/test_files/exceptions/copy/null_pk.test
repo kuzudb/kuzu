@@ -53,7 +53,7 @@ bob
 ---- ok
 -STATEMENT COPY like FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/eLikes.csv"
 ---- error
-Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.
+Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE NullPrimaryKeyInRelFileIgnoreErrors
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson-valid.csv"
@@ -61,4 +61,9 @@ Runtime exception: Found NULL, which violates the non-null constraint of the pri
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vMovie.csv"
 ---- ok
 -STATEMENT COPY like FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/eLikes.csv"(IGNORE_ERRORS=true)
----- 0
+---- 2
+3 tuples have been copied to the like table.
+1 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 5
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
+---- 1
+Found NULL, which violates the non-null constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/eLikes.csv|3|,0

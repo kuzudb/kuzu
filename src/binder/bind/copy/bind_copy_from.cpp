@@ -133,12 +133,17 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs;
+    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
     if (boundSource->type == ScanSourceType::FILE) {
         auto& source = boundSource->constCast<BoundTableScanSource>();
-        for (column_id_t i = source.info.bindData->numWarningDataColumns; i >= 1; --i) {
+        auto bindData = source.info.bindData->constPtrCast<ScanBindData>();
+        for (column_id_t i = bindData->numWarningDataColumns; i >= 1; --i) {
             KU_ASSERT(i < source.info.columns.size());
             warningDataExprs.push_back(source.info.columns[source.info.columns.size() - i]);
         }
+
+        ignoreErrors =
+            bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME, ignoreErrors);
     }
     auto columns = boundSource->getColumns();
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
@@ -161,12 +166,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         evaluateTypes.push_back(evaluateType);
     }
     columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
-    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey);
-    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
+    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, warningDataExprs);
+    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, warningDataExprs);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
     auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
-        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
+        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos, ignoreErrors);
     auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
         std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

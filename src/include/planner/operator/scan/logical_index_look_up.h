@@ -13,9 +13,10 @@ class LogicalPrimaryKeyLookup : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::INDEX_LOOK_UP;
 
 public:
-    LogicalPrimaryKeyLookup(std::vector<binder::IndexLookupInfo> infos,
+    LogicalPrimaryKeyLookup(std::vector<binder::IndexLookupInfo> infos, bool ignoreErrors,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)} {}
+        : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)},
+          ignoreErrors(ignoreErrors) {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -24,13 +25,15 @@ public:
 
     uint32_t getNumInfos() const { return infos.size(); }
     const binder::IndexLookupInfo& getInfo(uint32_t idx) const { return infos[idx]; }
+    bool getIgnoreErrors() const { return ignoreErrors; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalPrimaryKeyLookup>(infos, children[0]->copy());
+        return make_unique<LogicalPrimaryKeyLookup>(infos, ignoreErrors, children[0]->copy());
     }
 
 private:
     std::vector<binder::IndexLookupInfo> infos;
+    bool ignoreErrors;
 };
 
 } // namespace planner

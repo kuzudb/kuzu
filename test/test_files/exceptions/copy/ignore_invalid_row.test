@@ -143,6 +143,28 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 4|9|11|vgood
 6|1|1|vbad
 
+-CASE ParallelSkipInvalidRelMissingPK
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson-valid.csv"
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie-valid.csv"(HEADER=true)
+---- ok
+-STATEMENT COPY watch FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"(IGNORE_ERRORS=true)
+---- 2
+2 tuples have been copied to the watch table.
+7 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
+-STATEMENT MATCH (a:person)-[l:watch]->(b:movie) return a.ID, b.ID
+0|0
+2|0
+-STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line
+---- 7
+Unable to find primary key value 5.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|2|5,0
+Unable to find primary key value 3.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|4|3,4
+Unable to find primary key value 123.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|5|123,0
+Unable to find primary key value 6.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|8|6,0
+Unable to find primary key value 7.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|9|7,0
+Unable to find primary key value 1.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|3|0,1
+Unable to find primary key value 321.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv|6|0,321
+
 -CASE ParallelSkipInvalidNodeTableRowsMultipleFilesSomeEmptyHasHeaderMismatch
 -STATEMENT CALL threads=2
 ---- ok

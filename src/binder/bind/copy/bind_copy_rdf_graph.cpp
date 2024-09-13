@@ -112,7 +112,10 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto oLookUp = IndexLookupInfo(rTableID, oOffset, o);
     auto lookupInfos = std::vector<IndexLookupInfo>{sLookUp, pLookUp, oLookUp};
     auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2, 3};
-    auto extraInfo = std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
+    const bool ignoreErrors = bindData.constPtrCast<ScanBindData>()->config.getOption(
+        CopyConstants::IGNORE_ERRORS_OPTION_NAME, CopyConstants::DEFAULT_IGNORE_ERRORS);
+    auto extraInfo =
+        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos, ignoreErrors);
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     expression_vector rrrCopyColumns{sOffset, oOffset, rowOffset, pOffset};
@@ -155,7 +158,10 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralTriplesInfo(const RdfReaderConfig& c
     auto pLookUp = IndexLookupInfo(rTableID, pOffset, p);
     auto lookupInfos = std::vector<IndexLookupInfo>{sLookUp, pLookUp};
     auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2, 3};
-    auto extraInfo = std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
+    const bool ignoreErrors = bindData.constPtrCast<ScanBindData>()->config.getOption(
+        CopyConstants::IGNORE_ERRORS_OPTION_NAME, CopyConstants::DEFAULT_IGNORE_ERRORS);
+    auto extraInfo =
+        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos, ignoreErrors);
     auto rowOffset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         InternalKeyword::ROW_OFFSET);
     expression_vector rrlCopyColumns{sOffset, oOffset, rowOffset, pOffset};

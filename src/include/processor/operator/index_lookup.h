@@ -17,14 +17,13 @@ struct IndexLookupInfo {
     std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
+    std::vector<DataPos> warningDataPos;
 
     IndexLookupInfo(storage::NodeTable* nodeTable, const DataPos& keyVectorPos,
-        const DataPos& resultVectorPos)
+        const DataPos& resultVectorPos, std::vector<DataPos> warningDataPos)
         : nodeTable{nodeTable}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
-          resultVectorPos{resultVectorPos} {}
-    IndexLookupInfo(const IndexLookupInfo& other)
-        : nodeTable{other.nodeTable}, batchInsertSharedState{other.batchInsertSharedState},
-          keyVectorPos{other.keyVectorPos}, resultVectorPos{other.resultVectorPos} {}
+          resultVectorPos{resultVectorPos}, warningDataPos(std::move(warningDataPos)) {}
+    IndexLookupInfo(const IndexLookupInfo& other) = default;
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
         return std::make_unique<IndexLookupInfo>(*this);
@@ -48,6 +47,8 @@ private:
 };
 
 struct IndexLookupSharedState {
+    IndexLookupSharedState() : errorCounter(std::make_shared<common::row_idx_t>(0)), mtx() {}
+
     std::shared_ptr<common::row_idx_t> errorCounter;
     std::mutex mtx;
 };
@@ -63,12 +64,13 @@ class IndexLookup : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 
 public:
-    IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos,
+    IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos, bool ignoreErrors,
         std::shared_ptr<IndexLookupSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          infos{std::move(infos)}, sharedState(std::move(sharedState)) {}
+          infos{std::move(infos)}, ignoreErrors(ignoreErrors), sharedState(std::move(sharedState)) {
+    }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -80,13 +82,11 @@ public:
 
 private:
     void lookup(transaction::Transaction* transaction, const IndexLookupInfo& info);
-    void checkNullKeys(common::ValueVector* keyVector);
-    void fillOffsetArraysFromVector(transaction::Transaction* transaction,
-        const IndexLookupInfo& info, common::ValueVector* keyVector,
-        common::ValueVector* resultVector);
 
 private:
     std::vector<std::unique_ptr<IndexLookupInfo>> infos;
+    bool ignoreErrors;
+
     std::unique_ptr<IndexLookupLocalState> localState;
     std::shared_ptr<IndexLookupSharedState> sharedState;
 };
