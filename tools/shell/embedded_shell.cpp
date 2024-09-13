@@ -512,8 +512,8 @@ void EmbeddedShell::printHelp() {
         shellCommand.MAX_WIDTH, TAB);
     printf("%s%s [mode] %sset output mode (default: box)\n", TAB, shellCommand.MODE, TAB);
     printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
-    printf("%s%s %sset multiline mode\n", TAB, shellCommand.MULTI, TAB);
-    printf("%s%s %sset singleline mode (default)\n", TAB, shellCommand.SINGLE, TAB);
+    printf("%s%s %sset multiline mode (default)\n", TAB, shellCommand.MULTI, TAB);
+    printf("%s%s %sset singleline mode\n", TAB, shellCommand.SINGLE, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);
