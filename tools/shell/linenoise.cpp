@@ -216,7 +216,7 @@ static struct termios orig_termios; /* In order to restore at exit.*/
 #endif
 static int maskmode = 0;          /* Show "***" instead of input. For passwords. */
 static int rawmode = 0;           /* For atexit() function to check if restore is needed*/
-static int mlmode = 0;            /* Multi line mode. Default is single line. */
+static int mlmode = 1;            /* Multi line mode. Default is multiline line. */
 static int search_mlmode = 1;     /* Marks if multiline is used for search*/
 static int atexit_registered = 0; /* Register atexit just 1 time. */
 static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;

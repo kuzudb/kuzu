@@ -14,15 +14,14 @@ def set_up_search(test) -> None:
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
 
 
-def test_accept_search(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_accept_search(test) -> None:
     test.send_finished_statement('RETURN "databases" AS a;\r')
     assert test.shell_process.expect_exact(["\u2502 databases \u2502", pexpect.EOF]) == 0
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
     test.send_statement("databases")
     test.send_statement("\x1b\x1b")
-    test.send_finished_statement(" rule\r")
+    test.send_finished_statement(" rule\x1b[F\r")
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
 
@@ -34,9 +33,8 @@ def test_accept_search(temp_db) -> None:
         "\x1bOH",
     ],
 )
-def test_accept_move_home(temp_db, esc) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_accept_move_home(test, esc) -> None:
     test.send_finished_statement('"databases rule" AS a;\r')
     assert (
         test.shell_process.expect_exact(
@@ -50,7 +48,7 @@ def test_accept_move_home(temp_db, esc) -> None:
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
     test.send_statement("databases")
     test.send_statement(esc)
-    test.send_statement("RETURN ")
+    test.send_statement("RETURN \x1b[F")
     test.send_finished_statement(KEY_ACTION.ENTER.value)
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
@@ -64,9 +62,8 @@ def test_accept_move_home(temp_db, esc) -> None:
         "\x1bOF",
     ],
 )
-def test_accept_move_end(temp_db, esc) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_accept_move_end(test, esc) -> None:
     test.send_finished_statement('RETURN ;\r')
     assert (
         test.shell_process.expect_exact(
@@ -82,9 +79,8 @@ def test_accept_move_end(temp_db, esc) -> None:
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
 
-def test_next_history(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_next_history(test) -> None:
     set_up_search(test)
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
     test.send_statement("the shell is fun")
@@ -93,9 +89,8 @@ def test_next_history(temp_db) -> None:
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
 
-def test_prev_history(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_prev_history(test) -> None:
     set_up_search(test)
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
     test.send_statement("databases")
@@ -104,25 +99,23 @@ def test_prev_history(temp_db) -> None:
     assert test.shell_process.expect_exact(["\u2502 the shell is fun \u2502", pexpect.EOF]) == 0
 
 
-def test_move_left(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_move_left(test) -> None:
     test.send_finished_statement('RETURN "databasesrule" AS a;\r')
     assert test.shell_process.expect_exact(["\u2502 databasesrule \u2502", pexpect.EOF]) == 0
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
     test.send_statement("databasesr")
     test.send_statement("\x1b[D")
-    test.send_finished_statement(" \r")
+    test.send_finished_statement(" \x1b[F\r")
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
 
 
-def test_move_right(temp_db) -> None:
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+@pytest.mark.parametrize('test', ['multiline', 'singleline'], indirect=True)
+def test_move_right(test) -> None:
     test.send_finished_statement('RETURN "databasesrule" AS a;\r')
     assert test.shell_process.expect_exact(["\u2502 databasesrule \u2502", pexpect.EOF]) == 0
     test.send_control_statement(KEY_ACTION.CTRL_R.value)
     test.send_statement("database")
     test.send_statement("\x1b[C")
-    test.send_finished_statement(" \r")
+    test.send_finished_statement(" \x1b[F\r")
     assert test.shell_process.expect_exact(["\u2502 databases rule \u2502", pexpect.EOF]) == 0
