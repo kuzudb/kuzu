@@ -56,6 +56,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
 }
 
+static std::pair<column_id_t, bool> getWarningData(const BoundCopyFromInfo* copyFromInfo) {
+    column_id_t numWarningDataColumns = 0;
+    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
+    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
+        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
+            copyFromInfo->source.get());
+        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
+            boundScanSource->info.bindData.get());
+        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+            CopyConstants::DEFAULT_IGNORE_ERRORS);
+        numWarningDataColumns = bindData->numWarningDataColumns;
+    }
+    return {numWarningDataColumns, ignoreErrors};
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* logicalOperator) {
     const auto storageManager = clientContext->getStorageManager();
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
@@ -90,17 +105,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
 
-    column_id_t numWarningDataColumns = 0;
-    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
-    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
-        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
-            copyFromInfo->source.get());
-        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-            boundScanSource->info.bindData.get());
-        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            CopyConstants::DEFAULT_IGNORE_ERRORS);
-        numWarningDataColumns = bindData->numWarningDataColumns;
-    }
+    const auto [numWarningDataColumns, ignoreErrors] = getWarningData(copyFromInfo);
 
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
@@ -160,22 +165,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
 
-    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
-    column_id_t numWarningDataColumns = 0;
-    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
-        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
-            copyFromInfo->source.get());
-        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-            boundScanSource->info.bindData.get());
-        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            CopyConstants::DEFAULT_IGNORE_ERRORS);
-        numWarningDataColumns = bindData->numWarningDataColumns;
-    }
+    const auto [numWarningDataColumns, ignoreErrors] = getWarningData(copyFromInfo);
 
     KU_ASSERT(numWarningDataColumns <= copyFromInfo->columnExprs.size());
-    for (column_id_t i = copyFromInfo->columnExprs.size() - numWarningDataColumns;
-         i < copyFromInfo->columnExprs.size(); ++i) {
-        columnTypes.push_back(copyFromInfo->columnExprs[i]->getDataType().copy());
+    for (column_id_t i = numWarningDataColumns; i >= 1; --i) {
+        columnTypes.push_back(
+            copyFromInfo->columnExprs[copyFromInfo->columnExprs.size() - i]->getDataType().copy());
     }
 
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,

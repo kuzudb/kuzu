@@ -31,8 +31,7 @@ public:
         setCurrentErroneousRow(error.key, error.nodeID);
         deleteCurrentErroneousRow();
 
-        baseErrorHandler.handleError(
-            BatchInsertCachedError{std::move(error.message), std::move(error.warningData)});
+        baseErrorHandler.handleError(std::move(error.message), std::move(error.warningData));
     }
 
     void flushStoredErrors();

@@ -46,13 +46,6 @@ private:
         : OPPrintInfo{other}, expressions{other.expressions} {}
 };
 
-struct IndexLookupSharedState {
-    IndexLookupSharedState() : errorCounter(std::make_shared<common::row_idx_t>(0)), mtx() {}
-
-    std::shared_ptr<common::row_idx_t> errorCounter;
-    std::mutex mtx;
-};
-
 struct IndexLookupLocalState {
     explicit IndexLookupLocalState(std::unique_ptr<BatchInsertErrorHandler> errorHandler)
         : errorHandler(std::move(errorHandler)) {}
@@ -65,12 +58,10 @@ class IndexLookup : public PhysicalOperator {
 
 public:
     IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos, bool ignoreErrors,
-        std::shared_ptr<IndexLookupSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          infos{std::move(infos)}, ignoreErrors(ignoreErrors), sharedState(std::move(sharedState)) {
-    }
+          infos{std::move(infos)}, ignoreErrors(ignoreErrors) {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -88,7 +79,6 @@ private:
     bool ignoreErrors;
 
     std::unique_ptr<IndexLookupLocalState> localState;
-    std::shared_ptr<IndexLookupSharedState> sharedState;
 };
 
 } // namespace processor

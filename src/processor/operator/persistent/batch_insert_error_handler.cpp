@@ -29,6 +29,26 @@ bool BatchInsertErrorHandler::getIgnoreErrors() const {
     return ignoreErrors;
 }
 
+void BatchInsertErrorHandler::handleError(std::string message,
+    std::optional<WarningSourceData> warningData) {
+    handleError(BatchInsertCachedError{std::move(message), std::move(warningData)});
+}
+
+void BatchInsertErrorHandler::handleError(BatchInsertCachedError error) {
+    if (!ignoreErrors) {
+        throw common::CopyException(error.message);
+    }
+
+    if (getNumErrors() >= warningLimit) {
+        flushStoredErrors();
+    }
+
+    addNewVectorsIfNeeded();
+    KU_ASSERT(currentInsertIdx < cachedErrors.size());
+    cachedErrors[currentInsertIdx] = std::move(error);
+    ++currentInsertIdx;
+}
+
 void BatchInsertErrorHandler::flushStoredErrors() {
     std::map<uint64_t, std::vector<CSVError>> unpopulatedErrors;
 
@@ -52,7 +72,8 @@ void BatchInsertErrorHandler::flushStoredErrors() {
         }
     }
 
-    if (numErrorsFlushed > 0) {
+    if (numErrorsFlushed > 0 && sharedErrorCounter != nullptr) {
+        KU_ASSERT(sharedErrorCounterMtx);
         common::UniqLock lockGuard{*sharedErrorCounterMtx};
         *sharedErrorCounter += numErrorsFlushed;
     }

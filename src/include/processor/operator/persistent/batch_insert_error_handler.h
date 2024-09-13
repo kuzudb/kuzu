@@ -20,22 +20,12 @@ struct BatchInsertCachedError {
 class BatchInsertErrorHandler {
 public:
     BatchInsertErrorHandler(ExecutionContext* context, bool ignoreErrors,
-        std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx);
+        std::shared_ptr<common::row_idx_t> sharedErrorCounter = nullptr,
+        std::mutex* sharedErrorCounterMtx = nullptr);
 
-    void handleError(BatchInsertCachedError error) {
-        if (!ignoreErrors) {
-            throw common::CopyException(error.message);
-        }
+    void handleError(std::string message, std::optional<WarningSourceData> warningData = {});
 
-        if (getNumErrors() >= warningLimit) {
-            flushStoredErrors();
-        }
-
-        addNewVectorsIfNeeded();
-        KU_ASSERT(currentInsertIdx < cachedErrors.size());
-        cachedErrors[currentInsertIdx] = std::move(error);
-        ++currentInsertIdx;
-    }
+    void handleError(BatchInsertCachedError error);
 
     void flushStoredErrors();
     bool getIgnoreErrors() const;

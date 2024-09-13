@@ -38,11 +38,43 @@ bool checkNullKey(ValueVector* keyVector, offset_t vectorOffset,
     BatchInsertErrorHandler* errorHandler, const std::vector<ValueVector*>& warningDataVectors) {
     bool isNull = keyVector->isNull(vectorOffset);
     if (isNull) {
-        errorHandler->handleError(BatchInsertCachedError{ExceptionMessage::nullPKException(),
-            getWarningSourceData(warningDataVectors, vectorOffset)});
+        errorHandler->handleError(ExceptionMessage::nullPKException(),
+            getWarningSourceData(warningDataVectors, vectorOffset));
     }
     return !isNull;
 }
+
+struct OffsetVectorManager {
+    OffsetVectorManager(ValueVector* resultVector, BatchInsertErrorHandler* errorHandler)
+        : ignoreErrors(errorHandler->getIgnoreErrors()), resultVector(resultVector),
+          insertOffset(0) {
+        // if we are ignoring errors we may need to filter the output sel vector
+        if (ignoreErrors) {
+            resultVector->state->getSelVectorUnsafe().setToFiltered();
+        }
+    }
+
+    ~OffsetVectorManager() {
+        if (ignoreErrors) {
+            resultVector->state->getSelVectorUnsafe().setSelSize(insertOffset);
+        }
+    }
+
+    void insertEntry(offset_t entry, sel_t posInKeyVector) {
+        auto* offsets = reinterpret_cast<offset_t*>(resultVector->getData());
+        offsets[insertOffset] = entry;
+        if (ignoreErrors) {
+            // if the lookup was successful we may add the current entry to the output selection
+            resultVector->state->getSelVectorUnsafe()[insertOffset] = posInKeyVector;
+        }
+        ++insertOffset;
+    }
+
+    bool ignoreErrors;
+    ValueVector* resultVector;
+
+    offset_t insertOffset;
+};
 
 // TODO(Guodong): Add short path for unfiltered case.
 template<bool hasNoNullsGuarantee>
@@ -50,23 +82,19 @@ void fillOffsetArraysFromVector(transaction::Transaction* transaction, const Ind
     ValueVector* keyVector, ValueVector* resultVector,
     const std::vector<ValueVector*>& warningDataVectors, BatchInsertErrorHandler* errorHandler) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-    auto offsets = (offset_t*)resultVector->getData();
     TypeUtils::visit(
         keyVector->dataType.getPhysicalType(),
         [&]<IndexHashable T>(T) {
             auto numKeys = keyVector->state->getSelVector().getSelSize();
-            std::vector<sel_t> lookupPos;
-            lookupPos.reserve(numKeys);
+
+            // fetch all the selection pos at the start
+            // since we may modify the selection vector in the middle of the lookup
+            std::vector<sel_t> lookupPos(numKeys);
             for (idx_t i = 0; i < numKeys; ++i) {
-                lookupPos.push_back(keyVector->state->getSelVector()[i]);
+                lookupPos[i] = (keyVector->state->getSelVector()[i]);
             }
 
-            // if we are ignoring errors we may need to filter the output sel vector
-            if (errorHandler->getIgnoreErrors()) {
-                resultVector->state->getSelVectorUnsafe().setToFiltered();
-            }
-
-            offset_t insertOffset = 0;
+            OffsetVectorManager resultManager{resultVector, errorHandler};
             for (auto i = 0u; i < numKeys; i++) {
                 auto pos = lookupPos[i];
                 if constexpr (!hasNoNullsGuarantee) {
@@ -74,21 +102,15 @@ void fillOffsetArraysFromVector(transaction::Transaction* transaction, const Ind
                         continue;
                     }
                 }
-                if (!info.nodeTable->lookupPK(transaction, keyVector, pos, offsets[insertOffset])) {
+                offset_t lookupOffset = 0;
+                if (!info.nodeTable->lookupPK(transaction, keyVector, pos, lookupOffset)) {
                     auto key = keyVector->getValue<T>(pos);
-                    errorHandler->handleError(BatchInsertCachedError{
+                    errorHandler->handleError(
                         ExceptionMessage::nonExistentPKException(TypeUtils::toString(key)),
-                        getWarningSourceData(warningDataVectors, pos)});
+                        getWarningSourceData(warningDataVectors, pos));
                 } else {
-                    if (errorHandler->getIgnoreErrors()) {
-                        resultVector->state->getSelVectorUnsafe()[insertOffset] = i;
-                    }
-                    ++insertOffset;
+                    resultManager.insertEntry(lookupOffset, pos);
                 }
-            }
-
-            if (errorHandler->getIgnoreErrors()) {
-                resultVector->state->getSelVectorUnsafe().setSelSize(insertOffset);
             }
         },
         [&](auto) { KU_UNREACHABLE; });
@@ -114,8 +136,8 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 void IndexLookup::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    localState = std::make_unique<IndexLookupLocalState>(std::make_unique<BatchInsertErrorHandler>(
-        context, ignoreErrors, sharedState->errorCounter, &sharedState->mtx));
+    localState = std::make_unique<IndexLookupLocalState>(
+        std::make_unique<BatchInsertErrorHandler>(context, ignoreErrors));
 }
 
 std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
@@ -124,8 +146,8 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
     for (const auto& info : infos) {
         copiedInfos.push_back(info->copy());
     }
-    return make_unique<IndexLookup>(std::move(copiedInfos), ignoreErrors, sharedState,
-        children[0]->clone(), getOperatorID(), printInfo->copy());
+    return make_unique<IndexLookup>(std::move(copiedInfos), ignoreErrors, children[0]->clone(),
+        getOperatorID(), printInfo->copy());
 }
 
 void IndexLookup::setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState) {
