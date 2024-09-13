@@ -3,6 +3,17 @@
 --
 
 -CASE ExistsSubquery
+
+-LOG MultiPartSubquery
+-STATEMENT MATCH (a:person) MATCH (b:person) WHERE (a)-[:knows]->(c:person) RETURN COUNT(*)
+---- 1
+40
+
+-LOG MultiPartSubquery
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (b:person) WHERE (a)-[:knows]->(c:person) RETURN COUNT(*)
+---- 1
+43
+
 -LOG ExistSubqueryTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
 -ENUMERATE

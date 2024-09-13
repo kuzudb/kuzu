@@ -13,16 +13,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-bool ExpressionUtil::isExpressionsWithDataType(const expression_vector& expressions,
-    common::LogicalTypeID dataTypeID) {
-    for (auto& expression : expressions) {
-        if (expression->dataType.getLogicalTypeID() != dataTypeID) {
-            return false;
-        }
-    }
-    return true;
-}
-
 expression_vector ExpressionUtil::getExpressionsWithDataType(const expression_vector& expressions,
     common::LogicalTypeID dataTypeID) {
     expression_vector result;
