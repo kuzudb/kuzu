@@ -225,5 +225,15 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
 }
 
+double RelBatchInsert::getProgress(ExecutionContext* /*context*/) const {
+    if (partitionerSharedState->nextPartitionIdx >= partitionerSharedState->numPartitions.size()) {
+        return 1.0;
+    }
+    if (partitionerSharedState->nextPartitionIdx == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(partitionerSharedState->nextPartitionIdx) / partitionerSharedState->numPartitions.size();
+}
+
 } // namespace processor
 } // namespace kuzu

@@ -80,6 +80,8 @@ public:
             resultSetDescriptor->copy(), id, printInfo->copy());
     }
 
+    double getProgress(ExecutionContext* context) const override;
+
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
