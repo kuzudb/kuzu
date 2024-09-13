@@ -24,6 +24,14 @@ static void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression>
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
+    // Normally u can only reference an existing expression through alias which is a parsed
+    // VARIABLE expression.
+    // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)
+    // the later COUNT(*) should reference the one in projection list. So we need to explicitly
+    // check scope when binding order by list.
+    if (bindOrderByAfterAggregation && binder->scope.contains(parsedExpression.toString())) {
+        return binder->scope.getExpression(parsedExpression.toString());
+    }
     auto collector = ParsedParamExprCollector();
     collector.visit(&parsedExpression);
     if (collector.hasParamExprs()) {

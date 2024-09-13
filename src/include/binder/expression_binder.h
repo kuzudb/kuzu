@@ -124,6 +124,7 @@ private:
     Binder* binder;
     main::ClientContext* context;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
+    bool bindOrderByAfterAggregation = false;
 };
 
 } // namespace binder

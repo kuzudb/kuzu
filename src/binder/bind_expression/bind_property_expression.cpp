@@ -64,7 +64,7 @@ expression_vector ExpressionBinder::bindStructPropertyStarExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
-    auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
+    auto& propertyExpression = parsedExpression.constCast<ParsedPropertyExpression>();
     if (propertyExpression.isStar()) {
         throw BinderException(stringFormat("Cannot bind {} as a single property expression.",
             parsedExpression.toString()));
@@ -74,6 +74,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     ExpressionUtil::validateDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT,
             LogicalTypeID::ANY});
+    if (bindOrderByAfterAggregation) {
+        // If a property is not in projection list but required in order by after aggregation,
+        // we need to bind it as struct extraction because node/rel must have been evaluated as
+        // struct during aggregate
+        // e.g. RETURN a, COUNT(*) ORDER BY a.ID
+        return bindStructPropertyExpression(child, propertyName);
+    }
     if (isNodeOrRelPattern(*child)) {
         if (Binder::reservedInPropertyLookup(propertyName)) {
             // Note we don't expose direct access to internal properties in case user tries to
