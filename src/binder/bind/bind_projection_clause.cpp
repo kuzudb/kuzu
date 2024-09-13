@@ -214,8 +214,8 @@ expression_vector Binder::bindOrderByExpressions(
         auto expr = expressionBinder.bindExpression(*parsedExpr);
         if (expr->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
             expr->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
-            throw BinderException("Cannot order by " + expr->toString() +
-                                  ". Order by node or rel is not supported.");
+            throw BinderException(
+                "Cannot order by " + expr->toString() + ". Order by node or rel is not supported.");
         }
         exprs.push_back(std::move(expr));
     }

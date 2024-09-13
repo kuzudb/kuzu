@@ -11,8 +11,8 @@ class ParsedFunctionExpression : public ParsedExpression {
 
 public:
     ParsedFunctionExpression(std::string functionName, std::string rawName, bool isDistinct = false)
-        : ParsedExpression{expressionType_, std::move(rawName)},
-          isDistinct{isDistinct}, functionName{std::move(functionName)} {}
+        : ParsedExpression{expressionType_, std::move(rawName)}, isDistinct{isDistinct},
+          functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string functionName, std::unique_ptr<ParsedExpression> child,
         std::string rawName, bool isDistinct = false)
@@ -21,8 +21,7 @@ public:
 
     ParsedFunctionExpression(std::string functionName, std::unique_ptr<ParsedExpression> left,
         std::unique_ptr<ParsedExpression> right, std::string rawName, bool isDistinct = false)
-        : ParsedExpression{expressionType_, std::move(left), std::move(right),
-              std::move(rawName)},
+        : ParsedExpression{expressionType_, std::move(left), std::move(right), std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string alias, std::string rawName, parsed_expr_vector children,

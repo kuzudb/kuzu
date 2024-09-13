@@ -23,8 +23,7 @@ public:
           propertyName{std::move(propertyName)} {}
 
     explicit ParsedPropertyExpression(std::string propertyName)
-        : ParsedExpression{expressionType_},
-          propertyName{std::move(propertyName)} {}
+        : ParsedExpression{expressionType_}, propertyName{std::move(propertyName)} {}
 
     std::string getPropertyName() const { return propertyName; }
     bool isStar() const { return propertyName == common::InternalKeyword::STAR; }
