@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/copy.h"
 #include "common/types/types.h"
 #include "processor/execution_context.h"
 
