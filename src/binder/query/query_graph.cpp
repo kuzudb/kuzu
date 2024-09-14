@@ -297,6 +297,15 @@ std::vector<QueryGraph> QueryGraphCollection::mergeGraphs(common::idx_t baseGrap
     return finalGraphs;
 }
 
+bool QueryGraphCollection::contains(const std::string& name) const {
+    for (auto& queryGraph : queryGraphs) {
+        if (queryGraph.containsQueryNode(name) || queryGraph.containsQueryRel(name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<std::shared_ptr<NodeExpression>> QueryGraphCollection::getQueryNodes() const {
     std::vector<std::shared_ptr<NodeExpression>> result;
     for (auto& queryGraph : queryGraphs) {

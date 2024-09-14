@@ -150,10 +150,11 @@ public:
     void addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd);
     void finalize();
 
-    uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
-    QueryGraph* getQueryGraphUnsafe(uint32_t idx) { return &queryGraphs[idx]; }
-    const QueryGraph* getQueryGraph(uint32_t idx) const { return &queryGraphs[idx]; }
+    common::idx_t getNumQueryGraphs() const { return queryGraphs.size(); }
+    QueryGraph* getQueryGraphUnsafe(common::idx_t idx) { return &queryGraphs[idx]; }
+    const QueryGraph* getQueryGraph(common::idx_t idx) const { return &queryGraphs[idx]; }
 
+    bool contains(const std::string& name) const;
     std::vector<std::shared_ptr<NodeExpression>> getQueryNodes() const;
     std::vector<std::shared_ptr<RelExpression>> getQueryRels() const;
 
