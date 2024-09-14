@@ -1,4 +1,5 @@
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -39,6 +40,22 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan);
 }
 
+static bool isInternalIDCorrelated(const QueryGraphCollection& queryGraphCollection,
+    const expression_vector& exprs) {
+    for (auto& expr : exprs) {
+        if (expr->getDataType().getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
+            return false;
+        }
+        // Internal ID might be collected from exists subquery so we need to further check if
+        // it is in query graph.
+        if (!queryGraphCollection.contains(
+                expr->constCast<PropertyExpression>().getVariableName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, const binder::expression_vector& corrExprs,
     std::shared_ptr<Expression> mark, LogicalPlan& leftPlan) {
@@ -63,10 +80,8 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     }
     info.corrExprs = corrExprs;
     info.corrExprsCard = leftPlan.getCardinality();
-    bool isInternalIDCorrelated =
-        ExpressionUtil::isExpressionsWithDataType(corrExprs, LogicalTypeID::INTERNAL_ID);
     std::unique_ptr<LogicalPlan> rightPlan;
-    if (isInternalIDCorrelated) {
+    if (isInternalIDCorrelated(queryGraphCollection, corrExprs)) {
         // If all correlated expressions are node IDs. We can trivially unnest by scanning internal
         // ID in both outer and inner plan as these are fast in-memory operations. For node
         // properties, we only scan in the outer query.
@@ -87,8 +102,6 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
-    auto correlatedExpressions =
-        getCorrelatedExprs(queryGraphCollection, predicates, leftPlan.getSchema());
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
@@ -99,6 +112,8 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
             predicatesToPullUp.push_back(predicate);
         }
     }
+    auto correlatedExpressions =
+        getCorrelatedExprs(queryGraphCollection, predicatesToPushDown, leftPlan.getSchema());
     auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(correlatedExpressions,
         LogicalTypeID::INTERNAL_ID);
     auto info = QueryGraphPlanningInfo();
@@ -157,11 +172,9 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
         }
         appendCrossProduct(outerPlan, *innerPlan, outerPlan);
     } else {
-        auto isInternalIDCorrelated =
-            ExpressionUtil::isExpressionsWithDataType(correlatedExprs, LogicalTypeID::INTERNAL_ID);
         info.corrExprs = correlatedExprs;
         info.corrExprsCard = outerPlan.getCardinality();
-        if (isInternalIDCorrelated) {
+        if (isInternalIDCorrelated(*subquery->getQueryGraphCollection(), correlatedExprs)) {
             info.subqueryType = SubqueryType::INTERNAL_ID_CORRELATED;
             innerPlan =
                 planQueryGraphCollectionInNewContext(*subquery->getQueryGraphCollection(), info);
