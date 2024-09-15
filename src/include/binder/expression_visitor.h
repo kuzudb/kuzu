@@ -61,15 +61,15 @@ private:
 
 class AggregateExprCollector final : public ExpressionVisitor {
 public:
-    AggregateExprCollector() : hasAggregate_{false} {}
+    AggregateExprCollector() {}
 
-    bool hasAggregate() const { return hasAggregate_; }
+    expression_vector getAggregates() const { return exprs; }
 
 protected:
-    void visitAggFunctionExpr(std::shared_ptr<Expression>) override { hasAggregate_ = true; }
+    void visitAggFunctionExpr(std::shared_ptr<Expression> expr) override { exprs.push_back(expr); }
 
 private:
-    bool hasAggregate_;
+    expression_vector exprs;
 };
 
 class DependentVarNameCollector final : public ExpressionVisitor {

@@ -20,8 +20,6 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-static void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression);
-
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
     // Normally u can only reference an existing expression through alias which is a parsed
@@ -81,7 +79,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         throw NotImplementedException(
             "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");
     }
-    validateAggregationExpressionIsNotNested(expression);
     if (ConstantExpressionVisitor::needFold(*expression)) {
         return foldExpression(expression);
     }
@@ -140,19 +137,6 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
     auto children =
         expression_vector{expression, createLiteralExpression(Value(targetType.toString()))};
     return bindScalarFunctionExpression(children, functionName);
-}
-
-void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression) {
-    if (expression->expressionType != ExpressionType::AGGREGATE_FUNCTION ||
-        expression->getNumChildren() == 0) {
-        return;
-    }
-    auto collector = AggregateExprCollector();
-    collector.visit(expression->getChild(0));
-    if (collector.hasAggregate()) {
-        throw BinderException(
-            stringFormat("Expression {} contains nested aggregation.", expression->toString()));
-    }
 }
 
 std::string ExpressionBinder::getUniqueName(const std::string& name) const {

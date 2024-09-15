@@ -131,6 +131,21 @@ std::pair<expression_vector, std::vector<std::string>> Binder::bindProjectionLis
     return {projectionExprs, aliases};
 }
 
+static void validateNestedAggregate(const Expression& expr, const BinderScope& scope) {
+    KU_ASSERT(expr.expressionType == ExpressionType::AGGREGATE_FUNCTION);
+    if (expr.getNumChildren() == 0) { // Skip COUNT(*)
+        return;
+    }
+    auto collector = AggregateExprCollector();
+    collector.visit(expr.getChild(0));
+    for (auto& agg : collector.getAggregates()) {
+        if (!scope.contains(agg->getAlias())) {
+            throw BinderException(
+                stringFormat("Expression {} contains nested aggregation.", expr.toString()));
+        }
+    }
+}
+
 BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& projectionBody,
     const expression_vector& projectionExprs, const std::vector<std::string>& aliases) {
     expression_vector groupByExprs;
@@ -153,6 +168,9 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
     boundProjectionBody.setProjectionExpressions(projectionExprs);
 
     if (!aggregateExprs.empty()) {
+        for (auto& expr : aggregateExprs) {
+            validateNestedAggregate(*expr, scope);
+        }
         if (!groupByExprs.empty()) {
             // TODO(Xiyang): we can remove augment group by. But make sure we test sufficient
             // including edge case and bug before release.
