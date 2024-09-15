@@ -18,7 +18,7 @@ public:
     virtual ~SelVectorOverWriter() = default;
 
 protected:
-    void restoreSelVector(common::DataChunkState& dataChunkState);
+    void restoreSelVector(common::DataChunkState& dataChunkState) const;
 
     void saveSelVector(common::DataChunkState& dataChunkState);
 

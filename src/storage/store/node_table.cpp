@@ -92,7 +92,6 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
     KU_ASSERT(scanState.source != TableScanSource::NONE &&
               scanState.columns.size() == scanState.outputVectors.size());
     for (const auto& outputVector : scanState.outputVectors) {
-        KU_ASSERT(outputVector->state == scanState.IDVector->state);
         KU_UNUSED(outputVector);
     }
     const auto scanResult = scanState.nodeGroup->scan(transaction, scanState);
@@ -104,19 +103,19 @@ bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState
         nodeGroupStartOffset += StorageConstants::MAX_NUM_ROWS_IN_TABLE;
     }
     for (auto i = 0u; i < scanResult.numRows; i++) {
-        scanState.IDVector->setValue(i,
+        scanState.nodeIDVector->setValue(i,
             nodeID_t{nodeGroupStartOffset + scanResult.startRow + i, tableID});
     }
     return true;
 }
 
 bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState) const {
-    KU_ASSERT(scanState.IDVector->state->getSelVector().getSelSize() == 1);
-    const auto nodeIDPos = scanState.IDVector->state->getSelVector()[0];
-    if (scanState.IDVector->isNull(nodeIDPos)) {
+    KU_ASSERT(scanState.nodeIDVector->state->getSelVector().getSelSize() == 1);
+    const auto nodeIDPos = scanState.nodeIDVector->state->getSelVector()[0];
+    if (scanState.nodeIDVector->isNull(nodeIDPos)) {
         return false;
     }
-    const auto nodeOffset = scanState.IDVector->readNodeOffset(nodeIDPos);
+    const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
     offset_t rowIdxInGroup = INVALID_OFFSET;
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         rowIdxInGroup = nodeOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE -
@@ -318,10 +317,10 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     nodeIDVector.setState(dataChunk->state);
     const auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
     const auto scanState = std::make_unique<NodeTableScanState>(columnIDs);
-    scanState->IDVector = &nodeIDVector;
     for (auto& vector : dataChunk->valueVectors) {
         scanState->outputVectors.push_back(vector.get());
     }
+    scanState->outState = dataChunk->state.get();
     scanState->source = TableScanSource::UNCOMMITTED;
     node_group_idx_t nodeGroupToScan = 0u;
     while (nodeGroupToScan < numNodeGroupsToScan) {
@@ -336,9 +335,9 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                 break;
             }
             for (auto i = 0u; i < scanResult.numRows; i++) {
-                scanState->IDVector->setValue(i, nodeID_t{startNodeOffset + i, tableID});
+                nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, tableID});
             }
-            insertPK(transaction, *scanState->IDVector, *scanState->outputVectors[0]);
+            insertPK(transaction, nodeIDVector, *scanState->outputVectors[0]);
             startNodeOffset += scanResult.numRows;
         }
         nodeGroupToScan++;

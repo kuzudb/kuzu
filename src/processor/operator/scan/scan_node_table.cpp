@@ -107,7 +107,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         if (!skipScan) {
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
-                if (scanState.IDVector->state->getSelVector().getSelSize() > 0) {
+                if (scanState.outState->getSelVector().getSelSize() > 0) {
                     return true;
                 }
             }

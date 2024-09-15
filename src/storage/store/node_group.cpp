@@ -147,7 +147,7 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         const auto startNodeOffset = nodeGroupScanState.nextRowToScan +
                                      StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
         if (!state.semiMask->isMasked(startNodeOffset, startNodeOffset + numRowsToScan - 1)) {
-            state.IDVector->state->getSelVectorUnsafe().setSelSize(0);
+            state.outState->getSelVectorUnsafe().setSelSize(0);
             nodeGroupScanState.nextRowToScan += numRowsToScan;
             return NodeGroupScanResult{nodeGroupScanState.nextRowToScan, 0};
         }

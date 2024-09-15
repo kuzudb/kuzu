@@ -90,7 +90,7 @@ void RelTable::initializeLocalRelScanState(RelTableScanState& relScanState) {
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
     auto& relScanState = scanState.cast<RelTableScanState>();
-    relScanState.IDVector->state->getSelVectorUnsafe().setToUnfiltered();
+    relScanState.outState->getSelVectorUnsafe().setToUnfiltered();
     switch (relScanState.source) {
     case TableScanSource::COMMITTED: {
         const auto scanResult = relScanState.nodeGroup->scan(transaction, scanState);
@@ -214,15 +214,15 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     relReadState->boundNodeIDVector = &deleteState->srcNodeIDVector;
     relReadState->outputVectors =
         std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
-    relReadState->IDVector = relReadState->outputVectors[1];
-    relReadState->rowIdxVector->state = relReadState->IDVector->state;
+    relReadState->rowIdxVector->state = relReadState->outputVectors[1]->state;
+    relReadState->outState = relReadState->rowIdxVector->state.get();
     if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(direction, relReadState->columnIDs);
         relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(memoryManager,
             *relReadState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
-        relReadState->localTableScanState->rowIdxVector->state = relReadState->IDVector->state;
+        relReadState->localTableScanState->rowIdxVector->state = relReadState->rowIdxVector->state;
     }
     initializeScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),

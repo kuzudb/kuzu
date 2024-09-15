@@ -127,22 +127,23 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
-    scanState->IDVector = scanState->outputVectors[0];
-    scanState->rowIdxVector->state = scanState->IDVector->state;
+    const auto scannedIDVector = scanState->outputVectors[0];
+    scanState->outState = scannedIDVector->state.get();
+    scanState->rowIdxVector->state = scanState->outputVectors[0]->state;
     scanState->source = TableScanSource::COMMITTED;
     scanState->boundNodeOffset = boundNodeOffset;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
     scanState->nodeGroup->initializeScanState(transaction, *scanState);
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
-    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE;
+    auto source = CSRNodeGroupScanSource::NONE;
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
             break;
         }
-        for (auto i = 0u; i < scanState->IDVector->state->getSelVector().getSelSize(); i++) {
-            const auto pos = scanState->IDVector->state->getSelVector()[i];
-            if (scanState->IDVector->getValue<internalID_t>(pos).offset == relOffset) {
+        for (auto i = 0u; i < scanState->outState->getSelVector().getSelSize(); i++) {
+            const auto pos = scanState->outState->getSelVector()[i];
+            if (scannedIDVector->getValue<internalID_t>(pos).offset == relOffset) {
                 const auto rowIdxPos = scanState->rowIdxVector->state->getSelVector()[i];
                 matchingRowIdx = scanState->rowIdxVector->getValue<row_idx_t>(rowIdxPos);
                 source = scanState->nodeGroupScanState->cast<CSRNodeGroupScanState>().source;
@@ -174,7 +175,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->boundNodeIDVector = srcNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
-    scanState->IDVector = scanState->outputVectors[0];
+    scanState->outState = scanState->outputVectors[0]->state.get();
     scanState->source = TableScanSource::COMMITTED;
     scanState->boundNodeOffset = nodeOffset;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
@@ -184,7 +185,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
             break;
         }
-        if (scanState->outputVectors[0]->state->getSelVector().getSelSize() > 0) {
+        if (scanState->outState->getSelVector().getSelSize() > 0) {
             throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
                 tableName, std::to_string(nodeOffset),
                 RelDataDirectionUtils::relDirectionToString(direction)));

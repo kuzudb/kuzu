@@ -144,7 +144,7 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     idVector->state = vectorState;
     columnVector->state = vectorState;
     scanState->rowIdxVector->state = vectorState;
-    scanState->IDVector = idVector.get();
+    scanState->nodeIDVector = idVector.get();
     scanState->outputVectors.push_back(columnVector.get());
     // Scan
     // TODO: validate not more than 1 level nested

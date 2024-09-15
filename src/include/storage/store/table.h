@@ -19,8 +19,9 @@ enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 
 struct TableScanState {
     std::unique_ptr<common::ValueVector> rowIdxVector;
     // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
-    common::ValueVector* IDVector;
+    common::ValueVector* nodeIDVector;
     std::vector<common::ValueVector*> outputVectors;
+    common::DataChunkState* outState;
     std::vector<common::column_id_t> columnIDs;
     common::NodeSemiMask* semiMask;
 
@@ -36,21 +37,17 @@ struct TableScanState {
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
     explicit TableScanState(std::vector<common::column_id_t> columnIDs)
-        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, semiMask{nullptr} {
-        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
-    }
+        : TableScanState{std::move(columnIDs), {}, {}} {}
+    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
+        : TableScanState{std::move(columnIDs), std::move(columns), {}} {}
     TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
         std::vector<ColumnPredicateSet> columnPredicateSets)
-        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, semiMask{nullptr},
-          columns{std::move(columns)}, columnPredicateSets{std::move(columnPredicateSets)} {
+        : nodeIDVector{nullptr}, outState{nullptr}, columnIDs{std::move(columnIDs)},
+          semiMask{nullptr}, columns{std::move(columns)},
+          columnPredicateSets{std::move(columnPredicateSets)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
-    explicit TableScanState(std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns)
-        : IDVector(nullptr), columnIDs{std::move(columnIDs)}, semiMask{nullptr},
-          columns{std::move(columns)} {
-        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
-    }
+
     virtual ~TableScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
 

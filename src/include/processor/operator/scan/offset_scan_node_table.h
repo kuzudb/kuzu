@@ -7,7 +7,7 @@ namespace processor {
 
 // OffsetScanNodeTable is only used as the source operator for RecursiveJoin and thus cannot be
 // executed in parallel. Therefore, it does not have a shared state.
-class OffsetScanNodeTable : public ScanTable {
+class OffsetScanNodeTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::OFFSET_SCAN_NODE_TABLE;
 
 public:

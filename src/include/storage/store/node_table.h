@@ -28,15 +28,10 @@ struct NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
-        : TableScanState{std::move(columnIDs), {}} {
-        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
-    }
-
+        : NodeTableScanState{std::move(columnIDs), {}} {}
     NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
-        : TableScanState{std::move(columnIDs), std::move(columns),
-              std::vector<ColumnPredicateSet>{}} {
-        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
-    }
+        : NodeTableScanState{std::move(columnIDs), std::move(columns),
+              std::vector<ColumnPredicateSet>{}} {}
     NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
         std::vector<ColumnPredicateSet> columnPredicateSets)
         : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)} {
