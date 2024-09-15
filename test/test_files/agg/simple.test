@@ -377,3 +377,8 @@ pure ascii characters
 -ENUMERATE
 ---- 1
 \xAB\xCD
+
+-LOG NestedAgg
+-STATEMENT MATCH (a:person) WITH COUNT(*) AS x RETURN SUM(x);
+---- 1
+8

@@ -1801,5 +1801,29 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& type
     return true;
 }
 
+LogicalType LogicalTypeUtils::purgeAny(const LogicalType& type, const LogicalType& replacement) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::ANY:
+        return replacement.copy();
+    case LogicalTypeID::LIST:
+        return LogicalType::LIST(purgeAny(ListType::getChildType(type), replacement));
+    case LogicalTypeID::ARRAY:
+        return LogicalType::ARRAY(purgeAny(ArrayType::getChildType(type), replacement),
+            ArrayType::getNumElements(type));
+    case LogicalTypeID::MAP:
+        return LogicalType::MAP(purgeAny(MapType::getKeyType(type), replacement),
+            purgeAny(MapType::getValueType(type), replacement));
+    case LogicalTypeID::STRUCT: {
+        std::vector<StructField> fields;
+        for (const auto& i : StructType::getFields(type)) {
+            fields.emplace_back(i.getName(), purgeAny(i.getType(), replacement));
+        }
+        return LogicalType::STRUCT(std::move(fields));
+    }
+    default:
+        return type.copy();
+    }
+}
+
 } // namespace common
 } // namespace kuzu

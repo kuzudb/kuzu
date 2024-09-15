@@ -547,6 +547,7 @@ struct KUZU_API LogicalTypeUtils {
     static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
         LogicalType& result);
     static bool tryGetMaxLogicalType(const std::vector<LogicalType>& types, LogicalType& result);
+    static LogicalType purgeAny(const LogicalType& type, const LogicalType& replacement);
 
 private:
     static bool tryGetMaxLogicalTypeID(const LogicalTypeID& left, const LogicalTypeID& right,
