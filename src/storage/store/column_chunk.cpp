@@ -38,16 +38,15 @@ void ColumnChunk::initializeScanState(ChunkState& state, Column* column) const {
     data->initializeScanState(state, column);
 }
 
-// TODO(Guodong): Should remove `nodeID` here. We should only need to pass in a selVector.
-void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& nodeID,
-    ValueVector& output, offset_t offsetInChunk, length_t length) const {
+void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, ValueVector& output,
+    offset_t offsetInChunk, length_t length) const {
     // Check if there is deletions or insertions. If so, update selVector based on transaction.
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         data->scan(output, offsetInChunk, length);
     } break;
     case ResidencyState::ON_DISK: {
-        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &nodeID, &output);
+        state.column->scan(&DUMMY_TRANSACTION, state, offsetInChunk, length, &output);
     } break;
     default: {
         KU_UNREACHABLE;

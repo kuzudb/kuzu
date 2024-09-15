@@ -45,8 +45,7 @@ public:
 
     void initializeScanState(ChunkState& state, Column* column) const;
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        common::ValueVector& nodeID, common::ValueVector& output, common::offset_t offsetInChunk,
-        common::length_t length) const;
+        common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunk& output, common::row_idx_t startRow = 0,

@@ -177,12 +177,11 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
     KU_ASSERT(resultVector->state);
     auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, state, startOffsetInChunk,
         startOffsetInChunk + numValuesToScan);
-    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+    if (resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, resultVector, numValuesToScan, listOffsetSizeInfo);
     } else {
         scanFiltered(transaction, state, resultVector, listOffsetSizeInfo);

@@ -4,7 +4,6 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
@@ -229,7 +228,7 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
             }
             KU_ASSERT(columnID < chunks.size());
             chunks[columnID]->scan(transaction, nodeGroupScanState.chunkStates[i],
-                *scanState.IDVector, *scanState.outputVectors[i], rowIdxInGroup, numRowsToScan);
+                *scanState.outputVectors[i], rowIdxInGroup, numRowsToScan);
         }
     }
 }

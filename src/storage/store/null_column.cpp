@@ -37,10 +37,8 @@ NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, MemoryManage
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
-    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
-        resultVector);
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,

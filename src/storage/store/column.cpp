@@ -8,7 +8,6 @@
 #include "common/types/types.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
-#include "storage/compression/float_compression.h"
 #include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
@@ -186,14 +185,13 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHand
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInChunk,
-    row_idx_t numValuesToScan, ValueVector* nodeIDVector, ValueVector* resultVector) {
+    row_idx_t numValuesToScan, ValueVector* resultVector) {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
         nullColumn->scan(transaction, *state.nullState, startOffsetInChunk, numValuesToScan,
-            nodeIDVector, resultVector);
+            resultVector);
     }
-    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
-        resultVector);
+    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
@@ -244,9 +242,8 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
 }
 
 void Column::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
-    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    if (resultVector->state->getSelVector().isUnfiltered()) {
         columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector, 0,
             startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc);
     } else {
@@ -268,7 +265,7 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
 
         columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector, 0,
             startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc,
-            Filterer{nodeIDVector->state->getSelVector()});
+            Filterer{resultVector->state->getSelVector()});
     }
 }
 
