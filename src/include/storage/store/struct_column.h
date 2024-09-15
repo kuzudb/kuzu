@@ -33,7 +33,7 @@ public:
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector) override;
 
     void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,

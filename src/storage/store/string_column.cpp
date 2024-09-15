@@ -130,13 +130,12 @@ void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
 }
 
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+    if (resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
     } else {
-        scanFiltered(transaction, state, startOffsetInChunk, nodeIDVector, resultVector);
+        scanFiltered(transaction, state, startOffsetInChunk, resultVector);
     }
 }
 
@@ -166,10 +165,10 @@ void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& st
 }
 
 void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, const ValueVector* nodeIDVector, ValueVector* resultVector) {
+    offset_t startOffsetInChunk, ValueVector* resultVector) {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
-    for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {
-        const auto pos = nodeIDVector->state->getSelVector()[i];
+    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
+        const auto pos = resultVector->state->getSelVector()[i];
         if (!resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             const auto offsetInGroup = startOffsetInChunk + pos;
