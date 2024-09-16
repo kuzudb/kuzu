@@ -431,20 +431,18 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         hashIndexHeadersForReadTrx.resize(NUM_HASH_INDEXES);
         hashIndexHeadersForWriteTrx.resize(NUM_HASH_INDEXES);
     } else {
-        size_t headerIdx = 0;
         for (size_t headerPageIdx = 0; headerPageIdx < INDEX_HEADER_PAGES; headerPageIdx++) {
+            size_t startHeaderIdx = headerPageIdx * INDEX_HEADERS_PER_PAGE;
             fileHandle->optimisticReadPage(headerPageIdx, [&](auto* frame) {
                 const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
-                for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                     i++) {
+                for (size_t i = 0;
+                     i < INDEX_HEADERS_PER_PAGE && startHeaderIdx + i < NUM_HASH_INDEXES; i++) {
                     hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
-                    headerIdx++;
                 }
             });
         }
         hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
             hashIndexHeadersForReadTrx.end());
-        KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
     }
     hashIndexDiskArrays =
         std::make_unique<DiskArrayCollection>(*fileHandle, dbFileIDAndName.dbFileID, *shadowFile,

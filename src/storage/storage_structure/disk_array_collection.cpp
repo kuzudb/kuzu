@@ -1,5 +1,7 @@
 #include "storage/storage_structure/disk_array_collection.h"
 
+#include <memory>
+
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage//file_handle.h"
@@ -18,13 +20,16 @@ DiskArrayCollection::DiskArrayCollection(FileHandle& fileHandle, DBFileID dbFile
         // Read headers from disk
         page_idx_t headerPageIdx = firstHeaderPage;
         do {
+            std::unique_ptr<HeaderPage> headerPage;
             fileHandle.optimisticReadPage(headerPageIdx, [&](auto* frame) {
                 const auto page = reinterpret_cast<HeaderPage*>(frame);
-                headersForReadTrx.push_back(std::make_unique<HeaderPage>(*page));
-                headersForWriteTrx.push_back(std::make_unique<HeaderPage>(*page));
+                headerPage = std::make_unique<HeaderPage>(*page);
                 headerPageIdx = page->nextHeaderPage;
-                numHeaders += page->numHeaders;
             });
+            KU_ASSERT(headerPage);
+            numHeaders += headerPage->numHeaders;
+            headersForReadTrx.push_back(std::make_unique<HeaderPage>(*headerPage));
+            headersForWriteTrx.push_back(std::move(headerPage));
             if (headerPageIdx != INVALID_PAGE_IDX) {
                 headerPageIndices.push_back(headerPageIdx);
             }
