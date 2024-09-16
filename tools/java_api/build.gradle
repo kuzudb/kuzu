@@ -1,0 +1,55 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.kuzudb'
+def projectRoot = projectDir.toPath().getParent().getParent()
+def cmakePath = projectRoot.resolve('CMakeLists.txt')
+def cmakeFile = cmakePath.toFile().text
+def versionLine = cmakeFile.split('\n').find { it.startsWith('project(Kuzu VERSION ') }
+def cmakeVersion = versionLine.split(' ')[2]
+def versionParts = cmakeVersion.split('\\.')
+if (versionParts.length > 3) {
+    version = versionParts[0] + '.' + versionParts[1] + '.' + versionParts[2] + '-SNAPSHOT'
+} else {
+    version = cmakeVersion
+}
+
+println "Project version: $version"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
+    processResources {
+        dependsOn 'copyNativeLibs'
+    }
+}
+
+task cmake {
+    doLast {
+        exec {
+            workingDir '../..'
+            commandLine 'make', 'java'
+            environment NUM_THREADS: Runtime.getRuntime().availableProcessors()
+        }
+    }
+}
+
+task copyNativeLibs(type: Copy) {
+    from('build') {
+        include 'libkuzu_java_native.*'
+    }
+    into 'src/main/resources'
+    dependsOn 'cmake'
+}
+
+test {
+    useJUnitPlatform()
+}

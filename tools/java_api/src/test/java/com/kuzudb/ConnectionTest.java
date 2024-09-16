@@ -1,6 +1,5 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
-import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.MethodOrderer;

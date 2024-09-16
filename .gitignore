@@ -58,6 +58,10 @@ tools/java_api/test_db/
 tools/java_api/*.jar
 tools/java_api/*.class
 tools/java_api/*.log
+tools/java_api/.gradle
+tools/java_api/.idea
+tools/java_api/src/main/resources/libkuzu*
+tools/java_api/*.iml
 
 # Generated docs
 scripts/generate-cpp-docs/c/kuzu.h

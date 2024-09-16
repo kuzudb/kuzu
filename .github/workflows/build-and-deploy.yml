@@ -80,44 +80,52 @@ jobs:
     needs: [build-java-mac, build-java-linux, build-java-windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
+        run: |
+          python3 -m pip install packaging
+          python3 update-nightly-build-version.py
+        working-directory: scripts
+
       - uses: actions/download-artifact@v4
         with:
           name: java-lib-osx-x86_64
-          path: java-bins
+          path: tools/java_api/src/main/resources
 
       - uses: actions/download-artifact@v4
         with:
           name: java-lib-osx-arm64
-          path: java-bins
+          path: tools/java_api/src/main/resources
 
       - uses: actions/download-artifact@v4
         with:
           name: java-lib-linux-aarch64
-          path: java-bins
+          path: tools/java_api/src/main/resources
 
       - uses: actions/download-artifact@v4
         with:
-          name: kuzu-linux-jar
-          path: java-bins
+          name: java-lib-linux-x86_64
+          path: tools/java_api/src/main/resources
 
       - uses: actions/download-artifact@v4
         with:
           name: java-lib-win-x86_64
-          path: java-bins
+          path: tools/java_api/src/main/resources
 
-      - name: Add Java libs to jar
+      - name: Create java jar
+        working-directory: tools/java_api
+        env:
+          SKIP_CMAKE_BUILD: true
         run: |
-          jar uf kuzu_java.jar libkuzu_java_native.so_windows_amd64
-          jar uf kuzu_java.jar libkuzu_java_native.so_osx_arm64
-          jar uf kuzu_java.jar libkuzu_java_native.so_osx_amd64
-          jar uf kuzu_java.jar libkuzu_java_native.so_linux_arm64
-        working-directory: java-bins
+          ./gradlew build
 
       - name: Upload jar
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-java-multiplatform-jar
-          path: java-bins/kuzu_java.jar
+          path: tools/java_api/build/libs/kuzu*.jar
 
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}

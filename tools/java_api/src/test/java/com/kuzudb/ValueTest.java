@@ -1,10 +1,10 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
 
-import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigInteger;
 import java.math.BigDecimal;
@@ -161,7 +161,6 @@ public class ValueTest extends TestBase {
         Value value = new Value(new BigDecimal("-3.140"));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
-        System.out.println(value.getValue().toString());
         BigDecimal val = (BigDecimal)value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
         value.destroy();
@@ -1094,62 +1093,62 @@ public class ValueTest extends TestBase {
             switch (i) {
                 case 0: {
                     assertEquals(dataType.getID(), DataTypeID.INT64);
-                    assert ValueRdfVariantUtil.getValue(value).equals(12L);
+                    assertEquals(12L, (long) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 1: {
                     assertEquals(dataType.getID(), DataTypeID.INT32);
-                    assert ValueRdfVariantUtil.getValue(value).equals(43);
+                    assertEquals(43, (int) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 2: {
                     assertEquals(dataType.getID(), DataTypeID.INT16);
-                    assert ValueRdfVariantUtil.getValue(value).equals((short) 33);
+                    assertEquals(33, (short) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 3: {
                     assertEquals(dataType.getID(), DataTypeID.INT8);
-                    assert ValueRdfVariantUtil.getValue(value).equals((byte) 2);
+                    assertEquals(2, (byte) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 4: {
                     assertEquals(dataType.getID(), DataTypeID.UINT64);
-                    assert ValueRdfVariantUtil.getValue(value).equals(BigInteger.valueOf(90));
+                    assertEquals(BigInteger.valueOf(90), ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 5: {
                     assertEquals(dataType.getID(), DataTypeID.UINT32);
-                    assert ValueRdfVariantUtil.getValue(value).equals(77);
+                    assertEquals(77L, (long) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 6: {
                     assertEquals(dataType.getID(), DataTypeID.UINT16);
-                    assert ValueRdfVariantUtil.getValue(value).equals((short) 12);
+                    assertEquals(12, (int) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 7: {
                     assertEquals(dataType.getID(), DataTypeID.UINT8);
-                    assert ValueRdfVariantUtil.getValue(value).equals((byte) 1);
+                    assertEquals(1, (short) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 8: {
                     assertEquals(dataType.getID(), DataTypeID.DOUBLE);
-                    assert ValueRdfVariantUtil.getValue(value).equals((double) 4.4);
+                    assertEquals(4.4, (double) ValueRdfVariantUtil.getValue(value), 0.0001);
                     break;
                 }
                 case 9: {
                     assertEquals(dataType.getID(), DataTypeID.FLOAT);
-                    assert ValueRdfVariantUtil.getValue(value).equals((float) 1.2);
+                    assertEquals(1.2, (float) ValueRdfVariantUtil.getValue(value), 0.0001);
                     break;
                 }
                 case 10: {
                     assertEquals(dataType.getID(), DataTypeID.BOOL);
-                    assert ValueRdfVariantUtil.getValue(value).equals(true);
+                    assertEquals(ValueRdfVariantUtil.getValue(value), true);
                     break;
                 }
                 case 11: {
                     assertEquals(dataType.getID(), DataTypeID.STRING);
-                    assert ValueRdfVariantUtil.getValue(value).equals("hhh");
+                    assertEquals("hhh", ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 12: {

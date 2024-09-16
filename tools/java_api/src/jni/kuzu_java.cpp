@@ -1146,6 +1146,11 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1value(
         env->SetByteArrayRegion(ret, 0, blobStr.size(), (jbyte*)byteBuffer);
         return ret;
     }
+    case LogicalTypeID::BOOL: {
+        jboolean val = static_cast<jboolean>(RdfVariant::getValue<bool>(value));
+        jobject ret = env->NewObject(J_C_Boolean, J_C_Boolean_M_init, val);
+        return ret;
+    }
     case LogicalTypeID::INT64: {
         jlong val = static_cast<jlong>(RdfVariant::getValue<int64_t>(value));
         jobject ret = env->NewObject(J_C_Long, J_C_Long_M_init, val);
