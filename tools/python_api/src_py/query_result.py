@@ -263,7 +263,7 @@ class QueryResult:
         self.reset_iterator()
 
         nodes = {}
-        rels = []
+        rels = {}
         table_to_label_dict = {}
         table_primary_key_dict = {}
 
@@ -271,7 +271,10 @@ class QueryResult:
             node_label = node["_label"]
             return f"{node_label}_{node[table_primary_key_dict[node_label]]!s}"
 
-        # De-duplicate nodes
+        def encode_rel_id(rel: dict[str, Any]) -> tuple[int, int]:
+            return rel["_id"]["table"], rel["_id"]["offset"]
+
+        # De-duplicate nodes and rels
         while self.has_next():
             row = self.get_next()
             for i in properties_to_extract:
@@ -284,7 +287,7 @@ class QueryResult:
                 elif column_type == Type.REL.value:
                     _src = row[i]["_src"]
                     _dst = row[i]["_dst"]
-                    rels.append(row[i])
+                    rels[encode_rel_id(row[i])] = row[i]
 
                 elif column_type == Type.RECURSIVE_REL.value:
                     for node in row[i]["_nodes"]:
@@ -297,7 +300,7 @@ class QueryResult:
                                 del rel[key]
                         _src = rel["_src"]
                         _dst = rel["_dst"]
-                        rels.append(rel)
+                        rels[encode_rel_id(rel)] = rel
 
         # Add nodes
         for node in nodes.values():
@@ -314,7 +317,7 @@ class QueryResult:
             nx_graph.add_node(node_id, **node)
 
         # Add rels
-        for rel in rels:
+        for rel in rels.values():
             _src = rel["_src"]
             _dst = rel["_dst"]
             src_node = nodes[(_src["table"], _src["offset"])]

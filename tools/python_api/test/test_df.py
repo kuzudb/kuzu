@@ -474,6 +474,10 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
         ],
         "_rels": [
             {
+                "_id": {
+                    "offset": 0,
+                    "table": 3,
+                },
                 "_dst": {"offset": 1, "table": 0},
                 "_label": "knows",
                 "_src": {"offset": 0, "table": 0},
@@ -492,6 +496,10 @@ def test_df_get_recursive_join(conn_db_readonly: ConnDB) -> None:
                 "validInterval": datetime.timedelta(days=3750, seconds=46800, microseconds=24),
             },
             {
+                "_id": {
+                    "offset": 0,
+                    "table": 3,
+                },
                 "_dst": {"offset": 1, "table": 0},
                 "_label": "knows",
                 "_src": {"offset": 0, "table": 0},
