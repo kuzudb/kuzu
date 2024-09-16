@@ -15,7 +15,7 @@ dependencies {
 }
 
 if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
-    compileJava {
+    processResources {
         dependsOn 'copyNativeLibs'
     }
 }
