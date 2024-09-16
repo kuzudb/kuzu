@@ -34,7 +34,7 @@ task copyNativeLibs(type: Copy) {
     from('build') {
         include 'libkuzu_java_native.*'
     }
-    into 'src/resources'
+    into 'src/main/resources'
     dependsOn 'cmake'
 }
 
