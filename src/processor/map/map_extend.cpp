@@ -91,13 +91,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto inNodeIDPos = getDataPos(*boundNode->getInternalID(), *inFSchema);
     auto outNodeIDPos = getDataPos(*nbrNode->getInternalID(), *outFSchema);
-    auto relIDPos = getDataPos(*rel->getInternalIDProperty(), *outFSchema);
     std::vector<DataPos> outVectorsPos;
     outVectorsPos.push_back(outNodeIDPos);
     for (auto& expression : extend->getProperties()) {
         outVectorsPos.push_back(getDataPos(*expression, *outFSchema));
     }
-    auto scanInfo = ScanTableInfo(relIDPos, outVectorsPos);
+    auto scanInfo = ScanTableInfo(inNodeIDPos, outVectorsPos);
     std::vector<std::string> tableNames;
     auto storageManager = clientContext->getStorageManager();
     for (auto entry : rel->getEntries()) {

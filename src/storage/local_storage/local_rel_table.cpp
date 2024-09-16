@@ -218,7 +218,7 @@ row_idx_t LocalRelTable::findMatchingRow(MemoryManager& memoryManager, offset_t 
     std::vector<column_id_t> columnIDs;
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
     const auto scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs);
-    scanState->IDVector = scanChunk.getValueVector(0).get();
+    scanState->outState = scanChunk.state.get();
     scanState->rowIdxVector->state = scanChunk.state;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());

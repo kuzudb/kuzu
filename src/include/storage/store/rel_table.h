@@ -29,18 +29,12 @@ struct RelTableScanState : TableScanState {
         const std::vector<common::column_id_t>& columnIDs)
         : RelTableScanState(memoryManager, columnIDs, {}, nullptr, nullptr,
               common::RelDataDirection::FWD /* This is a dummy direction */,
-              std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState =
-            std::make_unique<CSRNodeGroupScanState>(memoryManager, this->columnIDs.size());
-    }
+              std::vector<ColumnPredicateSet>{}) {}
     RelTableScanState(MemoryManager& memoryManager,
         const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
         Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction)
         : RelTableScanState(memoryManager, columnIDs, columns, csrOffsetCol, csrLengthCol,
-              direction, std::vector<ColumnPredicateSet>{}) {
-        nodeGroupScanState =
-            std::make_unique<CSRNodeGroupScanState>(memoryManager, this->columnIDs.size());
-    }
+              direction, std::vector<ColumnPredicateSet>{}) {}
     RelTableScanState(MemoryManager& memoryManager,
         const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
         Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction,
@@ -76,7 +70,6 @@ struct LocalRelTableScanState final : RelTableScanState {
     LocalRelTableScanState(MemoryManager& memoryManager, const RelTableScanState& state,
         const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
         : RelTableScanState{memoryManager, columnIDs}, localRelTable{localRelTable} {
-        IDVector = state.IDVector;
         direction = state.direction;
         boundNodeIDVector = state.boundNodeIDVector;
         outputVectors = state.outputVectors;

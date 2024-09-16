@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void SelVectorOverWriter::restoreSelVector(DataChunkState& dataChunkState) {
+void SelVectorOverWriter::restoreSelVector(DataChunkState& dataChunkState) const {
     if (prevSelVector != nullptr) {
         dataChunkState.setSelVector(prevSelVector);
     }

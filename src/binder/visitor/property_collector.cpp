@@ -50,13 +50,6 @@ void PropertyCollector::visitQueryPartSkipNodeRel(const NormalizedQueryPart& que
 
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = readingClause.constCast<BoundMatchClause>();
-    for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
-        if (rel->isEmpty() || rel->getRelType() != QueryRelType::NON_RECURSIVE) {
-            // If a query rel is empty then it does not have an internal id property.
-            continue;
-        }
-        properties.insert(rel->getInternalIDProperty());
-    }
     if (matchClause.hasPredicate()) {
         collectProperties(matchClause.getPredicate());
     }
@@ -89,21 +82,28 @@ void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
         }
         collectProperties(info.columnData);
     }
+    for (const auto& info : boundSetClause.getRelInfos()) {
+        auto& rel = info.pattern->constCast<RelExpression>();
+        KU_ASSERT(!rel.isEmpty() && rel.getRelType() == QueryRelType::NON_RECURSIVE);
+        properties.insert(rel.getInternalIDProperty());
+    }
 }
 
 void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
     auto& boundDeleteClause = updatingClause.constCast<BoundDeleteClause>();
     // Read primary key if we are deleting nodes;
-    for (auto& info : boundDeleteClause.getNodeInfos()) {
+    for (const auto& info : boundDeleteClause.getNodeInfos()) {
         auto& node = info.pattern->constCast<NodeExpression>();
-        for (auto entry : node.getEntries()) {
+        for (const auto entry : node.getEntries()) {
             properties.insert(node.getPrimaryKey(entry->getTableID()));
         }
     }
     // Read rel internal id if we are deleting relationships.
-    for (auto& info : boundDeleteClause.getRelInfos()) {
+    for (const auto& info : boundDeleteClause.getRelInfos()) {
         auto& rel = info.pattern->constCast<RelExpression>();
-        properties.insert(rel.getInternalIDProperty());
+        if (!rel.isEmpty() && rel.getRelType() == QueryRelType::NON_RECURSIVE) {
+            properties.insert(rel.getInternalIDProperty());
+        }
     }
 }
 

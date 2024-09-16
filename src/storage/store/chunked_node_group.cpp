@@ -204,7 +204,7 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
             rowIdxInGroup, numRowsToScan);
         hasValuesToScan = selVector->getSelSize() > 0;
     }
-    auto& anchorSelVector = scanState.IDVector->state->getSelVectorUnsafe();
+    auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
     if (selVector && selVector->getSelSize() != numRowsToScan) {
         std::memcpy(anchorSelVector.getMultableBuffer().data(),
             selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));

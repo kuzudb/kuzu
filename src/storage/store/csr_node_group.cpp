@@ -97,13 +97,13 @@ NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState&
                     scanCommittedInMemSequential(transaction, relScanState, nodeGroupScanState) :
                     scanCommittedInMemRandom(transaction, relScanState, nodeGroupScanState);
             if (result == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-                relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
+                relScanState.outState->getSelVectorUnsafe().setSelSize(0);
                 return NODE_GROUP_SCAN_EMMPTY_RESULT;
             }
             return result;
         }
         case CSRNodeGroupScanSource::NONE: {
-            relScanState.IDVector->state->getSelVectorUnsafe().setSelSize(0);
+            relScanState.outState->getSelVectorUnsafe().setSelSize(0);
             return NODE_GROUP_SCAN_EMMPTY_RESULT;
         }
         default: {
@@ -179,7 +179,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transact
         nextRow++;
     }
     nodeGroupScanState.nextRowToScan += numRows;
-    tableState.IDVector->state->getSelVectorUnsafe().setSelSize(numSelected);
+    tableState.outState->getSelVectorUnsafe().setSelSize(numSelected);
     return NodeGroupScanResult{0, numRows};
 }
 
@@ -653,6 +653,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             auto numRowsToAppend = 0u;
             for (auto i = 0u; i < maxNumRowsToAppend; i++) {
                 const auto row = rows[numRowsTryAppended + i];
+                // TODO(Guodong): Should skip deleted rows here.
                 if (row == INVALID_ROW_IDX) {
                     continue;
                 }
@@ -661,7 +662,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             }
             scanChunkState->getSelVectorUnsafe().setSelSize(numRowsToAppend);
             if (numRowsToAppend > 0) {
-                NodeGroup::lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
+                lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
                 for (auto idx = 0u; idx < numColumnsToCheckpoint; idx++) {
                     dataChunksToFlush[idx]->getData().append(scanChunk.valueVectors[idx].get(),
                         scanChunkState->getSelVector());
@@ -712,6 +713,7 @@ void CSRNodeGroup::initInMemScanChunkAndScanState(const CSRNodeGroupCheckpointSt
         dataChunk.insert(i, valueVector);
     }
     scanState.rowIdxVector->setState(dataChunk.state);
+    scanState.outState = dataChunk.state.get();
     scanState.nodeGroupScanState = std::make_unique<NodeGroupScanState>(csrState.columnIDs.size());
     for (auto i = 0u; i < csrState.columnIDs.size(); i++) {
         scanState.outputVectors.push_back(dataChunk.valueVectors[i].get());

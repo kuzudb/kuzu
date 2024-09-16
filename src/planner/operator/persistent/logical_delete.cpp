@@ -21,7 +21,7 @@ std::string LogicalDelete::getExpressionsForPrinting() const {
 
 f_group_pos_set LogicalDelete::getGroupsPosToFlatten() const {
     KU_ASSERT(!infos.empty());
-    auto childSchema = children[0]->getSchema();
+    const auto childSchema = children[0]->getSchema();
     f_group_pos_set dependentGroupPos;
     switch (infos[0].tableType) {
     case TableType::NODE: {

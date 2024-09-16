@@ -185,7 +185,10 @@ void ProjectionPushDownOptimizer::visitDelete(LogicalOperator* op) {
             auto& rel = info.pattern->constCast<RelExpression>();
             collectExpressionsInUse(rel.getSrcNode()->getInternalID());
             collectExpressionsInUse(rel.getDstNode()->getInternalID());
-            collectExpressionsInUse(rel.getInternalIDProperty());
+            KU_ASSERT(rel.getRelType() == QueryRelType::NON_RECURSIVE);
+            if (!rel.isEmpty()) {
+                collectExpressionsInUse(rel.getInternalIDProperty());
+            }
         }
     } break;
     default:
