@@ -14,8 +14,10 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
-compileJava{
-    dependsOn 'cmake'
+if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
+    compileJava{
+        dependsOn 'cmake'
+    }
 }
 
 task cmake {
