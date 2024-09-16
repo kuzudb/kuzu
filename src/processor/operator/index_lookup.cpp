@@ -162,9 +162,9 @@ void IndexLookup::lookup(transaction::Transaction* transaction, const IndexLooku
     auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();
 
     std::vector<ValueVector*> warningDataVectors;
-    warningDataVectors.reserve(info.warningDataPos.size());
-    for (size_t i = 0; i < info.warningDataPos.size(); ++i) {
-        warningDataVectors.push_back(resultSet->getValueVector(info.warningDataPos[i]).get());
+    warningDataVectors.reserve(info.warningDataVectorPos.size());
+    for (size_t i = 0; i < info.warningDataVectorPos.size(); ++i) {
+        warningDataVectors.push_back(resultSet->getValueVector(info.warningDataVectorPos[i]).get());
     }
 
     if (keyVector->hasNoNullsGuarantee()) {

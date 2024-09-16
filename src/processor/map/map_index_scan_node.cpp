@@ -20,10 +20,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
         auto nodeTable = storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>();
         auto offsetPos = DataPos(outSchema->getExpressionPos(*info.offset));
         auto keyPos = DataPos(outSchema->getExpressionPos(*info.key));
-        std::vector<DataPos> warningDataPos;
-        for (const auto& warningDataExpr : info.warningData) {
-            warningDataPos.push_back(DataPos(outSchema->getExpressionPos(*warningDataExpr)));
-        }
+        auto warningDataPos = getDataPos(info.warningExprs, *outSchema);
         indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(nodeTable, keyPos, offsetPos,
             std::move(warningDataPos)));
     }

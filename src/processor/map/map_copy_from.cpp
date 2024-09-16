@@ -57,17 +57,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
 }
 
 static std::pair<column_id_t, bool> getWarningData(const BoundCopyFromInfo* copyFromInfo) {
-    column_id_t numWarningDataColumns = 0;
-    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
-    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
-        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
-            copyFromInfo->source.get());
-        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-            boundScanSource->info.bindData.get());
-        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            CopyConstants::DEFAULT_IGNORE_ERRORS);
-        numWarningDataColumns = bindData->numWarningDataColumns;
-    }
+    column_id_t numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
+    bool ignoreErrors = copyFromInfo->source->getIgnoreErrorsOption();
     return {numWarningDataColumns, ignoreErrors};
 }
 

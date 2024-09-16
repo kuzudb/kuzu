@@ -17,12 +17,12 @@ struct IndexLookupInfo {
     std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
-    std::vector<DataPos> warningDataPos;
+    std::vector<DataPos> warningDataVectorPos;
 
     IndexLookupInfo(storage::NodeTable* nodeTable, const DataPos& keyVectorPos,
-        const DataPos& resultVectorPos, std::vector<DataPos> warningDataPos)
+        const DataPos& resultVectorPos, std::vector<DataPos> warningDataVectorPos)
         : nodeTable{nodeTable}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
-          resultVectorPos{resultVectorPos}, warningDataPos(std::move(warningDataPos)) {}
+          resultVectorPos{resultVectorPos}, warningDataVectorPos(std::move(warningDataVectorPos)) {}
     IndexLookupInfo(const IndexLookupInfo& other) = default;
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
