@@ -7,6 +7,7 @@
 #include "gtest/gtest.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/column_chunk_metadata.h"
 #include "storage/store/column_reader_writer.h"
 #include "storage/store/compression_flush_buffer.h"

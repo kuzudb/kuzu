@@ -9,7 +9,6 @@
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/local_storage/local_node_table.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 

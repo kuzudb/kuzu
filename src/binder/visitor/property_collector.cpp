@@ -10,6 +10,7 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 
 using namespace kuzu::common;
 

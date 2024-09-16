@@ -1,5 +1,6 @@
 #include "common/types/types.h"
 
+#include "catalog/catalog.h"
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/exception/binder.h"

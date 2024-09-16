@@ -2,6 +2,7 @@
 
 #include <regex>
 
+#include "common/case_insensitive_map.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/json_common.h"

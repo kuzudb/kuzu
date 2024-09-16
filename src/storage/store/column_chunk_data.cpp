@@ -14,6 +14,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
+#include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
 #include "storage/store/compression_flush_buffer.h"
 #include "storage/store/list_chunk_data.h"

@@ -247,5 +247,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     shadowFile->flushAll();
 }
 
+StorageManager::~StorageManager() = default;
+
 } // namespace storage
 } // namespace kuzu

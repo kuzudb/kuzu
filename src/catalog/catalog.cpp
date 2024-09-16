@@ -292,7 +292,7 @@ std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(
 
 sequence_id_t Catalog::createSequence(Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
-    auto entry = std::make_unique<SequenceCatalogEntry>(sequences.get(), info);
+    auto entry = std::make_unique<SequenceCatalogEntry>(info);
     entry->setHasParent(info.hasParent);
     return sequences->createEntry(transaction, std::move(entry));
 }

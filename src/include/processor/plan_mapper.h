@@ -17,6 +17,10 @@ struct BoundDeleteInfo;
 struct BoundSetPropertyInfo;
 } // namespace binder
 
+namespace catalog {
+class TableCatalogEntry;
+}
+
 namespace planner {
 struct LogicalInsertInfo;
 class LogicalCopyFrom;

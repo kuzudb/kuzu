@@ -8,7 +8,6 @@
 namespace kuzu {
 namespace storage {
 
-class ChunkedNodeGroup;
 struct TableScanState;
 class MemoryManager;
 

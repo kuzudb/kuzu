@@ -6,6 +6,7 @@
 #include "common/assert.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/file_handle.h"
