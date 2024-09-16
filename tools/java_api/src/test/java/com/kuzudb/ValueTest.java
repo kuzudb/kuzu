@@ -161,7 +161,6 @@ public class ValueTest extends TestBase {
         Value value = new Value(new BigDecimal("-3.140"));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
-        System.out.println(value.getValue().toString());
         BigDecimal val = (BigDecimal)value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
         value.destroy();
@@ -1099,25 +1098,21 @@ public class ValueTest extends TestBase {
                 }
                 case 1: {
                     assertEquals(dataType.getID(), DataTypeID.INT32);
-                    assert ValueRdfVariantUtil.getValue(value).equals(43);
                     assertEquals(43, (int) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 2: {
                     assertEquals(dataType.getID(), DataTypeID.INT16);
-                    assert ValueRdfVariantUtil.getValue(value).equals((short) 33);
                     assertEquals(33, (short) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 3: {
                     assertEquals(dataType.getID(), DataTypeID.INT8);
-                    assert ValueRdfVariantUtil.getValue(value).equals((byte) 2);
                     assertEquals(2, (byte) ValueRdfVariantUtil.getValue(value));
                     break;
                 }
                 case 4: {
                     assertEquals(dataType.getID(), DataTypeID.UINT64);
-                    assert ValueRdfVariantUtil.getValue(value).equals(BigInteger.valueOf(90));
                     assertEquals(BigInteger.valueOf(90), ValueRdfVariantUtil.getValue(value));
                     break;
                 }
