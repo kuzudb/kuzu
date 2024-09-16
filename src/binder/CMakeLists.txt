@@ -11,6 +11,7 @@ add_library(kuzu_binder
         binder.cpp
         binder_scope.cpp
         bound_statement_result.cpp
+        bound_scan_source.cpp
         bound_statement_rewriter.cpp
         bound_statement_visitor.cpp
         expression_binder.cpp

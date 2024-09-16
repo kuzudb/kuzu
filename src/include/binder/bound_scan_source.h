@@ -14,9 +14,11 @@ struct BoundBaseScanSource {
     virtual ~BoundBaseScanSource() = default;
 
     virtual expression_vector getColumns() = 0;
-    virtual expression_vector getWarningColumns() { return expression_vector{}; };
-    virtual bool getIgnoreErrorsOption() { return common::CopyConstants::DEFAULT_IGNORE_ERRORS; };
-    virtual common::column_id_t getNumWarningDataColumns() { return 0; }
+    virtual expression_vector getWarningColumns() const { return expression_vector{}; };
+    virtual bool getIgnoreErrorsOption() const {
+        return common::CopyConstants::DEFAULT_IGNORE_ERRORS;
+    };
+    virtual common::column_id_t getNumWarningDataColumns() const { return 0; }
 
     virtual std::unique_ptr<BoundBaseScanSource> copy() const = 0;
 
@@ -49,24 +51,9 @@ struct BoundTableScanSource : public BoundBaseScanSource {
         : BoundBaseScanSource{other}, info{other.info.copy()} {}
 
     expression_vector getColumns() override { return info.columns; }
-    expression_vector getWarningColumns() override {
-        expression_vector warningDataExprs;
-        for (common::column_id_t i = info.bindData->numWarningDataColumns; i >= 1; --i) {
-            KU_ASSERT(i < info.columns.size());
-            warningDataExprs.push_back(info.columns[info.columns.size() - i]);
-        }
-        return warningDataExprs;
-    }
-    bool getIgnoreErrorsOption() override {
-        bool ignoreErrors = common::CopyConstants::DEFAULT_IGNORE_ERRORS;
-        if (type == common::ScanSourceType::FILE) {
-            auto bindData = info.bindData->constPtrCast<function::ScanBindData>();
-            ignoreErrors = bindData->config.getOption(
-                common::CopyConstants::IGNORE_ERRORS_OPTION_NAME, ignoreErrors);
-        }
-        return ignoreErrors;
-    }
-    common::column_id_t getNumWarningDataColumns() override {
+    expression_vector getWarningColumns() const override;
+    bool getIgnoreErrorsOption() const override;
+    common::column_id_t getNumWarningDataColumns() const override {
         return info.bindData->numWarningDataColumns;
     }
 

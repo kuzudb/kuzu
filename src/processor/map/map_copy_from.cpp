@@ -56,12 +56,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     }
 }
 
-static std::pair<column_id_t, bool> getWarningData(const BoundCopyFromInfo* copyFromInfo) {
-    column_id_t numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
-    bool ignoreErrors = copyFromInfo->source->getIgnoreErrorsOption();
-    return {numWarningDataColumns, ignoreErrors};
-}
-
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* logicalOperator) {
     const auto storageManager = clientContext->getStorageManager();
     auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
@@ -96,8 +90,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
 
-    const auto [numWarningDataColumns, ignoreErrors] = getWarningData(copyFromInfo);
-
+    const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
+    const auto ignoreErrors = copyFromInfo->source->getIgnoreErrorsOption();
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
@@ -156,8 +150,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
 
-    const auto [numWarningDataColumns, ignoreErrors] = getWarningData(copyFromInfo);
-
+    const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
+    const auto ignoreErrors = copyFromInfo->source->getIgnoreErrorsOption();
     KU_ASSERT(numWarningDataColumns <= copyFromInfo->columnExprs.size());
     for (column_id_t i = numWarningDataColumns; i >= 1; --i) {
         columnTypes.push_back(
