@@ -3,7 +3,19 @@ plugins {
 }
 
 group = 'com.kuzudb'
-version = '0.6.1-SNAPSHOT'
+def projectRoot = projectDir.toPath().getParent().getParent()
+def cmakePath = projectRoot.resolve('CMakeLists.txt')
+def cmakeFile = cmakePath.toFile().text
+def versionLine = cmakeFile.split('\n').find { it.startsWith('project(Kuzu VERSION ') }
+def cmakeVersion = versionLine.split(' ')[2]
+def versionParts = cmakeVersion.split('\\.')
+if (versionParts.length > 3) {
+    version = versionParts[0] + '.' + versionParts[1] + '.' + versionParts[2] + '-SNAPSHOT'
+} else {
+    version = cmakeVersion
+}
+
+println "Project version: $version"
 
 repositories {
     mavenCentral()
