@@ -541,6 +541,10 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
+        
+      - name: Clean build
+        shell: cmd
+        run: make clean
 
       - name: Python test
         shell: cmd
