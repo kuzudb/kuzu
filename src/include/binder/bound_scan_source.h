@@ -56,12 +56,16 @@ struct BoundTableScanSource : public BoundBaseScanSource {
             warningDataExprs.push_back(info.columns[info.columns.size() - i]);
         }
         return warningDataExprs;
-    };
+    }
     bool getIgnoreErrorsOption() override {
-        auto bindData = info.bindData->constPtrCast<function::ScanBindData>();
-        return bindData->config.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            common::CopyConstants::DEFAULT_IGNORE_ERRORS);
-    };
+        bool ignoreErrors = common::CopyConstants::DEFAULT_IGNORE_ERRORS;
+        if (type == common::ScanSourceType::FILE) {
+            auto bindData = info.bindData->constPtrCast<function::ScanBindData>();
+            ignoreErrors = bindData->config.getOption(
+                common::CopyConstants::IGNORE_ERRORS_OPTION_NAME, ignoreErrors);
+        }
+        return ignoreErrors;
+    }
     common::column_id_t getNumWarningDataColumns() override {
         return info.bindData->numWarningDataColumns;
     }
