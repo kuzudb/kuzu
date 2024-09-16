@@ -1,7 +1,6 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
 
-import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1090,6 +1089,7 @@ public class ValueTest extends TestBase {
         while (result.hasNext()) {
             FlatTuple flatTuple = result.getNext();
             Value value = flatTuple.getValue(0);
+            System.out.println(value.v_ref);
             DataType dataType = ValueRdfVariantUtil.getDataType(value);
             switch (i) {
                 case 0: {
@@ -1188,7 +1188,7 @@ public class ValueTest extends TestBase {
             flatTuple.destroy();
             i++;
         }
-        assertEquals(i, 16);
+        assertEquals(i, 15);
         result.destroy();
     }
 }

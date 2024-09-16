@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.kuzudb'
+version = '0.6.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+compileJava{
+    dependsOn 'cmake'
+}
+
+task cmake {
+    doLast {
+        exec {
+            workingDir '../..'
+            commandLine 'make', 'java'
+            environment NUM_THREADS: Runtime.getRuntime().availableProcessors()
+        }
+        exec {
+            commandLine 'sh', '-c', "cp build/libkuzu_java_native.* src/main/resources/"
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

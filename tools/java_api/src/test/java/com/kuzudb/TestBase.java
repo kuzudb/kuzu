@@ -1,6 +1,5 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
-import com.kuzudb.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.AfterAll;

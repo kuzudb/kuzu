@@ -4,7 +4,7 @@ package com.kuzudb;
  * Value can hold data of different types.
  */
 public class Value {
-    long v_ref;
+    public long v_ref;
     boolean destroyed = false;
     boolean isOwnedByCPP = false;
 

@@ -1,17 +1,11 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
-import com.kuzudb.*;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Scanner;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Files;
 
 public class QueryResultTest extends TestBase {
     @TempDir

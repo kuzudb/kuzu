@@ -43,7 +43,7 @@ public class FlatTuple {
      */
     public Value getValue(long index) throws ObjectRefDestroyedException {
         checkNotDestroyed();
-        return Native.kuzu_flat_tuple_get_value(this, index);
+        return Native. kuzu_flat_tuple_get_value(this, index);
     }
 
     /**

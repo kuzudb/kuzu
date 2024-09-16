@@ -1,4 +1,4 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

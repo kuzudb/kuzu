@@ -1,14 +1,11 @@
-package com.kuzudb.java_test;
+package com.kuzudb;
 
-import com.kuzudb.*;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Path;
-
-import java.io.IOException;
 
 public class DatabaseTest extends TestBase {
     @TempDir
