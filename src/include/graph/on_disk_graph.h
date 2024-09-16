@@ -47,6 +47,8 @@ public:
     std::vector<common::table_id_t> getNodeTableIDs() override;
     std::vector<common::table_id_t> getRelTableIDs() override;
 
+    std::vector<std::tuple<common::table_id_t, uint64_t>> getNodeTableIDAndNumNodes() override;
+
     common::offset_t getNumNodes() override;
     common::offset_t getNumNodes(common::table_id_t id) override;
 

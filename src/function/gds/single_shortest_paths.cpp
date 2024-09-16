@@ -73,24 +73,37 @@ private:
 };
 
 struct SingleSPOutputs : public SPOutputs {
-    explicit SingleSPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(graph, sourceNodeID, mm) {}
+    explicit SingleSPOutputs(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
+        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {}
     // Note: We do not fix the node table for pathLengths, because PathLengths is a
     // Frontiers implementation and RJCompState will call beginFrontierComputeBetweenTables
     // on Frontiers (and RJOutputs). That's why this function is empty.
-    void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override{};
+    void beginFrontierComputeBetweenTables(table_id_t, table_id_t) override{};
+
+    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
+        pathLengths->fixCurFrontierNodeTable(tableID);
+    }
 };
 
 struct SingleSPOutputsPaths : public SPOutputs {
     std::unique_ptr<SinglePaths> singlePaths;
-    explicit SingleSPOutputsPaths(graph::Graph* graph, nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(graph, sourceNodeID, mm) {
+    explicit SingleSPOutputsPaths(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        nodeID_t sourceNodeID, MemoryManager* mm)
+        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {
         singlePaths = std::make_unique<SinglePaths>(nodeTableIDAndNumNodes, mm);
     }
 
     void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override {
         singlePaths->fixNodeTable(nextFrontierTableID);
     };
+
+    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
+        pathLengths->fixCurFrontierNodeTable(tableID);
+        singlePaths->fixNodeTable(tableID);
+    }
 };
 
 class SingleSPOutputWriterLengths : public SPOutputWriterDsts {
@@ -147,8 +160,8 @@ private:
 };
 
 struct SingleSPLengthsEdgeCompute : public EdgeCompute {
-    PathLengthsFrontiers* pathLengthsFrontiers;
-    explicit SingleSPLengthsEdgeCompute(PathLengthsFrontiers* pathLengthsFrontiers)
+    SinglePathLengthsFrontiers* pathLengthsFrontiers;
+    explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontiers* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
     bool edgeCompute(nodeID_t, nodeID_t nbrID) override {
@@ -163,8 +176,7 @@ struct SingleSPLengthsEdgeCompute : public EdgeCompute {
 
 struct SingleSPPathsEdgeCompute : public SingleSPLengthsEdgeCompute {
     SinglePaths* singlePaths;
-    explicit SingleSPPathsEdgeCompute(
-        PathLengthsFrontiers* pathLengthsFrontiers, SinglePaths* singlePaths)
+    explicit SingleSPPathsEdgeCompute(SinglePathLengthsFrontiers* pathLengthsFrontiers, SinglePaths* singlePaths)
         : SingleSPLengthsEdgeCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
 
     bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
@@ -200,25 +212,28 @@ public:
     }
 
 protected:
-
     std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<SPOutputs> spOutputs;
         std::unique_ptr<RJOutputWriter> outputWriter;
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
-            spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
-                executionContext->clientContext->getMemoryManager());
-            outputWriter = std::make_unique<SPOutputWriterDsts>(executionContext->clientContext, spOutputs.get());
+            spOutputs =
+                std::make_unique<SingleSPOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
+                    sourceNodeID, executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<SPOutputWriterDsts>(
+                executionContext->clientContext, spOutputs.get());
             break;
         case RJOutputType::LENGTHS: {
-            spOutputs = std::make_unique<SingleSPOutputs>(sharedState->graph.get(), sourceNodeID,
-                executionContext->clientContext->getMemoryManager());
-            outputWriter = std::make_unique<SingleSPOutputWriterLengths>(executionContext->clientContext, spOutputs.get());
+            spOutputs =
+                std::make_unique<SingleSPOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
+                    sourceNodeID, executionContext->clientContext->getMemoryManager());
+            outputWriter = std::make_unique<SingleSPOutputWriterLengths>(
+                executionContext->clientContext, spOutputs.get());
             break;
         }
         case RJOutputType::PATHS: {
-            spOutputs = std::make_unique<SingleSPOutputsPaths>(sharedState->graph.get(),
+            spOutputs = std::make_unique<SingleSPOutputsPaths>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, executionContext->clientContext->getMemoryManager());
             outputWriter = std::make_unique<SingleSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get());
             break;
@@ -229,7 +244,7 @@ protected:
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
         auto pathLengthsFrontiers =
-            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
+            std::make_unique<SinglePathLengthsFrontiers>(spOutputs->pathLengths,
                 executionContext->clientContext->getMaxNumThreadForExec());
         std::unique_ptr<EdgeCompute> edgeCompute;
         switch (outputType) {
@@ -257,25 +272,22 @@ protected:
 
 function_set SingleSPDestinationsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(
-        name, std::make_unique<SingleSPAlgorithm>(RJOutputType::DESTINATION_NODES));
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(
+        name, std::make_unique<SingleSPAlgorithm>(RJOutputType::DESTINATION_NODES)));
     return result;
 }
 
 function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(
-        name, std::make_unique<SingleSPAlgorithm>(RJOutputType::LENGTHS));
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(
+        name, std::make_unique<SingleSPAlgorithm>(RJOutputType::LENGTHS)));
     return result;
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(
-        name, std::make_unique<SingleSPAlgorithm>(RJOutputType::PATHS));
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(
+        name, std::make_unique<SingleSPAlgorithm>(RJOutputType::PATHS)));
     return result;
 }
 

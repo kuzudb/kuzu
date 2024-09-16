@@ -8,13 +8,45 @@
 -DATASET CSV gds-rec-joins-small
 
 --
--CASE VarLenJoinsLowerBoundError
+-CASE VarLenJoinsUBLessThanLBError
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1)
            CALL var_len_joins(PK, a, 2, 1, true)
            RETURN *;
 ---- error
 Runtime exception: Lower bound length of recursive join operations need to be less than or equal to upper bound. Given lower bound is: 2 and upper bound is: 1.
+
+-CASE VarLenJoinsUBTooHighError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL var_len_joins(PK, a, 1, 10000, true)
+           RETURN *;
+---- error
+Runtime exception: Recursive join operations only works for non-positive upper bound iterations that are up to 255. Given upper bound is: 10000.
+
+-CASE VarLenJoinsLBNonPositiveError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL var_len_joins(PK, a, -1, 3, true)
+           RETURN *;
+---- error
+Runtime exception: Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: -1 and upper bound is: 3.
+
+-CASE ShortestPathsJoinsUBNonPositiveError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL all_sp_paths(PK, a, -5, true)
+           RETURN *;
+---- error
+Runtime exception: Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: 1 and upper bound is: -5.
+
+-CASE ShortestPathsJoinsUBNonPositiveError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL all_sp_paths(PK, a, 0, true)
+           RETURN *;
+---- error
+Runtime exception: Shortest path operations only works for positive upper bound iterations. Given upper bound is: 0.
 
 -CASE VarLenJoins
 -STATEMENT PROJECT GRAPH PK (person1, knows11)

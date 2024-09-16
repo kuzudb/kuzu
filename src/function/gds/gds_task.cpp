@@ -13,7 +13,6 @@ void FrontierTask::run() {
     std::unique_ptr<graph::Graph> graph = sharedState->graph->copy();
     auto state = graph->prepareScan(sharedState->relTableIDToScan);
     auto localEc = sharedState->ec.clone();
-    localEc->init();
     while (sharedState->frontiers.getNextRangeMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextOffset()) {
             nodeID_t nodeID = frontierMorsel.getNextNodeID();
@@ -34,7 +33,7 @@ void FrontierTask::run() {
 VertexComputeTaskSharedState::VertexComputeTaskSharedState(
     graph::Graph* graph, VertexCompute& vc, uint64_t maxThreadsForExecution)
         : graph{graph}, vc{vc} {
-    morselizer= std::make_unique<FrontierMorselizer>(maxThreadsForExecution);
+    morselizer= std::make_unique<FrontierMorselDispatcher>(maxThreadsForExecution);
 }
 
 void VertexComputeTask::run() {

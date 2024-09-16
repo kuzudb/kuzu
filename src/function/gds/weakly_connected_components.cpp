@@ -89,8 +89,9 @@ public:
         localState = std::make_unique<WeaklyConnectedComponentOutputWriter>(context);
     }
 
-    void exec(processor::ExecutionContext*) override {
+    void exec(processor::ExecutionContext* context) override {
         auto graph = sharedState->graph.get();
+        localState = std::make_unique<WeaklyConnectedComponentOutputWriter>(context->clientContext);
         visitedMap.clear();
         auto groupID = 0;
         auto nodeTableIDs = graph->getNodeTableIDs();

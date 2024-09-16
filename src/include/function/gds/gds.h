@@ -20,21 +20,21 @@ namespace function {
 
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
-    std::shared_ptr<binder::Expression> nodeOutput;
-    // If outputAsNode is true, we will scan all properties of the node.
-    // Otherwise, we return node ID only.
-    bool outputAsNode;
-
+public:
     explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
         : nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
+
     GDSBindData(const GDSBindData& other)
         : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
+
     virtual ~GDSBindData() = default;
 
     virtual bool hasNodeInput() const { return false; }
+
     virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
 
     virtual bool hasNodeOutput() const { return outputAsNode; }
+
     virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nodeOutput; }
 
     virtual std::unique_ptr<GDSBindData> copy() const {
@@ -45,6 +45,11 @@ struct GDSBindData {
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<GDSBindData*, TARGET*>(this);
     }
+public:
+    std::shared_ptr<binder::Expression> nodeOutput;
+    // If outputAsNode is true, we will scan all properties of the node.
+    // Otherwise, we return node ID only.
+    bool outputAsNode;
 };
 
 // Base class for every graph data science algorithm.
@@ -54,21 +59,29 @@ protected:
 
 public:
     GDSAlgorithm() = default;
+
     GDSAlgorithm(const GDSAlgorithm& other) {
         if (other.bindData != nullptr) {
             bindData = other.bindData->copy();
         }
+        sharedState = other.sharedState;
     }
+
     virtual ~GDSAlgorithm() = default;
 
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
+
     virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
     virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
         graph::GraphEntry& graphEntry) = 0;
+
     GDSBindData* getBindData() const { return bindData.get(); }
 
-    void init(processor::GDSCallSharedState* _sharedState) {
+    // Note: The reason this field is set separate from the original constructor is that the
+    // original GDSAlgorithm is constructed in the binding stage. In contrast, sharedState is
+    // constructed during mapping phase.
+    void setSharedState(std::shared_ptr<processor::GDSCallSharedState> _sharedState) {
         sharedState = _sharedState;
     }
 
@@ -76,6 +89,8 @@ public:
 
     virtual std::unique_ptr<GDSAlgorithm> copy() const = 0;
 protected:
+    // TODO(Semih): See if this will be still needed after PageRank and other algorithms are
+    // updated. GDSAlgorithms implementing recursive joins do not use this function.
     virtual void initLocalState(main::ClientContext*)  {}
 
 protected:
@@ -84,7 +99,7 @@ protected:
 
 protected:
     std::unique_ptr<GDSBindData> bindData;
-    processor::GDSCallSharedState* sharedState;
+    std::shared_ptr<processor::GDSCallSharedState> sharedState;
 };
 
 } // namespace function

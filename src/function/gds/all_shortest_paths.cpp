@@ -6,8 +6,6 @@
 #include "processor/operator/gds_call.h"
 #include "processor/result/factorized_table.h"
 
-// TODO(Semih): Remove
-#include <iostream>
 using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -16,7 +14,6 @@ using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
-// TODO(Semih): Make all atomic fields of structs/classes private and provide getter functions
 // TODO(Reviewer): Which classes should be used with function:: namespace? Is anything that's not in the
 // function namespace have a namespace? For example, should nodeID_t be common::nodeID_t below?
 struct ParentIterAndNextPtr {
@@ -230,8 +227,8 @@ private:
 struct AllSPMultiplicitiesOutputs : public SPOutputs {
 
 public:
-    explicit AllSPMultiplicitiesOutputs(graph::Graph* graph, nodeID_t sourceNodeID,
-        MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, mm) {
+    explicit AllSPMultiplicitiesOutputs(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, nodeID_t sourceNodeID,
+        MemoryManager* mm = nullptr) : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {
         multiplicities = std::make_unique<PathMultiplicities>(nodeTableIDAndNumNodes, mm);
     }
 
@@ -245,23 +242,34 @@ public:
         multiplicities->fixBoundNodeTable(curFrontierTableID);
         multiplicities->fixTargetNodeTable(nextFrontierTableID);
     };
-    // TODO(Reviewer): Should this go up or bottom?
-    // Multiplicities is only used the output type is DESTINATION_NODES or LENGTHS.
+
+    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
+        pathLengths->fixCurFrontierNodeTable(tableID);
+        multiplicities->fixTargetNodeTable(tableID);
+    }
+
+public:
     std::unique_ptr<PathMultiplicities> multiplicities;
 };
 
 struct VarLenOrAllSPPathsOutputs : public SPOutputs {
-    std::unique_ptr<ParentPtrsAtomics> parentPtrs;
-    explicit VarLenOrAllSPPathsOutputs(graph::Graph* graph, nodeID_t sourceNodeID,
-        MemoryManager* mm = nullptr) : SPOutputs(graph, sourceNodeID, mm) {
+    explicit VarLenOrAllSPPathsOutputs(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes, nodeID_t sourceNodeID,
+        MemoryManager* mm = nullptr) : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {
         parentPtrs = std::make_unique<ParentPtrsAtomics>(nodeTableIDAndNumNodes, mm);
     }
 
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID, table_id_t nextFrontierTableID) override {
+    void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
         // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
         parentPtrs->fixNodeTable(nextFrontierTableID);
     };
+
+    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
+        pathLengths->fixCurFrontierNodeTable(tableID);
+        parentPtrs->fixNodeTable(tableID);
+    }
+public:
+    std::unique_ptr<ParentPtrsAtomics> parentPtrs;
 };
 
 class AllSPOutputWriterDsts : public SPOutputWriterDsts {
@@ -273,9 +281,10 @@ public:
         return std::make_unique<AllSPOutputWriterDsts>(context, rjOutputs);
     }
 protected:
-    void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t tableID) const override {
-        rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
-    }
+    // TODO(Semih): Remove
+//    void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t tableID) const override {
+//        rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
+//    }
 
     void writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t) const override {
         auto multiplicity =
@@ -300,9 +309,10 @@ public:
         return std::make_unique<AllSPOutputWriterLengths>(context, rjOutputs);
     }
 protected:
-    void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t tableID) const override {
-        rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
-    }
+    // TODO(Semih): Remove
+//    void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t tableID) const override {
+//        rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities->fixTargetNodeTable(tableID);
+//    }
 
     void writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t length) const override {
         lengthVector->setValue<int64_t>(0, length);
@@ -328,10 +338,6 @@ public:
             std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
         pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(pathNodeIDsVector.get());
-    }
-
-    void beginWritingForDstNodesInTable(table_id_t tableID) const override {
-        rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs->fixNodeTable(tableID);
     }
 
     void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override {
@@ -453,7 +459,7 @@ public:
 };
 
 struct AllSPLengthsEdgeCompute : public EdgeCompute {
-    explicit AllSPLengthsEdgeCompute(PathLengthsFrontiers* pathLengthsFrontiers,
+    explicit AllSPLengthsEdgeCompute(SinglePathLengthsFrontiers* pathLengthsFrontiers,
         PathMultiplicities* multiplicities)
         : pathLengthsFrontiers{pathLengthsFrontiers}, multiplicities{multiplicities} {};
 
@@ -465,7 +471,7 @@ struct AllSPLengthsEdgeCompute : public EdgeCompute {
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
         // so it's value is curIter + 1.
         auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                            nbrVal == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed);
+                            nbrVal == pathLengthsFrontiers->pathLengths->getCurIter();
         if (shouldUpdate) {
             // Note: This is safe because curNodeID is in the current frontier, so its
             // shortest paths multiplicity is guaranteed to not change in the current iteration.
@@ -481,18 +487,19 @@ struct AllSPLengthsEdgeCompute : public EdgeCompute {
     }
 
 private:
-    PathLengthsFrontiers* pathLengthsFrontiers;
+    SinglePathLengthsFrontiers* pathLengthsFrontiers;
     PathMultiplicities* multiplicities;
 };
 
 struct AllSPPathsEdgeCompute : public EdgeCompute {
-    PathLengthsFrontiers* pathLengthsFrontiers;
+    SinglePathLengthsFrontiers* pathLengthsFrontiers;
     ParentPtrsAtomics* parentPtrs;
     ParentPtrsBlock* parentPtrsBlock;
-    explicit AllSPPathsEdgeCompute(PathLengthsFrontiers* pathLengthsFrontiers, ParentPtrsAtomics* parentPtrs)
+    explicit AllSPPathsEdgeCompute(
+        SinglePathLengthsFrontiers* pathLengthsFrontiers, ParentPtrsAtomics* parentPtrs)
         : pathLengthsFrontiers{pathLengthsFrontiers}, parentPtrs{parentPtrs} {
-                                                          parentPtrsBlock = parentPtrs->addNewBlock();
-                                                      };
+        parentPtrsBlock = parentPtrs->addNewBlock();
+    };
 
     bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) override {
         auto nbrLen =
@@ -503,7 +510,7 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
         // so it's value is curIter + 1.
         auto shouldUpdate =
             nbrLen == PathLengths::UNVISITED ||
-            nbrLen == pathLengthsFrontiers->pathLengths->curIter.load(std::memory_order_relaxed);
+            nbrLen == pathLengthsFrontiers->pathLengths->getCurIter();
         if (shouldUpdate) {
             if (!parentPtrsBlock->hasSpace()) {
                 parentPtrsBlock = parentPtrs->addNewBlock();
@@ -541,18 +548,18 @@ public:
         std::unique_ptr<RJOutputWriter> outputWriter;
         switch (outputType) {
         case RJOutputType::DESTINATION_NODES:
-            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph.get(),
+            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, executionContext->clientContext->getMemoryManager());
             outputWriter = std::make_unique<AllSPOutputWriterDsts>(executionContext->clientContext, spOutputs.get());
             break;
         case RJOutputType::LENGTHS: {
-            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph.get(),
+            spOutputs = std::make_unique<AllSPMultiplicitiesOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, executionContext->clientContext->getMemoryManager());
             outputWriter = std::make_unique<AllSPOutputWriterLengths>(executionContext->clientContext, spOutputs.get());
             break;
         }
         case RJOutputType::PATHS: {
-            spOutputs = std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph.get(), sourceNodeID,
+            spOutputs = std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
                 executionContext->clientContext->getMemoryManager());
             outputWriter = std::make_unique<AllSPOutputWriterPaths>(executionContext->clientContext, spOutputs.get(),
                 bindData->ptrCast<RJBindData>()->upperBound);
@@ -564,7 +571,7 @@ public:
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
         auto pathLengthsFrontiers =
-            std::make_unique<PathLengthsFrontiers>(spOutputs->pathLengths,
+            std::make_unique<SinglePathLengthsFrontiers>(spOutputs->pathLengths,
                 executionContext->clientContext->getMaxNumThreadForExec());
         std::unique_ptr<EdgeCompute> edgeCompute;
         switch (outputType) {
@@ -622,8 +629,7 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
 class VarLenJoinsAlgorithm final : public RJAlgorithm {
 
 public:
-    // TODO(Semih): Remove the true argument with an enum.
-    explicit VarLenJoinsAlgorithm() : RJAlgorithm(RJOutputType::PATHS, true /* hasLowerBoundInput */){}
+    explicit VarLenJoinsAlgorithm() : RJAlgorithm(RJOutputType::PATHS, RJInputType::HAS_LOWER_BOUND){}
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
@@ -633,14 +639,14 @@ public:
     std::unique_ptr<RJCompState> getRJCompState(
         processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
         std::unique_ptr<RJOutputs> spOutputs =
-            std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph.get(), sourceNodeID,
+            std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
                 executionContext->clientContext->getMemoryManager());
         std::unique_ptr<RJOutputWriter> outputWriter =
             std::make_unique<VarLenOutputWriterPaths>(executionContext->clientContext,
                 spOutputs.get(), bindData->ptrCast<RJBindData>()->lowerBound,
                 bindData->ptrCast<RJBindData>()->upperBound);
         auto doublePathLengthsFrontiers =
-            std::make_unique<DoublePathLengthsFrontiers>(spOutputs->nodeTableIDAndNumNodes,
+            std::make_unique<DoublePathLengthsFrontiers>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 executionContext->clientContext->getMaxNumThreadForExec(), executionContext->clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<VarLenJoinsEdgeCompute>(
             doublePathLengthsFrontiers.get(), spOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs.get());
@@ -651,33 +657,29 @@ public:
 
 function_set VarLenJoinsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<VarLenJoinsAlgorithm>());
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(name,
+            std::make_unique<VarLenJoinsAlgorithm>()));
     return result;
 }
 
 function_set AllSPDestinationsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<AllSPAlgorithm>(RJOutputType::DESTINATION_NODES));
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(name,
+            std::make_unique<AllSPAlgorithm>(RJOutputType::DESTINATION_NODES)));
     return result;
 }
 
 function_set AllSPLengthsFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name,
-        std::make_unique<AllSPAlgorithm>(RJOutputType::LENGTHS));
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(name,
+        std::make_unique<AllSPAlgorithm>(RJOutputType::LENGTHS)));
     return result;
 }
 
 function_set AllSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto function =
-        std::make_unique<GDSFunction>(name, std::make_unique<AllSPAlgorithm>(RJOutputType::PATHS));
-    result.push_back(std::move(function));
+    result.push_back(std::make_unique<GDSFunction>(
+        name, std::make_unique<AllSPAlgorithm>(RJOutputType::PATHS)));
     return result;
 }
 

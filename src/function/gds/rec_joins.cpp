@@ -31,23 +31,26 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutput
 }
 
 RJCompState::RJCompState(std::unique_ptr<function::Frontiers> frontiers,
-    std::unique_ptr<function::EdgeCompute> edgeCompute,
-    std::unique_ptr<RJOutputs> outputs,
+    std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
     std::unique_ptr<RJOutputWriter> outputWriter)
-    : outputs{std::move(outputs)}, frontiers{std::move(frontiers)},
-      edgeCompute{std::move(edgeCompute)}, outputWriter{std::move(outputWriter)} {}
+    : frontiers{std::move(frontiers)}, edgeCompute{std::move(edgeCompute)},
+      outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
 
 void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(hasLowerBoundInput ? params.size() == 5 : params.size() == 4);
+    KU_ASSERT(RJInputType::HAS_LOWER_BOUND == inputType ? params.size() == 5 : params.size() == 4);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
     // Note: This is where we ensure that for any recursive join algorithm other than variable
     // length joins, lower bound is 1. See the comment in RJBindData::lowerBound field.
-    auto lowerBound = hasLowerBoundInput ? ExpressionUtil::getLiteralValue<int64_t>(*params[2]) : 1;
-    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[hasLowerBoundInput ? 3 : 2]);
+    auto lowerBound = RJInputType::HAS_LOWER_BOUND == inputType ? ExpressionUtil::getLiteralValue<int64_t>(*params[2]) : 1;
+    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[RJInputType::HAS_LOWER_BOUND == inputType ? 3 : 2]);
+    if ((RJInputType::NO_LOWER_BOUND == inputType) && upperBound == 0) {
+        throw RuntimeException("Shortest path operations only works for positive upper bound "
+                               "iterations. Given upper bound is: " +
+                               std::to_string(upperBound) + ".");
+    }
     if (lowerBound < 0 || upperBound < 0) {
-        // TODO(Semih): Add test case covering this.
         throw RuntimeException("Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: " +
                                std::to_string(lowerBound) + " and upper bound is: " + std::to_string(upperBound) + ".");
     }
@@ -56,19 +59,12 @@ void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* 
             std::to_string(lowerBound) + " and upper bound is: " + std::to_string(upperBound) + ".");
     }
     if (upperBound >= RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND) {
-        // TODO(Semih): Add test case covering this.
         throw RuntimeException(
             "Recursive join operations only works for non-positive upper bound iterations that are up to " +
             std::to_string(RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND) +
             ". Given upper bound is: " + std::to_string(upperBound) + ".");
     }
-    if (!hasLowerBoundInput && upperBound == 0) {
-        // TODO(Semih): Add test case covering this.
-        throw RuntimeException("Shortest path operations only works for positive upper bound "
-                               "iterations. Given upper bound is: " +
-                               std::to_string(upperBound) + ".");
-    }
-    auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[hasLowerBoundInput ? 4 : 3]);
+    auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[RJInputType::HAS_LOWER_BOUND == inputType ? 4 : 3]);
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
 }
 
@@ -106,7 +102,6 @@ public:
         localFT = std::make_unique<processor::FactorizedTable>(sharedState->mm,
             sharedState->globalFT->getTableSchema()->copy());
         localRJOutputWriter = sharedState->rjOutputWriter->clone();
-//        localRJOutputWriter->initWritingFromSource();
     }
 
     void beginVertexComputeOnTable(table_id_t tableID) override {
@@ -157,7 +152,6 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             rjCompState->initRJFromSource(sourceNodeID);
             GDSUtils::runFrontiersUntilConvergence(executionContext, *rjCompState,
                 sharedState->graph.get(), bindData->ptrCast<RJBindData>()->upperBound);
-//            outputWriter->initWritingFromSource(sourceNodeID);
             auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
                 executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
                 rjCompState->outputWriter.get());
@@ -171,6 +165,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
 PathLengths::PathLengths(
     std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
     storage::MemoryManager* mm) {
+    curIter.store(0);
     for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
         nodeTableIDAndNumNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
@@ -201,44 +196,45 @@ void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
         std::memory_order_relaxed);
 }
 
-void PathLengthsFrontiers::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+void SinglePathLengthsFrontiers::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
     table_id_t nextFrontierTableID) {
     pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
     pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselizer->init(curFrontierTableID, pathLengths->getNumNodesInCurFrontierFixedNodeTable());
-}
-// TODO(Semih): Consider removing this function and directly getting morsels from the FrontierMorselizer.
-bool PathLengthsFrontiers::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselizer->getNextRangeMorsel(frontierMorsel);
+    morselDispatcher->init(curFrontierTableID, pathLengths->getNumNodesInCurFrontierFixedNodeTable());
 }
 
-DoublePathLengthsFrontiers::DoublePathLengthsFrontiers(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
-    uint64_t maxThreadsForExec, storage::MemoryManager* mm)
-    : Frontiers(move(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm)),
-          move(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm)), 1 /* initial num active nodes */, maxThreadsForExec) {
-    morselizer = std::make_unique<FrontierMorselizer>(maxThreadsForExec);
+bool SinglePathLengthsFrontiers::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
+    return morselDispatcher->getNextRangeMorsel(frontierMorsel);
+}
+
+void SinglePathLengthsFrontiers::initRJFromSource(nodeID_t source) {
+    pathLengths->fixNextFrontierNodeTable(source.tableID);
+    pathLengths->setActive(source);
 }
 
 bool DoublePathLengthsFrontiers::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselizer->getNextRangeMorsel(frontierMorsel);
+    return morselDispatcher->getNextRangeMorsel(frontierMorsel);
 }
 
 void DoublePathLengthsFrontiers::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
     table_id_t nextFrontierTableID) {
     curFrontier->ptrCast<PathLengths>()->fixCurFrontierNodeTable(curFrontierTableID);
     nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselizer->init(curFrontierTableID, curFrontier->ptrCast<PathLengths>()->getNumNodesInCurFrontierFixedNodeTable());
+    morselDispatcher->init(curFrontierTableID, curFrontier->ptrCast<PathLengths>()->getNumNodesInCurFrontierFixedNodeTable());
 }
 
-RJOutputs::RJOutputs(graph::Graph* graph, nodeID_t sourceNodeID)
+void DoublePathLengthsFrontiers::initRJFromSource(nodeID_t source) {
+    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(source.tableID);
+    nextFrontier->ptrCast<PathLengths>()->setActive(source);
+}
+
+RJOutputs::RJOutputs(nodeID_t sourceNodeID)
     : sourceNodeID{sourceNodeID} {
-    for (common::table_id_t tableID : graph->getNodeTableIDs()) {
-        auto numNodes = graph->getNumNodes(tableID);
-        nodeTableIDAndNumNodes.push_back({tableID, numNodes});
-    }
 }
 
-SPOutputs::SPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, storage::MemoryManager* mm) : RJOutputs(graph, sourceNodeID) {
+SPOutputs::SPOutputs(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+    nodeID_t sourceNodeID, storage::MemoryManager* mm)
+    : RJOutputs(sourceNodeID) {
     pathLengths = std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm);
 }
 

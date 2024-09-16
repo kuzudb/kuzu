@@ -93,6 +93,14 @@ std::vector<table_id_t> OnDiskGraph::getRelTableIDs() {
     return graphEntry.relTableIDs;
 }
 
+std::vector<std::tuple<common::table_id_t, uint64_t>> OnDiskGraph::getNodeTableIDAndNumNodes() {
+    std::vector<std::tuple<common::table_id_t, uint64_t>> retVal;
+    for (common::table_id_t tableID : getNodeTableIDs()) {
+        retVal.push_back({tableID, getNumNodes(tableID)});
+    }
+    return retVal;
+}
+
 offset_t OnDiskGraph::getNumNodes() {
     offset_t numNodes = 0u;
     for (auto id : getNodeTableIDs()) {

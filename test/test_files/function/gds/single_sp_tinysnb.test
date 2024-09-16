@@ -24,8 +24,7 @@ Runtime exception: shortest_paths function only works for positive max iteration
            MATCH (a:person) WHERE a.ID = 0
            CALL single_sp_lengths(PK, a, 2, true)
            RETURN a.fName, _node.fName, length;
----- 4
-Alice|Alice|0
+---- 3
 Alice|Bob|1
 Alice|Carol|1
 Alice|Dan|1

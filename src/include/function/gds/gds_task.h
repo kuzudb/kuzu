@@ -38,7 +38,7 @@ public:
 public:
     graph::Graph* graph;
     VertexCompute& vc;
-    std::unique_ptr<FrontierMorselizer> morselizer;
+    std::unique_ptr<FrontierMorselDispatcher> morselizer;
 };
 
 class VertexComputeTask : public common::Task {

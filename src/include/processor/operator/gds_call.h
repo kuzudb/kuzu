@@ -22,16 +22,6 @@ struct GDSCallSharedState {
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 };
 
-struct GDSCallInfo {
-    std::unique_ptr<function::GDSAlgorithm> gds;
-
-    explicit GDSCallInfo(std::unique_ptr<function::GDSAlgorithm> gds) : gds{std::move(gds)} {}
-    EXPLICIT_COPY_DEFAULT_MOVE(GDSCallInfo);
-
-private:
-    GDSCallInfo(const GDSCallInfo& other) : gds{other.gds->copy()} {}
-};
-
 struct GDSCallPrintInfo final : OPPrintInfo {
     std::string funcName;
 
@@ -52,12 +42,11 @@ class GDSCall : public Sink {
     static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;
 
 public:
-    GDSCall(std::unique_ptr<ResultSetDescriptor> descriptor, GDSCallInfo info,
+    GDSCall(std::unique_ptr<ResultSetDescriptor> descriptor, std::unique_ptr<function::GDSAlgorithm> _gds,
         std::shared_ptr<GDSCallSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{std::move(descriptor), operatorType_, id, std::move(printInfo)},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {
-        info.gds->init(sharedState.get());
+          gds{std::move(_gds)}, sharedState{std::move(sharedState)} {
     }
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
@@ -67,17 +56,15 @@ public:
 
     bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet*, ExecutionContext*) override;
-
     void executeInternal(ExecutionContext* executionContext) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<GDSCall>(resultSetDescriptor->copy(), info.copy(), sharedState, id,
+        return std::make_unique<GDSCall>(resultSetDescriptor->copy(), gds->copy(), sharedState, id,
             printInfo->copy());
     }
 
 private:
-    GDSCallInfo info;
+    std::unique_ptr<function::GDSAlgorithm> gds;
     std::shared_ptr<GDSCallSharedState> sharedState;
 };
 

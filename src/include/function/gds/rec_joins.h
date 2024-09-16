@@ -31,21 +31,22 @@ class EdgeCompute;
  * A GDSFrontier implementation that keeps the lengths of the shortest paths from the source node to
  * destination nodes. This is a light-weight implementation that can keep lengths up to and
  * including UINT16_MAX - 1. The length stored for the source node is 0. Length UINT16_MAX is
- * reserved for marking nodes that are not visited. This class is intended to represent both the
- * current and next frontiers. At iteration i of the shortest path algorithm (iterations start
- * from 0), nodes with mask values i are in the current frontier. Nodes with any other values are
- * not in the frontier. Similarly at iteration i setting a node u active sets its mask value to i+1.
- * Therefore this class needs to be informed about the current iteration of the algorithm to
- * provide correct implementations of isActive and setActive functions.
+ * reserved for marking nodes that are not visited.
+ *
+ * Note: This class can be used to represent both the current and next frontiers. At iteration i of
+ * the shortest path algorithm (iterations start from 0), nodes with mask values i are in the
+ * current frontier. Nodes with any other values are not in the frontier. Similarly at iteration i
+ * setting a node u active sets its mask value to i+1. This class contains functions to expose
+ * two frontiers to users, e.g., getMaskValueFromCur/NextFrontierFixedMask.In the case of shortest
+ * path computations, using this class to represent two frontiers should be faster or take less
+ * space than keeping two separate frontiers.
+ *
+ * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
 class PathLengths : public GDSFrontier {
-    friend class PathLengthsFrontiers;
+    friend class SinglePathLengthsFrontiers;
 public:
     static constexpr uint16_t UNVISITED = UINT16_MAX;
-    // curIter is the iteration number of the algorithm and starts from 0.
-    // TODO(Semih): Make this private and make the reads happen through a function. That way
-    // we can ensure that reads are always done through load(std::memory_order_relaxed).
-    std::atomic<uint16_t> curIter = 0;
 
     explicit PathLengths(
         std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
@@ -66,12 +67,8 @@ public:
 
     inline void setActive(nodeID_t nodeID) override {
         auto nextFrontierMask = getNextFrontierFixedMask();
-        // TODO(Semih): We should be removing this check because we assume that whether the active
-        // check is done or not was done by the caller.
-        if (nextFrontierMask[nodeID.offset].load(std::memory_order_relaxed) == UNVISITED) {
-            nextFrontierMask[nodeID.offset].store(curIter.load(std::memory_order_relaxed),
-                std::memory_order_relaxed);
-        }
+        nextFrontierMask[nodeID.offset].store(
+            curIter.load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
 
     void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
@@ -84,6 +81,11 @@ public:
         KU_ASSERT(curFrontierFixedMask.load(std::memory_order_relaxed) != nullptr);
         return maxNodesInCurFrontierFixedMask.load(std::memory_order_relaxed);
     }
+
+    uint16_t getCurIter() {
+        return curIter.load(std::memory_order_relaxed);
+    }
+
 private:
     std::atomic<uint16_t>* getCurFrontierFixedMask() {
         auto retVal = curFrontierFixedMask.load(std::memory_order_relaxed);
@@ -102,39 +104,32 @@ private:
     // the parallel functions in GDSUtils.
     std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
+    // See Frontiers::curIter. We keep a copy of curIter here because PathLengths stores iteration
+    // numbers for vertices and uses them to identify which vertex is in the frontier.
+    std::atomic<uint16_t> curIter;
     std::atomic<table_id_t> curTableID;
     std::atomic<uint64_t> maxNodesInCurFrontierFixedMask;
-    // TODO(Semih): Remove current and next terminology from here because it is confusing if this
-    // class is used to represent a single frontier (e.g., in VarLenJoins). Instead use
-    // readActiveMask and setActiveMask.
     std::atomic<std::atomic<uint16_t>*> curFrontierFixedMask;
     std::atomic<std::atomic<uint16_t>*> nextFrontierFixedMask;
 };
 
-// TODO(Semih): Rename to SinglePathLengthsFrontiers and write documentation
-class PathLengthsFrontiers : public Frontiers {
+class SinglePathLengthsFrontiers : public Frontiers {
     friend struct AllSPLengthsEdgeCompute;
     friend struct AllSPPathsEdgeCompute;
     friend struct SingleSPLengthsEdgeCompute;
     friend struct SingleSPPathsEdgeCompute;
 
 public:
-    explicit PathLengthsFrontiers(std::shared_ptr<PathLengths> pathLengths, uint64_t maxThreadsForExec)
+    explicit SinglePathLengthsFrontiers(std::shared_ptr<PathLengths> pathLengths, uint64_t maxThreadsForExec)
         : Frontiers(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
               1 /* initial num active nodes */, maxThreadsForExec),
           pathLengths{pathLengths} {
-        morselizer = std::make_unique<FrontierMorselizer>(maxThreadsForExec);
+        morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExec);
     }
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
 
-    void initRJFromSource(nodeID_t source) override {
-        // Because PathLengths is a single data structure that represents both the current and next
-        // frontier, and because setting active is an operation done on the next frontier, we first
-        // fix the next frontier table before setting the source node as active.
-        pathLengths->fixNextFrontierNodeTable(source.tableID);
-        pathLengths->setActive(source);
-    }
+    void initRJFromSource(nodeID_t source) override;
 
     void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) override;
@@ -145,29 +140,25 @@ public:
 
 private:
     std::shared_ptr<PathLengths> pathLengths;
-    std::unique_ptr<FrontierMorselizer> morselizer;
+    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
 };
 
 class DoublePathLengthsFrontiers : public Frontiers {
     friend struct VarLenJoinsEdgeCompute;
 
 public:
-    // TODO(Semih): Check if mm should be defaulted to null. Also the constructor is in cpp. Be
-    // consistent with SinglePathLengthsFrontiers in the style.
-    explicit DoublePathLengthsFrontiers(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
-        uint64_t maxThreadsForExec, storage::MemoryManager* mm = nullptr);
+    explicit DoublePathLengthsFrontiers(
+        std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        uint64_t maxThreadsForExec, storage::MemoryManager* mm)
+        : Frontiers(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm),
+              std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm),
+              1 /* initial num active nodes */, maxThreadsForExec) {
+        morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExec);
+    }
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
 
-    void initRJFromSource(nodeID_t source) override {
-        // TODO(Semih): Check if we need fixNextFrontierNodeTable call here because the following
-        // commment existed in SinglePathLengthsFrontiers::initRJFromSource: "Because PathLengths is
-        // a single data structure that represents both the current and next frontier, and because
-        // setting active is an operation done on the next frontier, we first fix the next frontier
-        // table before setting the source node as active."
-        nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(source.tableID);
-        nextFrontier->ptrCast<PathLengths>()->setActive(source);
-    }
+    void initRJFromSource(nodeID_t source) override;
 
     void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) override;
@@ -178,7 +169,7 @@ public:
     }
 
 private:
-    std::unique_ptr<FrontierMorselizer> morselizer;
+    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
 };
 
 struct RJBindData final : public function::GDSBindData {
@@ -220,29 +211,37 @@ enum class RJOutputType : uint8_t {
     PATHS = 2,
 };
 
-struct RJOutputs {
-    nodeID_t sourceNodeID;
-    // TODO(Semih): Make private or move somewhere else
-    std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes;
+enum class RJInputType : uint8_t {
+    HAS_LOWER_BOUND = 0,
+    NO_LOWER_BOUND = 1,
+};
 
+struct RJOutputs {
 public:
-    RJOutputs(graph::Graph* graph, nodeID_t sourceNodeID);
+    explicit RJOutputs(nodeID_t sourceNodeID);
     virtual ~RJOutputs() = default;
 
     virtual void initRJFromSource(nodeID_t) {}
     virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) = 0;
+    // This function is called after the recursive join computation stage, at the stage when the
+    // outputs that are stored in RJOutputs is being written to FactorizedTable.
+    virtual void beginWritingOutputsForDstNodesInTable(table_id_t tableID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<RJOutputs*, TARGET*>(this);
     }
+public:
+    nodeID_t sourceNodeID;
 };
 
 struct SPOutputs : public RJOutputs {
-    std::shared_ptr<PathLengths> pathLengths;
-    // TODO(Semih): Check if mm should be defaulted to nullptr.
-    SPOutputs(graph::Graph* graph, nodeID_t sourceNodeID, storage::MemoryManager* mm = nullptr);
+public:
+    explicit SPOutputs(std::vector<std::tuple<common::table_id_t, uint64_t>> nodeTableIDAndNumNodes,
+        nodeID_t sourceNodeID, storage::MemoryManager* mm);
     // TODO(Semih/Reviewer): What should I do for default destructors generally?
+public:
+    std::shared_ptr<PathLengths> pathLengths;
 };
 /**
  * Helper class to write paths to a ValueVector. The ValueVector should be a ListVector. The path
@@ -263,16 +262,12 @@ public:
 
 class RJOutputWriter {
 public:
-    // TODO(Semih): Consider changing raw pointers with shared pointers
     explicit RJOutputWriter(main::ClientContext* contex, RJOutputs* rjOutputs);
     virtual ~RJOutputWriter() = default;
 
-    // TODO(Semih): Have this function implemented in RJOutputs. Then don't make
-    // RJOutputWriter::beginWritingForDstNodesInTable be a virtual class but instead make it
-    // directly call RJOutputs::beginWritingForDstNodesInTable. Also make RJOutputWriter keep the
-    // RJOutputs as a field so we don't need to keep passing it as an argument to skipWriting and
-    // write functions.
-    virtual void beginWritingForDstNodesInTable(table_id_t tableID) const = 0;
+    void beginWritingForDstNodesInTable(table_id_t tableID) {
+        rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
+    }
 
     virtual bool skipWriting(nodeID_t dstNodeID) const = 0;
 
@@ -326,10 +321,10 @@ public:
 
     void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override;
 
-    void beginWritingForDstNodesInTable(table_id_t tableID) const override {
-        rjOutputs->ptrCast<SPOutputs>()->pathLengths->fixCurFrontierNodeTable(tableID);
-        fixOtherStructuresToOutputDstsFromNodeTable(tableID);
-    }
+//    void beginWritingForDstNodesInTable(table_id_t tableID) const override {
+//        rjOutputs->ptrCast<SPOutputs>()->pathLengths->fixCurFrontierNodeTable(tableID);
+//        fixOtherStructuresToOutputDstsFromNodeTable(tableID);
+//    }
 
     bool skipWriting(nodeID_t dstNodeID) const override {
         return dstNodeID == rjOutputs->ptrCast<SPOutputs>()->sourceNodeID || PathLengths::UNVISITED ==
@@ -340,7 +335,8 @@ public:
         return std::make_unique<SPOutputWriterDsts>(context, rjOutputs);
     }
 protected:
-    virtual void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t) const {}
+    // TODO(Semih): Remove
+//    virtual void fixOtherStructuresToOutputDstsFromNodeTable(table_id_t) const {}
 
     virtual void writeMoreAndAppend(
         processor::FactorizedTable& fTable, nodeID_t dstNodeID, uint16_t length) const;
@@ -351,10 +347,11 @@ class RJAlgorithm : public GDSAlgorithm {
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
 
 public:
-    explicit RJAlgorithm(RJOutputType outputType, bool hasLowerBoundInput = false)
-        : outputType{outputType}, hasLowerBoundInput{hasLowerBoundInput} {};
-    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, outputType{other.outputType}, hasLowerBoundInput{other.hasLowerBoundInput} {}
-    // TODO(Reviewer): Do I have to do this? We should make sure we're being safe here.
+    explicit RJAlgorithm(RJOutputType outputType, RJInputType inputType = RJInputType::NO_LOWER_BOUND)
+        : outputType{outputType}, inputType{inputType} {};
+    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, outputType{other.outputType}, inputType{other.inputType} {}
+    // TODO(Reviewer): Do I have to do this? We should make sure we're being safe here. Should I add
+    // similar default constructors elsewhere?
     virtual ~RJAlgorithm() = default;
     /*
      * Inputs include the following:
@@ -366,7 +363,7 @@ public:
      * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        if (hasLowerBoundInput) {
+        if (RJInputType::HAS_LOWER_BOUND == inputType) {
             return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
                 common::LogicalTypeID::INT64, common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
         } else {
@@ -390,7 +387,7 @@ public:
 
 protected:
     RJOutputType outputType;
-    bool hasLowerBoundInput;
+    RJInputType inputType;
 };
 } // namespace function
 } // namespace kuzu

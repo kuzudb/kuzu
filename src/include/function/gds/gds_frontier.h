@@ -32,10 +32,6 @@ public:
     // work.
     virtual bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) = 0;
 
-    // This function will be called by each worker thread on its copy of the EdgeCompute.
-    // TODO(Semih): See if this has any implementations. If not remove.
-    virtual void init() {}
-
     virtual std::unique_ptr<EdgeCompute> clone() = 0;
 };
 
@@ -47,7 +43,7 @@ public:
     // GDSUtils::runVertexComputeIteration function. runVertexComputeIteration loops through
     // each node table T on the graph on which vertexCompute should run and then before
     // parallelizing the computation on T calls this function.
-    virtual void beginVertexComputeOnTable(table_id_t tableID) {}
+    virtual void beginVertexComputeOnTable(table_id_t) {}
 
     // This function is called by each worker thread T on each node in the morsel that T grabs.
     // Does any vertex-centric work that is needed while running on the curNodeID. This function
@@ -66,7 +62,7 @@ public:
 };
 
 class FrontierMorsel {
-    friend class FrontierMorselizer;
+    friend class FrontierMorselDispatcher;
 
 public:
     FrontierMorsel() {}
@@ -90,7 +86,7 @@ private:
     offset_t nextOffset = INVALID_OFFSET;
 };
 
-class FrontierMorselizer {
+class FrontierMorselDispatcher {
     static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
     // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
     // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
@@ -98,7 +94,7 @@ class FrontierMorselizer {
     static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
-    explicit FrontierMorselizer(uint64_t _maxThreadsForExec) {
+    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec) {
         maxThreadsForExec.store(_maxThreadsForExec);
     }
 
@@ -185,20 +181,19 @@ public:
     virtual void initRJFromSource(nodeID_t source) = 0;
     virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) = 0;
-    // TODO(Semih): Remove if not used
+
     idx_t getNextIter() {
         return curIter.load() + 1u;
     }
-    // TODO(Semih): Remove if note used
+
     bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
+
     // Note: If the implementing class stores 2 frontiers, this function should swap them.
     virtual void beginNewIterationInternalNoLock() {}
 
 protected:
     std::mutex mtx;
     // curIter is the iteration number of the algorithm and starts from 0.
-    // TODO(Semih): Currently both the actual Frontier class PathLengths and this class keeps
-    // track of curIter. See if this is necessary.
     std::atomic<uint16_t> curIter;
     std::atomic<uint64_t> numApproxActiveNodesForCurLevel;
     // Note: This number is not guaranteed to accurate. However if it is > 0, then there is at least

@@ -106,8 +106,9 @@ public:
         localState = std::make_unique<PageRankOutputWriter>(context);
     }
 
-    void exec(processor::ExecutionContext*) override {
+    void exec(processor::ExecutionContext* context) override {
         auto extraData = bindData->ptrCast<PageRankBindData>();
+        localState = std::make_unique<PageRankOutputWriter>(context->clientContext);
         auto graph = sharedState->graph.get();
         // Initialize state.
         common::node_id_map_t<double> ranks;
