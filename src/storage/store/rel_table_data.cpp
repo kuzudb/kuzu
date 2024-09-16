@@ -125,7 +125,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
     const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
-    scanState->boundNodeIDVector = &boundNodeIDVector;
+    scanState->nodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     const auto scannedIDVector = scanState->outputVectors[0];
     scanState->outState = scannedIDVector->state.get();
@@ -173,7 +173,7 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
     const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
-    scanState->boundNodeIDVector = srcNodeIDVector;
+    scanState->nodeIDVector = srcNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->outState = scanState->outputVectors[0]->state.get();
     scanState->source = TableScanSource::COMMITTED;

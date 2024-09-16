@@ -90,6 +90,12 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     }
 }
 
+void ScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
+    ScanTable::initVectors(state, resultSet);
+    state.rowIdxVector->state = state.nodeIDVector->state;
+    state.outState = state.rowIdxVector->state.get();
+}
+
 void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == nodeInfos.size());
     for (auto i = 0u; i < nodeInfos.size(); i++) {
