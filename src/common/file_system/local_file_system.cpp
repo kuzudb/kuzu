@@ -114,7 +114,8 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
                             LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK;
         OVERLAPPED overlapped = {0};
         overlapped.Offset = 0;
-        BOOL rc = LockFileEx(handle, dwFlags, 0, 0, 0, &overlapped);
+        BOOL rc = LockFileEx(handle, dwFlags, 0 /*reserved*/, 1 /*numBytesLow*/, 0 /*numBytesHigh*/,
+            &overlapped);
         if (!rc) {
             throw IOException(
                 "Could not set lock on file : " + fullPath + "\n" +

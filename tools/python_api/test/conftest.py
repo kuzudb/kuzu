@@ -165,11 +165,7 @@ def conn_db_readonly(tmp_path: Path) -> ConnDB:
     """Return a cached read-only connection and database."""
     global _READONLY_CONN_DB_
     if _READONLY_CONN_DB_ is None:
-        # On Windows, the read-only mode is not implemented yet.
-        # Therefore, we create a writable database on Windows.
-        # However, the caller should ensure that the database is not modified.
-        # TODO: Remove this workaround when the read-only mode is implemented on Windows.
-        _READONLY_CONN_DB_ = create_conn_db(init_db(tmp_path), read_only=sys.platform != "win32")
+        _READONLY_CONN_DB_ = create_conn_db(init_db(tmp_path), read_only=True)
     return _READONLY_CONN_DB_
 
 

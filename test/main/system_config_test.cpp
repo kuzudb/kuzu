@@ -5,7 +5,9 @@ using namespace kuzu::common;
 using namespace kuzu::testing;
 using namespace kuzu::main;
 
-class SystemConfigTest : public ApiTest {};
+class SystemConfigTest : public ApiTest {
+    void SetUp() override { BaseGraphTest::SetUp(); }
+};
 
 void assertQuery(QueryResult& result) {
     auto a = result.toString();
