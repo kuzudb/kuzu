@@ -11,8 +11,8 @@ execute_process(
     COMMAND ${Python3_EXECUTABLE} hash.py ${ROOT_DIR}/src/antlr4/keywords.txt ${ROOT_DIR}/src/antlr4/Cypher.g4 OUTPUT_VARIABLE NEWHASH)
 
 if("${OLDHASH}" STREQUAL "${NEWHASH}")
-    message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
-    return() # Exit.
+    #message(DEBUG " Not regenerating grammar files as Cypher.g4 and keywords.txt is unchanged.")
+    #return() # Exit.
 endif()
 
 file(WRITE hash.md5 "${NEWHASH}")
