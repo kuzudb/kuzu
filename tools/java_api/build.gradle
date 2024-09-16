@@ -15,8 +15,8 @@ dependencies {
 }
 
 if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
-    compileJava{
-        dependsOn 'cmake'
+    compileJava {
+        dependsOn 'copyNativeLibs'
     }
 }
 
@@ -27,10 +27,15 @@ task cmake {
             commandLine 'make', 'java'
             environment NUM_THREADS: Runtime.getRuntime().availableProcessors()
         }
-        exec {
-            commandLine 'sh', '-c', "cp build/libkuzu_java_native.* src/main/resources/"
-        }
     }
+}
+
+task copyNativeLibs(type: Copy) {
+    from('build') {
+        include 'libkuzu_java_native.*'
+    }
+    into 'src/resources'
+    dependsOn 'cmake'
 }
 
 test {
