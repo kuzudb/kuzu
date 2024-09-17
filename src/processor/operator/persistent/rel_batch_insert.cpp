@@ -10,10 +10,7 @@
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
-<<<<<<< HEAD
 
-=======
->>>>>>> refs/remotes/origin/howe/missing_progress_report
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
