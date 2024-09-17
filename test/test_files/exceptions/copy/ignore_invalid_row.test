@@ -153,6 +153,7 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 2 tuples have been copied to the watch table.
 7 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 7
 -STATEMENT MATCH (a:person)-[l:watch]->(b:movie) return a.ID, b.ID
+---- 2
 0|0
 2|0
 -STATEMENT CALL show_warnings() RETURN message, file_path, line_number, skipped_line

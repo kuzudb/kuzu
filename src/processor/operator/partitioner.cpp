@@ -177,7 +177,7 @@ void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         const auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        partition->append(memoryManager, vectorsToAppend, posToCopyFrom, 1);
+        partition->append(memoryManager, vectorsToAppend, i, 1);
     }
 }
 
