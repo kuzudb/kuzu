@@ -12,17 +12,14 @@ namespace processor {
 struct BatchInsertInfo {
     catalog::TableCatalogEntry* tableEntry;
     bool compressionEnabled;
-    bool ignoreErrors;
 
     std::vector<common::column_id_t> outputDataColumns;
     std::vector<common::column_id_t> warningDataColumns;
 
     BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        bool ignoreErrors, common::column_id_t numOutputDataColumns,
-        common::column_id_t numWarningDataColumns)
+        common::column_id_t numOutputDataColumns, common::column_id_t numWarningDataColumns)
         : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
-          ignoreErrors(ignoreErrors), outputDataColumns(numOutputDataColumns),
-          warningDataColumns(numWarningDataColumns) {
+          outputDataColumns(numOutputDataColumns), warningDataColumns(numWarningDataColumns) {
         std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
         std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
     }

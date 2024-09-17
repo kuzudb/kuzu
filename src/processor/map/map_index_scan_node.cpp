@@ -29,9 +29,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* lo
         expressions.push_back(logicalIndexScan.getInfo(i).offset);
     }
     auto printInfo = std::make_unique<IndexLookupPrintInfo>(expressions);
-    return std::make_unique<IndexLookup>(std::move(indexLookupInfos),
-        logicalIndexScan.getIgnoreErrors(), std::move(prevOperator), getOperatorID(),
-        std::move(printInfo));
+    return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
+        getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

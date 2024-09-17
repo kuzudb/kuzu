@@ -129,6 +129,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         KU_ASSERT(info);
+        initLocalStateFromInfo(*info);
         lookup(context->clientContext->getTx(), *info);
     }
     localState->errorHandler->flushStoredErrors();
@@ -136,8 +137,17 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 void IndexLookup::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    localState = std::make_unique<IndexLookupLocalState>(
-        std::make_unique<BatchInsertErrorHandler>(context, ignoreErrors));
+    localState = std::make_unique<IndexLookupLocalState>(std::make_unique<BatchInsertErrorHandler>(
+        context, context->clientContext->getWarningContext().getIgnoreErrorsOption()));
+}
+
+void IndexLookup::initLocalStateFromInfo(const IndexLookupInfo& info) {
+    localState->warningDataVectors.clear();
+    localState->warningDataVectors.reserve(info.warningDataVectorPos.size());
+    for (size_t i = 0; i < info.warningDataVectorPos.size(); ++i) {
+        localState->warningDataVectors.push_back(
+            resultSet->getValueVector(info.warningDataVectorPos[i]).get());
+    }
 }
 
 std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
@@ -146,8 +156,8 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
     for (const auto& info : infos) {
         copiedInfos.push_back(info->copy());
     }
-    return make_unique<IndexLookup>(std::move(copiedInfos), ignoreErrors, children[0]->clone(),
-        getOperatorID(), printInfo->copy());
+    return make_unique<IndexLookup>(std::move(copiedInfos), children[0]->clone(), getOperatorID(),
+        printInfo->copy());
 }
 
 void IndexLookup::setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState) {
@@ -161,18 +171,12 @@ void IndexLookup::lookup(transaction::Transaction* transaction, const IndexLooku
     auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
     auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();
 
-    std::vector<ValueVector*> warningDataVectors;
-    warningDataVectors.reserve(info.warningDataVectorPos.size());
-    for (size_t i = 0; i < info.warningDataVectorPos.size(); ++i) {
-        warningDataVectors.push_back(resultSet->getValueVector(info.warningDataVectorPos[i]).get());
-    }
-
     if (keyVector->hasNoNullsGuarantee()) {
         fillOffsetArraysFromVector<true>(transaction, info, keyVector, resultVector,
-            warningDataVectors, localState->errorHandler.get());
+            localState->warningDataVectors, localState->errorHandler.get());
     } else {
         fillOffsetArraysFromVector<false>(transaction, info, keyVector, resultVector,
-            warningDataVectors, localState->errorHandler.get());
+            localState->warningDataVectors, localState->errorHandler.get());
     }
 }
 

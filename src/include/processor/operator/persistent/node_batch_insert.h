@@ -44,16 +44,16 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
-        std::vector<common::ColumnEvaluateType> evaluateTypes, bool ignoreErrors,
+        std::vector<common::ColumnEvaluateType> evaluateTypes,
         common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled, ignoreErrors,
+        : BatchInsertInfo{tableEntry, compressionEnabled,
               static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns),
               numWarningDataColumns},
           columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
           evaluateTypes{std::move(evaluateTypes)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.ignoreErrors,
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled,
               static_cast<common::column_id_t>(other.outputDataColumns.size()),
               static_cast<common::column_id_t>(other.warningDataColumns.size())},
           columnTypes{common::LogicalType::copy(other.columnTypes)},

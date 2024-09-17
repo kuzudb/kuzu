@@ -128,7 +128,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
-    const bool ignoreErrors = boundSource->getIgnoreErrorsOption();
     auto columns = boundSource->getColumns();
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
@@ -155,7 +154,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
     auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
-        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos, ignoreErrors);
+        std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
     auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
         std::move(columnExprs), std::move(evaluateTypes), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

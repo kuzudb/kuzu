@@ -93,16 +93,17 @@ public:
     uint64_t getWarningCount(uint64_t queryID);
     void clearPopulatedWarnings();
 
-    main::ClientConfig* getClientConfig();
+    void setIgnoreErrorsForCurrentQuery(bool ignoreErrors);
+    bool getIgnoreErrorsOption() const;
 
 private:
     std::mutex mtx;
     main::ClientConfig* clientConfig;
     std::map<uint64_t, UnpopulatedWarnings> unpopulatedWarnings;
     std::vector<WarningInfo> populatedWarnings;
-    uint64_t lastQueryID;
     uint64_t queryWarningCount;
     uint64_t numStoredWarnings;
+    bool ignoreErrorsOption;
 };
 
 } // namespace processor

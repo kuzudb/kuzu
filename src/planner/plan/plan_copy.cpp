@@ -16,8 +16,8 @@ namespace kuzu {
 namespace planner {
 
 static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan& plan) {
-    auto indexScan = std::make_shared<LogicalPrimaryKeyLookup>(extraInfo.infos,
-        extraInfo.ignoreErrors, plan.getLastOperator());
+    auto indexScan =
+        std::make_shared<LogicalPrimaryKeyLookup>(extraInfo.infos, plan.getLastOperator());
     indexScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(indexScan));
 }

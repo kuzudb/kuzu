@@ -87,5 +87,13 @@ uint64_t WarningContext::getWarningCount(uint64_t) {
     return ret;
 }
 
+void WarningContext::setIgnoreErrorsForCurrentQuery(bool ignoreErrors) {
+    ignoreErrorsOption = ignoreErrors;
+}
+
+bool WarningContext::getIgnoreErrorsOption() const {
+    return ignoreErrorsOption;
+}
+
 } // namespace processor
 } // namespace kuzu

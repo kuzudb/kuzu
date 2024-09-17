@@ -54,12 +54,10 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
     // we need to manually change offset(INT64) type to internal ID type.
     std::vector<common::idx_t> internalIDColumnIndices;
     std::vector<IndexLookupInfo> infos;
-    bool ignoreErrors;
 
     ExtraBoundCopyRelInfo(std::vector<common::idx_t> internalIDColumnIndices,
-        std::vector<IndexLookupInfo> infos, bool ignoreErrors)
-        : internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)},
-          ignoreErrors(ignoreErrors) {}
+        std::vector<IndexLookupInfo> infos)
+        : internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)} {}
     ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other) = default;
 
     std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {

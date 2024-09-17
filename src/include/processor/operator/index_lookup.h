@@ -51,19 +51,21 @@ struct IndexLookupLocalState {
         : errorHandler(std::move(errorHandler)) {}
 
     std::unique_ptr<BatchInsertErrorHandler> errorHandler;
+    std::vector<common::ValueVector*> warningDataVectors;
 };
 
 class IndexLookup : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 
 public:
-    IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos, bool ignoreErrors,
+    IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          infos{std::move(infos)}, ignoreErrors(ignoreErrors) {}
+          infos{std::move(infos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+    void initLocalStateFromInfo(const IndexLookupInfo& info);
 
     void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);
 
@@ -76,7 +78,6 @@ private:
 
 private:
     std::vector<std::unique_ptr<IndexLookupInfo>> infos;
-    bool ignoreErrors;
 
     std::unique_ptr<IndexLookupLocalState> localState;
 };

@@ -26,6 +26,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logicalOperator) {
     const auto& copyFrom = logicalOperator->cast<LogicalCopyFrom>();
+    clientContext->getWarningContextUnsafe().setIgnoreErrorsForCurrentQuery(
+        copyFrom.getInfo()->source->getIgnoreErrorsOption());
     switch (copyFrom.getInfo()->tableEntry->getTableType()) {
     case TableType::NODE: {
         auto op = mapCopyNodeFrom(logicalOperator);
@@ -91,11 +93,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     }
 
     const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
-    const auto ignoreErrors = copyFromInfo->source->getIgnoreErrorsOption();
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        copyFromInfo->columnEvaluateTypes, ignoreErrors, numWarningDataColumns);
+        copyFromInfo->columnEvaluateTypes, numWarningDataColumns);
 
     auto printInfo =
         std::make_unique<NodeBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
@@ -151,7 +152,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
 
     const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
-    const auto ignoreErrors = copyFromInfo->source->getIgnoreErrorsOption();
     KU_ASSERT(numWarningDataColumns <= copyFromInfo->columnExprs.size());
     for (column_id_t i = numWarningDataColumns; i >= 1; --i) {
         columnTypes.push_back(
@@ -160,7 +160,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
 
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
-        offsetVectorIdx, std::move(columnTypes), ignoreErrors, numWarningDataColumns);
+        offsetVectorIdx, std::move(columnTypes), numWarningDataColumns);
     auto printInfo =
         std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
