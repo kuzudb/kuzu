@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-
+    id 'signing'
 }
 
 java {
@@ -35,6 +35,21 @@ dependencies {
 if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
     processResources {
         dependsOn 'copyNativeLibs'
+    }
+}
+
+signing {
+    def signingKey = providers
+            .environmentVariable("GPG_SIGNING_KEY")
+    def signingPassphrase = providers
+            .environmentVariable("GPG_SIGNING_PASSPHRASE")
+    if (signingKey.isPresent() && signingPassphrase.isPresent()) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassphrase.get())
+        sign configurations.archives
+        sign javadocJar
+        sign sourcesJar
+    } else {
+        println "Skipping signing, no GPG key found"
     }
 }
 
