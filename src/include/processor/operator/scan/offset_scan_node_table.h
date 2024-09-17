@@ -31,8 +31,12 @@ public:
     }
 
 private:
+    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
+
+private:
     common::table_id_map_t<ScanNodeTableInfo> tableIDToNodeInfo;
     bool executed;
+    common::ValueVector* nodeIDVector;
 };
 
 } // namespace processor

@@ -20,7 +20,7 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
     return false;
 }
 
-bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transaction* transaction) {
+bool RelTableCollectionScanner::scan(Transaction* transaction) {
     while (true) {
         const auto& relInfo = relInfos[currentTableIdx];
         auto& scanState = *relInfo.scanState;
@@ -29,11 +29,11 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
         if (!skipScan && scanState.source != TableScanSource::NONE &&
             relInfo.table->scan(transaction, scanState)) {
             if (directionVector != nullptr) {
-                for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                for (auto i = 0u; i < scanState.outState->getSelVector().getSelSize(); ++i) {
                     directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
                 }
             }
-            if (selVector.getSelSize() > 0) {
+            if (scanState.outState->getSelVector().getSelSize() > 0) {
                 return true;
             }
         } else {
@@ -49,15 +49,16 @@ bool RelTableCollectionScanner::scan(const SelectionVector& selVector, Transacti
 }
 
 void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    ScanTable::initLocalStateInternal(resultSet, context);
+    boundNodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
+    KU_ASSERT(!info.outVectorsPos.empty());
+    outState = resultSet->getValueVector(info.outVectorsPos[0])->state.get();
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
             relInfo.initScanState(*context->clientContext->getMemoryManager());
             initVectors(*relInfo.scanState, *resultSet);
-            // TODO(Guodong/Xiyang): Temp solution here. Should be moved to `info`.
-            boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
             auto& scanState = relInfo.scanState->cast<RelTableScanState>();
-            scanState.boundNodeIDVector = resultSet->getValueVector(relInfo.boundNodeIDPos).get();
+            KU_ASSERT(outState == scanState.outState);
+            scanState.nodeIDVector = boundNodeIDVector;
             if (const auto localRelTable =
                     context->clientContext->getTx()->getLocalStorage()->getLocalTable(
                         relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
@@ -77,10 +78,16 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     currentScanner = nullptr;
 }
 
+void ScanMultiRelTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
+    ScanTable::initVectors(state, resultSet);
+    KU_ASSERT(!info.outVectorsPos.empty());
+    state.rowIdxVector->state = resultSet.getValueVector(info.outVectorsPos[0])->state;
+    state.outState = state.rowIdxVector->state.get();
+}
+
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (currentScanner != nullptr &&
-            currentScanner->scan(outState->getSelVector(), context->clientContext->getTx())) {
+        if (currentScanner != nullptr && currentScanner->scan(context->clientContext->getTx())) {
             metrics->numOutputTuple.increase(outState->getSelVector().getSelSize());
             return true;
         }
@@ -90,7 +97,7 @@ bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
         }
         const auto currentIdx = boundNodeIDVector->state->getSelVector()[0];
         if (boundNodeIDVector->isNull(currentIdx)) {
-            outState->getSelVectorUnsafe().setSelSize(0);
+            currentScanner = nullptr;
             continue;
         }
         auto nodeID = boundNodeIDVector->getValue<nodeID_t>(currentIdx);

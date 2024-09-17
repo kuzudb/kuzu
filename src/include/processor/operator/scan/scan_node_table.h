@@ -112,6 +112,7 @@ public:
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
+    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 private:
     common::idx_t currentTableIdx;

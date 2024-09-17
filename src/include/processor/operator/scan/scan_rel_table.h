@@ -15,25 +15,24 @@ namespace processor {
 struct ScanRelTableInfo {
     storage::RelTable* table;
     common::RelDataDirection direction;
-    DataPos boundNodeIDPos;
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
     std::unique_ptr<storage::RelTableScanState> scanState;
 
     ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
-        DataPos boundNodeIDPos, std::vector<common::column_id_t> columnIDs,
+        std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)
-        : table{table}, direction{direction}, boundNodeIDPos{boundNodeIDPos},
-          columnIDs{std::move(columnIDs)}, columnPredicates{std::move(columnPredicates)} {}
+        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)},
+          columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
     void initScanState(storage::MemoryManager& memoryManager);
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
-        : table{other.table}, direction{other.direction}, boundNodeIDPos{other.boundNodeIDPos},
-          columnIDs{other.columnIDs}, columnPredicates{copyVector(other.columnPredicates)} {}
+        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs},
+          columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
 struct ScanRelTablePrintInfo final : OPPrintInfo {

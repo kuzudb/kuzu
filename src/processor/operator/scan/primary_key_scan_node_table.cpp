@@ -27,7 +27,6 @@ idx_t PrimaryKeyScanSharedState::getTableIdx() {
 
 void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
-    ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
         std::vector<Column*> columns;
         columns.reserve(nodeInfo.columnIDs.size());
@@ -42,6 +41,12 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
     indexEvaluator->init(*resultSet, context->clientContext);
+}
+
+void PrimaryKeyScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
+    ScanTable::initVectors(state, resultSet);
+    state.rowIdxVector->state = state.nodeIDVector->state;
+    state.outState = state.rowIdxVector->state.get();
 }
 
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {

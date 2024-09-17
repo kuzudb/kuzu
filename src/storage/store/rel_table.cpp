@@ -54,8 +54,8 @@ void RelTable::initializeScanState(Transaction* transaction, TableScanState& sca
     // Scan always start with committed data first.
     auto& relScanState = scanState.cast<RelTableScanState>();
 
-    relScanState.boundNodeOffset = relScanState.boundNodeIDVector->readNodeOffset(
-        relScanState.boundNodeIDVector->state->getSelVector()[0]);
+    relScanState.boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(
+        relScanState.nodeIDVector->state->getSelVector()[0]);
     if (relScanState.boundNodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         relScanState.nodeGroup = nullptr;
     } else {
@@ -212,7 +212,7 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     const auto relReadState =
         std::make_unique<RelTableScanState>(memoryManager, columnsToScan, tableData->getColumns(),
             tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
-    relReadState->boundNodeIDVector = &deleteState->srcNodeIDVector;
+    relReadState->nodeIDVector = &deleteState->srcNodeIDVector;
     relReadState->outputVectors =
         std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
     relReadState->rowIdxVector->state = relReadState->outputVectors[1]->state;

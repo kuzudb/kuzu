@@ -26,7 +26,7 @@ static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& memoryM
     // TODO(Guodong): FIX-ME.
     auto scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs, columns, nullptr,
         nullptr, direction);
-    scanState->boundNodeIDVector = srcVector;
+    scanState->nodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     return scanState;
 }

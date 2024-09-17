@@ -7,16 +7,22 @@ namespace kuzu {
 namespace processor {
 
 void OffsetScanNodeTable::init(nodeID_t nodeID) {
-    IDVector->setValue<nodeID_t>(0, nodeID);
+    nodeIDVector->setValue<nodeID_t>(0, nodeID);
     executed = false;
 }
 
-void OffsetScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    ScanTable::initLocalStateInternal(resultSet, context);
+void OffsetScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
+    nodeIDVector = resultSet->getValueVector(info.nodeIDPos).get();
     for (auto& [_, nodeInfo] : tableIDToNodeInfo) {
         nodeInfo.initScanState(nullptr);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
+}
+
+void OffsetScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
+    ScanTable::initVectors(state, resultSet);
+    state.rowIdxVector->state = state.nodeIDVector->state;
+    state.outState = state.rowIdxVector->state.get();
 }
 
 bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
@@ -25,7 +31,7 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     }
     executed = true;
     auto transaction = context->clientContext->getTx();
-    auto nodeID = IDVector->getValue<nodeID_t>(0);
+    auto nodeID = nodeIDVector->getValue<nodeID_t>(0);
     KU_ASSERT(tableIDToNodeInfo.contains(nodeID.tableID));
     auto& nodeInfo = tableIDToNodeInfo.at(nodeID.tableID);
     if (nodeID.offset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
