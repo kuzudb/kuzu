@@ -1,5 +1,11 @@
 plugins {
     id 'java'
+
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }
 
 group = 'com.kuzudb'
@@ -48,6 +54,10 @@ task copyNativeLibs(type: Copy) {
     }
     into 'src/main/resources'
     dependsOn 'cmake'
+}
+
+tasks.sourcesJar {
+    mustRunAfter 'copyNativeLibs'
 }
 
 test {
