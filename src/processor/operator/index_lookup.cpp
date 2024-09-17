@@ -62,7 +62,7 @@ struct OffsetVectorManager {
 
     void insertEntry(offset_t entry, sel_t posInKeyVector) {
         auto* offsets = reinterpret_cast<offset_t*>(resultVector->getData());
-        offsets[insertOffset] = entry;
+        offsets[posInKeyVector] = entry;
         if (ignoreErrors) {
             // if the lookup was successful we may add the current entry to the output selection
             resultVector->state->getSelVectorUnsafe()[insertOffset] = posInKeyVector;
