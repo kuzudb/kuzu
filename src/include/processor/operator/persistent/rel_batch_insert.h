@@ -29,6 +29,13 @@ private:
         : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
+struct RelBatchInsertProgressSharedState {
+    uint64_t numGroupsScanned;
+    uint64_t numGroups;
+
+    RelBatchInsertProgressSharedState() : numGroupsScanned{0}, numGroups{0} {};
+};
+
 struct RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
     uint64_t partitioningIdx;
@@ -80,13 +87,11 @@ public:
             resultSetDescriptor->copy(), id, printInfo->copy());
     }
 
-    double getProgress(ExecutionContext* context) const override;
-
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState);
+        const PartitionerSharedState& partitionerSharedState, ExecutionContext* context, RelBatchInsertProgressSharedState& progressSharedState);
 
     static void populateCSRHeaderAndRowIdx(storage::InMemChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
@@ -106,6 +111,7 @@ private:
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;
+    std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState;
 };
 
 } // namespace processor

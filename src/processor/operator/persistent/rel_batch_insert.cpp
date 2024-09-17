@@ -8,7 +8,7 @@
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
-
+#include <iostream>
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -44,6 +44,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
         valueVector->setAllNull();
         relLocalState->dummyAllNullDataChunk->insert(i, std::move(valueVector));
     }
+    progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
@@ -63,13 +64,13 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
             relTable->getOrCreateNodeGroup(relLocalState->nodeGroupIdx, relInfo->direction)
                 ->cast<CSRNodeGroup>();
         appendNodeGroup(context->clientContext->getTx(), nodeGroup, *relInfo, *relLocalState,
-            *sharedState, *partitionerSharedState);
+            *sharedState, *partitionerSharedState, context, *progressSharedState);
     }
 }
 
 void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
-    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
+    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState, ExecutionContext* context, RelBatchInsertProgressSharedState& progressSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     auto& partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
@@ -91,10 +92,14 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
+    progressSharedState.numGroups = partitioningBuffer.getChunkedGroups().size();
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
+        progressSharedState.numGroupsScanned++;
+        double progress = static_cast<double>(double(progressSharedState.numGroupsScanned) / double(progressSharedState.numGroups));
+        context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
-    }
+    }  
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
     auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();
     KU_ASSERT(localState.chunkedGroup->getCapacity() >= maxSize);
@@ -223,16 +228,6 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     sharedState->table->cast<RelTable>().setHasChanges();
     partitionerSharedState->resetState();
     partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
-}
-
-double RelBatchInsert::getProgress(ExecutionContext* /*context*/) const {
-    if (partitionerSharedState->nextPartitionIdx >= partitionerSharedState->numPartitions.size()) {
-        return 1.0;
-    }
-    if (partitionerSharedState->nextPartitionIdx == 0) {
-        return 0.0;
-    }
-    return static_cast<double>(partitionerSharedState->nextPartitionIdx) / partitionerSharedState->numPartitions.size();
 }
 
 } // namespace processor
