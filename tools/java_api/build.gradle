@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'signing'
+    id 'maven-publish'
 }
 
 java {
@@ -38,6 +39,44 @@ if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
     }
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = 'kuzu'
+                description = 'Kùzu is an embedded graph database built for query speed and scalability.'
+                url = 'http://kuzudb.com'
+                properties = [
+                    'project.build.sourceEncoding': 'UTF-8',
+                    'project.reporting.outputEncoding': 'UTF-8',
+                    'java.version': '11',
+                    'maven.compiler.source': '11',
+                    'maven.compiler.target': '11'
+                ]
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/kuzudb/kuzu/blob/master/LICENSE'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'kuzudb'
+                        name = 'Kùzu Inc.'
+                        email = 'contact@kuzudb.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/kuzudb/kuzu.git'
+                    developerConnection = 'scm:git:ssh://github.com/kuzudb/kuzu.git'
+                    url = 'https://github.com/kuzudb/kuzu'
+                }
+            }
+            from components.java
+        }
+    }
+}
+
 signing {
     def signingKey = providers
             .environmentVariable("GPG_SIGNING_KEY")
@@ -45,9 +84,7 @@ signing {
             .environmentVariable("GPG_SIGNING_PASSPHRASE")
     if (signingKey.isPresent() && signingPassphrase.isPresent()) {
         useInMemoryPgpKeys(signingKey.get(), signingPassphrase.get())
-        sign configurations.archives
-        sign javadocJar
-        sign sourcesJar
+        sign publishing.publications.mavenJava
     } else {
         println "Skipping signing, no GPG key found"
     }
