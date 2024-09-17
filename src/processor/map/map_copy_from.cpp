@@ -26,6 +26,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logicalOperator) {
     const auto& copyFrom = logicalOperator->cast<LogicalCopyFrom>();
+    clientContext->getWarningContextUnsafe().setIgnoreErrorsForCurrentQuery(
+        copyFrom.getInfo()->source->getIgnoreErrorsOption());
     switch (copyFrom.getInfo()->tableEntry->getTableType()) {
     case TableType::NODE: {
         auto op = mapCopyNodeFrom(logicalOperator);
@@ -90,22 +92,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
 
-    column_id_t numWarningDataColumns = 0;
-    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
-    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
-        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
-            copyFromInfo->source.get());
-        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-            boundScanSource->info.bindData.get());
-        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            CopyConstants::DEFAULT_IGNORE_ERRORS);
-        numWarningDataColumns = bindData->numWarningDataColumns;
-    }
-
+    const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        copyFromInfo->columnEvaluateTypes, ignoreErrors, numWarningDataColumns);
+        copyFromInfo->columnEvaluateTypes, numWarningDataColumns);
 
     auto printInfo =
         std::make_unique<NodeBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
@@ -159,9 +150,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto outFSchema = copyFrom.getSchema();
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
+
+    const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
+    KU_ASSERT(numWarningDataColumns <= copyFromInfo->columnExprs.size());
+    for (column_id_t i = numWarningDataColumns; i >= 1; --i) {
+        columnTypes.push_back(
+            copyFromInfo->columnExprs[copyFromInfo->columnExprs.size() - i]->getDataType().copy());
+    }
+
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
-        offsetVectorIdx, std::move(columnTypes));
+        offsetVectorIdx, std::move(columnTypes), numWarningDataColumns);
     auto printInfo =
         std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),

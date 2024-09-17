@@ -61,7 +61,8 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
     nodeLocalState->errorHandler =
         NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(), nodeTable,
-            nodeInfo->ignoreErrors, sharedState->numErroredRows, &sharedState->erroredRowMutex};
+            context->clientContext->getWarningContext().getIgnoreErrorsOption(),
+            sharedState->numErroredRows, &sharedState->erroredRowMutex};
 
     const auto numColumns = nodeInfo->columnEvaluators.size();
     nodeLocalState->columnVectors.resize(numColumns);
@@ -172,12 +173,12 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
 
     if (indexBuilder) {
         KU_ASSERT(nodeLocalState->errorHandler.has_value());
-        std::vector<ColumnChunkData*> extraChunkData;
+        std::vector<ColumnChunkData*> warningChunkData;
         for (const auto warningDataColumn : nodeInfo->warningDataColumns) {
-            extraChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
+            warningChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
         }
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
-            extraChunkData, nodeOffset, numRowsWritten, nodeLocalState->errorHandler.value());
+            warningChunkData, nodeOffset, numRowsWritten, nodeLocalState->errorHandler.value());
     }
     if (numRowsWritten == nodeGroup->getNumRows()) {
         nodeGroup->resetToEmpty();

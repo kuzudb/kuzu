@@ -4,6 +4,7 @@
 
 #include "common/assert.h"
 #include "common/cast.h"
+#include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"

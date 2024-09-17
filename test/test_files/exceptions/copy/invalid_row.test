@@ -19,7 +19,7 @@
 ---- ok
 -STATEMENT COPY watch FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"
 ---- error
-Runtime exception: Unable to find primary key value 5.
+Copy exception: Unable to find primary key value 5.
 
 -CASE InvalidHeader
 -STATEMENT create node table tableOfTypes (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64[], PRIMARY KEY (id));
