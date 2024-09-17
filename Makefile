@@ -66,9 +66,7 @@ endif
 
 # Must be first in the Makefile so that it is the default target.
 release:
-	$(call run-cmake-release, \
-		-DBUILD_SHELL=TRUE \
-	)
+	$(call run-cmake-release)
 
 relwithdebinfo:
 	$(call run-cmake-relwithdebinfo,)
