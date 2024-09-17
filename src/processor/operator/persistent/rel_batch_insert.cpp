@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/rel_batch_insert.h"
 
+#include <iostream>
+
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -8,7 +10,10 @@
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
+<<<<<<< HEAD
 
+=======
+>>>>>>> refs/remotes/origin/howe/missing_progress_report
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -70,7 +75,8 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
 
 void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
-    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState, ExecutionContext* context, RelBatchInsertProgressSharedState& progressSharedState) {
+    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState,
+    ExecutionContext* context, RelBatchInsertProgressSharedState& progressSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     auto& partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
@@ -95,11 +101,12 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     progressSharedState.numGroups = partitioningBuffer.getChunkedGroups().size();
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
         progressSharedState.numGroupsScanned++;
-        double progress = static_cast<double>(double(progressSharedState.numGroupsScanned) / double(progressSharedState.numGroups));
+        double progress = static_cast<double>(
+            double(progressSharedState.numGroupsScanned) / double(progressSharedState.numGroups));
         context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
-    }  
+    }
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
     auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();
     KU_ASSERT(localState.chunkedGroup->getCapacity() >= maxSize);

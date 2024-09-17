@@ -91,7 +91,8 @@ private:
     static void appendNodeGroup(transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState, ExecutionContext* context, RelBatchInsertProgressSharedState& progressSharedState);
+        const PartitionerSharedState& partitionerSharedState, ExecutionContext* context,
+        RelBatchInsertProgressSharedState& progressSharedState);
 
     static void populateCSRHeaderAndRowIdx(storage::InMemChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
