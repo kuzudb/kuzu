@@ -66,8 +66,7 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
         localState.funcOutput.dataChunk.getValueVector(i)->setAllNonNull();
     }
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
-    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setToUnfiltered();
-    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(numTuplesScanned);
+    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setToUnfiltered(numTuplesScanned);
     return numTuplesScanned != 0;
 }
 

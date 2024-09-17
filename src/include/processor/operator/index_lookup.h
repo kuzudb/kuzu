@@ -65,7 +65,6 @@ public:
           infos{std::move(infos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-    void initLocalStateFromInfo(const IndexLookupInfo& info);
 
     void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);
 

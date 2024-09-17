@@ -129,7 +129,6 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         KU_ASSERT(info);
-        initLocalStateFromInfo(*info);
         lookup(context->clientContext->getTx(), *info);
     }
     localState->errorHandler->flushStoredErrors();
@@ -139,15 +138,19 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
 void IndexLookup::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
     localState = std::make_unique<IndexLookupLocalState>(std::make_unique<BatchInsertErrorHandler>(
         context, context->clientContext->getWarningContext().getIgnoreErrorsOption()));
-}
-
-void IndexLookup::initLocalStateFromInfo(const IndexLookupInfo& info) {
-    localState->warningDataVectors.clear();
-    localState->warningDataVectors.reserve(info.warningDataVectorPos.size());
-    for (size_t i = 0; i < info.warningDataVectorPos.size(); ++i) {
+    KU_ASSERT(!infos.empty());
+    const auto& info = infos[0];
+    localState->warningDataVectors.reserve(info->warningDataVectorPos.size());
+    for (size_t i = 0; i < info->warningDataVectorPos.size(); ++i) {
         localState->warningDataVectors.push_back(
-            resultSet->getValueVector(info.warningDataVectorPos[i]).get());
+            resultSet->getValueVector(info->warningDataVectorPos[i]).get());
     }
+    RUNTIME_CHECK(for (idx_t i = 1; i < infos.size(); ++i) {
+        KU_ASSERT(infos[i]->warningDataVectorPos.size() == infos[0]->warningDataVectorPos.size());
+        for (idx_t j = 0; j < infos[i]->warningDataVectorPos.size(); ++j) {
+            KU_ASSERT(infos[i]->warningDataVectorPos[j] == infos[0]->warningDataVectorPos[j]);
+        }
+    });
 }
 
 std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
