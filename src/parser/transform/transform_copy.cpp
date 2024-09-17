@@ -1,5 +1,6 @@
 #include "common/assert.h"
 #include "parser/copy.h"
+#include "parser/expression/parsed_literal_expression.h"
 #include "parser/scan_source.h"
 #include "parser/transformer.h"
 
@@ -82,7 +83,15 @@ options_t Transformer::transformOptions(CypherParser::KU_OptionsContext& ctx) {
     options_t options;
     for (auto loadOption : ctx.kU_Option()) {
         auto optionName = transformSymbolicName(*loadOption->oC_SymbolicName());
-        options.emplace(optionName, transformLiteral(*loadOption->oC_Literal()));
+        // Check if the literal exists, otherwise set the value to true by default
+        if (loadOption->oC_Literal()) {
+            // If there is a literal, transform it and use it as the value
+            options.emplace(optionName, transformLiteral(*loadOption->oC_Literal()));
+        } else {
+            // If no literal is provided, set the default value to true
+            options.emplace(optionName,
+                std::make_unique<ParsedLiteralExpression>(Value(true), "true"));
+        }
     }
     return options;
 }

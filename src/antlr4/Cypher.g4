@@ -57,7 +57,7 @@ kU_AttachDatabase
     : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_Options)? SP? ')' ;
 
 kU_Option
-    : oC_SymbolicName SP? '=' SP? oC_Literal ;
+    : oC_SymbolicName (SP? '=' SP? | SP*) oC_Literal | oC_SymbolicName;
 
 kU_Options
     : kU_Option ( SP? ',' SP? kU_Option )* ;
