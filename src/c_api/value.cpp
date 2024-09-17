@@ -442,7 +442,7 @@ kuzu_state kuzu_int128_t_from_string(const char* str, kuzu_int128_t* out_result)
 }
 
 kuzu_state kuzu_int128_t_to_string(kuzu_int128_t int128_val, char** out_result) {
-    int128_t c_int128;
+    int128_t c_int128 = 0;
     c_int128.low = int128_val.low;
     c_int128.high = int128_val.high;
     try {
@@ -1262,7 +1262,7 @@ kuzu_state kuzu_date_from_tm(struct tm tm, kuzu_date_t* out_result) {
 }
 
 kuzu_state kuzu_date_to_string(kuzu_date_t date, char** out_result) {
-    struct tm tm;
+    tm tm{};
     if (kuzu_date_to_tm(date, &tm) != KuzuSuccess) {
         return KuzuError;
     }

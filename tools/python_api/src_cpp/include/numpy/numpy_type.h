@@ -29,10 +29,11 @@ enum class NumpyNullableType : uint8_t {
     DATETIME_NS, //! datetime64[ns], <M8[ns]
     DATETIME_US, //! datetime64[us], <M8[us]
     TIMEDELTA,   //! timedelta64[D], timedelta64
+    INVALID
 };
 
 struct NumpyType {
-    NumpyNullableType type;
+    NumpyNullableType type = NumpyNullableType::INVALID;
     bool hasTimezone = false;
 };
 

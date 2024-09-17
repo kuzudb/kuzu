@@ -117,7 +117,7 @@ struct ExtraMetadata {
 
 // used only for compressing floats/doubles
 struct ALPMetadata : ExtraMetadata {
-    ALPMetadata() = default;
+    ALPMetadata() : exp(0), fac(0), exceptionCount(0), exceptionCapacity(0) {}
     explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType);
 
     uint8_t exp;

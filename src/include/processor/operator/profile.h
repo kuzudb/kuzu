@@ -20,7 +20,7 @@ public:
     Profile(DataPos outputPos, ProfileInfo info, ProfileLocalState localState, uint32_t id,
         std::unique_ptr<PhysicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, outputPos{outputPos},
-          info{info}, localState{localState} {}
+          info{info}, localState{localState}, outputVector(nullptr) {}
 
     bool isSource() const override { return true; }
     bool isParallel() const final { return false; }

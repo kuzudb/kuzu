@@ -562,8 +562,8 @@ void FactorizedTable::readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_i
 }
 
 FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable, std::vector<Value*> values)
-    : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0}, nextTupleIdx{1},
-      values{std::move(values)} {
+    : factorizedTable{factorizedTable}, currentTupleBuffer{nullptr}, numFlatTuples{0},
+      nextFlatTupleIdx{0}, nextTupleIdx{1}, values{std::move(values)} {
     resetState();
     KU_ASSERT(this->values.size() == factorizedTable.tableSchema.getNumColumns());
 }

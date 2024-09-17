@@ -83,12 +83,12 @@ struct RecursiveJoinVectors {
 
 struct RecursiveJoinInfo {
     RecursiveJoinDataInfo dataInfo;
-    uint8_t lowerBound;
-    uint8_t upperBound;
-    common::QueryRelType queryRelType;
-    planner::RecursiveJoinType joinType;
-    common::ExtendDirection direction;
-    bool extendFromSource;
+    uint8_t lowerBound = 0;
+    uint8_t upperBound = UINT8_MAX;
+    common::QueryRelType queryRelType{};
+    planner::RecursiveJoinType joinType{};
+    common::ExtendDirection direction{};
+    bool extendFromSource = true;
 
     RecursiveJoinInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(RecursiveJoinInfo);
@@ -114,7 +114,7 @@ public:
         std::unique_ptr<PhysicalOperator> recursiveRoot, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)},
-          recursiveRoot{std::move(recursiveRoot)} {}
+          recursiveRoot{std::move(recursiveRoot)}, recursiveSource{nullptr} {}
 
     std::vector<common::NodeSemiMask*> getSemiMask() const;
 

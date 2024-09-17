@@ -48,7 +48,7 @@ struct HashAggregateLocalState {
     std::vector<common::ValueVector*> flatKeyVectors;
     std::vector<common::ValueVector*> unFlatKeyVectors;
     std::vector<common::ValueVector*> dependentKeyVectors;
-    common::DataChunkState* leadingState;
+    common::DataChunkState* leadingState = nullptr;
     std::unique_ptr<AggregateHashTable> aggregateHashTable;
 
     void init(ResultSet& resultSet, main::ClientContext* context, HashAggregateInfo& info,

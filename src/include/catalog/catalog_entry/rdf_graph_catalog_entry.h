@@ -10,7 +10,10 @@ public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
-    RDFGraphCatalogEntry() = default;
+    RDFGraphCatalogEntry()
+        : resourceTableID{common::INVALID_TABLE_ID}, literalTableID{common::INVALID_TABLE_ID},
+          resourceTripleTableID{common::INVALID_TABLE_ID},
+          literalTripleTableID{common::INVALID_TABLE_ID} {}
     RDFGraphCatalogEntry(CatalogSet* set, std::string name, common::table_id_t resourceTableID,
         common::table_id_t literalTabelID, common::table_id_t resourceTripleTableID,
         common::table_id_t literalTripleTableID);

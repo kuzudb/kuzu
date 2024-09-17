@@ -127,7 +127,7 @@ static std::unique_ptr<ValueVector> computeDataVecHash(const ValueVector& operan
     SelectionVector selectionVector{DEFAULT_VECTOR_CAPACITY};
     selectionVector.setToFiltered();
     auto numValuesComputed = 0u;
-    uint64_t numValuesToComputeHash;
+    uint64_t numValuesToComputeHash = 0;
     while (numValuesComputed < numValuesInDataVec) {
         numValuesToComputeHash =
             std::min(DEFAULT_VECTOR_CAPACITY, numValuesInDataVec - numValuesComputed);

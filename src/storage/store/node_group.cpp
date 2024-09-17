@@ -181,7 +181,7 @@ bool NodeGroup::lookup(Transaction* transaction, const TableScanState& state) {
 void NodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup, column_id_t columnID,
     const ValueVector& propertyVector) {
     KU_ASSERT(propertyVector.state->getSelVector().getSelSize() == 1);
-    ChunkedNodeGroup* chunkedGroupToUpdate;
+    ChunkedNodeGroup* chunkedGroupToUpdate = nullptr;
     {
         const auto lock = chunkedGroups.lock();
         chunkedGroupToUpdate = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
@@ -191,7 +191,7 @@ void NodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup, column
 }
 
 bool NodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxInGroup) {
-    ChunkedNodeGroup* groupToDelete;
+    ChunkedNodeGroup* groupToDelete = nullptr;
     {
         const auto lock = chunkedGroups.lock();
         groupToDelete = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
@@ -388,10 +388,10 @@ void NodeGroup::serialize(Serializer& serializer) {
 std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     Deserializer& deSer) {
     std::string key;
-    node_group_idx_t nodeGroupIdx;
-    bool enableCompression;
-    NodeGroupDataFormat format;
-    bool hasCheckpointedData;
+    node_group_idx_t nodeGroupIdx = INVALID_NODE_GROUP_IDX;
+    bool enableCompression = false;
+    auto format = NodeGroupDataFormat::REGULAR;
+    bool hasCheckpointedData = false;
     deSer.validateDebuggingInfo(key, "node_group_idx");
     deSer.deserializeValue<node_group_idx_t>(nodeGroupIdx);
     deSer.validateDebuggingInfo(key, "enable_compression");

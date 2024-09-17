@@ -70,7 +70,7 @@ void SequenceCatalogEntry::nextValNoLock() {
 void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
     const uint64_t& count) {
     KU_ASSERT(count > 0);
-    SequenceRollbackData rollbackData;
+    SequenceRollbackData rollbackData{};
     {
         std::lock_guard<std::mutex> lck(mtx);
         rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
@@ -84,7 +84,7 @@ void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
 void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
     const uint64_t& count, ValueVector& resultVector) {
     KU_ASSERT(count > 0);
-    SequenceRollbackData rollbackData;
+    SequenceRollbackData rollbackData{};
     {
         std::lock_guard<std::mutex> lck(mtx);
         rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
@@ -123,13 +123,13 @@ void SequenceCatalogEntry::serialize(Serializer& serializer) const {
 std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
     Deserializer& deserializer) {
     std::string debuggingInfo;
-    uint64_t usageCount;
-    int64_t currVal;
-    int64_t increment;
-    int64_t startValue;
-    int64_t minValue;
-    int64_t maxValue;
-    bool cycle;
+    uint64_t usageCount = 0;
+    int64_t currVal = 0;
+    int64_t increment = 0;
+    int64_t startValue = 0;
+    int64_t minValue = 0;
+    int64_t maxValue = 0;
+    bool cycle = false;
     deserializer.validateDebuggingInfo(debuggingInfo, "usageCount");
     deserializer.deserializeValue(usageCount);
     deserializer.validateDebuggingInfo(debuggingInfo, "currVal");

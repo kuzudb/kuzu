@@ -201,7 +201,7 @@ private:
         uint64_t multiplicity, uint32_t aggStateOffset);
 
 protected:
-    uint32_t hashColIdxInFT;
+    uint32_t hashColIdxInFT{};
     std::unique_ptr<uint64_t[]> mayMatchIdxes;
     std::unique_ptr<uint64_t[]> noMatchIdxes;
     std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
@@ -213,9 +213,9 @@ private:
 
     //! special handling of distinct aggregate
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
-    uint32_t hashColOffsetInFT;
-    uint32_t aggStateColOffsetInFT;
-    uint32_t aggStateColIdxInFT;
+    uint32_t hashColOffsetInFT{};
+    uint32_t aggStateColOffsetInFT{};
+    uint32_t aggStateColIdxInFT{};
     uint32_t numBytesForKeys = 0;
     uint32_t numBytesForDependentKeys = 0;
     std::vector<update_agg_function_t> updateAggFuncs;

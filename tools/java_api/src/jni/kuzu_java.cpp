@@ -536,7 +536,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1destroy(JNIEnv*
 JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1flat_1tuple_1get_1value(JNIEnv* env, jclass,
     jobject thisFT, jlong index) {
     FlatTuple* ft = getFlatTuple(env, thisFT);
-    Value* value;
+    Value* value = nullptr;
     try {
         value = ft->getValue(index);
     } catch (Exception& e) {
@@ -575,7 +575,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1data_1type_1create(JNIEnv* 
     jint fieldValue = env->GetIntField(id, J_C_DataTypeID_F_value);
 
     uint8_t data_type_id_u8 = static_cast<uint8_t>(fieldValue);
-    LogicalType* data_type;
+    LogicalType* data_type = nullptr;
     auto logicalTypeID = static_cast<LogicalTypeID>(data_type_id_u8);
     if (child_type == nullptr) {
         data_type = new LogicalType(logicalTypeID);
@@ -690,7 +690,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1default(JN
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv* env, jclass,
     jobject val) {
-    Value* v;
+    Value* v = nullptr;
     if (env->IsInstanceOf(val, J_C_Boolean)) {
         jboolean value = env->CallBooleanMethod(val, J_C_Boolean_M_booleanValue);
         v = new Value(static_cast<bool>(value));
@@ -722,7 +722,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1create_1value(JNIEnv
         }
         auto type = LogicalType::DECIMAL(precision, scale);
         auto tmp = Value::createDefaultValue(type);
-        int128_t res;
+        int128_t res = 0;
         kuzu::function::decimalCast(str, std::strlen(str), res, type);
         tmp.val.int128Val = res;
         v = new Value(tmp);
@@ -1394,7 +1394,7 @@ void initGlobalFieldRef(JNIEnv* env) {
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
-    JNIEnv* env;
+    JNIEnv* env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION) != JNI_OK) {
         return JNI_ERR;
     }
@@ -1405,7 +1405,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
 }
 
 JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* /*reserved*/) {
-    JNIEnv* env;
+    JNIEnv* env = nullptr;
     vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION);
 
     env->DeleteGlobalRef(J_C_Map);

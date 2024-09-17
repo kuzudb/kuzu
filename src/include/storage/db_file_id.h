@@ -13,7 +13,7 @@ enum class DBFileType : uint8_t {
 // DBFileID start with 1 byte type  followed with additional bytes needed by node hash index
 // (isOverflow and tableID).
 struct DBFileID {
-    DBFileType dbFileType;
+    DBFileType dbFileType = DBFileType::DATA;
     bool isOverflow = false;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
 

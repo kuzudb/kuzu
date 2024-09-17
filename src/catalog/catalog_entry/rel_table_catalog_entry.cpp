@@ -48,10 +48,10 @@ void RelTableCatalogEntry::serialize(Serializer& serializer) const {
 std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     Deserializer& deserializer) {
     std::string debuggingInfo;
-    RelMultiplicity srcMultiplicity;
-    RelMultiplicity dstMultiplicity;
-    table_id_t srcTableID;
-    table_id_t dstTableID;
+    RelMultiplicity srcMultiplicity{};
+    RelMultiplicity dstMultiplicity{};
+    table_id_t srcTableID = INVALID_TABLE_ID;
+    table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
     deserializer.deserializeValue(srcMultiplicity);
     deserializer.validateDebuggingInfo(debuggingInfo, "dstMultiplicity");

@@ -54,7 +54,7 @@ void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,
 void DictionaryColumn::scan(Transaction* transaction, const ChunkState& offsetState,
     const ChunkState& dataState, std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
     ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) {
-    string_index_t firstOffsetToScan, lastOffsetToScan;
+    string_index_t firstOffsetToScan = 0, lastOffsetToScan = 0;
     auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
     auto duplicationFactor = (double)offsetState.metadata.numValues / indexMeta.numValues;
     if (duplicationFactor <= 0.5) {

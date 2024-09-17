@@ -14,6 +14,7 @@ enum class SequenceInfoType {
     MINVALUE,
     MAXVALUE,
     CYCLE,
+    INVALID,
 };
 
 struct CreateSequenceInfo {

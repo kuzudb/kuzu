@@ -9,7 +9,7 @@ namespace main {
 /**
  * @brief PreparedSummary stores the compiling time and query options of a query.
  */
-struct PreparedSummary {
+struct PreparedSummary { // NOLINT(*-pro-type-member-init)
     double compilingTime = 0;
     common::StatementType statementType;
 };

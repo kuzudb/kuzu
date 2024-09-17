@@ -84,7 +84,7 @@ RelPattern Transformer::transformRelationshipPattern(
         }
     }
 
-    ArrowDirection arrowDirection;
+    ArrowDirection arrowDirection; // NOLINT(*-init-variables)
     if (ctx.oC_LeftArrowHead()) {
         arrowDirection = ArrowDirection::LEFT;
     } else if (ctx.oC_RightArrowHead()) {

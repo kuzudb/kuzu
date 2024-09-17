@@ -75,7 +75,7 @@ enum class HighlightingType {
 };
 
 struct highlightToken {
-    tokenType type;
+    tokenType type{};
     size_t start = 0;
 };
 

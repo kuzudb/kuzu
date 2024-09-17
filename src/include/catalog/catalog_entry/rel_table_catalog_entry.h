@@ -11,7 +11,9 @@ class RelTableCatalogEntry final : public TableCatalogEntry {
     static constexpr auto entryType_ = CatalogEntryType::REL_TABLE_ENTRY;
 
 public:
-    RelTableCatalogEntry() = default;
+    RelTableCatalogEntry()
+        : srcMultiplicity{}, dstMultiplicity{}, srcTableID{common::INVALID_TABLE_ID},
+          dstTableID{common::INVALID_TABLE_ID} {};
     RelTableCatalogEntry(CatalogSet* set, std::string name, common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID)

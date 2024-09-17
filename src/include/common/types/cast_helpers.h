@@ -151,7 +151,7 @@ struct TimeToStringCast {
     static uint64_t Length(int32_t time[], char micro_buffer[]) {
         // format is HH:MM:DD.MS
         // microseconds come after the time with a period separator
-        uint64_t length;
+        uint64_t length = 0;
         if (time[3] == 0) {
             // no microseconds
             // format is HH:MM:DD

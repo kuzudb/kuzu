@@ -29,7 +29,7 @@ namespace kuzu {
 namespace common {
 
 void MD5::byteReverse(unsigned char* buf, unsigned longs) {
-    uint32_t t;
+    uint32_t t = 0;
     do {
         t = (uint32_t)((unsigned)buf[3] << 8 | buf[2]) << 16 | ((unsigned)buf[1] << 8 | buf[0]);
         *(uint32_t*)buf = t;
@@ -47,12 +47,10 @@ void MD5::byteReverse(unsigned char* buf, unsigned longs) {
     ((w) += f(x, y, z) + (data), (w) = (w) << (s) | (w) >> (32 - (s)), (w) += (x))
 
 void MD5::MD5Transform(uint32_t buf[4], const uint32_t in[16]) {
-    uint32_t a, b, c, d;
-
-    a = buf[0];
-    b = buf[1];
-    c = buf[2];
-    d = buf[3];
+    uint32_t a = buf[0];
+    uint32_t b = buf[1];
+    uint32_t c = buf[2];
+    uint32_t d = buf[3];
 
     MD5STEP(F1, a, b, c, d, in[0] + 0xd76aa478, 7);
     MD5STEP(F1, d, a, b, c, in[1] + 0xe8c7b756, 12);
@@ -139,11 +137,9 @@ void MD5::MD5Init() {
 }
 
 void MD5::MD5Update(const unsigned char* buf, unsigned int len) {
-    uint32_t t;
-
     // Update bitcount
 
-    t = ctx.bits[0];
+    uint32_t t = ctx.bits[0];
     ctx.bits[0] = t + ((uint32_t)len << 3);
     if (ctx.bits[0] < t)
         ctx.bits[1]++; // Carry from low to high
@@ -184,15 +180,12 @@ void MD5::MD5Update(const unsigned char* buf, unsigned int len) {
 }
 
 void MD5::MD5Final(unsigned char digest[16]) {
-    unsigned count;
-    unsigned char* p;
-
     // Compute number of bytes mod 64 */
-    count = (ctx.bits[0] >> 3) & 0x3F;
+    unsigned count = (ctx.bits[0] >> 3) & 0x3F;
 
     // Set the first char of padding to 0x80.  This is safe since there is
     // always at least one byte free
-    p = ctx.in + count;
+    unsigned char* p = ctx.in + count;
     *p++ = 0x80;
 
     // Bytes of padding needed to make 64 bytes
@@ -225,7 +218,7 @@ void MD5::MD5Final(unsigned char digest[16]) {
 
 void MD5::DigestToBase16(const unsigned char* digest, char* zBuf) {
     static char const zEncode[] = "0123456789abcdef";
-    int i, j;
+    int i = 0, j = 0;
 
     for (j = i = 0; i < 16; i++) {
         int a = digest[i];

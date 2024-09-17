@@ -61,8 +61,6 @@ bool Time::tryConvertInternal(const char* buf, uint64_t len, uint64_t& pos, dtim
         return false;
     }
 
-    char sep;
-
     // skip leading spaces
     while (pos < len && isspace(buf[pos])) {
         pos++;
@@ -91,7 +89,7 @@ bool Time::tryConvertInternal(const char* buf, uint64_t len, uint64_t& pos, dtim
     }
 
     // fetch the separator
-    sep = buf[pos++];
+    char sep = buf[pos++];
     if (sep != ':') {
         // invalid separator
         return false;
@@ -162,7 +160,7 @@ bool Time::tryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
 
 dtime_t Time::fromCString(const char* buf, uint64_t len) {
     dtime_t result;
-    uint64_t pos;
+    uint64_t pos = 0;
     if (!Time::tryConvertTime(buf, len, pos, result)) {
         throw ConversionException(stringFormat("Error occurred during parsing time. Given: \"{}\". "
                                                "Expected format: (hh:mm:ss[.zzzzzz]).",
@@ -191,7 +189,7 @@ bool Time::isValid(int32_t hour, int32_t minute, int32_t second, int32_t microse
 }
 
 dtime_t Time::fromTimeInternal(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
-    int64_t result;
+    int64_t result = 0;
     result = hour;                                             // hours
     result = result * Interval::MINS_PER_HOUR + minute;        // hours -> minutes
     result = result * Interval::SECS_PER_MINUTE + second;      // minutes -> seconds

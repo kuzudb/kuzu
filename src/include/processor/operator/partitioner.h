@@ -46,7 +46,7 @@ struct PartitionerSharedState {
     storage::MemoryManager& mm;
 
     explicit PartitionerSharedState(storage::MemoryManager& mm)
-        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, mm{mm} {}
+        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm} {}
 
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.

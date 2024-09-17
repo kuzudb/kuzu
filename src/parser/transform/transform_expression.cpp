@@ -653,11 +653,11 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
     auto text = ctx.DecimalInteger()->getText();
     ku_string_t literal{text.c_str(), text.length()};
-    int64_t result;
+    int64_t result = 0;
     if (function::CastString::tryCast(literal, result)) {
         return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
     }
-    int128_t result128;
+    int128_t result128 = 0;
     function::CastString::operation(literal, result128);
     return std::make_unique<ParsedLiteralExpression>(Value(result128), ctx.getText());
 }
@@ -666,7 +666,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
     ku_string_t literal{text.c_str(), text.length()};
-    double result;
+    double result = 0;
     function::CastString::operation(literal, result);
     return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
 }

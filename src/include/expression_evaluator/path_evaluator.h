@@ -16,7 +16,8 @@ class PathExpressionEvaluator final : public ExpressionEvaluator {
 public:
     PathExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         evaluator_vector_t children)
-        : ExpressionEvaluator{type_, std::move(expression), std::move(children)} {}
+        : ExpressionEvaluator{type_, std::move(expression), std::move(children)},
+          resultNodesVector(nullptr), resultRelsVector(nullptr) {}
 
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 

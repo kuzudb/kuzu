@@ -11,13 +11,13 @@ using namespace kuzu::common;
 using namespace kuzu_parquet::format;
 
 std::size_t StringHash::operator()(const ku_string_t& k) const {
-    hash_t result;
+    hash_t result = 0;
     function::Hash::operation(k, result);
     return result;
 }
 
 bool StringEquality::operator()(const ku_string_t& a, const ku_string_t& b) const {
-    uint8_t result;
+    uint8_t result = 0;
     function::Equals::operation(a, b, result, nullptr /* leftVector */, nullptr /* rightVector */);
     return result;
 }

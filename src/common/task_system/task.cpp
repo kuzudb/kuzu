@@ -3,7 +3,9 @@
 namespace kuzu {
 namespace common {
 
-Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {}
+Task::Task(uint64_t maxNumThreads)
+    : parent{nullptr}, maxNumThreads{maxNumThreads}, numThreadsFinished{0}, numThreadsRegistered{0},
+      exceptionsPtr{nullptr}, ID{UINT64_MAX} {}
 
 bool Task::registerThread() {
     lock_t lck{taskMtx};

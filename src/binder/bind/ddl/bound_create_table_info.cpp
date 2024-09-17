@@ -20,10 +20,10 @@ void BoundCreateTableInfo::serialize(Serializer& serializer) const {
 }
 
 BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserializer) {
-    TableType type;
+    auto type = TableType::UNKNOWN;
     std::string tableName;
-    ConflictAction onConflict;
-    bool hasParent;
+    auto onConflict = ConflictAction::INVALID;
+    bool hasParent = false;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(tableName);
@@ -96,10 +96,10 @@ void BoundExtraCreateRelTableInfo::serialize(Serializer& serializer) const {
 
 std::unique_ptr<BoundExtraCreateRelTableInfo> BoundExtraCreateRelTableInfo::deserialize(
     Deserializer& deserializer) {
-    common::RelMultiplicity srcMultiplicity;
-    common::RelMultiplicity dstMultiplicity;
-    common::table_id_t srcTableID;
-    common::table_id_t dstTableID;
+    RelMultiplicity srcMultiplicity{};
+    RelMultiplicity dstMultiplicity{};
+    table_id_t srcTableID = INVALID_TABLE_ID;
+    table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.deserializeValue(srcMultiplicity);
     deserializer.deserializeValue(dstMultiplicity);
     deserializer.deserializeValue(srcTableID);

@@ -52,6 +52,7 @@ enum class ExpressionType : uint8_t {
     LAMBDA = 220,
 
     // NOTE: this enum has type uint8_t so don't assign over 255.
+    INVALID = 255,
 };
 
 struct ExpressionTypeUtil {

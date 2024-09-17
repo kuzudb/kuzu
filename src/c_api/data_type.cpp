@@ -15,7 +15,7 @@ struct CAPIHelper {
 void kuzu_data_type_create(kuzu_data_type_id id, kuzu_logical_type* child_type,
     uint64_t num_elements_in_array, kuzu_logical_type* out_data_type) {
     uint8_t data_type_id_u8 = id;
-    LogicalType* data_type;
+    LogicalType* data_type = nullptr;
     auto logicalTypeID = static_cast<LogicalTypeID>(data_type_id_u8);
     if (child_type == nullptr) {
         data_type = new LogicalType(logicalTypeID);

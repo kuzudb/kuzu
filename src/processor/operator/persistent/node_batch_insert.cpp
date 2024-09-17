@@ -8,7 +8,6 @@
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 
@@ -26,7 +25,7 @@ std::string NodeBatchInsertPrintInfo::toString() const {
 }
 
 void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
-    uint64_t numRows;
+    uint64_t numRows = 0;
     if (readerSharedState != nullptr) {
         KU_ASSERT(distinctSharedState == nullptr);
         const auto scanSharedState =

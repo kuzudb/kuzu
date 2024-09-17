@@ -144,7 +144,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
     if (numRows == 0) {
         return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
-    ChunkedNodeGroup* chunkedGroup;
+    ChunkedNodeGroup* chunkedGroup = nullptr;
     {
         const auto lock = chunkedGroups.lock();
         chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);

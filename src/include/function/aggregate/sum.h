@@ -16,7 +16,7 @@ struct SumFunction {
                 reinterpret_cast<uint8_t*>(&sum), outputVector->getNumBytesPerValue());
         }
 
-        T sum;
+        T sum{};
     };
 
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<SumState>(); }

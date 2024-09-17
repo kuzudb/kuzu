@@ -9,8 +9,8 @@ namespace storage {
 
 struct ShadowPageRecord {
     DBFileID dbFileID;
-    common::file_idx_t originalFileIdx;
-    common::page_idx_t originalPageIdx;
+    common::file_idx_t originalFileIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t originalPageIdx = common::INVALID_PAGE_IDX;
 
     void serialize(common::Serializer& serializer) const;
     static ShadowPageRecord deserialize(common::Deserializer& deserializer);

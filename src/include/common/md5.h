@@ -38,7 +38,7 @@ class MD5 {
     typedef struct Context MD5Context;
 
     // Status of an MD5 hash. - changed from static global variables to private members
-    MD5Context ctx;
+    MD5Context ctx{};
     int isInit = 0;
     char zResult[34] = "";
 

@@ -114,7 +114,7 @@ interval_t timestamp_t::operator-(const timestamp_t& rhs) const {
 static_assert(sizeof(timestamp_t) == sizeof(int64_t), "timestamp_t was padded");
 
 bool Timestamp::tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& result) {
-    uint64_t pos;
+    uint64_t pos = 0;
     date_t date;
     dtime_t time;
 
@@ -150,7 +150,7 @@ bool Timestamp::tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& 
         if (str[pos] == 'Z') {
             pos++;
         }
-        int hour_offset, minute_offset;
+        int hour_offset = 0, minute_offset = 0;
         if (Timestamp::tryParseUTCOffset(str, pos, len, hour_offset, minute_offset)) {
             result.value -= hour_offset * Interval::MICROS_PER_HOUR +
                             minute_offset * Interval::MICROS_PER_MINUTE;
@@ -244,7 +244,7 @@ dtime_t Timestamp::getTime(timestamp_t timestamp) {
 
 timestamp_t Timestamp::fromDateTime(date_t date, dtime_t time) {
     timestamp_t result;
-    int32_t year, month, day, hour, minute, second, microsecond = -1;
+    int32_t year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0, microsecond = -1;
     Date::convert(date, year, month, day);
     Time::convert(time, hour, minute, second, microsecond);
     if (!Date::isValid(year, month, day) || !Time::isValid(hour, minute, second, microsecond)) {
@@ -264,7 +264,7 @@ timestamp_t Timestamp::fromEpochMicroSeconds(int64_t micros) {
 }
 
 timestamp_t Timestamp::fromEpochMilliSeconds(int64_t ms) {
-    int64_t microSeconds;
+    int64_t microSeconds = 0;
     function::Multiply::operation(ms, Interval::MICROS_PER_MSEC, microSeconds);
     return fromEpochMicroSeconds(microSeconds);
 }
@@ -272,7 +272,7 @@ timestamp_t Timestamp::fromEpochMilliSeconds(int64_t ms) {
 // LCOV_EXCL_START
 // TODO(Kebing): will add the tests in the timestamp PR
 timestamp_t Timestamp::fromEpochSeconds(int64_t sec) {
-    int64_t microSeconds;
+    int64_t microSeconds = 0;
     function::Multiply::operation(sec, Interval::MICROS_PER_SEC, microSeconds);
     return fromEpochMicroSeconds(microSeconds);
 }
@@ -304,7 +304,7 @@ int32_t Timestamp::getTimestampPart(DatePartSpecifier specifier, timestamp_t& ti
 }
 
 timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp) {
-    int32_t hour, min, sec, micros;
+    int32_t hour = 0, min = 0, sec = 0, micros = 0;
     date_t date;
     dtime_t time;
     Timestamp::convert(timestamp, date, time);
@@ -324,13 +324,13 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
         return Timestamp::fromDateTime(date,
             Time::fromTime(hour, 0 /* minutes */, 0 /* seconds */, 0 /* microseconds */));
     default:
-        date_t date = getDate(timestamp);
+        date = getDate(timestamp);
         return fromDateTime(Date::trunc(specifier, date), dtime_t(0));
     }
 }
 
 int64_t Timestamp::getEpochNanoSeconds(const timestamp_t& timestamp) {
-    int64_t result;
+    int64_t result = 0;
     function::Multiply::operation(timestamp.value, Interval::NANOS_PER_MICRO, result);
     return result;
 }

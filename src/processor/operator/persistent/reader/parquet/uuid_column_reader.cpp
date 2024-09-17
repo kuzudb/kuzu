@@ -4,7 +4,7 @@ namespace kuzu {
 namespace processor {
 
 common::ku_uuid_t UUIDValueConversion::ReadParquetUUID(const uint8_t* input) {
-    common::ku_uuid_t result;
+    common::ku_uuid_t result{};
     result.value.low = 0;
     uint64_t unsignedUpper = 0;
     for (auto i = 0u; i < sizeof(uint64_t); i++) {

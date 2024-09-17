@@ -53,8 +53,8 @@ private:
     std::unique_ptr<SortLocalState> orderByLocalState;
     std::unique_ptr<SortSharedState> orderBySharedState;
 
-    uint64_t numTuples = 0;
-    storage::MemoryManager* memoryManager = nullptr;
+    uint64_t numTuples;
+    storage::MemoryManager* memoryManager;
 };
 
 class TopKBuffer {
@@ -63,7 +63,8 @@ class TopKBuffer {
 
 public:
     explicit TopKBuffer(const OrderByDataInfo& orderByDataInfo)
-        : orderByDataInfo{&orderByDataInfo} {
+        : orderByDataInfo{&orderByDataInfo}, skip{0}, limit{0}, memoryManager{nullptr},
+          hasBoundaryValue{false} {
         sortState = std::make_unique<TopKSortState>();
     }
 
@@ -113,7 +114,7 @@ public:
     storage::MemoryManager* memoryManager;
     std::vector<vector_select_comparison_func> compareFuncs;
     std::vector<vector_select_comparison_func> equalsFuncs;
-    bool hasBoundaryValue = false;
+    bool hasBoundaryValue;
 
 private:
     // Holds the ownership of all temp vectors.

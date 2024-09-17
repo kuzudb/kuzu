@@ -26,7 +26,8 @@ uint8_t RleBpEncoder::getVarintSize(uint32_t val) {
 }
 
 RleBpEncoder::RleBpEncoder(uint32_t bit_width)
-    : byteWidth((bit_width + 7) / 8), byteCount(uint64_t(-1)), runCount(uint64_t(-1)) {}
+    : byteWidth((bit_width + 7) / 8), byteCount(uint64_t(-1)), runCount(uint64_t(-1)),
+      currentRunCount(0), lastValue(0) {}
 
 // we always RLE everything (for now)
 void RleBpEncoder::beginPrepare(uint32_t first_value) {

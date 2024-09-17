@@ -27,7 +27,8 @@ bool CSVError::operator<(const CSVError& o) const {
 }
 
 WarningContext::WarningContext(main::ClientConfig* clientConfig)
-    : clientConfig(clientConfig), queryWarningCount(0), numStoredWarnings(0) {}
+    : clientConfig(clientConfig), queryWarningCount(0), numStoredWarnings(0),
+      ignoreErrorsOption(false) {}
 
 void WarningContext::appendWarningMessages(const std::vector<CSVError>& messages) {
     common::UniqLock lock{mtx};

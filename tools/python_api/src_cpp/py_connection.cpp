@@ -512,7 +512,7 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         return Value::createValue<double>(py::cast<py::float_>(val).cast<double>());
     case LogicalTypeID::DECIMAL: {
         auto str = py::cast<std::string>(py::str(val));
-        int128_t result;
+        int128_t result = 0;
         function::decimalCast(str.c_str(), str.size(), result, type);
         auto val = Value::createDefaultValue(type);
         val.val.int128Val = result;
@@ -576,8 +576,7 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
     case LogicalTypeID::UUID: {
         auto strVal = py::str(val).cast<std::string>();
         auto uuidVal = UUID::fromString(strVal);
-        ku_uuid_t uuidToAppend;
-        uuidToAppend.value = uuidVal;
+        ku_uuid_t uuidToAppend{uuidVal};
         return Value{uuidToAppend};
     }
     case LogicalTypeID::LIST: {

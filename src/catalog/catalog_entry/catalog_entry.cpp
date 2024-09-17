@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/serializer/deserializer.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace catalog {
@@ -22,10 +23,10 @@ void CatalogEntry::serialize(common::Serializer& serializer) const {
 
 std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& deserializer) {
     std::string debuggingInfo;
-    CatalogEntryType type;
+    auto type = CatalogEntryType::DUMMY_ENTRY;
     std::string name;
-    common::oid_t oid;
-    bool hasParent_;
+    common::oid_t oid = common::INVALID_OID;
+    bool hasParent_ = false;
     deserializer.validateDebuggingInfo(debuggingInfo, "type");
     deserializer.deserializeValue(type);
     deserializer.validateDebuggingInfo(debuggingInfo, "name");
@@ -58,6 +59,7 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     entry->name = std::move(name);
     entry->oid = oid;
     entry->hasParent_ = hasParent_;
+    entry->timestamp = transaction::Transaction::DUMMY_START_TIMESTAMP;
     return entry;
 }
 

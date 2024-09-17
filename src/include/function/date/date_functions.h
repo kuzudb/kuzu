@@ -84,7 +84,7 @@ struct DatePart {
 template<>
 inline void DatePart::operation(common::ku_string_t& partSpecifier, common::date_t& input,
     int64_t& result) {
-    common::DatePartSpecifier specifier;
+    common::DatePartSpecifier specifier{};
     common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Date::getDatePart(specifier, input);
 }
@@ -92,7 +92,7 @@ inline void DatePart::operation(common::ku_string_t& partSpecifier, common::date
 template<>
 inline void DatePart::operation(common::ku_string_t& partSpecifier, common::timestamp_t& input,
     int64_t& result) {
-    common::DatePartSpecifier specifier;
+    common::DatePartSpecifier specifier{};
     common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Timestamp::getTimestampPart(specifier, input);
 }
@@ -100,7 +100,7 @@ inline void DatePart::operation(common::ku_string_t& partSpecifier, common::time
 template<>
 inline void DatePart::operation(common::ku_string_t& partSpecifier, common::interval_t& input,
     int64_t& result) {
-    common::DatePartSpecifier specifier;
+    common::DatePartSpecifier specifier{};
     common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Interval::getIntervalPart(specifier, input);
 }
@@ -116,7 +116,7 @@ struct DateTrunc {
 template<>
 inline void DateTrunc::operation(common::ku_string_t& partSpecifier, common::date_t& input,
     common::date_t& result) {
-    common::DatePartSpecifier specifier;
+    common::DatePartSpecifier specifier{};
     common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Date::trunc(specifier, input);
 }
@@ -124,7 +124,7 @@ inline void DateTrunc::operation(common::ku_string_t& partSpecifier, common::dat
 template<>
 inline void DateTrunc::operation(common::ku_string_t& partSpecifier, common::timestamp_t& input,
     common::timestamp_t& result) {
-    common::DatePartSpecifier specifier;
+    common::DatePartSpecifier specifier{};
     common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Timestamp::trunc(specifier, input);
 }

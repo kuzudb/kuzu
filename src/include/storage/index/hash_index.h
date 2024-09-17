@@ -109,7 +109,7 @@ public:
     //   so, return false, else insert the key to the local storage.
     bool insertInternal(const transaction::Transaction* transaction, Key key,
         common::offset_t value, visible_func isVisible) {
-        common::offset_t tmpResult;
+        common::offset_t tmpResult = 0;
         auto localLookupState = localStorage->lookup(key, tmpResult, isVisible);
         if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
             return false;
@@ -131,7 +131,7 @@ public:
         if (indexHeaderForWriteTrx.numEntries > 0) {
             localStorage->reserveSpaceForAppend(buffer.size() - bufferOffset);
             size_t numValuesInserted = 0;
-            common::offset_t result;
+            common::offset_t result = 0;
             for (size_t i = bufferOffset; i < buffer.size(); i++) {
                 const auto& [key, value] = buffer[i];
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {

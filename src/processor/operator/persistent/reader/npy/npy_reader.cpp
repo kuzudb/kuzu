@@ -33,7 +33,8 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
+NpyReader::NpyReader(const std::string& filePath)
+    : filePath{filePath}, dataOffset{0}, type{LogicalTypeID::ANY} {
     fd = open(filePath.c_str(), O_RDONLY);
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");

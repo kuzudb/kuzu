@@ -12,7 +12,7 @@ class PatternExpressionEvaluator : public ExpressionEvaluator {
 public:
     PatternExpressionEvaluator(std::shared_ptr<binder::Expression> pattern,
         evaluator_vector_t children)
-        : ExpressionEvaluator{type_, std::move(pattern), std::move(children)} {}
+        : ExpressionEvaluator{type_, std::move(pattern), std::move(children)}, idVector{nullptr} {}
 
     void evaluate() override;
 
@@ -37,7 +37,8 @@ class UndirectedRelExpressionEvaluator final : public PatternExpressionEvaluator
 public:
     UndirectedRelExpressionEvaluator(std::shared_ptr<binder::Expression> pattern,
         evaluator_vector_t children, std::unique_ptr<ExpressionEvaluator> directionEvaluator)
-        : PatternExpressionEvaluator{std::move(pattern), std::move(children)},
+        : PatternExpressionEvaluator{std::move(pattern), std::move(children)}, srcIDVector{nullptr},
+          dstIDVector{nullptr}, directionVector{nullptr},
           directionEvaluator{std::move(directionEvaluator)} {}
 
     void evaluate() override;

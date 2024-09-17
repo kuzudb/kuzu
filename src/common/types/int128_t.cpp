@@ -114,7 +114,7 @@ int128_t Int128_t::divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainde
 }
 
 std::string Int128_t::ToString(int128_t input) {
-    uint64_t remainder;
+    uint64_t remainder = 0;
     std::string result;
     bool negative = input.high < 0;
     if (negative) {
@@ -199,7 +199,7 @@ bool Int128_t::tryMultiply(int128_t lhs, int128_t rhs, int128_t& result) {
 #if ((__GNUC__ >= 5) || defined(__clang__)) && defined(__SIZEOF_INT128__)
     __uint128_t left = __uint128_t(lhs.low) + (__uint128_t(lhs.high) << 64);
     __uint128_t right = __uint128_t(rhs.low) + (__uint128_t(rhs.high) << 64);
-    __uint128_t result_i128;
+    __uint128_t result_i128 = 0;
     if (__builtin_mul_overflow(left, right, &result_i128)) {
         return false;
     }
@@ -465,7 +465,7 @@ bool Int128_t::tryCast(int128_t input, uint64_t& result) {
 
 template<>
 bool Int128_t::tryCast(int128_t input, float& result) {
-    double temp_res;
+    double temp_res = NAN;
     tryCast(input, temp_res);
     result = static_cast<float>(temp_res);
     return true;
@@ -785,7 +785,7 @@ int128_t::operator uint8_t() const {
 }
 
 int128_t::operator double() const {
-    double result;
+    double result = NAN;
     if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
         throw common::OverflowException(common::stringFormat("Value {} is not within DOUBLE range",
             common::TypeUtils::toString(*this)));
@@ -794,7 +794,7 @@ int128_t::operator double() const {
 }
 
 int128_t::operator float() const {
-    float result;
+    float result = NAN;
     if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
         throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
             common::TypeUtils::toString(*this)));
@@ -806,7 +806,7 @@ int128_t::operator float() const {
 
 std::size_t std::hash<kuzu::common::int128_t>::operator()(
     const kuzu::common::int128_t& v) const noexcept {
-    kuzu::common::hash_t hash;
+    kuzu::common::hash_t hash = 0;
     kuzu::function::Hash::operation(v, hash);
     return hash;
 }

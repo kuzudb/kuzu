@@ -462,7 +462,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     Deserializer deserializer(std::make_unique<BufferedFileReader>(
         fs->openFile(catalogPath, FileFlags::READ_ONLY, context)));
     validateMagicBytes(deserializer);
-    storage_version_t savedStorageVersion;
+    storage_version_t savedStorageVersion = 0;
     deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     tables = CatalogSet::deserialize(deserializer);

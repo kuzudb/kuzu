@@ -10,7 +10,7 @@ namespace parser {
 
 std::unique_ptr<ParsedFunctionExpression> ParsedFunctionExpression::deserialize(
     Deserializer& deserializer) {
-    bool isDistinct;
+    bool isDistinct = false;
     deserializer.deserializeValue(isDistinct);
     std::string functionName;
     deserializer.deserializeValue(functionName);

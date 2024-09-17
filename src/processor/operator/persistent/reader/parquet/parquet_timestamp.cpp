@@ -24,7 +24,7 @@ common::timestamp_t ParquetTimeStampUtils::parquetTimestampNsToTimestamp(const i
 
 int64_t ParquetTimeStampUtils::impalaTimestampToMicroseconds(const Int96& impalaTimestamp) {
     int64_t daysSinceEpoch = impalaTimestamp.value[2] - JULIAN_TO_UNIX_EPOCH_DAYS;
-    int64_t nanoSeconds;
+    int64_t nanoSeconds = 0;
     memcpy(&nanoSeconds, &impalaTimestamp.value, sizeof(nanoSeconds));
     auto microseconds = nanoSeconds / NANOSECONDS_PER_MICRO;
     return daysSinceEpoch * MICROSECONDS_PER_DAY + microseconds;

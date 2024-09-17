@@ -167,7 +167,7 @@ std::vector<JsonWrapper> jsonifyQueryResult(
         }
         result.push_back(JsonWrapper(yyjson_mut_doc_imut_copy(curResult.ptr, nullptr)));
         if (i == 0) {
-            yyjson_val *key, *val;
+            yyjson_val *key = nullptr, *val = nullptr;
             auto iter = yyjson_obj_iter_with(yyjson_doc_get_root(result[i].ptr));
             while ((key = yyjson_obj_iter_next(&iter))) {
                 val = yyjson_obj_iter_get_val(key);
@@ -186,7 +186,7 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
     switch (yyjson_get_type(val)) {
     case YYJSON_TYPE_ARR: {
         common::LogicalType childType(LogicalTypeID::ANY); // todo: make a null dt and replace this
-        yyjson_val* ele;
+        yyjson_val* ele = nullptr;
         auto iter = yyjson_arr_iter_with(val);
         auto sampled = 0u;
         while ((ele = yyjson_arr_iter_next(&iter))) {
@@ -199,7 +199,7 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
     } break;
     case YYJSON_TYPE_OBJ: {
         std::vector<StructField> fields;
-        yyjson_val *key, *ele;
+        yyjson_val *key = nullptr, *ele = nullptr;
         auto iter = yyjson_obj_iter_with(val);
         auto sampled = 0u;
         while ((key = yyjson_obj_iter_next(&iter))) {
@@ -276,7 +276,7 @@ static void readFromJsonArr(yyjson_val* val, common::ValueVector& vec, uint64_t 
         auto childPos = lst.offset;
 
         auto it = yyjson_arr_iter_with(val);
-        yyjson_val* ele;
+        yyjson_val* ele = nullptr;
         while ((ele = yyjson_arr_iter_next(&it))) {
             readJsonToValueVector(ele, *childVec, childPos);
             childPos++;
@@ -334,7 +334,7 @@ static void readFromJsonObj(yyjson_val* val, common::ValueVector& vec, uint64_t 
         auto valBuffer = MapVector::getValueVector(&vec);
         auto listEntry = ListVector::addList(&vec, numFields);
         vec.setValue<list_entry_t>(pos, listEntry);
-        yyjson_val *key, *value;
+        yyjson_val *key = nullptr, *value = nullptr;
         auto it = yyjson_obj_iter_with(val);
         for (auto i = 0u; i < numFields; i++) {
             key = yyjson_obj_iter_next(&it);
@@ -554,7 +554,7 @@ std::string jsonToString(const yyjson_val* val) {
 }
 
 void invalidJsonError(const char* data, size_t size, yyjson_read_err* err) {
-    size_t line, col, chr;
+    size_t line = 0, col = 0, chr = 0;
     if (yyjson_locate_pos(data, size, err->pos, &line, &col, &chr)) {
         throw RuntimeException(stringFormat("Error {} at line {}, column {}, character index {}",
             err->msg, line, col, chr));
@@ -623,8 +623,8 @@ uint32_t jsonArraySize(const JsonWrapper& wrapper) {
 static bool jsonContains(yyjson_val* haystack, yyjson_val* needle);
 
 static bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t haystackIdx, haystackMax;
-    yyjson_val* haystackChild;
+    uint32_t haystackIdx = 0, haystackMax = 0;
+    yyjson_val* haystackChild = nullptr;
     yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
         if (jsonContains(haystackChild, needle)) {
             return true;
@@ -634,8 +634,8 @@ static bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
 }
 
 static bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx, needleMax, haystackIdx, haystackMax;
-    yyjson_val *needleChild, *haystackChild;
+    uint32_t needleIdx = 0, needleMax = 0, haystackIdx = 0, haystackMax = 0;
+    yyjson_val *needleChild = nullptr, *haystackChild = nullptr;
     yyjson_arr_foreach(needle, needleIdx, needleMax, needleChild) {
         bool found = false;
         yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
@@ -651,8 +651,8 @@ static bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
 }
 
 static bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t haystackIdx, haystackMax;
-    yyjson_val *key, *haystackChild;
+    uint32_t haystackIdx = 0, haystackMax = 0;
+    yyjson_val *key = nullptr, *haystackChild = nullptr;
     yyjson_obj_foreach(haystack, haystackIdx, haystackMax, key, haystackChild) {
         if (jsonContains(haystackChild, needle)) {
             return true;
@@ -662,8 +662,8 @@ static bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
 }
 
 static bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx, needleMax;
-    yyjson_val *key, *needleChild;
+    uint32_t needleIdx = 0, needleMax = 0;
+    yyjson_val *key = nullptr, *needleChild = nullptr;
     yyjson_obj_foreach(needle, needleIdx, needleMax, key, needleChild) {
         auto haystackChild = yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
         if (!haystackChild || !jsonContains(haystackChild, needleChild)) {
@@ -703,7 +703,7 @@ bool jsonContains(const JsonWrapper& haystack, const JsonWrapper& needle) {
 
 std::vector<std::string> jsonGetKeys(const JsonWrapper& wrapper) {
     std::vector<std::string> result;
-    yyjson_val* key;
+    yyjson_val* key = nullptr;
     auto iter = yyjson_obj_iter_with(yyjson_doc_get_root(wrapper.ptr));
     while ((key = yyjson_obj_iter_next(&iter))) {
         result.emplace_back(yyjson_get_str(key));

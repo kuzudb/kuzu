@@ -36,21 +36,21 @@ std::unique_ptr<MemoryBuffer> MemoryManager::mallocBuffer(bool initializeToZero,
         throw BufferManagerException(
             "Unable to allocate memory! The buffer pool is full and no memory could be freed!");
     }
-    void* buffer;
+    void* buffer = nullptr;
     if (initializeToZero) {
         buffer = calloc(size, 1);
     } else {
         buffer = malloc(size);
     }
-    return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX,
-        reinterpret_cast<uint8_t*>(buffer), size);
+    return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX, static_cast<uint8_t*>(buffer),
+        size);
 }
 
 std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZero, uint64_t size) {
     if (size > TEMP_PAGE_SIZE) [[unlikely]] {
         return mallocBuffer(initializeToZero, size);
     }
-    page_idx_t pageIdx;
+    page_idx_t pageIdx = INVALID_PAGE_IDX;
     {
         std::scoped_lock<std::mutex> lock(allocatorLock);
         if (freePages.empty()) {
@@ -72,7 +72,6 @@ void MemoryManager::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
     if (pageIdx == INVALID_PAGE_IDX) {
         bm->freeUsedMemory(buffer.size());
         std::free(buffer.data());
-        return;
     } else {
         bm->unpin(*fh, pageIdx);
         std::unique_lock<std::mutex> lock(allocatorLock);

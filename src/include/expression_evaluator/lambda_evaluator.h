@@ -36,7 +36,7 @@ protected:
 struct ListLambdaBindData {
     std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
     std::vector<common::idx_t> paramIndices;
-    ExpressionEvaluator* rootEvaluator;
+    ExpressionEvaluator* rootEvaluator = nullptr;
 };
 
 // E.g. for function list_transform([0,1,2], x->x+1)

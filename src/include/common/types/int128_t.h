@@ -101,7 +101,7 @@ public:
 
     template<class T>
     static int128_t castTo(T value) {
-        int128_t result;
+        int128_t result{};
         if (!tryCastTo(value, result)) {
             throw std::overflow_error("INT128 is out of range");
         }

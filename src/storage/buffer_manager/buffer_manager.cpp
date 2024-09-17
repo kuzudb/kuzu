@@ -40,7 +40,7 @@ bool EvictionQueue::insert(uint32_t fileIndex, page_idx_t pageIndex) {
 }
 
 std::atomic<EvictionCandidate>* EvictionQueue::next() {
-    std::atomic<EvictionCandidate>* candidate;
+    std::atomic<EvictionCandidate>* candidate = nullptr;
     do {
         // Since the buffer pool size is a power of two (as is the page size), (UINT64_MAX + 1) %
         // size == 0, which means no entries will be skipped when the cursor overflows
@@ -240,7 +240,7 @@ void BufferManager::unpin(FileHandle& fileHandle, page_idx_t pageIdx) {
 // evicts up to 64 pages and returns the space reclaimed
 uint64_t BufferManager::evictPages() {
     constexpr size_t BATCH_SIZE = 64;
-    std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates;
+    std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates{};
     size_t evictablePages = 0;
     size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
