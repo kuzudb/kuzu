@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'signing'
     id 'maven-publish'
+    id 'org.jreleaser' version '1.14.0'
 }
 
 java {
@@ -46,6 +47,7 @@ publishing {
                 name = 'kuzu'
                 description = 'Kùzu is an embedded graph database built for query speed and scalability.'
                 url = 'http://kuzudb.com'
+                inceptionYear = '2021'
                 properties = [
                     'project.build.sourceEncoding': 'UTF-8',
                     'project.reporting.outputEncoding': 'UTF-8',
@@ -73,6 +75,12 @@ publishing {
                 }
             }
             from components.java
+        }
+    }
+    
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('staging-deploy')
         }
     }
 }
@@ -114,4 +122,22 @@ tasks.sourcesJar {
 
 test {
     useJUnitPlatform()
+}
+
+jreleaser {
+    signing {
+        active = 'ALWAYS'
+        armored = true
+    }
+    deploy {
+        maven {
+            mavenCentral {
+                sonatype {
+                    active = 'ALWAYS'
+                    url = 'https://central.sonatype.com/api/v1/publisher'
+                    stagingRepository('target/staging-deploy')
+                }
+            }
+        }
+    }
 }
