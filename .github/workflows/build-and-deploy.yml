@@ -83,6 +83,7 @@ jobs:
       GITHUB_ACTOR: ${{ github.actor }}
       GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+      SKIP_CMAKE_BUILD: true
 
     runs-on: ubuntu-latest
     steps:
@@ -122,8 +123,6 @@ jobs:
 
       - name: Create java jar
         working-directory: tools/java_api
-        env:
-          SKIP_CMAKE_BUILD: true
         run: |
           ./gradlew build
 
