@@ -128,13 +128,13 @@ jobs:
         run: |
           ./gradlew build
 
-      - name: Upload JAR
+      - name: Upload Java JAR
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-java-multiplatform-jar
           path: tools/java_api/build/libs/kuzu*.jar
 
-      - name: Deploy to GitHub Packages
+      - name: Deploy Java JAR
         if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
         working-directory: tools/java_api
         run: |
