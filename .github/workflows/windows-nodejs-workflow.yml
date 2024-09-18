@@ -18,7 +18,7 @@ jobs:
       - name: Build Node.js native module
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make nodejs NUM_THREADS=48
 
       - name: Move Node.js native module
