@@ -46,7 +46,7 @@ publishing {
                 name = 'kuzu'
                 description = 'Kùzu is an embedded graph database built for query speed and scalability.'
                 url = 'http://kuzudb.com'
-                inceptionYear = '2021'
+                inceptionYear = '2020'
                 properties = [
                         'project.build.sourceEncoding'    : 'UTF-8',
                         'project.reporting.outputEncoding': 'UTF-8',
