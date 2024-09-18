@@ -229,8 +229,10 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
 void RelBatchInsert::updateProgress(ExecutionContext* context) {
     std::lock_guard<std::mutex> lock(progressSharedState->mtx);
     progressSharedState->partitionsDone = partitionerSharedState->nextPartitionIdx;
-    progressSharedState->partitionsTotal = partitionerSharedState->numPartitions[partitionerSharedState->numPartitions.size() - 1];
-    double progress = double(progressSharedState->partitionsDone) / double(progressSharedState->partitionsTotal);
+    progressSharedState->partitionsTotal =
+        partitionerSharedState->numPartitions[partitionerSharedState->numPartitions.size() - 1];
+    double progress =
+        double(progressSharedState->partitionsDone) / double(progressSharedState->partitionsTotal);
     context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
 }
 
