@@ -135,6 +135,7 @@ jobs:
 
       - name: Deploy to GitHub Packages
         if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
+        working-directory: tools/java_api
         run: |
           ./gradlew publish
 
