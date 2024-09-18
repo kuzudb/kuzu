@@ -81,6 +81,8 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_ACTOR: ${{ github.actor }}
+      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       SKIP_CMAKE_BUILD: true
@@ -126,17 +128,17 @@ jobs:
         run: |
           ./gradlew build
 
-      - name: Upload JAR
+      - name: Upload Java JAR
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-java-multiplatform-jar
           path: tools/java_api/build/libs/kuzu*.jar
 
-      - name: Deploy to GitHub Packages
+      - name: Deploy Java JAR
         if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
         working-directory: tools/java_api
         run: |
-          ./gradlew publish
+          ./gradlew publish -i
 
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
