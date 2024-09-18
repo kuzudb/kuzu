@@ -4,7 +4,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/csr_node_group.h"
-#include "storage/store/table.h"
+#include "storage/store/node_table.h"
 #include "transaction/transaction.h"
 #include <ranges>
 
@@ -123,8 +123,7 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableSca
 }
 
 NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) {
-    // TODO(Guodong): We shouldn't grab lock during scan, instead should do it during
-    // initializeScan.
+    // TODO(Guodong): Move the locked part of figuring out the chunked group to initScan.
     const auto lock = chunkedGroups.lock();
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     KU_ASSERT(nodeGroupScanState.chunkedGroupIdx < chunkedGroups.getNumGroups(lock));
@@ -467,12 +466,12 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager,
         std::vector<LogicalType>{columnTypes.begin(), columnTypes.end()}, enableCompression,
         numRows, 0, ResidencyState::IN_MEMORY);
-    TableScanState scanState(columnIDs, columns);
-    scanState.nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
-    initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, scanState);
+    auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, columnIDs, columns);
+    scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
+    initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, *scanState);
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->scanCommitted<RESIDENCY_STATE>(&DUMMY_CHECKPOINT_TRANSACTION, scanState,
-            *scanState.nodeGroupScanState, *mergedInMemGroup);
+        chunkedGroup->scanCommitted<RESIDENCY_STATE>(&DUMMY_CHECKPOINT_TRANSACTION, *scanState,
+            *scanState->nodeGroupScanState, *mergedInMemGroup);
     }
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] != 0) {

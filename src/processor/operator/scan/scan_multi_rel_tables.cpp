@@ -24,10 +24,7 @@ bool RelTableCollectionScanner::scan(Transaction* transaction) {
     while (true) {
         const auto& relInfo = relInfos[currentTableIdx];
         auto& scanState = *relInfo.scanState;
-        const auto skipScan =
-            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-        if (!skipScan && scanState.source != TableScanSource::NONE &&
-            relInfo.table->scan(transaction, scanState)) {
+        if (relInfo.table->scan(transaction, scanState)) {
             if (directionVector != nullptr) {
                 for (auto i = 0u; i < scanState.outState->getSelVector().getSelSize(); ++i) {
                     directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
@@ -41,7 +38,7 @@ bool RelTableCollectionScanner::scan(Transaction* transaction) {
             if (currentTableIdx == relInfos.size()) {
                 return false;
             }
-            relInfos[currentTableIdx].table->initializeScanState(transaction,
+            relInfos[currentTableIdx].table->initScanState(transaction,
                 *relInfos[currentTableIdx].scanState);
             nextTableIdx++;
         }

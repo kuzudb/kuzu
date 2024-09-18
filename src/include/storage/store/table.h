@@ -14,9 +14,10 @@ class ExpressionEvaluator;
 namespace storage {
 class MemoryManager;
 
-enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = 3 };
+enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = UINT8_MAX };
 
 struct TableScanState {
+    common::table_id_t tableID;
     std::unique_ptr<common::ValueVector> rowIdxVector;
     // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
     common::ValueVector* nodeIDVector;
@@ -36,20 +37,29 @@ struct TableScanState {
     std::vector<ColumnPredicateSet> columnPredicateSets;
     common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
-    explicit TableScanState(std::vector<common::column_id_t> columnIDs)
-        : TableScanState{std::move(columnIDs), {}, {}} {}
-    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
-        : TableScanState{std::move(columnIDs), std::move(columns), {}} {}
-    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
-        std::vector<ColumnPredicateSet> columnPredicateSets)
-        : nodeIDVector{nullptr}, outState{nullptr}, columnIDs{std::move(columnIDs)},
-          semiMask{nullptr}, columns{std::move(columns)},
+    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
+        : TableScanState{tableID, std::move(columnIDs), {}} {}
+    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns)
+        : TableScanState{tableID, std::move(columnIDs), std::move(columns), {}} {}
+    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
+        : tableID{tableID}, nodeIDVector(nullptr), outState{nullptr},
+          columnIDs{std::move(columnIDs)}, semiMask{nullptr}, columns{std::move(columns)},
           columnPredicateSets{std::move(columnPredicateSets)} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
     }
 
     virtual ~TableScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
+
+    virtual void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup) {
+        KU_ASSERT(nodeGroup);
+        this->nodeGroup = nodeGroup;
+        this->nodeGroup->initializeScanState(transaction, *this);
+    }
+
+    virtual bool scanNext(transaction::Transaction*) { KU_UNREACHABLE; }
 
     virtual void resetState() {
         source = TableScanSource::NONE;
@@ -131,7 +141,7 @@ class LocalTable;
 class StorageManager;
 class Table {
 public:
-    Table(const catalog::TableCatalogEntry* tableEntry, StorageManager* storageManager,
+    Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
         MemoryManager* memoryManager);
     virtual ~Table() = default;
 
@@ -144,14 +154,9 @@ public:
     std::string getTableName() const { return tableName; }
     FileHandle* getDataFH() const { return dataFH; }
 
-    virtual void initializeScanState(transaction::Transaction* transaction,
+    virtual void initScanState(transaction::Transaction* transaction,
         TableScanState& readState) = 0;
-    bool scan(transaction::Transaction* transaction, TableScanState& scanState) {
-        for (const auto& vector : scanState.outputVectors) {
-            vector->resetAuxiliaryBuffer();
-        }
-        return scanInternal(transaction, scanState);
-    }
+    bool scan(transaction::Transaction* transaction, TableScanState& scanState);
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;
     virtual void update(transaction::Transaction* transaction, TableUpdateState& updateState) = 0;

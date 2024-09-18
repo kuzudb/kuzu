@@ -9,7 +9,6 @@
 #include "storage/storage_utils.h"
 #include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -18,17 +17,17 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile,
+RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
     Deserializer* deSer)
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
-      memoryManager{memoryManager}, shadowFile{shadowFile}, enableCompression{enableCompression},
+      memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
       direction{direction} {
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
-    nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager, getColumnTypes(),
-        enableCompression, dataFH, deSer);
+    nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
+        dataFH, deSer);
 }
 
 void RelTableData::initCSRHeaderColumns() {
@@ -123,13 +122,13 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
-    const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, columnIDs, columns,
-        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, tableID, columnIDs,
+        columns, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->nodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     const auto scannedIDVector = scanState->outputVectors[0];
     scanState->outState = scannedIDVector->state.get();
-    scanState->rowIdxVector->state = scanState->outputVectors[0]->state;
+    scanState->rowIdxVector->state = scannedIDVector->state;
     scanState->source = TableScanSource::COMMITTED;
     scanState->boundNodeOffset = boundNodeOffset;
     scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
@@ -171,8 +170,8 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, columnIDs, columns,
-        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, tableID, columnIDs,
+        columns, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->nodeIDVector = srcNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->outState = scanState->outputVectors[0]->state.get();

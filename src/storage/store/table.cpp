@@ -1,7 +1,6 @@
 #include "storage/store/table.h"
 
 #include "common/serializer/deserializer.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
@@ -11,7 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-Table::Table(const catalog::TableCatalogEntry* tableEntry, StorageManager* storageManager,
+Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
     MemoryManager* memoryManager)
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
       tableName{tableEntry->getName()}, enableCompression{storageManager->compressionEnabled()},
@@ -39,6 +38,23 @@ std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Cata
     }
     table->tableType = tableType;
     return table;
+}
+
+static bool skipScan(const transaction::Transaction* transaction, const TableScanState& scanState) {
+    return transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
+}
+
+bool Table::scan(transaction::Transaction* transaction, TableScanState& scanState) {
+    if (skipScan(transaction, scanState) && scanState.source == TableScanSource::NONE) {
+        return false;
+    }
+    for (const auto& outputVector : scanState.outputVectors) {
+        KU_ASSERT(outputVector->state.get() == scanState.outState);
+        KU_UNUSED(outputVector);
+        outputVector->resetAuxiliaryBuffer();
+    }
+    scanState.outState->getSelVectorUnsafe().setToUnfiltered();
+    return scanInternal(transaction, scanState);
 }
 
 void Table::serialize(Serializer& serializer) const {

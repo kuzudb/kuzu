@@ -61,9 +61,9 @@ void ScanRelTableInfo::initScanState(MemoryManager& memoryManager) {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs, columns,
-        table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
-        copyVector(columnPredicates));
+    scanState = std::make_unique<RelTableScanState>(memoryManager, table->getTableID(), columnIDs,
+        columns, table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction),
+        direction, copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -91,20 +91,15 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     const auto transaction = context->clientContext->getTx();
     auto& scanState = *relInfo.scanState;
     while (true) {
-        const auto skipScan =
-            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-        if (!skipScan) {
-            while (scanState.source != TableScanSource::NONE &&
-                   relInfo.table->scan(transaction, scanState)) {
-                if (scanState.outState->getSelVector().getSelSize() > 0) {
-                    return true;
-                }
+        while (relInfo.table->scan(transaction, scanState)) {
+            if (scanState.outState->getSelVector().getSelSize() > 0) {
+                return true;
             }
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        relInfo.table->initializeScanState(transaction, scanState);
+        relInfo.table->initScanState(transaction, scanState);
     }
 }
 

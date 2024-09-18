@@ -196,23 +196,14 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup,
     length_t numRowsToScan) const {
     KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
-    bool hasValuesToScan = true;
-    std::unique_ptr<SelectionVector> selVector = nullptr;
-    if (versionInfo) {
-        selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
-            rowIdxInGroup, numRowsToScan);
-        hasValuesToScan = selVector->getSelSize() > 0;
-    }
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
-    if (selVector && selVector->getSelSize() != numRowsToScan) {
-        std::memcpy(anchorSelVector.getMultableBuffer().data(),
-            selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));
-        anchorSelVector.setToFiltered(selVector->getSelSize());
+    if (versionInfo) {
+        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(),
+            anchorSelVector, rowIdxInGroup, numRowsToScan);
     } else {
         anchorSelVector.setToUnfiltered(numRowsToScan);
     }
-    if (hasValuesToScan) {
+    if (anchorSelVector.getSelSize() > 0) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
             if (columnID == INVALID_COLUMN_ID) {

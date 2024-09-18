@@ -42,7 +42,7 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         nodeInfo.localScanState->source = TableScanSource::COMMITTED;
         nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeID.offset);
     }
-    nodeInfo.table->initializeScanState(transaction, *nodeInfo.localScanState);
+    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState);
     if (!nodeInfo.table->lookup(transaction, *nodeInfo.localScanState)) {
         // LCOV_EXCL_START
         throw RuntimeException(stringFormat("Cannot perform lookup on {}. This should not happen.",

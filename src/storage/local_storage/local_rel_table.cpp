@@ -29,13 +29,13 @@ std::vector<LogicalType> LocalRelTable::getTypesForLocalRelTable(const RelTable&
 LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     localNodeGroup = std::make_unique<NodeGroup>(0, false,
         getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
-    auto& relTable = table.cast<RelTable>();
+    const auto& relTable = table.cast<RelTable>();
     nodeOffsetColumns[LOCAL_BOUND_NODE_ID_COLUMN_ID] = relTable.getFromNodeTableID();
     nodeOffsetColumns[LOCAL_NBR_NODE_ID_COLUMN_ID] = relTable.getToNodeTableID();
-    auto numColumns = relTable.getNumColumns();
+    const auto numColumns = relTable.getNumColumns();
     // skip NBR_ID and REL_ID, this assumes all INTERNAL_ID are node references
     for (auto i = 2u; i < numColumns; i++) {
-        auto column = relTable.getColumn(i, RelDataDirection::FWD);
+        const auto column = relTable.getColumn(i, RelDataDirection::FWD);
         if (column->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
             nodeOffsetColumns[i + 1] = column->cast<InternalIDColumn>().getCommonTableID();
         }
@@ -217,7 +217,8 @@ row_idx_t LocalRelTable::findMatchingRow(MemoryManager& memoryManager, offset_t 
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs;
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
-    const auto scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs);
+    const auto scanState =
+        std::make_unique<RelTableScanState>(memoryManager, table.getTableID(), columnIDs);
     scanState->outState = scanChunk.state.get();
     scanState->rowIdxVector->state = scanChunk.state;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
