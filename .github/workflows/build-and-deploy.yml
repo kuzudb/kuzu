@@ -75,7 +75,7 @@ jobs:
       isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
-  inject-java-bins:
+  deploy-java:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     needs: [build-java-mac, build-java-linux, build-java-windows]
     runs-on: ubuntu-latest
@@ -126,6 +126,14 @@ jobs:
         with:
           name: kuzu-java-multiplatform-jar
           path: tools/java_api/build/libs/kuzu*.jar
+
+      - name: Deploy to GitHub Packages
+        if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          ./gradlew publish
 
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
