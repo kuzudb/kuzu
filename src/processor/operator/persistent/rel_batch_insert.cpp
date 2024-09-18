@@ -44,13 +44,13 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
         valueVector->setAllNull();
         relLocalState->dummyAllNullDataChunk->insert(i, std::move(valueVector));
     }
-    progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
+
     while (true) {
         relLocalState->nodeGroupIdx =
             partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
@@ -93,7 +93,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
-    progressSharedState.numGroups = partitioningBuffer.getChunkedGroups().size();
+    progressSharedState.numGroups += partitioningBuffer.getChunkedGroups().size();
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
         progressSharedState.numGroupsScanned++;
         double progress = static_cast<double>(

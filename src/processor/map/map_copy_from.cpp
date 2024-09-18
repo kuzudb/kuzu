@@ -164,9 +164,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
         offsetVectorIdx, std::move(columnTypes));
     auto printInfo =
         std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
+    auto progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo));
+        std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo), std::move(progressSharedState));
 }
 
 physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator) {
