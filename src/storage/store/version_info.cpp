@@ -403,8 +403,7 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
     auto [endVectorIdx, endRowIdxInVector] =
         StorageUtils::getQuotientRemainder(startRow + numRows - 1, DEFAULT_VECTOR_CAPACITY);
     auto vectorIdx = startVectorIdx;
-    selVector.setSelSize(0);
-    KU_ASSERT(selVector.isUnfiltered());
+    selVector.setToUnfiltered(0);
     sel_t outputPos = 0u;
     while (vectorIdx <= endVectorIdx) {
         const auto startRowIdx = vectorIdx == startVectorIdx ? startRowIdxInVector : 0;
