@@ -75,9 +75,16 @@ jobs:
       isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     secrets: inherit
 
-  inject-java-bins:
+  deploy-java:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     needs: [build-java-mac, build-java-linux, build-java-windows]
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_ACTOR: ${{ github.actor }}
+      GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
+      GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+      SKIP_CMAKE_BUILD: true
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -114,18 +121,22 @@ jobs:
           name: java-lib-win-x86_64
           path: tools/java_api/src/main/resources
 
-      - name: Create java jar
+      - name: Create Java JAR
         working-directory: tools/java_api
-        env:
-          SKIP_CMAKE_BUILD: true
         run: |
           ./gradlew build
 
-      - name: Upload jar
+      - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-java-multiplatform-jar
           path: tools/java_api/build/libs/kuzu*.jar
+
+      - name: Deploy to GitHub Packages
+        if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
+        working-directory: tools/java_api
+        run: |
+          ./gradlew publish
 
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
