@@ -2,7 +2,6 @@ plugins {
     id 'java'
     id 'signing'
     id 'maven-publish'
-    id 'org.jreleaser' version '1.14.0'
 }
 
 java {
@@ -80,7 +79,12 @@ publishing {
 
     repositories {
         maven {
-            url = layout.buildDirectory.dir('staging-deploy')
+            name = 'GitHub Packages'
+            url = uri('https://maven.pkg.github.com/kuzudb/kuzu')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR')
+                password = System.getenv('GITHUB_TOKEN')
+            }
         }
     }
 }
@@ -122,33 +126,4 @@ tasks.sourcesJar {
 
 test {
     useJUnitPlatform()
-}
-
-jreleaser {
-    release {
-        github {
-            skipRelease = true
-            // We do not publish to GitHub, so this is not required
-            // But this step is required as per https://github.com/jreleaser/jreleaser/discussions/1725
-            token = "PLACEHOLDER" 
-        }
-    }
-    gitRootSearch = true
-    signing {
-        active = 'ALWAYS'
-        armored = true
-    }
-    deploy {
-        active = 'ALWAYS'
-        maven {
-            mavenCentral {
-                sonatype {
-                    active = 'ALWAYS'
-                    url = 'https://central.sonatype.com/api/v1/publisher'
-                    stagingRepository('build/staging-deploy')
-                    snapshotSupported = true
-                }
-            }
-        }
-    }
 }
