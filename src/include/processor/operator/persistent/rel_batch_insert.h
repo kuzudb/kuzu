@@ -30,10 +30,11 @@ private:
 };
 
 struct RelBatchInsertProgressSharedState {
-    uint64_t numGroupsScanned;
-    uint64_t numGroups;
+    std::mutex mtx;
+    uint64_t partitionsDone;
+    uint64_t partitionsTotal;
 
-    RelBatchInsertProgressSharedState() : numGroupsScanned{0}, numGroups{0} {};
+    RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};
 };
 
 struct RelBatchInsertInfo final : BatchInsertInfo {
@@ -89,12 +90,13 @@ public:
             resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
     }
 
+    void updateProgress(ExecutionContext* context);
+
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
-        const PartitionerSharedState& partitionerSharedState, ExecutionContext* context,
-        RelBatchInsertProgressSharedState& progressSharedState);
+        const PartitionerSharedState& partitionerSharedState);
 
     static void populateCSRHeaderAndRowIdx(storage::InMemChunkedNodeGroupCollection& partition,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,

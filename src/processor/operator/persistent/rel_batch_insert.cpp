@@ -50,10 +50,10 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
-
     while (true) {
         relLocalState->nodeGroupIdx =
             partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
+        updateProgress(context);
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
@@ -64,14 +64,13 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
             relTable->getOrCreateNodeGroup(relLocalState->nodeGroupIdx, relInfo->direction)
                 ->cast<CSRNodeGroup>();
         appendNodeGroup(context->clientContext->getTx(), nodeGroup, *relInfo, *relLocalState,
-            *sharedState, *partitionerSharedState, context, *progressSharedState);
+            *sharedState, *partitionerSharedState);
     }
 }
 
 void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
-    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState,
-    ExecutionContext* context, RelBatchInsertProgressSharedState& progressSharedState) {
+    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     auto& partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
@@ -93,12 +92,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
-    progressSharedState.numGroups += partitioningBuffer.getChunkedGroups().size();
     for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
-        progressSharedState.numGroupsScanned++;
-        double progress = static_cast<double>(
-            double(progressSharedState.numGroupsScanned) / double(progressSharedState.numGroups));
-        context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }
@@ -230,6 +224,14 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     sharedState->table->cast<RelTable>().setHasChanges();
     partitionerSharedState->resetState();
     partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
+}
+
+void RelBatchInsert::updateProgress(ExecutionContext* context) {
+    std::lock_guard<std::mutex> lock(progressSharedState->mtx);
+    progressSharedState->partitionsDone = partitionerSharedState->nextPartitionIdx;
+    progressSharedState->partitionsTotal = partitionerSharedState->numPartitions[partitionerSharedState->numPartitions.size() - 1];
+    double progress = double(progressSharedState->partitionsDone) / double(progressSharedState->partitionsTotal);
+    context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
 }
 
 } // namespace processor
