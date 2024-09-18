@@ -44,6 +44,7 @@ enum class PhysicalOperatorType : uint8_t {
     OFFSET_SCAN_NODE_TABLE,
     PARTITIONER,
     PATH_PROPERTY_PROBE,
+    PATH_CONSTRUCT,
     PRIMARY_KEY_SCAN_NODE_TABLE,
     PROJECTION,
     PROFILE,

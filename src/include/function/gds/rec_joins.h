@@ -173,7 +173,7 @@ private:
 };
 
 struct RJBindData final : public function::GDSBindData {
-    static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = (uint16_t) 255;
+    static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = 255u;
 
     std::shared_ptr<binder::Expression> nodeInput;
     // Important Note: For any recursive join algorithm other than variable length joins, lower bound must
@@ -350,9 +350,8 @@ public:
     explicit RJAlgorithm(RJOutputType outputType, RJInputType inputType = RJInputType::NO_LOWER_BOUND)
         : outputType{outputType}, inputType{inputType} {};
     RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, outputType{other.outputType}, inputType{other.inputType} {}
-    // TODO(Reviewer): Do I have to do this? We should make sure we're being safe here. Should I add
-    // similar default constructors elsewhere?
-    virtual ~RJAlgorithm() = default;
+
+
     /*
      * Inputs include the following:
      *

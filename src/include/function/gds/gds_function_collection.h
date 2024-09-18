@@ -11,6 +11,7 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
+// Tj
 struct VarLenJoinsFunction {
     static constexpr const char* name = "VAR_LEN_JOINS";
 

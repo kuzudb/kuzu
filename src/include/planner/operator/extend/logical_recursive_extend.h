@@ -66,12 +66,17 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override;
 
+
+
 private:
     std::shared_ptr<binder::RelExpression> recursiveRel;
     std::shared_ptr<LogicalOperator> nodeChild;
     std::shared_ptr<LogicalOperator> relChild;
     RecursiveJoinType joinType;
     SIPInfo sipInfo;
+
+public:
+    std::shared_ptr<binder::Expression> pathNodeID;
 };
 
 } // namespace planner

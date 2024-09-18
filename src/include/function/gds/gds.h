@@ -49,6 +49,7 @@ public:
     std::shared_ptr<binder::Expression> nodeOutput;
     // If outputAsNode is true, we will scan all properties of the node.
     // Otherwise, we return node ID only.
+    // TODO(Xiyang): revisit me
     bool outputAsNode;
 };
 
@@ -59,14 +60,7 @@ protected:
 
 public:
     GDSAlgorithm() = default;
-
-    GDSAlgorithm(const GDSAlgorithm& other) {
-        if (other.bindData != nullptr) {
-            bindData = other.bindData->copy();
-        }
-        sharedState = other.sharedState;
-    }
-
+    GDSAlgorithm(const GDSAlgorithm& other);
     virtual ~GDSAlgorithm() = default;
 
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
@@ -75,6 +69,10 @@ public:
 
     virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
         graph::GraphEntry& graphEntry) = 0;
+    // By pass bind function.
+    void setBindData(std::unique_ptr<GDSBindData> bindData_) {
+        bindData = std::move(bindData_);
+    }
 
     GDSBindData* getBindData() const { return bindData.get(); }
 
@@ -88,6 +86,12 @@ public:
     virtual void exec(processor::ExecutionContext* executionContext) = 0;
 
     virtual std::unique_ptr<GDSAlgorithm> copy() const = 0;
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<GDSAlgorithm&, TARGET&>(*this);
+    }
+
 protected:
     // TODO(Semih): See if this will be still needed after PageRank and other algorithms are
     // updated. GDSAlgorithms implementing recursive joins do not use this function.
@@ -95,7 +99,7 @@ protected:
 
 protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
-        graph::GraphEntry& graphEntry);
+        const graph::GraphEntry& graphEntry);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

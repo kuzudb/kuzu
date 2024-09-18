@@ -600,6 +600,7 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
     DoublePathLengthsFrontiers* doublePathLengthsFrontiers;
     ParentPtrsAtomics* parentPtrs;
     ParentPtrsBlock* parentPtrsBlock;
+
     explicit VarLenJoinsEdgeCompute(DoublePathLengthsFrontiers* doublePathLengthsFrontiers, ParentPtrsAtomics* parentPtrs)
         : doublePathLengthsFrontiers{doublePathLengthsFrontiers}, parentPtrs{parentPtrs} {
         parentPtrsBlock = parentPtrs->addNewBlock();
@@ -637,21 +638,23 @@ public:
     }
 
     std::unique_ptr<RJCompState> getRJCompState(
-        processor::ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
-        std::unique_ptr<RJOutputs> spOutputs =
+        ExecutionContext* executionContext, nodeID_t sourceNodeID) override {
+        auto clientContext = executionContext->clientContext;
+        auto memoryManager = clientContext->getMemoryManager();
+        auto output =
             std::make_unique<VarLenOrAllSPPathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
-                executionContext->clientContext->getMemoryManager());
-        std::unique_ptr<RJOutputWriter> outputWriter =
-            std::make_unique<VarLenOutputWriterPaths>(executionContext->clientContext,
-                spOutputs.get(), bindData->ptrCast<RJBindData>()->lowerBound,
-                bindData->ptrCast<RJBindData>()->upperBound);
-        auto doublePathLengthsFrontiers =
+                memoryManager);
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        auto outputWriter =
+            std::make_unique<VarLenOutputWriterPaths>(clientContext, output.get(),
+                rjBindData->lowerBound, rjBindData->upperBound);
+        auto frontiers =
             std::make_unique<DoublePathLengthsFrontiers>(sharedState->graph->getNodeTableIDAndNumNodes(),
-                executionContext->clientContext->getMaxNumThreadForExec(), executionContext->clientContext->getMemoryManager());
+               clientContext->getMaxNumThreadForExec(), memoryManager);
         auto edgeCompute = std::make_unique<VarLenJoinsEdgeCompute>(
-            doublePathLengthsFrontiers.get(), spOutputs->ptrCast<VarLenOrAllSPPathsOutputs>()->parentPtrs.get());
+            frontiers.get(), output->parentPtrs.get());
         return std::make_unique<RJCompState>(
-            move(doublePathLengthsFrontiers), move(edgeCompute), move(spOutputs), move(outputWriter));
+            std::move(frontiers), std::move(edgeCompute), std::move(output), std::move(outputWriter));
     }
 };
 

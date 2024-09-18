@@ -78,6 +78,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "OFFSET_SCAN_NODE_TABLE";
     case PhysicalOperatorType::PARTITIONER:
         return "PARTITIONER";
+    case PhysicalOperatorType::PATH_CONSTRUCT:
+        return "PATH_CONSTRUCT";
     case PhysicalOperatorType::PATH_PROPERTY_PROBE:
         return "PATH_PROPERTY_PROBE";
     case PhysicalOperatorType::PRIMARY_KEY_SCAN_NODE_TABLE:

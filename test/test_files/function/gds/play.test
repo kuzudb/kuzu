@@ -1,0 +1,10 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE X
+
+-STATEMENT CALL enable_gds=true;
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID < 3 RETURN a.fName, b.fName, e, length(e);
+---- 1

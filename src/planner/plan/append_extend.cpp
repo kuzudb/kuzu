@@ -13,11 +13,18 @@
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/planner.h"
+#include "graph/graph_entry.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds_function.h"
+#include "function/gds/rec_joins.h"
+#include "binder/query/reading_clause/bound_gds_call.h"
+#include "binder/expression/variable_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
 using namespace kuzu::transaction;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace planner {
@@ -146,6 +153,50 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan,
             plan);
     }
+}
+
+// TODO: use direction
+void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& boundNode,
+    const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
+    ExtendDirection direction, LogicalPlan& plan) {
+    auto recursiveInfo = rel->getRecursiveInfo();
+    auto graphEntry = graph::GraphEntry(recursiveInfo->node->getTableIDs(), recursiveInfo->rel->getTableIDs());
+    auto functionSet = VarLenJoinsFunction::getFunctionSet();
+    KU_ASSERT(functionSet.size() == 1);
+    auto gdsFunction = *functionSet[0]->constPtrCast<GDSFunction>();
+    auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, true, recursiveInfo->lowerBound, recursiveInfo->upperBound);
+    gdsFunction.gds->setBindData(std::move(bindData));
+    expression_vector resultColumns;
+    resultColumns.push_back(boundNode->getInternalID());
+    resultColumns.push_back(nbrNode->getInternalID());
+    resultColumns.push_back(recursiveInfo->lengthExpression);
+    auto a = std::make_shared<VariableExpression>(LogicalType::LIST(LogicalType::INTERNAL_ID()), "_dummy", "_dummy");
+    resultColumns.push_back(a);
+    auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), graphEntry.copy(), std::move(resultColumns));
+
+    auto probePlan = LogicalPlan();
+    auto gdsCall = getGDSCall(gdsInfo);
+    gdsCall->computeFactorizedSchema();
+    probePlan.setLastOperator(std::move(gdsCall));
+
+
+    auto pathNodePropertyScanPlan = LogicalPlan();
+    createPathNodePropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeProjectionList,
+        pathNodePropertyScanPlan);
+
+    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, probePlan.getLastOperator(), pathNodePropertyScanPlan.getLastOperator(),
+        nullptr, RecursiveJoinType::TRACK_PATH);
+    pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
+    pathPropertyProbe->pathNodeID = a;
+    pathPropertyProbe->computeFactorizedSchema();
+    probePlan.setLastOperator(pathPropertyProbe);
+
+    auto joinConditions = expression_vector{boundNode->getInternalID()};
+    appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
+
+
+
+//    plan.setLastOperator(pathPropertyProbe);
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,

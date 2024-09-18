@@ -64,6 +64,7 @@ ClientContext::ClientContext(Database* database)
     clientConfig.recursivePatternSemantic = ClientConfigDefault::RECURSIVE_PATTERN_SEMANTIC;
     clientConfig.recursivePatternCardinalityScaleFactor =
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
+    clientConfig.enableGDS = ClientConfigDefault::ENABLE_GDS;
 }
 
 ClientContext::~ClientContext() = default;

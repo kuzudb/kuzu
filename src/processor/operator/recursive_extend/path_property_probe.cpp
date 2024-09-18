@@ -7,11 +7,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
+void PathPropertyProbe::initLocalStateInternal(ResultSet*,
     ExecutionContext* /*context*/) {
     localState = std::make_unique<PathPropertyProbeLocalState>();
     vectors = std::make_unique<Vectors>();
-    auto pathVector = resultSet->getValueVector(info->pathPos);
+
+    auto pathVector = resultSet->getValueVector(info.pathPos);
     auto pathNodesFieldIdx = StructType::getFieldIdx(pathVector->dataType, InternalKeyword::NODES);
     auto pathRelsFieldIdx = StructType::getFieldIdx(pathVector->dataType, InternalKeyword::RELS);
     vectors->pathNodesVector =
@@ -22,17 +23,27 @@ void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
     auto pathRelsDataVector = ListVector::getDataVector(vectors->pathRelsVector);
     auto pathNodesIDFieldIdx =
         StructType::getFieldIdx(pathNodesDataVector->dataType, InternalKeyword::ID);
-    auto pathRelsIDFieldIdx =
-        StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::ID);
+//    if (info.nodeIDsPos.isValid()) {
+//        auto nodeIDsVector = resultSet->getValueVector(info.nodeIDsPos);
+//        auto nodeIDsDataVector = ListVector::getSharedDataVector(nodeIDsVector.get());
+//        vectors->pathNodesIDDataVector = nodeIDsVector.get();
+//        StructVector::referenceVector(pathNodesDataVector, pathNodesIDFieldIdx, nodeIDsDataVector);
+//    } else {
+//
+//    }
+
     vectors->pathNodesIDDataVector =
         StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
+    auto pathRelsIDFieldIdx =
+        StructType::getFieldIdx(pathRelsDataVector->dataType, InternalKeyword::ID);
+
     vectors->pathRelsIDDataVector =
         StructVector::getFieldVector(pathRelsDataVector, pathRelsIDFieldIdx).get();
-    for (auto fieldIdx : info->nodeFieldIndices) {
+    for (auto fieldIdx : info.nodeFieldIndices) {
         vectors->pathNodesPropertyDataVectors.push_back(
             StructVector::getFieldVector(pathNodesDataVector, fieldIdx).get());
     }
-    for (auto fieldIdx : info->relFieldIndices) {
+    for (auto fieldIdx : info.relFieldIndices) {
         vectors->pathRelsPropertyDataVectors.push_back(
             StructVector::getFieldVector(pathRelsDataVector, fieldIdx).get());
     }
@@ -46,12 +57,26 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
     // Scan node property
     if (sharedState->nodeHashTableState != nullptr) {
         auto nodeHashTable = sharedState->nodeHashTableState->getHashTable();
+        if (info.nodeIDsPos.isValid()) {
+            auto nodeIDsVector = resultSet->getValueVector(info.nodeIDsPos);
+            auto& selVector = nodeIDsVector->state->getSelVector();
+            for (auto i = 0; i < selVector.getSelSize(); ++i) {
+                auto pos = selVector[i];
+                auto entry = nodeIDsVector->getValue<list_entry_t>(pos);
+                ListVector::addList(vectors->pathNodesVector, entry.size);
+                vectors->pathNodesVector->setValue(pos, entry);
+            }
+            auto nodeIDsDataVector = ListVector::getDataVector(nodeIDsVector.get());
+            for (auto i = 0u; i < ListVector::getDataVectorSize(nodeIDsVector.get()); ++i) {
+                vectors->pathNodesIDDataVector->setValue(i, nodeIDsDataVector->getValue<internalID_t>(i));
+            }
+        }
         auto nodeDataSize = ListVector::getDataVectorSize(vectors->pathNodesVector);
         while (sizeProbed < nodeDataSize) {
             auto sizeToProbe =
                 std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, nodeDataSize - sizeProbed);
             probe(nodeHashTable, sizeProbed, sizeToProbe, vectors->pathNodesIDDataVector,
-                vectors->pathNodesPropertyDataVectors, info->nodeTableColumnIndices);
+                vectors->pathNodesPropertyDataVectors, info.nodeTableColumnIndices);
             sizeProbed += sizeToProbe;
         }
     }
@@ -64,7 +89,7 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
             auto sizeToProbe =
                 std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, relDataSize - sizeProbed);
             probe(relHashTable, sizeProbed, sizeToProbe, vectors->pathRelsIDDataVector,
-                vectors->pathRelsPropertyDataVectors, info->relTableColumnIndices);
+                vectors->pathRelsPropertyDataVectors, info.relTableColumnIndices);
             sizeProbed += sizeToProbe;
         }
     }

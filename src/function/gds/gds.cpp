@@ -11,7 +11,14 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, GraphEntry& graphEntry) {
+GDSAlgorithm::GDSAlgorithm(const GDSAlgorithm& other) {
+    if (other.bindData != nullptr) {
+        bindData = other.bindData->copy();
+    }
+    sharedState = other.sharedState;
+}
+
+std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, const GraphEntry& graphEntry) {
     auto node = binder->createQueryNode(NODE_COLUMN_NAME, graphEntry.nodeTableIDs);
     binder->addToScope(NODE_COLUMN_NAME, node);
     return node;

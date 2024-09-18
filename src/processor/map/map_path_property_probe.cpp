@@ -103,10 +103,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     // Map child
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     // Map probe
-    auto pathPos = DataPos{logicalProbe.getSchema()->getExpressionPos(*rel)};
-    auto pathProbeInfo = std::make_unique<PathPropertyProbeDataInfo>(pathPos,
-        std::move(nodeFieldIndices), std::move(relFieldIndices), std::move(nodeTableColumnIndices),
-        std::move(relTableColumnIndices));
+//    auto pathPos = DataPos{logicalProbe.getSchema()->getExpressionPos(*rel)};
+
+    auto pathPos = getDataPos(*rel, *logicalProbe.getSchema());
+    auto nodeIDsPos = DataPos::getInvalidPos();
+    if (logicalProbe.pathNodeID != nullptr) {
+        nodeIDsPos = getDataPos(*logicalProbe.pathNodeID, *logicalProbe.getSchema());
+    }
+
+    auto pathProbeInfo = PathPropertyProbeInfo();
+    pathProbeInfo.pathPos = pathPos;
+    pathProbeInfo.nodeIDsPos = nodeIDsPos;
+    pathProbeInfo.nodeFieldIndices = nodeFieldIndices;
+    pathProbeInfo.relFieldIndices = relFieldIndices;
+    pathProbeInfo.nodeTableColumnIndices = nodeTableColumnIndices;
+    pathProbeInfo.relTableColumnIndices = relTableColumnIndices;
+
+//    auto pathProbeInfo = PathPropertyProbeInfo(pathPos,
+//        std::move(nodeFieldIndices), std::move(relFieldIndices), std::move(nodeTableColumnIndices),
+//        std::move(relTableColumnIndices));
     auto pathProbeSharedState =
         std::make_shared<PathPropertyProbeSharedState>(nodeBuildSharedState, relBuildSharedState);
     std::vector<std::unique_ptr<PhysicalOperator>> children;

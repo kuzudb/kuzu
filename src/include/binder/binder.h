@@ -253,12 +253,18 @@ public:
     std::shared_ptr<RelExpression> bindQueryRel(const parser::RelPattern& relPattern,
         const std::shared_ptr<NodeExpression>& leftNode,
         const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph);
+    // Bind pattern [e]
     std::shared_ptr<RelExpression> createNonRecursiveQueryRel(const std::string& parsedName,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
+    // Bind pattern [e*]
     std::shared_ptr<RelExpression> createRecursiveQueryRel(const parser::RelPattern& relPattern,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
+    // Bind [(r,n | ... | {r.date}, {n.age})]
+    expression_vector bindRecursivePatternNodeProjectionList(const parser::RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr);
+    expression_vector bindRecursivePatternRelProjectionList(const parser::RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr);
+
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
     void bindQueryRelProperties(RelExpression& rel);
 

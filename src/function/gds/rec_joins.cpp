@@ -68,6 +68,8 @@ void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* 
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
 }
 
+
+
 binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
     binder::expression_vector columns;
     auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();

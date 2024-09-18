@@ -18,6 +18,7 @@
 using namespace kuzu::common;
 using namespace kuzu::parser;
 using namespace kuzu::catalog;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
@@ -325,29 +326,36 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     return queryRel;
 }
 
-static void bindRecursiveRelProjectionList(const expression_vector& projectionList,
+static void bindProjectionListAsStructField(const expression_vector& projectionList,
     std::vector<StructField>& fields) {
     for (auto& expression : projectionList) {
-        if (expression->expressionType != common::ExpressionType::PROPERTY) {
+        if (expression->expressionType != ExpressionType::PROPERTY) {
             throw BinderException(stringFormat("Unsupported projection item {} on recursive rel.",
                 expression->toString()));
         }
-        auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
-        fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
+        auto& property = expression->constCast<PropertyExpression>();
+        fields.emplace_back(property.getPropertyName(), property.getDataType().copy());
     }
+}
+
+static std::vector<table_id_t> getConnectedNodeTableIDs(std::vector<table_id_t> relTableIDs,
+    main::ClientContext& context) {
+    std::unordered_set<table_id_t> set;
+    auto catalog = context.getCatalog();
+    auto transaction = context.getTx();
+    for (auto relTableID : relTableIDs) {
+        auto relTableEntry = catalog->getTableCatalogEntry(transaction, relTableID)->constPtrCast<RelTableCatalogEntry>();
+        set.insert(relTableEntry->getSrcTableID());
+        set.insert(relTableEntry->getDstTableID());
+    }
+    return {set.begin(), set.end()};
 }
 
 std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::RelPattern& relPattern,
     const std::vector<table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto relTableIDs = getRelTableIDs(tableIDs);
-    std::unordered_set<table_id_t> nodeTableIDs;
-    for (auto relTableID : relTableIDs) {
-        auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
-            clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), relTableID));
-        nodeTableIDs.insert(relTableEntry->getSrcTableID());
-        nodeTableIDs.insert(relTableEntry->getDstTableID());
-    }
+    auto nodeTableIDs = getConnectedNodeTableIDs(relTableIDs, *clientContext);
     auto recursivePatternInfo = relPattern.getRecursiveInfo();
     auto prevScope = saveScope();
     scope.clear();
@@ -359,17 +367,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     nodeFields.emplace_back(InternalKeyword::ID, node->getInternalID()->getDataType().copy());
     nodeFields.emplace_back(InternalKeyword::LABEL,
         node->getLabelExpression()->getDataType().copy());
-    expression_vector nodeProjectionList;
-    if (!recursivePatternInfo->hasProjection) {
-        for (auto& expression : node->getPropertyExprsRef()) {
-            nodeProjectionList.push_back(expression->copy());
-        }
-    } else {
-        for (auto& expression : recursivePatternInfo->nodeProjectionList) {
-            nodeProjectionList.push_back(expressionBinder.bindExpression(*expression));
-        }
-    }
-    bindRecursiveRelProjectionList(nodeProjectionList, nodeFields);
+    auto nodeProjectionList = bindRecursivePatternNodeProjectionList(*recursivePatternInfo, *node);
+    bindProjectionListAsStructField(nodeProjectionList, nodeFields);
     auto nodeExtraInfo = std::make_unique<StructTypeInfo>(std::move(nodeFields));
     node->setExtraTypeInfo(std::move(nodeExtraInfo));
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
@@ -378,25 +377,13 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto rel = createNonRecursiveQueryRel(recursivePatternInfo->relName, tableIDs,
         nullptr /* srcNode */, nullptr /* dstNode */, directionType);
     addToScope(rel->toString(), rel);
-    expression_vector relProjectionList;
-    if (!recursivePatternInfo->hasProjection) {
-        for (auto& expression : rel->getPropertyExprsRef()) {
-            if (((PropertyExpression*)expression.get())->isInternalID()) {
-                continue;
-            }
-            relProjectionList.push_back(expression->copy());
-        }
-    } else {
-        for (auto& expression : recursivePatternInfo->relProjectionList) {
-            relProjectionList.push_back(expressionBinder.bindExpression(*expression));
-        }
-    }
+    auto relProjectionList = bindRecursivePatternRelProjectionList(*recursivePatternInfo, *rel);
     std::vector<StructField> relFields;
     relFields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
     relFields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
     relFields.emplace_back(InternalKeyword::LABEL, rel->getLabelExpression()->getDataType().copy());
     relFields.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
-    bindRecursiveRelProjectionList(relProjectionList, relFields);
+    bindProjectionListAsStructField(relProjectionList, relFields);
     auto relExtraInfo = std::make_unique<StructTypeInfo>(std::move(relFields));
     rel->setExtraTypeInfo(std::move(relExtraInfo));
     // Bind predicates in {}, e.g. [e* {date=1999-01-01}]
@@ -447,19 +434,18 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     }
     auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
         std::string(InternalKeyword::ANONYMOUS));
-    if (nodePredicate != nullptr) {
-        nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
-            nodePredicate, nodePredicateExecutionFlag);
-    }
+    nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
+        nodePredicate, nodePredicateExecutionFlag);
     // Bind rel
     restoreScope(std::move(prevScope));
-    auto parsedName = relPattern.getVariableName();
     if (emptyRecursivePattern) {
         relTableIDs.clear();
     }
+    auto parsedName = relPattern.getVariableName();
+    auto uniqueName = getUniqueExpressionName(parsedName);
     auto queryRel = make_shared<RelExpression>(
         getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
-        getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
+        uniqueName, parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
     auto lengthExpression =
         PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
@@ -477,11 +463,52 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     recursiveInfo->nodeProjectionList = std::move(nodeProjectionList);
     recursiveInfo->relProjectionList = std::move(relProjectionList);
     queryRel->setRecursiveInfo(std::move(recursiveInfo));
+    // Bind to GDS function
+//    auto graphEntry = graph::GraphEntry(nodeTableIDs, relTableIDs);
+//    auto functionSet = VarLenJoinsFunction::getFunctionSet();
+//    KU_ASSERT(functionSet.size() == 1);
+//    auto gdsFunction = *functionSet[0]->constPtrCast<GDSFunction>();
+//    auto bindData = std::make_unique<RJBindData>(node, nodeCopy, true, lowerBound, upperBound);
+//    gdsFunction.gds->setBindData(std::move(bindData));
+//    expression_vector resultColumns;
+
+//    auto info = BoundGDS
     return queryRel;
 }
 
+expression_vector Binder::bindRecursivePatternNodeProjectionList(const RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr) {
+    expression_vector result;
+    if (!info.hasProjection) {
+        for (auto& expression : expr.getPropertyExprsRef()) {
+            result.push_back(expression->copy());
+        }
+    } else {
+        for (auto& expression : info.nodeProjectionList) {
+            result.push_back(expressionBinder.bindExpression(*expression));
+        }
+    }
+    return result;
+}
+
+expression_vector Binder::bindRecursivePatternRelProjectionList(const RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr) {
+    expression_vector result;
+    if (!info.hasProjection) {
+        for (auto& expression : expr.getPropertyExprsRef()) {
+            if (expression->constCast<PropertyExpression>().isInternalID()) {
+                continue;
+            }
+            result.push_back(expression->copy());
+        }
+    } else {
+        for (auto& expression : info.relProjectionList) {
+            result.push_back(expressionBinder.bindExpression(*expression));
+        }
+    }
+    return result;
+}
+
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
-    const kuzu::parser::RelPattern& relPattern) {
+    const RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
     uint32_t lowerBound;
     function::CastString::operation(
