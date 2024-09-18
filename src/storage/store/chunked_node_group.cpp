@@ -196,7 +196,6 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup,
     length_t numRowsToScan) const {
     KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
-    std::unique_ptr<SelectionVector> selVector = nullptr;
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
     if (versionInfo) {
         versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(),
