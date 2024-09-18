@@ -81,6 +81,8 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_ACTOR: ${{ github.actor }}
+      OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
       GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       SKIP_CMAKE_BUILD: true
