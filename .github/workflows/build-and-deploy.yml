@@ -78,6 +78,12 @@ jobs:
   deploy-java:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipJava != 'true' }}
     needs: [build-java-mac, build-java-linux, build-java-windows]
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_ACTOR: ${{ github.actor }}
+      GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
+      GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -129,9 +135,6 @@ jobs:
 
       - name: Deploy to GitHub Packages
         if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           ./gradlew publish
 
