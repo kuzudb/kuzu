@@ -138,7 +138,7 @@ jobs:
         if: ${{ github.event.inputs.isDeploy == 'true' || github.event_name == 'schedule' }}
         working-directory: tools/java_api
         run: |
-          ./gradlew publish
+          ./gradlew publish -i
 
   build-nodejs-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
