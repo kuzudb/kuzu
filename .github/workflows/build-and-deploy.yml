@@ -121,12 +121,12 @@ jobs:
           name: java-lib-win-x86_64
           path: tools/java_api/src/main/resources
 
-      - name: Create java jar
+      - name: Create Java JAR
         working-directory: tools/java_api
         run: |
           ./gradlew build
 
-      - name: Upload jar
+      - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: kuzu-java-multiplatform-jar
