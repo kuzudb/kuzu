@@ -2,9 +2,9 @@
 
 #include "common/enums/column_evaluate_type.h"
 #include "expression_evaluator/expression_evaluator.h"
+#include "processor/operator/persistent/rel_batch_insert_progress_state.h"
 #include "processor/operator/sink.h"
 #include "storage/store/in_mem_chunked_node_group_collection.h"
-#include "processor/operator/persistent/rel_batch_insert_progress_state.h"
 
 namespace kuzu {
 namespace storage {
@@ -58,7 +58,8 @@ struct PartitionerSharedState {
 
     void initialize(const PartitionerDataInfo& dataInfo);
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx, std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState);
+    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
+        std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState);
 
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);

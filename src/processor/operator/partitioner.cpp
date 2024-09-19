@@ -46,7 +46,8 @@ void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
     Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
 }
 
-partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx, std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState) {
+partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
+    std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState) {
     std::unique_lock xLck{mtx};
     if (nextPartitionIdx >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;

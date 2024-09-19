@@ -68,7 +68,8 @@ public:
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
               std::move(printInfo)},
-          partitionerSharedState{std::move(partitionerSharedState)}, progressSharedState{std::move(progressSharedState)} {}
+          partitionerSharedState{std::move(partitionerSharedState)},
+          progressSharedState{std::move(progressSharedState)} {}
 
     bool isSource() const override { return true; }
 
