@@ -59,7 +59,8 @@ struct PartitionerSharedState {
 
     void initialize(const PartitionerDataInfo& dataInfo);
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx, RelBatchInsertProgressSharedState& progressSharedState);
+    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
+        RelBatchInsertProgressSharedState& progressSharedState);
 
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
