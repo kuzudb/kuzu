@@ -77,6 +77,15 @@ public:
           partitionerSharedState{std::move(partitionerSharedState)},
           progressSharedState{std::move(progressSharedState)} {}
 
+    RelBatchInsert(std::unique_ptr<BatchInsertInfo> info,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<BatchInsertSharedState> sharedState,
+        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
+              std::move(printInfo)},
+          partitionerSharedState{std::move(partitionerSharedState)} {}
+
     bool isSource() const override { return true; }
 
     void initGlobalStateInternal(ExecutionContext* context) override;
