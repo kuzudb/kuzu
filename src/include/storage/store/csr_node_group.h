@@ -227,8 +227,6 @@ private:
 
     void populateCSRLengthInMemOnly(const common::UniqLock& lock, common::offset_t numNodes,
         const CSRNodeGroupCheckpointState& csrState);
-    void initInMemScanChunkAndScanState(const CSRNodeGroupCheckpointState& csrState,
-        common::DataChunk& dataChunk, TableScanState& scanState) const;
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
         const CSRNodeGroupCheckpointState& csrState);
@@ -245,6 +243,8 @@ private:
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
 
+    static void initScanStateFromScanChunk(const CSRNodeGroupCheckpointState& csrState,
+        const common::DataChunk& dataChunk, TableScanState& scanState);
     static void redistributeCSRRegions(const CSRNodeGroupCheckpointState& csrState,
         const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(
