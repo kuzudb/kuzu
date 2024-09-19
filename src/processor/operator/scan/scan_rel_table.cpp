@@ -50,7 +50,7 @@ std::string ScanRelTablePrintInfo::toString() const {
     return result;
 }
 
-void ScanRelTableInfo::initScanState(MemoryManager& memoryManager) {
+void ScanRelTableInfo::initScanState() {
     std::vector<Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
@@ -61,22 +61,21 @@ void ScanRelTableInfo::initScanState(MemoryManager& memoryManager) {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(memoryManager, table->getTableID(), columnIDs,
-        columns, table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction),
-        direction, copyVector(columnPredicates));
+    scanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
+        table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
+        copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    relInfo.initScanState(*context->clientContext->getMemoryManager());
+    relInfo.initScanState();
     initVectors(*relInfo.scanState, *resultSet);
     if (const auto localRelTable =
             context->clientContext->getTx()->getLocalStorage()->getLocalTable(
                 relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(relInfo.direction, relInfo.scanState->columnIDs);
-        relInfo.scanState->localTableScanState =
-            std::make_unique<LocalRelTableScanState>(*context->clientContext->getMemoryManager(),
-                *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+        relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
+            *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
     }
 }
 

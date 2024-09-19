@@ -24,20 +24,19 @@ struct RelTableScanState : TableScanState {
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.
-    RelTableScanState(MemoryManager& memoryManager, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs)
-        : RelTableScanState(memoryManager, tableID, columnIDs, {}, nullptr, nullptr,
-              common::RelDataDirection::FWD /* This is a dummy direction */,
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
+        : RelTableScanState{tableID, columnIDs, {}, nullptr /*csrOffsetCol*/,
+              nullptr /*csrLengthCol*/,
+              common::RelDataDirection::FWD /* This is a dummy direction */} {}
+
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
+        common::RelDataDirection direction)
+        : RelTableScanState(tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
               std::vector<ColumnPredicateSet>{}) {}
-    RelTableScanState(MemoryManager& memoryManager, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
-        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction)
-        : RelTableScanState(memoryManager, tableID, columnIDs, columns, csrOffsetCol, csrLengthCol,
-              direction, std::vector<ColumnPredicateSet>{}) {}
-    RelTableScanState(MemoryManager& memoryManager, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
-        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction,
-        std::vector<ColumnPredicateSet> columnPredicateSets);
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
+        common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets);
 
     void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup) override;
 
@@ -49,7 +48,7 @@ struct RelTableScanState : TableScanState {
     }
 
 private:
-    void initLocalState();
+    void initLocalState() const;
 };
 
 class LocalRelTable;
@@ -62,9 +61,9 @@ struct LocalRelTableScanState final : RelTableScanState {
     common::row_idx_t nextRowToScan = 0;
 
     // TODO(Guodong): Remove duplicated fields here by keep a reference to the original state.
-    LocalRelTableScanState(MemoryManager& memoryManager, const RelTableScanState& state,
+    LocalRelTableScanState(const RelTableScanState& state,
         const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
-        : RelTableScanState{memoryManager, state.tableID, columnIDs}, localRelTable{localRelTable} {
+        : RelTableScanState{state.tableID, columnIDs}, localRelTable{localRelTable} {
         direction = state.direction;
         nodeIDVector = state.nodeIDVector;
         outputVectors = state.outputVectors;

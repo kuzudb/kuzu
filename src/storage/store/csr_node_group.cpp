@@ -1,5 +1,6 @@
 #include "storage/store/csr_node_group.h"
 
+#include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
@@ -30,6 +31,7 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto offsetInGroup = relScanState.boundNodeOffset - startNodeOffset;
     if (persistentChunkGroup) {
+        KU_ASSERT(nodeGroupScanState.csrHeader);
         nodeGroupScanState.persistentCSRList.startRow =
             nodeGroupScanState.csrHeader->getStartCSROffset(offsetInGroup);
         nodeGroupScanState.persistentCSRList.length =
@@ -59,6 +61,7 @@ void CSRNodeGroup::initializePersistentCSRHeader(Transaction* transaction,
     const auto& csrHeader = csrChunkGroup.getCSRHeader();
     csrHeader.offset->initializeScanState(offsetState, relScanState.csrOffsetColumn);
     csrHeader.length->initializeScanState(lengthState, relScanState.csrLengthColumn);
+    nodeGroupScanState.initCSRHeader(*transaction->getClientContext()->getMemoryManager());
     csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
         *nodeGroupScanState.csrHeader->offset);
     csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,

@@ -23,8 +23,8 @@ static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& memoryM
     // Empty columnIDs since we do not scan any rel property.
     auto columnIDs = std::vector<column_id_t>{};
     auto columns = std::vector<Column*>{};
-    auto scanState = std::make_unique<RelTableScanState>(memoryManager, INVALID_TABLE_ID, columnIDs,
-        columns, nullptr, nullptr, direction);
+    auto scanState = std::make_unique<RelTableScanState>(INVALID_TABLE_ID, columnIDs, columns,
+        nullptr, nullptr, direction);
     scanState->nodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     return scanState;

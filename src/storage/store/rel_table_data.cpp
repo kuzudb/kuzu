@@ -122,8 +122,8 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
-    const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, tableID, columnIDs,
-        columns, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->nodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     const auto scannedIDVector = scanState->outputVectors[0];
@@ -170,8 +170,8 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    const auto scanState = std::make_unique<RelTableScanState>(*memoryManager, tableID, columnIDs,
-        columns, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
+    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->nodeIDVector = srcNodeIDVector;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
     scanState->outState = scanState->outputVectors[0]->state.get();
