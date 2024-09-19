@@ -34,7 +34,7 @@ struct RelBatchInsertProgressSharedState {
     uint64_t partitionsTotal;
 
     RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};
-}; 
+};
 
 struct RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
@@ -78,7 +78,7 @@ public:
           progressSharedState{std::move(progressSharedState)} {}
 
     bool isSource() const override { return true; }
-    
+
     void initGlobalStateInternal(ExecutionContext* context) override;
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 

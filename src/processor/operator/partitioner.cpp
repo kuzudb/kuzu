@@ -4,11 +4,11 @@
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
+#include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
-#include "processor/operator/persistent/rel_batch_insert.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -47,7 +47,8 @@ void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
     Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
 }
 
-partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx, RelBatchInsertProgressSharedState& progressSharedState) {
+partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
+    RelBatchInsertProgressSharedState& progressSharedState) {
     std::unique_lock xLck{mtx};
     if (nextPartitionIdx >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;

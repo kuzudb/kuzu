@@ -58,8 +58,8 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     while (true) {
-        relLocalState->nodeGroupIdx =
-            partitionerSharedState->getNextPartition(relInfo->partitioningIdx, *progressSharedState);
+        relLocalState->nodeGroupIdx = partitionerSharedState->getNextPartition(
+            relInfo->partitioningIdx, *progressSharedState);
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
@@ -236,10 +236,10 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
 void RelBatchInsert::updateProgress(ExecutionContext* context) {
     if (progressSharedState->partitionsTotal == 0) {
         context->clientContext->getProgressBar()->updateProgress(context->queryID, 0);
-    }
-    else {
-        double progress = double(progressSharedState->partitionsDone) / double(progressSharedState->partitionsTotal);
-        context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);        
+    } else {
+        double progress = double(progressSharedState->partitionsDone) /
+                          double(progressSharedState->partitionsTotal);
+        context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
     }
 }
 
