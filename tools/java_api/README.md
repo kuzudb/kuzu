@@ -1,24 +1,24 @@
 # Kùzu Java API
 
+The Kùzu Java API is a Gradle project that provides a Java API to interact with the Kùzu platform. The build process of Gradle is configured to automatically build the JNI binding first and bundle it with the final JAR file.
+
 ## Requirements
 Java 11 or higher
 
 ## Build
 
-```
-cd ../.. && make java NUM_THREADS=X 
+```bash
+./gradlew build
 ```
 
 ## Run test
 
-```
-cd ../.. && make javatest NUM_THREADS=X 
+```bash
+./gradlew test
 ```
 
-## Run `test.java` example
+## Run the example
 
-First, build the Java API as described above. Then, run the following command:
-
-```
-java -cp ".:build/kuzu_java.jar" test.java 
+```bash
+cd example && gradle run
 ```

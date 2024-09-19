@@ -39,7 +39,7 @@ Kùzu is available under a permissible license. So try it out and help us make i
 | NodeJS   | `npm install kuzu`                                                     |
 | Rust     | `cargo add kuzu`                                                       |
 | Go       | `go get github.com/kuzudb/go-kuzu`                                     |
-| Java     | [jar file](https://github.com/kuzudb/kuzu/releases/latest)             |
+| Java     | [Maven Central](https://central.sonatype.com/artifact/com.kuzudb/kuzu)             |
 | C/C++    | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 | CLI      | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 
