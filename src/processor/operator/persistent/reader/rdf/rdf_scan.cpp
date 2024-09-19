@@ -231,13 +231,13 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
     TableFuncLocalState*) {
     auto state = ku_dynamic_cast<RdfScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
-        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
+        ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
     }
 }
 
 static void finalizeFuncInMem(ExecutionContext* ctx, TableFuncSharedState*, TableFuncLocalState*) {
     // file idx doesn't apply here
-    ctx->clientContext->getWarningContextUnsafe().populateWarnings(0, ctx->queryID);
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set RdfResourceScan::getFunctionSet() {

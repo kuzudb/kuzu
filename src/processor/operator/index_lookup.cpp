@@ -4,6 +4,7 @@
 #include "common/assert.h"
 #include "common/exception/message.h"
 #include "common/types/types.h"
+#include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_table.h"
@@ -21,14 +22,8 @@ std::optional<WarningSourceData> getWarningSourceData(
     const std::vector<ValueVector*>& warningDataVectors, sel_t pos) {
     std::optional<WarningSourceData> ret;
     if (!warningDataVectors.empty()) {
-        KU_ASSERT(warningDataVectors.size() == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
-        ret.emplace(WarningSourceData{
-            warningDataVectors[0]->getValue<decltype(WarningSourceData::startByteOffset)>(pos),
-            warningDataVectors[1]->getValue<decltype(WarningSourceData::endByteOffset)>(pos),
-            warningDataVectors[2]->getValue<decltype(WarningSourceData::fileIdx)>(pos),
-            warningDataVectors[3]->getValue<decltype(WarningSourceData::blockIdx)>(pos),
-            warningDataVectors[4]->getValue<decltype(WarningSourceData::rowOffsetInBlock)>(pos),
-        });
+        ret.emplace(WarningSourceData::constructFromData(warningDataVectors,
+            safeIntegerConversion<idx_t>(pos)));
     }
     return ret;
 }

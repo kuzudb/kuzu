@@ -9,6 +9,8 @@ src/include/common/constants.h
 src/include/common/copier_config/csv_reader_config.h
 src/include/common/copier_config/reader_config.h
 src/include/common/copy_constructors.h
+src/include/common/numeric_utils.h
+src/include/common/utils.h
 src/include/common/data_chunk/data_chunk.h
 src/include/common/data_chunk/data_chunk_state.h
 src/include/common/data_chunk/sel_vector.h
@@ -72,6 +74,7 @@ src/include/main/version.h
 src/include/parser/statement.h
 src/include/processor/result/flat_tuple.h
 src/include/processor/warning_context.h
+src/include/processor/operator/persistent/reader/copy_from_error.h
 src/include/storage/storage_version_info.h
 src/include/transaction/transaction.h
 src/include/transaction/transaction_context.h

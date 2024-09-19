@@ -65,8 +65,10 @@ struct TableFuncOutput {
 
 struct TableFunctionInitInput {
     TableFuncBindData* bindData;
+    uint64_t queryID;
 
-    explicit TableFunctionInitInput(TableFuncBindData* bindData) : bindData{bindData} {}
+    explicit TableFunctionInitInput(TableFuncBindData* bindData, uint64_t queryID)
+        : bindData{bindData}, queryID(queryID) {}
 
     virtual ~TableFunctionInitInput() = default;
 };

@@ -4,6 +4,7 @@
 #include "function/function.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
+#include "processor/operator/persistent/reader/file_error_handler.h"
 
 namespace kuzu {
 namespace processor {
@@ -12,8 +13,7 @@ namespace processor {
 class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
-        CSVColumnInfo columnInfo, main::ClientContext* context,
-        LocalCSVFileErrorHandler* errorHandler,
+        CSVColumnInfo columnInfo, main::ClientContext* context, LocalFileErrorHandler* errorHandler,
         const function::ScanTableFuncBindInput* bindInput = nullptr);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
@@ -32,15 +32,21 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     common::CSVOption csvOption;
     CSVColumnInfo columnInfo;
     uint64_t totalReadSizeByFile;
-    std::vector<SharedCSVFileErrorHandler> sharedErrorHandlers;
-    std::vector<LocalCSVFileErrorHandler> localErrorHandlers;
+    std::unique_ptr<SharedFileErrorHandler> sharedErrorHandler;
+    std::unique_ptr<LocalFileErrorHandler> localErrorHandler;
+    uint64_t queryID;
+    populate_func_t populateErrorFunc;
 
     SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
-        main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo);
+        main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo,
+        uint64_t queryID);
 
     void read(common::DataChunk& outputChunk);
 
     void initReader(main::ClientContext* context);
+    void finalizeReader(main::ClientContext* context) const;
+
+    populate_func_t constructPopulateFunc();
 };
 
 struct SerialCSVScan {

@@ -37,7 +37,7 @@ struct IndexBufferWithWarningData {
     OptionalWarningDataBuffer warningDataBuffer;
 
     bool full() const;
-    void append(T key, common::offset_t value, OptionalWarningSourceData warningData);
+    void append(T key, common::offset_t value, OptionalWarningSourceData&& warningData);
 };
 
 class IndexBuilderGlobalQueues {
@@ -87,7 +87,7 @@ class IndexBuilderLocalBuffers {
 public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
-    void insert(std::string key, common::offset_t value, OptionalWarningSourceData warningData,
+    void insert(std::string key, common::offset_t value, OptionalWarningSourceData&& warningData,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
         auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
@@ -103,7 +103,7 @@ public:
     }
 
     template<common::HashablePrimitive T>
-    void insert(T key, common::offset_t value, OptionalWarningSourceData warningData,
+    void insert(T key, common::offset_t value, OptionalWarningSourceData&& warningData,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];

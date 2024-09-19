@@ -6,19 +6,42 @@
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/system_message.h"
-#include "common/type_utils.h"
 #include "common/utils.h"
 #include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
+#include "processor/operator/persistent/reader/file_error_handler.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
+// TODO(Royi) for performance reasons we may want to reduce the number of fields here since each
+// field is essentially an extra column during copy
+struct CSVWarningSourceData {
+    CSVWarningSourceData() = default;
+    static CSVWarningSourceData constructFrom(const processor::WarningSourceData& warningData);
+
+    uint64_t startByteOffset;
+    uint64_t endByteOffset;
+    uint64_t blockIdx;
+    uint32_t offsetInBlock;
+    common::idx_t fileIdx;
+};
+
+CSVWarningSourceData CSVWarningSourceData::constructFrom(
+    const processor::WarningSourceData& warningData) {
+    KU_ASSERT(warningData.numValues == CopyConstants::CSV_WARNING_DATA_NUM_COLUMNS);
+
+    CSVWarningSourceData ret{};
+    warningData.dumpTo(ret.blockIdx, ret.offsetInBlock, ret.startByteOffset, ret.endByteOffset,
+        ret.fileIdx);
+    return ret;
+}
+
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::idx_t fileIdx,
     common::CSVOption option, CSVColumnInfo columnInfo, main::ClientContext* context,
-    LocalCSVFileErrorHandler* errorHandler)
+    LocalFileErrorHandler* errorHandler)
     : context{context}, option{std::move(option)}, columnInfo{std::move(columnInfo)},
       currentBlockIdx(0), numRowsInCurrentBlock(0), curRowIdx(0), numErrors(0), buffer{nullptr},
       bufferIdx(0), bufferSize{0}, position{0}, lineContext(), osFileOffset{0}, fileIdx(fileIdx),
@@ -111,6 +134,10 @@ uint64_t BaseCSVReader::getNumRowsInCurrentBlock() const {
     return numRowsInCurrentBlock;
 }
 
+uint32_t BaseCSVReader::getRowOffsetInCurrentBlock() const {
+    return safeIntegerConversion<uint32_t>(numRowsInCurrentBlock + curRowIdx + numErrors);
+}
+
 uint64_t BaseCSVReader::readHeader() {
     HeaderDriver driver;
     return parseCSV(driver);
@@ -164,17 +191,10 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
 std::string BaseCSVReader::reconstructLine(uint64_t startPosition, uint64_t endPosition) {
     KU_ASSERT(endPosition >= startPosition);
 
-    if (-1 == fileInfo->seek(startPosition, SEEK_SET)) {
-        return "Unable to reconstruct line";
-    }
-
     std::string res;
     res.resize(endPosition - startPosition);
 
-    (void)fileInfo->readFile(res.data(), res.size());
-
-    [[maybe_unused]] const auto reseekSuccess = fileInfo->seek(osFileOffset, SEEK_SET);
-    KU_ASSERT(-1 != reseekSuccess);
+    (void)fileInfo->readFromFile(res.data(), res.size(), startPosition);
 
     return StringUtils::ltrimNewlines(StringUtils::rtrimNewlines(res));
 }
@@ -193,14 +213,15 @@ void BaseCSVReader::skipCurrentLine() {
 }
 
 void BaseCSVReader::handleCopyException(const std::string& message, bool mustThrow) {
-    CSVError error{message,
-        {lineContext.startByteOffset, lineContext.endByteOffset, fileIdx, currentBlockIdx,
-            numRowsInCurrentBlock + curRowIdx + numErrors},
-        lineContext.isCompleteLine, mustThrow};
-    if (!error.completedLine) {
-        error.warningData.endByteOffset = getFileOffset();
+    auto endByteOffset = lineContext.endByteOffset;
+    if (!lineContext.isCompleteLine) {
+        endByteOffset = getFileOffset();
     }
-    errorHandler->handleError(this, error);
+    CopyFromFileError error{message,
+        WarningSourceData::constructFrom(currentBlockIdx, getRowOffsetInCurrentBlock(),
+            lineContext.startByteOffset, endByteOffset, fileIdx),
+        lineContext.isCompleteLine, mustThrow};
+    errorHandler->handleError(error);
 
     // if we reach here it means we are ignoring the error
     ++numErrors;
@@ -209,39 +230,26 @@ void BaseCSVReader::handleCopyException(const std::string& message, bool mustThr
 template<typename Driver>
 static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
     const CSVColumnInfo& columnInfo, const CSVOption& option,
-    const WarningSourceData& warningSourceData) {
+    WarningSourceData&& warningSourceData) {
     std::optional<WarningDataWithColumnInfo> warningData;
 
     // we only care about populating the extra warning data when actually parsing the CSV
     // and not when performing actions like sniffing
     if constexpr (std::is_same_v<Driver, ParallelParsingDriver> ||
                   std::is_same_v<Driver, SerialParsingDriver>) {
-
         // For now we only populate extra warning data when IGNORE_ERRORS is enabled
         if (option.ignoreErrors) {
             KU_ASSERT(
-                columnInfo.numWarningDataColumns == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
-            warningData.emplace();
-            warningData->startByteOffset =
-                std::make_pair(warningSourceData.startByteOffset, columnInfo.numColumns);
-            warningData->endByteOffset =
-                std::make_pair(warningSourceData.endByteOffset, columnInfo.numColumns + 1);
-            warningData->fileIdx =
-                std::make_pair(warningSourceData.fileIdx, columnInfo.numColumns + 2);
-            warningData->blockIdx =
-                std::make_pair(warningSourceData.blockIdx, columnInfo.numColumns + 3);
-            warningData->rowOffsetInBlock =
-                std::make_pair(warningSourceData.rowOffsetInBlock, columnInfo.numColumns + 4);
+                columnInfo.numWarningDataColumns == CopyConstants::CSV_WARNING_DATA_NUM_COLUMNS);
+            warningData.emplace(std::move(warningSourceData), columnInfo.numColumns);
         }
     }
     return warningData;
 }
 
 WarningSourceData BaseCSVReader::getWarningSourceData() const {
-    return {lineContext.startByteOffset, lineContext.endByteOffset,
-        safeIntegerConversion<decltype(WarningSourceData::fileIdx)>(fileIdx), currentBlockIdx,
-        safeIntegerConversion<decltype(WarningSourceData::rowOffsetInBlock)>(
-            numRowsInCurrentBlock + curRowIdx + numErrors)};
+    return WarningSourceData::constructFrom(currentBlockIdx, getRowOffsetInCurrentBlock(),
+        lineContext.startByteOffset, lineContext.endByteOffset, fileIdx);
 }
 
 template<typename Driver>
@@ -468,40 +476,39 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
     KU_UNREACHABLE;
 }
 
-[[maybe_unused]] static void checkWarningDataColumnTypes(
-    [[maybe_unused]] const std::vector<LogicalType>& warningDataColumnTypes) {
-    KU_ASSERT(warningDataColumnTypes.size() >= CopyConstants::WARNING_METADATA_NUM_COLUMNS);
-    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
-                  decltype(processor::WarningSourceData::startByteOffset)>() ==
-              warningDataColumnTypes[warningDataColumnTypes.size() - 5].getPhysicalType());
-    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
-                  decltype(processor::WarningSourceData::endByteOffset)>() ==
-              warningDataColumnTypes[warningDataColumnTypes.size() - 4].getPhysicalType());
-    KU_ASSERT(
-        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::fileIdx)>() ==
-        warningDataColumnTypes[warningDataColumnTypes.size() - 3].getPhysicalType());
-    KU_ASSERT(
-        TypeUtils::getPhysicalTypeIDForType<decltype(processor::WarningSourceData::blockIdx)>() ==
-        warningDataColumnTypes[warningDataColumnTypes.size() - 2].getPhysicalType());
-    KU_ASSERT(TypeUtils::getPhysicalTypeIDForType<
-                  decltype(processor::WarningSourceData::rowOffsetInBlock)>() ==
-              warningDataColumnTypes[warningDataColumnTypes.size() - 1].getPhysicalType());
-}
-
 column_id_t BaseCSVReader::appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
     std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config) {
     const bool ignoreErrors = config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
     column_id_t numWarningDataColumns = 0;
     if (ignoreErrors) {
-        numWarningDataColumns = CopyConstants::WARNING_METADATA_NUM_COLUMNS;
-        for (idx_t i = 0; i < CopyConstants::WARNING_METADATA_NUM_COLUMNS; ++i) {
-            resultColumnNames.emplace_back(CopyConstants::WARNING_METADATA_COLUMN_NAMES[i]);
-            resultColumnTypes.emplace_back(CopyConstants::WARNING_METADATA_COLUMN_TYPES[i]);
+        numWarningDataColumns = CopyConstants::CSV_WARNING_DATA_NUM_COLUMNS;
+        for (idx_t i = 0; i < CopyConstants::CSV_WARNING_DATA_NUM_COLUMNS; ++i) {
+            resultColumnNames.emplace_back(CopyConstants::CSV_WARNING_DATA_COLUMN_NAMES[i]);
+            resultColumnTypes.emplace_back(CopyConstants::CSV_WARNING_DATA_COLUMN_TYPES[i]);
         }
-        RUNTIME_CHECK(checkWarningDataColumnTypes(resultColumnTypes));
     }
     return numWarningDataColumns;
+}
+
+PopulatedCopyFromError BaseCSVReader::basePopulateErrorFunc(CopyFromFileError error,
+    const SharedFileErrorHandler* sharedErrorHandler, BaseCSVReader* reader, std::string filePath) {
+    const char* incompleteLineSuffix = error.completedLine ? "" : "...";
+    const auto warningData = CSVWarningSourceData::constructFrom(error.warningData);
+    const auto lineNumber =
+        sharedErrorHandler->getLineNumber(warningData.blockIdx, warningData.offsetInBlock);
+    return PopulatedCopyFromError{
+        .message = std::move(error.message),
+        .filePath = std::move(filePath),
+        .skippedLineOrRecord =
+            reader->reconstructLine(warningData.startByteOffset, warningData.endByteOffset) +
+            incompleteLineSuffix,
+        .lineNumber = lineNumber,
+    };
+}
+
+common::idx_t BaseCSVReader::getFileIdxFunc(const CopyFromFileError& error) {
+    return CSVWarningSourceData::constructFrom(error.warningData).fileIdx;
 }
 
 template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);

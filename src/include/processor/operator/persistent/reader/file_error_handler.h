@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "common/uniq_lock.h"
-#include "processor/execution_context.h"
+#include "processor/operator/persistent/reader/copy_from_error.h"
 #include "processor/warning_context.h"
 
 namespace kuzu::processor {
@@ -13,20 +13,21 @@ namespace kuzu::processor {
 class BaseCSVReader;
 class SerialCSVReader;
 
-using warning_counter_t = uint64_t;
-
 struct LinesPerBlock {
     uint64_t validLines;
     uint64_t invalidLines;
     bool doneParsingBlock;
 };
 
-class SharedCSVFileErrorHandler {
-public:
-    SharedCSVFileErrorHandler(std::string filePath, std::mutex* sharedMtx);
+class SharedFileErrorHandler;
 
-    void handleError(BaseCSVReader* reader, CSVError error);
-    void throwCachedErrorsIfNeeded(BaseCSVReader* reader);
+class KUZU_API SharedFileErrorHandler {
+public:
+    explicit SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx,
+        populate_func_t populateErrorFunc = {});
+
+    void handleError(CopyFromFileError error);
+    void throwCachedErrorsIfNeeded();
 
     void setHeaderNumRows(uint64_t numRows);
 
@@ -34,38 +35,37 @@ public:
     uint64_t getNumCachedErrors();
     uint64_t getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const;
 
-    populate_func_t getPopulateCSVErrorFunc();
+    void setPopulateErrorFunc(populate_func_t newPopulateErrorFunc);
 
 private:
     // this number can be small as we only cache errors if we wish to throw them later
     static constexpr uint64_t MAX_CACHED_ERROR_COUNT = 64;
 
     common::UniqLock lock();
-    void tryThrowFirstCachedError(BaseCSVReader* reader);
+    void tryThrowFirstCachedError();
 
-    std::string getErrorMessage(BaseCSVReader* reader, CSVError error, uint64_t lineNumber) const;
-    PopulatedCSVError getPopulatedError(BaseCSVReader* reader, CSVError error,
-        uint64_t lineNumber) const;
-    void throwError(BaseCSVReader* reader, CSVError error, uint64_t lineNumber) const;
+    std::string getErrorMessage(PopulatedCopyFromError populatedError) const;
+    void throwError(CopyFromFileError error) const;
     bool canGetLineNumber(uint64_t blockIdx) const;
-    void tryCacheError(CSVError error, const common::UniqLock&);
+    void tryCacheError(CopyFromFileError error, const common::UniqLock&);
 
     std::mutex* mtx; // can be nullptr, in which case mutual exclusion is guaranteed by the caller
+    common::idx_t fileIdx;
     std::vector<LinesPerBlock> linesPerBlock;
-    std::vector<CSVError> cachedErrors;
-    std::string filePath;
+    std::vector<CopyFromFileError> cachedErrors;
+    populate_func_t populateErrorFunc;
 
     uint64_t headerNumRows;
 };
 
-class LocalCSVFileErrorHandler {
+class KUZU_API LocalFileErrorHandler {
 public:
-    ~LocalCSVFileErrorHandler();
+    ~LocalFileErrorHandler();
 
-    LocalCSVFileErrorHandler(SharedCSVFileErrorHandler* sharedErrorHandler, bool ignoreErrors,
+    LocalFileErrorHandler(SharedFileErrorHandler* sharedErrorHandler, bool ignoreErrors,
         main::ClientContext* context, bool cacheIgnoredErrors = true);
 
-    void handleError(BaseCSVReader* reader, CSVError error);
+    void handleError(CopyFromFileError error);
     void reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead);
     void setHeaderNumRows(uint64_t numRows);
     void finalize();
@@ -75,8 +75,8 @@ private:
     void flushCachedErrors();
 
     std::map<uint64_t, LinesPerBlock> linesPerBlock;
-    std::vector<CSVError> cachedErrors;
-    SharedCSVFileErrorHandler* sharedErrorHandler;
+    std::vector<CopyFromFileError> cachedErrors;
+    SharedFileErrorHandler* sharedErrorHandler;
     main::ClientContext* context;
 
     uint64_t maxCachedErrorCount;

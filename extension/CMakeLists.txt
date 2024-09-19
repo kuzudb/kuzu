@@ -20,7 +20,7 @@ endif ()
 
 if ("duckdb" IN_LIST BUILD_EXTENSIONS)
     if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the 
+        # DuckDB does not officially support 32-bit builds, so we disable the
         # extension for 32-bit builds
         add_subdirectory(duckdb)
     endif ()

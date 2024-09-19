@@ -6,6 +6,7 @@
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
 #include "function/table_functions.h"
+#include "processor/operator/persistent/reader/file_error_handler.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,7 +18,7 @@ class ParallelCSVReader final : public BaseCSVReader {
 public:
     ParallelCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
         CSVColumnInfo columnInfo, main::ClientContext* context,
-        LocalCSVFileErrorHandler* errorHandler);
+        LocalFileErrorHandler* errorHandler);
 
     bool hasMoreToRead() const;
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
@@ -35,7 +36,7 @@ private:
 
 struct ParallelCSVLocalState final : public function::TableFuncLocalState {
     std::unique_ptr<ParallelCSVReader> reader;
-    std::unique_ptr<LocalCSVFileErrorHandler> errorHandler;
+    std::unique_ptr<LocalFileErrorHandler> errorHandler;
     common::idx_t fileIdx = common::INVALID_IDX;
 };
 
@@ -43,12 +44,14 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
     common::CSVOption csvOption;
     CSVColumnInfo columnInfo;
     uint64_t numBlocksReadByFiles = 0;
-    std::vector<SharedCSVFileErrorHandler> errorHandlers;
+    std::vector<SharedFileErrorHandler> errorHandlers;
+    populate_func_t populateErrorFunc;
 
     ParallelCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo);
 
     void setFileComplete(uint64_t completedFileIdx);
+    populate_func_t constructPopulateFunc();
 };
 
 struct ParallelCSVScan {

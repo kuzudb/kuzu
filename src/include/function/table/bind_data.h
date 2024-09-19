@@ -21,7 +21,7 @@ struct TableFuncBindData {
 
     TableFuncBindData() : numWarningDataColumns{common::INVALID_COLUMN_ID} {}
     TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns)
+        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns = 0)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
           numWarningDataColumns(numWarningDataColumns) {}
     TableFuncBindData(const TableFuncBindData& other)
@@ -58,8 +58,8 @@ struct ScanBindData : public TableFuncBindData {
     main::ClientContext* context;
 
     ScanBindData(std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
-        common::column_id_t numWarningDataColumns, common::ReaderConfig config,
-        main::ClientContext* context)
+        common::ReaderConfig config, main::ClientContext* context,
+        common::column_id_t numWarningDataColumns = 0)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numWarningDataColumns},
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)

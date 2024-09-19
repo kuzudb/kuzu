@@ -5,7 +5,7 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "function/table/bind_input.h"
-#include "processor/warning_context.h"
+#include "processor/operator/persistent/reader/copy_from_error.h"
 
 namespace kuzu {
 namespace main {
@@ -18,14 +18,13 @@ namespace processor {
 class BaseCSVReader;
 
 struct WarningDataWithColumnInfo {
-    template<typename T>
-    using EntryWithColumnIdx = std::pair<T, common::column_id_t>;
+    WarningDataWithColumnInfo(WarningSourceData warningSourceData,
+        uint64_t warningDataStartColumnIdx)
+        : warningDataStartColumnIdx(warningDataStartColumnIdx), data(std::move(warningSourceData)) {
+    }
 
-    EntryWithColumnIdx<decltype(WarningSourceData::startByteOffset)> startByteOffset;
-    EntryWithColumnIdx<decltype(WarningSourceData::endByteOffset)> endByteOffset;
-    EntryWithColumnIdx<decltype(WarningSourceData::fileIdx)> fileIdx;
-    EntryWithColumnIdx<decltype(WarningSourceData::blockIdx)> blockIdx;
-    EntryWithColumnIdx<decltype(WarningSourceData::rowOffsetInBlock)> rowOffsetInBlock;
+    uint64_t warningDataStartColumnIdx;
+    WarningSourceData data;
 };
 
 class ParsingDriver {

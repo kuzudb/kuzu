@@ -18,8 +18,8 @@ void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
     const DuckDBConnector& connector)
-    : TableFuncBindData{std::move(columnTypes), std::move(columnNames), 0 /* numWarningColumns */,},
-      query{std::move(query)}, connector{connector} {
+    : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, query{std::move(query)},
+      connector{connector} {
     conversionFunctions.resize(this->columnTypes.size());
     for (auto i = 0u; i < this->columnTypes.size(); i++) {
         getDuckDBVectorConversionFunc(this->columnTypes[i].getPhysicalType(),
