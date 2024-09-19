@@ -61,9 +61,9 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
                         relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
                 auto localTableColumnIDs = LocalRelTable::rewriteLocalColumnIDs(relInfo.direction,
                     relInfo.scanState->columnIDs);
-                relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
-                    *context->clientContext->getMemoryManager(), *relInfo.scanState,
-                    localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+                relInfo.scanState->localTableScanState =
+                    std::make_unique<LocalRelTableScanState>(*relInfo.scanState,
+                        localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
             }
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =

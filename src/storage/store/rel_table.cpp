@@ -39,6 +39,7 @@ void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup
         source = TableScanSource::COMMITTED;
         this->nodeGroup->initializeScanState(transaction, *this);
     } else if (localTableScanState) {
+        source = TableScanSource::UNCOMMITTED;
         initLocalState();
     } else {
         source = TableScanSource::NONE;
@@ -51,6 +52,7 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
         const auto scanResult = nodeGroup->scan(transaction, *this);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
             if (localTableScanState) {
+                source = TableScanSource::UNCOMMITTED;
                 initLocalState();
             } else {
                 source = TableScanSource::NONE;
@@ -72,15 +74,10 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
     }
 }
 
-void RelTableScanState::initLocalState() {
-    KU_ASSERT(localTableScanState);
-    source = TableScanSource::UNCOMMITTED;
-    auto& localScanState = *localTableScanState;
-    KU_ASSERT(localScanState.localRelTable);
-    localScanState.boundNodeOffset = boundNodeOffset;
-    localScanState.rowIdxVector->setState(rowIdxVector->state);
-    localScanState.localRelTable->initializeScan(*localTableScanState);
-    localScanState.nextRowToScan = 0;
+void RelTableScanState::initLocalState() const {
+    KU_ASSERT(localTableScanState && localTableScanState->localRelTable);
+    localTableScanState->localRelTable->initializeScan(*localTableScanState);
+    localTableScanState->nextRowToScan = 0;
 }
 
 RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
@@ -244,9 +241,8 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
             LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(direction, relReadState->columnIDs);
-        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(memoryManager,
-            *relReadState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
-        relReadState->localTableScanState->rowIdxVector->state = relReadState->rowIdxVector->state;
+        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(*relReadState,
+            localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
     }
     initScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),

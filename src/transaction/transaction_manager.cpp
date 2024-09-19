@@ -1,5 +1,6 @@
 #include "transaction/transaction_manager.h"
 
+#include <iostream>
 #include <thread>
 
 #include "common/exception/transaction_manager.h"
@@ -148,6 +149,7 @@ bool TransactionManager::canCheckpointNoLock() const {
 }
 
 void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
+    std::cout << "CHECKPOINT;" << std::endl;
     // Note: It is enough to stop and wait transactions to leave the system instead of
     // for example checking on the query processor's task scheduler. This is because the
     // first and last steps that a connection performs when executing a query is to

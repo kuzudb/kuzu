@@ -259,7 +259,7 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNod
 }
 
 bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
-    NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
+    const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);
     std::unique_ptr<SelectionVector> selVector = nullptr;
     bool hasValuesToScan = true;

@@ -7,6 +7,7 @@
 
 namespace kuzu {
 namespace storage {
+struct LocalRelTableScanState;
 class MemoryManager;
 
 static constexpr common::column_id_t LOCAL_BOUND_NODE_ID_COLUMN_ID = 0;
@@ -33,7 +34,7 @@ public:
 
     common::TableType getTableType() const override { return common::TableType::REL; }
 
-    void initializeScan(TableScanState& state);
+    void initializeScan(LocalRelTableScanState& state);
     bool scan(transaction::Transaction* transaction, TableScanState& state) const;
 
     void clear() override {

@@ -15,7 +15,7 @@ namespace storage {
 class MemoryManager;
 
 struct LocalRelTableScanState;
-struct RelTableScanState : TableScanState {
+struct RelTableScanState final : TableScanState {
     common::RelDataDirection direction;
     common::offset_t boundNodeOffset;
     Column* csrOffsetColumn;
@@ -49,29 +49,23 @@ struct RelTableScanState : TableScanState {
     }
 
 private:
-    void initLocalState();
+    void initLocalState() const;
 };
 
 class LocalRelTable;
-struct LocalRelTableScanState final : RelTableScanState {
+struct LocalRelTableScanState {
+    RelTableScanState& tableScanState;
     LocalRelTable* localRelTable;
+    std::vector<common::column_id_t> columnIDs;
     // TODO(Guodong): Copy of rowIndices here is only to simplify the implementation. We can always
     // go to the fwdIndex/bwdIndex inside LocalRelTable to find the row indices. We can revisit this
     // if the copy of rowIndices from fwdIndex/bwdIndex becomes a problem.
     row_idx_vec_t rowIndices;
     common::row_idx_t nextRowToScan = 0;
 
-    // TODO(Guodong): Remove duplicated fields here by keep a reference to the original state.
-    LocalRelTableScanState(MemoryManager& memoryManager, const RelTableScanState& state,
+    LocalRelTableScanState(RelTableScanState& state,
         const std::vector<common::column_id_t>& columnIDs, LocalRelTable* localRelTable)
-        : RelTableScanState{memoryManager, state.tableID, columnIDs}, localRelTable{localRelTable} {
-        direction = state.direction;
-        nodeIDVector = state.nodeIDVector;
-        outputVectors = state.outputVectors;
-        // Setting source to UNCOMMITTED is not necessary but just to keep it semantically
-        // consistent.
-        source = TableScanSource::UNCOMMITTED;
-    }
+        : tableScanState{state}, localRelTable{localRelTable}, columnIDs{columnIDs} {}
 };
 
 struct RelTableInsertState final : TableInsertState {

@@ -152,16 +152,15 @@ void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
     }
 }
 
-void LocalRelTable::initializeScan(TableScanState& state) {
-    auto& relScanState = state.cast<LocalRelTableScanState>();
-    KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
-    relScanState.nodeGroup = localNodeGroup.get();
-    auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
-    if (index.contains(relScanState.boundNodeOffset)) {
-        relScanState.rowIndices = index[relScanState.boundNodeOffset];
-        KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
+void LocalRelTable::initializeScan(LocalRelTableScanState& state) {
+    KU_ASSERT(state.tableScanState.source == TableScanSource::UNCOMMITTED);
+    state.tableScanState.nodeGroup = localNodeGroup.get();
+    auto& index = state.tableScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
+    if (index.contains(state.tableScanState.boundNodeOffset)) {
+        state.rowIndices = index[state.tableScanState.boundNodeOffset];
+        KU_ASSERT(std::is_sorted(state.rowIndices.begin(), state.rowIndices.end()));
     } else {
-        relScanState.rowIndices.clear();
+        state.rowIndices.clear();
     }
 }
 
@@ -184,7 +183,7 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
 }
 
 bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
-    const auto& relScanState = state.cast<RelTableScanState>();
+    auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
     KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
@@ -194,12 +193,15 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
         return false;
     }
     for (auto i = 0u; i < numToScan; i++) {
-        localScanState.rowIdxVector->setValue<row_idx_t>(i,
+        localScanState.tableScanState.rowIdxVector->setValue<row_idx_t>(i,
             localScanState.rowIndices[localScanState.nextRowToScan + i]);
     }
-    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
-    localNodeGroup->lookup(transaction, localScanState);
+    localScanState.tableScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
+    const auto originalColumnIDs = relScanState.columnIDs;
+    relScanState.columnIDs = localScanState.columnIDs;
+    localNodeGroup->lookup(transaction, localScanState.tableScanState);
     localScanState.nextRowToScan += numToScan;
+    relScanState.columnIDs = originalColumnIDs;
     return true;
 }
 
