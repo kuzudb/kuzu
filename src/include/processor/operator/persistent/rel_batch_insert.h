@@ -3,6 +3,7 @@
 #include "common/enums/rel_direction.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/batch_insert.h"
+#include "processor/operator/persistent/rel_batch_insert_progress_state.h"
 
 namespace kuzu {
 namespace storage {
@@ -27,14 +28,6 @@ struct RelBatchInsertPrintInfo final : OPPrintInfo {
 private:
     RelBatchInsertPrintInfo(const RelBatchInsertPrintInfo& other)
         : OPPrintInfo(other), tableName(other.tableName) {}
-};
-
-struct RelBatchInsertProgressSharedState {
-    std::mutex mtx;
-    uint64_t partitionsDone;
-    uint64_t partitionsTotal;
-
-    RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};
 };
 
 struct RelBatchInsertInfo final : BatchInsertInfo {
@@ -75,12 +68,12 @@ public:
         std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
               std::move(printInfo)},
-          partitionerSharedState{std::move(partitionerSharedState)},
-          progressSharedState{std::move(progressSharedState)} {}
+          partitionerSharedState{std::move(partitionerSharedState)}, progressSharedState{std::move(progressSharedState)} {}
 
     bool isSource() const override { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
+    void initGlobalStateInternal(ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
     void finalizeInternal(ExecutionContext* context) override;

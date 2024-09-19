@@ -46,14 +46,19 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
     }
 }
 
+void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /* context */) {
+    progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
+    progressSharedState->partitionsDone = 0;
+    progressSharedState->partitionsTotal = partitionerSharedState->numPartitions[info->ptrCast<RelBatchInsertInfo>()->partitioningIdx];
+}
+
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     while (true) {
         relLocalState->nodeGroupIdx =
-            partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
-        updateProgress(context);
+            partitionerSharedState->getNextPartition(relInfo->partitioningIdx, progressSharedState);
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
@@ -65,6 +70,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
                 ->cast<CSRNodeGroup>();
         appendNodeGroup(context->clientContext->getTx(), nodeGroup, *relInfo, *relLocalState,
             *sharedState, *partitionerSharedState);
+        updateProgress(context);
     }
 }
 
@@ -227,9 +233,6 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
 }
 
 void RelBatchInsert::updateProgress(ExecutionContext* context) {
-    std::lock_guard<std::mutex> lock(progressSharedState->mtx);
-    progressSharedState->partitionsDone = partitionerSharedState->nextPartitionIdx;
-    progressSharedState->partitionsTotal = partitionerSharedState->numPartitions[partitionerSharedState->numPartitions.size() - 1];
     double progress = double(progressSharedState->partitionsDone) / double(progressSharedState->partitionsTotal);
     context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
 }
