@@ -167,7 +167,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
         std::move(partitionerSharedState), std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo), std::move(progressSharedState));
+        std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(), std::move(printInfo),
+        std::move(progressSharedState));
 }
 
 physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator) {

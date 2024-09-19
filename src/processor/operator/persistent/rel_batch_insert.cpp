@@ -49,7 +49,8 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /* context */) {
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     progressSharedState->partitionsDone = 0;
-    progressSharedState->partitionsTotal = partitionerSharedState->numPartitions[info->ptrCast<RelBatchInsertInfo>()->partitioningIdx];
+    progressSharedState->partitionsTotal =
+        partitionerSharedState->numPartitions[info->ptrCast<RelBatchInsertInfo>()->partitioningIdx];
 }
 
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
