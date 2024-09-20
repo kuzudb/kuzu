@@ -415,7 +415,7 @@ def test_networkx_optional_match(conn_db_readonly: ConnDB) -> None:
             if user["name"] == node["name"]:
                 for key in user:
                     assert node[key] == user[key]
-                assert node["User"] == True
+                assert node["User"]
 
     for src, dst, data in nx_graph.edges(data=True):
         assert src in nx_graph.nodes
@@ -429,7 +429,7 @@ def test_networkx_optional_match(conn_db_readonly: ConnDB) -> None:
                 assert data["since"] == follows["since"]
                 break
         else:
-            assert False, f"Edge {src_name} -> {dst_name} not found in ground truth"
+            raise f"Edge {src_name} -> {dst_name} not found in ground truth"
 
     edges = list(nx_graph.edges(data=True))
     assert len(edges) == 4
