@@ -121,9 +121,7 @@ def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
 
 def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
-    res = conn.execute(
-        "MATCH (p1:person)-[r:knows]->(p2:person) WHERE p1.ID <= 3 RETURN p1, r, p2"
-    )
+    res = conn.execute("MATCH (p1:person)-[r:knows]->(p2:person) WHERE p1.ID <= 3 RETURN p1, r, p2")
 
     nx_graph = res.get_as_networkx(directed=False)
     assert not nx_graph.is_directed()
@@ -432,6 +430,6 @@ def test_networkx_optional_match(conn_db_readonly: ConnDB) -> None:
                 break
         else:
             assert False, f"Edge {src_name} -> {dst_name} not found in ground truth"
-       
+
     edges = list(nx_graph.edges(data=True))
     assert len(edges) == 4

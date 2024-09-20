@@ -122,9 +122,7 @@ def init_demo(conn: kuzu.Connection) -> None:
     with copy_path.open(mode="r") as f:
         for line in f.readlines():
             line = line.strip()
-            line = line.replace(
-                "dataset/demo-db/csv", f"{KUZU_ROOT}/dataset/demo-db/csv"
-            )
+            line = line.replace("dataset/demo-db/csv", f"{KUZU_ROOT}/dataset/demo-db/csv")
             if line:
                 conn.execute(line)
 
