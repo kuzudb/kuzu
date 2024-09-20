@@ -29,6 +29,13 @@ private:
         : OPPrintInfo(other), tableName(other.tableName) {}
 };
 
+struct RelBatchInsertProgressSharedState {
+    uint64_t partitionsDone;
+    uint64_t partitionsTotal;
+
+    RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};
+};
+
 struct RelBatchInsertInfo final : BatchInsertInfo {
     common::RelDataDirection direction;
     uint64_t partitioningIdx;
@@ -68,6 +75,17 @@ public:
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo,
+        std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState)
+        : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
+              std::move(printInfo)},
+          partitionerSharedState{std::move(partitionerSharedState)},
+          progressSharedState{std::move(progressSharedState)} {}
+
+    RelBatchInsert(std::unique_ptr<BatchInsertInfo> info,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<BatchInsertSharedState> sharedState,
+        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
               std::move(printInfo)},
@@ -75,6 +93,7 @@ public:
 
     bool isSource() const override { return true; }
 
+    void initGlobalStateInternal(ExecutionContext* context) override;
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
@@ -82,8 +101,10 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
-            resultSetDescriptor->copy(), id, printInfo->copy());
+            resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
     }
+
+    void updateProgress(ExecutionContext* context);
 
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
@@ -109,6 +130,7 @@ private:
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;
+    std::shared_ptr<RelBatchInsertProgressSharedState> progressSharedState;
 };
 
 } // namespace processor
