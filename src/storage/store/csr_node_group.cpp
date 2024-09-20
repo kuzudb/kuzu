@@ -602,6 +602,20 @@ row_idx_t CSRNodeGroup::getNumDeletionsForNodeInPersistentData(offset_t nodeOffs
     return persistentChunkGroup->getNumDeletions(&DUMMY_CHECKPOINT_TRANSACTION, startRow, length);
 }
 
+static DataChunk initScanDataChunk(const CSRNodeGroupCheckpointState& csrState,
+    const std::vector<LogicalType>& dataTypes) {
+    const auto scanChunkState = std::make_shared<DataChunkState>();
+    DataChunk dataChunk(csrState.columnIDs.size(), scanChunkState);
+    for (auto i = 0u; i < csrState.columnIDs.size(); i++) {
+        const auto columnID = csrState.columnIDs[i];
+        KU_ASSERT(columnID < dataTypes.size());
+        const auto valueVector =
+            std::make_shared<ValueVector>(dataTypes[columnID].copy(), csrState.mm);
+        dataChunk.insert(i, valueVector);
+    }
+    return dataChunk;
+}
+
 void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpointState& state) {
     auto numRels = 0u;
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
@@ -624,10 +638,13 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
 
     // Init scan chunk and scan state.
     const auto numColumnsToCheckpoint = csrState.columnIDs.size();
-    const auto scanChunkState = std::make_shared<DataChunkState>();
-    DataChunk scanChunk(csrState.columnIDs.size(), scanChunkState);
+    auto scanChunk = initScanDataChunk(csrState, dataTypes);
     const auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, csrState.columnIDs);
-    initInMemScanChunkAndScanState(csrState, scanChunk, *scanState);
+    initScanStateFromScanChunk(csrState, scanChunk, *scanState);
+    auto dummyChunk = initScanDataChunk(csrState, dataTypes);
+    for (auto i = 0u; i < dummyChunk.getNumValueVectors(); i++) {
+        dummyChunk.getValueVector(i)->setAllNull();
+    }
 
     // Init data chunks to be appended and flushed.
     auto chunkCapacity = rightCSROffsetsOfRegions.back() + 1;
@@ -642,9 +659,6 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     // Scan tuples from in mem node groups and append to data chunks to flush.
     for (auto offset = 0u; offset < numNodes; offset++) {
         const auto numRows = csrIndex->getNumRows(offset);
-        if (numRows == 0) {
-            continue;
-        }
         auto rows = csrIndex->indices[offset].getRows();
         auto numRowsTryAppended = 0u;
         while (numRowsTryAppended < numRows) {
@@ -660,12 +674,12 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
                 numRowsToAppend++;
                 scanState->rowIdxVector->setValue<row_idx_t>(i, row);
             }
-            scanChunkState->getSelVectorUnsafe().setSelSize(numRowsToAppend);
+            scanChunk.state->getSelVectorUnsafe().setSelSize(numRowsToAppend);
             if (numRowsToAppend > 0) {
                 lookup(lock, &DUMMY_CHECKPOINT_TRANSACTION, *scanState);
                 for (auto idx = 0u; idx < numColumnsToCheckpoint; idx++) {
                     dataChunksToFlush[idx]->getData().append(scanChunk.valueVectors[idx].get(),
-                        scanChunkState->getSelVector());
+                        scanChunk.state->getSelVector());
                 }
             }
             numRowsTryAppended += maxNumRowsToAppend;
@@ -676,13 +690,11 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
             KU_ASSERT((offset == numNodes - 1) ||
                       (offset + 1) % StorageConstants::CSR_LEAF_REGION_SIZE == 0);
             const auto numGapsToAppend = std::min(gapSize, DEFAULT_VECTOR_CAPACITY);
-            for (auto columnID = 0u; columnID < numColumnsToCheckpoint; columnID++) {
-                scanChunk.valueVectors[columnID]->setAllNull();
-            }
-            scanChunkState->getSelVectorUnsafe().setSelSize(numGapsToAppend);
+            KU_ASSERT(dummyChunk.state->getSelVector().isUnfiltered());
+            dummyChunk.state->getSelVectorUnsafe().setSelSize(numGapsToAppend);
             for (auto columnID = 0u; columnID < numColumnsToCheckpoint; columnID++) {
                 dataChunksToFlush[columnID]->getData().append(
-                    scanChunk.valueVectors[columnID].get(), scanChunkState->getSelVector());
+                    dummyChunk.valueVectors[columnID].get(), dummyChunk.state->getSelVector());
             }
             gapSize -= numGapsToAppend;
         }
@@ -703,15 +715,8 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     csrIndex.reset();
 }
 
-void CSRNodeGroup::initInMemScanChunkAndScanState(const CSRNodeGroupCheckpointState& csrState,
-    DataChunk& dataChunk, TableScanState& scanState) const {
-    for (auto i = 0u; i < csrState.columnIDs.size(); i++) {
-        const auto columnID = csrState.columnIDs[i];
-        KU_ASSERT(columnID < dataTypes.size());
-        const auto valueVector =
-            std::make_shared<ValueVector>(dataTypes[columnID].copy(), csrState.mm);
-        dataChunk.insert(i, valueVector);
-    }
+void CSRNodeGroup::initScanStateFromScanChunk(const CSRNodeGroupCheckpointState& csrState,
+    const DataChunk& dataChunk, TableScanState& scanState) {
     scanState.rowIdxVector->setState(dataChunk.state);
     scanState.outState = dataChunk.state.get();
     scanState.nodeGroupScanState = std::make_unique<NodeGroupScanState>(csrState.columnIDs.size());
