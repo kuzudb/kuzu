@@ -5,7 +5,6 @@
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
@@ -87,8 +86,7 @@ bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
     const auto srcNodeOffset = updateState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = updateState.dstNodeIDVector.readNodeOffset(dstNodePos);
     const auto relOffset = updateState.relIDVector.readNodeOffset(relIDPos);
-    const auto matchedRow =
-        findMatchingRow(table.getMemoryManager(), srcNodeOffset, dstNodeOffset, relOffset);
+    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
@@ -112,8 +110,7 @@ bool LocalRelTable::delete_(Transaction*, TableDeleteState& state) {
     const auto srcNodeOffset = deleteState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = deleteState.dstNodeIDVector.readNodeOffset(dstNodePos);
     const auto relOffset = deleteState.relIDVector.readNodeOffset(relIDPos);
-    const auto matchedRow =
-        findMatchingRow(table.getMemoryManager(), srcNodeOffset, dstNodeOffset, relOffset);
+    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
@@ -203,8 +200,8 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
     return true;
 }
 
-row_idx_t LocalRelTable::findMatchingRow(MemoryManager& memoryManager, offset_t srcNodeOffset,
-    offset_t dstNodeOffset, offset_t relOffset) {
+row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNodeOffset,
+    offset_t relOffset) {
     auto& fwdRows = fwdIndex[srcNodeOffset];
     std::sort(fwdRows.begin(), fwdRows.end());
     auto& bwdRows = bwdIndex[dstNodeOffset];
@@ -217,8 +214,7 @@ row_idx_t LocalRelTable::findMatchingRow(MemoryManager& memoryManager, offset_t 
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs;
     columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
-    const auto scanState =
-        std::make_unique<RelTableScanState>(memoryManager, table.getTableID(), columnIDs);
+    const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
     scanState->outState = scanChunk.state.get();
     scanState->rowIdxVector->state = scanChunk.state;
     scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());

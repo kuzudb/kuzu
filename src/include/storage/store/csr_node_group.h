@@ -122,16 +122,23 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
-    CSRNodeGroupScanState(MemoryManager& memoryManager, common::idx_t numChunks)
-        : NodeGroupScanState{numChunks},
-          csrHeader{std::make_unique<ChunkedCSRHeader>(memoryManager, false,
-              common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY)} {}
+    explicit CSRNodeGroupScanState(common::idx_t numChunks)
+        : NodeGroupScanState{numChunks}, csrHeader{nullptr} {}
+
+    void initCSRHeader(MemoryManager& mm) {
+        if (!csrHeader) {
+            csrHeader = std::make_unique<ChunkedCSRHeader>(mm, false /*enableCompression*/,
+                common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        }
+    }
 
     void resetState() override {
         NodeGroupScanState::resetState();
-        csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         persistentCSRList = csr_list_t();
+        if (csrHeader) {
+            csrHeader->resetToEmpty();
+        }
     }
 };
 

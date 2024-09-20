@@ -65,7 +65,7 @@ public:
         common::column_id_t columnID);
 
 private:
-    common::row_idx_t findMatchingRow(MemoryManager& memoryManager, common::offset_t srcNodeOffset,
+    common::row_idx_t findMatchingRow(common::offset_t srcNodeOffset,
         common::offset_t dstNodeOffset, common::offset_t relOffset);
 
 private:

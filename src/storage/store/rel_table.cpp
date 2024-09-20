@@ -18,15 +18,13 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-RelTableScanState::RelTableScanState(MemoryManager& memoryManager, table_id_t tableID,
-    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns,
-    Column* csrOffsetCol, Column* csrLengthCol, RelDataDirection direction,
-    std::vector<ColumnPredicateSet> columnPredicateSets)
+RelTableScanState::RelTableScanState(table_id_t tableID, const std::vector<column_id_t>& columnIDs,
+    const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
+    RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
     : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
       direction{direction}, boundNodeOffset{INVALID_OFFSET}, csrOffsetColumn{csrOffsetCol},
       csrLengthColumn{csrLengthCol}, localTableScanState{nullptr} {
-    nodeGroupScanState =
-        std::make_unique<CSRNodeGroupScanState>(memoryManager, this->columnIDs.size());
+    nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
     if (!this->columnPredicateSets.empty()) {
         // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
         this->columnPredicateSets.insert(this->columnPredicateSets.begin(), ColumnPredicateSet());
@@ -39,6 +37,7 @@ void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup
         source = TableScanSource::COMMITTED;
         this->nodeGroup->initializeScanState(transaction, *this);
     } else if (localTableScanState) {
+        source = TableScanSource::UNCOMMITTED;
         initLocalState();
     } else {
         source = TableScanSource::NONE;
@@ -51,6 +50,7 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
         const auto scanResult = nodeGroup->scan(transaction, *this);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
             if (localTableScanState) {
+                source = TableScanSource::UNCOMMITTED;
                 initLocalState();
             } else {
                 source = TableScanSource::NONE;
@@ -72,9 +72,8 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
     }
 }
 
-void RelTableScanState::initLocalState() {
+void RelTableScanState::initLocalState() const {
     KU_ASSERT(localTableScanState);
-    source = TableScanSource::UNCOMMITTED;
     auto& localScanState = *localTableScanState;
     KU_ASSERT(localScanState.localRelTable);
     localScanState.boundNodeOffset = boundNodeOffset;
@@ -225,16 +224,15 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
-    auto& memoryManager = *transaction->getClientContext()->getMemoryManager();
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData =
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     const auto reverseTableData =
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
-    const auto relReadState = std::make_unique<RelTableScanState>(memoryManager, tableID,
-        columnsToScan, tableData->getColumns(), tableData->getCSROffsetColumn(),
-        tableData->getCSRLengthColumn(), direction);
+    const auto relReadState =
+        std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
+            tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
     relReadState->nodeIDVector = &deleteState->srcNodeIDVector;
     relReadState->outputVectors =
         std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
@@ -244,8 +242,8 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
             LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(direction, relReadState->columnIDs);
-        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(memoryManager,
-            *relReadState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(*relReadState,
+            localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
         relReadState->localTableScanState->rowIdxVector->state = relReadState->rowIdxVector->state;
     }
     initScanState(transaction, *relReadState);
