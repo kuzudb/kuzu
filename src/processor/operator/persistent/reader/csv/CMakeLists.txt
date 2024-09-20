@@ -4,7 +4,8 @@ add_library(kuzu_processor_operator_csv_reader
         csv_error_handler.cpp
         driver.cpp
         parallel_csv_reader.cpp
-        serial_csv_reader.cpp)
+        serial_csv_reader.cpp
+        dialect_detection.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_csv_reader>

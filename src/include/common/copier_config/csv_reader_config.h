@@ -18,6 +18,10 @@ struct CSVOption {
     bool allowUnbracedList;
     bool ignoreErrors;
 
+    bool setEscape;
+    bool setDelim;
+    bool setQuote;
+
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
@@ -26,7 +30,11 @@ struct CSVOption {
           skipNum{CopyConstants::DEFAULT_CSV_SKIP_NUM},
           sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
           allowUnbracedList{CopyConstants::DEFAULT_CSV_ALLOW_UNBRACED_LIST},
-          ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS) {}
+          ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
+          setEscape{CopyConstants::DEFAULT_CSV_SET_DIALECT},
+          setDelim{CopyConstants::DEFAULT_CSV_SET_DIALECT},
+          setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
+
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.

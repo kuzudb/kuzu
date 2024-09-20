@@ -40,10 +40,13 @@ static void bindStringParsingOption(CSVReaderConfig& config, const std::string& 
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
         config.option.escapeChar = parsingOptionValue;
+        config.option.setEscape = true;
     } else if (optionName == "DELIM" || optionName == "DELIMITER") {
         config.option.delimiter = parsingOptionValue;
+        config.option.setDelim = true;
     } else if (optionName == "QUOTE") {
         config.option.quoteChar = parsingOptionValue;
+        config.option.setQuote = true;
     } else {
         KU_UNREACHABLE;
     }
