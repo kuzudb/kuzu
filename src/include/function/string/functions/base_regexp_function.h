@@ -8,7 +8,7 @@ namespace kuzu {
 namespace function {
 
 struct BaseRegexpOperation {
-    static inline std::string parseCypherPatten(const std::string& pattern) {
+    static inline std::string parseCypherPattern(const std::string& pattern) {
         // Cypher parses escape characters with 2 backslash eg. for expressing '.' requires '\\.'
         // Since Regular Expression requires only 1 backslash '\.' we need to replace double slash
         // with single

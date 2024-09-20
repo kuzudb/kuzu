@@ -34,7 +34,7 @@ struct RegexpExtractAll : BaseRegexpOperation {
 
     static std::vector<std::string> regexExtractAll(const std::string& value,
         const std::string& pattern, std::int64_t& group) {
-        RE2 regex(parseCypherPatten(pattern));
+        RE2 regex(parseCypherPattern(pattern));
         auto submatchCount = regex.NumberOfCapturingGroups() + 1;
         if (group >= submatchCount) {
             throw common::RuntimeException("Regex match group index is out of range");
