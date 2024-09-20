@@ -5,7 +5,6 @@
 #include "common/enums/rel_direction.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 

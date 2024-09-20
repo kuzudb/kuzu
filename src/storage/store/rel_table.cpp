@@ -224,7 +224,6 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
-    auto& memoryManager = *transaction->getClientContext()->getMemoryManager();
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData =
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
