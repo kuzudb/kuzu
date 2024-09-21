@@ -109,6 +109,24 @@ def init_tinysnb(conn: kuzu.Connection) -> None:
                 conn.execute(line)
 
 
+def init_demo(conn: kuzu.Connection) -> None:
+    tiny_snb_path = (Path(__file__).parent / f"{KUZU_ROOT}/dataset/demo-db/csv").resolve()
+    schema_path = tiny_snb_path / "schema.cypher"
+    with schema_path.open(mode="r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line:
+                conn.execute(line)
+
+    copy_path = tiny_snb_path / "copy.cypher"
+    with copy_path.open(mode="r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            line = line.replace("dataset/demo-db/csv", f"{KUZU_ROOT}/dataset/demo-db/csv")
+            if line:
+                conn.execute(line)
+
+
 def init_movie_serial(conn: kuzu.Connection) -> None:
     conn.execute(
         """
@@ -142,6 +160,7 @@ def init_db(path: Path) -> Path:
 
     conn, db = create_conn_db(path, read_only=False)
     init_tinysnb(conn)
+    init_demo(conn)
     init_npy(conn)
     init_tensor(conn)
     init_long_str(conn)
