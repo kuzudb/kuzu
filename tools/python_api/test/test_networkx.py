@@ -61,7 +61,16 @@ def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
             Timedelta("3750 days 13:00:00.000024"),
             Timedelta("1082 days 13:02:00"),
         ],
-        "workedHours": [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1], [10, 11, 12, 3, 4, 5, 6, 7]],
+        "workedHours": [
+            [10, 5],
+            [12, 8],
+            [4, 5],
+            [1, 9],
+            [2],
+            [3, 4, 5, 6, 7],
+            [1],
+            [10, 11, 12, 3, 4, 5, 6, 7],
+        ],
         "usedNames": [
             ["Aida"],
             ["Bobby"],
@@ -92,7 +101,16 @@ def test_to_networkx_node(conn_db_readonly: ConnDB) -> None:
             [43, 83, 67, 43],
             [77, 64, 100, 54],
         ],
-        "_label": ["person", "person", "person", "person", "person", "person", "person", "person"],
+        "_label": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+        ],
     }
     for i in range(len(nodes)):
         node_id, node = nodes[i]
@@ -158,7 +176,16 @@ def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
             Timedelta("3750 days 13:00:00.000024"),
             Timedelta("1082 days 13:02:00"),
         ],
-        "workedHours": [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1], [10, 11, 12, 3, 4, 5, 6, 7]],
+        "workedHours": [
+            [10, 5],
+            [12, 8],
+            [4, 5],
+            [1, 9],
+            [2],
+            [3, 4, 5, 6, 7],
+            [1],
+            [10, 11, 12, 3, 4, 5, 6, 7],
+        ],
         "usedNames": [
             ["Aida"],
             ["Bobby"],
@@ -189,7 +216,16 @@ def test_networkx_undirected(conn_db_readonly: ConnDB) -> None:
             [43, 83, 67, 43],
             [77, 64, 100, 54],
         ],
-        "_label": ["person", "person", "person", "person", "person", "person", "person", "person"],
+        "_label": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+        ],
     }
     for node_id, node in nodes:
         assert node_id == "%s_%d" % (node["_label"], node["ID"])
@@ -231,7 +267,11 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
         "gender": [1, 2, 1],
         "isStudent": [False, False, False],
         "eyeSight": [5.0, 4.8, 4.7],
-        "birthdate": [datetime.date(1940, 6, 22), datetime.date(1950, 7, 23), datetime.date(1980, 10, 26)],
+        "birthdate": [
+            datetime.date(1940, 6, 22),
+            datetime.date(1950, 7, 23),
+            datetime.date(1980, 10, 26),
+        ],
         "registerTime": [
             Timestamp("1911-08-20 02:32:21"),
             Timestamp("2031-11-30 12:25:30"),
@@ -271,7 +311,10 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
         "mark": [4.1, 4.1],
         "score": [-100, 7],
         "history": ["2 years 4 days 10 hours", "2 years 4 hours 22 us 34 minutes"],
-        "licenseValidInterval": [Timedelta(days=9414), Timedelta(days=3, seconds=36000, microseconds=100000)],
+        "licenseValidInterval": [
+            Timedelta(days=9414),
+            Timedelta(days=3, seconds=36000, microseconds=100000),
+        ],
         "rating": [0.78, 0.52],
         "_label": ["organisation", "organisation"],
     }
@@ -307,3 +350,86 @@ def test_networkx_directed(conn_db_readonly: ConnDB) -> None:
 
     assert len(years_ground_truth) == 0
     assert len(nodes_dict) == 2  # Only the organisation node should be left
+
+
+def test_networkx_optional_match(conn_db_readonly: ConnDB) -> None:
+    conn, _ = conn_db_readonly
+    res = conn.execute(
+        """
+                       MATCH (u:User)
+                       OPTIONAL MATCH (u)-[f:Follows]->(u1:User)
+                       RETURN u, f, u1;
+                       """
+    )
+
+    nx_graph = res.get_as_networkx(directed=True)
+    assert nx_graph.is_directed()
+
+    ground_truth_users = [
+        {
+            "name": "Adam",
+            "age": 30,
+        },
+        {
+            "name": "Karissa",
+            "age": 40,
+        },
+        {
+            "name": "Zhang",
+            "age": 50,
+        },
+        {
+            "name": "Noura",
+            "age": 25,
+        },
+    ]
+
+    ground_truth_follows = [
+        {
+            "src": "Adam",
+            "dst": "Karissa",
+            "since": 2020,
+        },
+        {
+            "src": "Adam",
+            "dst": "Zhang",
+            "since": 2020,
+        },
+        {
+            "src": "Karissa",
+            "dst": "Zhang",
+            "since": 2021,
+        },
+        {
+            "src": "Zhang",
+            "dst": "Noura",
+            "since": 2022,
+        },
+    ]
+
+    nodes = list(nx_graph.nodes(data=True))
+    assert len(nodes) == 4
+    for node_id, node in nodes:
+        assert node_id == f"User_{node['name']}"
+        for user in ground_truth_users:
+            if user["name"] == node["name"]:
+                for key in user:
+                    assert node[key] == user[key]
+                assert node["User"]
+
+    for src, dst, data in nx_graph.edges(data=True):
+        assert src in nx_graph.nodes
+        assert dst in nx_graph.nodes
+        src_node = nx_graph.nodes[src]
+        dst_node = nx_graph.nodes[dst]
+        src_name = src_node["name"]
+        dst_name = dst_node["name"]
+        for follows in ground_truth_follows:
+            if follows["src"] == src_name and follows["dst"] == dst_name:
+                assert data["since"] == follows["since"]
+                break
+        else:
+            raise f"Edge {src_name} -> {dst_name} not found in ground truth"
+
+    edges = list(nx_graph.edges(data=True))
+    assert len(edges) == 4
