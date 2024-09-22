@@ -38,6 +38,8 @@ public:
     // Get id for all relationship tables.
     virtual std::vector<common::table_id_t> getRelTableIDs() = 0;
 
+    virtual std::unordered_map<common::table_id_t, uint64_t> getNodeTableIDAndNumNodes() = 0;
+
     // Get num rows for all node tables.
     virtual common::offset_t getNumNodes() = 0;
     // Get num rows for given node table.

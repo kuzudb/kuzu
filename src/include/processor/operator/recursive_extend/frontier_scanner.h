@@ -51,9 +51,9 @@ protected:
 /*
  * PathScanner scans all paths of a fixed length k (also dst node offsets & length of path). This is
  * done by starting a backward traversals from only the destination nodes in the k'th frontier
- * (assuming the first frontier has index 0) over the backwards edges stored between the frontiers
- * that was used to store the data related to the BFS that was computed in the RecursiveJoin
- * operator.
+ * (assuming the first frontier has index 0) over the backwards edges stored between the
+ * frontierPair that was used to store the data related to the BFS that was computed in the
+ * RecursiveJoin operator.
  */
 using path_semantic_check_func_t =
     std::function<bool(const std::vector<common::nodeID_t>&, const std::vector<common::relID_t>&)>;
@@ -131,12 +131,12 @@ private:
 /*
  * Variable-length joins return union of paths with different length (e.g. *2..3). Note that we only
  * keep track of the backward edges (if edges are tracked) between the frontier in the RecursiveJoin
- * operator (these frontiers are stored in the BaseBFSMorsel that was used to keep the data related
- * to the BFS that was computed in the RecursiveJoin). Therefore, we cannot start from the src and
- * traverse to find all paths of all lengths. We can only start from nodes in a particular frontier
- * and traverse backwards to the source. But whenever we start from a particular frontier, say the
- * k'th frontier, we can only traverse paths of length k. Therefore, PathScanner scans these paths
- * length by length, i.e. we first scan all length-2 paths, then scan all length-3 paths.
+ * operator (these frontierPair are stored in the BaseBFSMorsel that was used to keep the data
+ * related to the BFS that was computed in the RecursiveJoin). Therefore, we cannot start from the
+ * src and traverse to find all paths of all lengths. We can only start from nodes in a particular
+ * frontier and traverse backwards to the source. But whenever we start from a particular frontier,
+ * say the k'th frontier, we can only traverse paths of length k. Therefore, PathScanner scans these
+ * paths length by length, i.e. we first scan all length-2 paths, then scan all length-3 paths.
  */
 struct FrontiersScanner {
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;

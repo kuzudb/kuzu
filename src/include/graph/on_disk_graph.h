@@ -16,8 +16,8 @@ struct OnDiskGraphScanState {
     std::unique_ptr<storage::RelTableScanState> fwdScanState;
     std::unique_ptr<storage::RelTableScanState> bwdScanState;
 
-    explicit OnDiskGraphScanState(common::ValueVector* srcNodeIDVector,
-        common::ValueVector* dstNodeIDVector);
+    explicit OnDiskGraphScanState(const storage::RelTable& table,
+        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector);
 };
 
 class OnDiskGraphScanStates : public GraphScanState {
@@ -32,7 +32,7 @@ private:
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
 
-    explicit OnDiskGraphScanStates(std::span<common::table_id_t> tableIDs,
+    explicit OnDiskGraphScanStates(std::span<storage::RelTable*> tableIDs,
         storage::MemoryManager* mm);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
@@ -40,13 +40,13 @@ private:
 class OnDiskGraph final : public Graph {
 public:
     OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
-    // TODO(Reviewer): Do I need to do other.graphEntry.copy() in the constructor?
-    // TODO(Reviewer): I believe I have to make this copy constructor public. Can you double check?
     OnDiskGraph(const OnDiskGraph& other);
 
     std::unique_ptr<Graph> copy() override { return std::make_unique<OnDiskGraph>(*this); }
     std::vector<common::table_id_t> getNodeTableIDs() override;
     std::vector<common::table_id_t> getRelTableIDs() override;
+
+    std::unordered_map<common::table_id_t, uint64_t> getNodeTableIDAndNumNodes() override;
 
     common::offset_t getNumNodes() override;
     common::offset_t getNumNodes(common::table_id_t id) override;
@@ -69,7 +69,7 @@ public:
 private:
     void scan(common::nodeID_t nodeID, storage::RelTable* relTable,
         OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState,
-        std::vector<common::nodeID_t>& nbrNodeIDs);
+        std::vector<common::nodeID_t>& nbrNodeIDs) const;
 
 private:
     main::ClientContext* context;
