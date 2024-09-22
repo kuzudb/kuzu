@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graph/graph.h"
 #include "common/mask.h"
+#include "graph/graph.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
@@ -21,5 +21,5 @@ struct GDSCallSharedState {
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 };
 
-}
-}
+} // namespace processor
+} // namespace kuzu

@@ -2,8 +2,8 @@
 
 #include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
-#include "processor/operator/sink.h"
 #include "gds_call_shared_state.h"
+#include "processor/operator/sink.h"
 
 namespace kuzu {
 namespace processor {

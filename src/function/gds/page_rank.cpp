@@ -6,8 +6,8 @@
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
-#include "processor/result/factorized_table.h"
 #include "processor/execution_context.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;

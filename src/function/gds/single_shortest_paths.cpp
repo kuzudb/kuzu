@@ -3,9 +3,9 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
-#include "processor/result/factorized_table.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -271,8 +271,8 @@ protected:
                                    "SingleSPAlgorithm::getRJCompState(): " +
                                    std::to_string(static_cast<uint8_t>(outputType)) + ".");
         }
-        return RJCompState(std::move(pathLengthsFrontiers), std::move(edgeCompute), std::move(spOutputs),
-            std::move(outputWriter));
+        return RJCompState(std::move(pathLengthsFrontiers), std::move(edgeCompute),
+            std::move(spOutputs), std::move(outputWriter));
     }
 };
 

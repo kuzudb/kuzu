@@ -7,9 +7,9 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "processor/execution_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

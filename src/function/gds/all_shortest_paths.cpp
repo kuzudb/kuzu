@@ -3,9 +3,9 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
-#include "processor/result/factorized_table.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -106,7 +106,8 @@ public:
     ParentPtrsBlock* addNewBlock() {
         std::unique_lock lck{mtx};
         auto memBlock = mm->allocateBuffer(false /* don't init to 0 */, ALL_PATHS_BLOCK_SIZE);
-        blocks.push_back(std::make_unique<ParentPtrsBlock>(std::move(memBlock), ALL_PATHS_BLOCK_SIZE));
+        blocks.push_back(
+            std::make_unique<ParentPtrsBlock>(std::move(memBlock), ALL_PATHS_BLOCK_SIZE));
         return blocks[blocks.size() - 1].get();
     }
 
@@ -122,7 +123,7 @@ public:
         common::nodeID_t parent) {
         auto parentEdgePtr = parentPtrsBlock->reserveNextParentAndNextPtr();
         parentEdgePtr->setIterAndNodeID(iter, parent);
-//        *parentEdgePtr = ParentIterAndNextPtr(iter, parent);
+        //        *parentEdgePtr = ParentIterAndNextPtr(iter, parent);
         auto curPtr = currFixedParentPtrs.load(std::memory_order_relaxed);
         KU_ASSERT(curPtr != nullptr);
         // Since by default the parentPtr of each node is nullptr, that's what we start with.
