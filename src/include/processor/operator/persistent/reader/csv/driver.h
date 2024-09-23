@@ -6,6 +6,7 @@
 #include "common/data_chunk/data_chunk.h"
 #include "function/table/bind_input.h"
 #include "processor/warning_context.h"
+#include "dialect_detection.h"
 
 namespace kuzu {
 namespace main {
@@ -35,7 +36,7 @@ public:
 
     bool done(uint64_t rowNum);
     virtual bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
-    bool addRow(uint64_t rowNum, common::column_id_t columnCount,
+    virtual bool addRow(uint64_t rowNum, common::column_id_t columnCount,
         std::optional<WarningDataWithColumnInfo> warningData);
 
 private:
@@ -75,6 +76,23 @@ private:
 
 protected:
     SerialCSVReader* reader;
+};
+
+class SniffCSVDialectDriver : public SerialParsingDriver {
+public:
+    SniffCSVDialectDriver(SerialCSVReader* reader,
+        const function::ScanTableFuncBindInput* bindInput);
+
+    bool done(uint64_t rowNum) const;
+    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;
+    bool addRow(uint64_t rowNum, common::column_id_t columnCount,
+        std::optional<WarningDataWithColumnInfo> warningData) override;
+
+public:
+    std::vector<uint64_t> column_counts; 
+    idx_t current_column_count = 0;
+    bool error = false;
+    idx_t result_position = 0;
 };
 
 class SniffCSVNameAndTypeDriver : public SerialParsingDriver {

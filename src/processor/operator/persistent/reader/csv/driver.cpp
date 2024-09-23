@@ -110,6 +110,32 @@ common::DataChunk& getDummyDataChunk() {
     return dummyChunk;
 }
 
+SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
+    const function::ScanTableFuncBindInput* bindInput)
+    : SerialParsingDriver(getDummyDataChunk(), reader) {
+    auto& csvOption = reader->getCSVOption();
+    column_counts.resize(csvOption.sampleSize);
+}
+
+bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
+    std::string_view value) {
+    current_column_count++;
+    return true;
+}
+
+bool SniffCSVDialectDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
+    std::optional<WarningDataWithColumnInfo> warningData) {
+    column_counts[result_position] = current_column_count + 1;
+    current_column_count = 0;
+    result_position++;
+	return true;
+}
+
+bool SniffCSVDialectDriver::done(uint64_t rowNum) const {
+    auto& csvOption = reader->getCSVOption();
+    return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+}
+
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
     : SerialParsingDriver(getDummyDataChunk(), reader) {

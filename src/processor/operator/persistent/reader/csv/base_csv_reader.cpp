@@ -30,7 +30,6 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, common::idx_t fileIdx,
 #endif
         ,
         context);
-    detectDialect();
 }
 
 bool BaseCSVReader::isEOF() const {
@@ -508,102 +507,12 @@ column_id_t BaseCSVReader::appendWarningDataColumns(std::vector<std::string>& re
 template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
 template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
 template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
+template uint64_t BaseCSVReader::parseCSV<SniffCSVDialectDriver>(SniffCSVDialectDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     KU_ASSERT(osFileOffset >= bufferSize);
     return osFileOffset - bufferSize + position;
 }
-
-std::string BaseCSVReader::readSampleRows(uint64_t numSampleRows) {
-    std::string sample;
-    uint64_t linesRead = 0;
-
-    // Ensure the buffer is loaded
-    if (!maybeReadBuffer(nullptr)) {
-        return sample;
-    }
-
-    uint64_t start = position;
-
-    while (linesRead < numSampleRows && !isEOF()) {
-        // Read until the next newline character
-        while (position < bufferSize && !isNewLine(buffer[position])) {
-            position++;
-        }
-
-        // Check if we've found a newline character
-        if (position < bufferSize) {
-            // Extract the line from the buffer
-            size_t lineLength = position - start;
-            sample.append(buffer.get() + start, lineLength);
-            sample.push_back('\n'); // Re-add the newline character
-            linesRead++;
-
-            // Handle potential \r\n newlines
-            if (buffer[position] == '\r' && position + 1 < bufferSize && buffer[position + 1] == '\n') {
-                position += 2; // Skip both \r and \n
-            } else {
-                position++; // Skip the newline character
-            }
-
-            // Update the start position for the next line
-            start = position;
-        } else {
-            // We need to read more data into the buffer
-            uint64_t prevStart = start;
-            if (!readBuffer(&start)) {
-                break; // EOF reached
-            }
-            // Adjust start based on new buffer
-            start += (start == 0) ? 0 : prevStart - start;
-        }
-    }
-
-    // Reset position to the beginning for actual parsing
-    resetReaderState();
-
-    return sample;
-}
-
-void BaseCSVReader::resetReaderState() {
-    // Reset file position to the beginning
-    if (-1 == fileInfo->seek(0, SEEK_SET)) {
-        handleCopyException("Failed to seek to the beginning of the file.", true);
-        return;
-    }
-
-    // Reset buffer-related variables
-    buffer.reset();
-    bufferSize = 0;
-    position = 0;
-    osFileOffset = 0;
-    bufferIdx = 0;
-    lineContext.setNewLine(getFileOffset());
-}
-
-void BaseCSVReader::detectDialect() {
-    // Get the sample size from the CSV options
-    uint64_t numSampleRows = option.sampleSize;
-    if (numSampleRows == 0) {
-        numSampleRows = 10; // Default to 10 rows if sampleSize is not set
-    }
-
-    // Extract a sample of rows from the file for dialect detection
-    std::string sample = readSampleRows(numSampleRows);
-
-    // Run the dialect detection
-    DialectOption detectedDialect;
-    analyzeSampleForDialect(sample, detectedDialect, option);
-
-    // Apply the detected dialect to the CSV options
-    option.delimiter = detectedDialect.delimiter;
-    option.quoteChar = detectedDialect.quoteChar;
-    option.escapeChar = detectedDialect.escapeChar;
-
-    // Reset the file position and buffer to start reading from the beginning after detection
-    resetReaderState();
-}
-
 
 } // namespace processor
 } // namespace kuzu

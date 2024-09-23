@@ -25,6 +25,9 @@ protected:
 
 private:
     const function::ScanTableFuncBindInput* bindInput;
+    //std::string readSampleRows(uint64_t numSampleRows);
+    void resetReaderState();
+    void detectDialect();
 };
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {

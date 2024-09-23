@@ -19,6 +19,9 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t file
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
+    ///////////////////////STEP1: Dialect Detection/////////////////////////////////////
+    detectDialect();
+    ///////////////////////STEP2: Type Detection/////////////////////////////////////
     SniffCSVNameAndTypeDriver driver{this, bindInput};
     parseCSV(driver);
     // finalize the columns; rename duplicate names
@@ -213,6 +216,77 @@ function_set SerialCSVScan::getFunctionSet() {
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
             progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
+}
+
+void SerialCSVReader::resetReaderState() {
+    // Reset file position to the beginning
+    if (-1 == fileInfo->seek(0, SEEK_SET)) {
+        handleCopyException("Failed to seek to the beginning of the file.", true);
+        return;
+    }
+
+    // Reset buffer-related variables
+    buffer.reset();
+    bufferSize = 0;
+    position = 0;
+    osFileOffset = 0;
+    bufferIdx = 0;
+    lineContext.setNewLine(getFileOffset());
+}
+
+void SerialCSVReader::detectDialect() {
+    // Extract a sample of rows from the file for dialect detection
+    SniffCSVDialectDriver driver{this, bindInput};
+
+    DialectCandidates candidates;
+
+    // Generate dialect options based on the non-user-specified options
+    auto dialectSearchSpace = generateDialectOptions(candidates, option);
+    
+    // Start with the user-provided values as the base
+    DialectOption bestDialect;  
+    bestDialect.delimiter = option.delimiter;
+    bestDialect.escapeChar = option.escapeChar;
+    bestDialect.quoteChar = option.quoteChar;
+
+    idx_t rows_read = 0;
+    idx_t best_consistent_rows = 0;
+    idx_t max_columns_found = 0;
+    for (const auto& dialectOption : dialectSearchSpace) {
+        // Load current dialect option
+        option.delimiter = dialectOption.delimiter;
+        option.quoteChar = dialectOption.quoteChar;
+        option.escapeChar = dialectOption.escapeChar;
+        // Try parsing it with current dialect
+        parseCSV(driver);
+
+        idx_t consistent_rows = 0;
+        idx_t num_cols = driver.result_position == 0 ? 1 : driver.column_counts[0];
+        // update rows_read
+        if (driver.result_position > rows_read) {
+		    rows_read = driver.result_position;
+	    }
+
+        idx_t header_idx = 0;
+        for (idx_t row = 0; row < driver.result_position; row++) {
+            if (driver.column_counts[row] == num_cols) {
+                consistent_rows++;
+            } 
+        }
+
+        if (consistent_rows > best_consistent_rows) {
+            best_consistent_rows = consistent_rows;
+            bestDialect = dialectOption;
+        }
+    }
+
+    // Apply the detected dialect to the CSV options
+    option.delimiter = bestDialect.delimiter;
+    option.quoteChar = bestDialect.quoteChar;
+    option.escapeChar = bestDialect.escapeChar;
+
+    // Reset the file position and buffer to start reading from the beginning after detection
+    resetReaderState();
 }
 
 } // namespace processor

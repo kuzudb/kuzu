@@ -9,7 +9,6 @@
 #include "common/file_system/file_info.h"
 #include "common/types/types.h"
 #include "processor/operator/persistent/reader/csv/csv_error_handler.h"
-#include "dialect_detection.h"
 
 namespace kuzu {
 
@@ -108,10 +107,6 @@ protected:
     uint64_t getNumRowsInCurrentBlock() const;
 
     WarningSourceData getWarningSourceData() const;
-
-    std::string readSampleRows(uint64_t numSampleRows);
-    void resetReaderState();
-    void detectDialect();
 
 protected:
     main::ClientContext* context;
