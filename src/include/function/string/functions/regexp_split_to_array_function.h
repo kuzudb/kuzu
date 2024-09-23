@@ -9,8 +9,9 @@ namespace kuzu {
 namespace function {
 
 struct RegexpSplitToArray : BaseRegexpOperation {
-    static inline void operation(common::ku_string_t& value, common::ku_string_t& regex, common::list_entry_t& result, common::ValueVector& resultVector) {
-        std::vector<std::string> matches = 
+    static inline void operation(common::ku_string_t& value, common::ku_string_t& regex,
+        common::list_entry_t& result, common::ValueVector& resultVector) {
+        std::vector<std::string> matches =
             regexExtractAll(value.getAsString(), regex.getAsString());
         result = common::ListVector::addList(&resultVector, matches.size());
         auto resultValues = common::ListVector::getListValues(&resultVector, result);
@@ -19,12 +20,14 @@ struct RegexpSplitToArray : BaseRegexpOperation {
         for (const auto& match : matches) {
             common::ku_string_t kuString;
             copyToKuzuString(match, kuString, *resultDataVector);
-            resultDataVector->copyFromVectorData(resultValues, resultDataVector, reinterpret_cast<uint8_t*>(&kuString));
+            resultDataVector->copyFromVectorData(resultValues, resultDataVector,
+                reinterpret_cast<uint8_t*>(&kuString));
             resultValues += numBytesPerValue;
         }
     }
 
-    static std::vector<std::string> regexExtractAll(const std::string& value, const std::string& pattern) {
+    static std::vector<std::string> regexExtractAll(const std::string& value,
+        const std::string& pattern) {
         RE2 regex(parseCypherPatten(pattern));
 
         regex::StringPiece input(value);
@@ -32,7 +35,7 @@ struct RegexpSplitToArray : BaseRegexpOperation {
         uint64_t startPos = 0;
 
         std::vector<std::string> splitParts;
-        while(startPos < input.length()) {
+        while (startPos < input.length()) {
             if (regex.Match(input, startPos, input.length(), RE2::UNANCHORED, &match, 1)) {
                 uint64_t matchStart = match.data() - input.data();
                 uint64_t matchEnd = matchStart + match.size();
@@ -58,5 +61,5 @@ struct RegexpSplitToArray : BaseRegexpOperation {
         return splitParts;
     }
 };
-}
-}
+} // namespace function
+} // namespace kuzu

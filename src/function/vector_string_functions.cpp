@@ -10,12 +10,12 @@
 #include "function/string/functions/regexp_full_match_function.h"
 #include "function/string/functions/regexp_matches_function.h"
 #include "function/string/functions/regexp_replace_function.h"
+#include "function/string/functions/regexp_split_to_array_function.h"
 #include "function/string/functions/repeat_function.h"
 #include "function/string/functions/right_function.h"
 #include "function/string/functions/rpad_function.h"
 #include "function/string/functions/starts_with_function.h"
 #include "function/string/functions/substr_function.h"
-#include "function/string/functions/regexp_split_to_array_function.h"
 
 using namespace kuzu::common;
 
@@ -308,7 +308,8 @@ function_set RegexpSplitToArrayFunction::getFunctionSet() {
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::LIST,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t, RegexpSplitToArray>,
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
+            RegexpSplitToArray>,
         nullptr, bindFunc));
     return functionSet;
 }
