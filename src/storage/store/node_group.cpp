@@ -1,8 +1,13 @@
 #include "storage/store/node_group.h"
 
+#include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/enums/residency_state.h"
 #include "storage/storage_utils.h"
+#include "storage/store/chunked_node_group.h"
+#include "storage/store/column_chunk.h"
+#include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/node_table.h"
 #include "transaction/transaction.h"
@@ -400,19 +405,27 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     deSer.deserializeValue<NodeGroupDataFormat>(format);
     deSer.validateDebuggingInfo(key, "has_checkpointed_data");
     deSer.deserializeValue<bool>(hasCheckpointedData);
-    if (!hasCheckpointedData) {
-        return nullptr;
-    }
     deSer.validateDebuggingInfo(key, "checkpointed_data");
     std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup;
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {
-        chunkedNodeGroup = ChunkedNodeGroup::deserialize(memoryManager, deSer);
+        if (hasCheckpointedData) {
+            chunkedNodeGroup = ChunkedNodeGroup::deserialize(memoryManager, deSer);
+        } else {
+            chunkedNodeGroup =
+                std::make_unique<ChunkedNodeGroup>(std::vector<std::unique_ptr<ColumnChunk>>(), 0);
+        }
         return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
             std::move(chunkedNodeGroup));
     }
     case NodeGroupDataFormat::CSR: {
-        chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(memoryManager, deSer);
+        if (hasCheckpointedData) {
+            chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(memoryManager, deSer);
+        } else {
+            std::vector<LogicalType> columnTypes;
+            chunkedNodeGroup = std::make_unique<ChunkedCSRNodeGroup>(memoryManager, columnTypes,
+                true, 0, 0, ResidencyState::IN_MEMORY);
+        }
         return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
             std::move(chunkedNodeGroup));
     }

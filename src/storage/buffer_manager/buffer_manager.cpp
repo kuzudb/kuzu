@@ -115,7 +115,8 @@ uint8_t* BufferManager::pin(FileHandle& fileHandle, page_idx_t pageIdx,
             if (pageState->tryLock(currStateAndVersion)) {
                 if (!claimAFrame(fileHandle, pageIdx, pageReadPolicy)) {
                     pageState->resetToEvicted();
-                    throw BufferManagerException("Failed to claim a frame.");
+                    throw BufferManagerException("Unable to allocate memory! The buffer pool is "
+                                                 "full and no memory could be freed!");
                 }
                 if (!evictionQueue.insert(fileHandle.getFileIndex(), pageIdx)) {
                     throw BufferManagerException(
