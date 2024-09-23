@@ -15,6 +15,7 @@
 #include "function/string/functions/rpad_function.h"
 #include "function/string/functions/starts_with_function.h"
 #include "function/string/functions/substr_function.h"
+#include "function/string/functions/regexp_split_to_array_function.h"
 
 using namespace kuzu::common;
 
@@ -298,6 +299,16 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
         LogicalTypeID::LIST,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, list_entry_t,
             RegexpExtractAll>,
+        nullptr, bindFunc));
+    return functionSet;
+}
+
+function_set RegexpSplitToArrayFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::LIST,
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t, RegexpSplitToArray>,
         nullptr, bindFunc));
     return functionSet;
 }

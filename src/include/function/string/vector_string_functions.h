@@ -189,6 +189,12 @@ struct RegexpExtractAllFunction : public VectorStringFunction {
     static function_set getFunctionSet();
 };
 
+struct RegexpSplitToArrayFunction : public VectorStringFunction {
+    static constexpr const char* name = "REGEXP_SPLIT_TO_ARRAY";
+
+    static function_set getFunctionSet();
+};
+
 struct LevenshteinFunction : public VectorStringFunction {
     static constexpr const char* name = "LEVENSHTEIN";
 
