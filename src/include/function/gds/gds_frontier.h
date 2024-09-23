@@ -92,7 +92,7 @@ class FrontierMorselDispatcher {
     static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
-    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec) {
+    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec) : morselSize(UINT64_MAX) {
         maxThreadsForExec.store(_maxThreadsForExec);
     }
 
