@@ -67,6 +67,7 @@ private:
     storage::NodeTable* nodeTable;
 
     template<typename T>
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-member-init)
     struct Queue {
         std::array<common::MPSCQueue<IndexBufferWithWarningData<T>>, storage::NUM_HASH_INDEXES>
             array;

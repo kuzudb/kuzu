@@ -273,7 +273,7 @@ void ListColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
 
 offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& readState,
     offset_t offsetInNodeGroup) const {
-    offset_t ret;
+    offset_t ret = INVALID_OFFSET;
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
     offsetColumn->columnReadWriter->readCompressedValueToPage(transaction, offsetState,
         offsetInNodeGroup, reinterpret_cast<uint8_t*>(&ret), 0, offsetColumn->readToPageFunc);
@@ -283,7 +283,7 @@ offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& read
 list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& readState,
     offset_t offsetInNodeGroup) const {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
-    offset_t value;
+    offset_t value = INVALID_OFFSET;
     sizeColumn->columnReadWriter->readCompressedValueToPage(transaction, sizeState,
         offsetInNodeGroup, reinterpret_cast<uint8_t*>(&value), 0, sizeColumn->readToPageFunc);
     return value;

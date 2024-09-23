@@ -85,7 +85,7 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
     offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    string_index_t index;
+    string_index_t index = 0;
     indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
         offsetInChunk + 1, reinterpret_cast<uint8_t*>(&index));
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan(1);
@@ -174,7 +174,7 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& stat
         if (!resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             const auto offsetInGroup = startOffsetInChunk + pos;
-            string_index_t index;
+            string_index_t index = 0;
             indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX),
                 offsetInGroup, offsetInGroup + 1, reinterpret_cast<uint8_t*>(&index));
             offsetsToScan.emplace_back(index, pos);

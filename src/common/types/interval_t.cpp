@@ -106,19 +106,19 @@ void Interval::addition(interval_t& result, uint64_t number, std::string specifi
 template<class T>
 T intervalTryCastInteger(int64_t input) {
     if (std::is_same<T, int8_t>()) {
-        int8_t result;
+        int8_t result = 0;
         function::CastToInt8::operation<int64_t>(input, result);
         return result;
     } else if (std::is_same<T, int16_t>()) {
-        int16_t result;
+        int16_t result = 0;
         function::CastToInt16::operation<int64_t>(input, result);
         return result;
     } else if (std::is_same<T, int32_t>()) {
-        int32_t result;
+        int32_t result = 0;
         function::CastToInt32::operation<int64_t>(input, result);
         return result;
     } else if (std::is_same<T, int64_t>()) {
-        int64_t result;
+        int64_t result = 0;
         function::CastToInt64::operation<int64_t>(input, result);
         return result;
     } else {
@@ -128,7 +128,7 @@ T intervalTryCastInteger(int64_t input) {
 
 template<class T>
 void intervalTryAddition(T& target, int64_t input, int64_t multiplier, int64_t fraction = 0) {
-    int64_t addition;
+    int64_t addition = 0;
     try {
         function::Multiply::operation(input, multiplier, addition);
     } catch (const OverflowException& e) {
@@ -156,12 +156,12 @@ void intervalTryAddition(T& target, int64_t input, int64_t multiplier, int64_t f
 interval_t Interval::fromCString(const char* str, uint64_t len) {
     interval_t result;
     uint64_t pos = 0;
-    uint64_t startPos;
+    uint64_t startPos = 0;
     bool foundAny = false;
     int64_t number = 0;
     int64_t fraction = 0;
-    DatePartSpecifier specifier;
-    std::string specifierStr;
+    DatePartSpecifier specifier{};
+    std::string specifierStr{};
 
     result.days = 0;
     result.micros = 0;
@@ -223,7 +223,7 @@ interval_parse_number:
 interval_parse_time: {
     // parse the remainder of the time as a Time type
     dtime_t time;
-    uint64_t tmpPos;
+    uint64_t tmpPos = 0;
     if (!Time::tryConvertInterval(str + startPos, len - startPos, tmpPos, time)) {
         throw ConversionException("Error occurred during parsing time. Given: \"" +
                                   std::string(str + startPos, len - startPos) + "\".");
@@ -353,8 +353,8 @@ void Interval::normalizeIntervalEntries(interval_t input, int64_t& months, int64
 }
 
 bool Interval::greaterThan(const interval_t& left, const interval_t& right) {
-    int64_t lMonths, lDays, lMicros;
-    int64_t rMonths, rDays, rMicros;
+    int64_t lMonths = 0, lDays = 0, lMicros = 0;
+    int64_t rMonths = 0, rDays = 0, rMicros = 0;
     normalizeIntervalEntries(left, lMonths, lDays, lMicros);
     normalizeIntervalEntries(right, rMonths, rDays, rMicros);
     if (lMonths > rMonths) {

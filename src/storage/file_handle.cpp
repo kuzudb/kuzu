@@ -30,7 +30,7 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm
 
 void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFileSystem* vfs,
     main::ClientContext* context) {
-    int openFlags;
+    int openFlags = 0;
     if (isReadOnlyFile()) {
         openFlags = FileFlags::READ_ONLY;
     } else {

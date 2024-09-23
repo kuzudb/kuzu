@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace common {
 
-ku_string_t::ku_string_t(const char* value, uint64_t length) : len(length) {
+ku_string_t::ku_string_t(const char* value, uint64_t length) : len(length), prefix{} {
     if (isShortString(length)) {
         memcpy(prefix, value, length);
         return;

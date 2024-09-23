@@ -32,9 +32,9 @@ struct BoundExtraCreateCatalogEntryInfo {
 };
 
 struct BoundCreateTableInfo {
-    common::TableType type;
+    common::TableType type{};
     std::string tableName;
-    common::ConflictAction onConflict;
+    common::ConflictAction onConflict = common::ConflictAction::INVALID;
     bool hasParent = false;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 

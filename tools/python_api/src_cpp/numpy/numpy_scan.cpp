@@ -59,7 +59,7 @@ static void appendPythonUnicode(T* codepoints, uint64_t codepointLength,
     // utf8proc_codepoint_to_utf8 requires that:
     // 1. codePointLen must be an int.
     // 2. dataToWrite must be a char*.
-    int codePointLen;
+    int codePointLen = 0;
     auto dataToWrite = (char*)strToAppend.getData();
     for (auto i = 0u; i < codepointLength; i++) {
         utf8proc::Utf8Proc::codepointToUtf8(int(codepoints[i]), codePointLen, dataToWrite);

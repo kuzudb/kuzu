@@ -2,8 +2,6 @@
 
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/runtime.h"
-#include "common/types/value/node.h"
-#include "common/types/value/rel.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
 
@@ -13,13 +11,12 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-QueryResult::QueryResult() = default;
+QueryResult::QueryResult() : nextQueryResult{nullptr}, queryResultIterator{this} {}
 
-QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
+QueryResult::QueryResult(const PreparedSummary& preparedSummary)
+    : nextQueryResult{nullptr}, queryResultIterator{this} {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
-    nextQueryResult = nullptr;
-    queryResultIterator = QueryResultIterator{this};
 }
 
 QueryResult::~QueryResult() = default;

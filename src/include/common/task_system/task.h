@@ -86,15 +86,15 @@ private:
     }
 
 public:
-    Task* parent = nullptr;
+    Task* parent;
     std::vector<std::shared_ptr<Task>>
         children; // Dependency tasks that needs to be executed first.
 
 protected:
     std::mutex taskMtx;
     std::condition_variable cv;
-    uint64_t maxNumThreads, numThreadsFinished{0}, numThreadsRegistered{0};
-    std::exception_ptr exceptionsPtr = nullptr;
+    uint64_t maxNumThreads, numThreadsFinished, numThreadsRegistered;
+    std::exception_ptr exceptionsPtr;
     uint64_t ID;
 };
 

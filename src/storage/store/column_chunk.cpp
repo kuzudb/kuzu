@@ -209,7 +209,7 @@ void ColumnChunk::serialize(Serializer& serializer) const {
 std::unique_ptr<ColumnChunk> ColumnChunk::deserialize(MemoryManager& memoryManager,
     Deserializer& deSer) {
     std::string key;
-    bool enableCompression;
+    bool enableCompression = false;
     deSer.validateDebuggingInfo(key, "enable_compression");
     deSer.deserializeValue<bool>(enableCompression);
     auto data = ColumnChunkData::deserialize(memoryManager, deSer);

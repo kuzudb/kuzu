@@ -66,7 +66,7 @@ std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catal
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
     main::ClientContext* context) {
     std::string key;
-    table_id_t tableID;
+    table_id_t tableID = INVALID_TABLE_ID;
     deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
     const auto catalogEntry = catalog.getTableCatalogEntry(&DUMMY_TRANSACTION, tableID);
@@ -141,7 +141,7 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     const auto pkVector = propertyVectors[pkColumnID];
     KU_ASSERT(pkVector->state->getSelVector().getSelSize() == 1);
     const auto pkVectorPos = pkVector->state->getSelVector()[0];
-    offset_t offset;
+    offset_t offset = INVALID_OFFSET;
     if (pkIndex->lookup(transaction, propertyVectors[pkColumnID], pkVectorPos, offset,
             [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
         return offset;
@@ -155,7 +155,7 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
 }
 
 void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector* pkVector) {
-    offset_t dummyOffset;
+    offset_t dummyOffset = INVALID_OFFSET;
     auto& selVector = pkVector->state->getSelVector();
     KU_ASSERT(selVector.getSelSize() == 1);
     if (pkVector->isNull(selVector[0])) {
@@ -239,7 +239,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {
         return false;
     }
-    bool isDeleted;
+    bool isDeleted = false;
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,

@@ -41,7 +41,7 @@ PythonObjectType getPythonObjectType(py::handle& ele) {
 }
 
 void tryTransformPythonNumeric(common::ValueVector* outputVector, uint64_t pos, py::handle ele) {
-    int overflow;
+    int overflow = 0;
     int64_t value = PyLong_AsLongLongAndOverflow(ele.ptr(), &overflow);
     if (overflow != 0) {
         PyErr_Clear();
@@ -113,7 +113,7 @@ void transformPythonValue(common::ValueVector* outputVector, uint64_t pos, py::h
     } break;
     case PythonObjectType::UUID: {
         outputVector->setNull(pos, false /* isNull */);
-        int128_t result;
+        int128_t result = 0;
         UUID::fromString(ele.attr("hex").cast<std::string>(), result);
         outputVector->setValue(pos, result);
     } break;

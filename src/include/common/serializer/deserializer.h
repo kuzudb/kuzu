@@ -31,7 +31,7 @@ public:
 
     template<typename T>
     void deserializeOptionalValue(std::unique_ptr<T>& value) {
-        bool isNull;
+        bool isNull = false;
         deserializeValue(isNull);
         if (!isNull) {
             value = T::deserialize(*this);
@@ -40,7 +40,7 @@ public:
 
     template<typename T1, typename T2>
     void deserializeUnorderedMap(std::unordered_map<T1, std::unique_ptr<T2>>& values) {
-        uint64_t mapSize;
+        uint64_t mapSize = 0;
         deserializeValue<uint64_t>(mapSize);
         values.reserve(mapSize);
         for (auto i = 0u; i < mapSize; i++) {
@@ -53,7 +53,7 @@ public:
 
     template<typename T>
     void deserializeVector(std::vector<T>& values) {
-        uint64_t vectorSize;
+        uint64_t vectorSize = 0;
         deserializeValue(vectorSize);
         values.resize(vectorSize);
         for (auto& value : values) {
@@ -79,7 +79,7 @@ public:
 
     template<typename T>
     void deserializeVectorOfPtrs(std::vector<std::unique_ptr<T>>& values) {
-        uint64_t vectorSize;
+        uint64_t vectorSize = 0;
         deserializeValue(vectorSize);
         values.resize(vectorSize);
         for (auto i = 0u; i < vectorSize; i++) {
@@ -90,7 +90,7 @@ public:
     template<typename T>
     void deserializeVectorOfPtrs(std::vector<std::unique_ptr<T>>& values,
         std::function<std::unique_ptr<T>(Deserializer&)> deserializeFunc) {
-        uint64_t vectorSize;
+        uint64_t vectorSize = 0;
         deserializeValue(vectorSize);
         values.resize(vectorSize);
         for (auto i = 0u; i < vectorSize; i++) {
@@ -100,7 +100,7 @@ public:
 
     template<typename T>
     void deserializeUnorderedSet(std::unordered_set<T>& values) {
-        uint64_t setSize;
+        uint64_t setSize = 0;
         deserializeValue(setSize);
         for (auto i = 0u; i < setSize; i++) {
             T value;

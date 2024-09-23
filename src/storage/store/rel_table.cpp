@@ -97,8 +97,8 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem*,
     main::ClientContext*) {
     std::string key;
-    table_id_t tableID;
-    offset_t nextRelOffset;
+    table_id_t tableID = INVALID_TABLE_ID;
+    offset_t nextRelOffset = INVALID_OFFSET;
     deSer.validateDebuggingInfo(key, "table_id");
     deSer.deserializeValue<table_id_t>(tableID);
     deSer.validateDebuggingInfo(key, "next_rel_offset");
@@ -118,10 +118,8 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
     auto& relScanState = scanState.cast<RelTableScanState>();
     relScanState.boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(
         relScanState.nodeIDVector->state->getSelVector()[0]);
-    NodeGroup* nodeGroup;
-    if (relScanState.boundNodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
-        nodeGroup = nullptr;
-    } else {
+    NodeGroup* nodeGroup = nullptr;
+    if (relScanState.boundNodeOffset < StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         // Check if the node group idx is same as previous scan.
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
         if (relScanState.nodeGroupIdx != nodeGroupIdx) {
@@ -194,7 +192,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     const auto& relDeleteState = deleteState.cast<RelTableDeleteState>();
     KU_ASSERT(relDeleteState.relIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDPos = relDeleteState.relIDVector.state->getSelVector()[0];
-    bool isDeleted;
+    bool isDeleted = false;
     if (const auto relOffset = relDeleteState.relIDVector.readNodeOffset(relIDPos);
         relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,

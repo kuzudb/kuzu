@@ -211,11 +211,10 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     auto& createSequence = statement.constCast<CreateSequence>();
     auto info = createSequence.getInfo();
     auto sequenceName = info.sequenceName;
-    int64_t startWith;
-    int64_t increment;
-    int64_t minValue;
-    int64_t maxValue;
-    ku_string_t literal;
+    int64_t startWith = 0;
+    int64_t increment = 0;
+    int64_t minValue = 0;
+    int64_t maxValue = 0;
     switch (info.onConflict) {
     case common::ConflictAction::ON_CONFLICT_THROW: {
         if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
@@ -225,7 +224,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     default:
         break;
     }
-    literal = ku_string_t{info.increment.c_str(), info.increment.length()};
+    auto literal = ku_string_t{info.increment.c_str(), info.increment.length()};
     if (!function::CastString::tryCast(literal, increment)) {
         throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
     }

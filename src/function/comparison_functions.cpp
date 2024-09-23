@@ -179,7 +179,7 @@ void GreaterThan::operation(const list_entry_t& left, const list_entry_t& right,
     auto leftDataVector = ListVector::getDataVector(leftVector);
     auto rightDataVector = ListVector::getDataVector(rightVector);
     auto commonLength = std::min(left.size, right.size);
-    uint8_t isEqual;
+    uint8_t isEqual = 0;
     for (auto i = 0u; i < commonLength; i++) {
         auto leftPos = left.offset + i;
         auto rightPos = right.offset + i;
@@ -195,11 +195,10 @@ void GreaterThan::operation(const list_entry_t& left, const list_entry_t& right,
 template<>
 void GreaterThan::operation(const struct_entry_t& left, const struct_entry_t& right,
     uint8_t& result, ValueVector* leftVector, ValueVector* rightVector) {
-    // TODO(Xiyang): There is a bug with casting NULL from STRING, ref #2356
-    // KU_ASSERT(leftVector->dataType == rightVector->dataType);
+    KU_ASSERT(leftVector->dataType == rightVector->dataType);
     auto leftFields = StructVector::getFieldVectors(leftVector);
     auto rightFields = StructVector::getFieldVectors(rightVector);
-    uint8_t isEqual;
+    uint8_t isEqual = 0;
     for (auto i = 0u; i < leftFields.size(); i++) {
         auto leftField = leftFields[i].get();
         auto rightField = rightFields[i].get();

@@ -36,7 +36,7 @@ private:
 struct ParallelCSVLocalState final : public function::TableFuncLocalState {
     std::unique_ptr<ParallelCSVReader> reader;
     std::unique_ptr<LocalCSVFileErrorHandler> errorHandler;
-    common::idx_t fileIdx;
+    common::idx_t fileIdx = common::INVALID_IDX;
 };
 
 struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {

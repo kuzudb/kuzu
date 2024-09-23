@@ -20,7 +20,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     auto key = literalExpr->getValue().getValue<std::string>();
     const auto& listType = input.arguments[0]->getDataType();
     const auto& childType = ListType::getChildType(listType);
-    struct_field_idx_t fieldIdx;
+    struct_field_idx_t fieldIdx = 0;
     if (childType.getLogicalTypeID() == LogicalTypeID::NODE ||
         childType.getLogicalTypeID() == LogicalTypeID::REL) {
         fieldIdx = StructType::getFieldIdx(childType, key);

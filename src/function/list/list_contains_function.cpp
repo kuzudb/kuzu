@@ -15,7 +15,7 @@ struct ListContains {
     static void operation(common::list_entry_t& list, T& element, uint8_t& result,
         common::ValueVector& listVector, common::ValueVector& elementVector,
         common::ValueVector& resultVector) {
-        int64_t pos;
+        int64_t pos = 0;
         ListPosition::operation(list, element, pos, listVector, elementVector, resultVector);
         result = (pos != 0);
     }

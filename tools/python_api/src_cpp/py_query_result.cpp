@@ -84,7 +84,7 @@ void PyQueryResult::close() {
 }
 
 static py::object converTimestampToPyObject(timestamp_t& timestamp) {
-    int32_t year, month, day, hour, min, sec, micros;
+    int32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, micros = 0;
     date_t date;
     dtime_t time;
     Timestamp::convert(timestamp, date, time);
@@ -139,7 +139,7 @@ py::object convertRdfVariantToPyObject(const Value& value) {
     }
     case LogicalTypeID::DATE: {
         auto dateVal = RdfVariant::getValue<date_t>(&value);
-        int32_t year, month, day;
+        int32_t year = 0, month = 0, day = 0;
         Date::convert(dateVal, year, month, day);
         return py::cast<py::object>(PyDate_FromDate(year, month, day));
     }
@@ -227,7 +227,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
-        int32_t year, month, day;
+        int32_t year = 0, month = 0, day = 0;
         Date::convert(dateVal, year, month, day);
         return py::cast<py::object>(PyDate_FromDate(year, month, day));
     }
@@ -237,7 +237,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::TIMESTAMP_TZ: {
         auto timestampVal = value.getValue<timestamp_tz_t>();
-        int32_t year, month, day, hour, min, sec, micros;
+        int32_t year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, micros = 0;
         date_t date;
         dtime_t time;
         Timestamp::convert(timestampVal, date, time);
@@ -359,7 +359,7 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<kuzu::common::LogicalTyp
     if (!queryResult->hasNext()) {
         return false;
     }
-    ArrowArray data;
+    ArrowArray data{};
     ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
 
     auto batchImportFunc = importCache->pyarrow.lib.RecordBatch._import_from_c();

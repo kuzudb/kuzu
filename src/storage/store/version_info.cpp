@@ -117,7 +117,7 @@ bool VectorVersionInfo::isDeleted(const transaction_t startTS, const transaction
         return false;
     }
     case DeletionStatus::CHECK_VERSION: {
-        transaction_t deletion;
+        transaction_t deletion = INVALID_TRANSACTION;
         if (isSameDeletionVersion()) {
             deletion = sameDeletionVersion;
         } else {
@@ -144,7 +144,7 @@ bool VectorVersionInfo::isInserted(const transaction_t startTS, const transactio
         return false;
     }
     case InsertionStatus::CHECK_VERSION: {
-        transaction_t insertion;
+        transaction_t insertion = INVALID_TRANSACTION;
         if (isSameInsertionVersion()) {
             insertion = sameInsertionVersion;
         } else {
@@ -282,26 +282,20 @@ void VectorVersionInfo::serialize(Serializer& serializer) const {
 
 std::unique_ptr<VectorVersionInfo> VectorVersionInfo::deSerialize(Deserializer& deSer) {
     std::string key;
-    InsertionStatus insertionStatus;
-    DeletionStatus deletionStatus;
-    transaction_t sameDeletionVersion;
-    deSer.validateDebuggingInfo(key, "insertion_status");
-    deSer.deserializeValue<InsertionStatus>(insertionStatus);
-    KU_ASSERT(insertionStatus == InsertionStatus::NO_INSERTED ||
-              insertionStatus == InsertionStatus::ALWAYS_INSERTED);
-    deSer.validateDebuggingInfo(key, "deletion_status");
-    deSer.deserializeValue<DeletionStatus>(deletionStatus);
     auto vectorVersionInfo = std::make_unique<VectorVersionInfo>();
-    vectorVersionInfo->insertionStatus = insertionStatus;
-    vectorVersionInfo->deletionStatus = deletionStatus;
+    deSer.validateDebuggingInfo(key, "insertion_status");
+    deSer.deserializeValue<InsertionStatus>(vectorVersionInfo->insertionStatus);
+    KU_ASSERT(vectorVersionInfo->insertionStatus == InsertionStatus::NO_INSERTED ||
+              vectorVersionInfo->insertionStatus == InsertionStatus::ALWAYS_INSERTED);
+    deSer.validateDebuggingInfo(key, "deletion_status");
+    deSer.deserializeValue<DeletionStatus>(vectorVersionInfo->deletionStatus);
     switch (vectorVersionInfo->deletionStatus) {
     case DeletionStatus::NO_DELETED: {
         // Nothing to deserialize.
     } break;
     case DeletionStatus::CHECK_VERSION: {
         deSer.validateDebuggingInfo(key, "same_deletion_version");
-        deSer.deserializeValue<transaction_t>(sameDeletionVersion);
-        vectorVersionInfo->sameDeletionVersion = sameDeletionVersion;
+        deSer.deserializeValue<transaction_t>(vectorVersionInfo->sameDeletionVersion);
         if (vectorVersionInfo->sameDeletionVersion == INVALID_TRANSACTION) {
             deSer.validateDebuggingInfo(key, "deleted_versions");
             vectorVersionInfo->initDeletionVersionArray();
@@ -599,12 +593,12 @@ void VersionInfo::serialize(Serializer& serializer) const {
 
 std::unique_ptr<VersionInfo> VersionInfo::deserialize(Deserializer& deSer) {
     std::string key;
-    uint64_t vectorSize;
+    uint64_t vectorSize = 0;
     deSer.validateDebuggingInfo(key, "vectors_info_size");
     deSer.deserializeValue<uint64_t>(vectorSize);
     auto versionInfo = std::make_unique<VersionInfo>();
     for (auto i = 0u; i < vectorSize; i++) {
-        bool hasVectorVersion;
+        bool hasVectorVersion = false;
         deSer.validateDebuggingInfo(key, "has_vector_info");
         deSer.deserializeValue<bool>(hasVectorVersion);
         if (hasVectorVersion) {

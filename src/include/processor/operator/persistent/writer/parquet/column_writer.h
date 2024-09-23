@@ -29,8 +29,8 @@ struct PageWriteInformation {
     uint64_t writePageIdx = 0;
     uint64_t writeCount = 0;
     uint64_t maxWriteCount = 0;
-    size_t compressedSize;
-    uint8_t* compressedData;
+    size_t compressedSize = 0;
+    uint8_t* compressedData = nullptr;
     std::unique_ptr<uint8_t[]> compressedBuf;
 };
 

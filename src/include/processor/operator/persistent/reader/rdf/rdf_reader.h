@@ -31,7 +31,8 @@ protected:
         common::FileType fileType, RdfStore* store_, const common::offset_t startOffset)
         : store_{store_}, cursor{0}, startOffset{startOffset}, numLiteralTriplesScanned{0},
           rdfConfig{std::move(rdfConfig)}, fileIdx{fileIdx}, filePath{std::move(filePath)},
-          fileType{fileType}, reader{nullptr}, status{SERD_SUCCESS} {}
+          fileType{fileType}, fp{nullptr}, reader{nullptr}, hasBaseUri{false}, env{nullptr},
+          status{SERD_SUCCESS} {}
 
     void initInternal(SerdStatementSink statementHandle);
 
@@ -45,7 +46,7 @@ public:
     RdfStore* store_;
 
 protected:
-    uint64_t cursor = 0;
+    uint64_t cursor;
     // We use row offset as the primary key for rdf literal. During rel table insertion, we use row
     // offset directly and save the primary key look up. To do so, we need to record how many
     // literal triples have been scanned from previous files (startOffset) and in current file
@@ -61,7 +62,7 @@ private:
 
     FILE* fp;
     SerdReader* reader;
-    bool hasBaseUri = false;
+    bool hasBaseUri;
     SerdEnv* env;
 
     SerdStatus status;

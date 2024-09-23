@@ -195,8 +195,8 @@ public:
 private:
     std::mutex mtx;
 
-    storage::MemoryManager* memoryManager;
-    std::queue<std::shared_ptr<MergedKeyBlocks>>* sortedKeyBlocks;
+    storage::MemoryManager* memoryManager = nullptr;
+    std::queue<std::shared_ptr<MergedKeyBlocks>>* sortedKeyBlocks = nullptr;
     std::vector<std::shared_ptr<KeyBlockMergeTask>> activeKeyBlockMergeTasks;
     std::unique_ptr<KeyBlockMerger> keyBlockMerger;
 };

@@ -101,8 +101,9 @@ struct JSONScanLocalState : public TableFuncLocalState {
     storage::MemoryManager& mm;
 
     JSONScanLocalState(storage::MemoryManager& mm, BufferedJsonReader* reader)
-        : currentReader{reader}, reconstructBuffer{mm.allocateBuffer(false /* initializeToZero */,
-                                     JsonConstant::SCAN_BUFFER_CAPACITY)},
+        : values{}, currentReader{reader},
+          reconstructBuffer{
+              mm.allocateBuffer(false /* initializeToZero */, JsonConstant::SCAN_BUFFER_CAPACITY)},
           mm{mm} {}
 
     uint64_t readNext();
@@ -127,8 +128,8 @@ bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone)
     auto fileHandle = currentReader->getFileHandle();
     auto requestSize =
         JsonConstant::SCAN_BUFFER_CAPACITY - prevBufferRemainder - YYJSON_PADDING_SIZE;
-    uint64_t readPosition;
-    uint64_t readSize;
+    uint64_t readPosition = 0;
+    uint64_t readSize = 0;
     {
         std::lock_guard<std::mutex> mtx(currentReader->lock);
         if (fileHandle->isLastReadRequested()) {
@@ -245,7 +246,7 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size) {
 }
 
 void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining) {
-    yyjson_doc* doc;
+    yyjson_doc* doc = nullptr;
     yyjson_read_err err;
     doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG, &err);
     if (err.code != YYJSON_READ_SUCCESS) {
@@ -396,7 +397,7 @@ bool JSONScanLocalState::readNextBuffer() {
         memcpy(bufferPtr, reconstructBuffer->getData(), prevBufferRemainder);
     }
 
-    uint64_t bufferIdx;
+    uint64_t bufferIdx = 0;
     while (true) {
         if (currentReader) {
             bool doneRead = false;
@@ -560,7 +561,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
             break;
         }
         auto next = std::min<uint64_t>(numTuplesRead, numRowsToDetect);
-        yyjson_val *key, *ele;
+        yyjson_val *key = nullptr, *ele = nullptr;
         for (auto i = 0u; i < next; i++) {
             const auto& val = localState.values[i];
             auto objIter = yyjson_obj_iter_with(val);
@@ -575,7 +576,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
                         fieldName = match[1];
                     }
                 }
-                idx_t colIdx;
+                idx_t colIdx = 0;
                 if (colNameToIdx.contains(fieldName)) {
                     colIdx = colNameToIdx.at(fieldName);
                     types[colIdx] = LogicalTypeUtils::combineTypes(types[colIdx],
@@ -645,7 +646,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     }
     auto count = localState->readNext();
     yyjson_val** values = localState->values;
-    yyjson_val *key, *ele;
+    yyjson_val *key = nullptr, *ele = nullptr;
     for (auto i = 0u; i < count; i++) {
         auto objIter = yyjson_obj_iter_with(values[i]);
         while ((key = yyjson_obj_iter_next(&objIter))) {

@@ -29,8 +29,8 @@ uint32_t StringColumnReader::verifyString(const char* strData, uint32_t strLen,
     }
     // verify if a string is actually UTF8, and if there are no null bytes in the middle of the
     // string technically Parquet should guarantee this, but reality is often disappointing
-    utf8proc::UnicodeInvalidReason reason;
-    size_t pos;
+    auto reason = utf8proc::UnicodeInvalidReason::INVALID_UNICODE;
+    size_t pos = 0;
     auto utf_type = utf8proc::Utf8Proc::analyze(strData, strLen, &reason, &pos);
     if (utf_type == utf8proc::UnicodeType::INVALID) {
         throw common::CopyException{
@@ -51,14 +51,7 @@ void StringColumnReader::dictionary(const std::shared_ptr<ResizeableBuffer>& dat
     dict = data;
     dictStrs = std::unique_ptr<common::ku_string_t[]>(new common::ku_string_t[numEntries]);
     for (auto dictIdx = 0u; dictIdx < numEntries; dictIdx++) {
-        uint32_t strLen;
-        if (fixedWidthStringLength == 0) {
-            // variable length string: read from dictionary
-            strLen = dict->read<uint32_t>();
-        } else {
-            // fixed length string
-            strLen = fixedWidthStringLength;
-        }
+        auto strLen = fixedWidthStringLength == 0 ? dict->read<uint32_t>() : fixedWidthStringLength;
         dict->available(strLen);
 
         auto dict_str = reinterpret_cast<const char*>(dict->ptr);

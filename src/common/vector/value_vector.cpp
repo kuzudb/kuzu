@@ -380,11 +380,11 @@ std::unique_ptr<ValueVector> ValueVector::deSerialize(Deserializer& deSer,
     auto result = std::make_unique<ValueVector>(std::move(dataType), mm);
     result->state = dataChunkState;
     deSer.validateDebuggingInfo(key, "num_values");
-    sel_t numValues;
+    sel_t numValues = 0;
     deSer.deserializeValue<sel_t>(numValues);
     result->state->getSelVectorUnsafe().setSelSize(numValues);
     KU_ASSERT(result->state->getSelVector().isUnfiltered());
-    bool isNull;
+    bool isNull = false;
     for (auto i = 0u; i < numValues; i++) {
         deSer.deserializeValue<bool>(isNull);
         result->setNull(i, isNull);

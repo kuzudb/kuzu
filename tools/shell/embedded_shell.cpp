@@ -301,14 +301,14 @@ void EmbeddedShell::printErrorMessage(std::string input, QueryResult& queryResul
 }
 
 void EmbeddedShell::run() {
-    char* line;
+    char* line = nullptr;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
     continueLine = false;
     currLine = "";
 
 #ifndef _WIN32
-    struct termios raw;
+    termios raw{};
     if (isatty(STDIN_FILENO)) {
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
             errno = ENOTTY;

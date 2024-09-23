@@ -14,7 +14,7 @@ struct Equals {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-        uint8_t result;
+        uint8_t result = 0;
         operation<T>(left, right, result, nullptr, nullptr);
         return result;
     }
@@ -30,7 +30,7 @@ struct NotEquals {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-        uint8_t result;
+        uint8_t result = 0;
         operation<T>(left, right, result, nullptr, nullptr);
         return result;
     }
@@ -45,7 +45,7 @@ struct GreaterThan {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-        uint8_t result;
+        uint8_t result = 0;
         operation<T>(left, right, result, nullptr, nullptr);
         return result;
     }
@@ -55,8 +55,8 @@ struct GreaterThanEquals {
     template<class A, class B>
     static inline void operation(const A& left, const B& right, uint8_t& result,
         common::ValueVector* leftVector, common::ValueVector* rightVector) {
-        uint8_t isGreater;
-        uint8_t isEqual;
+        uint8_t isGreater = 0;
+        uint8_t isEqual = 0;
         GreaterThan::operation(left, right, isGreater, leftVector, rightVector);
         Equals::operation(left, right, isEqual, leftVector, rightVector);
         result = isGreater || isEqual;
@@ -64,7 +64,7 @@ struct GreaterThanEquals {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-        uint8_t result;
+        uint8_t result = 0;
         operation<T>(left, right, result, nullptr, nullptr);
         return result;
     }
@@ -80,7 +80,7 @@ struct LessThan {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-        uint8_t result;
+        uint8_t result = 0;
         operation<T>(left, right, result, nullptr, nullptr);
         return result;
     }
@@ -96,7 +96,7 @@ struct LessThanEquals {
 
     template<class T>
     static bool operation(const T& left, const T& right) {
-        uint8_t result;
+        uint8_t result = 0;
         operation<T>(left, right, result, nullptr, nullptr);
         return result;
     }

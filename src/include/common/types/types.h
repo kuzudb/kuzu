@@ -425,7 +425,7 @@ protected:
 
 class ArrayTypeInfo final : public ListTypeInfo {
 public:
-    ArrayTypeInfo() = default;
+    ArrayTypeInfo() : numElements{0} {};
     explicit ArrayTypeInfo(LogicalType childType, uint64_t numElements)
         : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
 

@@ -24,7 +24,7 @@ void execQuantifierFunc(quantifier_handler handler,
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
     auto& listInputSelVector = input[0]->state->getSelVector();
-    uint64_t numSelectedValues;
+    uint64_t numSelectedValues = 0;
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
         numSelectedValues = 0;
         auto srcListEntry = inputVector->getValue<list_entry_t>(listInputSelVector[i]);

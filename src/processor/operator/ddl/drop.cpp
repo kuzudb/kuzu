@@ -10,7 +10,7 @@ namespace kuzu {
 namespace processor {
 
 bool isValidEntry(parser::DropInfo& dropInfo, main::ClientContext* context) {
-    bool validEntry;
+    bool validEntry = false;
     switch (dropInfo.dropType) {
     case common::DropType::SEQUENCE: {
         validEntry = context->getCatalog()->containsSequence(context->getTx(), dropInfo.name);

@@ -60,7 +60,7 @@ bool NullMask::copyUnaligned(const uint64_t* srcNullEntries, uint64_t srcOffset,
     while (bitPos < numBitsToCopy) {
         auto curDstNullEntryPos = dstNullEntryPos;
         auto curDstNullBitPos = dstNullBitPos;
-        uint64_t numBitsToReadInCurrentEntry;
+        uint64_t numBitsToReadInCurrentEntry = 0;
         uint64_t srcNullMaskEntry =
             invert ? ~srcNullEntries[srcNullEntryPos] : srcNullEntries[srcNullEntryPos];
         if (dstNullBitPos < srcNullBitPos) {
@@ -193,7 +193,7 @@ void NullMask::operator|=(const NullMask& other) {
 }
 
 std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t numValues) {
-    bool min, max;
+    bool min = false, max = false;
     auto firstWord = *nullEntries;
     if (numValues >= 64) {
         if (firstWord == 0) {

@@ -34,35 +34,35 @@ void RdfUtils::addRdfLiteral(ValueVector* vector, uint32_t pos, const std::strin
     auto resolveAsString = true;
     switch (targetTypeID) {
     case LogicalTypeID::INT64: {
-        int64_t result;
+        int64_t result = 0;
         if (function::trySimpleIntegerCast(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;
         }
     } break;
     case LogicalTypeID::UINT64: {
-        uint64_t result;
+        uint64_t result = 0;
         if (function::trySimpleIntegerCast(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;
         }
     } break;
     case LogicalTypeID::DOUBLE: {
-        double result;
+        double result = 0;
         if (function::tryDoubleCast(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;
         }
     } break;
     case LogicalTypeID::FLOAT: {
-        float result;
+        float result = 0;
         if (function::tryDoubleCast(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;
         }
     } break;
     case LogicalTypeID::BOOL: {
-        bool result;
+        bool result = false;
         if (function::tryCastToBool(str.data(), str.size(), result)) {
             RdfVariantVector::add(vector, pos, result);
             resolveAsString = false;

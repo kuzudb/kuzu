@@ -19,7 +19,7 @@ void kuzu_flat_tuple_destroy(kuzu_flat_tuple* flat_tuple) {
 kuzu_state kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t index,
     kuzu_value* out_value) {
     auto flat_tuple_ptr = static_cast<FlatTuple*>(flat_tuple->_flat_tuple);
-    Value* _value;
+    Value* _value = nullptr;
     try {
         _value = flat_tuple_ptr->getValue(index);
     } catch (Exception& e) {

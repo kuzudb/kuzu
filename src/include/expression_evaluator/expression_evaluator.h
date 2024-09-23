@@ -7,8 +7,8 @@ namespace kuzu {
 namespace evaluator {
 
 struct EvaluatorLocalState {
-    main::ClientContext* clientContext;
-    uint64_t count;
+    main::ClientContext* clientContext = nullptr;
+    uint64_t count = 0;
 };
 
 enum class EvaluatorType : uint8_t {

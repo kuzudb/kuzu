@@ -12,9 +12,9 @@ struct S3AuthParams {
 };
 
 struct S3UploadParams {
-    uint64_t maxFileSize;
-    uint64_t maxNumPartsPerFile;
-    uint64_t maxUploadThreads;
+    uint64_t maxFileSize = 0;
+    uint64_t maxNumPartsPerFile = 0;
+    uint64_t maxUploadThreads = 0;
 };
 
 struct AWSEnvironmentCredentialsProvider {

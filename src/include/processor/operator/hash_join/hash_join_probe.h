@@ -73,7 +73,7 @@ public:
         : PhysicalOperator{type_, std::move(probeChild), std::move(buildChild), id,
               std::move(printInfo)},
           sharedState{std::move(sharedState)}, joinType{joinType}, flatProbe{flatProbe},
-          probeDataInfo{probeDataInfo} {}
+          probeDataInfo{probeDataInfo}, markVector(nullptr) {}
 
     // This constructor is used for cloning only.
     HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
@@ -82,7 +82,7 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(probeChild), id, std::move(printInfo)},
           sharedState{std::move(sharedState)}, joinType{joinType}, flatProbe{flatProbe},
-          probeDataInfo{probeDataInfo} {}
+          probeDataInfo{probeDataInfo}, markVector(nullptr) {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

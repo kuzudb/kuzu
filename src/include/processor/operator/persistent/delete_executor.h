@@ -42,7 +42,7 @@ struct NodeTableDeleteInfo {
         std::unordered_set<storage::RelTable*> fwdRelTables,
         std::unordered_set<storage::RelTable*> bwdRelTables, const DataPos& pkPos)
         : table{table}, fwdRelTables{std::move(fwdRelTables)},
-          bwdRelTables{std::move(bwdRelTables)}, pkPos{pkPos} {};
+          bwdRelTables{std::move(bwdRelTables)}, pkPos{pkPos}, pkVector{nullptr} {};
     EXPLICIT_COPY_DEFAULT_MOVE(NodeTableDeleteInfo);
 
     void init(const ResultSet& resultSet);
@@ -55,7 +55,7 @@ struct NodeTableDeleteInfo {
 private:
     NodeTableDeleteInfo(const NodeTableDeleteInfo& other)
         : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
-          pkPos{other.pkPos} {}
+          pkPos{other.pkPos}, pkVector{nullptr} {}
 };
 
 class NodeDeleteExecutor {

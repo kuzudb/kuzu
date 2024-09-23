@@ -178,7 +178,7 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
 }
 
 OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName)
-    : fileHandle{nullptr}, shadowFile{nullptr}, headerChanged{false} {
+    : numPagesOnDisk{0}, fileHandle{nullptr}, shadowFile{nullptr}, headerChanged{false} {
     const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     // Reserve a page for the header

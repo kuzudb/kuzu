@@ -16,7 +16,7 @@ void HTTPConfigEnvProvider::setOptionValue(main::ClientContext* context) {
     const auto cacheFileOptionStrVal =
         context->getEnvVariable(HTTPCacheFileConfig::HTTP_CACHE_FILE_ENV_VAR);
     if (cacheFileOptionStrVal != "") {
-        bool enableCacheFile;
+        bool enableCacheFile = false;
         function::CastString::operation(
             ku_string_t{cacheFileOptionStrVal.c_str(), cacheFileOptionStrVal.length()},
             enableCacheFile);

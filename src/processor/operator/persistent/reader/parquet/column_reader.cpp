@@ -34,7 +34,8 @@ ColumnReader::ColumnReader(ParquetReader& reader, LogicalType type,
     const kuzu_parquet::format::SchemaElement& schema, idx_t fileIdx, uint64_t maxDefinition,
     uint64_t maxRepeat)
     : schema{schema}, fileIdx{fileIdx}, maxDefine{maxDefinition}, maxRepeat{maxRepeat},
-      reader{reader}, type{std::move(type)}, pageRowsAvailable{0} {}
+      reader{reader}, type{std::move(type)}, protocol(nullptr), pageRowsAvailable{0},
+      groupRowsAvailable(0), chunkReadOffset(0) {}
 
 void ColumnReader::initializeRead(uint64_t /*rowGroupIdx*/,
     const std::vector<kuzu_parquet::format::ColumnChunk>& columns,
@@ -309,7 +310,7 @@ void ColumnReader::allocateCompressed(uint64_t size) {
 static void brotliDecompress(uint8_t* dst, size_t dstSize, const uint8_t* src, size_t srcSize) {
     auto instance = BrotliDecoderCreateInstance(nullptr /* alloc_func */, nullptr /* free_func */,
         nullptr /* opaque */);
-    BrotliDecoderResult oneshotResult;
+    BrotliDecoderResult oneshotResult{};
     do {
         oneshotResult =
             BrotliDecoderDecompressStream(instance, &srcSize, &src, &dstSize, &dst, nullptr);

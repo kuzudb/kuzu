@@ -63,8 +63,8 @@ static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEnt
 }
 
 oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
-    CatalogEntry* entryPtr;
-    oid_t oid;
+    CatalogEntry* entryPtr = nullptr;
+    oid_t oid = INVALID_OID;
     {
         std::lock_guard lck{mtx};
         oid = nextOID++;
@@ -143,7 +143,7 @@ CatalogEntry* CatalogSet::getCommittedEntryNoLock(CatalogEntry* entry) {
 }
 
 void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oid_t oid) {
-    CatalogEntry* entryPtr;
+    CatalogEntry* entryPtr = nullptr;
     {
         std::lock_guard lck{mtx};
         entryPtr = dropEntryNoLock(transaction, name, oid);
@@ -166,7 +166,7 @@ CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const 
 
 void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
     CatalogEntry* createdEntry = nullptr;
-    CatalogEntry* entry;
+    CatalogEntry* entry = nullptr;
     {
         std::lock_guard lck{mtx};
         // LCOV_EXCL_START
@@ -276,7 +276,7 @@ std::unique_ptr<CatalogSet> CatalogSet::deserialize(Deserializer& deserializer) 
     auto catalogSet = std::make_unique<CatalogSet>();
     deserializer.validateDebuggingInfo(debuggingInfo, "nextOID");
     deserializer.deserializeValue<oid_t>(catalogSet->nextOID);
-    uint64_t numEntries;
+    uint64_t numEntries = 0;
     deserializer.validateDebuggingInfo(debuggingInfo, "numEntries");
     deserializer.deserializeValue<uint64_t>(numEntries);
     for (uint64_t i = 0; i < numEntries; i++) {

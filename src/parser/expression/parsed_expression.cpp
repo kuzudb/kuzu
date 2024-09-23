@@ -38,7 +38,7 @@ void ParsedExpression::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& deserializer) {
-    ExpressionType type;
+    auto type = ExpressionType::INVALID;
     std::string alias;
     std::string rawName;
     parsed_expr_vector children;

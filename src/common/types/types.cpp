@@ -297,7 +297,7 @@ std::unique_ptr<ExtraTypeInfo> DecimalTypeInfo::copy() const {
 }
 
 std::unique_ptr<ExtraTypeInfo> DecimalTypeInfo::deserialize(Deserializer& deserializer) {
-    uint32_t precision, scale;
+    uint32_t precision = 0, scale = 0;
     deserializer.deserializeValue<uint32_t>(precision);
     deserializer.deserializeValue<uint32_t>(scale);
     return std::make_unique<DecimalTypeInfo>(precision, scale);
@@ -343,7 +343,7 @@ bool ArrayTypeInfo::operator==(const ExtraTypeInfo& other) const {
 
 std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::deserialize(Deserializer& deserializer) {
     auto childType = LogicalType::deserialize(deserializer);
-    uint64_t numElements;
+    uint64_t numElements = 0;
     deserializer.deserializeValue(numElements);
     return std::make_unique<ArrayTypeInfo>(std::move(childType), numElements);
 }
@@ -653,7 +653,7 @@ static LogicalType parseDecimalType(const std::string& trimmedStr);
 bool LogicalType::isBuiltInType(const std::string& str) {
     auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
     auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
-    LogicalTypeID id;
+    auto id = LogicalTypeID::ANY;
     try {
         if (upperDataTypeString.ends_with("[]")) {
             parseListType(trimmedStr);
@@ -716,9 +716,9 @@ void LogicalType::serialize(Serializer& serializer) const {
 }
 
 LogicalType LogicalType::deserialize(Deserializer& deserializer) {
-    LogicalTypeID typeID;
+    auto typeID = LogicalTypeID::ANY;
     deserializer.deserializeValue(typeID);
-    PhysicalTypeID physicalType;
+    auto physicalType = PhysicalTypeID::ANY;
     deserializer.deserializeValue(physicalType);
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
     switch (physicalType) {
@@ -1551,7 +1551,7 @@ static bool tryUnsignedToSigned(const LogicalTypeID& input, LogicalTypeID& resul
 
 static LogicalTypeID joinDifferentSignIntegrals(const LogicalTypeID& signedType,
     const LogicalTypeID& unsignedType) {
-    LogicalTypeID unsignedToSigned;
+    auto unsignedToSigned = LogicalTypeID::ANY;
     if (!tryUnsignedToSigned(unsignedType, unsignedToSigned)) {
         return LogicalTypeID::DOUBLE;
     } else {
@@ -1850,7 +1850,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
             // LCOV_EXCL_END
         }
     }
-    LogicalTypeID resultID;
+    auto resultID = LogicalTypeID::ANY;
     if (!tryGetMaxLogicalTypeID(left.typeID, right.typeID, resultID)) {
         return false;
     }

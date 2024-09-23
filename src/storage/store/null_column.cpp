@@ -19,7 +19,7 @@ struct NullColumnFunc {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
         if (metadata.isConstant()) {
-            bool value;
+            bool value = false;
             ConstantCompression::decompressValues(reinterpret_cast<uint8_t*>(&value), 0 /*offset*/,
                 1 /*numValues*/, PhysicalTypeID::BOOL, 1 /*numBytesPerValue*/, metadata);
             resultVector->setNullRange(posInVector, numValuesToRead, value);

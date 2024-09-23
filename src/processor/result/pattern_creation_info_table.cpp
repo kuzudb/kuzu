@@ -18,7 +18,7 @@ PatternCreationInfoTable::PatternCreationInfoTable(storage::MemoryManager& memor
           std::vector<function::AggregateFunction>{} /* empty aggregates */,
           std::vector<common::LogicalType>{} /* empty distinct agg key*/,
           0 /* numEntriesToAllocate */, tableSchema.copy()},
-      idColOffset{tableSchema.getColOffset(keyTypes.size())} {}
+      tuple{nullptr}, idColOffset{tableSchema.getColOffset(keyTypes.size())} {}
 
 PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
     const std::vector<common::ValueVector*>& keyVectors) {

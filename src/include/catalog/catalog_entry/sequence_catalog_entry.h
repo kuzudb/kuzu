@@ -49,7 +49,7 @@ public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
-    SequenceCatalogEntry() = default;
+    SequenceCatalogEntry() : sequenceData{} {}
     explicit SequenceCatalogEntry(const binder::BoundCreateSequenceInfo& sequenceInfo)
         : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)},
           sequenceData{SequenceData(sequenceInfo)} {}

@@ -26,13 +26,10 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceInfo(const RdfReaderConfig& config,
     auto transaction = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     auto functions = catalog->getFunctions(transaction);
-    Function* func;
-    if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceInMemScan::name,
-            functions);
-    } else {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceScan::name, functions);
-    }
+    Function* func = config.inMemory ? BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfResourceInMemScan::name, functions) :
+                                       BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfResourceScan::name, functions);
     auto scanFunc = func->ptrCast<TableFunction>();
     auto iri = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::IRI);
     auto columns = expression_vector{iri};
@@ -52,13 +49,10 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralInfo(const RdfReaderConfig& config,
     auto transaction = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     auto functions = catalog->getFunctions(transaction);
-    Function* func;
-    if (config.inMemory) {
-        func =
-            BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralInMemScan::name, functions);
-    } else {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralScan::name, functions);
-    }
+    Function* func = config.inMemory ? BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfLiteralInMemScan::name, functions) :
+                                       BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfLiteralScan::name, functions);
     auto scanFunc = func->ptrCast<TableFunction>();
     auto val = expressionBinder.createVariableExpression(LogicalType::RDF_VARIANT(), rdf::VAL);
     auto lang = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::LANG);
@@ -83,14 +77,10 @@ BoundCopyFromInfo Binder::bindCopyRdfResourceTriplesInfo(const RdfReaderConfig& 
     auto transaction = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     auto functions = catalog->getFunctions(transaction);
-    Function* func;
-    if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceTripleInMemScan::name,
-            functions);
-    } else {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfResourceTripleScan::name,
-            functions);
-    }
+    Function* func = config.inMemory ? BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfResourceTripleInMemScan::name, functions) :
+                                       BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfResourceTripleScan::name, functions);
     auto scanFunc = func->ptrCast<TableFunction>();
     auto s = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::PREDICATE);
@@ -128,14 +118,10 @@ BoundCopyFromInfo Binder::bindCopyRdfLiteralTriplesInfo(const RdfReaderConfig& c
     auto transaction = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     auto functions = catalog->getFunctions(transaction);
-    Function* func;
-    if (config.inMemory) {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralTripleInMemScan::name,
-            functions);
-    } else {
-        func = BuiltInFunctionsUtils::matchFunction(transaction, RdfLiteralTripleScan::name,
-            functions);
-    }
+    Function* func = config.inMemory ? BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfLiteralTripleInMemScan::name, functions) :
+                                       BuiltInFunctionsUtils::matchFunction(transaction,
+                                           RdfLiteralTripleScan::name, functions);
     auto scanFunc = func->ptrCast<TableFunction>();
     auto s = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::SUBJECT);
     auto p = expressionBinder.createVariableExpression(LogicalType::STRING(), rdf::PREDICATE);

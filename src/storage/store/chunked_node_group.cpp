@@ -438,7 +438,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& m
     Deserializer& deSer) {
     std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
-    bool hasVersions;
+    bool hasVersions = false;
     deSer.validateDebuggingInfo(key, "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
         [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });

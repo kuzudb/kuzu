@@ -12,6 +12,7 @@ enum class AlterType : uint8_t {
     DROP_PROPERTY = 11,
     RENAME_PROPERTY = 12,
     COMMENT = 201,
+    INVALID = 255
 };
 
 } // namespace common

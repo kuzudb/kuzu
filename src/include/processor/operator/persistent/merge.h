@@ -48,7 +48,7 @@ private:
 struct MergeLocalState {
     std::vector<common::ValueVector*> keyVectors;
     std::unique_ptr<PatternCreationInfoTable> hashTable;
-    common::ValueVector* existenceVector;
+    common::ValueVector* existenceVector = nullptr;
 
     void init(ResultSet& resultSet, main::ClientContext* context, MergeInfo& info);
 

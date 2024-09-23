@@ -21,7 +21,7 @@ std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Cata
     StorageManager* storageManager, MemoryManager* memoryManager, VirtualFileSystem* vfs,
     main::ClientContext* context) {
     std::string key;
-    TableType tableType;
+    auto tableType = TableType::UNKNOWN;
     deSer.validateDebuggingInfo(key, "table_type");
     deSer.deserializeValue<TableType>(tableType);
     std::unique_ptr<Table> table;

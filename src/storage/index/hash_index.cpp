@@ -33,8 +33,8 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, FileHandle* file
     OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
     ShadowFile* shadowFile, const HashIndexHeader& headerForReadTrx,
     HashIndexHeader& headerForWriteTrx)
-    : dbFileIDAndName{dbFileIDAndName}, shadowFile{shadowFile}, fileHandle(fileHandle),
-      overflowFileHandle(overflowFileHandle),
+    : dbFileIDAndName{dbFileIDAndName}, shadowFile{shadowFile}, headerPageIdx(0),
+      fileHandle(fileHandle), overflowFileHandle(overflowFileHandle),
       localStorage{std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle)},
       indexHeaderForReadTrx{headerForReadTrx}, indexHeaderForWriteTrx{headerForWriteTrx} {
     pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
@@ -65,7 +65,7 @@ void HashIndex<T>::deleteFromPersistentIndex(const Transaction* transaction, Key
 template<>
 inline hash_t HashIndex<ku_string_t>::hashStored(const Transaction* transaction,
     const ku_string_t& key) const {
-    hash_t hash;
+    hash_t hash = 0;
     auto str = overflowFileHandle->readString(transaction->getType(), key);
     function::Hash::operation(str, hash);
     return hash;

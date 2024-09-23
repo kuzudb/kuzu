@@ -298,7 +298,7 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryMana
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
         ChunkedCSRHeader{std::move(offset), std::move(length)}, std::move(chunks),
         0 /*startRowIdx*/);
-    bool hasVersions;
+    bool hasVersions = false;
     deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);
     if (hasVersions) {
