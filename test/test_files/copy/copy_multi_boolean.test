@@ -132,7 +132,9 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_les
 
 -STATEMENT copy person10 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER       '|", header);
 ---- error
-                                                                                  ^
+Parser exception: mismatched input ''' expecting ')' (line: 1, offset: .*)
+"copy person10 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER '|", header);"
+                                                                                     ^
 -STATEMENT copy person10 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER        ",', header =  '1");
 ---- error
 Binder exception: Copy csv option value must be a single character with an optional escape character.
