@@ -28,7 +28,7 @@ struct RegexpSplitToArray : BaseRegexpOperation {
 
     static std::vector<std::string> regexExtractAll(const std::string& value,
         const std::string& pattern) {
-        RE2 regex(parseCypherPatten(pattern));
+        RE2 regex(parseCypherPattern(pattern));
 
         regex::StringPiece input(value);
         regex::StringPiece match;
