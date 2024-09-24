@@ -310,7 +310,7 @@ function_set RegexpSplitToArrayFunction::getFunctionSet() {
         LogicalTypeID::LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
             RegexpSplitToArray>,
-        nullptr, bindFunc));
+        bindFunc));
     return functionSet;
 }
 

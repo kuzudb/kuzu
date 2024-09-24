@@ -9,7 +9,7 @@ namespace kuzu {
 namespace function {
 
 struct RegexpSplitToArray : BaseRegexpOperation {
-    static inline void operation(common::ku_string_t& value, common::ku_string_t& regex,
+    static void operation(common::ku_string_t& value, common::ku_string_t& regex,
         common::list_entry_t& result, common::ValueVector& resultVector) {
         std::vector<std::string> matches =
             regexExtractAll(value.getAsString(), regex.getAsString());
@@ -17,8 +17,8 @@ struct RegexpSplitToArray : BaseRegexpOperation {
         auto resultValues = common::ListVector::getListValues(&resultVector, result);
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        common::ku_string_t kuString;
         for (const auto& match : matches) {
-            common::ku_string_t kuString;
             copyToKuzuString(match, kuString, *resultDataVector);
             resultDataVector->copyFromVectorData(resultValues, resultDataVector,
                 reinterpret_cast<uint8_t*>(&kuString));
@@ -47,11 +47,11 @@ struct RegexpSplitToArray : BaseRegexpOperation {
                 startPos = matchEnd;
 
                 if (match.size() == 0) {
-                    // Match size is 0
+                    // Match size is 0.
                     startPos++;
                 }
             } else {
-                // No more regexp matches
+                // No more regexp matches.
                 if (startPos < input.length()) {
                     splitParts.emplace_back(value.substr(startPos));
                 }
@@ -61,5 +61,6 @@ struct RegexpSplitToArray : BaseRegexpOperation {
         return splitParts;
     }
 };
+
 } // namespace function
 } // namespace kuzu

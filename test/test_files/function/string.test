@@ -640,9 +640,14 @@ hellolongstringtest
 [hello,world,this,is,a,very,long,string,I,want,to,split,it,based,on,commas,and,space]
 
 -LOG RegexpSplitToArrayUncommonRegex
--STATEMENT Return regexp_split_to_array('hello world! 42?', 'o?4?');
+-STATEMENT Return regexp_split_to_array('hello world! 42?', 'o');
 ---- 1
-[hell, w,rld! ,2?]
+[hell, w,rld! 42?]
+
+-LOG RegexpSplitToArrayEscapedCharacters
+-STATEMENT Return regexp_split_to_array("hello? world? 42?", "\\?");
+---- 1
+[hello, world, 42]
 
 -LOG LevenshteinDistance
 -STATEMENT return levenshtein('kitten', 'sitting');
