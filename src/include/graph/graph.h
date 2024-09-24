@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <iterator>
 #include <memory>
 
+#include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include <span>
 
@@ -17,22 +20,10 @@ struct RelTableIDInfo {
 class GraphScanState {
 public:
     virtual ~GraphScanState() = default;
-};
-
-// TODO(Ben): feel free to remove this class.
-struct GraphScanResult {
-    std::vector<common::nodeID_t> nbrNodeIDs;
-    std::vector<common::relID_t> edgeIDs;
-
-    common::idx_t size() const {
-        KU_ASSERT(nbrNodeIDs.size() == edgeIDs.size());
-        return nbrNodeIDs.size();
-    }
-
-    void clear() {
-        nbrNodeIDs.clear();
-        edgeIDs.clear();
-    }
+    virtual std::span<const common::nodeID_t> getNbrNodes() const = 0;
+    virtual std::span<const common::relID_t> getEdges() const = 0;
+    // Returns true if there are more values after the current batch
+    virtual bool next() = 0;
 };
 
 /**
@@ -45,6 +36,65 @@ struct GraphScanResult {
  */
 class Graph {
 public:
+    // Virtual Implementation of iterator functions
+    // Iterators can't really be virtual, but we can create an iterator (GraphResult::iterator)
+    // which uses a polymorphic object for its implementation
+    class IteratorImpl {
+    public:
+        virtual ~IteratorImpl() = default;
+    };
+
+    class Iterator {
+    public:
+        explicit constexpr Iterator(GraphScanState* scanState) : scanState{scanState} {}
+        DEFAULT_BOTH_MOVE(Iterator);
+        Iterator(const Iterator& other) = default;
+
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using value_type =
+            std::pair<std::span<const common::nodeID_t>, std::span<const common::relID_t>>;
+
+        value_type operator*() const {
+            return std::make_pair(scanState->getNbrNodes(), scanState->getEdges());
+        }
+        Iterator& operator++() {
+            if (!scanState->next()) {
+                scanState = nullptr;
+            }
+            return *this;
+        }
+        void operator++(int) { ++*this; }
+        bool operator==(const Iterator& other) const {
+            // Only needed for comparing to the end, so they are equal if and only if both are null
+            return scanState == nullptr && other.scanState == nullptr;
+        }
+        // Counts and consumes the iterator
+        uint64_t count() {
+            // TODO(bmwinger): avoid scanning if all that's necessary is to count the results
+            uint64_t result = 0;
+            do {
+                result += scanState->getNbrNodes().size();
+            } while (scanState->next());
+            return result;
+        }
+
+        std::vector<common::nodeID_t> collectNbrNodes() {
+            std::vector<common::nodeID_t> nbrNodes;
+            for (const auto [nbrs, edges] : *this) {
+                nbrNodes.insert(nbrNodes.end(), nbrs.begin(), nbrs.end());
+            }
+            return nbrNodes;
+        }
+
+        Iterator& begin() noexcept { return *this; }
+        static constexpr Iterator end() noexcept { return Iterator(nullptr); }
+
+    private:
+        GraphScanState* scanState;
+    };
+    static_assert(std::input_iterator<Iterator>);
+
     Graph() = default;
     virtual ~Graph() = default;
 
@@ -74,8 +124,7 @@ public:
     // group will be scanned at once.
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
-    virtual void scanFwd(common::nodeID_t nodeID, GraphScanState& state,
-        GraphScanResult& result) = 0;
+    virtual Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
 
     // Scans multiple nodeIDs in random mode, which is optimized for small lookups and does minimal
     // caching of CSR headers.
@@ -91,8 +140,7 @@ public:
         std::span<common::table_id_t> nodeTableIDs) = 0;
 
     // Get dst nodeIDs for given src nodeID tables using backward adjList.
-    virtual void scanBwd(common::nodeID_t nodeID, GraphScanState& state,
-        GraphScanResult& result) = 0;
+    virtual Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
     virtual std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) = 0;
 };

@@ -1,6 +1,9 @@
+#include <cstdint>
 #include <random>
+#include <vector>
 
 #include "catalog/catalog.h"
+#include "common/types/types.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "graph_test/base_graph_test.h"
@@ -42,22 +45,24 @@ TEST_F(RelScanTest, ScanFwd) {
     auto tableID = catalog->getTableID(context->getTx(), "person");
     auto relTableID = catalog->getTableID(context->getTx(), "knows");
     auto scanState = graph->prepareScan(relTableID);
-    auto scanResult = graph::GraphScanResult();
-    std::vector<nodeID_t> result{nodeID_t{1, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}};
-    graph->scanFwd(nodeID_t{0, tableID}, *scanState, scanResult);
-    EXPECT_EQ(scanResult.nbrNodeIDs, result);
-    graph->scanBwd(nodeID_t{0, tableID}, *scanState, scanResult);
-    EXPECT_EQ(scanResult.nbrNodeIDs, result);
-    result = {nodeID_t{0, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}};
-    graph->scanFwd(nodeID_t{1, tableID}, *scanState, scanResult);
-    EXPECT_EQ(scanResult.nbrNodeIDs, result);
-    graph->scanBwd(nodeID_t{1, tableID}, *scanState, scanResult);
-    EXPECT_EQ(scanResult.nbrNodeIDs, result);
-    result = {nodeID_t{0, tableID}, nodeID_t{1, tableID}, nodeID_t{3, tableID}};
-    graph->scanFwd(nodeID_t{2, tableID}, *scanState, scanResult);
-    ASSERT_EQ(scanResult.nbrNodeIDs, result);
-    graph->scanBwd(nodeID_t{2, tableID}, *scanState, scanResult);
-    ASSERT_EQ(scanResult.nbrNodeIDs, result);
+
+    const auto compare = [&](uint64_t node, std::vector<nodeID_t> expected) {
+        std::vector<nodeID_t> result;
+        for (const auto [nodes, edges] : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
+            result.insert(result.end(), nodes.begin(), nodes.end());
+        }
+        EXPECT_EQ(result, expected);
+        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(), expected);
+        result.clear();
+        for (const auto [nodes, edges] : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
+            result.insert(result.end(), nodes.begin(), nodes.end());
+        }
+        EXPECT_EQ(result, expected);
+        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(), expected);
+    };
+    compare(0, {nodeID_t{1, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}});
+    compare(1, {nodeID_t{0, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}});
+    compare(2, {nodeID_t{0, tableID}, nodeID_t{1, tableID}, nodeID_t{3, tableID}});
 }
 
 // Test correctness of a random access scan

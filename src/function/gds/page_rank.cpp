@@ -119,23 +119,24 @@ public:
         // Compute page rank.
         auto nodeTableIDs = graph->getNodeTableIDs();
         auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
-        auto scanResult = GraphScanResult();
-        auto otherScanResult = GraphScanResult();
+        // We're using multiple overlapping iterators, both of which need access to a scan state, so
+        // we need multiple scan states
+        auto innerScanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
             for (auto tableID : nodeTableIDs) {
                 for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
-                    graph->scanFwd(nodeID, *scanState, scanResult);
-                    for (auto j = 0u; j < scanResult.size(); ++j) {
-                        auto nbr = scanResult.nbrNodeIDs[j];
-                        graph->scanFwd(nbr, *scanState, otherScanResult);
-                        auto numNbrOfNbr = otherScanResult.size();
-                        if (numNbrOfNbr == 0) {
-                            numNbrOfNbr = graph->getNumNodes();
+                    auto iter = graph->scanFwd(nodeID, *scanState);
+                    for (const auto [nodes, edges] : iter) {
+                        for (const auto& nbr : nodes) {
+                            auto numNbrOfNbr = graph->scanFwd(nbr, *innerScanState).count();
+                            if (numNbrOfNbr == 0) {
+                                numNbrOfNbr = graph->getNumNodes();
+                            }
+                            rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
                         }
-                        rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
                     }
                     rank += dampingValue;
                     double diff = ranks[nodeID] - rank;
