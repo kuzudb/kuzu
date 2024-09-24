@@ -92,9 +92,9 @@ static bool isValidBooleanOptionValue(const Value& value, const std::string& nam
     StringUtils::toUpper(strValue);
 
     // Check for valid Boolean string representations
-    if (strValue == "TRUE" || strValue == "1" || strValue == "ON") {
+    if (strValue == "TRUE" || strValue == "1") {
         return true;
-    } else if (strValue == "FALSE" || strValue == "0" || strValue == "OFF") {
+    } else if (strValue == "FALSE" || strValue == "0") {
         return false;
     } else {
         // In this case the boolean is not valid
