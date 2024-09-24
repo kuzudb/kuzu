@@ -254,8 +254,7 @@ private:
 class SingleSPLengthsAlgorithm : public SPAlgorithm {
 public:
     SingleSPLengthsAlgorithm() = default;
-    SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other)
-        : SPAlgorithm{other} {}
+    SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
         auto columns = getNodeIDResultColumns();

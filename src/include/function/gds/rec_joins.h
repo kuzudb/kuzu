@@ -358,7 +358,8 @@ public:
         return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::BOOL};
     }
 
-    void bind(const binder::expression_vector &params, binder::Binder *binder, graph::GraphEntry &graphEntry) override;
+    void bind(const binder::expression_vector& params, binder::Binder* binder,
+        graph::GraphEntry& graphEntry) override;
 };
 
 } // namespace function

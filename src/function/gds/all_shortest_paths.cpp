@@ -1,3 +1,4 @@
+#include "binder/expression/expression_util.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
@@ -5,7 +6,6 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -551,8 +551,7 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
 class AllSPDestinationsAlgorithm final : public SPAlgorithm {
 public:
     AllSPDestinationsAlgorithm() = default;
-    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other)
-        : SPAlgorithm{other} {}
+    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
 
@@ -687,21 +686,23 @@ public:
      * outputProperty::BOOL
      */
     std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::BOOL};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
+            LogicalTypeID::BOOL};
     }
 
-    void bind(const expression_vector &params, Binder *binder, graph::GraphEntry &graphEntry) override {
+    void bind(const expression_vector& params, Binder* binder,
+        graph::GraphEntry& graphEntry) override {
         auto nodeInput = params[1];
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
         auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
         validateLowerUpperBound(lowerBound, upperBound);
         auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[4]);
-        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
+        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound,
+            upperBound);
     }
 
-
-    binder::expression_vector getResultColumns(binder::Binder *binder) const override {
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));

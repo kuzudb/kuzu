@@ -37,13 +37,22 @@ RJCompState::RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
 
 void RJAlgorithm::validateLowerUpperBound(int64_t lowerBound, int64_t upperBound) {
     if (lowerBound < 0 || upperBound < 0) {
-        throw RuntimeException(stringFormat("Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: {} and upper bound is: {}.", lowerBound, upperBound));
+        throw RuntimeException(
+            stringFormat("Lower and upper bound lengths of recursive join operations need to be "
+                         "non-negative. Given lower bound is: {} and upper bound is: {}.",
+                lowerBound, upperBound));
     }
     if (lowerBound > upperBound) {
-        throw RuntimeException(stringFormat("Lower bound length of recursive join operations need to be less than or equal to upper bound. Given lower bound is: {} and upper bound is: {}.", lowerBound, upperBound));
+        throw RuntimeException(
+            stringFormat("Lower bound length of recursive join operations need to be less than or "
+                         "equal to upper bound. Given lower bound is: {} and upper bound is: {}.",
+                lowerBound, upperBound));
     }
     if (upperBound >= RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND) {
-        throw RuntimeException(stringFormat("Recursive join operations only works for non-positive upper bound iterations that are up to {}. Given upper bound is: {}.", RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND, upperBound));
+        throw RuntimeException(
+            stringFormat("Recursive join operations only works for non-positive upper bound "
+                         "iterations that are up to {}. Given upper bound is: {}.",
+                RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND, upperBound));
     }
 }
 
@@ -67,11 +76,14 @@ std::shared_ptr<binder::Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* bi
 
 static void validateSPUpperBound(int64_t upperBound) {
     if (upperBound == 0) {
-        throw RuntimeException(stringFormat("Shortest path operations only works for positive upper bound iterations. Given upper bound is: {}.", upperBound));
+        throw RuntimeException(stringFormat("Shortest path operations only works for positive "
+                                            "upper bound iterations. Given upper bound is: {}.",
+            upperBound));
     }
 }
 
-void SPAlgorithm::bind(const expression_vector& params, Binder* binder, graph::GraphEntry& graphEntry) {
+void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
+    graph::GraphEntry& graphEntry) {
     KU_ASSERT(params.size() == 4);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
@@ -80,7 +92,8 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder, graph::G
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
     auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
+    bindData =
+        std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
 }
 
 class RJOutputWriterVCSharedState {
