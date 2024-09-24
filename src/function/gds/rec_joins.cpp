@@ -76,20 +76,22 @@ void RJAlgorithm::bind(const binder::expression_vector& params, binder::Binder* 
         std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
 }
 
-binder::expression_vector RJAlgorithm::getResultColumns(Binder* binder) const {
-    binder::expression_vector columns;
+expression_vector RJAlgorithm::getNodeIDResultColumns() const {
+    expression_vector columns;
     auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
     columns.push_back(inputNode.getInternalID());
     auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(outputNode.getInternalID());
-    if (RJOutputType::LENGTHS == outputType || RJOutputType::PATHS == outputType) {
-        columns.push_back(binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64()));
-        if (RJOutputType::PATHS == outputType) {
-            columns.push_back(binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
-                LogicalType::LIST(LogicalType::INTERNAL_ID())));
-        }
-    }
     return columns;
+}
+
+std::shared_ptr<binder::Expression> RJAlgorithm::getLengthColumn(Binder* binder) const {
+    return binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
+}
+
+std::shared_ptr<binder::Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
+    return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+        LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
 class RJOutputWriterVCSharedState {

@@ -195,13 +195,6 @@ struct RJBindData final : public function::GDSBindData {
     }
 };
 
-enum class RJOutputType : uint8_t {
-    DESTINATION_NODES = 0,
-    LENGTHS = 1,
-    // PATHS returns only the intermediate nodeIDs in a path, not the source or dst nodeIDs.
-    PATHS = 2,
-};
-
 enum class RJInputType : uint8_t {
     HAS_LOWER_BOUND = 0,
     NO_LOWER_BOUND = 1,
@@ -333,15 +326,14 @@ protected:
 };
 
 class RJAlgorithm : public GDSAlgorithm {
+protected:
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
 
 public:
-    explicit RJAlgorithm(RJOutputType outputType,
-        RJInputType inputType = RJInputType::NO_LOWER_BOUND)
-        : outputType{outputType}, inputType{inputType} {};
-    RJAlgorithm(const RJAlgorithm& other)
-        : GDSAlgorithm{other}, outputType{other.outputType}, inputType{other.inputType} {}
+    explicit RJAlgorithm(RJInputType inputType = RJInputType::NO_LOWER_BOUND)
+        : inputType{inputType} {};
+    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, inputType{other.inputType} {}
     /*
      * Inputs include the following:
      *
@@ -362,8 +354,6 @@ public:
         }
     }
 
-    binder::expression_vector getResultColumns(binder::Binder* binder) const override;
-
     void bind(const binder::expression_vector& params, binder::Binder* binder,
         graph::GraphEntry& graphEntry) override;
 
@@ -372,7 +362,11 @@ public:
         nodeID_t sourceNodeID) = 0;
 
 protected:
-    RJOutputType outputType;
+    binder::expression_vector getNodeIDResultColumns() const;
+    std::shared_ptr<binder::Expression> getLengthColumn(binder::Binder* binder) const;
+    std::shared_ptr<binder::Expression> getPathNodeIDsColumn(binder::Binder* binder) const;
+
+protected:
     RJInputType inputType;
 };
 } // namespace function
