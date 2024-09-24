@@ -9,46 +9,45 @@ class BoundProjectionBody {
     static constexpr uint64_t INVALID_NUMBER = UINT64_MAX;
 
 public:
-    BoundProjectionBody(bool isDistinct, expression_vector projectionExpressions)
-        : isDistinct{isDistinct}, projectionExpressions{std::move(projectionExpressions)},
-          skipNumber{INVALID_NUMBER}, limitNumber{INVALID_NUMBER} {}
+    explicit BoundProjectionBody(bool isDistinct)
+        : isDistinct{isDistinct}, skipNumber{INVALID_NUMBER}, limitNumber{INVALID_NUMBER} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundProjectionBody);
 
-    inline bool getIsDistinct() const { return isDistinct; }
+    bool getIsDistinct() const { return isDistinct; }
 
-    inline void setProjectionExpressions(expression_vector expressions) {
+    void setProjectionExpressions(expression_vector expressions) {
         projectionExpressions = std::move(expressions);
     }
-    inline expression_vector getProjectionExpressions() const { return projectionExpressions; }
+    expression_vector getProjectionExpressions() const { return projectionExpressions; }
 
-    inline void setGroupByExpressions(expression_vector expressions) {
+    void setGroupByExpressions(expression_vector expressions) {
         groupByExpressions = std::move(expressions);
     }
-    inline expression_vector getGroupByExpressions() const { return groupByExpressions; }
+    expression_vector getGroupByExpressions() const { return groupByExpressions; }
 
-    inline void setAggregateExpressions(expression_vector expressions) {
+    void setAggregateExpressions(expression_vector expressions) {
         aggregateExpressions = std::move(expressions);
     }
-    inline bool hasAggregateExpressions() const { return !aggregateExpressions.empty(); }
-    inline expression_vector getAggregateExpressions() const { return aggregateExpressions; }
+    bool hasAggregateExpressions() const { return !aggregateExpressions.empty(); }
+    expression_vector getAggregateExpressions() const { return aggregateExpressions; }
 
-    inline void setOrderByExpressions(expression_vector expressions, std::vector<bool> sortOrders) {
+    void setOrderByExpressions(expression_vector expressions, std::vector<bool> sortOrders) {
         orderByExpressions = std::move(expressions);
         isAscOrders = std::move(sortOrders);
     }
-    inline bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
-    inline const expression_vector& getOrderByExpressions() const { return orderByExpressions; }
-    inline const std::vector<bool>& getSortingOrders() const { return isAscOrders; }
+    bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
+    const expression_vector& getOrderByExpressions() const { return orderByExpressions; }
+    const std::vector<bool>& getSortingOrders() const { return isAscOrders; }
 
-    inline void setSkipNumber(uint64_t number) { skipNumber = number; }
-    inline bool hasSkip() const { return skipNumber != INVALID_NUMBER; }
-    inline uint64_t getSkipNumber() const { return skipNumber; }
+    void setSkipNumber(uint64_t number) { skipNumber = number; }
+    bool hasSkip() const { return skipNumber != INVALID_NUMBER; }
+    uint64_t getSkipNumber() const { return skipNumber; }
 
-    inline void setLimitNumber(uint64_t number) { limitNumber = number; }
-    inline bool hasLimit() const { return limitNumber != INVALID_NUMBER; }
-    inline uint64_t getLimitNumber() const { return limitNumber; }
+    void setLimitNumber(uint64_t number) { limitNumber = number; }
+    bool hasLimit() const { return limitNumber != INVALID_NUMBER; }
+    uint64_t getLimitNumber() const { return limitNumber; }
 
-    inline bool hasSkipOrLimit() const { return hasSkip() || hasLimit(); }
+    bool hasSkipOrLimit() const { return hasSkip() || hasLimit(); }
 
 private:
     BoundProjectionBody(const BoundProjectionBody& other)

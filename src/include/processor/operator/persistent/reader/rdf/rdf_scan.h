@@ -118,8 +118,8 @@ struct RdfScanBindData final : public function::ScanBindData {
     RdfScanBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, common::ReaderConfig config,
         main::ClientContext* context, std::shared_ptr<RdfStore> store)
-        : function::ScanBindData{std::move(columnTypes), std::move(columnNames), std::move(config),
-              context},
+        : function::ScanBindData{std::move(columnTypes), std::move(columnNames),
+              0 /* numWarningColumns */, std::move(config), context},
           store{std::move(store)} {}
     RdfScanBindData(const RdfScanBindData& other)
         : function::ScanBindData{other}, store{other.store} {}

@@ -5,7 +5,6 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
 #include "function/function.h"
-#include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
 #include "parquet/parquet_types.h"
 #include "resizable_buffer.h"
@@ -23,12 +22,12 @@ struct ParquetReaderPrefetchConfig {
 struct ParquetReaderScanState {
     std::vector<uint64_t> groupIdxList;
     int64_t currentGroup = -1;
-    uint64_t groupOffset;
+    uint64_t groupOffset = UINT64_MAX;
     std::unique_ptr<common::FileInfo> fileInfo;
     std::unique_ptr<ColumnReader> rootReader;
     std::unique_ptr<kuzu_apache::thrift::protocol::TProtocol> thriftFileProto;
 
-    bool finished;
+    bool finished = false;
 
     ResizeableBuffer defineBuf;
     ResizeableBuffer repeatBuf;
@@ -103,7 +102,9 @@ struct ParquetScanSharedState final : public function::ScanFileSharedState {
 };
 
 struct ParquetScanLocalState final : public function::TableFuncLocalState {
-    ParquetScanLocalState() { state = std::make_unique<ParquetReaderScanState>(); }
+    ParquetScanLocalState() : reader(nullptr) {
+        state = std::make_unique<ParquetReaderScanState>();
+    }
 
     ParquetReader* reader;
     std::unique_ptr<ParquetReaderScanState> state;

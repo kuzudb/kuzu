@@ -150,6 +150,7 @@ TEST_F(ApiTest, Prepare) {
 }
 
 TEST_F(ApiTest, CreateTableAfterClosingDatabase) {
+    database.reset();
     database = std::make_unique<Database>(databasePath, *systemConfig);
     conn = std::make_unique<Connection>(database.get());
 

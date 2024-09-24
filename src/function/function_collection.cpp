@@ -217,9 +217,10 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Table functions
         TABLE_FUNCTION(CurrentSettingFunction), TABLE_FUNCTION(DBVersionFunction),
         TABLE_FUNCTION(ShowTablesFunction), TABLE_FUNCTION(ShowWarningsFunction),
-        TABLE_FUNCTION(TableInfoFunction), TABLE_FUNCTION(ShowConnectionFunction),
-        TABLE_FUNCTION(StorageInfoFunction), TABLE_FUNCTION(ShowAttachedDatabasesFunction),
-        TABLE_FUNCTION(ShowSequencesFunction), TABLE_FUNCTION(ShowFunctionsFunction),
+        TABLE_FUNCTION(ClearWarningsFunction), TABLE_FUNCTION(TableInfoFunction),
+        TABLE_FUNCTION(ShowConnectionFunction), TABLE_FUNCTION(StorageInfoFunction),
+        TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(ShowSequencesFunction),
+        TABLE_FUNCTION(ShowFunctionsFunction),
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
@@ -232,6 +233,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Algorithm functions
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
+        ALGORITHM_FUNCTION(VarLenJoinsFunction), ALGORITHM_FUNCTION(AllSPDestinationsFunction),
+        ALGORITHM_FUNCTION(AllSPLengthsFunction), ALGORITHM_FUNCTION(AllSPPathsFunction),
+        ALGORITHM_FUNCTION(SingleSPDestinationsFunction),
         ALGORITHM_FUNCTION(SingleSPLengthsFunction), ALGORITHM_FUNCTION(SingleSPPathsFunction),
         ALGORITHM_FUNCTION(PageRankFunction),
 

@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace common {
 
-SHA256::SHA256() {
+SHA256::SHA256() : shaContext{} {
     mbedtls_sha256_init(&shaContext);
 
     // These errors would only occur if there's an issue with shaContext which is wrapped inside
@@ -39,7 +39,7 @@ void SHA256::finishSHA256(char* out) {
 
 void SHA256::toBase16(const char* in, char* out, size_t len) {
     static char const HEX_CODES[] = "0123456789abcdef";
-    size_t i, j;
+    size_t i = 0, j = 0;
 
     for (j = i = 0; i < len; i++) {
         int a = in[i];

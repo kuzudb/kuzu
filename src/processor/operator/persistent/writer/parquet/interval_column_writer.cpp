@@ -10,7 +10,7 @@ void IntervalColumnWriter::writeParquetInterval(common::interval_t input, uint8_
     if (input.days < 0 || input.months < 0 || input.micros < 0) {
         throw common::RuntimeException{"Parquet files do not support negative intervals"};
     }
-    uint32_t dataToStore;
+    uint32_t dataToStore = 0;
     dataToStore = input.months;
     memcpy(result, &dataToStore, sizeof(dataToStore));
     dataToStore = input.days;

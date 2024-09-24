@@ -1,10 +1,7 @@
 #include "main/query_result.h"
 
-#include "binder/expression/expression.h"
 #include "common/arrow/arrow_converter.h"
 #include "common/exception/runtime.h"
-#include "common/types/value/node.h"
-#include "common/types/value/rel.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
 
@@ -14,13 +11,12 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
-QueryResult::QueryResult() = default;
+QueryResult::QueryResult() : nextQueryResult{nullptr}, queryResultIterator{this} {}
 
-QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
+QueryResult::QueryResult(const PreparedSummary& preparedSummary)
+    : nextQueryResult{nullptr}, queryResultIterator{this} {
     querySummary = std::make_unique<QuerySummary>();
     querySummary->setPreparedSummary(preparedSummary);
-    nextQueryResult = nullptr;
-    queryResultIterator = QueryResultIterator{this};
 }
 
 QueryResult::~QueryResult() = default;
@@ -57,20 +53,19 @@ void QueryResult::resetIterator() {
     iterator->resetState();
 }
 
+void QueryResult::setColumnHeader(std::vector<std::string> columnNames_,
+    std::vector<LogicalType> columnTypes_) {
+    columnNames = std::move(columnNames_);
+    columnDataTypes = std::move(columnTypes_);
+}
+
 void QueryResult::initResultTableAndIterator(
-    std::shared_ptr<processor::FactorizedTable> factorizedTable_,
-    const binder::expression_vector& columns) {
+    std::shared_ptr<processor::FactorizedTable> factorizedTable_) {
     factorizedTable = std::move(factorizedTable_);
     tuple = std::make_shared<FlatTuple>();
     std::vector<Value*> valuesToCollect;
-    for (auto i = 0u; i < columns.size(); ++i) {
-        auto column = columns[i].get();
-        const auto& columnType = column->getDataType();
-        auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
-        columnDataTypes.push_back(columnType.copy());
-        columnNames.push_back(columnName);
-        std::unique_ptr<Value> value =
-            std::make_unique<Value>(Value::createDefaultValue(columnType.copy()));
+    for (auto& type : columnDataTypes) {
+        auto value = std::make_unique<Value>(Value::createDefaultValue(type.copy()));
         valuesToCollect.push_back(value.get());
         tuple->addValue(std::move(value));
     }

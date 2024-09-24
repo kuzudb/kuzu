@@ -4,6 +4,7 @@
 
 -CASE OmitUseDefaultBoolean
 
+
 -STATEMENT create node table person2 (ID INt64, fName StRING, gender INT64, PRIMARY KEY (ID));
 ---- ok
 

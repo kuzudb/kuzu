@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/copy_constructors.h"
+#include "common/json_enums.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
 #include "yyjson.h"
@@ -44,8 +45,6 @@ public:
     yyjson_mut_doc* ptr;
 };
 
-enum JsonScanFormat : uint8_t { ARRAY = 0, UNSTRUCTURED = 1 };
-
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos);
 yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos);
 yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVector& vec,
@@ -56,9 +55,9 @@ std::vector<JsonWrapper> jsonifyQueryResult(
     const std::vector<std::shared_ptr<common::ValueVector>>& columns,
     const std::vector<std::string>& names);
 // Converts an entire query result into a sequence of json values
-
 common::LogicalType jsonSchema(const JsonWrapper& wrapper, int64_t depth = -1,
     int64_t breadth = -1);
+common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth);
 // depth indicates at what nested depth to stop
 // breadth indicates the limit of how many children the root nested type is sampled
 // -1 means to scan the whole thing
@@ -70,8 +69,6 @@ std::string jsonToString(const JsonWrapper& wrapper);
 std::string jsonToString(const yyjson_val* val);
 JsonWrapper stringToJson(const std::string& str);
 JsonWrapper stringToJsonNoError(const std::string& str);
-JsonWrapper fileToJson(main::ClientContext* context, const std::string& path,
-    JsonScanFormat format);
 // format can be 'unstructured' or 'array'
 
 JsonWrapper mergeJson(const JsonWrapper& A, const JsonWrapper& B);

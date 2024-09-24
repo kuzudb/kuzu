@@ -82,7 +82,14 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
 
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
-    auto dwCreationDisposition = (openFlags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
+    int dwCreationDisposition;
+    if (flags & FileFlags::CREATE_IF_NOT_EXISTS) {
+        dwCreationDisposition = OPEN_ALWAYS;
+    } else if (flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS) {
+        dwCreationDisposition = CREATE_ALWAYS;
+    } else {
+        dwCreationDisposition = OPEN_EXISTING;
+    }
     auto dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
     if (openFlags & (O_CREAT | O_WRONLY | O_RDWR)) {
         dwDesiredAccess |= GENERIC_WRITE;
@@ -107,9 +114,12 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
                             LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK;
         OVERLAPPED overlapped = {0};
         overlapped.Offset = 0;
-        BOOL rc = LockFileEx(handle, dwFlags, 0, 0, 0, &overlapped);
+        BOOL rc = LockFileEx(handle, dwFlags, 0 /*reserved*/, 1 /*numBytesLow*/, 0 /*numBytesHigh*/,
+            &overlapped);
         if (!rc) {
-            throw IOException("Could not set lock on file : " + fullPath);
+            throw IOException(
+                "Could not set lock on file : " + fullPath + "\n" +
+                "See the docs: https://docs.kuzudb.com/concurrency for more information.");
         }
     }
     return std::make_unique<LocalFileInfo>(fullPath, handle, this);
@@ -119,7 +129,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
         throw IOException(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }
     if (lock_type != FileLockType::NO_LOCK) {
-        struct flock fl;
+        struct flock fl {};
         memset(&fl, 0, sizeof fl);
         fl.l_type = lock_type == FileLockType::READ_LOCK ? F_RDLCK : F_WRLCK;
         fl.l_whence = SEEK_SET;
@@ -127,7 +137,9 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
         fl.l_len = 0;
         int rc = fcntl(fd, F_SETLK, &fl);
         if (rc == -1) {
-            throw IOException("Could not set lock on file : " + fullPath);
+            throw IOException(
+                "Could not set lock on file : " + fullPath + "\n" +
+                "See the docs: https://docs.kuzudb.com/concurrency for more information.");
         }
     }
     return std::make_unique<LocalFileInfo>(fullPath, fd, this);
@@ -239,7 +251,7 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path))
         return;
     std::error_code errCode;
-    bool success;
+    bool success = false;
     if (std::filesystem::is_directory(path)) {
         success = std::filesystem::remove_all(path, errCode);
     } else {
@@ -428,7 +440,7 @@ uint64_t LocalFileSystem::getFileSize(const FileInfo& fileInfo) const {
     }
     return size.QuadPart;
 #else
-    struct stat s;
+    struct stat s {};
     if (fstat(localFileInfo->fd, &s) == -1) {
         throw IOException(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo.path, errno, posixErrMessage()));

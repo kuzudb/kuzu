@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 
 #include "common/exception/binder.h"
+#include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 
 #ifdef _WIN32
@@ -32,7 +33,8 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
+NpyReader::NpyReader(const std::string& filePath)
+    : filePath{filePath}, dataOffset{0}, type{LogicalTypeID::ANY} {
     fd = open(filePath.c_str(), O_RDONLY);
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
@@ -295,7 +297,7 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     function::ScanTableFuncBindInput* scanInput) {
-    if (scanInput->config.options.size() >= 1 ||
+    if (scanInput->config.options.size() > 1 ||
         (scanInput->config.options.size() == 1 &&
             !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
         throw BinderException{"Copy from numpy cannot have options other than IGNORE_ERRORS."};
@@ -318,7 +320,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         reader->validate(resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
+        std::move(resultColumnNames), 0 /* numWarningColumns */, scanInput->config.copy(),
+        scanInput->context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
@@ -326,6 +329,11 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
     auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
+}
+
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* /*sharedState*/,
+    TableFuncLocalState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 static std::unique_ptr<function::TableFuncLocalState> initLocalState(
@@ -336,8 +344,9 @@ static std::unique_ptr<function::TableFuncLocalState> initLocalState(
 
 function_set NpyScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    functionSet.push_back(
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
+            std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
 }
 

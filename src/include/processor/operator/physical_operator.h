@@ -103,7 +103,7 @@ public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : id{id}, operatorType{operatorType}, printInfo{std::move(printInfo)} {}
+        : id{id}, operatorType{operatorType}, resultSet(nullptr), printInfo{std::move(printInfo)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);

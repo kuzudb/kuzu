@@ -47,8 +47,8 @@ S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int fla
     main::ClientContext* context, const S3AuthParams& authParams,
     const S3UploadParams& uploadParams)
     : HTTPFileInfo{std::move(path), fileSystem, flags, context}, authParams{authParams},
-      uploadParams{uploadParams}, uploadsInProgress{0}, numPartsUploaded{0}, uploadFinalized{false},
-      uploaderHasException{false} {}
+      uploadParams{uploadParams}, partSize(0), uploadsInProgress{0}, numPartsUploaded{0},
+      uploadFinalized{false}, uploaderHasException{false} {}
 
 S3FileInfo::~S3FileInfo() {
     auto s3FS = fileSystem->ptrCast<S3FileSystem>();
@@ -233,7 +233,7 @@ parse_bracket: {
             // no next character!
             break;
         }
-        bool matches;
+        bool matches = false;
         if (pattern[pidx + 1] == '-') {
             // range! find the next character in the range
             if (pidx + 2 == plen) {
@@ -381,7 +381,7 @@ std::string S3FileSystem::encodeURL(const std::string& input, bool encodeSlash) 
 std::string S3FileSystem::decodeURL(std::string input) {
     std::string result;
     result.reserve(input.size());
-    char ch;
+    char ch = 0;
     replace(input.begin(), input.end(), '+', ' ');
     for (auto i = 0u; i < input.length(); i++) {
         if (int(input[i]) == 37 /* % */) {
@@ -569,7 +569,7 @@ void S3FileSystem::finalizeMultipartUpload(S3FileInfo* fileInfo) {
 // Date header is in the format: %Y%m%d.
 std::string getDateHeader(const timestamp_t& timestamp) {
     auto date = Timestamp::getDate(timestamp);
-    int32_t year, month, day;
+    int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     std::string formatStr = "{}";
     if (month < 10) {
@@ -588,7 +588,7 @@ std::string getDateTimeHeader(const timestamp_t& timestamp) {
     auto formatStr = getDateHeader(timestamp);
     auto time = Timestamp::getTime(timestamp);
     formatStr += "T";
-    int32_t hours, minutes, seconds, micros;
+    int32_t hours = 0, minutes = 0, seconds = 0, micros = 0;
     Time::convert(time, hours, minutes, seconds, micros);
     if (hours < 10) {
         formatStr += "0";

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/dictionary_column.h"
 
 namespace kuzu {
@@ -11,7 +12,7 @@ public:
     static constexpr size_t CHILD_STATE_COUNT = 3;
 
     StringColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
-        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression);
+        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         FileHandle& dataFH);
@@ -37,13 +38,12 @@ public:
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector) override;
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::offset_t numValuesToRead,
         common::ValueVector* resultVector, common::sel_t startPosInVector = 0);
     void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t startOffsetInChunk, const common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector);
+        common::offset_t startOffsetInChunk, common::ValueVector* resultVector);
 
     void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,

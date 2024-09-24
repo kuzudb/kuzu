@@ -6,6 +6,7 @@ add_library(kuzu_table_call
         show_attached_databases.cpp
         show_tables.cpp
         show_warnings.cpp
+        clear_warnings.cpp
         storage_info.cpp
         table_info.cpp
         show_sequences.cpp

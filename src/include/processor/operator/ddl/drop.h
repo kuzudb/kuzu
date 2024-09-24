@@ -27,7 +27,8 @@ class Drop : public DDL {
 public:
     Drop(parser::DropInfo dropInfo, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, dropInfo{std::move(dropInfo)} {}
+        : DDL{type_, outputPos, id, std::move(printInfo)}, dropInfo{std::move(dropInfo)},
+          validEntry{false} {}
 
     void executeDDLInternal(ExecutionContext* context) override;
 

@@ -34,7 +34,7 @@ public:
         nextTableIdx = 0;
     }
 
-    bool scan(const common::SelectionVector& selVector, transaction::Transaction* transaction);
+    bool scan(transaction::Transaction* transaction);
 
 private:
     RelTableCollectionScanner(const RelTableCollectionScanner& other)
@@ -48,7 +48,7 @@ private:
     uint32_t nextTableIdx = 0;
 };
 
-class ScanMultiRelTable : public ScanTable {
+class ScanMultiRelTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
@@ -57,23 +57,26 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
-          directionInfo{std::move(directionInfo)}, scanners{std::move(scanners)} {}
+          directionInfo{std::move(directionInfo)}, boundNodeIDVector{nullptr}, outState{nullptr},
+          scanners{std::move(scanners)}, currentScanner{nullptr} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
     void resetState();
     void initCurrentScanner(const common::nodeID_t& nodeID);
+    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 private:
     DirectionInfo directionInfo;
-    common::ValueVector* boundNodeIDVector = nullptr;
+    common::ValueVector* boundNodeIDVector;
+    common::DataChunkState* outState;
     common::table_id_map_t<RelTableCollectionScanner> scanners;
-    RelTableCollectionScanner* currentScanner = nullptr;
+    RelTableCollectionScanner* currentScanner;
 };
 
 } // namespace processor

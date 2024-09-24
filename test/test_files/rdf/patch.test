@@ -9,26 +9,26 @@
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 6
-N|NODE|local(kuzu)|
-X_lt|REL|local(kuzu)|
-X_l|NODE|local(kuzu)|
-X_rt|REL|local(kuzu)|
-X_r|NODE|local(kuzu)|
-X|RDFGraph|local(kuzu)|
+0|X_r|NODE|local(kuzu)|
+1|X_l|NODE|local(kuzu)|
+2|X_rt|REL|local(kuzu)|
+3|X_lt|REL|local(kuzu)|
+4|X|RDFGraph|local(kuzu)|
+5|N|NODE|local(kuzu)|
 -STATEMENT CALL table_info("X_r") RETURN *;
 ---- 1
-0|iri|STRING|True
+0|iri|STRING|NULL|True
 -STATEMENT CALL table_info("X_l") RETURN *;
 ---- 3
-0|id|SERIAL|True
-1|val|RDF_VARIANT|False
-2|lang|STRING|False
+0|id|SERIAL||True
+1|val|RDF_VARIANT|NULL|False
+2|lang|STRING|NULL|False
 -STATEMENT CALL table_info("X_rt") RETURN *;
 ---- 1
--1|iri (Virtual)|STRING
+-1|iri (Virtual)|STRING|
 -STATEMENT CALL table_info("X_lt") RETURN *;
 ---- 1
--1|iri (Virtual)|STRING
+-1|iri (Virtual)|STRING|
 
 -STATEMENT RETURN dummy();
 ---- error

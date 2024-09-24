@@ -15,7 +15,7 @@ ShadowPageAndFrame ShadowUtils::createShadowVersionIfNecessaryAndPinPage(page_id
     const auto hasShadowPage = shadowFile.hasShadowPage(fileHandle.getFileIndex(), originalPage);
     auto shadowPage =
         shadowFile.getOrCreateShadowPage(dbFileID, fileHandle.getFileIndex(), originalPage);
-    uint8_t* shadowFrame;
+    uint8_t* shadowFrame = nullptr;
     try {
         if (hasShadowPage) {
             shadowFrame =

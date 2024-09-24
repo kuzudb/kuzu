@@ -32,7 +32,7 @@ struct KUZU_API PropertyDefinition {
 
     std::string getName() const { return columnDefinition.name; }
     const common::LogicalType& getType() const { return columnDefinition.type; }
-
+    std::string getDefaultExpressionName() const { return defaultExpr->getRawName(); }
     void rename(const std::string& newName) { columnDefinition.name = newName; }
 
     void serialize(common::Serializer& serializer) const;

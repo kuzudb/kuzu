@@ -13,7 +13,8 @@ class SelectionVector {
 public:
     KUZU_API static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
 
-    explicit SelectionVector(sel_t capacity) : selectedSize{0}, capacity{capacity} {
+    explicit SelectionVector(sel_t capacity)
+        : selectedSize{0}, capacity{capacity}, selectedPositions{nullptr} {
         selectedPositionsBuffer = std::make_unique<sel_t[]>(capacity);
         setToUnfiltered();
     }

@@ -66,12 +66,12 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
         localState.funcOutput.dataChunk.getValueVector(i)->setAllNonNull();
     }
     auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
-    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(numTuplesScanned);
+    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setToUnfiltered(numTuplesScanned);
     return numTuplesScanned != 0;
 }
 
 void TableFunctionCall::finalizeInternal(ExecutionContext* context) {
-    info.function.finalizeFunc(context, sharedState->funcState.get());
+    info.function.finalizeFunc(context, sharedState->funcState.get(), localState.funcState.get());
 }
 
 double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {

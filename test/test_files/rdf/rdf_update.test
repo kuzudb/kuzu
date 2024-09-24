@@ -6,11 +6,11 @@
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 5
-T_lt|REL|local(kuzu)|
-T_l|NODE|local(kuzu)|
-T_rt|REL|local(kuzu)|
-T_r|NODE|local(kuzu)|
-T|RDFGraph|local(kuzu)|
+0|T_r|NODE|local(kuzu)|
+1|T_l|NODE|local(kuzu)|
+2|T_rt|REL|local(kuzu)|
+3|T_lt|REL|local(kuzu)|
+4|T|RDFGraph|local(kuzu)|
 -STATEMENT DROP RDFGraph T;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
@@ -22,11 +22,11 @@ T|RDFGraph|local(kuzu)|
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
 ---- 5
-X_lt|REL|local(kuzu)|
-X_l|NODE|local(kuzu)|
-X_rt|REL|local(kuzu)|
-X_r|NODE|local(kuzu)|
-X|RDFGraph|local(kuzu)|
+5|X_r|NODE|local(kuzu)|
+6|X_l|NODE|local(kuzu)|
+7|X_rt|REL|local(kuzu)|
+8|X_lt|REL|local(kuzu)|
+9|X|RDFGraph|local(kuzu)|
 -STATEMENT MATCH (a:T)-[e:T]->(b:T) RETURN COUNT(*);
 ---- error
 Binder exception: Table T does not exist.

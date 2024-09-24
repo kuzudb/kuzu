@@ -42,7 +42,7 @@ struct NodeTableDeleteInfo {
         std::unordered_set<storage::RelTable*> fwdRelTables,
         std::unordered_set<storage::RelTable*> bwdRelTables, const DataPos& pkPos)
         : table{table}, fwdRelTables{std::move(fwdRelTables)},
-          bwdRelTables{std::move(bwdRelTables)}, pkPos{pkPos} {};
+          bwdRelTables{std::move(bwdRelTables)}, pkPos{pkPos}, pkVector{nullptr} {};
     EXPLICIT_COPY_DEFAULT_MOVE(NodeTableDeleteInfo);
 
     void init(const ResultSet& resultSet);
@@ -55,7 +55,7 @@ struct NodeTableDeleteInfo {
 private:
     NodeTableDeleteInfo(const NodeTableDeleteInfo& other)
         : table{other.table}, fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables},
-          pkPos{other.pkPos} {}
+          pkPos{other.pkPos}, pkVector{nullptr} {}
 };
 
 class NodeDeleteExecutor {
@@ -136,6 +136,10 @@ struct RelDeleteInfo {
     common::ValueVector* dstNodeIDVector = nullptr;
     common::ValueVector* relIDVector = nullptr;
 
+    RelDeleteInfo()
+        : srcNodeIDPos{INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS},
+          dstNodeIDPos{INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS},
+          relIDPos{INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS} {}
     RelDeleteInfo(DataPos srcNodeIDPos, DataPos dstNodeIDPos, DataPos relIDPos)
         : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelDeleteInfo);
@@ -154,7 +158,7 @@ public:
     RelDeleteExecutor(const RelDeleteExecutor& other) : info{other.info.copy()} {}
     virtual ~RelDeleteExecutor() = default;
 
-    void init(ResultSet* resultSet, ExecutionContext* context);
+    virtual void init(ResultSet* resultSet, ExecutionContext* context);
 
     virtual void delete_(ExecutionContext* context) = 0;
 
@@ -166,8 +170,10 @@ protected:
 
 class EmptyRelDeleteExecutor final : public RelDeleteExecutor {
 public:
-    explicit EmptyRelDeleteExecutor(RelDeleteInfo info) : RelDeleteExecutor{std::move(info)} {}
+    explicit EmptyRelDeleteExecutor() : RelDeleteExecutor{RelDeleteInfo{}} {}
     EmptyRelDeleteExecutor(const EmptyRelDeleteExecutor& other) : RelDeleteExecutor{other} {}
+
+    void init(ResultSet*, ExecutionContext*) override {}
 
     void delete_(ExecutionContext*) override {}
 

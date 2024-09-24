@@ -3,12 +3,24 @@ name: Build Mac Precompiled Binaries
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-precompiled-bin-universal:
     runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          pip3 install packaging --break-system-packages
+          python3 update-nightly-build-version.py
+        working-directory: scripts
 
       - name: Build universal precompiled binaries
         run: |

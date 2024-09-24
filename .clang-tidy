@@ -18,6 +18,8 @@ Checks:
   concurrency-*,
 
   cppcoreguidelines-virtual-class-destructor,
+  cppcoreguidelines-init-variables,
+  cppcoreguidelines-pro-type-member-init,
 
   google-explicit-constructor
 

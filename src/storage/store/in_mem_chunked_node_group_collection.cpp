@@ -1,17 +1,20 @@
 #include "storage/store/in_mem_chunked_node_group_collection.h"
 
+#include "storage/buffer_manager/memory_manager.h"
+#include "transaction/transaction.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
 
-void InMemChunkedNodeGroupCollection::append(Transaction* transaction,
+void InMemChunkedNodeGroupCollection::append(MemoryManager& memoryManager,
     const std::vector<ValueVector*>& vectors, row_idx_t startRowInVectors,
     row_idx_t numRowsToAppend) {
     if (chunkedGroups.empty()) {
         chunkedGroups.push_back(
-            std::make_unique<ChunkedNodeGroup>(types, false /*enableCompression*/,
+            std::make_unique<ChunkedNodeGroup>(memoryManager, types, false /*enableCompression*/,
                 ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0;
@@ -19,9 +22,10 @@ void InMemChunkedNodeGroupCollection::append(Transaction* transaction,
         auto& lastChunkedGroup = chunkedGroups.back();
         auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
-        lastChunkedGroup->append(transaction, vectors, startRowInVectors, numRowsToAppendInGroup);
+        lastChunkedGroup->append(&transaction::DUMMY_TRANSACTION, vectors, startRowInVectors,
+            numRowsToAppendInGroup);
         if (lastChunkedGroup->getNumRows() == ChunkedNodeGroup::CHUNK_CAPACITY) {
-            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(types,
+            chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(memoryManager, types,
                 false /*enableCompression*/, ChunkedNodeGroup::CHUNK_CAPACITY, 0 /* startRowIdx */,
                 ResidencyState::IN_MEMORY));
         }

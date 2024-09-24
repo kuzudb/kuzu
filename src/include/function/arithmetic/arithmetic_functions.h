@@ -62,7 +62,7 @@ struct Tan {
 struct Cot {
     template<class T>
     static inline void operation(T& input, double& result) {
-        double tanValue;
+        double tanValue = 0;
         Tan::operation(input, tanValue);
         result = 1 / tanValue;
     }

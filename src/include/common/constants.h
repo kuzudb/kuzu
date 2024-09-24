@@ -83,7 +83,7 @@ struct BufferPoolConstants {
 #else
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = static_cast<uint64_t>(1) << 43; // (8TB)
 #endif
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 28; // (256MB)
 };
 
 struct StorageConstants {
@@ -158,6 +158,14 @@ struct CopyConstants {
     static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP", "SAMPLE_SIZE"};
     static constexpr uint64_t DEFAULT_CSV_SKIP_NUM = 0;
     static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 256;
+
+    // metadata columns used to populate CSV warnings
+    static constexpr std::array WARNING_METADATA_COLUMN_NAMES = {"startByteOffset", "endByteOffset",
+        "fileIdx", "blockIdx", "rowOffsetInBlock"};
+    static constexpr std::array WARNING_METADATA_COLUMN_TYPES = {LogicalTypeID::UINT64,
+        LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT64, LogicalTypeID::UINT32};
+    static constexpr idx_t WARNING_METADATA_NUM_COLUMNS = WARNING_METADATA_COLUMN_NAMES.size();
+    static_assert(WARNING_METADATA_NUM_COLUMNS == WARNING_METADATA_COLUMN_TYPES.size());
 };
 
 struct RdfConstants {

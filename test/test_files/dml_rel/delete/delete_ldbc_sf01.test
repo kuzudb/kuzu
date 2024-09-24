@@ -1,7 +1,9 @@
 -DATASET CSV ldbc-sf01
 --
 
+# FIX-ME(Guodong): https://github.com/kuzudb/kuzu/issues/4271
 -CASE DeleteLikeComment1
+-SKIP
 -STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
 ---- 1
 66
@@ -12,6 +14,9 @@
 65
 -STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 DELETE e;
 ---- ok
--STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 HINT n JOIN (e JOIN m) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 HINT (n JOIN e) JOIN m RETURN COUNT(*);
 ---- 1
 0

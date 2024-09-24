@@ -56,9 +56,11 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
 }
 
 void ProjectionPushDownOptimizer::visitExtend(LogicalOperator* op) {
-    auto& extend = op->constCast<LogicalExtend>();
-    auto boundNodeID = extend.getBoundNode()->getInternalID();
+    auto& extend = op->cast<LogicalExtend>();
+    const auto boundNodeID = extend.getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
+    const auto nbrNodeID = extend.getNbrNode()->getInternalID();
+    extend.setScanNbrID(propertiesInUse.contains(nbrNodeID));
 }
 
 void ProjectionPushDownOptimizer::visitAccumulate(LogicalOperator* op) {
@@ -185,7 +187,10 @@ void ProjectionPushDownOptimizer::visitDelete(LogicalOperator* op) {
             auto& rel = info.pattern->constCast<RelExpression>();
             collectExpressionsInUse(rel.getSrcNode()->getInternalID());
             collectExpressionsInUse(rel.getDstNode()->getInternalID());
-            collectExpressionsInUse(rel.getInternalIDProperty());
+            KU_ASSERT(rel.getRelType() == QueryRelType::NON_RECURSIVE);
+            if (!rel.isEmpty()) {
+                collectExpressionsInUse(rel.getInternalIDProperty());
+            }
         }
     } break;
     default:

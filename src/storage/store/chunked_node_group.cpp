@@ -3,7 +3,9 @@
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
@@ -36,15 +38,24 @@ ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
     }
 }
 
-ChunkedNodeGroup::ChunkedNodeGroup(const std::vector<LogicalType>& columnTypes,
-    bool enableCompression, uint64_t capacity, row_idx_t startRowIdx, ResidencyState residencyState,
-    NodeGroupDataFormat format)
+ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& memoryManager,
+    const std::vector<LogicalType>& columnTypes, bool enableCompression, uint64_t capacity,
+    row_idx_t startRowIdx, ResidencyState residencyState, NodeGroupDataFormat format)
     : format{format}, residencyState{residencyState}, startRowIdx{startRowIdx}, capacity{capacity},
       numRows{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(std::make_unique<ColumnChunk>(type.copy(), capacity, enableCompression,
-            residencyState));
+        chunks.push_back(std::make_unique<ColumnChunk>(memoryManager, type.copy(), capacity,
+            enableCompression, residencyState));
+    }
+}
+
+void ChunkedNodeGroup::merge(ChunkedNodeGroup& base,
+    const std::vector<common::column_id_t>& columnsToMergeInto) {
+    KU_ASSERT(base.getNumColumns() == columnsToMergeInto.size());
+    for (idx_t i = 0; i < base.getNumColumns(); ++i) {
+        KU_ASSERT(columnsToMergeInto[i] < chunks.size());
+        chunks[columnsToMergeInto[i]] = base.moveColumnChunk(i);
     }
 }
 
@@ -185,23 +196,14 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup,
     length_t numRowsToScan) const {
     KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
-    bool hasValuesToScan = true;
-    std::unique_ptr<SelectionVector> selVector = nullptr;
+    auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
     if (versionInfo) {
-        selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(), *selVector,
-            rowIdxInGroup, numRowsToScan);
-        hasValuesToScan = selVector->getSelSize() > 0;
-    }
-    auto& anchorSelVector = scanState.IDVector->state->getSelVectorUnsafe();
-    if (selVector && selVector->getSelSize() != numRowsToScan) {
-        std::memcpy(anchorSelVector.getMultableBuffer().data(),
-            selVector->getMultableBuffer().data(), selVector->getSelSize() * sizeof(sel_t));
-        anchorSelVector.setToFiltered(selVector->getSelSize());
+        versionInfo->getSelVectorToScan(transaction->getStartTS(), transaction->getID(),
+            anchorSelVector, rowIdxInGroup, numRowsToScan);
     } else {
         anchorSelVector.setToUnfiltered(numRowsToScan);
     }
-    if (hasValuesToScan) {
+    if (anchorSelVector.getSelSize() > 0) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
             if (columnID == INVALID_COLUMN_ID) {
@@ -217,7 +219,7 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
             }
             KU_ASSERT(columnID < chunks.size());
             chunks[columnID]->scan(transaction, nodeGroupScanState.chunkStates[i],
-                *scanState.IDVector, *scanState.outputVectors[i], rowIdxInGroup, numRowsToScan);
+                *scanState.outputVectors[i], rowIdxInGroup, numRowsToScan);
         }
     }
 }
@@ -242,8 +244,8 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
     ChunkedNodeGroup& output) const;
 
-row_idx_t ChunkedNodeGroup::getNumDeletedRows(const Transaction* transaction) const {
-    return versionInfo ? versionInfo->getNumDeletions(transaction) : 0;
+bool ChunkedNodeGroup::hasDeletions(const Transaction* transaction) const {
+    return versionInfo ? versionInfo->hasDeletions(transaction) : false;
 }
 
 row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
@@ -301,12 +303,13 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     return versionInfo->delete_(transaction, this, rowIdxInChunk);
 }
 
-void ChunkedNodeGroup::addColumn(Transaction*, const TableAddColumnState& addColumnState,
-    bool enableCompression, FileHandle* dataFH) {
+void ChunkedNodeGroup::addColumn(Transaction* transaction,
+    const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH) {
     auto numRows = getNumRows();
     auto& dataType = addColumnState.propertyDefinition.getType();
-    chunks.push_back(std::make_unique<ColumnChunk>(dataType, capacity, enableCompression,
-        ResidencyState::IN_MEMORY));
+    chunks.push_back(
+        std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
+            dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
     if (residencyState == ResidencyState::ON_DISK) {
@@ -431,12 +434,14 @@ void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     }
 }
 
-std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(Deserializer& deSer) {
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
     std::string key;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
-    bool hasVersions;
+    bool hasVersions = false;
     deSer.validateDebuggingInfo(key, "chunks");
-    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks);
+    deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
+        [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
     auto chunkedGroup = std::make_unique<ChunkedNodeGroup>(std::move(chunks), 0 /*startRowIdx*/);
     deSer.validateDebuggingInfo(key, "has_version_info");
     deSer.deserializeValue<bool>(hasVersions);

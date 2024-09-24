@@ -86,7 +86,7 @@ constexpr uint64_t NumericLimits<double>::digits() {
 
 template<typename T>
 static constexpr std::array<T, NumericLimits<T>::digits()> pow10Sequence() {
-    std::array<T, NumericLimits<T>::digits()> retval;
+    std::array<T, NumericLimits<T>::digits()> retval{};
     retval[0] = 1;
     for (auto i = 1u; i < NumericLimits<T>::digits(); i++) {
         retval[i] = retval[i - 1] * 10;

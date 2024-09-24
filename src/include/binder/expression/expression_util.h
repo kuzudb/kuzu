@@ -6,8 +6,6 @@ namespace kuzu {
 namespace binder {
 
 struct ExpressionUtil {
-    static bool isExpressionsWithDataType(const expression_vector& expressions,
-        common::LogicalTypeID dataTypeID);
     static expression_vector getExpressionsWithDataType(const expression_vector& expressions,
         common::LogicalTypeID dataTypeID);
 

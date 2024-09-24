@@ -89,10 +89,10 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 }
 
 struct StorageInfoOutputData {
-    node_group_idx_t nodeGroupIdx;
-    node_group_idx_t chunkIdx;
+    node_group_idx_t nodeGroupIdx = INVALID_NODE_GROUP_IDX;
+    node_group_idx_t chunkIdx = INVALID_NODE_GROUP_IDX;
     std::string tableType;
-    uint32_t columnIdx;
+    uint32_t columnIdx = INVALID_COLUMN_ID;
     std::vector<Column*> columns;
 };
 
@@ -270,7 +270,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         auto table = bindData->table;
         StorageInfoOutputData outputData;
         outputData.tableType = table->getTableType() == TableType::NODE ? "NODE" : "REL";
-        node_group_idx_t numNodeGroups;
+        node_group_idx_t numNodeGroups = 0;
         switch (table->getTableType()) {
         case TableType::NODE: {
             auto& nodeTable = table->cast<NodeTable>();

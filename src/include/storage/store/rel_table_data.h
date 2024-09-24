@@ -9,7 +9,11 @@
 #include "storage/store/node_group_collection.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace storage {
+class MemoryManager;
 
 struct CSRHeaderColumns {
     std::unique_ptr<Column> offset;
@@ -98,8 +102,7 @@ private:
     FileHandle* dataFH;
     common::table_id_t tableID;
     std::string tableName;
-    MemoryManager* mm;
-    BufferManager* bufferManager;
+    MemoryManager* memoryManager;
     ShadowFile* shadowFile;
     bool enableCompression;
     PackedCSRInfo packedCSRInfo;

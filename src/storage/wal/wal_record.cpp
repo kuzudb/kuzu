@@ -21,7 +21,7 @@ void WALRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     main::ClientContext& clientContext) {
     std::string key;
-    WALRecordType type;
+    WALRecordType type = WALRecordType::INVALID_RECORD;
     deserializer.validateDebuggingInfo(key, "type");
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
@@ -199,7 +199,7 @@ void AlterTableEntryRecord::serialize(Serializer& serializer) const {
 
 std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
     Deserializer& deserializer) {
-    AlterType alterType;
+    auto alterType = AlterType::INVALID;
     std::string tableName;
     deserializer.deserializeValue(alterType);
     deserializer.deserializeValue(tableName);
@@ -274,10 +274,10 @@ void TableInsertionRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<TableInsertionRecord> TableInsertionRecord::deserialize(Deserializer& deserializer,
     main::ClientContext& clientContext) {
     std::string key;
-    table_id_t tableID;
-    TableType tableType;
-    row_idx_t numRows;
-    idx_t numVectors;
+    table_id_t tableID = INVALID_TABLE_ID;
+    auto tableType = TableType::UNKNOWN;
+    row_idx_t numRows = INVALID_ROW_IDX;
+    idx_t numVectors = 0;
     std::vector<std::unique_ptr<ValueVector>> valueVectors;
     deserializer.validateDebuggingInfo(key, "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);
@@ -310,8 +310,8 @@ void NodeDeletionRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<NodeDeletionRecord> NodeDeletionRecord::deserialize(Deserializer& deserializer,
     main::ClientContext& clientContext) {
     std::string key;
-    table_id_t tableID;
-    offset_t nodeOffset;
+    table_id_t tableID = INVALID_TABLE_ID;
+    offset_t nodeOffset = INVALID_OFFSET;
 
     deserializer.validateDebuggingInfo(key, "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);
@@ -339,9 +339,9 @@ void NodeUpdateRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<NodeUpdateRecord> NodeUpdateRecord::deserialize(Deserializer& deserializer,
     main::ClientContext& clientContext) {
     std::string key;
-    table_id_t tableID;
-    column_id_t columnID;
-    offset_t nodeOffset;
+    table_id_t tableID = INVALID_TABLE_ID;
+    column_id_t columnID = INVALID_COLUMN_ID;
+    offset_t nodeOffset = INVALID_OFFSET;
 
     deserializer.validateDebuggingInfo(key, "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);
@@ -372,7 +372,7 @@ void RelDeletionRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<RelDeletionRecord> RelDeletionRecord::deserialize(Deserializer& deserializer,
     main::ClientContext& clientContext) {
     std::string key;
-    table_id_t tableID;
+    table_id_t tableID = INVALID_TABLE_ID;
 
     deserializer.validateDebuggingInfo(key, "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);
@@ -403,8 +403,8 @@ void RelDetachDeleteRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<RelDetachDeleteRecord> RelDetachDeleteRecord::deserialize(
     Deserializer& deserializer, main::ClientContext& clientContext) {
     std::string key;
-    table_id_t tableID;
-    RelDataDirection direction;
+    table_id_t tableID = INVALID_TABLE_ID;
+    auto direction = RelDataDirection::INVALID;
 
     deserializer.validateDebuggingInfo(key, "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);
@@ -436,8 +436,8 @@ void RelUpdateRecord::serialize(Serializer& serializer) const {
 std::unique_ptr<RelUpdateRecord> RelUpdateRecord::deserialize(Deserializer& deserializer,
     main::ClientContext& clientContext) {
     std::string key;
-    table_id_t tableID;
-    column_id_t columnID;
+    table_id_t tableID = INVALID_TABLE_ID;
+    column_id_t columnID = INVALID_COLUMN_ID;
 
     deserializer.validateDebuggingInfo(key, "table_id");
     deserializer.deserializeValue<table_id_t>(tableID);

@@ -6,7 +6,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/join_type.h"
-#include "common/exception/runtime.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -78,27 +77,10 @@ static std::shared_ptr<Expression> getIRIProperty(const expression_vector& prope
     return nullptr;
 }
 
-static void validatePropertiesContainRelID(const RelExpression& rel,
-    const expression_vector& properties) {
-    if (rel.isEmpty()) {
-        return;
-    }
-    for (auto& property : properties) {
-        if (*property == *rel.getInternalIDProperty()) {
-            return;
-        }
-    }
-    // LCOV_EXCL_START
-    throw RuntimeException(stringFormat(
-        "Internal ID of relationship {} is not scanned. This should not happen.", rel.toString()));
-    // LCOV_EXCL_STOP
-}
-
 void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, bool extendFromSource, const expression_vector& properties,
     LogicalPlan& plan) {
-    validatePropertiesContainRelID(*rel, properties);
     // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
     // cannot be done at binding time because the pruning is affected by extend direction.
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction);

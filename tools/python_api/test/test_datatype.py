@@ -102,29 +102,33 @@ def test_double(conn_db_readonly: ConnDB) -> None:
 
 def test_decimal(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
-    res = conn.execute("UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES")
+    res = conn.execute(
+        "UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES"
+    )
     assert sorted(res.get_next()[0]) == sorted([
-        Decimal('5.7'),
-        Decimal('8.3'),
-        Decimal('2.9'),
-        Decimal('11.4'),
-        Decimal('16.6'),
-        Decimal('5.8'),
-        Decimal('17.1'),
-        Decimal('24.9'),
-        Decimal('8.7'),
+        Decimal("5.7"),
+        Decimal("8.3"),
+        Decimal("2.9"),
+        Decimal("11.4"),
+        Decimal("16.6"),
+        Decimal("5.8"),
+        Decimal("17.1"),
+        Decimal("24.9"),
+        Decimal("8.7"),
     ])
-    res = conn.execute("UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(4, 1)) AS PROD RETURN COLLECT(PROD) AS RES")
+    res = conn.execute(
+        "UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH CAST(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(4, 1)) AS PROD RETURN COLLECT(PROD) AS RES"
+    )
     assert sorted(res.get_next()[0]) == sorted([
-        Decimal('5.7'),
-        Decimal('8.3'),
-        Decimal('2.9'),
-        Decimal('11.4'),
-        Decimal('16.6'),
-        Decimal('5.8'),
-        Decimal('17.1'),
-        Decimal('24.9'),
-        Decimal('8.7'),
+        Decimal("5.7"),
+        Decimal("8.3"),
+        Decimal("2.9"),
+        Decimal("11.4"),
+        Decimal("16.6"),
+        Decimal("5.8"),
+        Decimal("17.1"),
+        Decimal("24.9"),
+        Decimal("8.7"),
     ])
 
 
@@ -332,6 +336,7 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
     assert len(e["_rels"]) == 1
     rel = e["_rels"][0]
     excepted_rel = {
+        "_id": {"offset": 0, "table": 4},
         "_src": {"offset": 0, "table": 0},
         "_dst": {"offset": 0, "table": 1},
         "_label": "studyAt",
@@ -404,15 +409,12 @@ def test_large_array(conn_db_readwrite: ConnDB) -> None:
 
     data = []
     for i in range(1000):
-        data.append({
-            "id": i,
-            "embedding": np.random.rand(1670).tolist()
-        })
+        data.append({"id": i, "embedding": np.random.rand(1670).tolist()})
 
     df = pd.DataFrame(data)
-    conn.execute("CREATE NODE TABLE User(id INT64, embedding DOUBLE[1670], PRIMARY KEY (id))")
-    conn.execute("COPY User FROM df")
-    db_df = conn.execute("MATCH (u:User) RETURN u.id as id, u.embedding as embedding ORDER BY u.id").get_as_df()
+    conn.execute("CREATE NODE TABLE _User(id INT64, embedding DOUBLE[1670], PRIMARY KEY (id))")
+    conn.execute("COPY _User FROM df")
+    db_df = conn.execute("MATCH (u:_User) RETURN u.id as id, u.embedding as embedding ORDER BY u.id").get_as_df()
     sorted_df = df.sort_values(by="id").reset_index(drop=True)
     sorted_db_df = db_df.sort_values(by="id").reset_index(drop=True)
     assert sorted_df.equals(sorted_db_df)

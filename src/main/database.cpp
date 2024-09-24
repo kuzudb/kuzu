@@ -130,8 +130,8 @@ case_insensitive_map_t<std::unique_ptr<StorageExtension>>& Database::getStorageE
 }
 
 void Database::openLockFile() {
-    int flags;
-    FileLockType lock;
+    int flags = 0;
+    FileLockType lock{};
     auto lockFilePath = StorageUtils::getLockFilePath(vfs.get(), databasePath);
     if (!vfs->fileOrPathExists(lockFilePath)) {
         getLockFileFlagsAndType(dbConfig.readOnly, true, flags, lock);

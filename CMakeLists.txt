@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.6.0.2 LANGUAGES CXX C)
+project(Kuzu VERSION 0.6.0.5 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -18,7 +18,7 @@ set(CMAKE_ENABLE_EXPORTS TRUE)
 option(ENABLE_WERROR "Treat all warnings as errors" FALSE)
 if(ENABLE_WERROR)
     if (CMAKE_VERSION VERSION_GREATER "3.24.0" OR CMAKE_VERSION VERSION_EQUAL "3.24.0")
-        set(COMPILE_WARNING_AS_ERROR TRUE)
+        set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
     elseif (MSVC)
         add_compile_options(\WX)
     else ()
@@ -268,7 +268,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.2")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.5")
 add_definitions(-DKUZU_PAGE_SIZE_LOG2=${PAGE_SIZE_LOG2})
 add_definitions(-DKUZU_VECTOR_CAPACITY_LOG2=${VECTOR_CAPACITY_LOG2})
 

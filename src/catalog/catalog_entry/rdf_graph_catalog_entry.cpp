@@ -62,10 +62,10 @@ void RDFGraphCatalogEntry::serialize(common::Serializer& serializer) const {
 std::unique_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
     std::string debuggingInfo;
-    common::table_id_t resourceTableID;
-    common::table_id_t literalTableID;
-    common::table_id_t resourceTripleTableID;
-    common::table_id_t literalTripleTableID;
+    common::table_id_t resourceTableID = common::INVALID_TABLE_ID;
+    common::table_id_t literalTableID = common::INVALID_TABLE_ID;
+    common::table_id_t resourceTripleTableID = common::INVALID_TABLE_ID;
+    common::table_id_t literalTripleTableID = common::INVALID_TABLE_ID;
     deserializer.validateDebuggingInfo(debuggingInfo, "resourceTableID");
     deserializer.deserializeValue(resourceTableID);
     deserializer.validateDebuggingInfo(debuggingInfo, "literalTableID");

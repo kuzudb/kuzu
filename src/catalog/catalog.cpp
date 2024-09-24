@@ -292,7 +292,7 @@ std::vector<SequenceCatalogEntry*> Catalog::getSequenceEntries(
 
 sequence_id_t Catalog::createSequence(Transaction* transaction,
     const BoundCreateSequenceInfo& info) {
-    auto entry = std::make_unique<SequenceCatalogEntry>(sequences.get(), info);
+    auto entry = std::make_unique<SequenceCatalogEntry>(info);
     entry->setHasParent(info.hasParent);
     return sequences->createEntry(transaction, std::move(entry));
 }
@@ -462,7 +462,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     Deserializer deserializer(std::make_unique<BufferedFileReader>(
         fs->openFile(catalogPath, FileFlags::READ_ONLY, context)));
     validateMagicBytes(deserializer);
-    storage_version_t savedStorageVersion;
+    storage_version_t savedStorageVersion = 0;
     deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     tables = CatalogSet::deserialize(deserializer);

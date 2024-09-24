@@ -10,7 +10,13 @@ class PropertyCollector final : public BoundStatementVisitor {
 public:
     expression_vector getProperties();
 
+    // Skip collecting node/rel properties if they are in WITH projection list.
+    // See with_clause_projection_rewriter for more details.
+    void visitSingleQuerySkipNodeRel(const NormalizedSingleQuery& singleQuery);
+
 private:
+    void visitQueryPartSkipNodeRel(const NormalizedQueryPart& queryPart);
+
     void visitMatch(const BoundReadingClause& readingClause) override;
     void visitUnwind(const BoundReadingClause& readingClause) override;
     void visitLoadFrom(const BoundReadingClause& readingClause) override;
@@ -21,10 +27,12 @@ private:
     void visitInsert(const BoundUpdatingClause& updatingClause) override;
     void visitMerge(const BoundUpdatingClause& updatingClause) override;
 
+    void visitProjectionBodySkipNodeRel(const BoundProjectionBody& projectionBody);
     void visitProjectionBody(const BoundProjectionBody& projectionBody) override;
     void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) override;
 
-    void collectPropertyExpressions(const std::shared_ptr<Expression>& expression);
+    void collectProperties(const std::shared_ptr<Expression>& expression);
+    void collectPropertiesSkipNodeRel(const std::shared_ptr<Expression>& expression);
 
 private:
     expression_set properties;

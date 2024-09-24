@@ -23,7 +23,7 @@ namespace catalog {
 class CatalogSet;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
-    TableCatalogEntry() = default;
+    TableCatalogEntry() : set{nullptr} {}
     TableCatalogEntry(CatalogSet* set, CatalogEntryType catalogType, std::string name)
         : CatalogEntry{catalogType, std::move(name)}, set{set} {}
     TableCatalogEntry& operator=(const TableCatalogEntry&) = delete;

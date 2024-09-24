@@ -3,6 +3,7 @@
 --
 
 #TODO: FIX-ME. Run this test on macOS can run into hang issue.
+#TODO(Howe): After fixing, please update table_info to return default_expr aswell.
 
 -CASE ConcurrentScan
 -CREATE_CONNECTION conn2
@@ -71,6 +72,8 @@
 -END_CONCURRENT_EXECUTION
 
 #TODO(Sam/Guodong): FIX-ME.
+#TODO(Howe): After fixing, please update table_info to return default_expr aswell.
+
 -CASE ConcurrentMultiWriteAlter
 -SKIP
 -STATEMENT CALL debug_enable_multi_writes=true;

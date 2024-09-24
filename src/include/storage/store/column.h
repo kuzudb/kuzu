@@ -12,6 +12,7 @@ namespace evaluator {
 class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
+class MemoryManager;
 
 struct CompressionMetadata;
 
@@ -33,11 +34,10 @@ class Column {
 public:
     // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
     // of transaction when reading/writing from/to disk pages.
-    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH,
-        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
-        bool requireNullColumn = true);
+    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
+        ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn = true);
     Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
-        BufferManager* bufferManager, ShadowFile* shadowFile, bool enableCompression,
+        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
     virtual ~Column();
 
@@ -51,7 +51,7 @@ public:
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
@@ -97,7 +97,7 @@ public:
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        common::ValueVector* resultVector);
 
     virtual void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
@@ -139,7 +139,7 @@ protected:
     DBFileID dbFileID;
     common::LogicalType dataType;
     FileHandle* dataFH;
-    BufferManager* bufferManager;
+    MemoryManager* mm;
     ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
@@ -152,14 +152,13 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, FileHandle* dataFH, BufferManager* bufferManager,
+    InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
-        Column::scan(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
-            resultVector);
+        common::ValueVector* resultVector) override {
+        Column::scan(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
         populateCommonTableID(resultVector);
     }
 
@@ -191,10 +190,9 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile,
-        bool enableCompression);
+        FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, FileHandle* dataFH, BufferManager* bufferManager,
+        common::PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 };
 

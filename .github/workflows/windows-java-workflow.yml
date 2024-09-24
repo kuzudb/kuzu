@@ -3,12 +3,24 @@ name: Build Windows Java Lib
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-windows-java:
     runs-on: self-hosted-windows
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
+        working-directory: ./scripts
 
       - name: Build Java lib for Windows
         shell: cmd

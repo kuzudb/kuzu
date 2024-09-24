@@ -1,0 +1,146 @@
+plugins {
+    id 'java'
+    id 'signing'
+    id 'maven-publish'
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+group = 'com.kuzudb'
+def projectRoot = projectDir.toPath().getParent().getParent()
+def cmakePath = projectRoot.resolve('CMakeLists.txt')
+def cmakeFile = cmakePath.toFile().text
+def versionLine = cmakeFile.split('\n').find { it.startsWith('project(Kuzu VERSION ') }
+def cmakeVersion = versionLine.split(' ')[2]
+def versionParts = cmakeVersion.split('\\.')
+if (versionParts.length > 3) {
+    version = versionParts[0] + '.' + versionParts[1] + '.' + versionParts[2] + '-SNAPSHOT'
+} else {
+    version = cmakeVersion
+}
+
+println "Project version: $version"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+if (System.getenv('SKIP_CMAKE_BUILD') != 'true') {
+    processResources {
+        dependsOn 'copyNativeLibs'
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = 'kuzu'
+                description = 'Kùzu is an embedded graph database built for query speed and scalability.'
+                url = 'http://kuzudb.com'
+                inceptionYear = '2020'
+                properties = [
+                        'project.build.sourceEncoding'    : 'UTF-8',
+                        'project.reporting.outputEncoding': 'UTF-8',
+                        'java.version'                    : '11',
+                        'maven.compiler.source'           : '11',
+                        'maven.compiler.target'           : '11'
+                ]
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/kuzudb/kuzu/blob/master/LICENSE'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'kuzudb'
+                        name = 'Kùzu Inc.'
+                        email = 'contact@kuzudb.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/kuzudb/kuzu.git'
+                    developerConnection = 'scm:git:ssh://github.com/kuzudb/kuzu.git'
+                    url = 'https://github.com/kuzudb/kuzu'
+                }
+            }
+            from components.java
+        }
+    }
+
+    repositories {
+        // Currently, we only publish releases to Sonatype
+        // Snapshots are published to GitHub Packages
+        maven {
+            name = 'GitHubPackages'
+            url = uri('https://maven.pkg.github.com/kuzudb/kuzu')
+            credentials {
+                username = System.getenv('GITHUB_ACTOR')
+                password = System.getenv('GITHUB_TOKEN')
+            }
+        }
+
+        if (!version.endsWith('-SNAPSHOT')) {
+            maven {
+                name = 'OSSRH'
+                if (version.endsWith('-SNAPSHOT')) {
+                    url = uri('https://s01.oss.sonatype.org/content/repositories/snapshots')
+                } else {
+                    url = uri('https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/')
+                }
+                credentials {
+                    username = System.getenv('OSSRH_USERNAME')
+                    password = System.getenv('OSSRH_PASSWORD')
+                }
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = providers
+            .environmentVariable("GPG_SIGNING_KEY")
+    def signingPassphrase = providers
+            .environmentVariable("GPG_SIGNING_PASSPHRASE")
+    if (signingKey.isPresent() && signingPassphrase.isPresent()) {
+        useInMemoryPgpKeys(signingKey.get(), signingPassphrase.get())
+        sign publishing.publications.mavenJava
+    } else {
+        println "Skipping signing, no GPG key found"
+    }
+}
+
+task cmake {
+    doLast {
+        exec {
+            workingDir '../..'
+            commandLine 'make', 'java'
+            environment NUM_THREADS: Runtime.getRuntime().availableProcessors()
+        }
+    }
+}
+
+task copyNativeLibs(type: Copy) {
+    from('build') {
+        include 'libkuzu_java_native.*'
+    }
+    into 'src/main/resources'
+    dependsOn 'cmake'
+}
+
+tasks.sourcesJar {
+    mustRunAfter 'copyNativeLibs'
+}
+
+test {
+    useJUnitPlatform()
+}

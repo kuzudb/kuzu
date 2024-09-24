@@ -65,7 +65,7 @@ if (WIN32)
 endif()
 
 if (APPLE)
-    set_target_properties(httpfs PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    set_apple_dynamic_lookup(httpfs)
 endif ()
 
 if (${BUILD_EXTENSION_TESTS})

@@ -2,12 +2,24 @@ name: Build Mac Java Lib
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-mac-java-arm:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          pip3 install packaging --break-system-packages
+          python3 update-nightly-build-version.py
+        working-directory: scripts
 
       - name: Build Java lib for Apple Silicon
         run: |
@@ -25,6 +37,13 @@ jobs:
     runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: |
+          pip3 install packaging --break-system-packages
+          python3 update-nightly-build-version.py
+        working-directory: scripts
 
       - name: Build Java lib for Intel
         run: |

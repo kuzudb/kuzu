@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {
@@ -29,9 +30,8 @@ public:
     }
 
     // Return num of rows before append.
-    void append(transaction::Transaction* transaction,
-        const std::vector<common::ValueVector*>& vectors, common::row_idx_t startRowInVectors,
-        common::row_idx_t numRowsToAppend);
+    void append(MemoryManager& memoryManager, const std::vector<common::ValueVector*>& vectors,
+        common::row_idx_t startRowInVectors, common::row_idx_t numRowsToAppend);
 
     // `merge` are directly moving the chunkedGroup to the collection.
     void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);

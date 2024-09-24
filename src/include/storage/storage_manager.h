@@ -13,7 +13,7 @@ class Database;
 } // namespace main
 
 namespace storage {
-
+class Table;
 class DiskArrayCollection;
 
 class StorageManager {
@@ -22,6 +22,7 @@ public:
         MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
 
+    ~StorageManager();
     static void recover(main::ClientContext& clientContext);
 
     void createTable(common::table_id_t tableID, const catalog::Catalog* catalog,

@@ -1,5 +1,6 @@
 if(MSVC)
     add_kuzu_api_test(main_test
+            system_config_test.cpp
             arrow_test.cpp
             connection_test.cpp
             prepare_test.cpp

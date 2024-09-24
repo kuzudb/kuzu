@@ -9,8 +9,11 @@ namespace kuzu {
 namespace storage {
 class NodeTable;
 class RelTable;
+class MemoryManager;
 } // namespace storage
-
+namespace transaction {
+class Transaction;
+}
 namespace processor {
 
 using partitioner_func_t =
@@ -34,11 +37,16 @@ struct PartitioningBuffer {
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerDataInfo;
+struct RelBatchInsertProgressSharedState;
 struct PartitionerSharedState {
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;
     storage::RelTable* relTable;
+    storage::MemoryManager& mm;
+
+    explicit PartitionerSharedState(storage::MemoryManager& mm)
+        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm} {}
 
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
@@ -50,7 +58,9 @@ struct PartitionerSharedState {
 
     void initialize(const PartitionerDataInfo& dataInfo);
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
+    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
+        RelBatchInsertProgressSharedState& progressSharedState);
+
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 
@@ -159,8 +169,8 @@ private:
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
-    void copyDataToPartitions(common::partition_idx_t partitioningIdx,
-        common::DataChunk chunkToCopyFrom) const;
+    void copyDataToPartitions(storage::MemoryManager& memoryManager,
+        common::partition_idx_t partitioningIdx, common::DataChunk chunkToCopyFrom) const;
 
 private:
     PartitionerDataInfo dataInfo;

@@ -11,7 +11,6 @@ namespace binder {
 // MATCH (a) WITH a MATCH (a)->(b);
 // will be rewritten as
 // MATCH (a) WITH a._id MATCH (a)->(b);
-// See bind_projection_clause.cpp for more details.
 class WithClauseProjectionRewriter : public BoundStatementVisitor {
 public:
     void visitSingleQueryUnsafe(NormalizedSingleQuery& singleQuery) override;

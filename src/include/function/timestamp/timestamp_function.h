@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/exception/conversion.h"
-#include "common/types/date_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/timestamp_t.h"
 #include "function/cast/functions/numeric_cast.h"
@@ -23,7 +22,7 @@ struct EpochMs {
 
 struct ToTimestamp {
     static inline void operation(double& sec, common::timestamp_t& result) {
-        int64_t ms;
+        int64_t ms = 0;
         if (!tryCastWithOverflowCheck(sec * common::Interval::MICROS_PER_SEC, ms)) {
             throw common::ConversionException("Could not convert epoch seconds to TIMESTAMP");
         }

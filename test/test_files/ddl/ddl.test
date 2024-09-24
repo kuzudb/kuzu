@@ -64,10 +64,10 @@ Table knows altered.
 Table likes has been created.
 -STATEMENT Call table_info('likes_person_person') RETURN *;
 ---- 1
-1|since|INT64
+1|since|INT64|NULL
 -STATEMENT Call table_info('likes_person_organisation') RETURN *;
 ---- 1
-1|since|INT64
+1|since|INT64|NULL
 -STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation);
 ---- error
 Binder exception: likes already exists in catalog.

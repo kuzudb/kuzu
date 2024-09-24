@@ -2,9 +2,12 @@
 
 #include "alp/encode.hpp"
 #include "common/utils.h"
+#include "common/vector/value_vector.h"
 #include "storage/compression/float_compression.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column_chunk_data.h"
+#include "storage/store/column_chunk_metadata.h"
 #include "transaction/transaction.h"
 #include <concepts>
 

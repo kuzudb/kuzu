@@ -87,6 +87,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         expectedColumnTypes);
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
+    expression_vector warningDataExprs = boundSource->getWarningColumns();
     if (boundSource->type == ScanSourceType::FILE) {
         auto& source = boundSource->constCast<BoundTableScanSource>();
         auto bindData = source.info.bindData->constPtrCast<ScanBindData>();
@@ -103,6 +104,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         columns.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
+    columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
     // TODO(Guodong): Should remove this expression.
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ANONYMOUS));
@@ -125,6 +127,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         expectedColumnTypes, clientContext);
     auto boundSource = bindScanSource(copyStatement.getSource(),
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
+    expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
@@ -145,8 +148,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         columnExprs.push_back(column);
         evaluateTypes.push_back(evaluateType);
     }
-    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey);
-    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey);
+    columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
+    auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, warningDataExprs);
+    auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, warningDataExprs);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
     auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2};
     auto extraCopyRelInfo =

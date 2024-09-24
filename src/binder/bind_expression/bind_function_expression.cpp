@@ -52,7 +52,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName) {
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        auto expr = bindExpression(*parsedExpression.getChild(i));
+        if (parsedExpression.getChild(i)->hasAlias()) {
+            expr->setAlias(parsedExpression.getChild(i)->getAlias());
+        }
+        children.push_back(expr);
     }
     return bindScalarFunctionExpression(children, functionName);
 }

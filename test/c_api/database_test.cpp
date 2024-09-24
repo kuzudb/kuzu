@@ -24,10 +24,6 @@ TEST_F(CApiDatabaseTest, CreationAndDestroy) {
 }
 
 TEST_F(CApiDatabaseTest, CreationReadOnly) {
-// TODO: Enable this test on Windows when the read-only mode is implemented.
-#ifdef _WIN32
-    return;
-#endif
     kuzu_database database;
     kuzu_connection connection;
     kuzu_query_result queryResult;

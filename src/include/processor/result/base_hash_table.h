@@ -24,7 +24,7 @@ protected:
         uint32_t startVecIdx);
     void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors);
-    void initSlotConstant(uint64_t numSlotsPerBlock_);
+    void initSlotConstant(uint64_t numSlotsPerBlock);
     bool matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
         const uint8_t* entry);
 
@@ -35,7 +35,6 @@ private:
 protected:
     uint64_t maxNumHashSlots;
     uint64_t bitmask;
-    uint64_t numSlotsPerBlock;
     uint64_t numSlotsPerBlockLog2;
     uint64_t slotIdxInBlockMask;
     std::vector<std::unique_ptr<DataBlock>> hashSlotsBlocks;

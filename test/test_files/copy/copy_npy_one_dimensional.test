@@ -38,3 +38,23 @@
 1.000000
 2.000000
 3.000000
+
+-CASE CopyOneDimensionalNpyTestIgnoreErrors
+-STATEMENT create node table npytableSingleColumn (id INT64,PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytableSingleColumn from ["${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy"](IGNORE_ERRORS=true)
+---- ok
+-STATEMENT copy npytableSingleColumn from ["${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy"](IGNORE_ERRORS=true)
+---- ok
+-STATEMENT CALL show_warnings() RETURN message
+---- 3
+Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.
+Found duplicated primary key value 2, which violates the uniqueness constraint of the primary key column.
+Found duplicated primary key value 3, which violates the uniqueness constraint of the primary key column.
+
+-CASE CopyOneDimensionalNpyTestInvalidOption
+-STATEMENT create node table npytableSingleColumn (id INT64,PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytableSingleColumn from ["${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy"](invalid_option=true)
+---- error
+Binder exception: Copy from numpy cannot have options other than IGNORE_ERRORS.

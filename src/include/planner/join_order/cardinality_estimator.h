@@ -16,7 +16,7 @@ namespace planner {
 
 class CardinalityEstimator {
 public:
-    CardinalityEstimator() = default;
+    CardinalityEstimator() : context{nullptr} {};
     explicit CardinalityEstimator(main::ClientContext* context) : context{context} {}
     DELETE_COPY_DEFAULT_MOVE(CardinalityEstimator);
 

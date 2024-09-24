@@ -1,6 +1,9 @@
 #include "binder/rewriter/with_clause_projection_rewriter.h"
 
+#include "binder/expression/expression_util.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/visitor/property_collector.h"
 
 using namespace kuzu::common;
@@ -8,54 +11,68 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-static expression_vector getPropertiesOfSameVariable(const expression_vector& expressions,
-    const std::string& variableName) {
-    expression_vector result;
-    for (auto& expression : expressions) {
-        auto& propertyExpression = expression->constCast<PropertyExpression>();
-        if (propertyExpression.getVariableName() != variableName) {
-            continue;
+static void rewrite(std::shared_ptr<Expression> expr, expression_vector& projectionList,
+    const std::unordered_map<std::string, expression_vector>& varNameToProperties) {
+    std::string varName;
+    if (ExpressionUtil::isNodePattern(*expr)) {
+        auto& node = expr->constCast<NodeExpression>();
+        projectionList.push_back(node.getInternalID());
+        varName = node.getUniqueName();
+    } else if (ExpressionUtil::isRelPattern(*expr)) {
+        auto& rel = expr->constCast<RelExpression>();
+        projectionList.push_back(rel.getSrcNode()->getInternalID());
+        projectionList.push_back(rel.getDstNode()->getInternalID());
+        projectionList.push_back(rel.getInternalIDProperty());
+        if (rel.hasDirectionExpr()) {
+            projectionList.push_back(rel.getDirectionExpr());
         }
-        result.push_back(expression);
+        varName = rel.getUniqueName();
+    } else if (ExpressionUtil::isRecursiveRelPattern(*expr)) {
+        auto& rel = expr->constCast<RelExpression>();
+        projectionList.push_back(rel.getLengthExpression());
+        projectionList.push_back(expr);
+        varName = rel.getUniqueName();
     }
-    return result;
+    if (!varName.empty()) {
+        if (varNameToProperties.contains(varName)) {
+            for (auto& property : varNameToProperties.at(varName)) {
+                projectionList.push_back(property);
+            }
+        }
+    } else {
+        projectionList.push_back(expr);
+    }
 }
 
-static expression_vector rewriteExpressions(const expression_vector& expressions,
-    const expression_vector& properties) {
-    expression_set distinctResult;
-    for (auto& expression : expressions) {
-        if (expression->expressionType != ExpressionType::PROPERTY) {
-            distinctResult.insert(expression);
-            continue;
-        }
-        auto& propertyExpression = expression->constCast<PropertyExpression>();
-        if (!propertyExpression.isInternalID()) {
-            distinctResult.insert(expression);
-            continue;
-        }
-        // Expression is internal ID. Perform rewrite as all properties with the same variable.
-        auto variableName = propertyExpression.getVariableName();
-        for (auto& property : getPropertiesOfSameVariable(properties, variableName)) {
-            distinctResult.insert(property);
-        }
+static expression_vector rewrite(const expression_vector& exprs,
+    const std::unordered_map<std::string, expression_vector>& varNameToProperties) {
+    expression_vector projectionList;
+    for (auto& expr : exprs) {
+        rewrite(expr, projectionList, varNameToProperties);
     }
-    return expression_vector{distinctResult.begin(), distinctResult.end()};
+    return projectionList;
 }
 
 void WithClauseProjectionRewriter::visitSingleQueryUnsafe(NormalizedSingleQuery& singleQuery) {
     auto propertyCollector = PropertyCollector();
-    propertyCollector.visitSingleQuery(singleQuery);
-    auto properties = propertyCollector.getProperties();
+    propertyCollector.visitSingleQuerySkipNodeRel(singleQuery);
+    std::unordered_map<std::string, expression_vector> varNameToProperties;
+    for (auto& expr : propertyCollector.getProperties()) {
+        auto& property = expr->constCast<PropertyExpression>();
+        if (!varNameToProperties.contains(property.getVariableName())) {
+            varNameToProperties.insert({property.getVariableName(), expression_vector{}});
+        }
+        varNameToProperties.at(property.getVariableName()).push_back(expr);
+    }
     for (auto i = 0u; i < singleQuery.getNumQueryParts() - 1; ++i) {
         auto queryPart = singleQuery.getQueryPartUnsafe(i);
         auto projectionBody = queryPart->getProjectionBodyUnsafe();
-        auto newProjectionExpressions =
-            rewriteExpressions(projectionBody->getProjectionExpressions(), properties);
-        projectionBody->setProjectionExpressions(std::move(newProjectionExpressions));
-        auto newGroupByExpressions =
-            rewriteExpressions(projectionBody->getGroupByExpressions(), properties);
-        projectionBody->setGroupByExpressions(std::move(newGroupByExpressions));
+        auto newProjectionExprs =
+            rewrite(projectionBody->getProjectionExpressions(), varNameToProperties);
+        projectionBody->setProjectionExpressions(std::move(newProjectionExprs));
+        auto newGroupByExprs =
+            rewrite(projectionBody->getGroupByExpressions(), varNameToProperties);
+        projectionBody->setGroupByExpressions(std::move(newGroupByExprs));
     }
 }
 

@@ -53,7 +53,7 @@ public:
 
     template<typename T>
     static common::hash_t hash(const T& key) {
-        common::hash_t hash;
+        common::hash_t hash = 0;
         function::Hash::operation(key, hash);
         return hash;
     }

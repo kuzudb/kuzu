@@ -37,7 +37,7 @@
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 1
-person|NODE|local(kuzu)|
+0|person|NODE|local(kuzu)|
 -STATEMENT MATCH (p:person) RETURN count(*);
 ---- 1
 8
@@ -53,7 +53,7 @@ person|NODE|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL show_tables() return *;
 ---- 1
-person|NODE|local(kuzu)|
+0|person|NODE|local(kuzu)|
 -STATEMENT MATCH (p:person) RETURN count(*);
 ---- 1
 8
@@ -88,8 +88,8 @@ person|NODE|local(kuzu)|
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 2
-person|NODE|local(kuzu)|
-knows|REL|local(kuzu)|
+1|knows|REL|local(kuzu)|
+0|person|NODE|local(kuzu)|
 -STATEMENT MATCH (:person)-[k:knows]->(:person) RETURN COUNT(*);
 ---- 1
 14
@@ -106,8 +106,8 @@ knows|REL|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL show_tables() return *;
 ---- 2
-person|NODE|local(kuzu)|
-knows|REL|local(kuzu)|
+0|person|NODE|local(kuzu)|
+1|knows|REL|local(kuzu)|
 -STATEMENT MATCH (:person)-[k:knows]->(:person) RETURN COUNT(*);
 ---- 1
 14
@@ -121,7 +121,7 @@ knows|REL|local(kuzu)|
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 1
-person|NODE|local(kuzu)|
+0|person|NODE|local(kuzu)|
 
 -CASE CreateAndInsertRelRollbackRecovery
 -STATEMENT CALL auto_checkpoint=false;
@@ -135,4 +135,4 @@ person|NODE|local(kuzu)|
 -RELOADDB
 -STATEMENT CALL show_tables() return *;
 ---- 1
-person|NODE|local(kuzu)|
+0|person|NODE|local(kuzu)|

@@ -7,19 +7,17 @@ import sys
 import shutil
 import logging
 
-from typing import Optional
+from typing import Optional, Set
 from pathlib import Path
 
 logging.basicConfig(level=logging.WARNING)
 
-SCRIPT_PATH = Path(__file__)
-HEADER_BASE_PATH = (SCRIPT_PATH / "../../src/include").resolve()
+SCRIPT_DIR = Path(__file__).parent
+HEADER_BASE_PATH = (SCRIPT_DIR / "../src/include").resolve()
 MAIN_HEADER_PATH = HEADER_BASE_PATH / "main"
 START_POINT = MAIN_HEADER_PATH / "kuzu.h"
-JSON_HEADER_PATH = (
-    SCRIPT_PATH / "../../third_party/nlohmann_json/json_fwd.hpp"
-).resolve()
-ALP_HEADERS_PATH = (SCRIPT_PATH / "../../third_party/alp/include").resolve()
+JSON_HEADER_PATH = (SCRIPT_DIR / "../third_party/nlohmann_json/json_fwd.hpp").resolve()
+ALP_HEADERS_PATH = (SCRIPT_DIR / "../third_party/alp/include").resolve()
 OUTPUT_PATH = "kuzu.hpp"
 
 logging.debug("HEADER_BASE_PATH: %s", HEADER_BASE_PATH)
@@ -47,7 +45,12 @@ def resolve_include(source_header: Path, include_path: str) -> Optional[Path]:
     return None
 
 
-processed_headers = set()
+processed_headers: Set[Path] = set()
+headers: Set[Path] = set()
+with open(SCRIPT_DIR / "headers.txt") as file:
+    for path in file:
+        if not path.strip().startswith("#"):
+            headers.add((SCRIPT_DIR / ".." / path.strip()).resolve())
 
 
 def build_graph(graph: graphlib.TopologicalSorter, source_file: Path) -> None:
@@ -55,7 +58,7 @@ def build_graph(graph: graphlib.TopologicalSorter, source_file: Path) -> None:
     global processed_headers
     if source_file in processed_headers:
         return
-    processed_headers.add(source_file)
+    processed_headers.add(source_file.resolve())
 
     with source_file.open("r") as f:
         for line in f.readlines():
@@ -77,6 +80,25 @@ def create_merged_header():
     graph = graphlib.TopologicalSorter()
     logging.info("Building dependency graph...")
     build_graph(graph, START_POINT)
+    if processed_headers != headers:
+        if processed_headers - headers:
+            error_string = os.linesep.join(
+                sorted("\t" + str(header) for header in processed_headers - headers)
+            )
+            raise RuntimeError(
+                "Extra headers were found in the include tree. "
+                "Double-check that these headers should be included in the single file header "
+                f"and if so, add them to headers.txt:{os.linesep}{error_string}"
+            )
+        if headers - processed_headers:
+            error_string = os.linesep.join(
+                sorted(str(header) for header in headers - processed_headers)
+            )
+            raise RuntimeError(
+                "Missing headers from the include tree. "
+                "Double-check that these headers are no longer needed in the single file header "
+                f"and if so, remove them from headers.txt:{os.linesep}{error_string}"
+            )
     logging.info("Topological sorting...")
     logging.info("Writing merged header...")
     with open(OUTPUT_PATH, "w") as f:

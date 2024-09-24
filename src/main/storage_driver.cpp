@@ -133,9 +133,7 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     auto column = &nodeTable->getColumn(columnID);
     std::vector<Column*> columns;
     columns.push_back(column);
-    std::vector<ColumnPredicateSet> emptyPredicateSets;
-    auto scanState =
-        std::make_unique<NodeTableScanState>(columnIDs, columns, std::move(emptyPredicateSets));
+    auto scanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns);
     // Create value vectors
     auto idVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
     auto columnVector = std::make_unique<ValueVector>(column->getDataType().copy(),
@@ -144,7 +142,7 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     idVector->state = vectorState;
     columnVector->state = vectorState;
     scanState->rowIdxVector->state = vectorState;
-    scanState->IDVector = idVector.get();
+    scanState->nodeIDVector = idVector.get();
     scanState->outputVectors.push_back(columnVector.get());
     // Scan
     // TODO: validate not more than 1 level nested

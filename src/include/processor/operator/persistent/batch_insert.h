@@ -4,17 +4,26 @@
 #include "storage/store/table.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+class ChunkedNodeGroup;
+} // namespace storage
 namespace processor {
 
 struct BatchInsertInfo {
     catalog::TableCatalogEntry* tableEntry;
     bool compressionEnabled;
-    bool ignoreErrors;
+
+    std::vector<common::column_id_t> outputDataColumns;
+    std::vector<common::column_id_t> warningDataColumns;
 
     BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        bool ignoreErrors)
+        common::column_id_t numOutputDataColumns, common::column_id_t numWarningDataColumns)
         : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
-          ignoreErrors(ignoreErrors) {}
+          outputDataColumns(numOutputDataColumns), warningDataColumns(numWarningDataColumns) {
+        std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
+        std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
+    }
     virtual ~BatchInsertInfo() = default;
 
     BatchInsertInfo(const BatchInsertInfo& other) = delete;
@@ -39,17 +48,18 @@ struct BatchInsertSharedState {
     storage::Table* table;
     std::shared_ptr<FactorizedTable> fTable;
     storage::WAL* wal;
+    storage::MemoryManager* mm;
 
     BatchInsertSharedState(storage::Table* table, std::shared_ptr<FactorizedTable> fTable,
-        storage::WAL* wal)
+        storage::WAL* wal, storage::MemoryManager* mm)
         : numRows{0}, numErroredRows(std::make_shared<common::row_idx_t>(0)), table{table},
-          fTable{std::move(fTable)}, wal{wal} {};
+          fTable{std::move(fTable)}, wal{wal}, mm{mm} {};
     BatchInsertSharedState(const BatchInsertSharedState& other) = delete;
 
     virtual ~BatchInsertSharedState() = default;
 
     std::unique_ptr<BatchInsertSharedState> copy() const {
-        auto result = std::make_unique<BatchInsertSharedState>(table, fTable, wal);
+        auto result = std::make_unique<BatchInsertSharedState>(table, fTable, wal, mm);
         result->numRows.store(numRows.load());
         return result;
     }

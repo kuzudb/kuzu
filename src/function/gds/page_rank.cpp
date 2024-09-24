@@ -6,7 +6,7 @@
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
-#include "processor/operator/gds_call.h"
+#include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
@@ -34,9 +34,9 @@ struct PageRankBindData final : public GDSBindData {
     }
 };
 
-class PageRankLocalState : public GDSLocalState {
+class PageRankOutputWriter {
 public:
-    explicit PageRankLocalState(main::ClientContext* context) {
+    explicit PageRankOutputWriter(main::ClientContext* context) {
         auto mm = context->getMemoryManager();
         nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
         rankVector = std::make_unique<ValueVector>(LogicalType::DOUBLE(), mm);
@@ -102,12 +102,12 @@ public:
     }
 
     void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<PageRankLocalState>(context);
+        localState = std::make_unique<PageRankOutputWriter>(context);
     }
 
-    void exec(processor::ExecutionContext*) override {
+    void exec(processor::ExecutionContext* context) override {
         auto extraData = bindData->ptrCast<PageRankBindData>();
-        auto pageRankLocalState = localState->ptrCast<PageRankLocalState>();
+        localState = std::make_unique<PageRankOutputWriter>(context->clientContext);
         auto graph = sharedState->graph.get();
         // Initialize state.
         common::node_id_map_t<double> ranks;
@@ -147,12 +147,15 @@ public:
             }
         }
         // Materialize result.
-        pageRankLocalState->materialize(graph, ranks, *sharedState->fTable);
+        localState->materialize(graph, ranks, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<PageRank>(*this);
     }
+
+private:
+    std::unique_ptr<PageRankOutputWriter> localState;
 };
 
 function_set PageRankFunction::getFunctionSet() {

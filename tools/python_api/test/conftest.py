@@ -109,6 +109,24 @@ def init_tinysnb(conn: kuzu.Connection) -> None:
                 conn.execute(line)
 
 
+def init_demo(conn: kuzu.Connection) -> None:
+    tiny_snb_path = (Path(__file__).parent / f"{KUZU_ROOT}/dataset/demo-db/csv").resolve()
+    schema_path = tiny_snb_path / "schema.cypher"
+    with schema_path.open(mode="r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line:
+                conn.execute(line)
+
+    copy_path = tiny_snb_path / "copy.cypher"
+    with copy_path.open(mode="r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            line = line.replace("dataset/demo-db/csv", f"{KUZU_ROOT}/dataset/demo-db/csv")
+            if line:
+                conn.execute(line)
+
+
 def init_movie_serial(conn: kuzu.Connection) -> None:
     conn.execute(
         """
@@ -140,9 +158,9 @@ def init_db(path: Path) -> Path:
     if Path(path).exists():
         shutil.rmtree(path)
 
-    db = kuzu.Database(path, buffer_pool_size=_POOL_SIZE_)
-    conn = kuzu.Connection(db)
+    conn, db = create_conn_db(path, read_only=False)
     init_tinysnb(conn)
+    init_demo(conn)
     init_npy(conn)
     init_tensor(conn)
     init_long_str(conn)
@@ -154,9 +172,9 @@ def init_db(path: Path) -> Path:
 _READONLY_CONN_DB_: ConnDB | None = None
 
 
-def _create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
+def create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
     """Return a new connection and database."""
-    db = kuzu.Database(init_db(path), buffer_pool_size=_POOL_SIZE_, read_only=read_only)
+    db = kuzu.Database(path, buffer_pool_size=_POOL_SIZE_, read_only=read_only)
     conn = kuzu.Connection(db, num_threads=4)
     return conn, db
 
@@ -166,18 +184,14 @@ def conn_db_readonly(tmp_path: Path) -> ConnDB:
     """Return a cached read-only connection and database."""
     global _READONLY_CONN_DB_
     if _READONLY_CONN_DB_ is None:
-        # On Windows, the read-only mode is not implemented yet.
-        # Therefore, we create a writable database on Windows.
-        # However, the caller should ensure that the database is not modified.
-        # TODO: Remove this workaround when the read-only mode is implemented on Windows.
-        _READONLY_CONN_DB_ = _create_conn_db(tmp_path, read_only=sys.platform != "win32")
+        _READONLY_CONN_DB_ = create_conn_db(init_db(tmp_path), read_only=True)
     return _READONLY_CONN_DB_
 
 
 @pytest.fixture()
 def conn_db_readwrite(tmp_path: Path) -> ConnDB:
     """Return a new writable connection and database."""
-    return _create_conn_db(tmp_path, read_only=False)
+    return create_conn_db(init_db(tmp_path), read_only=False)
 
 
 @pytest.fixture()

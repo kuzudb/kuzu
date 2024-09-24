@@ -11,14 +11,14 @@ struct FlattenLocalState {
     uint64_t sizeToFlatten = 0;
 };
 
-class Flatten : public PhysicalOperator, SelVectorOverWriter {
+class Flatten final : public PhysicalOperator, SelVectorOverWriter {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FLATTEN;
 
 public:
     Flatten(data_chunk_pos_t dataChunkToFlattenPos, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          dataChunkToFlattenPos{dataChunkToFlattenPos} {}
+          dataChunkToFlattenPos{dataChunkToFlattenPos}, dataChunkState{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

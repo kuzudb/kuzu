@@ -11,6 +11,7 @@
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "storage/wal_replayer.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -75,7 +76,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
         if (metadataFileInfo->getFileSize() > 0) {
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
-            uint64_t numTables;
+            uint64_t numTables = 0;
             deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
@@ -245,6 +246,8 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     writer->sync();
     shadowFile->flushAll();
 }
+
+StorageManager::~StorageManager() = default;
 
 } // namespace storage
 } // namespace kuzu

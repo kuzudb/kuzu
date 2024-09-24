@@ -5,6 +5,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 struct ChunkCheckpointState {
     std::unique_ptr<ColumnChunkData> chunkData;
@@ -36,16 +37,15 @@ struct ColumnCheckpointState {
 
 class ColumnChunk {
 public:
-    ColumnChunk(const common::LogicalType& dataType, uint64_t capacity, bool enableCompression,
-        ResidencyState residencyState);
-    ColumnChunk(const common::LogicalType& dataType, bool enableCompression,
-        ColumnChunkMetadata metadata);
+    ColumnChunk(MemoryManager& memoryManager, const common::LogicalType& dataType,
+        uint64_t capacity, bool enableCompression, ResidencyState residencyState);
+    ColumnChunk(MemoryManager& memoryManager, const common::LogicalType& dataType,
+        bool enableCompression, ColumnChunkMetadata metadata);
     ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
 
     void initializeScanState(ChunkState& state, Column* column) const;
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
-        common::ValueVector& nodeID, common::ValueVector& output, common::offset_t offsetInChunk,
-        common::length_t length) const;
+        common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunk& output, common::row_idx_t startRow = 0,
@@ -60,7 +60,8 @@ public:
         return getResidencyState() == ResidencyState::ON_DISK ? 0 : data->getEstimatedMemoryUsage();
     }
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<ColumnChunk> deserialize(common::Deserializer& deSer);
+    static std::unique_ptr<ColumnChunk> deserialize(MemoryManager& memoryManager,
+        common::Deserializer& deSer);
 
     uint64_t getNumValues() const { return data->getNumValues(); }
     void setNumValues(const uint64_t numValues) const { data->setNumValues(numValues); }

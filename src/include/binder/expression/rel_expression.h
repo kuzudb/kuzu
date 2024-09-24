@@ -25,8 +25,8 @@ struct RecursiveInfo {
      * rel = r
      * predicates = [n.age > 10, r.year = 2012]
      * */
-    uint64_t lowerBound;
-    uint64_t upperBound;
+    uint64_t lowerBound = 0;
+    uint64_t upperBound = 0;
     std::shared_ptr<NodeExpression> node;
     // NodeCopy has the same fields as node but a different unique name.
     // We use nodeCopy to plan recursive plan because boundNode&nbrNode cannot be the same.

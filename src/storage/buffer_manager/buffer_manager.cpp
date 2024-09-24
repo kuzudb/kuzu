@@ -40,7 +40,7 @@ bool EvictionQueue::insert(uint32_t fileIndex, page_idx_t pageIndex) {
 }
 
 std::atomic<EvictionCandidate>* EvictionQueue::next() {
-    std::atomic<EvictionCandidate>* candidate;
+    std::atomic<EvictionCandidate>* candidate = nullptr;
     do {
         // Since the buffer pool size is a power of two (as is the page size), (UINT64_MAX + 1) %
         // size == 0, which means no entries will be skipped when the cursor overflows
@@ -114,8 +114,9 @@ uint8_t* BufferManager::pin(FileHandle& fileHandle, page_idx_t pageIdx,
         case PageState::EVICTED: {
             if (pageState->tryLock(currStateAndVersion)) {
                 if (!claimAFrame(fileHandle, pageIdx, pageReadPolicy)) {
-                    pageState->unlock();
-                    throw BufferManagerException("Failed to claim a frame.");
+                    pageState->resetToEvicted();
+                    throw BufferManagerException("Unable to allocate memory! The buffer pool is "
+                                                 "full and no memory could be freed!");
                 }
                 if (!evictionQueue.insert(fileHandle.getFileIndex(), pageIdx)) {
                     throw BufferManagerException(
@@ -240,7 +241,7 @@ void BufferManager::unpin(FileHandle& fileHandle, page_idx_t pageIdx) {
 // evicts up to 64 pages and returns the space reclaimed
 uint64_t BufferManager::evictPages() {
     constexpr size_t BATCH_SIZE = 64;
-    std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates;
+    std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates{};
     size_t evictablePages = 0;
     size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
@@ -307,23 +308,25 @@ bool BufferManager::claimAFrame(FileHandle& fileHandle, page_idx_t pageIdx,
 
 bool BufferManager::reserve(uint64_t sizeToReserve) {
     // Reserve the memory for the page.
-    auto currentUsedMem = reserveUsedMemory(sizeToReserve);
+    usedMemory += sizeToReserve;
     uint64_t totalClaimedMemory = 0;
+    const auto needMoreMemory = [&]() {
+        // The only time we should exceed the buffer pool size should be when threads are currently
+        // attempting to reserve space and have pre-allocated space. So if we've claimed enough
+        // space for what we're trying to reserve, then we can continue even if the current total is
+        // higher than the buffer pool size as we should never actually exceed the buffer pool size.
+        return sizeToReserve > totalClaimedMemory &&
+               (usedMemory - totalClaimedMemory) > bufferPoolSize.load();
+    };
     // Evict pages if necessary until we have enough memory.
-    while ((currentUsedMem + sizeToReserve - totalClaimedMemory) > bufferPoolSize.load()) {
+    while (needMoreMemory()) {
         auto memoryClaimed = evictPages();
-        if (memoryClaimed == 0) {
+        if (memoryClaimed == 0 && needMoreMemory()) {
             // Cannot find more pages to be evicted. Free the memory we reserved and return false.
             freeUsedMemory(sizeToReserve + totalClaimedMemory);
             return false;
         }
         totalClaimedMemory += memoryClaimed;
-        currentUsedMem = usedMemory.load();
-    }
-    if ((currentUsedMem + sizeToReserve - totalClaimedMemory) > bufferPoolSize.load()) {
-        // Cannot claim the memory needed. Free the memory we reserved and return false.
-        freeUsedMemory(sizeToReserve + totalClaimedMemory);
-        return false;
     }
     // Have enough memory available now
     freeUsedMemory(totalClaimedMemory);

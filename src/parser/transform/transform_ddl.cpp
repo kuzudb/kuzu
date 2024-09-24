@@ -107,7 +107,7 @@ std::unique_ptr<Statement> Transformer::transformCreateSequence(
                                common::ConflictAction::ON_CONFLICT_THROW);
     std::unordered_set<SequenceInfoType> applied;
     for (auto seqOption : ctx.kU_SequenceOptions()) {
-        SequenceInfoType type;
+        SequenceInfoType type; // NOLINT(*-init-variables)
         std::string typeString;
         CypherParser::OC_IntegerLiteralContext* valCtx = nullptr;
         std::string* valOption = nullptr;

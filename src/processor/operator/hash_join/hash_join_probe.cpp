@@ -195,7 +195,7 @@ uint64_t HashJoinProbe::getJoinResult() {
 // (all flat data chunks from the build side are merged into one) and buildSideVectorPtrs (each
 // VectorPtr corresponds to one unFlat build side data chunk that is appended to the resultSet).
 bool HashJoinProbe::getNextTuplesInternal(ExecutionContext* context) {
-    uint64_t numPopulatedTuples;
+    uint64_t numPopulatedTuples = 0;
     do {
         if (!getMatchedTuples(context)) {
             return false;

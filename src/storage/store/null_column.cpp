@@ -1,5 +1,7 @@
 #include "storage/store/null_column.h"
 
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "transaction/transaction.h"
 
@@ -17,7 +19,7 @@ struct NullColumnFunc {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
         if (metadata.isConstant()) {
-            bool value;
+            bool value = false;
             ConstantCompression::decompressValues(reinterpret_cast<uint8_t*>(&value), 0 /*offset*/,
                 1 /*numValues*/, PhysicalTypeID::BOOL, 1 /*numBytesPerValue*/, metadata);
             resultVector->setNullRange(posInVector, numValuesToRead, value);
@@ -28,18 +30,16 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, BufferManager* bufferManager,
+NullColumn::NullColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
     ShadowFile* shadowFile, bool enableCompression)
-    : Column{name, LogicalType::BOOL(), dataFH, bufferManager, shadowFile, enableCompression,
+    : Column{name, LogicalType::BOOL(), dataFH, mm, shadowFile, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* nodeIDVector,
-    ValueVector* resultVector) {
-    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, nodeIDVector,
-        resultVector);
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
 }
 
 void NullColumn::scan(Transaction* transaction, const ChunkState& state,

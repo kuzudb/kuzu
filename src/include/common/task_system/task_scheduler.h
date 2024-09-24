@@ -63,7 +63,7 @@ private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
     std::vector<std::thread> workerThreads;
-    std::mutex mtx;
+    std::mutex taskSchedulerMtx;
     std::condition_variable cv;
     uint64_t nextScheduledTaskID;
 };

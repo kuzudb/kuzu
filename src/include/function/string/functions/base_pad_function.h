@@ -30,7 +30,7 @@ public:
         auto str = reinterpret_cast<const utf8proc::utf8proc_uint8_t*>(data);
         uint32_t byteCount = 0, charCount = 0;
         for (; charCount < count && byteCount < size; charCount++) {
-            utf8proc::utf8proc_int32_t codepoint;
+            utf8proc::utf8proc_int32_t codepoint = 0;
             auto bytes = utf8proc::utf8proc_iterate(str + byteCount, size - byteCount, &codepoint);
             byteCount += bytes;
         }
@@ -46,7 +46,7 @@ public:
                 result.insert(result.end(), (char*)padData, (char*)(padData + padByteCount));
                 padByteCount = 0;
             }
-            utf8proc::utf8proc_int32_t codepoint;
+            utf8proc::utf8proc_int32_t codepoint = 0;
             auto bytes = utf8proc::utf8proc_iterate(padData + padByteCount, padSize - padByteCount,
                 &codepoint);
             padByteCount += bytes;

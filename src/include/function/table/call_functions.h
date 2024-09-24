@@ -36,7 +36,7 @@ struct CallTableFuncBindData : TableFuncBindData {
 
     CallTableFuncBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames)},
+        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames), 0},
           maxOffset{maxOffset} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -71,6 +71,12 @@ struct ShowTablesFunction : CallFunction {
 
 struct ShowWarningsFunction : CallFunction {
     static constexpr const char* name = "SHOW_WARNINGS";
+
+    static function_set getFunctionSet();
+};
+
+struct ClearWarningsFunction : CallFunction {
+    static constexpr const char* name = "CLEAR_WARNINGS";
 
     static function_set getFunctionSet();
 };

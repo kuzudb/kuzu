@@ -7,7 +7,11 @@
 #include "storage/store/node_group.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace storage {
+class MemoryManager;
 
 using row_idx_vec_t = std::vector<common::row_idx_t>;
 
@@ -119,15 +123,22 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
-        : NodeGroupScanState{numChunks},
-          csrHeader{std::make_unique<ChunkedCSRHeader>(false,
-              common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY)} {}
+        : NodeGroupScanState{numChunks}, csrHeader{nullptr} {}
+
+    void initCSRHeader(MemoryManager& mm) {
+        if (!csrHeader) {
+            csrHeader = std::make_unique<ChunkedCSRHeader>(mm, false /*enableCompression*/,
+                common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        }
+    }
 
     void resetState() override {
         NodeGroupScanState::resetState();
-        csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         persistentCSRList = csr_list_t();
+        if (csrHeader) {
+            csrHeader->resetToEmpty();
+        }
     }
 };
 
@@ -192,7 +203,7 @@ public:
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
         FileHandle* dataFH) override;
 
-    void checkpoint(NodeGroupCheckpointState& state) override;
+    void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
@@ -223,8 +234,6 @@ private:
 
     void populateCSRLengthInMemOnly(const common::UniqLock& lock, common::offset_t numNodes,
         const CSRNodeGroupCheckpointState& csrState);
-    void initInMemScanChunkAndScanState(const CSRNodeGroupCheckpointState& csrState,
-        common::DataChunk& dataChunk, TableScanState& scanState) const;
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
         const CSRNodeGroupCheckpointState& csrState);
@@ -241,6 +250,8 @@ private:
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
 
+    static void initScanStateFromScanChunk(const CSRNodeGroupCheckpointState& csrState,
+        const common::DataChunk& dataChunk, TableScanState& scanState);
     static void redistributeCSRRegions(const CSRNodeGroupCheckpointState& csrState,
         const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(

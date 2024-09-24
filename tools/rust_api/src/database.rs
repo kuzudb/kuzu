@@ -185,7 +185,7 @@ mod tests {
         assert!(!std::path::Path::new(crate::database::IN_MEMORY_DB_NAME).exists());
 
         let conn = Connection::new(&db)?;
-        conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name))");
+        conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name))")?;
         conn.query("BEGIN TRANSACTION")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25})")?;
         conn.query("CREATE (:Person {name: 'Bob', age: 30})")?;

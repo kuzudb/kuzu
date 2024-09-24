@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/float_compression.h"
 #include "storage/store/column_reader_writer.h"
 
@@ -22,7 +23,7 @@ template<std::floating_point T>
 class InMemoryExceptionChunk {
 public:
     InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
-        FileHandle* dataFH, BufferManager* bufferManager, ShadowFile* shadowFile);
+        FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile);
     ~InMemoryExceptionChunk();
 
     void finalizeAndFlushToDisk(ChunkState& state);

@@ -13,13 +13,13 @@ public:
     }
 
     std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/gds-shortest-paths-large/");
+        return TestHelper::appendKuzuRootPath("dataset/gds-rec-joins-small/");
     }
 };
 
 // This test tests that when there is a single worker thread in the system, which is set in the
 // above SetUp function, then running GDS algorithms do not halt. GDS Algorithms use one worker
-// thread to execute a GDSTask, which acts as a "master thread" and makes calls to GDSUtils
+// thread to execute a FrontierTask, which acts as a "master thread" and makes calls to GDSUtils
 // helper functions to parallelize actual computations. If there is a single worker thread in the
 // system, this can halt the system. In order not to halt, GDSUtils functions instruct the
 // TaskScheduler to spawn a new thread to make up for the "master thread". This test basically

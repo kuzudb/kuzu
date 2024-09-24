@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "detail/common.h"
 #include "cast.h"
 #include "pytypes.h"

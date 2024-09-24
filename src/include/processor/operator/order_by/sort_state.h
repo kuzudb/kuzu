@@ -59,8 +59,8 @@ public:
 private:
     std::unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
     std::unique_ptr<RadixSort> radixSorter;
-    uint64_t globalIdx;
-    FactorizedTable* payloadTable;
+    uint64_t globalIdx = UINT64_MAX;
+    FactorizedTable* payloadTable = nullptr;
 };
 
 class PayloadScanner {

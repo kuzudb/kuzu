@@ -1,5 +1,6 @@
 import math
 import random
+import re
 import struct
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -11,7 +12,6 @@ import pyarrow as pa
 import pytest
 from pandas.arrays import ArrowExtensionArray as arrowtopd
 from type_aliases import ConnDB
-import re
 
 
 def generate_primitive(dtype):
@@ -640,21 +640,19 @@ def test_pyarrow_decimal(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
     datalength = 4
     index = pa.array(range(datalength))
-    decimal52 = pa.array(map(Decimal, ['1.2', '2', '0.5', '100']), type=pa.decimal128(7, 2))
-    decimal380 = pa.array(map(Decimal, ['2938103', '109283091238', '1028391238012', '1283019283123']), type=pa.decimal128(38, 0))
-    df = pd.DataFrame({
-        'index': arrowtopd(index),
-        'col1': arrowtopd(decimal52),
-        'col2': arrowtopd(decimal380)
-    })
+    decimal52 = pa.array(map(Decimal, ["1.2", "2", "0.5", "100"]), type=pa.decimal128(7, 2))
+    decimal380 = pa.array(
+        map(Decimal, ["2938103", "109283091238", "1028391238012", "1283019283123"]), type=pa.decimal128(38, 0)
+    )
+    df = pd.DataFrame({"index": arrowtopd(index), "col1": arrowtopd(decimal52), "col2": arrowtopd(decimal380)})
     conn.execute("CREATE NODE TABLE tab(id INT64, col1 DECIMAL(7, 2), col2 DECIMAL(38, 0), primary key(id))")
     conn.execute("LOAD FROM df CREATE (t:tab {id: index, col1: col1, col2: col2})")
     result = conn.execute("MATCH (t:tab) RETURN t.id as index, t.col1 as col1, t.col2 as col2").get_as_arrow()
-    expected = pa.Table.from_arrays([index, decimal52, decimal380],
-        names=['index', 'col1', 'col2'])
+    expected = pa.Table.from_arrays([index, decimal52, decimal380], names=["index", "col1", "col2"])
     print(result)
     print(expected)
     assert tables_equal(result, expected)
+
 
 def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
@@ -663,27 +661,31 @@ def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
     index = pa.array(range(datalength))
     col0 = pa.array([generate_primitive("int64[pyarrow]") for _ in range(datalength)])
     col1 = pa.array([generate_string(random.randint(1, 100)) for _ in range(datalength)])
-    col2 = pa.array([[generate_primitive("bool[pyarrow]") for x in range(random.randint(1, 10))] for _ in range(datalength)])
+    col2 = pa.array([
+        [generate_primitive("bool[pyarrow]") for x in range(random.randint(1, 10))] for _ in range(datalength)
+    ])
     df = pd.DataFrame({
-        'index': arrowtopd(index),
-        'col0': arrowtopd(col0),
-        'col1': arrowtopd(col1),
-        'col2': arrowtopd(col2)
+        "index": arrowtopd(index),
+        "col0": arrowtopd(col0),
+        "col1": arrowtopd(col1),
+        "col2": arrowtopd(col2),
     })
     result = conn.execute("LOAD FROM df (SKIP=5000, LIMIT=5000) RETURN * ORDER BY index").get_as_arrow()
     expected = pa.Table.from_pandas(df).slice(5000, 5000)
-    assert result['index'].to_pylist() == expected['index'].to_pylist()
-    assert result['col0'].to_pylist() == expected['col0'].to_pylist()
-    assert result['col1'].to_pylist() == expected['col1'].to_pylist()
-    assert result['col2'].to_pylist() == expected['col2'].to_pylist()
+    assert result["index"].to_pylist() == expected["index"].to_pylist()
+    assert result["col0"].to_pylist() == expected["col0"].to_pylist()
+    assert result["col1"].to_pylist() == expected["col1"].to_pylist()
+    assert result["col2"].to_pylist() == expected["col2"].to_pylist()
+
 
 def test_pyarrow_invalid_skip_limit(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
-    df = pd.DataFrame({ 'col': arrowtopd(pa.array([1,2,3,4,5])) })
-    with pytest.raises(RuntimeError,
-        match=re.escape("Binder exception: SKIP Option must be a positive integer literal.")):
+    df = pd.DataFrame({"col": arrowtopd(pa.array([1, 2, 3, 4, 5]))})
+    with pytest.raises(
+        RuntimeError, match=re.escape("Binder exception: SKIP Option must be a positive integer literal.")
+    ):
         conn.execute("LOAD FROM df (skip='1') RETURN *;")
-    with pytest.raises(RuntimeError,
-        match=re.escape("Binder exception: LIMIT Option must be a positive integer literal.")):
+    with pytest.raises(
+        RuntimeError, match=re.escape("Binder exception: LIMIT Option must be a positive integer literal.")
+    ):
         conn.execute("LOAD FROM df (limit='1') RETURN *;")
-

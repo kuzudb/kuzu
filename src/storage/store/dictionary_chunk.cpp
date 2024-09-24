@@ -2,6 +2,7 @@
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
 #include <bit>
 
@@ -19,15 +20,16 @@ namespace storage {
 // is always extra space for updates.
 static constexpr double OFFSET_CHUNK_CAPACITY_FACTOR = 0.75;
 
-DictionaryChunk::DictionaryChunk(uint64_t capacity, bool enableCompression,
+DictionaryChunk::DictionaryChunk(MemoryManager& mm, uint64_t capacity, bool enableCompression,
     ResidencyState residencyState)
     : enableCompression{enableCompression},
       indexTable(0, StringOps(this) /*hash*/, StringOps(this) /*equals*/) {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
-    stringDataChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT8(),
-        false /*enableCompression*/, capacity, residencyState, false);
-    offsetChunk = ColumnChunkFactory::createColumnChunkData(LogicalType::UINT64(),
-        enableCompression, capacity * OFFSET_CHUNK_CAPACITY_FACTOR, residencyState, false);
+    stringDataChunk = ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT8(),
+        false /*enableCompression*/, capacity, residencyState, false /*hasNullData*/);
+    offsetChunk =
+        ColumnChunkFactory::createColumnChunkData(mm, LogicalType::UINT64(), enableCompression,
+            capacity * OFFSET_CHUNK_CAPACITY_FACTOR, residencyState, false /*hasNullData*/);
 }
 
 void DictionaryChunk::resetToEmpty() {
@@ -109,13 +111,14 @@ void DictionaryChunk::serialize(Serializer& serializer) const {
     stringDataChunk->serialize(serializer);
 }
 
-std::unique_ptr<DictionaryChunk> DictionaryChunk::deserialize(Deserializer& deSer) {
-    auto chunk = std::make_unique<DictionaryChunk>(0, true, ResidencyState::ON_DISK);
+std::unique_ptr<DictionaryChunk> DictionaryChunk::deserialize(MemoryManager& memoryManager,
+    Deserializer& deSer) {
+    auto chunk = std::make_unique<DictionaryChunk>(memoryManager, 0, true, ResidencyState::ON_DISK);
     std::string key;
     deSer.validateDebuggingInfo(key, "offset_chunk");
-    chunk->offsetChunk = ColumnChunkData::deserialize(deSer);
+    chunk->offsetChunk = ColumnChunkData::deserialize(memoryManager, deSer);
     deSer.validateDebuggingInfo(key, "string_data_chunk");
-    chunk->stringDataChunk = ColumnChunkData::deserialize(deSer);
+    chunk->stringDataChunk = ColumnChunkData::deserialize(memoryManager, deSer);
     return chunk;
 }
 

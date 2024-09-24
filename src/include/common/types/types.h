@@ -425,7 +425,7 @@ protected:
 
 class ArrayTypeInfo final : public ListTypeInfo {
 public:
-    ArrayTypeInfo() = default;
+    ArrayTypeInfo() : numElements{0} {};
     explicit ArrayTypeInfo(LogicalType childType, uint64_t numElements)
         : ListTypeInfo{std::move(childType)}, numElements{numElements} {}
 
@@ -449,6 +449,8 @@ public:
     StructField() : type{LogicalType()} {}
     StructField(std::string name, LogicalType type)
         : name{std::move(name)}, type{std::move(type)} {};
+
+    DELETE_COPY_DEFAULT_MOVE(StructField);
 
     std::string getName() const { return name; }
 

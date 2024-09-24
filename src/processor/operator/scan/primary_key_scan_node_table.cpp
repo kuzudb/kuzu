@@ -27,7 +27,6 @@ idx_t PrimaryKeyScanSharedState::getTableIdx() {
 
 void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
-    ScanTable::initLocalStateInternal(resultSet, context);
     for (auto& nodeInfo : nodeInfos) {
         std::vector<Column*> columns;
         columns.reserve(nodeInfo.columnIDs.size());
@@ -38,10 +37,17 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
                 columns.push_back(&nodeInfo.table->getColumn(columnID));
             }
         }
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.columnIDs, columns);
+        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(),
+            nodeInfo.columnIDs, columns);
         initVectors(*nodeInfo.localScanState, *resultSet);
     }
     indexEvaluator->init(*resultSet, context->clientContext);
+}
+
+void PrimaryKeyScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
+    ScanTable::initVectors(state, resultSet);
+    state.rowIdxVector->state = state.nodeIDVector->state;
+    state.outState = state.rowIdxVector->state.get();
 }
 
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
@@ -62,13 +68,13 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
 
-    offset_t nodeOffset;
+    offset_t nodeOffset = 0;
     const bool lookupSucceed = nodeInfo.table->lookupPK(transaction, indexVector, pos, nodeOffset);
     if (!lookupSucceed) {
         return false;
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    nodeInfo.localScanState->IDVector->setValue<nodeID_t>(pos, nodeID);
+    nodeInfo.localScanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
     if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         nodeInfo.localScanState->source = TableScanSource::UNCOMMITTED;
         nodeInfo.localScanState->nodeGroupIdx =
@@ -77,7 +83,7 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         nodeInfo.localScanState->source = TableScanSource::COMMITTED;
         nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     }
-    nodeInfo.table->initializeScanState(transaction, *nodeInfo.localScanState);
+    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState);
     return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
 }
 

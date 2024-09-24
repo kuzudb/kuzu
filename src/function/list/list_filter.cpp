@@ -42,9 +42,8 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, Val
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     auto inputVector = input[0].get();
     auto listSize = ListVector::getDataVectorSize(inputVector);
-    if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
-        auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
-        lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
+    for (auto& lambdaParam : listLambdaBindData->lambdaParamEvaluators) {
+        lambdaParam->resultVector.get()->state->getSelVectorUnsafe().setSelSize(listSize);
     }
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);

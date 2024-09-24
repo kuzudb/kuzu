@@ -17,7 +17,7 @@ static void castToNumeric(ValueVector& inputVector, uint64_t inputPos, T& result
     auto blobVector = StructVector::getFieldVector(&inputVector, 1).get();
     auto type = static_cast<LogicalTypeID>(typeVector->getValue<uint8_t>(inputPos));
     auto& blob = blobVector->getValue<blob_t>(inputPos);
-    bool succeed;
+    bool succeed = false;
     switch (type) {
     case LogicalTypeID::INT64: {
         succeed = tryCastWithOverflowCheck(Blob::getValue<int64_t>(blob), result);

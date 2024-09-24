@@ -65,7 +65,7 @@ protected:
     BaseSemiMasker(std::unique_ptr<SemiMaskerInfo> info, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          info{std::move(info)} {}
+          info{std::move(info)}, keyVector{nullptr} {}
 
     void initGlobalStateInternal(ExecutionContext* context) override;
 
@@ -110,7 +110,9 @@ class PathSemiMasker : public BaseSemiMasker {
 protected:
     PathSemiMasker(std::unique_ptr<SemiMaskerInfo> info, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : BaseSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
+        : BaseSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)},
+          pathRelsVector{nullptr}, pathRelsSrcIDDataVector{nullptr},
+          pathRelsDstIDDataVector{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

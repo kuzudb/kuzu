@@ -2,8 +2,20 @@ name: Build and Deploy Extensions
 
 on: 
   workflow_dispatch:
+    inputs:
+      isNightly:
+        description: 'Is this a nightly build?'
+        type: boolean
+        required: true
+        default: false
 
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        description: 'Is this a nightly build?'
+        required: true
+        default: false
 
 jobs:
   build-extensions:
@@ -29,6 +41,13 @@ jobs:
           swap-storage: true
       
       - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true || github.event.inputs.isNightly == 'true' }}
+        run: |
+          pip3 install packaging
+          python3 update-nightly-build-version.py
+        working-directory: ./scripts
 
       - name: Detect release version
         run: |

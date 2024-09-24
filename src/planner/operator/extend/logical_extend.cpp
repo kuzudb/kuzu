@@ -45,6 +45,7 @@ std::unique_ptr<LogicalOperator> LogicalExtend::copy() {
     auto extend = std::make_unique<LogicalExtend>(boundNode, nbrNode, rel, direction,
         extendFromSource_, properties, children[0]->copy());
     extend->setPropertyPredicates(copyVector(propertyPredicates));
+    extend->scanNbrID = scanNbrID;
     return extend;
 }
 

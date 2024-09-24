@@ -97,13 +97,14 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     config->options = bindParsingOptions(options);
     auto func = getScanFunction(config->fileTypeInfo, *config);
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
-        LogicalType::copy(columnTypes), clientContext);
+        LogicalType::copy(columnTypes), clientContext, &func);
     auto bindData = func.bindFunc(clientContext, bindInput.get());
     expression_vector inputColumns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         inputColumns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), inputColumns);
+
+    auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(inputColumns));
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 

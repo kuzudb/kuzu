@@ -1,0 +1,433 @@
+# Original single label graph, which consists of person1 and knows11 edges looks as follows:
+# p1_0->p1_1->p1_2->p1_3->p1_4 and 2 "shortcut" edges directly from p1_2->p1_4.
+# There are 2 copies of the nodes used throughout the tests: person1 and person2. These get internal table_id_t's 0 and 1.
+# There are 4 copies of the edges used throughout the tests: knows11, knows12, knows21, and knows22. knows{i}{j}
+# connect person{i} to person{j} with the same structure.
+# Multilabel1 graph: contains knows12 and knows21.
+# Multilabel2 graph: contains knows11, knows12, knows21, knows22.
+-DATASET CSV gds-rec-joins-small
+
+--
+-CASE VarLenJoinsUBLessThanLBError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL var_len_joins(PK, a, 2, 1, true)
+           RETURN *;
+---- error
+Runtime exception: Lower bound length of recursive join operations need to be less than or equal to upper bound. Given lower bound is: 2 and upper bound is: 1.
+
+-CASE VarLenJoinsUBTooHighError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL var_len_joins(PK, a, 1, 10000, true)
+           RETURN *;
+---- error
+Runtime exception: Recursive join operations only works for non-positive upper bound iterations that are up to 255. Given upper bound is: 10000.
+
+-CASE VarLenJoinsLBNonPositiveError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL var_len_joins(PK, a, -1, 3, true)
+           RETURN *;
+---- error
+Runtime exception: Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: -1 and upper bound is: 3.
+
+-CASE ShortestPathsJoinsUBNonPositiveError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL all_sp_paths(PK, a, -5, true)
+           RETURN *;
+---- error
+Runtime exception: Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: 1 and upper bound is: -5.
+
+-CASE ShortestPathsJoinsUBNonPositiveError
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1)
+           CALL all_sp_paths(PK, a, 0, true)
+           RETURN *;
+---- error
+Runtime exception: Shortest path operations only works for positive upper bound iterations. Given upper bound is: 0.
+
+-CASE VarLenJoins
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 1, 30, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 6
+0|1|1|[]
+0|2|2|[0:1]
+0|3|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|4|[0:1,0:2,0:3]
+
+-CASE VarLenJoinsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 1, 30, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 6
+0|1|1|[]
+0|2|2|[1:1]
+0|3|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|4|[1:1,0:2,1:3]
+
+
+-CASE VarLenJoinsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 1, 30, true)
+           RETURN length, count(*)
+---- 4
+1|2
+2|4
+3|24
+4|16
+
+-CASE VarLenJoinsLowerBoundZeroUpperBoundOne
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 0, 2, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 5
+0|0|0|[]
+0|1|1|[]
+0|2|2|[0:1]
+0|3|0|[]
+0|4|0|[]
+
+-CASE VarLenJoinsLowerBoundZeroUpperBoundZero
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 0, 0, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 5
+0|0|0|[]
+0|1|0|[]
+0|2|0|[]
+0|3|0|[]
+0|4|0|[]
+
+-CASE VarLenJoinsLowerBound1
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 2, 3, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 4
+0|2|2|[0:1]
+0|3|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+
+-CASE VarLenJoinsLowerBound2
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK, a, 4, 30, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 1
+0|4|4|[0:1,0:2,0:3]
+
+-CASE VarLenJoinsEmptyPaths
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 4
+           CALL var_len_joins(PK, a, 1, 4, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 0
+
+
+-CASE AllSPDestinations
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_destinations(PK, a, 30, true)
+           RETURN a.ID, _node.ID;
+---- 5
+0|1
+0|2
+0|3
+0|4
+0|4
+
+-CASE AllSPDestinationsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_destinations(PK, a, 30, true)
+           RETURN a.ID, _node.ID;
+---- 6
+0|1
+0|2
+0|3
+0|4
+0|4
+0|4
+
+-CASE AllSPDestinationsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_destinations(PK, a, 30, true)
+           RETURN a.ID, _node.ID;
+---- 30
+0|1
+0|1
+0|2
+0|2
+0|2
+0|2
+0|3
+0|3
+0|3
+0|3
+0|3
+0|3
+0|3
+0|3
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+0|4
+
+-CASE AllSPLengths
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_lengths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length;
+---- 5
+0|1|1
+0|2|2
+0|3|3
+0|4|3
+0|4|3
+
+-CASE AllSPLengthsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_lengths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length;
+---- 6
+0|1|1
+0|2|2
+0|3|3
+0|4|3
+0|4|3
+0|4|4
+
+-CASE AllSPLengthsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_lengths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length;
+---- 30
+0|1|1
+0|1|1
+0|2|2
+0|2|2
+0|2|2
+0|2|2
+0|3|3
+0|3|3
+0|3|3
+0|3|3
+0|3|3
+0|3|3
+0|3|3
+0|3|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+0|4|3
+
+-CASE AllSPPaths
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_paths(PK, a, 5, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 5
+0|1|1|[]
+0|2|2|[0:1]
+0|3|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+
+-CASE AllSPPathsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_paths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 6
+0|1|1|[]
+0|2|2|[1:1]
+0|3|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|4|[1:1,0:2,1:3]
+
+-CASE AllSPPathsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_paths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 30
+0|1|1|[]
+0|1|1|[]
+0|2|2|[0:1]
+0|2|2|[0:1]
+0|2|2|[1:1]
+0|2|2|[1:1]
+0|3|3|[0:1,0:2]
+0|3|3|[0:1,0:2]
+0|3|3|[0:1,1:2]
+0|3|3|[0:1,1:2]
+0|3|3|[1:1,0:2]
+0|3|3|[1:1,0:2]
+0|3|3|[1:1,1:2]
+0|3|3|[1:1,1:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+0|4|3|[0:1,1:2]
+0|4|3|[0:1,1:2]
+0|4|3|[0:1,1:2]
+0|4|3|[0:1,1:2]
+0|4|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|3|[1:1,1:2]
+0|4|3|[1:1,1:2]
+0|4|3|[1:1,1:2]
+0|4|3|[1:1,1:2]
+
+-CASE SingleSPDestinations
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_destinations(PK, a, 30, true)
+           RETURN a.ID, _node.ID;
+---- 4
+0|1
+0|2
+0|3
+0|4
+
+-CASE SingleSPDestinationsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_destinations(PK, a, 30, true)
+           RETURN a.ID, _node.ID;
+---- 5
+0|1
+0|2
+0|3
+0|4
+0|4
+
+-CASE SingleSPDestinationsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_destinations(PK, a, 30, true)
+           RETURN a.ID, _node.ID
+---- 8
+0|1
+0|1
+0|2
+0|2
+0|3
+0|3
+0|4
+0|4
+
+-CASE SingleSPLengths
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_lengths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length;
+---- 4
+0|1|1
+0|2|2
+0|3|3
+0|4|3
+
+-CASE SingleSPLengthsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_lengths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length;
+---- 5
+0|1|1
+0|2|2
+0|3|3
+0|4|3
+0|4|4
+
+-CASE SingleSPLengthsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_lengths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length
+---- 8
+0|1|1
+0|1|1
+0|2|2
+0|2|2
+0|3|3
+0|3|3
+0|4|3
+0|4|3
+
+-CASE SingleSPPaths
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_paths(PK, a, 5, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 4
+0|1|1|[]
+0|2|2|[0:1]
+0|3|3|[0:1,0:2]
+0|4|3|[0:1,0:2]
+
+-CASE SingleSPPathsMultilabel1
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_paths(PK, a, 30, true)
+           RETURN a.ID, _node.ID, length, pathNodeIDs;
+---- 5
+0|1|1|[]
+0|2|2|[1:1]
+0|3|3|[1:1,0:2]
+0|4|3|[1:1,0:2]
+0|4|4|[1:1,0:2,1:3]
+
+-CASE SingleSPPathsMultilabel2
+-STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
+           MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_paths(PK, a, 30, true)
+           RETURN length, count(*)
+---- 3
+1|2
+2|2
+3|4

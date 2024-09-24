@@ -46,7 +46,7 @@ public:
     CreateMacro(std::unique_ptr<CreateMacroInfo> createMacroInfo, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)},
-          createMacroInfo{std::move(createMacroInfo)} {}
+          createMacroInfo{std::move(createMacroInfo)}, outputVector(nullptr) {}
 
     inline bool isSource() const override { return true; }
     inline bool isParallel() const final { return false; }

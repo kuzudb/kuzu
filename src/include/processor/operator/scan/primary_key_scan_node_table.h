@@ -60,6 +60,9 @@ public:
     }
 
 private:
+    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
+
+private:
     std::vector<ScanNodeTableInfo> nodeInfos;
     std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator;
     std::shared_ptr<PrimaryKeyScanSharedState> sharedState;

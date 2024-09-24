@@ -14,6 +14,11 @@ struct BoundBaseScanSource {
     virtual ~BoundBaseScanSource() = default;
 
     virtual expression_vector getColumns() = 0;
+    virtual expression_vector getWarningColumns() const { return expression_vector{}; };
+    virtual bool getIgnoreErrorsOption() const {
+        return common::CopyConstants::DEFAULT_IGNORE_ERRORS;
+    };
+    virtual common::column_id_t getNumWarningDataColumns() const { return 0; }
 
     virtual std::unique_ptr<BoundBaseScanSource> copy() const = 0;
 
@@ -46,6 +51,11 @@ struct BoundTableScanSource : public BoundBaseScanSource {
         : BoundBaseScanSource{other}, info{other.info.copy()} {}
 
     expression_vector getColumns() override { return info.columns; }
+    expression_vector getWarningColumns() const override;
+    bool getIgnoreErrorsOption() const override;
+    common::column_id_t getNumWarningDataColumns() const override {
+        return info.bindData->numWarningDataColumns;
+    }
 
     std::unique_ptr<BoundBaseScanSource> copy() const override {
         return std::make_unique<BoundTableScanSource>(*this);

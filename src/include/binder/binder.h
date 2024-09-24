@@ -229,17 +229,15 @@ public:
     /*** bind projection clause ***/
     BoundWithClause bindWithClause(const parser::WithClause& withClause);
     BoundReturnClause bindReturnClause(const parser::ReturnClause& returnClause);
-    BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
-        const expression_vector& projectionExpressions);
 
-    expression_vector bindProjectionExpressions(
-        const parser::parsed_expr_vector& parsedExpressions);
+    std::pair<expression_vector, std::vector<std::string>> bindProjectionList(
+        const parser::ProjectionBody& projectionBody);
+    BoundProjectionBody bindProjectionBody(const parser::ProjectionBody& projectionBody,
+        const expression_vector& projectionExprs, const std::vector<std::string>& aliases);
 
     expression_vector bindOrderByExpressions(
-        const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
+        const std::vector<std::unique_ptr<parser::ParsedExpression>>& parsedExprs);
     uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
-
-    void addExpressionsToScope(const expression_vector& projectionExpressions);
 
     /*** bind graph pattern ***/
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);
@@ -289,13 +287,6 @@ public:
         const common::table_id_vector_t& tableIDs);
 
     /*** validations ***/
-    // E.g. ... RETURN a, b AS a
-    static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
-
-    // E.g. ... WITH COUNT(*) MATCH ...
-    static void validateProjectionColumnsInWithClauseAreAliased(
-        const expression_vector& expressions);
-
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
 
@@ -309,6 +300,7 @@ public:
     static bool reservedInColumnName(const std::string& name);
     static bool reservedInPropertyLookup(const std::string& name);
 
+    void addToScope(const std::vector<std::string>& names, const expression_vector& exprs);
     void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope();
     void restoreScope(BinderScope prevScope);

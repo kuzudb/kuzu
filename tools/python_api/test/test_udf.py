@@ -84,12 +84,14 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
     selectIfSevenArgs = ["selectIfSeven", selectIfSeven]
 
     def distancePrimer(pointA, pointB):
-        return {
-            'x': (pointA['x'] - pointB['x']) ** 2,
-            'y': (pointA['y'] - pointB['y']) ** 2
-        }
+        return {"x": (pointA["x"] - pointB["x"]) ** 2, "y": (pointA["y"] - pointB["y"]) ** 2}
 
-    distanceArgs = ["UDFDist", distancePrimer, ["STRUCT(x INT32, y INT32)", "STRUCT(x INT32, y INT32)"], "STRUCT(x INT32, y INT32)"]
+    distanceArgs = [
+        "UDFDist",
+        distancePrimer,
+        ["STRUCT(x INT32, y INT32)", "STRUCT(x INT32, y INT32)"],
+        "STRUCT(x INT32, y INT32)",
+    ]
 
     conn.create_function(*add5IntArgs)
     conn.create_function(*add5FloatArgs)
@@ -129,15 +131,10 @@ def test_udf(conn_db_readwrite: ConnDB) -> None:
         conn,
         "mergeMaps2",
         [{"key": ["a", "b", "c"], "value": [1, 2, 3]}, {"key": ["x", "y", "z"], "value": [100, 200, 300]}],
-        {'a': 1, 'b': 2, 'c': 3, 'x': 100, 'y': 200, 'z': 300}
+        {"a": 1, "b": 2, "c": 3, "x": 100, "y": 200, "z": 300},
     )
     udf_predicate_test(conn, "selectIfSeven", range(65), 8)
-    udf_helper(
-        conn,
-        "UDFDist",
-        [{'x': 1, 'y': 10}, {'x': 4, 'y': 6}],
-        {'x': 9, 'y': 16}
-    )
+    udf_helper(conn, "UDFDist", [{"x": 1, "y": 10}, {"x": 4, "y": 6}], {"x": 9, "y": 16})
 
     df = pd.DataFrame({"col": list(range(5000))})
     result = conn.execute("LOAD FROM df RETURN add5int(col) as ans").get_as_df()

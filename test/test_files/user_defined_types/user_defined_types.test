@@ -48,11 +48,11 @@ Dan
 {age: 5, name: Alice}|{age: 3, name: Bob}|{meetDate: 2020-05-03, length: 3 years 02:00:00}
 -STATEMENT CALL TABLE_INFO('person') RETURN *;
 ---- 2
-0|id|INT64|True
-1|description|STRUCT(age INT64, name STRING)|False
+0|id|INT64|NULL|True
+1|description|STRUCT(age INT64, name STRING)|NULL|False
 -STATEMENT CALL TABLE_INFO('knows') RETURN *;
 ---- 1
-1|info|STRUCT(meetDate DATE, length INTERVAL)
+1|info|STRUCT(meetDate DATE, length INTERVAL)|NULL
 
 -CASE InvalidUserDefinedType
 -LOG InvalidUserDefinedTypeErr

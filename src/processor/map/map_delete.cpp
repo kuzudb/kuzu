@@ -90,15 +90,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
 
 std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     const BoundDeleteInfo& boundInfo, const Schema& schema) const {
-    auto storageManager = clientContext->getStorageManager();
     auto& rel = boundInfo.pattern->constCast<RelExpression>();
+    if (rel.isEmpty()) {
+        return std::make_unique<EmptyRelDeleteExecutor>();
+    }
+    auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
     auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
     auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
-    auto relIDPos = getDataPos(*rel.getInternalIDProperty(), schema);
     auto info = RelDeleteInfo(srcNodeIDPos, dstNodeIDPos, relIDPos);
-    if (rel.isEmpty()) {
-        return std::make_unique<EmptyRelDeleteExecutor>(std::move(info));
-    }
+    auto storageManager = clientContext->getStorageManager();
     if (rel.isMultiLabeled()) {
         common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
         for (auto entry : rel.getEntries()) {

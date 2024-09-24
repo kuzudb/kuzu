@@ -20,10 +20,16 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-static void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression);
-
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const parser::ParsedExpression& parsedExpression) {
+    // Normally u can only reference an existing expression through alias which is a parsed
+    // VARIABLE expression.
+    // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)
+    // the later COUNT(*) should reference the one in projection list. So we need to explicitly
+    // check scope when binding order by list.
+    if (bindOrderByAfterAggregation && binder->scope.contains(parsedExpression.toString())) {
+        return binder->scope.getExpression(parsedExpression.toString());
+    }
     auto collector = ParsedParamExprCollector();
     collector.visit(&parsedExpression);
     if (collector.hasParamExprs()) {
@@ -73,10 +79,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         throw NotImplementedException(
             "bindExpression(" + ExpressionTypeUtil::toString(expressionType) + ").");
     }
-    if (parsedExpression.hasAlias()) {
-        expression->setAlias(parsedExpression.getAlias());
-    }
-    validateAggregationExpressionIsNotNested(expression);
     if (ConstantExpressionVisitor::needFold(*expression)) {
         return foldExpression(expression);
     }
@@ -135,19 +137,6 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
     auto children =
         expression_vector{expression, createLiteralExpression(Value(targetType.toString()))};
     return bindScalarFunctionExpression(children, functionName);
-}
-
-void validateAggregationExpressionIsNotNested(std::shared_ptr<Expression> expression) {
-    if (expression->expressionType != ExpressionType::AGGREGATE_FUNCTION ||
-        expression->getNumChildren() == 0) {
-        return;
-    }
-    auto collector = AggregateExprCollector();
-    collector.visit(expression->getChild(0));
-    if (collector.hasAggregate()) {
-        throw BinderException(
-            stringFormat("Expression {} contains nested aggregation.", expression->toString()));
-    }
 }
 
 std::string ExpressionBinder::getUniqueName(const std::string& name) const {

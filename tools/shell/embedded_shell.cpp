@@ -55,8 +55,10 @@ struct ShellCommand {
     const char* STATS = ":stats";
     const char* MULTI = ":multiline";
     const char* SINGLE = ":singleline";
-    const std::array<const char*, 9> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
-        STATS, MULTI, SINGLE};
+    const char* HIGHLIGHT = ":highlight";
+    const char* ERRORS = ":render_errors";
+    const std::array<const char*, 11> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS, MULTI, SINGLE, HIGHLIGHT, ERRORS};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -162,71 +164,6 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     }
 }
 
-void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cursorPos) {
-    std::string buf(buffer);
-    auto bufLen = buf.length();
-    std::ostringstream highlightBuffer;
-    std::string word;
-    std::vector<std::string> tokenList;
-    if (cursorPos > renderWidth) {
-        uint32_t counter = 0;
-        uint32_t thisChar = 0;
-        uint32_t lineLen = 0;
-        while (counter < cursorPos) {
-            counter += Utf8Proc::renderWidth(buffer, thisChar);
-            thisChar = utf8proc_next_grapheme(buffer, bufLen, thisChar);
-        }
-        lineLen = thisChar;
-        while (counter > cursorPos - renderWidth + 1) {
-            counter -= Utf8Proc::renderWidth(buffer, thisChar);
-            thisChar = Utf8Proc::previousGraphemeCluster(buffer, bufLen, thisChar);
-        }
-        lineLen -= thisChar;
-        buf = buf.substr(thisChar, lineLen);
-    } else if (buf.length() > renderWidth) {
-        uint32_t counter = 0;
-        uint32_t lineLen = 0;
-        while (counter < renderWidth) {
-            counter += Utf8Proc::renderWidth(buffer, lineLen);
-            lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
-        }
-        buf = buf.substr(0, lineLen);
-    }
-    for (auto i = 0u; i < buf.length(); i++) {
-        if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||
-            (buf[i] == ' ' && !word.empty() && word[0] != ' ')) {
-            tokenList.emplace_back(word);
-            word = "";
-        }
-        word += buf[i];
-    }
-    tokenList.emplace_back(word);
-    for (std::string& token : tokenList) {
-        if (token.find(' ') == std::string::npos) {
-            for (const std::string keyword : keywordList) {
-                if (regex_search(token,
-                        std::regex("^" + keyword + "$", std::regex_constants::icase)) ||
-                    regex_search(token,
-                        std::regex("^" + keyword + "\\(", std::regex_constants::icase)) ||
-                    regex_search(token,
-                        std::regex("^" + keyword + "\\]", std::regex_constants::icase)) ||
-                    regex_search(token,
-                        std::regex("\\(" + keyword + "$", std::regex_constants::icase))) {
-                    token = regex_replace(token,
-                        std::regex(std::string("(").append(keyword).append(")"),
-                            std::regex_constants::icase),
-                        std::string(keywordColorPrefix).append("$1").append(keywordResetPostfix));
-                    break;
-                }
-            }
-        }
-        highlightBuffer << token;
-    }
-    // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
-    // the length.
-    strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
-}
-
 uint64_t damerauLevenshteinDistance(const std::string& s1, const std::string& s2) {
     const uint64_t m = s1.size(), n = s2.size();
     std::vector<std::vector<uint64_t>> dp(m + 1, std::vector<uint64_t>(n + 1, 0));
@@ -289,6 +226,10 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setLinenoiseMode(1);
     } else if (command == shellCommand.SINGLE) {
         setLinenoiseMode(0);
+    } else if (command == shellCommand.HIGHLIGHT) {
+        setHighlighting(arg);
+    } else if (command == shellCommand.ERRORS) {
+        setErrors(arg);
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -301,7 +242,6 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     path_to_history = shellConfig.path_to_history;
     linenoiseHistoryLoad(path_to_history);
     linenoiseSetCompletionCallback(completion);
-    linenoiseSetHighlightCallback(highlight);
     this->database = database;
     this->conn = conn;
     globalConnection = conn.get();
@@ -361,14 +301,14 @@ void EmbeddedShell::printErrorMessage(std::string input, QueryResult& queryResul
 }
 
 void EmbeddedShell::run() {
-    char* line;
+    char* line = nullptr;
     const char ctrl_c = '\3';
     int numCtrlC = 0;
     continueLine = false;
     currLine = "";
 
 #ifndef _WIN32
-    struct termios raw;
+    termios raw{};
     if (isatty(STDIN_FILENO)) {
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
             errno = ENOTTY;
@@ -568,6 +508,40 @@ void EmbeddedShell::setStats(const std::string& statsString) {
     printf("stats set as %s\n", stats ? "on" : "off");
 }
 
+void EmbeddedShell::setHighlighting(const std::string& highlightString) {
+    std::string highlightStringLower = highlightString;
+    std::transform(highlightStringLower.begin(), highlightStringLower.end(),
+        highlightStringLower.begin(), [](unsigned char c) { return std::tolower(c); });
+    if (highlightStringLower == "on") {
+        linenoiseSetHighlighting(1);
+        printf("enabled syntax highlighting\n");
+    } else if (highlightStringLower == "off") {
+        linenoiseSetHighlighting(0);
+        printf("disabled syntax highlighting\n");
+    } else {
+        printf("Cannot parse '%s' to toggle highlighting. Expect 'on' or 'off'.\n",
+            highlightString.c_str());
+        return;
+    }
+}
+
+void EmbeddedShell::setErrors(const std::string& errorsString) {
+    std::string errorsStringLower = errorsString;
+    std::transform(errorsStringLower.begin(), errorsStringLower.end(), errorsStringLower.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    if (errorsStringLower == "on") {
+        linenoiseSetErrors(1);
+        printf("enabled error highlighting\n");
+    } else if (errorsStringLower == "off") {
+        linenoiseSetErrors(0);
+        printf("disabled error highlighting\n");
+    } else {
+        printf("Cannot parse '%s' to toggle error highlighting. Expect 'on' or 'off'.\n",
+            errorsStringLower.c_str());
+        return;
+    }
+}
+
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
@@ -578,8 +552,11 @@ void EmbeddedShell::printHelp() {
         shellCommand.MAX_WIDTH, TAB);
     printf("%s%s [mode] %sset output mode (default: box)\n", TAB, shellCommand.MODE, TAB);
     printf("%s%s [on|off] %stoggle query stats on or off\n", TAB, shellCommand.STATS, TAB);
-    printf("%s%s %sset multiline mode\n", TAB, shellCommand.MULTI, TAB);
-    printf("%s%s %sset singleline mode (default)\n", TAB, shellCommand.SINGLE, TAB);
+    printf("%s%s %sset multiline mode (default)\n", TAB, shellCommand.MULTI, TAB);
+    printf("%s%s %sset singleline mode\n", TAB, shellCommand.SINGLE, TAB);
+    printf("%s%s [on|off] %stoggle syntax highlighting on or off\n", TAB, shellCommand.HIGHLIGHT,
+        TAB);
+    printf("%s%s [on|off] %stoggle error highlighting on or off\n", TAB, shellCommand.ERRORS, TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);
@@ -901,7 +878,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (queryResult.getNumColumns() == 1) {
             printf("(1 column)\n");
         } else {
-            printf("(%" PRIu64 " columns)\n", queryResult.getNumColumns());
+            printf("(%" PRIu64 " columns)\n", static_cast<uint64_t>(queryResult.getNumColumns()));
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());

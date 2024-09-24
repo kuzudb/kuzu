@@ -7,6 +7,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 static constexpr common::column_id_t LOCAL_BOUND_NODE_ID_COLUMN_ID = 0;
 static constexpr common::column_id_t LOCAL_NBR_NODE_ID_COLUMN_ID = 1;

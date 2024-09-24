@@ -87,10 +87,10 @@ private:
         const std::vector<ft_col_idx_t>& colIndicesToScan);
 
     struct Vectors {
-        common::ValueVector* pathNodesVector;
-        common::ValueVector* pathRelsVector;
-        common::ValueVector* pathNodesIDDataVector;
-        common::ValueVector* pathRelsIDDataVector;
+        common::ValueVector* pathNodesVector = nullptr;
+        common::ValueVector* pathRelsVector = nullptr;
+        common::ValueVector* pathNodesIDDataVector = nullptr;
+        common::ValueVector* pathRelsIDDataVector = nullptr;
         std::vector<common::ValueVector*> pathNodesPropertyDataVectors;
         std::vector<common::ValueVector*> pathRelsPropertyDataVectors;
     };

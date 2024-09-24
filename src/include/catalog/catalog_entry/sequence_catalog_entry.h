@@ -49,10 +49,10 @@ public:
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
-    SequenceCatalogEntry() = default;
-    SequenceCatalogEntry(CatalogSet* set, const binder::BoundCreateSequenceInfo& sequenceInfo)
+    SequenceCatalogEntry() : sequenceData{} {}
+    explicit SequenceCatalogEntry(const binder::BoundCreateSequenceInfo& sequenceInfo)
         : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)},
-          set{set}, sequenceData{SequenceData(sequenceInfo)} {}
+          sequenceData{SequenceData(sequenceInfo)} {}
 
     //===--------------------------------------------------------------------===//
     // getter & setter
@@ -81,7 +81,6 @@ private:
     void nextValNoLock();
 
 private:
-    CatalogSet* set;
     std::mutex mtx;
     SequenceData sequenceData;
 };

@@ -44,7 +44,7 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(Deserializ
     std::vector<std::string> positionalArgs;
     deserializer.deserializeVector(positionalArgs);
     default_macro_args defaultArgs;
-    uint64_t vectorSize;
+    uint64_t vectorSize = 0;
     deserializer.deserializeValue(vectorSize);
     defaultArgs.reserve(vectorSize);
     for (auto i = 0u; i < vectorSize; i++) {

@@ -52,3 +52,47 @@
 -STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
 ---- 1
 10
+
+-CASE CreateRelBatchAndDelete
+-STATEMENT CREATE NODE TABLE Person(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM Person TO Person);
+---- ok
+-STATEMENT UNWIND range(0, 9999) AS i
+           CREATE (n:Person {id: i});
+---- ok
+-STATEMENT MATCH (p:Person) RETURN COUNT(*)
+---- 1
+10000
+-STATEMENT UNWIND range(0, 2000) AS i
+           MATCH (p1:Person {id: 0})
+           MATCH (p2:Person {id: i})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(0, 2000) AS i
+           MATCH (p1:Person {id: 1})
+           MATCH (p2:Person {id: i})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT UNWIND range(0, 2000) AS i
+           MATCH (p1:Person {id: 2})
+           MATCH (p2:Person {id: i})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT UNWIND range(0, 2000) AS i
+           MATCH (p1:Person {id: 3})
+           MATCH (p2:Person {id: i})
+           CREATE (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) RETURN COUNT(*)
+---- 1
+6003
+-STATEMENT MATCH (p1:Person {id: 0})-[r:knows]->(p2:Person) DELETE r;
+---- ok
+-STATEMENT MATCH (p1:Person)-[r:knows]->(p2:Person) WHERE p1.id <= 2 RETURN COUNT(*);
+---- 1
+4002

@@ -4,13 +4,17 @@
 #include "storage/store/node_group.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace storage {
+class MemoryManager;
 
 class NodeGroupCollection {
 public:
-    explicit NodeGroupCollection(const std::vector<common::LogicalType>& types,
-        bool enableCompression, FileHandle* dataFH = nullptr,
-        common::Deserializer* deSer = nullptr);
+    explicit NodeGroupCollection(MemoryManager& memoryManager,
+        const std::vector<common::LogicalType>& types, bool enableCompression,
+        FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -56,7 +60,7 @@ public:
 
     uint64_t getEstimatedMemoryUsage();
 
-    void checkpoint(NodeGroupCheckpointState& state);
+    void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
     void serialize(common::Serializer& ser);
 

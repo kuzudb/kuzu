@@ -20,7 +20,7 @@ public:
     //===--------------------------------------------------------------------===//
     // constructor & destructor
     //===--------------------------------------------------------------------===//
-    CatalogEntry() = default;
+    CatalogEntry() : CatalogEntry{CatalogEntryType::DUMMY_ENTRY, ""} {}
     CatalogEntry(CatalogEntryType type, std::string name)
         : type{type}, name{std::move(name)}, oid{common::INVALID_OID},
           timestamp{common::INVALID_TRANSACTION} {}

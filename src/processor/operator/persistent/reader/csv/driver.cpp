@@ -49,7 +49,15 @@ bool ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     return true;
 }
 
-bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount) {
+template<typename T>
+static void updateWarningDataInChunk(DataChunk& chunk, uint64_t rowNum,
+    WarningDataWithColumnInfo::EntryWithColumnIdx<T> warningData) {
+    KU_ASSERT(warningData.second < chunk.getNumValueVectors());
+    chunk.getValueVector(warningData.second)->setValue(rowNum, warningData.first);
+}
+
+bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
+    std::optional<WarningDataWithColumnInfo> warningData) {
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;
@@ -63,6 +71,14 @@ bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount)
         reader->handleCopyException(stringFormat("expected {} values per row, but got {}.",
             reader->getNumColumns(), columnCount));
         return false;
+    }
+
+    if (warningData.has_value()) {
+        updateWarningDataInChunk(chunk, rowNum, warningData->startByteOffset);
+        updateWarningDataInChunk(chunk, rowNum, warningData->endByteOffset);
+        updateWarningDataInChunk(chunk, rowNum, warningData->fileIdx);
+        updateWarningDataInChunk(chunk, rowNum, warningData->blockIdx);
+        updateWarningDataInChunk(chunk, rowNum, warningData->rowOffsetInBlock);
     }
     return true;
 }

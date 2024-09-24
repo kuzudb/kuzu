@@ -39,7 +39,7 @@ bool EncodeException<T>::operator<(const EncodeException<T>& o) const {
 
 template<std::floating_point T>
 EncodeException<T> EncodeExceptionView<T>::getValue(common::offset_t elementOffset) const {
-    EncodeException<T> ret;
+    EncodeException<T> ret{};
     const auto* const elementAddress = bytes + elementOffset * decltype(ret)::sizeInBytes();
     std::memcpy(&ret.value, elementAddress, sizeof(ret.value));
     std::memcpy(&ret.posInChunk, elementAddress + sizeof(ret.value), sizeof(ret.posInChunk));

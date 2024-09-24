@@ -80,7 +80,7 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
         // hard-won piece of code this, modify at your own risk
         // the intuition is that we have to only collapse values into lists that are repeated *on
         // this level* the rest is pretty much handed up as-is as a single-valued list or NULL
-        uint64_t childIdx;
+        uint64_t childIdx = 0;
         for (childIdx = 0; childIdx < childActualNumValues; childIdx++) {
             if (childRepeatsPtr[childIdx] == maxRepeat) {
                 // value repeats on this level, append

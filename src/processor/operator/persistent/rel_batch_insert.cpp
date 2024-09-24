@@ -24,8 +24,9 @@ std::string RelBatchInsertPrintInfo::toString() const {
 void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
-    localState->chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(relInfo->columnTypes,
-        relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
+    localState->chunkedGroup =
+        std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
+            relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
     const auto nbrTableID =
         relInfo->tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(relInfo->direction);
     const auto relTableID = relInfo->tableEntry->getTableID();
@@ -44,13 +45,20 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
     }
 }
 
+void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /* context */) {
+    progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
+    progressSharedState->partitionsDone = 0;
+    progressSharedState->partitionsTotal =
+        partitionerSharedState->numPartitions[info->ptrCast<RelBatchInsertInfo>()->partitioningIdx];
+}
+
 void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     while (true) {
-        relLocalState->nodeGroupIdx =
-            partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
+        relLocalState->nodeGroupIdx = partitionerSharedState->getNextPartition(
+            relInfo->partitioningIdx, *progressSharedState);
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
@@ -62,6 +70,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
                 ->cast<CSRNodeGroup>();
         appendNodeGroup(context->clientContext->getTx(), nodeGroup, *relInfo, *relLocalState,
             *sharedState, *partitionerSharedState);
+        updateProgress(context);
     }
 }
 
@@ -206,15 +215,13 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
             context->clientContext->getMemoryManager());
 
-        const auto warningCount = context->warningCount;
-        bool atWarningLimit =
-            (warningCount == context->clientContext->getClientConfig()->warningLimit);
+        const auto warningCount =
+            context->clientContext->getWarningContextUnsafe().getWarningCount(context->queryID);
         if (warningCount > 0) {
-            const auto warningLimitSuffix = atWarningLimit ? "+" : "";
             auto warningMsg =
-                stringFormat("{}{} warnings encountered during copy. Use 'CALL "
+                stringFormat("{} warnings encountered during copy. Use 'CALL "
                              "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
-                    warningCount, warningLimitSuffix, context->queryID);
+                    warningCount, context->queryID);
             FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
                 context->clientContext->getMemoryManager());
         }
@@ -223,6 +230,16 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     sharedState->table->cast<RelTable>().setHasChanges();
     partitionerSharedState->resetState();
     partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
+}
+
+void RelBatchInsert::updateProgress(ExecutionContext* context) {
+    if (progressSharedState->partitionsTotal == 0) {
+        context->clientContext->getProgressBar()->updateProgress(context->queryID, 0);
+    } else {
+        double progress = double(progressSharedState->partitionsDone) /
+                          double(progressSharedState->partitionsTotal);
+        context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
+    }
 }
 
 } // namespace processor

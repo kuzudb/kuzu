@@ -20,6 +20,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     info.function = call.getTableFunc();
     info.bindData = call.getBindData()->copy();
     info.outPosV = outPosV;
+    KU_ASSERT(info.outPosV.size() >= info.bindData->numWarningDataColumns);
     if (call.getOffset() != nullptr) {
         info.rowOffsetPos = getDataPos(*call.getOffset(), *outSchema);
     } else {

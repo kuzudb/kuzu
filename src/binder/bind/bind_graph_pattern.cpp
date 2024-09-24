@@ -192,7 +192,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     }
     auto entries = bindTableEntries(relPattern.getTableNames(), false);
     // bind src & dst node
-    RelDirectionType directionType;
+    RelDirectionType directionType = RelDirectionType::UNKNOWN;
     std::shared_ptr<NodeExpression> srcNode;
     std::shared_ptr<NodeExpression> dstNode;
     switch (relPattern.getDirection()) {
@@ -482,7 +482,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
-    uint32_t lowerBound;
+    uint32_t lowerBound = 0;
     function::CastString::operation(
         ku_string_t{recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length()},
         lowerBound);

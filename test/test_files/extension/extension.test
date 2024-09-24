@@ -6,7 +6,6 @@
 
 # TODO: Extension on musl libc has not been supported yet due to no prebuilt binary.
 -SKIP
--SKIP_MUSL
 -LOG InstallExtension
 -STATEMENT INSTALL httpfs;
            LOAD EXTENSION httpfs;

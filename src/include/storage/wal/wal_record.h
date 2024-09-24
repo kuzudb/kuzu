@@ -40,7 +40,7 @@ enum class WALRecordType : uint8_t {
 };
 
 struct WALRecord {
-    WALRecordType type;
+    WALRecordType type = WALRecordType::INVALID_RECORD;
 
     WALRecord() = default;
     explicit WALRecord(WALRecordType type) : type{type} {}

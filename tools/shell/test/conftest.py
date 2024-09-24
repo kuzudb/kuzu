@@ -192,3 +192,25 @@ def csv_path():
 @pytest.fixture()
 def init_path():
     return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "start.cypher")
+
+
+@pytest.fixture
+def test(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def multiline():
+    test = ShellTest()
+    test.start()
+    return test
+
+
+@pytest.fixture
+def singleline():
+    test = ShellTest()
+    test.start()
+    test.send_finished_statement(":singleline\r")
+    assert test.shell_process.expect_exact(["Single line mode enabled", pexpect.EOF]) == 0
+    return test
+

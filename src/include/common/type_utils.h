@@ -32,6 +32,8 @@ public:
     static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
         if constexpr (std::is_same_v<T, std::string>) {
             return val;
+        } else if constexpr (std::is_same_v<T, ku_string_t>) {
+            return val.getAsString();
         } else {
             static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
                           std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
@@ -206,13 +208,9 @@ public:
         case LogicalTypeID::UNION:
             return func(union_entry_t());
         /* NOLINTEND(bugprone-branch-clone)*/
-        case LogicalTypeID::ANY:
-        case LogicalTypeID::POINTER:
-        case LogicalTypeID::RDF_VARIANT:
+        default:
             // Unsupported type
             KU_UNREACHABLE;
-            // Needed for return type deduction to work
-            return func(uint8_t());
         }
     }
 
