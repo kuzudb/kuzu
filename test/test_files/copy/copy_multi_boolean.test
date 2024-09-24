@@ -131,7 +131,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_les
 ---- ok
 
 -STATEMENT copy person10 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER       '|", header);
----- error
+---- error(regex)
 Parser exception: mismatched input ''' expecting ')' (line: 1, offset: ".*")
 "copy person10 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER '|", header);"
                                                                                      ^
