@@ -333,8 +333,7 @@ protected:
 public:
     explicit RJAlgorithm(RJInputType inputType = RJInputType::NO_LOWER_BOUND)
         : inputType{inputType} {};
-    RJAlgorithm(const RJAlgorithm& other)
-        : GDSAlgorithm{other},inputType{other.inputType} {}
+    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, inputType{other.inputType} {}
     /*
      * Inputs include the following:
      *

@@ -550,31 +550,27 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
 class AllSPDestinationsAlgorithm final : public RJAlgorithm {
 public:
     AllSPDestinationsAlgorithm() = default;
-    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other)
-        : RJAlgorithm{other} {}
+    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : RJAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder *) const override {
-        return getNodeIDResultColumns();
-    }
+    expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext *context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
             sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPOutputWriterDsts>(clientContext,
-            output.get());
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(
-            output->pathLengths, clientContext->getMaxNumThreadForExec());
+        auto outputWriter = std::make_unique<AllSPOutputWriterDsts>(clientContext, output.get());
+        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
+            clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(),
             output->multiplicities.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            std::move(output), std::move(outputWriter));
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
+            std::move(outputWriter));
     }
 };
 
@@ -583,7 +579,7 @@ public:
     AllSPLengthsAlgorithm() = default;
     AllSPLengthsAlgorithm(const AllSPLengthsAlgorithm& other) : RJAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder *binder) const override {
+    expression_vector getResultColumns(Binder* binder) const override {
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         return columns;
@@ -594,19 +590,18 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext *context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
             sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPOutputWriterLengths>(
-            clientContext, output.get());
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(
-            output->pathLengths, clientContext->getMaxNumThreadForExec());
+        auto outputWriter = std::make_unique<AllSPOutputWriterLengths>(clientContext, output.get());
+        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
+            clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(),
             output->multiplicities.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            std::move(output), std::move(outputWriter));
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
+            std::move(outputWriter));
     }
 };
 
@@ -615,7 +610,7 @@ public:
     AllSPPathsAlgorithm() = default;
     AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder *binder) const override {
+    expression_vector getResultColumns(Binder* binder) const override {
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
@@ -627,19 +622,19 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext *context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto output = std::make_unique<VarLenOrAllSPPathsOutputs>(
             sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPOutputWriterPaths>(clientContext,
-            output.get(), bindData->ptrCast<RJBindData>()->upperBound);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(
-            output->pathLengths, clientContext->getMaxNumThreadForExec());
-        auto edgeCompute = std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(),
-            output->parentPtrs.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            std::move(output), std::move(outputWriter));
+        auto outputWriter = std::make_unique<AllSPOutputWriterPaths>(clientContext, output.get(),
+            bindData->ptrCast<RJBindData>()->upperBound);
+        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
+            clientContext->getMaxNumThreadForExec());
+        auto edgeCompute =
+            std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), output->parentPtrs.get());
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
+            std::move(outputWriter));
     }
 };
 
@@ -680,7 +675,7 @@ public:
     explicit VarLenJoinsAlgorithm() : RJAlgorithm(RJInputType::HAS_LOWER_BOUND) {}
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
-    binder::expression_vector getResultColumns(binder::Binder *binder) const override {
+    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
@@ -696,19 +691,17 @@ private:
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
         auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
-        auto output = std::make_unique<VarLenOrAllSPPathsOutputs>(
-            nodeTableToNumNodes, sourceNodeID, mm);
+        auto output =
+            std::make_unique<VarLenOrAllSPPathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto outputWriter =
-            std::make_unique<VarLenOutputWriterPaths>(clientContext,
-                output.get(), rjBindData->lowerBound, rjBindData->upperBound);
-        auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(
-            nodeTableToNumNodes, clientContext->getMaxNumThreadForExec(), mm);
+        auto outputWriter = std::make_unique<VarLenOutputWriterPaths>(clientContext, output.get(),
+            rjBindData->lowerBound, rjBindData->upperBound);
+        auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
+            clientContext->getMaxNumThreadForExec(), mm);
         auto edgeCompute =
-            std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(),
-                output->parentPtrs.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            std::move(output), std::move(outputWriter));
+            std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->parentPtrs.get());
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
+            std::move(outputWriter));
     }
 };
 
@@ -720,22 +713,21 @@ function_set VarLenJoinsFunction::getFunctionSet() {
 
 function_set AllSPDestinationsFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<GDSFunction>(name,
-        std::make_unique<AllSPDestinationsAlgorithm>()));
+    result.push_back(
+        std::make_unique<GDSFunction>(name, std::make_unique<AllSPDestinationsAlgorithm>()));
     return result;
 }
 
 function_set AllSPLengthsFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<GDSFunction>(name,
-        std::make_unique<AllSPLengthsAlgorithm>()));
+    result.push_back(
+        std::make_unique<GDSFunction>(name, std::make_unique<AllSPLengthsAlgorithm>()));
     return result;
 }
 
 function_set AllSPPathsFunction::getFunctionSet() {
     function_set result;
-    result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<AllSPPathsAlgorithm>()));
+    result.push_back(std::make_unique<GDSFunction>(name, std::make_unique<AllSPPathsAlgorithm>()));
     return result;
 }
 

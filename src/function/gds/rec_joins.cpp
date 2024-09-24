@@ -90,7 +90,8 @@ std::shared_ptr<binder::Expression> RJAlgorithm::getLengthColumn(Binder* binder)
 }
 
 std::shared_ptr<binder::Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
-    return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME, LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+        LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
 class RJOutputWriterVCSharedState {
