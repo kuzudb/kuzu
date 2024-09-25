@@ -5,6 +5,8 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "function/gds/gds_object_manager.h"
+
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -15,32 +17,10 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-// TODO(Xiyang): Merge this class with ParentPtrsAtomics & PathMultiplicities
-class ParentEdges {
-public:
-    ParentEdges() = default;
-
-    void allocate(common::table_id_t tableID, common::offset_t numNodes, MemoryManager* mm) {
-        // Note: We should be storing common::nodeID_t atomically but that is not possible
-        // because common::nodeID_t consists of 2 primitive values, an offset and a tableID.
-        // Therefore, we store two atomic<uint64_t> values per nodeID. First is the node offset
-        // and the second is the tableID.
-        auto elementSize = 2 * sizeof(std::atomic<uint64_t>);
-        buffer.insert({tableID, mm->allocateBuffer(false, numNodes * elementSize)});
-    }
-
-    bool contains(common::table_id_t tableID) { return buffer.contains(tableID); }
-
-    std::atomic<uint64_t>* getData(common::table_id_t tableID) {
-        KU_ASSERT(contains(tableID));
-        return reinterpret_cast<std::atomic<uint64_t>*>(buffer.at(tableID)->buffer.data());
-    }
-
-private:
-    common::table_id_map_t<std::unique_ptr<MemoryBuffer>> buffer;
-};
-
 class SinglePaths {
+    // Data type that is allocated to max num nodes per node table.
+    using array_entry_t = std::atomic<uint64_t>;
+
 public:
     explicit SinglePaths(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
         MemoryManager* mm) {
@@ -84,7 +64,7 @@ public:
     }
 
 private:
-    ParentEdges parentEdges;
+    ObjectArraysMap<array_entry_t> parentEdges;
     std::atomic<std::atomic<uint64_t>*> currentFixedParentEdges;
 };
 
