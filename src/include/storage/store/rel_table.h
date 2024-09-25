@@ -17,38 +17,51 @@ class MemoryManager;
 struct LocalRelTableScanState;
 struct RelTableScanState : TableScanState {
     common::RelDataDirection direction;
-    common::offset_t boundNodeOffset;
+    common::sel_t currBoundNodeIdx;
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
+
+    // This is a reference of the original selVector of the input boundNodeIDVector.
+    common::SelectionVector cachedBoundNodeSelVector;
 
     std::unique_ptr<LocalRelTableScanState> localTableScanState;
 
     // Scan state for un-committed data.
     RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs)
-        : RelTableScanState{tableID, columnIDs, {}, nullptr /*csrOffsetCol*/,
-              nullptr /*csrLengthCol*/,
-              common::RelDataDirection::FWD /* This is a dummy direction */} {}
+        : TableScanState{tableID, columnIDs, {}, {}},
+          direction{common::RelDataDirection::FWD /* This is a dummy placeholder */},
+          currBoundNodeIdx{0}, csrOffsetColumn{nullptr}, csrLengthColumn{nullptr},
+          localTableScanState{nullptr} {
+        nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
+    }
 
-    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
-        common::RelDataDirection direction)
-        : RelTableScanState(tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
+    RelTableScanState(MemoryManager& mm, common::table_id_t tableID,
+        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
+        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction)
+        : RelTableScanState(mm, tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
               std::vector<ColumnPredicateSet>{}) {}
-    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
-        common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets);
+    RelTableScanState(MemoryManager& mm, common::table_id_t tableID,
+        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
+        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction,
+        std::vector<ColumnPredicateSet> columnPredicateSets);
 
     void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup) override;
 
     bool scanNext(transaction::Transaction* transaction) override;
 
     void resetState() override {
-        boundNodeOffset = common::INVALID_OFFSET;
-        nodeGroupScanState->resetState();
+        TableScanState::resetState();
+        currBoundNodeIdx = 0;
     }
 
+    void setNodeIDVectorToFlat(common::sel_t selPos) const;
+
 private:
-    void initLocalState() const;
+    bool hasUnComittedData() const;
+
+    void initCachedBoundNodeIDSelVector();
+    void initStateForCommitted(transaction::Transaction* transaction);
+    void initStateForUncommitted();
 };
 
 class LocalRelTable;

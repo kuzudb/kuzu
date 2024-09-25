@@ -10,6 +10,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+void TableScanState::resetOutVectors() {
+    for (const auto& outputVector : outputVectors) {
+        KU_ASSERT(outputVector->state.get() == outState);
+        KU_UNUSED(outputVector);
+        outputVector->resetAuxiliaryBuffer();
+    }
+    outState->getSelVectorUnsafe().setToUnfiltered();
+}
+
 Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
     MemoryManager* memoryManager)
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},
@@ -40,20 +49,7 @@ std::unique_ptr<Table> Table::loadTable(Deserializer& deSer, const catalog::Cata
     return table;
 }
 
-static bool skipScan(const transaction::Transaction* transaction, const TableScanState& scanState) {
-    return transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-}
-
 bool Table::scan(transaction::Transaction* transaction, TableScanState& scanState) {
-    if (skipScan(transaction, scanState) && scanState.source == TableScanSource::NONE) {
-        return false;
-    }
-    for (const auto& outputVector : scanState.outputVectors) {
-        KU_ASSERT(outputVector->state.get() == scanState.outState);
-        KU_UNUSED(outputVector);
-        outputVector->resetAuxiliaryBuffer();
-    }
-    scanState.outState->getSelVectorUnsafe().setToUnfiltered();
     return scanInternal(transaction, scanState);
 }
 

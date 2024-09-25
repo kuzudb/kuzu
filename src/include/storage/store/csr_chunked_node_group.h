@@ -75,11 +75,6 @@ struct ChunkedCSRHeader {
         length->setNumValues(numValues);
     }
 
-    void resetToEmpty() const {
-        offset->resetToEmpty();
-        length->resetToEmpty();
-    }
-
     // Return a vector of CSR offsets for the end of each CSR region.
     std::vector<common::offset_t> populateStartCSROffsetsFromLength(bool leaveGaps) const;
     void populateEndCSROffsetFromStartAndLength() const;

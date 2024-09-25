@@ -54,7 +54,7 @@ union StorageValue {
     }
 
     template<typename T>
-        requires std::is_floating_point<T>::value
+        requires std::is_floating_point_v<T>
     explicit StorageValue(T value) : StorageValue(common::int128_t(0)) {
         floatVal = value;
     }
@@ -81,6 +81,8 @@ union StorageValue {
             }
         } else if constexpr (std::is_floating_point<T>()) {
             return floatVal;
+        } else {
+            KU_UNREACHABLE;
         }
     }
 
@@ -272,7 +274,7 @@ public:
     // Nothing to do; constant compressed data is only updated if the update is to the same value
     void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
         common::offset_t, const CompressionMetadata&,
-        const common::NullMask* /*nullMask*/) const override {};
+        const common::NullMask* /*nullMask*/) const override {}
 
     CompressionType getCompressionType() const override { return CompressionType::CONSTANT; }
 

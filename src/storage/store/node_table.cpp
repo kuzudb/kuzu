@@ -114,6 +114,7 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
 }
 
 bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
+    scanState.resetOutVectors();
     return scanState.scanNext(transaction);
 }
 

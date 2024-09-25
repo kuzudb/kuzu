@@ -16,7 +16,7 @@ struct OnDiskGraphScanState {
     std::unique_ptr<storage::RelTableScanState> fwdScanState;
     std::unique_ptr<storage::RelTableScanState> bwdScanState;
 
-    explicit OnDiskGraphScanState(const storage::RelTable& table,
+    explicit OnDiskGraphScanState(storage::MemoryManager& mm, const storage::RelTable& table,
         common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector);
 };
@@ -34,7 +34,7 @@ private:
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
 
-    explicit OnDiskGraphScanStates(std::span<storage::RelTable*> tableIDs,
+    explicit OnDiskGraphScanStates(std::span<storage::RelTable*> tables,
         storage::MemoryManager* mm);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
