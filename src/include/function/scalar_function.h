@@ -21,7 +21,7 @@ using scalar_func_exec_t = std::function<void(
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 
-struct ScalarFunction final : public ScalarOrAggregateFunction {
+struct KUZU_API ScalarFunction final : public ScalarOrAggregateFunction {
     scalar_func_exec_t execFunc = nullptr;
     scalar_func_select_t selectFunc = nullptr;
     scalar_func_compile_exec_t compileFunc = nullptr;
@@ -90,7 +90,7 @@ struct ScalarFunction final : public ScalarOrAggregateFunction {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryStringExecFunction(
+    KUZU_API static void BinaryStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);
