@@ -224,12 +224,11 @@ struct SingleSPPathsEdgeCompute : public SingleSPLengthsEdgeCompute {
  * multiplicities of each destination is ignored (e.g., if there are 3 paths to a destination d,
  * d is returned only once).
  */
-
-class SingleSPDestinationsAlgorithm : public RJAlgorithm {
+class SingleSPDestinationsAlgorithm : public SPAlgorithm {
 public:
     SingleSPDestinationsAlgorithm() = default;
     SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
-        : RJAlgorithm{other} {}
+        : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
 
@@ -252,10 +251,10 @@ private:
     }
 };
 
-class SingleSPLengthsAlgorithm : public RJAlgorithm {
+class SingleSPLengthsAlgorithm : public SPAlgorithm {
 public:
     SingleSPLengthsAlgorithm() = default;
-    SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other) : RJAlgorithm{other} {}
+    SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
         auto columns = getNodeIDResultColumns();
@@ -283,10 +282,10 @@ private:
     }
 };
 
-class SingleSPPathsAlgorithm : public RJAlgorithm {
+class SingleSPPathsAlgorithm : public SPAlgorithm {
 public:
     SingleSPPathsAlgorithm() = default;
-    SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : RJAlgorithm{other} {}
+    SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
         auto columns = getNodeIDResultColumns();

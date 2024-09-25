@@ -195,11 +195,6 @@ struct RJBindData final : public function::GDSBindData {
     }
 };
 
-enum class RJInputType : uint8_t {
-    HAS_LOWER_BOUND = 0,
-    NO_LOWER_BOUND = 1,
-};
-
 struct RJOutputs {
 public:
     explicit RJOutputs(nodeID_t sourceNodeID);
@@ -331,43 +326,41 @@ protected:
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
 
 public:
-    explicit RJAlgorithm(RJInputType inputType = RJInputType::NO_LOWER_BOUND)
-        : inputType{inputType} {};
-    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other}, inputType{other.inputType} {}
-    /*
-     * Inputs include the following:
-     *
-     * graph::ANY
-     * srcNode::NODE
-     * lowerBound::INT64 (optional)
-     * upperBound::INT64
-     * outputProperty::BOOL
-     */
-    std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        if (RJInputType::HAS_LOWER_BOUND == inputType) {
-            return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-                common::LogicalTypeID::INT64, common::LogicalTypeID::INT64,
-                common::LogicalTypeID::BOOL};
-        } else {
-            return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-                common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
-        }
-    }
-
-    void bind(const binder::expression_vector& params, binder::Binder* binder,
-        graph::GraphEntry& graphEntry) override;
+    RJAlgorithm() = default;
+    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other} {}
 
     void exec(processor::ExecutionContext* executionContext) override;
     virtual RJCompState getRJCompState(processor::ExecutionContext* executionContext,
         nodeID_t sourceNodeID) = 0;
 
 protected:
+    void validateLowerUpperBound(int64_t lowerBound, int64_t upperBound);
+
     binder::expression_vector getNodeIDResultColumns() const;
     std::shared_ptr<binder::Expression> getLengthColumn(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getPathNodeIDsColumn(binder::Binder* binder) const;
-
-protected:
-    RJInputType inputType;
 };
+
+class SPAlgorithm : public RJAlgorithm {
+public:
+    SPAlgorithm() = default;
+    SPAlgorithm(const SPAlgorithm& other) : RJAlgorithm{other} {}
+
+    /*
+     * Inputs include the following:
+     *
+     * graph::ANY
+     * srcNode::NODE
+     * upperBound::INT64
+     * outputProperty::BOOL
+     */
+    std::vector<LogicalTypeID> getParameterTypeIDs() const override {
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::BOOL};
+    }
+
+    void bind(const binder::expression_vector& params, binder::Binder* binder,
+        graph::GraphEntry& graphEntry) override;
+};
+
 } // namespace function
 } // namespace kuzu
