@@ -34,31 +34,3 @@ std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candi
     }
     return options;
 }
-
-// // Scores the consistency of a dialect based on the most frequent number of fields per row
-// int scoreDialect(const std::vector<int>& fieldCounts) {
-//     if (fieldCounts.empty()) {
-//         return 0;
-//     }
-
-//     // Map to count occurrences of each field count
-//     std::unordered_map<int, int> fieldCountFrequency;
-//     for (int count : fieldCounts) {
-//         fieldCountFrequency[count]++;
-//     }
-
-//     // Find the most frequent field count (mode)
-//     int mostFrequentFieldCount = 0;
-//     int highestFrequency = 0;
-//     for (const auto& entry : fieldCountFrequency) {
-//         if (entry.second > highestFrequency) {
-//             mostFrequentFieldCount = entry.first;
-//             highestFrequency = entry.second;
-//         }
-//     }
-
-//     // Calculate the number of rows that match the most frequent field count
-//     int consistentRows = std::count(fieldCounts.begin(), fieldCounts.end(), mostFrequentFieldCount);
-
-//     return consistentRows;
-// }

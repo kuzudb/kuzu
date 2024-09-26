@@ -14,7 +14,7 @@ struct CSVOption {
     char quoteChar;
     bool hasHeader;
     uint64_t skipNum;
-    uint64_t sampleSize = 256;
+    uint64_t sampleSize;
     bool allowUnbracedList;
     bool ignoreErrors;
 
@@ -51,7 +51,7 @@ struct CSVOption {
           quoteChar{other.quoteChar},
           hasHeader{other.hasHeader},
           skipNum{other.skipNum},
-          sampleSize{other.sampleSize == 0 ? 256 : other.sampleSize}, // Set to 256 if sampleSize is 0
+          sampleSize{other.sampleSize == 0 ? DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE : other.sampleSize}, // Set to DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE if sampleSize is 0
           allowUnbracedList{other.allowUnbracedList},
           ignoreErrors{other.ignoreErrors},
           setEscape{other.setEscape},

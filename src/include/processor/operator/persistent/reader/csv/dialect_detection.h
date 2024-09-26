@@ -25,6 +25,3 @@ struct DialectCandidates {
 
 // Function to generate all combinations of dialect options
 std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candidates, const CSVOption& option);
-
-// Function to score the consistency of a dialect based on the field counts across rows
-//int scoreDialect(const std::vector<int>& fieldCounts);

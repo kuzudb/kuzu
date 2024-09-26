@@ -19,7 +19,7 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t file
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
-    ///////////////////////STEP1: Dialect Detection/////////////////////////////////////
+    ///////////////////////STEP1: Dialect Detection//////////////////////////////////
     detectDialect();
     ///////////////////////STEP2: Type Detection/////////////////////////////////////
     SniffCSVNameAndTypeDriver driver{this, bindInput};
@@ -294,10 +294,7 @@ void SerialCSVReader::detectDialect() {
             max_columns_found = num_cols;
             validDialects.clear();
             validDialects.emplace_back(std::move(dialectOption));
-        } 
-        //else if (consistent_rows == best_consistent_rows && num_cols > max_columns_found) {
-
-        // }
+        }
 
         if (more_than_one_row && more_than_one_column && num_cols == max_columns_found) {
             bool same_quote = false;
