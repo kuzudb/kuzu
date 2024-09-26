@@ -137,8 +137,7 @@ public:
     template<common::IndexHashable T>
     common::offset_t lookup(T key, visible_func isVisible) {
         common::offset_t result = common::INVALID_OFFSET;
-        common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
-            HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
+        common::ku_dynamic_cast<HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
             ->lookup(key, result, isVisible);
         return result;
     }
@@ -165,8 +164,7 @@ public:
     template<common::IndexHashable T>
     bool insert(T key, common::offset_t value, visible_func isVisible) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        return common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
-            HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
+        return common::ku_dynamic_cast<HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
             ->insert(key, value, isVisible);
     }
 
@@ -186,8 +184,7 @@ public:
     template<common::IndexHashable T>
     void delete_(T key) {
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
-        common::ku_dynamic_cast<BaseHashIndexLocalStorage*,
-            HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
+        common::ku_dynamic_cast<HashIndexLocalStorage<HashIndexType<T>>*>(localIndex.get())
             ->deleteKey(key);
     }
 

@@ -35,29 +35,27 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
         KU_ASSERT(distinctSharedState);
         numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
     }
-    auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(table);
+    auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);
     globalIndexBuilder = IndexBuilder(
         std::make_shared<IndexBuilderSharedState>(context->clientContext->getTx(), nodeTable));
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
-    const auto nodeSharedState =
-        ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     nodeSharedState->initPKIndex(context);
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
 
-    const auto nodeSharedState =
-        ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     localState = std::make_unique<NodeBatchInsertLocalState>();
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     KU_ASSERT(nodeSharedState->globalIndexBuilder);
     nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder->clone();
 
-    auto* nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
+    auto* nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
     nodeLocalState->errorHandler =
         NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(), nodeTable,
             context->clientContext->getWarningContext().getIgnoreErrorsOption(),
@@ -126,8 +124,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
 void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
     MemoryManager* mm) const {
     auto numAppendedTuples = 0ul;
-    const auto nodeLocalState =
-        ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
+    const auto nodeLocalState = ku_dynamic_cast<NodeBatchInsertLocalState*>(localState.get());
     const auto numTuplesToAppend = nodeLocalState->columnState->getSelVector().getSelSize();
     while (numAppendedTuples < numTuplesToAppend) {
         const auto numAppendedTuplesInNodeGroup = nodeLocalState->chunkedGroup->append(
@@ -157,10 +154,9 @@ void NodeBatchInsert::clearToIndex(MemoryManager* mm, std::unique_ptr<ChunkedNod
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm) const {
-    const auto nodeSharedState =
-        ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
-    const auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(sharedState->table);
+    const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
     auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
 
     // we only need to write the main data in the chunked node group, the extra data is only used
@@ -190,8 +186,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
     std::unique_ptr<ChunkedNodeGroup> localNodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm) const {
     std::unique_lock xLck{sharedState->mtx};
-    const auto nodeSharedState =
-        ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     if (!nodeSharedState->sharedNodeGroup) {
         nodeSharedState->sharedNodeGroup = std::move(localNodeGroup);
         return;
@@ -211,8 +206,7 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
 }
 
 void NodeBatchInsert::finalize(ExecutionContext* context) {
-    const auto nodeSharedState =
-        ku_dynamic_cast<BatchInsertSharedState*, NodeBatchInsertSharedState*>(sharedState.get());
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
             writeAndResetNodeGroup(context->clientContext->getTx(),
@@ -221,8 +215,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
         }
     }
     if (nodeSharedState->globalIndexBuilder) {
-        auto* localNodeState =
-            ku_dynamic_cast<BatchInsertLocalState*, NodeBatchInsertLocalState*>(localState.get());
+        auto* localNodeState = ku_dynamic_cast<NodeBatchInsertLocalState*>(localState.get());
         KU_ASSERT(localNodeState->errorHandler.has_value());
         nodeSharedState->globalIndexBuilder->finalize(context,
             localNodeState->errorHandler.value());

@@ -45,7 +45,7 @@ struct TableFuncBindData {
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const TableFuncBindData*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
 private:

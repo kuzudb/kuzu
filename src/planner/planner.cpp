@@ -126,7 +126,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const BoundStatem
         }
     } break;
     case StatementType::EXPLAIN: {
-        auto& explain = ku_dynamic_cast<const BoundStatement&, const BoundExplain&>(statement);
+        auto& explain = ku_dynamic_cast<const BoundExplain&>(statement);
         plans = getAllPlans(*explain.getStatementToExplain());
         for (auto& plan : plans) {
             appendExplain(explain, *plan);

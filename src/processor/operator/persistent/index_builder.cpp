@@ -156,8 +156,7 @@ void IndexBuilder::insert(const ColumnChunkData& chunk,
             }
         },
         [&](ku_string_t) {
-            auto& stringColumnChunk =
-                ku_dynamic_cast<const ColumnChunkData&, const StringChunkData&>(chunk);
+            auto& stringColumnChunk = ku_dynamic_cast<const StringChunkData&>(chunk);
             for (auto i = 0u; i < numNodes; i++) {
                 if (checkNonNullConstraint(chunk, warningData, nodeOffset, i, errorHandler)) {
                     auto value = stringColumnChunk.getValue<std::string>(i);

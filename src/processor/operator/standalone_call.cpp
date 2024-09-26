@@ -19,8 +19,7 @@ bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* co
     switch (standaloneCallInfo->option->optionType) {
     case main::OptionType::CONFIGURATION: {
         auto configurationOption =
-            common::ku_dynamic_cast<main::Option*, main::ConfigurationOption*>(
-                standaloneCallInfo->option);
+            common::ku_dynamic_cast<main::ConfigurationOption*>(standaloneCallInfo->option);
         configurationOption->setContext(context->clientContext, standaloneCallInfo->optionValue);
         break;
     }

@@ -151,11 +151,11 @@ public:
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<ChunkedNodeGroup&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<class TARGETT>
     const TARGETT& cast() const {
-        return common::ku_dynamic_cast<const ChunkedNodeGroup&, const TARGETT&>(*this);
+        return common::ku_dynamic_cast<const TARGETT&>(*this);
     }
 
 protected:

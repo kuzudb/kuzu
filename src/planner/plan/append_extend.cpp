@@ -69,7 +69,7 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(const RelExpression& 
 
 static std::shared_ptr<Expression> getIRIProperty(const expression_vector& properties) {
     for (auto& property : properties) {
-        auto propertyExpr = ku_dynamic_cast<Expression*, PropertyExpression*>(property.get());
+        auto propertyExpr = ku_dynamic_cast<PropertyExpression*>(property.get());
         if (propertyExpr->isIRI()) {
             return property;
         }

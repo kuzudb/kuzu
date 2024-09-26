@@ -20,7 +20,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
-    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
+    auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
     auto tableName = copyStatement.getTableName();
     validateTableExist(tableName);
     // Bind to table schema.
@@ -79,7 +79,7 @@ static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExp
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     NodeTableCatalogEntry* nodeTableEntry) {
-    auto& copyStatement = ku_dynamic_cast<const Statement&, const CopyFrom&>(statement);
+    auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
     // Bind expected columns based on catalog information.
     std::vector<std::string> expectedColumnNames;
     std::vector<LogicalType> expectedColumnTypes;

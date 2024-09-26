@@ -284,8 +284,7 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
 }
 
 bool DecimalTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherDecimalTypeInfo =
-        ku_dynamic_cast<const ExtraTypeInfo*, const DecimalTypeInfo*>(&other);
+    auto otherDecimalTypeInfo = ku_dynamic_cast<const DecimalTypeInfo*>(&other);
     if (otherDecimalTypeInfo) {
         return precision == otherDecimalTypeInfo->precision && scale == otherDecimalTypeInfo->scale;
     }
@@ -313,7 +312,7 @@ bool ListTypeInfo::containsAny() const {
 }
 
 bool ListTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherListTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ListTypeInfo*>(&other);
+    auto otherListTypeInfo = ku_dynamic_cast<const ListTypeInfo*>(&other);
     if (otherListTypeInfo) {
         return childType == otherListTypeInfo->childType;
     }
@@ -333,7 +332,7 @@ void ListTypeInfo::serializeInternal(Serializer& serializer) const {
 }
 
 bool ArrayTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherArrayTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ArrayTypeInfo*>(&other);
+    auto otherArrayTypeInfo = ku_dynamic_cast<const ArrayTypeInfo*>(&other);
     if (otherArrayTypeInfo) {
         return childType == otherArrayTypeInfo->childType &&
                numElements == otherArrayTypeInfo->numElements;
@@ -460,7 +459,7 @@ bool StructTypeInfo::containsAny() const {
 }
 
 bool StructTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherStructTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const StructTypeInfo*>(&other);
+    auto otherStructTypeInfo = ku_dynamic_cast<const StructTypeInfo*>(&other);
     if (otherStructTypeInfo) {
         if (fields.size() != otherStructTypeInfo->fields.size()) {
             return false;
@@ -553,22 +552,21 @@ bool LogicalType::operator!=(const LogicalType& other) const {
 std::string LogicalType::toString() const {
     switch (typeID) {
     case LogicalTypeID::MAP: {
-        auto structType =
-            ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get())->getChildType();
+        auto structType = ku_dynamic_cast<ListTypeInfo*>(extraTypeInfo.get())->getChildType();
         auto fieldTypes = StructType::getFieldTypes(structType);
         return "MAP(" + fieldTypes[0]->toString() + ", " + fieldTypes[1]->toString() + ")";
     }
     case LogicalTypeID::LIST: {
-        auto listTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get());
+        auto listTypeInfo = ku_dynamic_cast<ListTypeInfo*>(extraTypeInfo.get());
         return listTypeInfo->getChildType().toString() + "[]";
     }
     case LogicalTypeID::ARRAY: {
-        auto arrayTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(extraTypeInfo.get());
+        auto arrayTypeInfo = ku_dynamic_cast<ArrayTypeInfo*>(extraTypeInfo.get());
         return arrayTypeInfo->getChildType().toString() + "[" +
                std::to_string(arrayTypeInfo->getNumElements()) + "]";
     }
     case LogicalTypeID::UNION: {
-        auto unionTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
+        auto unionTypeInfo = ku_dynamic_cast<StructTypeInfo*>(extraTypeInfo.get());
         std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
         auto numFields = unionTypeInfo->getChildrenTypes().size();
         auto fieldNames = unionTypeInfo->getChildrenNames();
@@ -580,7 +578,7 @@ std::string LogicalType::toString() const {
         return dataTypeStr;
     }
     case LogicalTypeID::STRUCT: {
-        auto structTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
+        auto structTypeInfo = ku_dynamic_cast<StructTypeInfo*>(extraTypeInfo.get());
         std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
         auto numFields = structTypeInfo->getChildrenTypes().size();
         auto fieldNames = structTypeInfo->getChildrenNames();
@@ -594,8 +592,7 @@ std::string LogicalType::toString() const {
         return dataTypeStr + ")";
     }
     case LogicalTypeID::DECIMAL: {
-        auto decimalTypeInfo =
-            ku_dynamic_cast<ExtraTypeInfo*, DecimalTypeInfo*>(extraTypeInfo.get());
+        auto decimalTypeInfo = ku_dynamic_cast<DecimalTypeInfo*>(extraTypeInfo.get());
         return "DECIMAL(" + std::to_string(decimalTypeInfo->getPrecision()) + ", " +
                std::to_string(decimalTypeInfo->getScale()) + ")";
     }

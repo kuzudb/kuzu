@@ -96,7 +96,7 @@ static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTab
     transaction::Transaction* transaction, const CatalogEntrySet& entries,
     common::table_id_t tableID) {
     for (auto& [name, entry] : entries) {
-        auto current = common::ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        auto current = common::ku_dynamic_cast<TableCatalogEntry*>(entry);
         if (current->getTableID() == tableID) {
             auto boundInfo = current->getBoundCreateTableInfo(transaction);
             return boundInfo;

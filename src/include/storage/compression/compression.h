@@ -178,11 +178,10 @@ struct CompressionMetadata {
         return extraMetadata.value().get();
     }
     inline const ALPMetadata* floatMetadata() const {
-        return common::ku_dynamic_cast<const ExtraMetadata*, const ALPMetadata*>(
-            getExtraMetadata());
+        return common::ku_dynamic_cast<const ALPMetadata*>(getExtraMetadata());
     }
     inline ALPMetadata* floatMetadata() {
-        return common::ku_dynamic_cast<ExtraMetadata*, ALPMetadata*>(getExtraMetadata());
+        return common::ku_dynamic_cast<ALPMetadata*>(getExtraMetadata());
     }
 
     void serialize(common::Serializer& serializer) const;

@@ -40,8 +40,7 @@ void ParsedExpressionChildrenVisitor::setChild(kuzu::parser::ParsedExpression& e
 std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectCaseChildren(
     const ParsedExpression& expression) {
     std::vector<ParsedExpression*> children;
-    auto& parsedCaseExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedCaseExpression&>(expression);
+    auto& parsedCaseExpr = ku_dynamic_cast<const ParsedCaseExpression&>(expression);
     if (parsedCaseExpr.getCaseExpression() != nullptr) {
         children.push_back(parsedCaseExpr.getCaseExpression());
     }
@@ -58,7 +57,7 @@ std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectCaseChild
 
 void ParsedExpressionChildrenVisitor::setCaseChild(kuzu::parser::ParsedExpression& expression,
     uint64_t idx, std::unique_ptr<ParsedExpression> expressionToSet) {
-    auto& parsedCaseExpr = ku_dynamic_cast<ParsedExpression&, ParsedCaseExpression&>(expression);
+    auto& parsedCaseExpr = ku_dynamic_cast<ParsedCaseExpression&>(expression);
     if (idx == 0) {
         parsedCaseExpr.caseExpression = std::move(expressionToSet);
     } else if (idx < 1 + parsedCaseExpr.getNumCaseAlternative() * 2) {

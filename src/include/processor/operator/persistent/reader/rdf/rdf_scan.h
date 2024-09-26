@@ -141,11 +141,11 @@ struct RdfInMemScanSharedState : public function::BaseScanSharedStateWithNumRows
         : function::BaseScanSharedStateWithNumRows{0 /* numRows */}, store{std::move(store)} {}
 
     std::pair<uint64_t, uint64_t> getResourceTripleRange() {
-        auto& store_ = common::ku_dynamic_cast<RdfStore&, TripleStore&>(*store);
+        auto& store_ = common::ku_dynamic_cast<TripleStore&>(*store);
         return getRange(store_.rtStore, rtCursor);
     }
     std::pair<uint64_t, uint64_t> getLiteralTripleRange() {
-        auto& store_ = common::ku_dynamic_cast<RdfStore&, TripleStore&>(*store);
+        auto& store_ = common::ku_dynamic_cast<TripleStore&>(*store);
         return getRange(store_.ltStore, ltCursor);
     }
 

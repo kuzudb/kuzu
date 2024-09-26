@@ -87,11 +87,11 @@ public:
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<Column&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<class TARGET>
     const TARGET& cast() const {
-        return common::ku_dynamic_cast<Column&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
 protected:

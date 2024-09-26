@@ -258,7 +258,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
     TableFuncLocalState* /*localState*/) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, ParallelCSVScanSharedState*>(sharedState);
+    auto state = ku_dynamic_cast<ParallelCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
         // If we run into errors while reconstructing lines they should be unrecoverable
         LocalCSVFileErrorHandler localErrorHandler{&state->errorHandlers[i], false, state->context};

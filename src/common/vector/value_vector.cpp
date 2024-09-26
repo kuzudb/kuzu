@@ -303,21 +303,18 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(auxiliaryBuffer.get())
-            ->resetOverflowBuffer();
+        ku_dynamic_cast<StringAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetOverflowBuffer();
         return;
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        auto listAuxiliaryBuffer =
-            ku_dynamic_cast<AuxiliaryBuffer*, ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
+        auto listAuxiliaryBuffer = ku_dynamic_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
         listAuxiliaryBuffer->resetSize();
         listAuxiliaryBuffer->getDataVector()->resetAuxiliaryBuffer();
         return;
     }
     case PhysicalTypeID::STRUCT: {
-        auto structAuxiliaryBuffer =
-            ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(auxiliaryBuffer.get());
+        auto structAuxiliaryBuffer = ku_dynamic_cast<StructAuxiliaryBuffer*>(auxiliaryBuffer.get());
         for (auto& vector : structAuxiliaryBuffer->getFieldVectors()) {
             vector->resetAuxiliaryBuffer();
         }
@@ -439,8 +436,7 @@ void ValueVector::setNull(uint32_t pos, bool isNull) {
 
 void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto stringBuffer =
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto stringBuffer = ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
@@ -453,8 +449,7 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_
 void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const char* srcStr,
     uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto stringBuffer =
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto stringBuffer = ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
     if (ku_string_t::isShortString(length)) {
         dstStr.setShortString(srcStr, length);
@@ -470,8 +465,7 @@ void StringVector::addString(ValueVector* vector, uint32_t vectorPos, const std:
 
 ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto stringBuffer =
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto stringBuffer = ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
     dstStr.len = length;
     if (!ku_string_t::isShortString(length)) {
@@ -482,8 +476,7 @@ ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos
 
 void StringVector::reserveString(ValueVector* vector, ku_string_t& dstStr, uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto stringBuffer =
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto stringBuffer = ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     dstStr.len = length;
     if (!ku_string_t::isShortString(length)) {
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
@@ -492,8 +485,7 @@ void StringVector::reserveString(ValueVector* vector, ku_string_t& dstStr, uint6
 
 void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto stringBuffer =
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto stringBuffer = ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
     } else {
@@ -505,8 +497,7 @@ void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string
 void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, const char* srcStr,
     uint64_t length) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    auto stringBuffer =
-        ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto stringBuffer = ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     if (ku_string_t::isShortString(length)) {
         dstStr.setShortString(srcStr, length);
     } else {

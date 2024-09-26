@@ -56,7 +56,7 @@ template<std::floating_point T>
 std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const CompressionAlg& alg,
     PhysicalTypeID dataType, std::span<const uint8_t> buffer, FileHandle* dataFH,
     page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
-    const auto& castedAlg = ku_dynamic_cast<const CompressionAlg&, const FloatCompression<T>&>(alg);
+    const auto& castedAlg = ku_dynamic_cast<const FloatCompression<T>&>(alg);
 
     const auto* floatMetadata = metadata.compMeta.floatMetadata();
     KU_ASSERT(floatMetadata->exceptionCapacity >= floatMetadata->exceptionCount);

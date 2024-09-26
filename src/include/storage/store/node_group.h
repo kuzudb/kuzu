@@ -36,11 +36,11 @@ struct NodeGroupScanState {
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<NodeGroupScanState&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<class TARGETT>
     const TARGETT& constCast() {
-        return common::ku_dynamic_cast<const NodeGroupScanState&, const TARGETT&>(*this);
+        return common::ku_dynamic_cast<const TARGETT&>(*this);
     }
 };
 
@@ -58,11 +58,11 @@ struct NodeGroupCheckpointState {
 
     template<typename T>
     const T& cast() const {
-        return common::ku_dynamic_cast<const NodeGroupCheckpointState&, const T&>(*this);
+        return common::ku_dynamic_cast<const T&>(*this);
     }
     template<typename T>
     T& cast() {
-        return common::ku_dynamic_cast<NodeGroupCheckpointState&, T&>(*this);
+        return common::ku_dynamic_cast<T&>(*this);
     }
 };
 
@@ -170,11 +170,11 @@ public:
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<NodeGroup&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<class TARGETT>
     const TARGETT& cast() const {
-        return common::ku_dynamic_cast<const NodeGroup&, const TARGETT&>(*this);
+        return common::ku_dynamic_cast<const TARGETT&>(*this);
     }
 
     bool isVisible(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);

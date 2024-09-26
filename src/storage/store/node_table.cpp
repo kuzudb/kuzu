@@ -232,8 +232,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
 }
 
 bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
-    const auto& nodeDeleteState =
-        ku_dynamic_cast<TableDeleteState&, NodeTableDeleteState&>(deleteState);
+    const auto& nodeDeleteState = ku_dynamic_cast<NodeTableDeleteState&>(deleteState);
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
     if (nodeDeleteState.nodeIDVector.isNull(pos)) {

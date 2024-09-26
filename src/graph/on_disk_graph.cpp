@@ -166,7 +166,7 @@ std::unique_ptr<GraphScanState> OnDiskGraph::prepareMultiTableScanBwd(
 }
 
 std::vector<nodeID_t> OnDiskGraph::scanFwd(nodeID_t nodeID, GraphScanState& state) {
-    auto& onDiskScanState = ku_dynamic_cast<GraphScanState&, OnDiskGraphScanStates&>(state);
+    auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphScanStates&>(state);
     KU_ASSERT(nodeTableIDToFwdRelTables.contains(nodeID.tableID));
     auto& relTables = nodeTableIDToFwdRelTables.at(nodeID.tableID);
     std::vector<nodeID_t> result;
@@ -180,12 +180,12 @@ std::vector<nodeID_t> OnDiskGraph::scanFwd(nodeID_t nodeID, GraphScanState& stat
 }
 
 std::vector<nodeID_t> OnDiskGraph::scanFwdRandom(nodeID_t, GraphScanState&) {
-    // auto& onDiskScanState = ku_dynamic_cast<GraphScanState&, OnDiskGraphScanStates&>(state);
+    // auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphScanStates&>(state);
     // KU_ASSERT(nodeTableIDToFwdRelTables.contains(nodeID.tableID));
     // auto& relTables = nodeTableIDToFwdRelTables.at(nodeID.tableID);
     std::vector<nodeID_t> result;
     // for (auto& [tableID, scanState] : onDiskScanState.scanStates) {
-    //     ku_dynamic_cast<TableDataScanState*, RelDataReadState*>(
+    //     ku_dynamic_cast<RelDataReadState*>(
     //         scanState.fwdScanState->dataScanState.get())
     //         ->randomAccess = true;
     //     auto relTablePair = relTables.find(tableID);
@@ -197,7 +197,7 @@ std::vector<nodeID_t> OnDiskGraph::scanFwdRandom(nodeID_t, GraphScanState&) {
 }
 
 std::vector<nodeID_t> OnDiskGraph::scanBwd(nodeID_t nodeID, GraphScanState& state) {
-    auto& onDiskScanState = ku_dynamic_cast<GraphScanState&, OnDiskGraphScanStates&>(state);
+    auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphScanStates&>(state);
     KU_ASSERT(nodeTableIDToBwdRelTables.contains(nodeID.tableID));
     auto& relTables = nodeTableIDToBwdRelTables.at(nodeID.tableID);
     std::vector<nodeID_t> result;
@@ -211,12 +211,12 @@ std::vector<nodeID_t> OnDiskGraph::scanBwd(nodeID_t nodeID, GraphScanState& stat
 }
 
 std::vector<nodeID_t> OnDiskGraph::scanBwdRandom(nodeID_t, GraphScanState&) {
-    // auto& onDiskScanState = ku_dynamic_cast<GraphScanState&, OnDiskGraphScanStates&>(state);
+    // auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphScanStates&>(state);
     // KU_ASSERT(nodeTableIDToBwdRelTables.contains(nodeID.tableID));
     // auto& relTables = nodeTableIDToBwdRelTables.at(nodeID.tableID);
     std::vector<nodeID_t> result;
     // for (auto& [tableID, scanState] : onDiskScanState.scanStates) {
-    //     ku_dynamic_cast<TableDataScanState*, RelDataReadState*>(
+    //     ku_dynamic_cast<RelDataReadState*>(
     //         scanState.bwdScanState->dataScanState.get())
     //         ->randomAccess = true;
     //     auto relTablePair = relTables.find(tableID);

@@ -24,7 +24,7 @@ struct BoundBaseScanSource {
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const BoundBaseScanSource&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
 protected:

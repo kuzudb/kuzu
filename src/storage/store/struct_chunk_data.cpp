@@ -138,7 +138,7 @@ void StructChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
 void StructChunkData::initializeScanState(ChunkState& state, Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
-    auto* structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
+    auto* structColumn = ku_dynamic_cast<StructColumn*>(column);
     state.childrenStates.resize(childChunks.size());
     for (auto i = 0u; i < childChunks.size(); i++) {
         childChunks[i]->initializeScanState(state.childrenStates[i], structColumn->getChild(i));

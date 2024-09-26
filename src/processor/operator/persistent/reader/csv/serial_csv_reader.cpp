@@ -100,8 +100,7 @@ void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto serialCSVScanSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(input.sharedState);
+    auto serialCSVScanSharedState = ku_dynamic_cast<SerialCSVScanSharedState*>(input.sharedState);
     serialCSVScanSharedState->read(output.dataChunk);
     return output.dataChunk.state->getSelVector().getSelSize();
 }
@@ -184,7 +183,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
     TableFuncLocalState*) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
+    auto state = ku_dynamic_cast<SerialCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
         state->localErrorHandlers[i].finalize();
 
@@ -197,7 +196,7 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
 }
 
 static double progressFunc(TableFuncSharedState* sharedState) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, SerialCSVScanSharedState*>(sharedState);
+    auto state = ku_dynamic_cast<SerialCSVScanSharedState*>(sharedState);
     if (state->totalSize == 0) {
         return 0.0;
     } else if (state->fileIdx >= state->readerConfig.getNumFiles()) {

@@ -205,7 +205,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* logicalOperator) {
-    const auto copyFrom = ku_dynamic_cast<LogicalOperator*, LogicalCopyFrom*>(logicalOperator);
+    const auto copyFrom = ku_dynamic_cast<LogicalCopyFrom*>(logicalOperator);
     const auto logicalRRLChild = logicalOperator->getChild(0).get();
     const auto logicalRRRChild = logicalOperator->getChild(1).get();
     const auto logicalLChild = logicalOperator->getChild(2).get();
@@ -220,31 +220,27 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
 
     auto rChild = mapCopyNodeFrom(logicalRChild);
     KU_ASSERT(rChild->getOperatorType() == PhysicalOperatorType::BATCH_INSERT);
-    const auto rCopy = ku_dynamic_cast<PhysicalOperator*, NodeBatchInsert*>(rChild.get());
+    const auto rCopy = ku_dynamic_cast<NodeBatchInsert*>(rChild.get());
     auto lChild = mapCopyNodeFrom(logicalLChild);
-    const auto lCopy = ku_dynamic_cast<PhysicalOperator*, NodeBatchInsert*>(lChild.get());
+    const auto lCopy = ku_dynamic_cast<NodeBatchInsert*>(lChild.get());
     auto rrrChildren = mapCopyRelFrom(logicalRRRChild);
     KU_ASSERT(rrrChildren[2]->getOperatorType() == PhysicalOperatorType::PARTITIONER);
-    const auto rrrPartitioner =
-        ku_dynamic_cast<PhysicalOperator*, Partitioner*>(rrrChildren[2].get());
+    const auto rrrPartitioner = ku_dynamic_cast<Partitioner*>(rrrChildren[2].get());
     rrrPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         rCopy->getSharedState());
     rrrPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         rCopy->getSharedState());
     KU_ASSERT(rrrChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
-    const auto rrrLookup =
-        ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrrChildren[2]->getChild(0));
+    const auto rrrLookup = ku_dynamic_cast<IndexLookup*>(rrrChildren[2]->getChild(0));
     rrrLookup->setBatchInsertSharedState(rCopy->getSharedState());
     auto rrlChildren = mapCopyRelFrom(logicalRRLChild);
-    const auto rrLPartitioner =
-        ku_dynamic_cast<PhysicalOperator*, Partitioner*>(rrlChildren[2].get());
+    const auto rrLPartitioner = ku_dynamic_cast<Partitioner*>(rrlChildren[2].get());
     rrLPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         rCopy->getSharedState());
     rrLPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         lCopy->getSharedState());
     KU_ASSERT(rrlChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
-    const auto rrlLookup =
-        ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrlChildren[2]->getChild(0));
+    const auto rrlLookup = ku_dynamic_cast<IndexLookup*>(rrlChildren[2]->getChild(0));
     rrlLookup->setBatchInsertSharedState(rCopy->getSharedState());
     auto sharedState = std::make_shared<CopyRdfSharedState>();
     const auto fTable =

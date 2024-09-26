@@ -605,8 +605,7 @@ std::string escapeJsonString(const std::string& str) {
 std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
     auto jsonDrawingCharacters =
-        common::ku_dynamic_cast<DrawingCharacters*, JSONDrawingCharacters*>(
-            drawingCharacters.get());
+        common::ku_dynamic_cast<JSONDrawingCharacters*>(drawingCharacters.get());
     bool jsonLines = jsonDrawingCharacters->printType == PrintType::JSONLINES;
     std::string printString = "";
     if (!jsonLines) {
@@ -671,8 +670,7 @@ std::string escapeHtmlString(const std::string& str) {
 std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
     auto htmlDrawingCharacters =
-        common::ku_dynamic_cast<DrawingCharacters*, HTMLDrawingCharacters*>(
-            drawingCharacters.get());
+        common::ku_dynamic_cast<HTMLDrawingCharacters*>(drawingCharacters.get());
     std::string printString = htmlDrawingCharacters->TableOpen;
     printString += "\n";
     printString += htmlDrawingCharacters->RowOpen;
@@ -752,8 +750,7 @@ std::string escapeLatexString(const std::string& str) {
 std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) const {
     auto colNames = queryResult.getColumnNames();
     auto latexDrawingCharacters =
-        common::ku_dynamic_cast<DrawingCharacters*, LatexDrawingCharacters*>(
-            drawingCharacters.get());
+        common::ku_dynamic_cast<LatexDrawingCharacters*>(drawingCharacters.get());
     std::string printString = latexDrawingCharacters->TableOpen;
     printString += latexDrawingCharacters->AlignOpen;
     for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
@@ -887,8 +884,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
 
 void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) const {
     auto tableDrawingCharacters =
-        common::ku_dynamic_cast<DrawingCharacters*, BaseTableDrawingCharacters*>(
-            drawingCharacters.get());
+        common::ku_dynamic_cast<BaseTableDrawingCharacters*>(drawingCharacters.get());
     auto querySummary = queryResult.getQuerySummary();
     constexpr uint32_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
     const uint32_t minTruncatedWidth = 20;

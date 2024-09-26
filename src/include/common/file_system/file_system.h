@@ -68,12 +68,12 @@ public:
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<FileSystem*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const FileSystem*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
     virtual void cleanUP(main::ClientContext* context) = 0;

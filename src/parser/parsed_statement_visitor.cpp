@@ -71,12 +71,12 @@ void StatementVisitor::visit(const Statement& statement) {
 }
 
 void StatementVisitor::visitExplain(const Statement& statement) {
-    auto& explainStatement = ku_dynamic_cast<const Statement&, const ExplainStatement&>(statement);
+    auto& explainStatement = ku_dynamic_cast<const ExplainStatement&>(statement);
     visit(*explainStatement.getStatementToExplain());
 }
 
 void StatementVisitor::visitQuery(const Statement& statement) {
-    auto& regularQuery = ku_dynamic_cast<const Statement&, const RegularQuery&>(statement);
+    auto& regularQuery = ku_dynamic_cast<const RegularQuery&>(statement);
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); ++i) {
         visitSingleQuery(regularQuery.getSingleQuery(i));
     }
