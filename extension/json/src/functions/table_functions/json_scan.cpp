@@ -564,9 +564,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
         yyjson_val *key = nullptr, *ele = nullptr;
         for (auto i = 0u; i < next; i++) {
             auto* doc = localState.docs[i];
-            if (nullptr == doc) {
-                continue;
-            }
+            KU_ASSERT(nullptr != doc);
             auto objIter = yyjson_obj_iter_with(doc->root);
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
@@ -653,9 +651,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     yyjson_doc** docs = localState->docs;
     yyjson_val *key = nullptr, *ele = nullptr;
     for (auto i = 0u; i < count; i++) {
-        if (nullptr == docs[i]) {
-            continue;
-        }
+        KU_ASSERT(nullptr != docs[i]);
         auto objIter = yyjson_obj_iter_with(docs[i]->root);
         while ((key = yyjson_obj_iter_next(&objIter))) {
             ele = yyjson_obj_iter_get_val(key);
