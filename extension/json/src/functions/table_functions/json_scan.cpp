@@ -171,7 +171,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
     bool readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone);
     void skipOverArrayStart();
     void parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
-    void parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining,
+    void parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining, idx_t numLinesInJson,
         const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool reconstructFirstObject();
 
@@ -181,8 +181,9 @@ struct JSONScanLocalState : public TableFuncLocalState {
         uint64_t recordNumber, const std::optional<std::vector<ValueVector*>>& warningDataVectors);
     uint64_t getFileOffset() const;
 
-    processor::WarningSourceData getWarningData(uint64_t startByteOffset,
-        uint64_t endByteOffset) const;
+    idx_t getNewlineCount(uint64_t startByteOffset, uint64_t endByteOffset) const;
+    processor::WarningSourceData getWarningData(uint64_t startByteOffset, uint64_t endByteOffset,
+        uint64_t extraLineCount = 0) const;
     void handleParseError(yyjson_read_err& err, bool completedParsingObject = true,
         const std::string& extra = "") const;
 };
@@ -314,14 +315,14 @@ static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end, idx_t& lineCou
     return ptr;
 }
 
-static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t* lineCountInBuffer = nullptr) {
-    idx_t currentLineCount = 0;
+static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t& lineCountInJson) {
+    lineCountInJson = 0;
     auto end = ptr + size;
     switch (*ptr) {
     case '{':
     case '[':
     case '"':
-        ptr = nextJsonDefault(ptr, end, currentLineCount);
+        ptr = nextJsonDefault(ptr, end, lineCountInJson);
         break;
     default:
         // Special case: JSON array containing JSON without clear "parents", i.e., not obj/arr/str
@@ -332,7 +333,7 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t* lineCountInBuffer =
                 ptr--;
                 break;
             case '\n':
-                ++currentLineCount;
+                ++lineCountInJson;
                 // fall through to continue
             default:
                 continue;
@@ -344,27 +345,37 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t* lineCountInBuffer =
     if (ptr == end) {
         return nullptr;
     }
-    if (lineCountInBuffer) {
-        *lineCountInBuffer += currentLineCount;
-    }
     return ptr;
 }
 
+idx_t JSONScanLocalState::getNewlineCount(uint64_t startByteOffset, uint64_t endByteOffset) const {
+    std::string jsonString;
+    jsonString.resize(endByteOffset - startByteOffset);
+    bool finishedFile = false;
+    currentReader->getFileHandle()->readAtPosition(reinterpret_cast<uint8_t*>(jsonString.data()),
+        jsonString.size(), startByteOffset, finishedFile);
+    return std::count(jsonString.begin(), jsonString.end(), '\n');
+}
+
 processor::WarningSourceData JSONScanLocalState::getWarningData(uint64_t startByteOffset,
-    uint64_t endByteOffset) const {
+    uint64_t endByteOffset, uint64_t extraLineCount) const {
     KU_ASSERT(currentBufferHandle);
     return processor::WarningSourceData::constructFrom(currentBufferHandle->bufferIdx,
-        lineCountInBuffer, startByteOffset, endByteOffset);
+        lineCountInBuffer + extraLineCount, startByteOffset, endByteOffset);
 }
 
 void JSONScanLocalState::handleParseError(yyjson_read_err& err, bool completedParsingObject,
     const std::string& extra) const {
+    const uint64_t startByteOffset = getFileOffset();
+    const uint64_t endByteOffset = startByteOffset + err.pos + 1;
     currentReader->throwParseError(err, completedParsingObject,
-        getWarningData(getFileOffset(), getFileOffset() + err.pos + 1), errorHandler.get(), extra);
+        getWarningData(startByteOffset, endByteOffset,
+            getNewlineCount(startByteOffset, endByteOffset)),
+        errorHandler.get(), extra);
 }
 
 void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining,
-    const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
+    idx_t numLinesInJson, const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     yyjson_doc* doc = nullptr;
     yyjson_read_err err;
     doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG, &err);
@@ -372,8 +383,16 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
         handleParseError(err, false);
     }
 
-    // We parse with YYJSON_STOP_WHEN_DONE, so we need to check this by hand
     idx_t numBytesRead = yyjson_doc_get_read_size(doc);
+    if (warningDataVectors && !warningDataVectors->empty()) {
+        const auto recordStartOffset = getFileOffset();
+        const auto recordEndOffset = getFileOffset() + numBytesRead;
+        addValuesToWarningDataVectors(
+            getWarningData(recordStartOffset, recordEndOffset, numLinesInJson), numValuesToOutput,
+            warningDataVectors);
+    }
+
+    // We parse with YYJSON_STOP_WHEN_DONE, so we need to check this by hand
     if (numBytesRead > size) {
         // Can't go past the boundary, even with ignore_errors
         err.code = YYJSON_READ_ERROR_UNEXPECTED_END;
@@ -390,12 +409,6 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
             err.pos = numBytesRead;
             handleParseError(err, "Try auto-detecting the JSON format");
         }
-    }
-
-    if (warningDataVectors && !warningDataVectors->empty()) {
-        addValuesToWarningDataVectors(
-            getWarningData(getFileOffset(), getFileOffset() + numBytesRead), numValuesToOutput,
-            warningDataVectors);
     }
 
     if (!doc) {
@@ -433,9 +446,10 @@ void JSONScanLocalState::parseNextChunk(
             break;
         }
         KU_ASSERT(format != JsonScanFormat::AUTO_DETECT);
+        idx_t lineCountInJson = 0;
         auto jsonEnd = format == JsonScanFormat::NEWLINE_DELIMITED ?
                            nextNewLine(jsonStart, remaining) :
-                           nextJson(jsonStart, remaining, &lineCountInBuffer);
+                           nextJson(jsonStart, remaining, lineCountInJson);
         if (jsonEnd == nullptr) {
             if (!isLast) {
                 if (format != JsonScanFormat::NEWLINE_DELIMITED) {
@@ -448,8 +462,9 @@ void JSONScanLocalState::parseNextChunk(
             jsonEnd = jsonStart + remaining;
         }
         auto jsonSize = jsonEnd - jsonStart;
-        parseJson(jsonStart, jsonSize, remaining, warningDataVectors);
+        parseJson(jsonStart, jsonSize, remaining, lineCountInJson, warningDataVectors);
         bufferOffset += jsonSize;
+        lineCountInBuffer += lineCountInJson;
 
         if (format == JsonScanFormat::ARRAY) {
             skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
@@ -507,6 +522,7 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
     if (error.code == YYJSON_READ_SUCCESS) {
         KU_ASSERT(yyjson_is_arr(doc->root));
         buffer_offset += yyjson_doc_get_read_size(doc);
+        yyjson_doc_free(doc);
         skipWhitespace(buffer_ptr, buffer_offset, buffer_size);
         remaining = buffer_size - buffer_offset;
         if (remaining != 0) {
@@ -614,6 +630,7 @@ bool JSONScanLocalState::reconstructFirstObject() {
     }
 
     auto lineSize = firstPartSize;
+    static constexpr idx_t linesInJson = 1;
     if (bufferSize != 0) {
         auto lineEnd = nextNewLine(bufferPtr, bufferSize);
         if (lineEnd == nullptr) {
@@ -621,7 +638,6 @@ bool JSONScanLocalState::reconstructFirstObject() {
             throw common::RuntimeException{
                 common::stringFormat("Json object exceeds the maximum object size.")};
         } else {
-            ++lineCountInBuffer;
             lineEnd++;
         }
         idx_t secondPartSize = lineEnd - bufferPtr;
@@ -634,7 +650,8 @@ bool JSONScanLocalState::reconstructFirstObject() {
         bufferOffset += secondPartSize;
     }
 
-    parseJson(reconstructBufferPtr, lineSize, lineSize);
+    parseJson(reconstructBufferPtr, lineSize, lineSize, linesInJson);
+    lineCountInBuffer += linesInJson;
     return true;
 }
 
