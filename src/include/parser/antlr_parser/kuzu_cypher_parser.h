@@ -14,8 +14,6 @@ class KuzuCypherParser : public CypherParser {
 public:
     explicit KuzuCypherParser(antlr4::TokenStream* input) : CypherParser(input) {}
 
-    void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) override;
-
     void notifyNodePatternWithoutParentheses(std::string nodeName,
         antlr4::Token* startToken) override;
 

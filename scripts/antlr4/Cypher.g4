@@ -6,7 +6,6 @@ grammar Cypher;
 
 // provide ad-hoc error messages for common syntax errors
 @parser::declarations {
-    virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {};
     virtual void notifyNodePatternWithoutParentheses(std::string nodeName, antlr4::Token* startToken) {};
     virtual void notifyInvalidNotEqualOperator(antlr4::Token* startToken) {};
     virtual void notifyEmptyToken(antlr4::Token* startToken) {};
@@ -460,9 +459,8 @@ oC_SingleQuery
         ;
 
 oC_SinglePartQuery
-    : ( oC_ReadingClause SP? )* oC_Return
+    : ( oC_ReadingClause SP? )* oC_Return?
         | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
-        | ( oC_ReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
         ;
 
 oC_MultiPartQuery
