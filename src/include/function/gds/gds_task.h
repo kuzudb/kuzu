@@ -9,14 +9,14 @@ namespace function {
 class FrontierTaskSharedState {
 public:
     FrontierTaskSharedState(FrontierPair& frontierPair, graph::Graph* graph, EdgeCompute& ec,
-        table_id_t relTableIDToScan)
+        common::table_id_t relTableIDToScan)
         : frontierPair{frontierPair}, graph{graph}, ec{ec}, relTableIDToScan{relTableIDToScan} {};
 
 public:
     FrontierPair& frontierPair;
     graph::Graph* graph;
     EdgeCompute& ec;
-    table_id_t relTableIDToScan;
+    common::table_id_t relTableIDToScan;
 };
 
 class FrontierTask : public common::Task {

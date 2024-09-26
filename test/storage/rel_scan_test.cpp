@@ -42,15 +42,22 @@ TEST_F(RelScanTest, ScanFwd) {
     auto tableID = catalog->getTableID(context->getTx(), "person");
     auto relTableID = catalog->getTableID(context->getTx(), "knows");
     auto scanState = graph->prepareScan(relTableID);
+    auto scanResult = graph::GraphScanResult();
     std::vector<nodeID_t> result{nodeID_t{1, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}};
-    EXPECT_EQ(graph->scanFwd(nodeID_t{0, tableID}, *scanState), result);
-    EXPECT_EQ(graph->scanBwd(nodeID_t{0, tableID}, *scanState), result);
+    graph->scanFwd(nodeID_t{0, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
+    graph->scanBwd(nodeID_t{0, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
     result = {nodeID_t{0, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}};
-    EXPECT_EQ(graph->scanFwd(nodeID_t{1, tableID}, *scanState), result);
-    EXPECT_EQ(graph->scanBwd(nodeID_t{1, tableID}, *scanState), result);
+    graph->scanFwd(nodeID_t{1, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
+    graph->scanBwd(nodeID_t{1, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
     result = {nodeID_t{0, tableID}, nodeID_t{1, tableID}, nodeID_t{3, tableID}};
-    ASSERT_EQ(graph->scanFwd(nodeID_t{2, tableID}, *scanState), result);
-    ASSERT_EQ(graph->scanBwd(nodeID_t{2, tableID}, *scanState), result);
+    graph->scanFwd(nodeID_t{2, tableID}, *scanState, scanResult);
+    ASSERT_EQ(scanResult.nbrNodeIDs, result);
+    graph->scanBwd(nodeID_t{2, tableID}, *scanState, scanResult);
+    ASSERT_EQ(scanResult.nbrNodeIDs, result);
 }
 
 // Test correctness of a random access scan
