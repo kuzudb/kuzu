@@ -21,9 +21,7 @@ class ParentList {
     friend class ParentPtrsAtomics;
 
 public:
-    ParentList(uint16_t iter_, nodeID_t node) {
-        store(iter_, node);
-    }
+    ParentList(uint16_t iter_, nodeID_t node) { store(iter_, node); }
 
     void store(uint16_t iter_, nodeID_t node) {
         iter.store(iter_, std::memory_order_relaxed);
@@ -31,9 +29,7 @@ public:
         nodeTableID.store(node.tableID, std::memory_order_relaxed);
     }
 
-    void setNextPtr(ParentList* ptr) {
-        next.store(ptr, std::memory_order_relaxed);
-    }
+    void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
 
     ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
 
@@ -72,7 +68,6 @@ public:
                 data[i].store(nullptr, std::memory_order_relaxed);
             }
         }
-
     }
 
     // This function is thread safe and should be called by a worker thread Ti to grab a block
@@ -80,7 +75,8 @@ public:
     ObjectBlock<ParentList>* addNewBlock() {
         std::unique_lock lck{mtx};
         auto memBlock = mm->allocateBuffer(false /* don't init to 0 */, ALL_PATHS_BLOCK_SIZE);
-        blocks.push_back(std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), ALL_PATHS_BLOCK_SIZE));
+        blocks.push_back(
+            std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), ALL_PATHS_BLOCK_SIZE));
         return blocks[blocks.size() - 1].get();
     }
 
@@ -164,8 +160,7 @@ public:
     }
 
     void fixBoundNodeTable(common::table_id_t tableID) {
-        curBoundMultiplicities.store(multiplicityArray.getData(tableID),
-            std::memory_order_relaxed);
+        curBoundMultiplicities.store(multiplicityArray.getData(tableID), std::memory_order_relaxed);
     }
 
     void fixTargetNodeTable(common::table_id_t tableID) {
@@ -201,7 +196,8 @@ public:
     explicit AllSPMultiplicitiesOutputs(
         std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes, nodeID_t sourceNodeID,
         MemoryManager* mm = nullptr)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm), multiplicities{nodeTableIDAndNumNodes, mm} {}
+        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
+          multiplicities{nodeTableIDAndNumNodes, mm} {}
 
     void initRJFromSource(nodeID_t source) override {
         multiplicities.incrementMultiplicity(source, 1);
@@ -228,7 +224,8 @@ struct VarLenOrAllSPPathsOutputs : public SPOutputs {
     VarLenOrAllSPPathsOutputs(
         std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
         common::nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm), bfsGraph{nodeTableIDAndNumNodes, mm} {}
+        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
+          bfsGraph{nodeTableIDAndNumNodes, mm} {}
 
     void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
@@ -473,8 +470,7 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
     BFSGraph* bfsGraph;
     ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
 
-    AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair,
-        BFSGraph* bfsGraph)
+    AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : frontiersPair{frontiersPair}, bfsGraph{bfsGraph} {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
@@ -486,8 +482,8 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
         // the first time, i.e., when its value in the pathLengths frontier is
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
         // so it's value is curIter + 1.
-        auto shouldUpdate = nbrLen == PathLengths::UNVISITED ||
-                            nbrLen == frontiersPair->pathLengths->getCurIter();
+        auto shouldUpdate =
+            nbrLen == PathLengths::UNVISITED || nbrLen == frontiersPair->pathLengths->getCurIter();
         if (shouldUpdate) {
             if (!parentPtrsBlock->hasSpace()) {
                 parentPtrsBlock = bfsGraph->addNewBlock();
@@ -529,8 +525,8 @@ private:
         auto outputWriter = std::make_unique<AllSPOutputWriterDsts>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
-        auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(),
-            &output->multiplicities);
+        auto edgeCompute =
+            std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(), &output->multiplicities);
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
@@ -560,8 +556,8 @@ private:
         auto outputWriter = std::make_unique<AllSPOutputWriterLengths>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
-        auto edgeCompute = std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(),
-            &output->multiplicities);
+        auto edgeCompute =
+            std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(), &output->multiplicities);
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
@@ -605,8 +601,7 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
     BFSGraph* bfsGraph;
     ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
 
-    VarLenJoinsEdgeCompute(DoublePathLengthsFrontierPair* frontierPair,
-        BFSGraph* bfsGraph)
+    VarLenJoinsEdgeCompute(DoublePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
         : frontierPair{frontierPair}, bfsGraph{bfsGraph} {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
@@ -616,8 +611,8 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         if (!parentPtrsBlock->hasSpace()) {
             parentPtrsBlock = bfsGraph->addNewBlock();
         }
-        bfsGraph->addParent(frontierPair->curIter.load(std::memory_order_relaxed),
-            parentPtrsBlock, nbrID /* child */, curNodeID /* parent */);
+        bfsGraph->addParent(frontierPair->curIter.load(std::memory_order_relaxed), parentPtrsBlock,
+            nbrID /* child */, curNodeID /* parent */);
         return true;
     }
 

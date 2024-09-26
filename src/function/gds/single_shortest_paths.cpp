@@ -1,12 +1,11 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
+#include "function/gds/gds_object_manager.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "function/gds/gds_object_manager.h"
-
 
 using namespace kuzu::processor;
 using namespace kuzu::common;

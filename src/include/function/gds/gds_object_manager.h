@@ -1,7 +1,8 @@
 #pragma once
 
-#include "storage/buffer_manager/memory_manager.h"
 #include <atomic>
+
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace function {
@@ -29,9 +30,7 @@ public:
     }
 
 private:
-    T* getData() const {
-        return reinterpret_cast<T*>(block->buffer.data());
-    }
+    T* getData() const { return reinterpret_cast<T*>(block->buffer.data()); }
 
 private:
     std::unique_ptr<storage::MemoryBuffer> block;
@@ -43,14 +42,13 @@ private:
 template<typename T>
 class ObjectArraysMap {
 public:
-    void allocate(common::table_id_t tableID, common::offset_t numNodes, storage::MemoryManager* mm) {
-        auto buffer= mm->allocateBuffer(false, numNodes * sizeof(T));
+    void allocate(common::table_id_t tableID, common::offset_t numNodes,
+        storage::MemoryManager* mm) {
+        auto buffer = mm->allocateBuffer(false, numNodes * sizeof(T));
         bufferPerTable.insert({tableID, std::move(buffer)});
     }
 
-    bool contains(common::table_id_t tableID) const {
-        return bufferPerTable.contains(tableID);
-    }
+    bool contains(common::table_id_t tableID) const { return bufferPerTable.contains(tableID); }
 
     T* getData(common::table_id_t tableID) const {
         KU_ASSERT(bufferPerTable.contains(tableID));
@@ -61,5 +59,5 @@ private:
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> bufferPerTable;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu
