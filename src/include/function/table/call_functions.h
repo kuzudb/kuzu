@@ -31,7 +31,7 @@ struct CallFuncSharedState : TableFuncSharedState {
     KUZU_API CallFuncMorsel getMorsel();
 };
 
-struct CallTableFuncBindData : TableFuncBindData {
+struct KUZU_API CallTableFuncBindData : TableFuncBindData {
     common::offset_t maxOffset;
 
     CallTableFuncBindData(std::vector<common::LogicalType> columnTypes,

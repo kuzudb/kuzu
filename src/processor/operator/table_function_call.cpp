@@ -51,7 +51,7 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
-        sharedState->funcState.get()};
+        sharedState->funcState.get(), context->clientContext};
 }
 
 void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {
@@ -59,7 +59,7 @@ void TableFunctionCall::initGlobalStateInternal(ExecutionContext*) {
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
 }
 
-bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
+bool TableFunctionCall::getNextTuplesInternal(ExecutionContext* context) {
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
     for (auto i = 0u; i < localState.funcOutput.dataChunk.getNumValueVectors(); i++) {

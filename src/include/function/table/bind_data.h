@@ -12,7 +12,7 @@ class FileSystem;
 
 namespace function {
 
-struct TableFuncBindData {
+struct KUZU_API TableFuncBindData {
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
 

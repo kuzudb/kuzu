@@ -11,8 +11,8 @@ public:
               BoundStatementResult::createSingleStringColumnResult()},
           filePath{std::move(filePath)}, query{query} {}
 
-    inline std::string getFilePath() const { return filePath; }
-    inline std::string getQuery() const { return query; }
+    std::string getFilePath() const { return filePath; }
+    std::string getQuery() const { return query; }
 
 private:
     std::string filePath;

@@ -41,11 +41,12 @@ struct TableFuncInput {
     TableFuncBindData* bindData;
     TableFuncLocalState* localState;
     TableFuncSharedState* sharedState;
+    main::ClientContext* context;
 
     TableFuncInput() = default;
     TableFuncInput(TableFuncBindData* bindData, TableFuncLocalState* localState,
-        TableFuncSharedState* sharedState)
-        : bindData{bindData}, localState{localState}, sharedState{sharedState} {}
+        TableFuncSharedState* sharedState, main::ClientContext* context)
+        : bindData{bindData}, localState{localState}, sharedState{sharedState}, context{context} {}
     DELETE_COPY_DEFAULT_MOVE(TableFuncInput);
 };
 
