@@ -142,7 +142,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
     uint8_t* bufferPtr = nullptr;
     idx_t bufferOffset = 0;
     uint64_t bufferSize = 0;
-    uint64_t readFileByteOffset = 0;
+    uint64_t bufferStartByteOffsetInFile = 0;
     uint64_t numValuesToOutput = 0;
     storage::MemoryManager& mm;
     idx_t lineCountInBuffer;
@@ -195,7 +195,7 @@ void JSONScanLocalState::replaceDoc(idx_t idx, yyjson_doc* newDoc) {
 }
 
 uint64_t JSONScanLocalState::getFileOffset() const {
-    return readFileByteOffset + bufferOffset;
+    return bufferStartByteOffsetInFile + bufferOffset;
 }
 
 bool JSONScanLocalState::readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone) {
@@ -225,7 +225,7 @@ bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone)
     }
     bufferSize = prevBufferRemainder + readSize;
     fileHandle->readAtPosition(bufferPtr + prevBufferRemainder, readSize, readPosition, fileDone);
-    readFileByteOffset = readPosition;
+    bufferStartByteOffsetInFile = readPosition - prevBufferRemainder;
     return true;
 }
 
@@ -271,7 +271,7 @@ void JSONScanLocalState::skipOverArrayStart() {
     }
 }
 
-static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end, idx_t* lineCountInBuffer) {
+static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end, idx_t& lineCountInBuffer) {
     uint64_t parents = 0;
     while (ptr != end) {
         switch (*ptr++) {
@@ -292,17 +292,15 @@ static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end, idx_t* lineCou
                     if (ptr != end) {
                         ptr++; // Skip the escaped char
                     }
-                } else if (strChar == '\n' && lineCountInBuffer) {
-                    ++(*lineCountInBuffer);
+                } else if (strChar == '\n') {
+                    ++lineCountInBuffer;
                 }
             }
             break;
             // on windows each '\r' should come with a '\n' so counting '\n' should be enough to get
             // the line number
         case '\n':
-            if (lineCountInBuffer) {
-                ++(*lineCountInBuffer);
-            }
+            ++lineCountInBuffer;
             // fall through to continue
         default:
             continue;
@@ -317,12 +315,13 @@ static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end, idx_t* lineCou
 }
 
 static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t* lineCountInBuffer = nullptr) {
+    idx_t currentLineCount = 0;
     auto end = ptr + size;
     switch (*ptr) {
     case '{':
     case '[':
     case '"':
-        ptr = nextJsonDefault(ptr, end, lineCountInBuffer);
+        ptr = nextJsonDefault(ptr, end, currentLineCount);
         break;
     default:
         // Special case: JSON array containing JSON without clear "parents", i.e., not obj/arr/str
@@ -333,7 +332,7 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t* lineCountInBuffer =
                 ptr--;
                 break;
             case '\n':
-                ++(*lineCountInBuffer);
+                ++currentLineCount;
                 // fall through to continue
             default:
                 continue;
@@ -341,7 +340,14 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t* lineCountInBuffer =
             break;
         }
     }
-    return ptr == end ? nullptr : ptr;
+
+    if (ptr == end) {
+        return nullptr;
+    }
+    if (lineCountInBuffer) {
+        *lineCountInBuffer += currentLineCount;
+    }
+    return ptr;
 }
 
 processor::WarningSourceData JSONScanLocalState::getWarningData(uint64_t startByteOffset,
@@ -469,9 +475,9 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
         yyjson_read_err error;
         auto doc = yyjson_read_opts(reinterpret_cast<char*>(buffer_ptr), line_size,
             JSONCommon::READ_FLAG, nullptr /* alc */, &error);
-        const bool isArr = yyjson_is_arr(doc->root);
-        yyjson_doc_free(doc);
         if (error.code == YYJSON_READ_SUCCESS) {
+            const bool isArr = yyjson_is_arr(doc->root);
+            yyjson_doc_free(doc);
             if (isArr && line_size == buffer_size) {
                 return JsonScanFormat::ARRAY;
             } else {
@@ -615,6 +621,7 @@ bool JSONScanLocalState::reconstructFirstObject() {
             throw common::RuntimeException{
                 common::stringFormat("Json object exceeds the maximum object size.")};
         } else {
+            ++lineCountInBuffer;
             lineEnd++;
         }
         idx_t secondPartSize = lineEnd - bufferPtr;
