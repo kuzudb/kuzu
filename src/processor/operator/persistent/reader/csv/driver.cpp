@@ -114,7 +114,10 @@ SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
     : SerialParsingDriver(getDummyDataChunk(), reader) {
     auto& csvOption = reader->getCSVOption();
-    column_counts.resize(csvOption.sampleSize);
+    if (csvOption.sampleSize == 0){
+        //CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE
+    }
+    column_counts = std::vector<idx_t>(csvOption.sampleSize, 0);
 }
 
 bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
@@ -125,15 +128,26 @@ bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t column
 
 bool SniffCSVDialectDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
     std::optional<WarningDataWithColumnInfo> warningData) {
-    column_counts[result_position] = current_column_count + 1;
-    current_column_count = 0;
-    result_position++;
+    auto& csvOption = reader->getCSVOption();
+    if (result_position < csvOption.sampleSize) {
+        column_counts[result_position] = current_column_count + 1;
+        current_column_count = 0;
+        result_position++;
+    }
 	return true;
 }
 
 bool SniffCSVDialectDriver::done(uint64_t rowNum) const {
     auto& csvOption = reader->getCSVOption();
     return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+}
+
+void SniffCSVDialectDriver::reset() {
+    column_counts = std::vector<idx_t>(column_counts.size(), 0);
+    current_column_count = 0;
+    error = false;
+    result_position = 0;
+    ever_quoted = false;
 }
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
@@ -163,7 +177,8 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
     }
     auto& csvOption = reader->getCSVOption();
     if (columns.size() < columnIdx + 1 && csvOption.hasHeader && rowNum > 0) {
-        reader->handleCopyException("expected {} values per row, but got more.");
+        reader->handleCopyException(
+            stringFormat("expected {} values per row, but got more.", reader->getNumColumns()));
     }
     while (columns.size() < columnIdx + 1) {
         columns.emplace_back(stringFormat("column{}", columns.size()), LogicalType::ANY());

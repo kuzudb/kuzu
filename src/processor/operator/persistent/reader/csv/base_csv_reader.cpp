@@ -361,6 +361,10 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         position++;
         do {
             for (; position < bufferSize; position++) {
+                if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                    auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                    sniffDriver.ever_quoted = true;
+                }
                 if (buffer[position] == option.quoteChar) {
                     // quote: move to unquoted state
                     goto unquote;
@@ -369,7 +373,13 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
                     escapePositions.push_back(position - start);
                     goto handle_escape;
                 } else if (isNewLine(buffer[position])) {
-                    [[unlikely]] if (!handleQuotedNewline()) { goto ignore_error; }
+                    if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                        auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                        sniffDriver.error = true;
+                        goto ignore_error;
+                    } else {
+                        [[unlikely]] if (!handleQuotedNewline()) { goto ignore_error; }
+                    }
                 }
             }
         } while (readBuffer(&start));
@@ -402,9 +412,14 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         } else if (isNewLine(buffer[position])) {
             goto add_row;
         } else {
-            [[unlikely]] handleCopyException("quote should be followed by "
+            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.error = true;
+            } else {
+                [[unlikely]] handleCopyException("quote should be followed by "
                                              "end of file, end of value, end of "
                                              "row or another quote.");
+            }
             goto ignore_error;
         }
     handle_escape:
@@ -413,12 +428,22 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         position++;
         if (!maybeReadBuffer(&start)) {
             [[unlikely]] lineContext.setEndOfLine(getFileOffset());
-            handleCopyException("escape at end of file.");
+            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.error = true;
+            } else {
+                handleCopyException("escape at end of file.");
+            }
             goto ignore_error;
         }
         if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
             ++position; // consume the invalid char
-            [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.error = true;
+            } else {
+                [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+            }
             goto ignore_error;
         }
         // escape was followed by quote or escape, go back to quoted state

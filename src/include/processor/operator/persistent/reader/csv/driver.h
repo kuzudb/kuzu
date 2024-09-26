@@ -87,12 +87,14 @@ public:
     bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;
     bool addRow(uint64_t rowNum, common::column_id_t columnCount,
         std::optional<WarningDataWithColumnInfo> warningData) override;
+    void reset();
 
 public:
-    std::vector<uint64_t> column_counts; 
+    std::vector<idx_t> column_counts; 
     idx_t current_column_count = 0;
     bool error = false;
     idx_t result_position = 0;
+    bool ever_quoted = false;
 };
 
 class SniffCSVNameAndTypeDriver : public SerialParsingDriver {

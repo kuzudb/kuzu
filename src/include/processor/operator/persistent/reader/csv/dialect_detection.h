@@ -11,6 +11,7 @@ struct DialectOption {
     char delimiter = ',';
     char quoteChar = '"';
     char escapeChar = '"';
+    bool ever_quoted = false;
 };
 
 struct DialectCandidates {

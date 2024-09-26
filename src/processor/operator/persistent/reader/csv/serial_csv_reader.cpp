@@ -242,51 +242,93 @@ void SerialCSVReader::detectDialect() {
 
     // Generate dialect options based on the non-user-specified options
     auto dialectSearchSpace = generateDialectOptions(candidates, option);
-    
-    // Start with the user-provided values as the base
-    DialectOption bestDialect;  
-    bestDialect.delimiter = option.delimiter;
-    bestDialect.escapeChar = option.escapeChar;
-    bestDialect.quoteChar = option.quoteChar;
 
-    idx_t rows_read = 0;
     idx_t best_consistent_rows = 0;
     idx_t max_columns_found = 0;
-    for (const auto& dialectOption : dialectSearchSpace) {
+    std::vector<DialectOption> validDialects;
+    std::vector<DialectOption> finalDialects;
+    for (auto& dialectOption : dialectSearchSpace) {
         // Load current dialect option
         option.delimiter = dialectOption.delimiter;
         option.quoteChar = dialectOption.quoteChar;
         option.escapeChar = dialectOption.escapeChar;
         // Try parsing it with current dialect
+        // reset Driver
+        driver.reset();
         parseCSV(driver);
+        // Reset the file position and buffer to start reading from the beginning after detection
+        resetReaderState();
+        //If never unquoting quoted values, discard this dialect.
+        if (driver.error) {
+            continue;
+        }
 
         idx_t consistent_rows = 0;
         idx_t num_cols = driver.result_position == 0 ? 1 : driver.column_counts[0];
-        // update rows_read
-        if (driver.result_position > rows_read) {
-		    rows_read = driver.result_position;
-	    }
+        dialectOption.ever_quoted = driver.ever_quoted;
 
-        idx_t header_idx = 0;
         for (idx_t row = 0; row < driver.result_position; row++) {
+            if (num_cols < driver.column_counts[row]) {
+                 num_cols = driver.column_counts[row];
+                 consistent_rows = 1;
+            }
+            // TODO: If a Dialect have unfinished QUOTE, Discard it
+            //       If cosistent_row > best_consistent_row, choose this dialect
+            //       If consistent_row == best_consistent_row && num_cols > best_num_cols, choose this dialect
+            //       If one dialect is everquoted, the other one is not, use the quoted one.
             if (driver.column_counts[row] == num_cols) {
                 consistent_rows++;
             } 
         }
 
-        if (consistent_rows > best_consistent_rows) {
+        bool more_values = consistent_rows > best_consistent_rows && num_cols >= max_columns_found;
+        bool single_column_before = max_columns_found < 2 && num_cols > max_columns_found;
+	    bool more_than_one_row = consistent_rows > 1;
+	    bool more_than_one_column = num_cols > 1;
+
+        if (single_column_before || more_values) {
+            if (max_columns_found == num_cols) {
+			    continue;
+		    }
             best_consistent_rows = consistent_rows;
-            bestDialect = dialectOption;
+            max_columns_found = num_cols;
+            validDialects.clear();
+            validDialects.emplace_back(std::move(dialectOption));
+        } 
+        //else if (consistent_rows == best_consistent_rows && num_cols > max_columns_found) {
+
+        // }
+
+        if (more_than_one_row && more_than_one_column && num_cols == max_columns_found) {
+            bool same_quote = false;
+            for (auto &validDialect : validDialects) {
+                if (validDialect.quoteChar == dialectOption.quoteChar) {
+                    same_quote = true;
+                }
+            }
+
+            if (!same_quote) {
+                validDialects.emplace_back(std::move(dialectOption));
+            }
         }
     }
 
+    // If we have multiple validDialect with quotes set, we will give the preference to ones
+	// that have actually quoted values, otherwise we will choose quotes = '\"'
+    if (!validDialects.empty()) {
+        for (auto &validDialect : validDialects) {
+            if (validDialect.ever_quoted) {
+                finalDialects.clear();
+                finalDialects.emplace_back(std::move(validDialect));
+                break;
+            }
+            finalDialects.emplace_back(std::move(validDialect));
+        }
+    }
     // Apply the detected dialect to the CSV options
-    option.delimiter = bestDialect.delimiter;
-    option.quoteChar = bestDialect.quoteChar;
-    option.escapeChar = bestDialect.escapeChar;
-
-    // Reset the file position and buffer to start reading from the beginning after detection
-    resetReaderState();
+    option.delimiter = finalDialects[0].delimiter;
+    option.quoteChar = finalDialects[0].quoteChar;
+    option.escapeChar = finalDialects[0].escapeChar;
 }
 
 } // namespace processor

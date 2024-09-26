@@ -14,7 +14,7 @@ struct CSVOption {
     char quoteChar;
     bool hasHeader;
     uint64_t skipNum;
-    uint64_t sampleSize;
+    uint64_t sampleSize = 256;
     bool allowUnbracedList;
     bool ignoreErrors;
 
@@ -44,7 +44,19 @@ struct CSVOption {
             delimiter, quoteChar, header);
     }
 
-    CSVOption(const CSVOption& other) = default;
+        // Explicit copy constructor
+    CSVOption(const CSVOption& other) 
+        : escapeChar{other.escapeChar},
+          delimiter{other.delimiter},
+          quoteChar{other.quoteChar},
+          hasHeader{other.hasHeader},
+          skipNum{other.skipNum},
+          sampleSize{other.sampleSize == 0 ? 256 : other.sampleSize}, // Set to 256 if sampleSize is 0
+          allowUnbracedList{other.allowUnbracedList},
+          ignoreErrors{other.ignoreErrors},
+          setEscape{other.setEscape},
+          setDelim{other.setDelim},
+          setQuote{other.setQuote} {}
 };
 
 struct CSVReaderConfig {
