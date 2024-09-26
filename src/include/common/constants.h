@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <string_view>
 
+#include "common/array_utils.h"
 #include "common/types/types.h"
-#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

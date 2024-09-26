@@ -25,6 +25,18 @@ struct overload : Funcs... {
 
 class TypeUtils {
 public:
+    template<typename Func, typename... Types, size_t... indices>
+    static void paramPackForEachHelper(const Func& func, std::index_sequence<indices...>,
+        Types&&... values) {
+        ((func(indices, values)), ...);
+    }
+
+    template<typename Func, typename... Types>
+    static void paramPackForEach(const Func& func, Types&&... values) {
+        paramPackForEachHelper(func, std::index_sequence_for<Types...>(),
+            std::forward<Types>(values)...);
+    }
+
     static std::string entryToString(const LogicalType& dataType, const uint8_t* value,
         ValueVector* vector);
 

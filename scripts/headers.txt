@@ -1,6 +1,7 @@
 # Please keep this list sorted. All headers should be relative to the root of the repository
 src/include/binder/expression/expression.h
 src/include/common/api.h
+src/include/common/array_utils.h
 src/include/common/arrow/arrow.h
 src/include/common/assert.h
 src/include/common/case_insensitive_map.h
@@ -9,8 +10,6 @@ src/include/common/constants.h
 src/include/common/copier_config/csv_reader_config.h
 src/include/common/copier_config/reader_config.h
 src/include/common/copy_constructors.h
-src/include/common/numeric_utils.h
-src/include/common/utils.h
 src/include/common/data_chunk/data_chunk.h
 src/include/common/data_chunk/data_chunk_state.h
 src/include/common/data_chunk/sel_vector.h
