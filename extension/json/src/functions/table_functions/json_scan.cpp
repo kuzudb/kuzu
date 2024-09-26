@@ -88,7 +88,7 @@ struct JSONScanSharedState : public BaseScanSharedState {
 };
 
 struct JSONScanLocalState : public TableFuncLocalState {
-    yyjson_val* values[DEFAULT_VECTOR_CAPACITY];
+    yyjson_doc* docs[DEFAULT_VECTOR_CAPACITY];
     BufferedJsonReader* currentReader = nullptr;
     JsonScanBufferHandle* currentBufferHandle = nullptr;
     bool isLast = false;
@@ -101,7 +101,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
     storage::MemoryManager& mm;
 
     JSONScanLocalState(storage::MemoryManager& mm, BufferedJsonReader* reader)
-        : values{}, currentReader{reader},
+        : docs{}, currentReader{reader},
           reconstructBuffer{
               mm.allocateBuffer(false /* initializeToZero */, JsonConstant::SCAN_BUFFER_CAPACITY)},
           mm{mm} {}
@@ -273,10 +273,10 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
         }
     }
     if (!doc) {
-        values[numValuesToOutput] = nullptr;
+        docs[numValuesToOutput] = nullptr;
         return;
     }
-    values[numValuesToOutput] = doc->root;
+    docs[numValuesToOutput] = doc;
 }
 
 static uint8_t* nextNewLine(uint8_t* ptr, idx_t size) {
@@ -563,11 +563,12 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
         auto next = std::min<uint64_t>(numTuplesRead, numRowsToDetect);
         yyjson_val *key = nullptr, *ele = nullptr;
         for (auto i = 0u; i < next; i++) {
-            const auto& val = localState.values[i];
-            auto objIter = yyjson_obj_iter_with(val);
+            auto* doc = localState.docs[i];
+            KU_ASSERT(nullptr != doc);
+            auto objIter = yyjson_obj_iter_with(doc->root);
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
-                KU_ASSERT(yyjson_get_type(val) == YYJSON_TYPE_OBJ);
+                KU_ASSERT(yyjson_get_type(doc->root) == YYJSON_TYPE_OBJ);
                 std::string fieldName = yyjson_get_str(key);
                 if (!colNameToIdx.contains(fieldName)) {
                     std::regex pattern(R"(^[^.]+\.(.*))");
@@ -588,6 +589,8 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
                     types.push_back(jsonSchema(ele, config.depth, config.breadth));
                 }
             }
+            yyjson_doc_free(doc);
+            localState.docs[i] = nullptr;
         }
         numRowsToDetect -= next;
     }
@@ -645,10 +648,11 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
         valueVector->resetAuxiliaryBuffer();
     }
     auto count = localState->readNext();
-    yyjson_val** values = localState->values;
+    yyjson_doc** docs = localState->docs;
     yyjson_val *key = nullptr, *ele = nullptr;
     for (auto i = 0u; i < count; i++) {
-        auto objIter = yyjson_obj_iter_with(values[i]);
+        KU_ASSERT(nullptr != docs[i]);
+        auto objIter = yyjson_obj_iter_with(docs[i]->root);
         while ((key = yyjson_obj_iter_next(&objIter))) {
             ele = yyjson_obj_iter_get_val(key);
             auto columnIdx = bindData->getFieldIdx(yyjson_get_str(key));
@@ -657,6 +661,8 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             }
             readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx], i);
         }
+        yyjson_doc_free(docs[i]);
+        docs[i] = nullptr;
     }
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(count);
     return count;
