@@ -157,6 +157,14 @@ struct JSONScanLocalState : public TableFuncLocalState {
           errorHandler(std::make_unique<processor::LocalFileErrorHandler>(
               &sharedState.sharedErrorHandler, false, context)) {}
 
+    ~JSONScanLocalState() override {
+        for (uint64_t i = 0; i < DEFAULT_VECTOR_CAPACITY; ++i) {
+            if (nullptr != docs[i]) {
+                yyjson_doc_free(docs[i]);
+            }
+        }
+    }
+
     uint64_t readNext(const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool readNextBuffer();
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
@@ -167,6 +175,8 @@ struct JSONScanLocalState : public TableFuncLocalState {
         const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool reconstructFirstObject();
 
+    void replaceDoc(idx_t idx, yyjson_doc* newDoc);
+
     void addValuesToWarningDataVectors(processor::WarningSourceData warningData,
         uint64_t recordNumber, const std::optional<std::vector<ValueVector*>>& warningDataVectors);
     uint64_t getFileOffset() const;
@@ -176,6 +186,13 @@ struct JSONScanLocalState : public TableFuncLocalState {
     void handleParseError(yyjson_read_err& err, bool completedParsingObject = true,
         const std::string& extra = "") const;
 };
+
+void JSONScanLocalState::replaceDoc(idx_t idx, yyjson_doc* newDoc) {
+    if (docs[idx]) {
+        yyjson_doc_free(docs[idx]);
+    }
+    docs[idx] = newDoc;
+}
 
 uint64_t JSONScanLocalState::getFileOffset() const {
     return readFileByteOffset + bufferOffset;
@@ -376,10 +393,10 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
     }
 
     if (!doc) {
-        docs[numValuesToOutput] = nullptr;
+        replaceDoc(numValuesToOutput, nullptr);
         return;
     }
-    docs[numValuesToOutput] = doc;
+    replaceDoc(numValuesToOutput, doc);
 }
 
 void JSONScanLocalState::addValuesToWarningDataVectors(processor::WarningSourceData warningData,
@@ -452,8 +469,10 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
         yyjson_read_err error;
         auto doc = yyjson_read_opts(reinterpret_cast<char*>(buffer_ptr), line_size,
             JSONCommon::READ_FLAG, nullptr /* alc */, &error);
+        const bool isArr = yyjson_is_arr(doc->root);
+        yyjson_doc_free(doc);
         if (error.code == YYJSON_READ_SUCCESS) {
-            if (yyjson_is_arr(doc->root) && line_size == buffer_size) {
+            if (isArr && line_size == buffer_size) {
                 return JsonScanFormat::ARRAY;
             } else {
                 return JsonScanFormat::NEWLINE_DELIMITED;
@@ -710,8 +729,6 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
                     types.push_back(jsonSchema(ele, config.depth, config.breadth));
                 }
             }
-            yyjson_doc_free(doc);
-            localState.docs[i] = nullptr;
         }
         numRowsToDetect -= next;
     }
@@ -807,8 +824,6 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
             }
             readJsonToValueVector(ele, *output.dataChunk.valueVectors[columnIdx], i);
         }
-        yyjson_doc_free(docs[i]);
-        docs[i] = nullptr;
     }
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(count);
     return count;
