@@ -342,10 +342,7 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t& lineCountInJson) {
         }
     }
 
-    if (ptr == end) {
-        return nullptr;
-    }
-    return ptr;
+    return ptr == end ? nullptr : ptr;
 }
 
 idx_t JSONScanLocalState::getNewlineCount(uint64_t startByteOffset, uint64_t endByteOffset) const {
