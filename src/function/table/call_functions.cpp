@@ -18,8 +18,7 @@ CallFuncMorsel CallFuncSharedState::getMorsel() {
 }
 
 std::unique_ptr<TableFuncSharedState> CallFunction::initSharedState(TableFunctionInitInput& input) {
-    auto callTableFuncBindData =
-        ku_dynamic_cast<TableFuncBindData*, CallTableFuncBindData*>(input.bindData);
+    auto callTableFuncBindData = ku_dynamic_cast<CallTableFuncBindData*>(input.bindData);
     return std::make_unique<CallFuncSharedState>(callTableFuncBindData->maxOffset);
 }
 

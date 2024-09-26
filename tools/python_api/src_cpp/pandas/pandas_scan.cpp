@@ -63,8 +63,7 @@ std::unique_ptr<function::TableFuncSharedState> initSharedState(
         throw RuntimeException("PandasScan called but GIL was already held!");
     }
     // LCOV_EXCL_STOP
-    auto scanBindData =
-        ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
+    auto scanBindData = ku_dynamic_cast<PandasScanFunctionData*>(input.bindData);
     return std::make_unique<PandasScanSharedState>(scanBindData->numRows);
 }
 

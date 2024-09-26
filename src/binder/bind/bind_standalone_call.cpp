@@ -15,8 +15,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Statement& statement) {
-    auto& callStatement =
-        ku_dynamic_cast<const parser::Statement&, const parser::StandaloneCall&>(statement);
+    auto& callStatement = ku_dynamic_cast<const parser::StandaloneCall&>(statement);
     main::Option* option = main::DBConfig::getOptionByName(callStatement.getOptionName());
     if (option == nullptr) {
         option =

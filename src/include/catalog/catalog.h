@@ -146,7 +146,7 @@ public:
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<Catalog*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
 private:
@@ -166,9 +166,8 @@ private:
     std::vector<T*> getTableCatalogEntries(transaction::Transaction* transaction,
         CatalogEntryType catalogType) const {
         std::vector<T*> result;
-        tables->iterateEntriesOfType(transaction, catalogType, [&](CatalogEntry* entry) {
-            result.push_back(common::ku_dynamic_cast<CatalogEntry*, T*>(entry));
-        });
+        tables->iterateEntriesOfType(transaction, catalogType,
+            [&](CatalogEntry* entry) { result.push_back(common::ku_dynamic_cast<T*>(entry)); });
         return result;
     }
 

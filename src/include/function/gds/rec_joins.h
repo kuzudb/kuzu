@@ -208,7 +208,7 @@ public:
     virtual void beginWritingOutputsForDstNodesInTable(table_id_t tableID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<RJOutputs*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
 public:

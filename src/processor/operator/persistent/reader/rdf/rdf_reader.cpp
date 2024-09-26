@@ -186,7 +186,7 @@ SerdStatus RdfResourceReader::handle(void* handle, SerdStatementFlags, const Ser
 
 uint64_t RdfResourceReader::readToVector(DataChunk* dataChunk) {
     auto rVector = dataChunk->getValueVector(0).get();
-    auto& store = ku_dynamic_cast<RdfStore&, ResourceStore&>(*store_);
+    auto& store = ku_dynamic_cast<ResourceStore&>(*store_);
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         StringVector::addString(rVector, i, store.resources[cursor + i]);

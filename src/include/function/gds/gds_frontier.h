@@ -122,7 +122,7 @@ public:
     virtual void setActive(nodeID_t nodeID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<GDSFrontier*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 

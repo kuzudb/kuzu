@@ -372,7 +372,7 @@ public:
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const ExtraTypeInfo*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
 protected:

@@ -150,11 +150,11 @@ public:
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<PhysicalOperator*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
     template<class TARGET>
     const TARGET& constCast() {
-        return common::ku_dynamic_cast<const PhysicalOperator&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
 protected:

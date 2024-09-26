@@ -96,15 +96,15 @@ std::shared_ptr<Expression> Binder::createPath(const std::string& pathName,
     std::vector<LogicalType> relFieldTypes;
     for (auto& child : children) {
         if (ExpressionUtil::isNodePattern(*child)) {
-            auto node = ku_dynamic_cast<Expression*, NodeExpression*>(child.get());
+            auto node = ku_dynamic_cast<NodeExpression*>(child.get());
             extraFieldFromStructType(node->getDataType(), nodeFieldNameSet, nodeFieldNames,
                 nodeFieldTypes);
         } else if (ExpressionUtil::isRelPattern(*child)) {
-            auto rel = ku_dynamic_cast<Expression*, RelExpression*>(child.get());
+            auto rel = ku_dynamic_cast<RelExpression*>(child.get());
             extraFieldFromStructType(rel->getDataType(), relFieldNameSet, relFieldNames,
                 relFieldTypes);
         } else if (ExpressionUtil::isRecursiveRelPattern(*child)) {
-            auto recursiveRel = ku_dynamic_cast<Expression*, RelExpression*>(child.get());
+            auto recursiveRel = ku_dynamic_cast<RelExpression*>(child.get());
             auto recursiveInfo = recursiveRel->getRecursiveInfo();
             extraFieldFromStructType(recursiveInfo->node->getDataType(), nodeFieldNameSet,
                 nodeFieldNames, nodeFieldTypes);
@@ -329,7 +329,7 @@ static void bindRecursiveRelProjectionList(const expression_vector& projectionLi
             throw BinderException(stringFormat("Unsupported projection item {} on recursive rel.",
                 expression->toString()));
         }
-        auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
+        auto property = ku_dynamic_cast<PropertyExpression*>(expression.get());
         fields.emplace_back(property->getPropertyName(), property->getDataType().copy());
     }
 }
@@ -586,7 +586,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
     // Bind properties.
     bindQueryNodeProperties(*queryNode);
     for (auto& expression : queryNode->getPropertyExprsRef()) {
-        auto property = ku_dynamic_cast<Expression*, PropertyExpression*>(expression.get());
+        auto property = ku_dynamic_cast<PropertyExpression*>(expression.get());
         fieldNames.emplace_back(property->getPropertyName());
         fieldTypes.emplace_back(property->dataType.copy());
     }

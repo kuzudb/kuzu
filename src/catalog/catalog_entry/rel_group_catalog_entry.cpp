@@ -53,7 +53,7 @@ std::unique_ptr<TableCatalogEntry> RelGroupCatalogEntry::copy() const {
 static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTable(
     transaction::Transaction* transaction, const CatalogEntrySet& entries, table_id_t tableID) {
     for (auto& [name, entry] : entries) {
-        auto current = ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        auto current = ku_dynamic_cast<TableCatalogEntry*>(entry);
         if (current->getTableID() == tableID) {
             auto boundInfo = current->getBoundCreateTableInfo(transaction);
             return boundInfo;

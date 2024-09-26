@@ -65,8 +65,8 @@ void DuckDBCatalog::createForeignTable(const std::string& tableName) {
     if (info == nullptr) {
         return;
     }
-    auto extraInfo = common::ku_dynamic_cast<binder::BoundExtraCreateCatalogEntryInfo*,
-        BoundExtraCreateDuckDBTableInfo*>(info->extraInfo.get());
+    auto extraInfo =
+        common::ku_dynamic_cast<BoundExtraCreateDuckDBTableInfo*>(info->extraInfo.get());
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     for (auto& definition : extraInfo->propertyDefinitions) {

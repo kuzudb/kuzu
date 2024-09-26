@@ -14,8 +14,7 @@ namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
-    auto& variableExpression =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedVariableExpression&>(parsedExpression);
+    auto& variableExpression = ku_dynamic_cast<const ParsedVariableExpression&>(parsedExpression);
     auto variableName = variableExpression.getVariableName();
     return bindVariableExpression(variableName);
 }

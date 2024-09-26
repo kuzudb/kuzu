@@ -311,13 +311,12 @@ public:
 
     template<typename T>
     inline HashIndex<HashIndexType<T>>* getTypedHashIndex(T key) {
-        return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<HashIndexType<T>>*>(
+        return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(
             hashIndices[HashIndexUtils::getHashIndexPosition(key)].get());
     }
     template<common::IndexHashable T>
     inline HashIndex<T>* getTypedHashIndexByPos(uint64_t indexPos) {
-        return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<HashIndexType<T>>*>(
-            hashIndices[indexPos].get());
+        return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(hashIndices[indexPos].get());
     }
 
     inline bool lookup(const transaction::Transaction* trx, common::ku_string_t key,

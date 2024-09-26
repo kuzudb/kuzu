@@ -57,7 +57,7 @@ static void setCommonTableIDToRdfRelTable(const RelTable* relTable,
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
             columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
             for (const auto& column : columns) {
-                ku_dynamic_cast<Column*, InternalIDColumn*>(column)->setCommonTableID(
+                ku_dynamic_cast<InternalIDColumn*>(column)->setCommonTableID(
                     rdfEntry->getResourceTableID());
             }
         }
@@ -134,7 +134,7 @@ void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry*
     const Catalog* catalog, Transaction* transaction) {
     for (const auto relTableID : tableSchema->getRelTableIDs()) {
         createRelTable(relTableID,
-            ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(
+            ku_dynamic_cast<RelTableCatalogEntry*>(
                 catalog->getTableCatalogEntry(transaction, relTableID)),
             catalog, transaction);
     }
@@ -143,10 +143,9 @@ void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry*
 void StorageManager::createRdfGraph(table_id_t, RDFGraphCatalogEntry* tableSchema,
     const Catalog* catalog, main::ClientContext* context) {
     KU_ASSERT(context != nullptr);
-    const auto rdfGraphSchema =
-        ku_dynamic_cast<TableCatalogEntry*, RDFGraphCatalogEntry*>(tableSchema);
+    const auto rdfGraphSchema = ku_dynamic_cast<RDFGraphCatalogEntry*>(tableSchema);
     const auto resourceTableID = rdfGraphSchema->getResourceTableID();
-    const auto resourceTableEntry = ku_dynamic_cast<TableCatalogEntry*, NodeTableCatalogEntry*>(
+    const auto resourceTableEntry = ku_dynamic_cast<NodeTableCatalogEntry*>(
         catalog->getTableCatalogEntry(context->getTx(), resourceTableID));
     createNodeTable(resourceTableID, resourceTableEntry, context);
     const auto literalTableID = rdfGraphSchema->getLiteralTableID();
@@ -194,7 +193,7 @@ PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
     std::lock_guard lck{mtx};
     KU_ASSERT(tables.contains(tableID));
     KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
-    const auto table = ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
+    const auto table = ku_dynamic_cast<NodeTable*>(tables.at(tableID).get());
     return table->getPKIndex();
 }
 

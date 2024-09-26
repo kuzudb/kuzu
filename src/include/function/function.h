@@ -30,7 +30,7 @@ struct KUZU_API FunctionBindData {
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<FunctionBindData&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
     virtual std::unique_ptr<FunctionBindData> copy() const {
@@ -77,11 +77,11 @@ struct Function {
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const Function*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<Function*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 

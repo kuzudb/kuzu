@@ -46,7 +46,7 @@ struct GDSBindData {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<GDSBindData*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 

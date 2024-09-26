@@ -46,7 +46,7 @@ public:
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const ColumnPredicate&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
 protected:

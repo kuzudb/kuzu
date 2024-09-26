@@ -198,7 +198,7 @@ bool LogicalHashJoin::isJoinKeyUniqueOnBuildSide(const binder::Expression& joinN
     if (op->getOperatorType() != LogicalOperatorType::SCAN_NODE_TABLE) {
         return false;
     }
-    auto scan = ku_dynamic_cast<LogicalOperator*, LogicalScanNodeTable*>(op);
+    auto scan = ku_dynamic_cast<LogicalScanNodeTable*>(op);
     if (scan->getNodeID()->getUniqueName() != joinNodeID.getUniqueName()) {
         return false;
     }

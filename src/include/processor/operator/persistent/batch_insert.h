@@ -32,7 +32,7 @@ struct BatchInsertInfo {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<BatchInsertInfo*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 
@@ -81,7 +81,7 @@ struct BatchInsertLocalState {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<BatchInsertLocalState*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 

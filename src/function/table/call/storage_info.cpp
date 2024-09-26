@@ -41,7 +41,7 @@ static void collectColumns(Column* column, std::vector<Column*>& result) {
     }
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        auto structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
+        auto structColumn = ku_dynamic_cast<StructColumn*>(column);
         auto numChildren = StructType::getNumFields(structColumn->getDataType());
         for (auto i = 0u; i < numChildren; i++) {
             auto childColumn = structColumn->getChild(i);
@@ -49,14 +49,14 @@ static void collectColumns(Column* column, std::vector<Column*>& result) {
         }
     } break;
     case PhysicalTypeID::STRING: {
-        auto stringColumn = ku_dynamic_cast<Column*, StringColumn*>(column);
+        auto stringColumn = ku_dynamic_cast<StringColumn*>(column);
         auto& dictionary = stringColumn->getDictionary();
         collectColumns(dictionary.getDataColumn(), result);
         collectColumns(dictionary.getOffsetColumn(), result);
     } break;
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        auto listColumn = ku_dynamic_cast<Column*, ListColumn*>(column);
+        auto listColumn = ku_dynamic_cast<ListColumn*>(column);
         collectColumns(listColumn->getOffsetColumn(), result);
         collectColumns(listColumn->getSizeColumn(), result);
         collectColumns(listColumn->getDataColumn(), result);
@@ -243,8 +243,7 @@ static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState, Dat
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto localState =
-        ku_dynamic_cast<TableFuncLocalState*, StorageInfoLocalState*>(input.localState);
+    auto localState = ku_dynamic_cast<StorageInfoLocalState*>(input.localState);
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {

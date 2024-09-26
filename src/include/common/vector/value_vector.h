@@ -115,8 +115,7 @@ class KUZU_API StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-        return ku_dynamic_cast<AuxiliaryBuffer*, StringAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
+        return ku_dynamic_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getOverflowBuffer();
     }
 
@@ -221,21 +220,19 @@ class StructVector {
 public:
     static inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
         const ValueVector* vector) {
-        return ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
+        return ku_dynamic_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getFieldVectors();
     }
 
     static inline std::shared_ptr<ValueVector> getFieldVector(const ValueVector* vector,
         struct_field_idx_t idx) {
-        return ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(
-            vector->auxiliaryBuffer.get())
+        return ku_dynamic_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getFieldVectors()[idx];
     }
 
     static inline void referenceVector(ValueVector* vector, struct_field_idx_t idx,
         std::shared_ptr<ValueVector> vectorToReference) {
-        ku_dynamic_cast<AuxiliaryBuffer*, StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        ku_dynamic_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->referenceChildVector(idx, std::move(vectorToReference));
     }
 

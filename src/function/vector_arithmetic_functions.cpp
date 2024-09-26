@@ -779,7 +779,7 @@ static void getBinaryExecutionHelperA(const LogicalType& typeB, const LogicalTyp
 template<typename FUNC>
 static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
     const binder::expression_vector& arguments, Function* func) {
-    auto asScalar = ku_dynamic_cast<Function*, ScalarFunction*>(func);
+    auto asScalar = ku_dynamic_cast<ScalarFunction*>(func);
     KU_ASSERT(asScalar != nullptr);
     auto argADataType = arguments[0]->getDataType().copy();
     auto argBDataType = arguments[1]->getDataType().copy();
@@ -872,7 +872,7 @@ static void getUnaryExecutionHelper(const LogicalType& resultType, scalar_func_e
 template<typename FUNC>
 static std::unique_ptr<FunctionBindData> genericUnaryArithmeticFunc(
     const binder::expression_vector& arguments, Function* func) {
-    auto asScalar = ku_dynamic_cast<Function*, ScalarFunction*>(func);
+    auto asScalar = ku_dynamic_cast<ScalarFunction*>(func);
     KU_ASSERT(asScalar != nullptr);
     auto argPrecision = DecimalType::getPrecision(arguments[0]->getDataType());
     auto argScale = DecimalType::getScale(arguments[0]->getDataType());

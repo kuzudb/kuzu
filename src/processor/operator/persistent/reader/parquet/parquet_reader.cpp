@@ -52,9 +52,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
         state.currentGroup++;
         state.groupOffset = 0;
 
-        auto& trans =
-            ku_dynamic_cast<kuzu_apache::thrift::transport::TTransport&, ThriftFileTransport&>(
-                *state.thriftFileProto->getTransport());
+        auto& trans = ku_dynamic_cast<ThriftFileTransport&>(*state.thriftFileProto->getTransport());
         trans.ClearPrefetch();
         state.currentGroupPrefetched = false;
 
@@ -69,8 +67,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
 
             auto fileColIdx = colIdx;
 
-            auto rootReader =
-                ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
+            auto rootReader = ku_dynamic_cast<StructColumnReader*>(state.rootReader.get());
             toScanCompressedBytes +=
                 rootReader->getChildReader(fileColIdx)->getTotalCompressedSize();
         }
@@ -102,8 +99,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
                 // Prefetch column-wise.
                 for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
                     auto fileColIdx = colIdx;
-                    auto rootReader =
-                        ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
+                    auto rootReader = ku_dynamic_cast<StructColumnReader*>(state.rootReader.get());
 
                     rootReader->getChildReader(fileColIdx)
                         ->registerPrefetch(trans, true /* lazy fetch */);
@@ -140,7 +136,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
     auto definePtr = (uint8_t*)state.defineBuf.ptr;
     auto repeatPtr = (uint8_t*)state.repeatBuf.ptr;
 
-    auto rootReader = ku_dynamic_cast<ColumnReader*, StructColumnReader*>(state.rootReader.get());
+    auto rootReader = ku_dynamic_cast<StructColumnReader*>(state.rootReader.get());
     for (auto colIdx = 0u; colIdx < result.getNumValueVectors(); colIdx++) {
         if (!columnSkips.empty() && columnSkips[colIdx]) {
             continue;
@@ -174,9 +170,7 @@ void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& re
 void ParquetReader::initMetadata() {
     auto fileInfo = context->getVFSUnsafe()->openFile(filePath, FileFlags::READ_ONLY, context);
     auto proto = createThriftProtocol(fileInfo.get(), false);
-    auto& transport =
-        ku_dynamic_cast<kuzu_apache::thrift::transport::TTransport&, ThriftFileTransport&>(
-            *proto->getTransport());
+    auto& transport = ku_dynamic_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();
     // LCOV_EXCL_START
     if (fileSize < 12) {
@@ -627,10 +621,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     if (input.localState == nullptr) {
         return 0;
     }
-    auto parquetScanLocalState =
-        ku_dynamic_cast<TableFuncLocalState*, ParquetScanLocalState*>(input.localState);
-    auto parquetScanSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, ParquetScanSharedState*>(input.sharedState);
+    auto parquetScanLocalState = ku_dynamic_cast<ParquetScanLocalState*>(input.localState);
+    auto parquetScanSharedState = ku_dynamic_cast<ParquetScanSharedState*>(input.sharedState);
     do {
         parquetScanLocalState->reader->scan(*parquetScanLocalState->state, outputChunk);
         if (outputChunk.state->getSelVector().getSelSize() > 0) {

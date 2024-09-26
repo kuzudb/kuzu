@@ -24,7 +24,7 @@ struct TableFuncSharedState {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TableFuncSharedState*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 
@@ -33,7 +33,7 @@ struct TableFuncLocalState {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TableFuncLocalState*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 

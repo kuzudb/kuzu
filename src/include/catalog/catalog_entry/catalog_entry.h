@@ -70,15 +70,15 @@ public:
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const CatalogEntry&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const CatalogEntry*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<CatalogEntry*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
 protected:

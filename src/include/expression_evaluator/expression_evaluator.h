@@ -59,15 +59,15 @@ public:
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const ExpressionEvaluator&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<ExpressionEvaluator&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<ExpressionEvaluator*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
 protected:

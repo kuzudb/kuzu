@@ -426,7 +426,7 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
-    auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraRenameTableInfo*>(info->extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
     validateTableExist(tableName);

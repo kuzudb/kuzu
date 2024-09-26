@@ -220,11 +220,11 @@ public:
 
     template<typename TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<ColumnChunkData&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<typename TARGET>
     const TARGET& cast() const {
-        return common::ku_dynamic_cast<const ColumnChunkData&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     MemoryManager& getMemoryManager() const { return *buffer->mm; }
