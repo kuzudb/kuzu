@@ -303,7 +303,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         goto final_state;
     add_value:
         // We get here after we have a delimiter.
-        KU_ASSERT(buffer[position] == option.delimiter);
+        KU_ASSERT(buffer[position] == option.delimiter ||
+                  buffer[position] == CopyConstants::DEFAULT_CSV_LIST_END_CHAR);
         // Trim one character if we have quotes.
         if (!addValue(driver, curRowIdx, column,
                 std::string_view(buffer.get() + start, position - start - hasQuotes),
