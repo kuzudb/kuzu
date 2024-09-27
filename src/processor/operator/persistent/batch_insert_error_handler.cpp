@@ -46,38 +46,32 @@ void BatchInsertErrorHandler::handleError(BatchInsertCachedError error) {
     }
 
     addNewVectorsIfNeeded();
-    KU_ASSERT(currentInsertIdx < cachedErrors.size());
     cachedErrors[currentInsertIdx] = std::move(error);
     ++currentInsertIdx;
 }
 
 void BatchInsertErrorHandler::flushStoredErrors() {
-    std::map<uint64_t, std::vector<CSVError>> unpopulatedErrors;
+    std::vector<CopyFromFileError> unpopulatedErrors;
 
     for (row_idx_t i = 0; i < getNumErrors(); ++i) {
         auto& error = cachedErrors[i];
-        CSVError warningToAdd{std::move(error.message), {}, false};
+        CopyFromFileError warningToAdd{std::move(error.message), {}, false};
         if (error.warningData.has_value()) {
             warningToAdd.completedLine = true;
-            warningToAdd.warningData = error.warningData.value();
+            warningToAdd.warningData = std::move(error.warningData.value());
         }
-        unpopulatedErrors[warningToAdd.warningData.fileIdx].push_back(warningToAdd);
+        unpopulatedErrors.push_back(warningToAdd);
     }
 
-    uint64_t numErrorsFlushed = 0;
-    for (const auto& [fileIdx, unpopulatedErrorsByFile] : unpopulatedErrors) {
+    if (!unpopulatedErrors.empty()) {
         KU_ASSERT(ignoreErrors);
-        if (!unpopulatedErrorsByFile.empty()) {
-            context->clientContext->getWarningContextUnsafe().appendWarningMessages(
-                unpopulatedErrorsByFile);
-            numErrorsFlushed += unpopulatedErrorsByFile.size();
-        }
+        context->clientContext->getWarningContextUnsafe().appendWarningMessages(unpopulatedErrors);
     }
 
-    if (numErrorsFlushed > 0 && sharedErrorCounter != nullptr) {
+    if (!unpopulatedErrors.empty() && sharedErrorCounter != nullptr) {
         KU_ASSERT(sharedErrorCounterMtx);
         common::UniqLock lockGuard{*sharedErrorCounterMtx};
-        *sharedErrorCounter += numErrorsFlushed;
+        *sharedErrorCounter += unpopulatedErrors.size();
     }
 
     clearErrors();

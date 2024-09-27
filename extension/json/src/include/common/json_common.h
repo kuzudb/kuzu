@@ -1,5 +1,9 @@
 #pragma once
 
+#include <array>
+
+#include "common/constants.h"
+#include "common/types/types.h"
 #include "json_enums.h"
 #include "yyjson.h"
 
@@ -29,6 +33,14 @@ struct JsonConstant {
     static constexpr uint64_t DEFAULT_JSON_DETECT_DEPTH = 10;
     static constexpr uint64_t DEFAULT_JSON_DETECT_BREADTH = 2048;
     static constexpr bool DEFAULT_AUTO_DETECT_VALUE = true;
+
+    static constexpr std::array JSON_WARNING_DATA_COLUMN_NAMES =
+        common::CopyConstants::SHARED_WARNING_DATA_COLUMN_NAMES;
+    static constexpr std::array JSON_WARNING_DATA_COLUMN_TYPES =
+        common::CopyConstants::SHARED_WARNING_DATA_COLUMN_TYPES;
+    static constexpr common::column_id_t JSON_WARNING_DATA_NUM_COLUMNS =
+        JSON_WARNING_DATA_COLUMN_NAMES.size();
+    static_assert(JSON_WARNING_DATA_NUM_COLUMNS == JSON_WARNING_DATA_COLUMN_TYPES.size());
 };
 
 } // namespace json_extension

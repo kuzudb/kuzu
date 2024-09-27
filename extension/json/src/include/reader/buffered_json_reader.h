@@ -1,8 +1,9 @@
 #include "common/file_system/file_info.h"
-#include "common/json_common.h"
 #include "common/json_enums.h"
 #include "main/client_context.h"
+#include "processor/operator/persistent/reader/file_error_handler.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "yyjson.h"
 
 namespace kuzu {
 namespace json_extension {
@@ -11,7 +12,7 @@ struct JsonScanBufferHandle {
     uint64_t bufferIdx;
     std::unique_ptr<storage::MemoryBuffer> buffer;
     uint64_t bufferSize;
-    uint64_t numReaders;
+    std::atomic<uint64_t> numReaders;
 
     JsonScanBufferHandle(uint64_t bufferIdx, std::unique_ptr<storage::MemoryBuffer> buffer,
         uint64_t bufferSize, uint64_t numReaders)
@@ -60,11 +61,15 @@ public:
         bufferMap.insert(make_pair(bufferIdx, std::move(buffer)));
     }
 
+    std::string reconstructLine(uint64_t startPosition, uint64_t endPosition);
+
     std::unique_ptr<storage::MemoryBuffer> removeBuffer(JsonScanBufferHandle& handle);
 
     uint64_t getBufferIdx() { return bufferIdx++; }
 
-    void throwParseError(yyjson_read_err& err, const std::string& extra = "") const;
+    void throwParseError(yyjson_read_err& err, bool completedParsingObject,
+        processor::WarningSourceData errorData, processor::LocalFileErrorHandler* errorHandler,
+        const std::string& extra = "") const;
 
     JsonFileHandle* getFileHandle() const { return fileHandle.get(); }
 

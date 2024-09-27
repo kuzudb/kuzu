@@ -74,7 +74,7 @@
 
 -STATEMENT copy person6 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (header 0);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line containing the error: 'id...'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
 
 -CASE CopyUseFaLsEwithdifferentCases
 
@@ -83,7 +83,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_les
 
 -STATEMENT copy person7 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (header FaLSe);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line containing the error: 'id...'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
 
 -CASE NewKeyWordDELIMITER
 
@@ -92,7 +92,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_les
 
 -STATEMENT copy person8 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER "|", header);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: expected 3 values per row, but got 1. Line containing the error: 'id,fname,Gender'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: expected 3 values per row, but got 1. Line/record containing the error: 'id,fname,Gender'
 
 -STATEMENT copy person8 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER ",", header);
 ---- ok
@@ -112,7 +112,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_les
 
 -STATEMENT copy person9 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER       "|", header);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: expected 3 values per row, but got 1. Line containing the error: 'id,fname,Gender'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv on line 1: expected 3 values per row, but got 1. Line/record containing the error: 'id,fname,Gender'
 
 -STATEMENT copy person9 from '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson_less_col.csv' (DELIMITER        ",", header);
 ---- ok

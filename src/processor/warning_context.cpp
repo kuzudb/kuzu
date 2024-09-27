@@ -1,7 +1,5 @@
 #include "processor/warning_context.h"
 
-#include <numeric>
-
 #include "common/assert.h"
 #include "common/uniq_lock.h"
 
@@ -9,28 +7,25 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
-WarningSourceData::WarningSourceData(uint64_t startByteOffset, uint64_t endByteOffset,
-    common::idx_t fileIdx, uint64_t blockIdx, uint64_t rowOffsetInBlock)
-    : startByteOffset(startByteOffset), endByteOffset(endByteOffset), fileIdx(fileIdx),
-      blockIdx(blockIdx), rowOffsetInBlock(rowOffsetInBlock) {}
 
-CSVError::CSVError(std::string message, WarningSourceData warningData, bool completedLine,
-    bool mustThrow)
-    : message(std::move(message)), completedLine(completedLine),
-      warningData(std::move(warningData)), mustThrow(mustThrow) {}
+static PopulatedCopyFromError defaultPopulateFunc(CopyFromFileError error, common::idx_t) {
+    return PopulatedCopyFromError{
+        .message = std::move(error.message),
+        .filePath = "",
+        .skippedLineOrRecord = "",
+        .lineNumber = 0,
+    };
+}
 
-bool CSVError::operator<(const CSVError& o) const {
-    if (warningData.blockIdx == o.warningData.blockIdx) {
-        return warningData.rowOffsetInBlock < o.warningData.rowOffsetInBlock;
-    }
-    return warningData.blockIdx < o.warningData.blockIdx;
+static idx_t defaultGetFileIdxFunc(const CopyFromFileError&) {
+    return 0;
 }
 
 WarningContext::WarningContext(main::ClientConfig* clientConfig)
     : clientConfig(clientConfig), queryWarningCount(0), numStoredWarnings(0),
       ignoreErrorsOption(false) {}
 
-void WarningContext::appendWarningMessages(const std::vector<CSVError>& messages) {
+void WarningContext::appendWarningMessages(const std::vector<CopyFromFileError>& messages) {
     common::UniqLock lock{mtx};
 
     queryWarningCount += messages.size();
@@ -39,7 +34,7 @@ void WarningContext::appendWarningMessages(const std::vector<CSVError>& messages
         if (numStoredWarnings >= clientConfig->warningLimit) {
             break;
         }
-        unpopulatedWarnings[message.warningData.fileIdx].warnings.push_back(message);
+        unpopulatedWarnings.push_back(message);
         ++numStoredWarnings;
     }
 }
@@ -47,34 +42,29 @@ void WarningContext::appendWarningMessages(const std::vector<CSVError>& messages
 const std::vector<WarningInfo>& WarningContext::getPopulatedWarnings() const {
     // if there are still unpopulated warnings when we try to get populated warnings something is
     // probably wrong
-    KU_ASSERT(0 == std::accumulate(unpopulatedWarnings.begin(), unpopulatedWarnings.end(), 0,
-                       [](auto a, auto b) { return a + b.second.warnings.size(); }));
+    KU_ASSERT(unpopulatedWarnings.empty());
     return populatedWarnings;
 }
 
 void WarningContext::defaultPopulateAllWarnings(uint64_t queryID) {
-    for (const auto& [fileIdx, _] : unpopulatedWarnings) {
-        populateWarnings(fileIdx, queryID);
-    }
+    populateWarnings(queryID);
 }
 
-void WarningContext::populateWarnings(common::idx_t fileIdx, uint64_t queryID,
-    std::optional<populate_func_t> populateFunc, SerialCSVReader* populateReader) {
-    if (!populateFunc.has_value()) {
+void WarningContext::populateWarnings(uint64_t queryID, populate_func_t populateFunc,
+    get_file_idx_func_t getFileIdxFunc) {
+    if (!populateFunc) {
         // if no populate functor is provided we default to just copying the message over
         // and leaving the CSV fields unpopulated
-        populateFunc = [](CSVError error, SerialCSVReader*) -> PopulatedCSVError {
-            return PopulatedCSVError{.message = std::move(error.message),
-                .filePath = "",
-                .skippedLine = "",
-                .lineNumber = 0};
-        };
+        populateFunc = defaultPopulateFunc;
     }
-    for (auto& warning : unpopulatedWarnings[fileIdx].warnings) {
-        populatedWarnings.emplace_back(populateFunc.value()(std::move(warning), populateReader),
-            queryID);
+    if (!getFileIdxFunc) {
+        getFileIdxFunc = defaultGetFileIdxFunc;
     }
-    unpopulatedWarnings[fileIdx].warnings.clear();
+    for (auto& warning : unpopulatedWarnings) {
+        const auto fileIdx = getFileIdxFunc(warning);
+        populatedWarnings.emplace_back(populateFunc(std::move(warning), fileIdx), queryID);
+    }
+    unpopulatedWarnings.clear();
 }
 
 void WarningContext::clearPopulatedWarnings() {

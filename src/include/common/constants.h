@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
+#include "common/array_utils.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -160,12 +161,27 @@ struct CopyConstants {
     static constexpr uint64_t DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE = 256;
 
     // metadata columns used to populate CSV warnings
-    static constexpr std::array WARNING_METADATA_COLUMN_NAMES = {"startByteOffset", "endByteOffset",
-        "fileIdx", "blockIdx", "rowOffsetInBlock"};
-    static constexpr std::array WARNING_METADATA_COLUMN_TYPES = {LogicalTypeID::UINT64,
-        LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT64, LogicalTypeID::UINT32};
-    static constexpr idx_t WARNING_METADATA_NUM_COLUMNS = WARNING_METADATA_COLUMN_NAMES.size();
-    static_assert(WARNING_METADATA_NUM_COLUMNS == WARNING_METADATA_COLUMN_TYPES.size());
+    static constexpr std::array SHARED_WARNING_DATA_COLUMN_NAMES = {"blockIdx", "offsetInBlock",
+        "startByteOffset", "endByteOffset"};
+    static constexpr std::array SHARED_WARNING_DATA_COLUMN_TYPES = {LogicalTypeID::UINT64,
+        LogicalTypeID::UINT32, LogicalTypeID::UINT64, LogicalTypeID::UINT64};
+    static constexpr column_id_t SHARED_WARNING_DATA_NUM_COLUMNS =
+        SHARED_WARNING_DATA_COLUMN_NAMES.size();
+
+    static constexpr std::array CSV_SPECIFIC_WARNING_DATA_COLUMN_NAMES = {"fileIdx"};
+    static constexpr std::array CSV_SPECIFIC_WARNING_DATA_COLUMN_TYPES = {LogicalTypeID::UINT32};
+    static constexpr column_id_t CSV_SPECIFIC_WARNING_DATA_NUM_COLUMNS =
+        CSV_SPECIFIC_WARNING_DATA_COLUMN_NAMES.size();
+
+    static constexpr std::array CSV_WARNING_DATA_COLUMN_NAMES =
+        arrayConcat(SHARED_WARNING_DATA_COLUMN_NAMES, CSV_SPECIFIC_WARNING_DATA_COLUMN_NAMES);
+    static constexpr std::array CSV_WARNING_DATA_COLUMN_TYPES =
+        arrayConcat(SHARED_WARNING_DATA_COLUMN_TYPES, CSV_SPECIFIC_WARNING_DATA_COLUMN_TYPES);
+    static constexpr column_id_t CSV_WARNING_DATA_NUM_COLUMNS =
+        CSV_WARNING_DATA_COLUMN_NAMES.size();
+    static_assert(CSV_WARNING_DATA_NUM_COLUMNS == CSV_WARNING_DATA_COLUMN_TYPES.size());
+
+    static constexpr column_id_t MAX_NUM_WARNING_DATA_COLUMNS = CSV_WARNING_DATA_NUM_COLUMNS;
 };
 
 struct RdfConstants {
@@ -219,13 +235,12 @@ struct ImportDBConstants {
 };
 
 struct WarningConstants {
-    static constexpr uint64_t WARNING_TABLE_NUM_COLUMNS = 5;
     static constexpr std::array WARNING_TABLE_COLUMN_NAMES{"query_id", "message", "file_path",
-        "line_number", "skipped_line"};
+        "line_number", "skipped_line_or_record"};
     static constexpr std::array WARNING_TABLE_COLUMN_DATA_TYPES{LogicalTypeID::UINT64,
         LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::UINT64, LogicalTypeID::STRING};
+    static constexpr uint64_t WARNING_TABLE_NUM_COLUMNS = WARNING_TABLE_COLUMN_NAMES.size();
 
-    static_assert(WARNING_TABLE_COLUMN_NAMES.size() == WARNING_TABLE_NUM_COLUMNS);
     static_assert(WARNING_TABLE_COLUMN_DATA_TYPES.size() == WARNING_TABLE_NUM_COLUMNS);
 };
 

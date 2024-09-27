@@ -49,15 +49,8 @@ bool ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     return true;
 }
 
-template<typename T>
-static void updateWarningDataInChunk(DataChunk& chunk, uint64_t rowNum,
-    WarningDataWithColumnInfo::EntryWithColumnIdx<T> warningData) {
-    KU_ASSERT(warningData.second < chunk.getNumValueVectors());
-    chunk.getValueVector(warningData.second)->setValue(rowNum, warningData.first);
-}
-
 bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
-    std::optional<WarningDataWithColumnInfo> warningData) {
+    std::optional<WarningDataWithColumnInfo> warningDataWithColumnInfo) {
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;
@@ -73,12 +66,20 @@ bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
         return false;
     }
 
-    if (warningData.has_value()) {
-        updateWarningDataInChunk(chunk, rowNum, warningData->startByteOffset);
-        updateWarningDataInChunk(chunk, rowNum, warningData->endByteOffset);
-        updateWarningDataInChunk(chunk, rowNum, warningData->fileIdx);
-        updateWarningDataInChunk(chunk, rowNum, warningData->blockIdx);
-        updateWarningDataInChunk(chunk, rowNum, warningData->rowOffsetInBlock);
+    if (warningDataWithColumnInfo.has_value()) {
+        const auto warningDataStartColumn = warningDataWithColumnInfo->warningDataStartColumnIdx;
+        const auto numWarningDataColumns = warningDataWithColumnInfo->data.numValues;
+        KU_ASSERT(numWarningDataColumns == CopyConstants::CSV_WARNING_DATA_NUM_COLUMNS);
+        for (idx_t i = 0; i < numWarningDataColumns; ++i) {
+            const auto& warningData = warningDataWithColumnInfo->data.values[i];
+            const auto columnIdx = warningDataStartColumn + i;
+            KU_ASSERT(columnIdx < chunk.getNumValueVectors());
+            const auto& vectorToSet = chunk.getValueVector(columnIdx);
+            std::visit(
+                [&vectorToSet, rowNum](
+                    auto warningDataField) { vectorToSet->setValue(rowNum, warningDataField); },
+                warningData);
+        }
     }
     return true;
 }

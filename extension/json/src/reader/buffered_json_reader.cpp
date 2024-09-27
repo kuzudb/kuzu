@@ -1,7 +1,7 @@
 #include "reader/buffered_json_reader.h"
 
-#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace json_extension {
@@ -40,6 +40,21 @@ BufferedJsonReader::BufferedJsonReader(main::ClientContext& context, std::string
     fileHandle = std::make_unique<JsonFileHandle>(std::move(fileInfo));
 }
 
+std::string BufferedJsonReader::reconstructLine(uint64_t startPosition, uint64_t endPosition) {
+    KU_ASSERT(endPosition >= startPosition);
+
+    std::lock_guard<std::mutex> lockGuard{lock};
+
+    std::string ret;
+    ret.resize(endPosition - startPosition);
+
+    bool finishedFile = false;
+    fileHandle->readAtPosition(reinterpret_cast<uint8_t*>(ret.data()), ret.size(), startPosition,
+        finishedFile);
+
+    return StringUtils::ltrimNewlines(StringUtils::rtrimNewlines(ret));
+}
+
 std::unique_ptr<storage::MemoryBuffer> BufferedJsonReader::removeBuffer(
     JsonScanBufferHandle& handle) {
     std::lock_guard<std::mutex> guard(lock);
@@ -49,12 +64,12 @@ std::unique_ptr<storage::MemoryBuffer> BufferedJsonReader::removeBuffer(
     return result;
 }
 
-void BufferedJsonReader::throwParseError(yyjson_read_err& err, const std::string& extra) const {
-    auto unit = options.format == JsonScanFormat::NEWLINE_DELIMITED ? "line" : "record/value";
-    // TODO(Ziyi): report error line number.
-    throw common::RuntimeException{
-        common::stringFormat("Malformed JSON in file \"{}\", at byte {} in {}: {}. {}", fileName,
-            err.pos + 1, unit, err.msg, extra)};
+void BufferedJsonReader::throwParseError(yyjson_read_err& err, bool completedParsingObject,
+    processor::WarningSourceData errorData, processor::LocalFileErrorHandler* errorHandler,
+    const std::string& extra) const {
+    errorHandler->handleError(
+        processor::CopyFromFileError{common::stringFormat("Malformed JSON: {}. {}", err.msg, extra),
+            std::move(errorData), completedParsingObject});
 }
 
 } // namespace json_extension

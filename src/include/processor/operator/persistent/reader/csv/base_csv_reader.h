@@ -8,15 +8,19 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/file_system/file_info.h"
 #include "common/types/types.h"
-#include "processor/operator/persistent/reader/csv/csv_error_handler.h"
+#include "processor/operator/persistent/reader/copy_from_error.h"
 
 namespace kuzu {
-
+namespace common {
+struct ReaderConfig;
+}
 namespace main {
 class ClientContext;
 }
 
 namespace processor {
+class LocalFileErrorHandler;
+class SharedFileErrorHandler;
 
 struct CSVColumnInfo {
     uint64_t numColumns;
@@ -42,7 +46,7 @@ class BaseCSVReader {
 public:
     BaseCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
         CSVColumnInfo columnInfo, main::ClientContext* context,
-        LocalCSVFileErrorHandler* errorHandler);
+        LocalFileErrorHandler* errorHandler);
 
     virtual ~BaseCSVReader() = default;
 
@@ -65,6 +69,12 @@ public:
 
     static common::column_id_t appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
         std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config);
+
+    static PopulatedCopyFromError basePopulateErrorFunc(CopyFromFileError error,
+        const SharedFileErrorHandler* sharedErrorHandler, BaseCSVReader* reader,
+        std::string filePath);
+
+    static common::idx_t getFileIdxFunc(const CopyFromFileError& error);
 
 protected:
     template<typename Driver>
@@ -105,6 +115,7 @@ protected:
     void resetNumRowsInCurrentBlock();
     void increaseNumRowsInCurrentBlock(uint64_t numRows);
     uint64_t getNumRowsInCurrentBlock() const;
+    uint32_t getRowOffsetInCurrentBlock() const;
 
     WarningSourceData getWarningSourceData() const;
 
@@ -128,7 +139,7 @@ protected:
     uint64_t osFileOffset;
     common::idx_t fileIdx;
 
-    LocalCSVFileErrorHandler* errorHandler;
+    LocalFileErrorHandler* errorHandler;
 
     bool rowEmpty = false;
 };

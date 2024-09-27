@@ -1,7 +1,6 @@
 add_library(kuzu_processor_operator_csv_reader
         OBJECT
         base_csv_reader.cpp
-        csv_error_handler.cpp
         driver.cpp
         parallel_csv_reader.cpp
         serial_csv_reader.cpp)
