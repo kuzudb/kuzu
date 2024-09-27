@@ -9,6 +9,7 @@
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/scan_functions.h"
+#include "json_extension.h"
 #include "json_utils.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"
@@ -22,8 +23,6 @@ using namespace kuzu::function;
 using namespace kuzu::common;
 
 struct JsonScanBindData;
-
-static constexpr idx_t JSON_SCAN_FILE_IDX = 0;
 
 struct JSONWarningSourceData {
     JSONWarningSourceData() = default;
@@ -108,14 +107,14 @@ struct JSONScanSharedState : public BaseScanSharedState {
         : BaseScanSharedState{}, jsonReader{std::make_unique<BufferedJsonReader>(context,
                                      std::move(fileName), BufferedJSONReaderOptions{format})},
           numRows{numRows}, populateErrorFunc(constructPopulateFunc()),
-          sharedErrorHandler(JSON_SCAN_FILE_IDX, &lock, populateErrorFunc) {}
+          sharedErrorHandler(JsonExtension::JSON_SCAN_FILE_IDX, &lock, populateErrorFunc) {}
 
     uint64_t getNumRows() const override { return numRows; }
 
     processor::populate_func_t constructPopulateFunc() {
         return [this](processor::CopyFromFileError error,
                    [[maybe_unused]] idx_t fileIdx) -> processor::PopulatedCopyFromError {
-            KU_ASSERT(fileIdx == JSON_SCAN_FILE_IDX);
+            KU_ASSERT(fileIdx == JsonExtension::JSON_SCAN_FILE_IDX);
             const auto warningData = JSONWarningSourceData::constructFrom(error.warningData);
             const auto lineNumber =
                 sharedErrorHandler.getLineNumber(warningData.blockIdx, warningData.offsetInBlock);
@@ -157,13 +156,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
           errorHandler(std::make_unique<processor::LocalFileErrorHandler>(
               &sharedState.sharedErrorHandler, false, context)) {}
 
-    ~JSONScanLocalState() override {
-        for (uint64_t i = 0; i < DEFAULT_VECTOR_CAPACITY; ++i) {
-            if (nullptr != docs[i]) {
-                yyjson_doc_free(docs[i]);
-            }
-        }
-    }
+    ~JSONScanLocalState() override;
 
     uint64_t readNext(const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool readNextBuffer();
@@ -187,6 +180,14 @@ struct JSONScanLocalState : public TableFuncLocalState {
     void handleParseError(yyjson_read_err& err, bool completedParsingObject = true,
         const std::string& extra = "") const;
 };
+
+JSONScanLocalState::~JSONScanLocalState() {
+    for (uint64_t i = 0; i < DEFAULT_VECTOR_CAPACITY; ++i) {
+        if (nullptr != docs[i]) {
+            yyjson_doc_free(docs[i]);
+        }
+    }
+}
 
 void JSONScanLocalState::replaceDoc(idx_t idx, yyjson_doc* newDoc) {
     if (docs[idx]) {
@@ -781,14 +782,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
         if (scanConfig.format == JsonScanFormat::AUTO_DETECT) {
             JSONScanSharedState sharedState(*context,
-                scanInput->config.getFilePath(JSON_SCAN_FILE_IDX), scanConfig.format, 0);
+                scanInput->config.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig.format,
+                0);
             JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
             localState.readNext();
             scanConfig.format = sharedState.jsonReader->getFormat();
         }
     } else {
-        scanConfig.format = autoDetect(context, scanInput->config.getFilePath(JSON_SCAN_FILE_IDX),
-            scanConfig, columnTypes, columnNames, colNameToIdx);
+        scanConfig.format =
+            autoDetect(context, scanInput->config.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
+                scanConfig, columnTypes, columnNames, colNameToIdx);
     }
     scanInput->tableFunction->canParallelFunc = [scanConfig]() {
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;

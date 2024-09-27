@@ -8,8 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-namespace {
-PopulatedCopyFromError defaultPopulateFunc(CopyFromFileError error, common::idx_t) {
+static PopulatedCopyFromError defaultPopulateFunc(CopyFromFileError error, common::idx_t) {
     return PopulatedCopyFromError{
         .message = std::move(error.message),
         .filePath = "",
@@ -18,10 +17,9 @@ PopulatedCopyFromError defaultPopulateFunc(CopyFromFileError error, common::idx_
     };
 }
 
-idx_t defaultGetFileIdxFunc(const CopyFromFileError&) {
+static idx_t defaultGetFileIdxFunc(const CopyFromFileError&) {
     return 0;
 }
-} // namespace
 
 WarningContext::WarningContext(main::ClientConfig* clientConfig)
     : clientConfig(clientConfig), queryWarningCount(0), numStoredWarnings(0),
