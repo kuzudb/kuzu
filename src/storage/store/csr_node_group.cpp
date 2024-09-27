@@ -646,7 +646,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     initScanStateFromScanChunk(csrState, scanChunk, *scanState);
     auto dummyChunk = initScanDataChunk(csrState, dataTypes);
     for (auto i = 0u; i < dummyChunk.getNumValueVectors(); i++) {
-        dummyChunk.getValueVector(i)->setAllNull();
+        dummyChunk.getValueVectorMutable(i).setAllNull();
     }
 
     // Init data chunks to be appended and flushed.

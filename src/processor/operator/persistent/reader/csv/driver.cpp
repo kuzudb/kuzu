@@ -39,7 +39,7 @@ bool ParsingDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
         return true;
     }
     try {
-        function::CastString::copyStringToVector(chunk.getValueVector(columnIdx).get(), rowNum,
+        function::CastString::copyStringToVector(&chunk.getValueVectorMutable(columnIdx), rowNum,
             value, &reader->option);
     } catch (ConversionException& e) {
         reader->handleCopyException(e.what());
@@ -74,10 +74,10 @@ bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
             const auto& warningData = warningDataWithColumnInfo->data.values[i];
             const auto columnIdx = warningDataStartColumn + i;
             KU_ASSERT(columnIdx < chunk.getNumValueVectors());
-            const auto& vectorToSet = chunk.getValueVector(columnIdx);
+            auto& vectorToSet = chunk.getValueVectorMutable(columnIdx);
             std::visit(
                 [&vectorToSet, rowNum](
-                    auto warningDataField) { vectorToSet->setValue(rowNum, warningDataField); },
+                    auto warningDataField) { vectorToSet.setValue(rowNum, warningDataField); },
                 warningData);
         }
     }

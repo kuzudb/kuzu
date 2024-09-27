@@ -217,7 +217,7 @@ row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNod
     const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
     scanState->outState = scanChunk.state.get();
     scanState->rowIdxVector->state = scanChunk.state;
-    scanState->outputVectors.push_back(scanChunk.getValueVector(0).get());
+    scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
     scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     // TODO(Guodong): We assume intersectRows is smaller than 2048 here. Should handle edge case.
     for (auto i = 0u; i < intersectRows.size(); i++) {

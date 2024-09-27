@@ -24,13 +24,13 @@ struct CurrentSettingBindData final : public CallTableFuncBindData {
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto sharedState = data.sharedState->ptrCast<CallFuncSharedState>();
-    auto outputVector = dataChunk.getValueVector(0);
+    auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
     }
     auto currentSettingBindData = data.bindData->constPtrCast<CurrentSettingBindData>();
     auto pos = dataChunk.state->getSelVector()[0];
-    outputVector->setValue(pos, currentSettingBindData->result);
+    outputVector.setValue(pos, currentSettingBindData->result);
     return 1;
 }
 

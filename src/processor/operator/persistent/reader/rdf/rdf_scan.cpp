@@ -90,7 +90,7 @@ static std::unique_ptr<function::TableFuncBindData> RdfAllTripleScanBindFunc(mai
 
 static offset_t RdfResourceInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
-    auto sVector = output.dataChunk.getValueVector(0).get();
+    auto& sVector = output.dataChunk.getValueVectorMutable(0);
     auto vectorPos = 0u;
     // Scan resource triples
     auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
@@ -99,31 +99,31 @@ static offset_t RdfResourceInMemScanTableFunc(TableFuncInput& input, TableFuncOu
         // scan literal triples
         auto [lStartIdx, lNumTuplesToScan] = sharedState->getLiteralTripleRange();
         for (auto i = 0u; i < lNumTuplesToScan; ++i) {
-            StringVector::addString(sVector, vectorPos++, store.ltStore.subjects[lStartIdx + i]);
-            StringVector::addString(sVector, vectorPos++, store.ltStore.predicates[lStartIdx + i]);
+            StringVector::addString(&sVector, vectorPos++, store.ltStore.subjects[lStartIdx + i]);
+            StringVector::addString(&sVector, vectorPos++, store.ltStore.predicates[lStartIdx + i]);
         }
         return vectorPos;
     }
     for (auto i = 0u; i < rNumTuplesToScan; ++i) {
-        StringVector::addString(sVector, vectorPos++, store.rtStore.subjects[rStartIdx + i]);
-        StringVector::addString(sVector, vectorPos++, store.rtStore.predicates[rStartIdx + i]);
-        StringVector::addString(sVector, vectorPos++, store.rtStore.objects[rStartIdx + i]);
+        StringVector::addString(&sVector, vectorPos++, store.rtStore.subjects[rStartIdx + i]);
+        StringVector::addString(&sVector, vectorPos++, store.rtStore.predicates[rStartIdx + i]);
+        StringVector::addString(&sVector, vectorPos++, store.rtStore.objects[rStartIdx + i]);
     }
     return vectorPos;
 }
 
 static offset_t RdfLiteralInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
-    auto oVector = output.dataChunk.getValueVector(0).get();
-    auto langVector = output.dataChunk.getValueVector(1).get();
+    auto& oVector = output.dataChunk.getValueVectorMutable(0);
+    auto& langVector = output.dataChunk.getValueVectorMutable(1);
     auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& object = store.ltStore.objects[startIdx + i];
         auto& objectType = store.ltStore.objectTypes[startIdx + i];
         auto& lang = store.ltStore.langs[startIdx + i];
-        RdfUtils::addRdfLiteral(oVector, i, object, objectType);
-        StringVector::addString(langVector, i, lang);
+        RdfUtils::addRdfLiteral(&oVector, i, object, objectType);
+        StringVector::addString(&langVector, i, lang);
     }
     return numTuplesToScan;
 }
@@ -132,14 +132,14 @@ static offset_t RdfResourceTripleInMemScanTableFunc(TableFuncInput& input,
     TableFuncOutput& output) {
     auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getResourceTripleRange();
-    auto sVector = output.dataChunk.getValueVector(0).get();
-    auto pVector = output.dataChunk.getValueVector(1).get();
-    auto oVector = output.dataChunk.getValueVector(2).get();
+    auto& sVector = output.dataChunk.getValueVectorMutable(0);
+    auto& pVector = output.dataChunk.getValueVectorMutable(1);
+    auto& oVector = output.dataChunk.getValueVectorMutable(2);
     auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(sVector, i, store.rtStore.subjects[startIdx + i]);
-        StringVector::addString(pVector, i, store.rtStore.predicates[startIdx + i]);
-        StringVector::addString(oVector, i, store.rtStore.objects[startIdx + i]);
+        StringVector::addString(&sVector, i, store.rtStore.subjects[startIdx + i]);
+        StringVector::addString(&pVector, i, store.rtStore.predicates[startIdx + i]);
+        StringVector::addString(&oVector, i, store.rtStore.objects[startIdx + i]);
     }
     return numTuplesToScan;
 }
@@ -147,14 +147,14 @@ static offset_t RdfResourceTripleInMemScanTableFunc(TableFuncInput& input,
 static offset_t RdfLiteralTripleInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
-    auto sVector = output.dataChunk.getValueVector(0).get();
-    auto pVector = output.dataChunk.getValueVector(1).get();
-    auto oVector = output.dataChunk.getValueVector(2).get();
+    auto& sVector = output.dataChunk.getValueVectorMutable(0);
+    auto& pVector = output.dataChunk.getValueVectorMutable(1);
+    auto& oVector = output.dataChunk.getValueVectorMutable(2);
     auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(sVector, i, store.ltStore.subjects[startIdx + i]);
-        StringVector::addString(pVector, i, store.ltStore.predicates[startIdx + i]);
-        oVector->setValue(i, startIdx + i);
+        StringVector::addString(&sVector, i, store.ltStore.subjects[startIdx + i]);
+        StringVector::addString(&pVector, i, store.ltStore.predicates[startIdx + i]);
+        oVector.setValue(i, startIdx + i);
     }
     return numTuplesToScan;
 }

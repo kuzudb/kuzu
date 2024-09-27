@@ -48,24 +48,26 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             }
             if (property.getName() == rdf::PID) {
                 // Replace pid column with (virtual) iri column.
-                dataChunk.getValueVector(0)->setValue<int64_t>(vectorPos, -1);
-                dataChunk.getValueVector(1)->setValue(vectorPos,
+                dataChunk.getValueVectorMutable(0).setValue<int64_t>(vectorPos, -1);
+                dataChunk.getValueVectorMutable(1).setValue(vectorPos,
                     std::string(rdf::IRI) + " (Virtual)");
-                dataChunk.getValueVector(2)->setValue(vectorPos, LogicalType::STRING().toString());
+                dataChunk.getValueVectorMutable(2).setValue(vectorPos,
+                    LogicalType::STRING().toString());
                 vectorPos++;
                 continue;
             }
         }
-        dataChunk.getValueVector(0)->setValue(vectorPos,
+        dataChunk.getValueVectorMutable(0).setValue(vectorPos,
             tableEntry->getPropertyIdx(property.getName()));
-        dataChunk.getValueVector(1)->setValue(vectorPos, property.getName());
-        dataChunk.getValueVector(2)->setValue(vectorPos, property.getType().toString());
-        dataChunk.getValueVector(3)->setValue(vectorPos, property.getDefaultExpressionName());
+        dataChunk.getValueVectorMutable(1).setValue(vectorPos, property.getName());
+        dataChunk.getValueVectorMutable(2).setValue(vectorPos, property.getType().toString());
+        dataChunk.getValueVectorMutable(3).setValue(vectorPos, property.getDefaultExpressionName());
 
         if (tableEntry->getTableType() == TableType::NODE) {
             auto nodeTableEntry = tableEntry->constPtrCast<NodeTableCatalogEntry>();
             auto primaryKeyName = nodeTableEntry->getPrimaryKeyName();
-            dataChunk.getValueVector(4)->setValue(vectorPos, primaryKeyName == property.getName());
+            dataChunk.getValueVectorMutable(4).setValue(vectorPos,
+                primaryKeyName == property.getName());
         }
         vectorPos++;
     }

@@ -47,11 +47,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableInfo = tables[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, tableInfo.id);
-        dataChunk.getValueVector(1)->setValue(i, tableInfo.name);
-        dataChunk.getValueVector(2)->setValue(i, tableInfo.type);
-        dataChunk.getValueVector(3)->setValue(i, tableInfo.databaseName);
-        dataChunk.getValueVector(4)->setValue(i, tableInfo.comment);
+        dataChunk.getValueVectorMutable(0).setValue(i, tableInfo.id);
+        dataChunk.getValueVectorMutable(1).setValue(i, tableInfo.name);
+        dataChunk.getValueVectorMutable(2).setValue(i, tableInfo.type);
+        dataChunk.getValueVectorMutable(3).setValue(i, tableInfo.databaseName);
+        dataChunk.getValueVectorMutable(4).setValue(i, tableInfo.comment);
     }
     return numTablesToOutput;
 }
