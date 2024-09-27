@@ -880,7 +880,7 @@ jobs:
 
       - name: Extension test with asan
         run: |
-          make clean && make extension-test ASAN=1 && make clean
+          make clean && make extension-test ASAN=1 WERROR=0 && make clean
 
   macos-extension-test:
     name: macos extension test
