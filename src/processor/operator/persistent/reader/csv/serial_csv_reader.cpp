@@ -3,6 +3,7 @@
 #include "function/table/bind_data.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
+#include "dialect_detection.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
