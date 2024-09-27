@@ -121,8 +121,6 @@ public:
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
 
-    static void validatePropertyName(const std::vector<PropertyDefinition>& definitions);
-
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
@@ -292,6 +290,7 @@ public:
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
 
+    void validatePropertyName(const std::vector<PropertyDefinition>& definitions);
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
     void validateDropTable(const parser::Statement& dropTable);
