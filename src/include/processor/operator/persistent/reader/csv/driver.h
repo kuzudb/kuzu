@@ -89,7 +89,7 @@ public:
     void reset();
 
 public:
-    std::vector<common::idx_t> column_counts; 
+    std::vector<common::idx_t> column_counts;
     common::idx_t current_column_count = 0;
     bool error = false;
     common::idx_t result_position = 0;

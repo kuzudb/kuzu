@@ -418,8 +418,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
                 sniffDriver.error = true;
             } else {
                 [[unlikely]] handleCopyException("quote should be followed by "
-                                             "end of file, end of value, end of "
-                                             "row or another quote.");
+                                                 "end of file, end of value, end of "
+                                                 "row or another quote.");
             }
             goto ignore_error;
         }
@@ -443,7 +443,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
                 sniffDriver.error = true;
             } else {
-                [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+                [[unlikely]] handleCopyException(
+                    "neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
             }
             goto ignore_error;
         }

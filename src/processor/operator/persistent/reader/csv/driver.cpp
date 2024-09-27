@@ -122,7 +122,7 @@ bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t column
     std::string_view value) {
     (void)rowNum;
     (void)columnIdx;
-    (void)value; 
+    (void)value;
     current_column_count++;
     return true;
 }
@@ -138,7 +138,7 @@ bool SniffCSVDialectDriver::addRow(uint64_t rowNum, common::column_id_t columnCo
         current_column_count = 0;
         result_position++;
     }
-	return true;
+    return true;
 }
 
 bool SniffCSVDialectDriver::done(uint64_t rowNum) const {

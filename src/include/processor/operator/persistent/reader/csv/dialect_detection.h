@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/copier_config/csv_reader_config.h"
-
 #include <vector>
+
+#include "common/copier_config/csv_reader_config.h"
 
 using namespace kuzu::common;
 
@@ -23,4 +23,5 @@ struct DialectCandidates {
 };
 
 // Function to generate all combinations of dialect options
-std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candidates, const CSVOption& option);
+std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candidates,
+    const CSVOption& option);

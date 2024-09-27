@@ -44,19 +44,16 @@ struct CSVOption {
             delimiter, quoteChar, header);
     }
 
-        // Explicit copy constructor
-    CSVOption(const CSVOption& other) 
-        : escapeChar{other.escapeChar},
-          delimiter{other.delimiter},
-          quoteChar{other.quoteChar},
-          hasHeader{other.hasHeader},
-          skipNum{other.skipNum},
-          sampleSize{other.sampleSize == 0 ? CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE : other.sampleSize}, // Set to DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE if sampleSize is 0
-          allowUnbracedList{other.allowUnbracedList},
-          ignoreErrors{other.ignoreErrors},
-          setEscape{other.setEscape},
-          setDelim{other.setDelim},
-          setQuote{other.setQuote} {}
+    // Explicit copy constructor
+    CSVOption(const CSVOption& other)
+        : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
+          hasHeader{other.hasHeader}, skipNum{other.skipNum},
+          sampleSize{other.sampleSize == 0 ?
+                         CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE :
+                         other.sampleSize}, // Set to DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE if
+                                            // sampleSize is 0
+          allowUnbracedList{other.allowUnbracedList}, ignoreErrors{other.ignoreErrors},
+          setEscape{other.setEscape}, setDelim{other.setDelim}, setQuote{other.setQuote} {}
 };
 
 struct CSVReaderConfig {
