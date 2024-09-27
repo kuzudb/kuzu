@@ -93,7 +93,7 @@ offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     for (auto i = 0u; i < pandasScanData->columnNames.size(); i++) {
         if (!skips[i]) {
             pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
-                pandasLocalState->start, output.dataChunk.getValueVector(i).get());
+                pandasLocalState->start, &output.dataChunk.getValueVectorMutable(i));
         }
     }
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(numValuesToOutput);
