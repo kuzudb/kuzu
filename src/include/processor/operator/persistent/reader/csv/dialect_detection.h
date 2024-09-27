@@ -2,7 +2,6 @@
 
 #include "common/copier_config/csv_reader_config.h"
 
-#include <string>
 #include <vector>
 
 using namespace kuzu::common;

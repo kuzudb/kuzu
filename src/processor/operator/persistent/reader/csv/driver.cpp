@@ -114,20 +114,24 @@ SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
     : SerialParsingDriver(getDummyDataChunk(), reader) {
     auto& csvOption = reader->getCSVOption();
-    if (csvOption.sampleSize == 0){
-        //CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE
-    }
+    (void)bindInput;
     column_counts = std::vector<idx_t>(csvOption.sampleSize, 0);
 }
 
 bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
     std::string_view value) {
+    (void)rowNum;
+    (void)columnIdx;
+    (void)value; 
     current_column_count++;
     return true;
 }
 
 bool SniffCSVDialectDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
     std::optional<WarningDataWithColumnInfo> warningData) {
+    (void)rowNum;
+    (void)columnCount;
+    (void)warningData;
     auto& csvOption = reader->getCSVOption();
     if (result_position < csvOption.sampleSize) {
         column_counts[result_position] = current_column_count + 1;
@@ -138,6 +142,7 @@ bool SniffCSVDialectDriver::addRow(uint64_t rowNum, common::column_id_t columnCo
 }
 
 bool SniffCSVDialectDriver::done(uint64_t rowNum) const {
+    (void)rowNum;
     auto& csvOption = reader->getCSVOption();
     return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
 }
