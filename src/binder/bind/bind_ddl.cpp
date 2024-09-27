@@ -31,12 +31,16 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-static void validateUniquePropertyName(const std::vector<PropertyDefinition>& definitions) {
+void Binder::validatePropertyName(const std::vector<PropertyDefinition>& definitions) {
     common::case_insensitve_set_t nameSet;
     for (auto& definition : definitions) {
         if (nameSet.contains(definition.getName())) {
             throw BinderException(stringFormat(
                 "Duplicated column name: {}, column name must be unique.", definition.getName()));
+        }
+        if (reservedInColumnName(definition.getName())) {
+            throw BinderException(
+                stringFormat("{} is a reserved property name.", definition.getName()));
         }
         nameSet.insert(definition.getName());
     }
@@ -65,13 +69,7 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
         auto columnDefinition = ColumnDefinition(parsedDefinition.getName(), std::move(type));
         definitions.emplace_back(std::move(columnDefinition), std::move(expr));
     }
-    validateUniquePropertyName(definitions);
-    for (auto& definition : definitions) {
-        if (reservedInColumnName(definition.getName())) {
-            throw BinderException(
-                stringFormat("{} is a reserved property name.", definition.getName()));
-        }
-    }
+    validatePropertyName(definitions);
     return definitions;
 }
 
