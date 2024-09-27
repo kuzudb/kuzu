@@ -171,11 +171,15 @@ kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefiniti
 
 kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ;
 
+kU_PropertyDefinitionBeforeConstraint : kU_ColumnDefinition ( SP kU_Default )? ;
+
+kU_PropertyDefinitionAfterConstraint : kU_ColumnDefinition ( SP kU_Default )? ;
+
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
 kU_PropertyDefinitionWithConstraint: kU_ColumnDefinition ( SP kU_Default )? SP? PRIMARY SP KEY ;
 
-kU_PropertyDefinitionsWithConstraint : ( kU_PropertyDefinition ',' SP? )* kU_PropertyDefinitionWithConstraint ( SP? ',' SP? kU_PropertyDefinition)* ;
+kU_PropertyDefinitionsWithConstraint : ( kU_PropertyDefinitionBeforeConstraint ',' SP? )* kU_PropertyDefinitionWithConstraint ( SP? ',' SP? kU_PropertyDefinitionAfterConstraint)* ;
 
 DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 

@@ -288,9 +288,25 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
 std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
     CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx) {
     std::vector<ParsedPropertyDefinition> definitions;
+
+    // Getting all definitions before the element with constraint.
+    std::unique_ptr<ParsedExpression> defaultExpr;
+    for (auto& definition : ctx.kU_PropertyDefinitionBeforeConstraint()) {
+        auto columnDefinition = transformColumnDefinition(*definition->kU_ColumnDefinition());
+        if (definition->kU_Default()) {
+            defaultExpr = transformExpression(*definition->kU_Default()->oC_Expression());
+        } else {
+            auto type = LogicalType::convertFromString(columnDefinition.type, context);
+            defaultExpr = std::make_unique<ParsedLiteralExpression>(
+                Value::createNullValue(std::move(type)), "NULL");
+        }
+        definitions.push_back(
+            ParsedPropertyDefinition(std::move(columnDefinition), std::move(defaultExpr)));
+    }
+
+    // Getting the definition with constraint
     auto constraintPropertyDefinition = ctx.kU_PropertyDefinitionWithConstraint();
     auto constraintColumnDefinition = transformColumnDefinition(*constraintPropertyDefinition->kU_ColumnDefinition());
-    std::unique_ptr<ParsedExpression> defaultExpr;
     if (constraintPropertyDefinition->kU_Default()) {
         defaultExpr = transformExpression(*constraintPropertyDefinition->kU_Default()->oC_Expression());
     } else {
@@ -299,7 +315,9 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
             Value::createNullValue(std::move(type)), "NULL");
     }
     definitions.push_back(ParsedPropertyDefinition(std::move(constraintColumnDefinition), std::move(defaultExpr)));
-    for (auto& definition : ctx.kU_PropertyDefinition()) {
+    
+    // Getting all the definitions after the constraint.
+    for (auto& definition : ctx.kU_PropertyDefinitionAfterConstraint()) {
         auto columnDefinition = transformColumnDefinition(*definition->kU_ColumnDefinition());
         if (definition->kU_Default()) {
             defaultExpr = transformExpression(*definition->kU_Default()->oC_Expression());
