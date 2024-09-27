@@ -185,11 +185,11 @@ SerdStatus RdfResourceReader::handle(void* handle, SerdStatementFlags, const Ser
 }
 
 uint64_t RdfResourceReader::readToVector(DataChunk* dataChunk) {
-    auto rVector = dataChunk->getValueVector(0).get();
+    auto& rVector = dataChunk->getValueVectorMutable(0);
     auto& store = ku_dynamic_cast<ResourceStore&>(*store_);
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(rVector, i, store.resources[cursor + i]);
+        StringVector::addString(&rVector, i, store.resources[cursor + i]);
     }
     return numTuplesToScan;
 }
@@ -226,16 +226,16 @@ SerdStatus RdfLiteralReader::handle(void* handle, SerdStatementFlags, const Serd
 }
 
 uint64_t RdfLiteralReader::readToVector(common::DataChunk* dataChunk) {
-    auto lVector = dataChunk->getValueVector(0).get();
-    auto langVector = dataChunk->getValueVector(1).get();
+    auto& lVector = dataChunk->getValueVectorMutable(0);
+    auto& langVector = dataChunk->getValueVectorMutable(1);
     auto& store = store_->cast<LiteralStore>();
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& literal = store.literals[cursor + i];
         auto& type = store.literalTypes[cursor + i];
         auto& lang = store.langs[cursor + i];
-        RdfUtils::addRdfLiteral(lVector, i, literal, type);
-        StringVector::addString(langVector, i, lang);
+        RdfUtils::addRdfLiteral(&lVector, i, literal, type);
+        StringVector::addString(&langVector, i, lang);
     }
     numLiteralTriplesScanned += numTuplesToScan;
     return numTuplesToScan;
@@ -262,15 +262,15 @@ SerdStatus RdfResourceTripleReader::handle(void* handle, SerdStatementFlags, con
 }
 
 uint64_t RdfResourceTripleReader::readToVector(DataChunk* dataChunk) {
-    auto sVector = dataChunk->getValueVector(0).get();
-    auto pVector = dataChunk->getValueVector(1).get();
-    auto oVector = dataChunk->getValueVector(2).get();
+    auto& sVector = dataChunk->getValueVectorMutable(0);
+    auto& pVector = dataChunk->getValueVectorMutable(1);
+    auto& oVector = dataChunk->getValueVectorMutable(2);
     auto& store = store_->cast<ResourceTripleStore>();
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(sVector, i, store.subjects[cursor + i]);
-        StringVector::addString(pVector, i, store.predicates[cursor + i]);
-        StringVector::addString(oVector, i, store.objects[cursor + i]);
+        StringVector::addString(&sVector, i, store.subjects[cursor + i]);
+        StringVector::addString(&pVector, i, store.predicates[cursor + i]);
+        StringVector::addString(&oVector, i, store.objects[cursor + i]);
     }
     return numTuplesToScan;
 }
@@ -294,15 +294,15 @@ SerdStatus RdfLiteralTripleReader::handle(void* handle, SerdStatementFlags, cons
 }
 
 uint64_t RdfLiteralTripleReader::readToVector(DataChunk* dataChunk) {
-    auto sVector = dataChunk->getValueVector(0).get();
-    auto pVector = dataChunk->getValueVector(1).get();
-    auto oVector = dataChunk->getValueVector(2).get();
+    auto& sVector = dataChunk->getValueVectorMutable(0);
+    auto& pVector = dataChunk->getValueVectorMutable(1);
+    auto& oVector = dataChunk->getValueVectorMutable(2);
     auto& store = store_->cast<LiteralTripleStore>();
     auto numTuplesToScan = std::min(store.size() - cursor, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(sVector, i, store.subjects[cursor + i]);
-        StringVector::addString(pVector, i, store.predicates[cursor + i]);
-        oVector->setValue(i, startOffset + numLiteralTriplesScanned + i);
+        StringVector::addString(&sVector, i, store.subjects[cursor + i]);
+        StringVector::addString(&pVector, i, store.predicates[cursor + i]);
+        oVector.setValue(i, startOffset + numLiteralTriplesScanned + i);
     }
     numLiteralTriplesScanned += numTuplesToScan;
     return numTuplesToScan;
