@@ -32,19 +32,18 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     std::string pkName;
     if (ctx.kU_CreateNodeConstraint()) {
         pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
-    }
-    else if (ctx.kU_PropertyDefinitionsWithConstraint()) {
+    } else if (ctx.kU_PropertyDefinitionsWithConstraint()) {
         pkName = transformPrimaryKey(*ctx.kU_PropertyDefinitionsWithConstraint());
     }
     auto createTableInfo = CreateTableInfo(TableType::NODE, tableName,
         ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                common::ConflictAction::ON_CONFLICT_THROW);
     if (ctx.kU_PropertyDefinitionsWithConstraint()) {
-        createTableInfo.propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitionsWithConstraint());
-    }
-    else {
         createTableInfo.propertyDefinitions =
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());        
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitionsWithConstraint());
+    } else {
+        createTableInfo.propertyDefinitions =
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
@@ -306,16 +305,19 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
 
     // Getting the definition with constraint
     auto constraintPropertyDefinition = ctx.kU_PropertyDefinitionWithConstraint();
-    auto constraintColumnDefinition = transformColumnDefinition(*constraintPropertyDefinition->kU_ColumnDefinition());
+    auto constraintColumnDefinition =
+        transformColumnDefinition(*constraintPropertyDefinition->kU_ColumnDefinition());
     if (constraintPropertyDefinition->kU_Default()) {
-        defaultExpr = transformExpression(*constraintPropertyDefinition->kU_Default()->oC_Expression());
+        defaultExpr =
+            transformExpression(*constraintPropertyDefinition->kU_Default()->oC_Expression());
     } else {
         auto type = LogicalType::convertFromString(constraintColumnDefinition.type, context);
         defaultExpr = std::make_unique<ParsedLiteralExpression>(
             Value::createNullValue(std::move(type)), "NULL");
     }
-    definitions.push_back(ParsedPropertyDefinition(std::move(constraintColumnDefinition), std::move(defaultExpr)));
-    
+    definitions.push_back(
+        ParsedPropertyDefinition(std::move(constraintColumnDefinition), std::move(defaultExpr)));
+
     // Getting all the definitions after the constraint.
     for (auto& definition : ctx.kU_PropertyDefinitionAfterConstraint()) {
         auto columnDefinition = transformColumnDefinition(*definition->kU_ColumnDefinition());
@@ -340,11 +342,13 @@ std::string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstrai
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
 }
 
-std::string Transformer::transformPrimaryKey(CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx) {
+std::string Transformer::transformPrimaryKey(
+    CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx) {
     return transformPrimaryKey(*ctx.kU_PropertyDefinitionWithConstraint());
 }
 
-std::string Transformer::transformPrimaryKey(CypherParser::KU_PropertyDefinitionWithConstraintContext& ctx) {
+std::string Transformer::transformPrimaryKey(
+    CypherParser::KU_PropertyDefinitionWithConstraintContext& ctx) {
     return transformPrimaryKey(*ctx.kU_ColumnDefinition());
 }
 

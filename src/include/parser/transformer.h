@@ -223,7 +223,8 @@ private:
     ParsedColumnDefinition transformColumnDefinition(CypherParser::KU_ColumnDefinitionContext& ctx);
     std::vector<ParsedPropertyDefinition> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
-    std::vector<ParsedPropertyDefinition> transformPropertyDefinitions(CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx);
+    std::vector<ParsedPropertyDefinition> transformPropertyDefinitions(
+        CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx);
 
     // Transform standalone call.
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
