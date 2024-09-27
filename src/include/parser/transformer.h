@@ -82,9 +82,17 @@ private:
     // Transform reading.
     std::unique_ptr<ReadingClause> transformReadingClause(
         CypherParser::OC_ReadingClauseContext& ctx);
+    std::unique_ptr<ReadingClause> transformMandatoryReturnReadingClause(
+        CypherParser::OC_MandatoryReturnReadingClauseContext& ctx);
+    std::unique_ptr<ReadingClause> transformOptionalReturnReadingClause(
+        CypherParser::OC_OptionalReturnReadingClauseContext& ctx);
     std::unique_ptr<ReadingClause> transformMatch(CypherParser::OC_MatchContext& ctx);
     std::unique_ptr<ReadingClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
     std::unique_ptr<ReadingClause> transformInQueryCall(CypherParser::KU_InQueryCallContext& ctx);
+    std::unique_ptr<ReadingClause> transformInQueryBuiltInCall(
+        CypherParser::KU_InQueryBuiltInCallContext& ctx);
+    std::unique_ptr<ReadingClause> transformInQueryTableFunctionCall(
+        CypherParser::KU_InQueryTableFunctionCallContext& ctx);
     std::unique_ptr<ReadingClause> transformLoadFrom(CypherParser::KU_LoadFromContext& ctx);
     std::unique_ptr<ProjectGraph> transformProjectGraph(CypherParser::KU_ProjectGraphContext& ctx);
     std::shared_ptr<JoinHintNode> transformJoinHint(CypherParser::KU_JoinNodeContext& ctx);
@@ -167,6 +175,8 @@ private:
         CypherParser::OC_ParenthesizedExpressionContext& ctx);
     std::unique_ptr<ParsedExpression> transformFunctionInvocation(
         CypherParser::OC_FunctionInvocationContext& ctx);
+    std::unique_ptr<ParsedExpression> transformTableFunctionCall(
+        CypherParser::OC_TableFunctionCallContext& ctx);
     std::string transformFunctionName(CypherParser::OC_FunctionNameContext& ctx);
     std::vector<std::string> transformLambdaVariables(CypherParser::KU_LambdaVarsContext& ctx);
     std::unique_ptr<ParsedExpression> transformLambdaParameter(

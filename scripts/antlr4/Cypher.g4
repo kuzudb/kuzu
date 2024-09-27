@@ -6,6 +6,7 @@ grammar Cypher;
 
 // provide ad-hoc error messages for common syntax errors
 @parser::declarations {
+    virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {};
     virtual void notifyNodePatternWithoutParentheses(std::string nodeName, antlr4::Token* startToken) {};
     virtual void notifyInvalidNotEqualOperator(antlr4::Token* startToken) {};
     virtual void notifyEmptyToken(antlr4::Token* startToken) {};
@@ -279,7 +280,7 @@ kU_AttachDatabase
     : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_Options)? SP? ')' ;
 
 kU_Option
-    : oC_SymbolicName SP? '=' SP? oC_Literal ;
+    : oC_SymbolicName (SP? '=' SP? | SP*) oC_Literal | oC_SymbolicName;
 
 kU_Options
     : kU_Option ( SP? ',' SP? kU_Option )* ;
@@ -459,8 +460,10 @@ oC_SingleQuery
         ;
 
 oC_SinglePartQuery
-    : ( oC_ReadingClause SP? )* oC_Return?
+    : ( oC_MandatoryReturnReadingClause SP? )* oC_Return
+        | ( oC_OptionalReturnReadingClause SP? )* oC_Return?
         | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
+        | ( oC_MandatoryReturnReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
         ;
 
 oC_MultiPartQuery
@@ -476,17 +479,33 @@ oC_UpdatingClause
         | oC_Delete
         ;
 
-oC_ReadingClause
+oC_OptionalReturnReadingClause
+    : kU_InQueryTableFunctionCall;
+
+oC_MandatoryReturnReadingClause
     : oC_Match
         | oC_Unwind
-        | kU_InQueryCall
+        | kU_InQueryBuiltInCall
         | kU_LoadFrom
+        ;
+
+oC_ReadingClause
+    : oC_OptionalReturnReadingClause
+        | oC_MandatoryReturnReadingClause
         ;
 
 kU_LoadFrom
     :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 kU_InQueryCall
+    : kU_InQueryTableFunctionCall
+        | kU_InQueryBuiltInCall
+        ;
+
+kU_InQueryTableFunctionCall
+    : ( kU_ProjectGraph SP? )? CALL SP oC_TableFunctionCall (SP? oC_Where)? ;
+
+kU_InQueryBuiltInCall
     : ( kU_ProjectGraph SP? )? CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
 
 kU_GraphProjectionTableItem
@@ -726,6 +745,7 @@ oC_Atom
         | oC_CaseExpression
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
+        | oC_TableFunctionCall
         | oC_PathPatterns
         | oC_ExistSubquery
         | kU_CountSubquery
@@ -777,8 +797,10 @@ oC_ParenthesizedExpression
 
 oC_FunctionInvocation
     : COUNT SP? '(' SP? '*' SP? ')'
-        | CAST SP? '(' SP? kU_FunctionParameter SP? ( ( AS SP? kU_DataType ) | ( ',' SP? kU_FunctionParameter ) ) SP? ')'
-        | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
+        | CAST SP? '(' SP? kU_FunctionParameter SP? ( ( AS SP? kU_DataType ) | ( ',' SP? kU_FunctionParameter ) ) SP? ')' ;
+
+oC_TableFunctionCall
+    : oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
 
 oC_FunctionName
     : oC_SymbolicName ;
@@ -952,10 +974,6 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | WRITE
-        | SINGLE
-        | NONE
-        | ANY
-        | ALL
         ;
 
 UnescapedSymbolicName

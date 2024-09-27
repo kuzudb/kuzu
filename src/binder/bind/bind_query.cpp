@@ -67,8 +67,7 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
 }
 
 static void handleIllegalEmptyStatementResult(std::string_view name) {
-    throw BinderException(
-        stringFormat("Query with clause {} must conclude with RETURN clause", name));
+    throw BinderException(stringFormat("Function call {} must conclude with RETURN clause", name));
 }
 
 static void checkLegalEmptyStatementResult(const NormalizedQueryPart& lastQueryPart) {
@@ -77,9 +76,7 @@ static void checkLegalEmptyStatementResult(const NormalizedQueryPart& lastQueryP
     }
     for (idx_t i = 0; i < lastQueryPart.getNumReadingClause(); ++i) {
         const auto& readingClause = lastQueryPart.getReadingClause(i);
-        if (readingClause->getClauseType() != common::ClauseType::TABLE_FUNCTION_CALL) {
-            handleIllegalEmptyStatementResult("");
-        }
+        KU_ASSERT(readingClause->getClauseType() == common::ClauseType::TABLE_FUNCTION_CALL);
         const auto& inQueryCallClause = readingClause->constCast<const BoundTableFunctionCall&>();
         if (inQueryCallClause.getBindData()->getNumColumns() > 0) {
             handleIllegalEmptyStatementResult(inQueryCallClause.getTableFunc().name);

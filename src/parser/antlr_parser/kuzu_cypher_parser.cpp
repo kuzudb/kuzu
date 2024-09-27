@@ -5,6 +5,11 @@
 namespace kuzu {
 namespace parser {
 
+void KuzuCypherParser::notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {
+    auto errorMsg = "Query must conclude with RETURN clause";
+    notifyErrorListeners(startToken, errorMsg, nullptr);
+}
+
 void KuzuCypherParser::notifyNodePatternWithoutParentheses(std::string nodeName,
     antlr4::Token* startToken) {
     auto errorMsg =

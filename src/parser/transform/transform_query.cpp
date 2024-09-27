@@ -40,6 +40,12 @@ SingleQuery Transformer::transformSinglePartQuery(CypherParser::OC_SinglePartQue
     for (auto& readingClause : ctx.oC_ReadingClause()) {
         singleQuery.addReadingClause(transformReadingClause(*readingClause));
     }
+    for (auto& readingClause : ctx.oC_MandatoryReturnReadingClause()) {
+        singleQuery.addReadingClause(transformMandatoryReturnReadingClause(*readingClause));
+    }
+    for (auto& readingClause : ctx.oC_OptionalReturnReadingClause()) {
+        singleQuery.addReadingClause(transformOptionalReturnReadingClause(*readingClause));
+    }
     for (auto& updatingClause : ctx.oC_UpdatingClause()) {
         singleQuery.addUpdatingClause(transformUpdatingClause(*updatingClause));
     }
