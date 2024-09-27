@@ -6,7 +6,6 @@
 #include "common/data_chunk/data_chunk.h"
 #include "function/table/bind_input.h"
 #include "processor/warning_context.h"
-#include "dialect_detection.h"
 
 namespace kuzu {
 namespace main {
@@ -90,10 +89,10 @@ public:
     void reset();
 
 public:
-    std::vector<idx_t> column_counts; 
-    idx_t current_column_count = 0;
+    std::vector<common::idx_t> column_counts; 
+    common::idx_t current_column_count = 0;
     bool error = false;
-    idx_t result_position = 0;
+    common::idx_t result_position = 0;
     bool ever_quoted = false;
 };
 

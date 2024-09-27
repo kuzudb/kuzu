@@ -4,6 +4,7 @@
 #include "function/function.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
+#include "dialect_detection.h"
 
 namespace kuzu {
 namespace processor {
