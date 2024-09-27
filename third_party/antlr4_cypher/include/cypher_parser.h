@@ -1333,16 +1333,14 @@ public:
     OC_SinglePartQueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_ReturnContext *oC_Return();
-    std::vector<OC_MandatoryReturnReadingClauseContext *> oC_MandatoryReturnReadingClause();
-    OC_MandatoryReturnReadingClauseContext* oC_MandatoryReturnReadingClause(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-    std::vector<OC_OptionalReturnReadingClauseContext *> oC_OptionalReturnReadingClause();
-    OC_OptionalReturnReadingClauseContext* oC_OptionalReturnReadingClause(size_t i);
+    OC_OptionalReturnReadingClauseContext *oC_OptionalReturnReadingClause();
     std::vector<OC_UpdatingClauseContext *> oC_UpdatingClause();
     OC_UpdatingClauseContext* oC_UpdatingClause(size_t i);
+    OC_MandatoryReturnReadingClauseContext *oC_MandatoryReturnReadingClause();
     std::vector<OC_ReadingClauseContext *> oC_ReadingClause();
     OC_ReadingClauseContext* oC_ReadingClause(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };

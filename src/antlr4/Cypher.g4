@@ -237,11 +237,13 @@ oC_SingleQuery
         ;
 
 oC_SinglePartQuery
-    : ( oC_MandatoryReturnReadingClause SP? )* oC_Return
-        | ( oC_OptionalReturnReadingClause SP? )* oC_Return?
-        | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
-        | ( oC_MandatoryReturnReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
-        ;
+    : ( oC_ReadingClause SP? )*
+        (
+            oC_MandatoryReturnReadingClause? SP? oC_Return
+            | oC_OptionalReturnReadingClause SP? oC_Return?
+            | oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )?
+            | oC_MandatoryReturnReadingClause SP? { notifyQueryNotConcludeWithReturn($ctx->start); }
+        );
 
 oC_MultiPartQuery
     : ( kU_QueryPart SP? )+ oC_SinglePartQuery;
