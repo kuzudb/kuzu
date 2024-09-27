@@ -844,7 +844,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
-      ASAN_OPTIONS: detect_leaks=0
+      ASAN_OPTIONS: detect_leaks=1
 
     steps:
       - uses: actions/checkout@v4
@@ -877,6 +877,10 @@ jobs:
           HTTP_CACHE_FILE: false
         run: |
           make extension-test && make clean
+
+      - name: Extension test with asan
+        run: |
+          make clean && make extension-test ASAN=1 && make clean
 
   macos-extension-test:
     name: macos extension test
