@@ -70,7 +70,8 @@ public:
 
 private:
     void scan(common::nodeID_t nodeID, storage::RelTable* relTable,
-        OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState, GraphScanResult& result) const;
+        OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState,
+        GraphScanResult& result) const;
 
 private:
     main::ClientContext* context;

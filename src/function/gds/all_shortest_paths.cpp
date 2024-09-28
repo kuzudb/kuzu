@@ -20,9 +20,7 @@ namespace function {
 // TODO(Xiyang): optimize if edgeID is not needed.
 class ParentList {
 public:
-    ParentList(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) {
-        store(iter_, nodeID, edgeID);
-    }
+    ParentList(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) { store(iter_, nodeID, edgeID); }
 
     void store(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) {
         iter.store(iter_, std::memory_order_relaxed);
@@ -328,8 +326,8 @@ public:
         auto sourceNodeID = output->sourceNodeID;
         PathVectorWriter writer(pathNodeIDsVector.get(), pathEdgeIDsVector.get());
         dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
-        auto firstParent = bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-            std::memory_order_relaxed);
+        auto firstParent =
+            bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
 
         if (firstParent == nullptr) {
             // This case should only run for variable length joins.
@@ -462,8 +460,8 @@ struct AllSPLengthsEdgeCompute : public EdgeCompute {
         // the first time, i.e., when its value in the pathLengths frontier is
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
         // so it's value is curIter + 1.
-        auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                            nbrVal == frontierPair->pathLengths->getCurIter();
+        auto shouldUpdate =
+            nbrVal == PathLengths::UNVISITED || nbrVal == frontierPair->pathLengths->getCurIter();
         if (shouldUpdate) {
             // Note: This is safe because curNodeID is in the current frontier, so its
             // shortest paths multiplicity is guaranteed to not change in the current iteration.

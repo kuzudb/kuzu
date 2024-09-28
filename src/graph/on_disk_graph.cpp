@@ -19,7 +19,8 @@ namespace kuzu {
 namespace graph {
 
 static std::unique_ptr<RelTableScanState> getRelScanState(const RelTable& table,
-    RelDataDirection direction, ValueVector* srcVector, ValueVector* dstVector, ValueVector* relIDVector) {
+    RelDataDirection direction, ValueVector* srcVector, ValueVector* dstVector,
+    ValueVector* relIDVector) {
     auto columnIDs = std::vector<column_id_t>{NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     auto columns = std::vector<Column*>{};
     for (auto columnID : columnIDs) {
@@ -36,8 +37,10 @@ static std::unique_ptr<RelTableScanState> getRelScanState(const RelTable& table,
 
 OnDiskGraphScanState::OnDiskGraphScanState(const RelTable& table, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
-    fwdScanState = getRelScanState(table, RelDataDirection::FWD, srcNodeIDVector, dstNodeIDVector, relIDVector);
-    bwdScanState = getRelScanState(table, RelDataDirection::BWD, srcNodeIDVector, dstNodeIDVector, relIDVector);
+    fwdScanState = getRelScanState(table, RelDataDirection::FWD, srcNodeIDVector, dstNodeIDVector,
+        relIDVector);
+    bwdScanState = getRelScanState(table, RelDataDirection::BWD, srcNodeIDVector, dstNodeIDVector,
+        relIDVector);
 }
 
 OnDiskGraphScanStates::OnDiskGraphScanStates(std::span<RelTable*> tables, MemoryManager* mm) {
@@ -52,7 +55,8 @@ OnDiskGraphScanStates::OnDiskGraphScanStates(std::span<RelTable*> tables, Memory
     relIDVector->state = dstNodeIDVectorState;
 
     for (const auto table : tables) {
-        auto scanSate = OnDiskGraphScanState(*table, srcNodeIDVector.get(), dstNodeIDVector.get(), relIDVector.get());
+        auto scanSate = OnDiskGraphScanState(*table, srcNodeIDVector.get(), dstNodeIDVector.get(),
+            relIDVector.get());
         scanStates.emplace_back(table->getTableID(), std::move(scanSate));
     }
 }

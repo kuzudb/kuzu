@@ -75,7 +75,8 @@ std::shared_ptr<Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) co
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getPathEdgeIDsColumn(Binder* binder) const {
-    return binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME, LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    return binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
+        LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
 static void validateSPUpperBound(int64_t upperBound) {

@@ -232,7 +232,8 @@ class PathVectorWriter {
 public:
     // This is a temporary solution to provide backward compatibility for single shortest path.
     // TODO(Xiyang): remove this once we track properly for single shortest path.
-    explicit PathVectorWriter(common::ValueVector* nodeIDsVector) : nodeIDsVector{nodeIDsVector}, edgeIDsVector{nullptr} {}
+    explicit PathVectorWriter(common::ValueVector* nodeIDsVector)
+        : nodeIDsVector{nodeIDsVector}, edgeIDsVector{nullptr} {}
     PathVectorWriter(common::ValueVector* nodeIDsVector, common::ValueVector* edgeIDsVector)
         : nodeIDsVector{nodeIDsVector}, edgeIDsVector{edgeIDsVector} {}
     void beginWritingNewPath(uint64_t length) const;

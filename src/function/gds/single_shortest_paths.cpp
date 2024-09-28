@@ -149,8 +149,7 @@ protected:
         writer.beginWritingNewPath(length);
         common::nodeID_t nodeID = dstNodeID;
         for (auto i = 0; i < (int64_t)length - 1; ++i) {
-            nodeID =
-                rjOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths->getParent(nodeID);
+            nodeID = rjOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths->getParent(nodeID);
             writer.addNode(nodeID, length - 2 - i);
         }
         fTable.append(vectors);

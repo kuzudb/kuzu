@@ -69,7 +69,8 @@ public:
     common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
 
 protected:
-    void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset, common::offset_t _endOffsetExclusive) {
+    void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
+        common::offset_t _endOffsetExclusive) {
         tableID = _tableID;
         beginOffset = _beginOffset;
         endOffsetExclusive = _endOffsetExclusive;
