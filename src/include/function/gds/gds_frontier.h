@@ -4,12 +4,9 @@
 #include <mutex>
 
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
-namespace graph {
-class Graph;
-} // namespace graph
-
 namespace function {
 
 /**
@@ -92,9 +89,7 @@ class FrontierMorselDispatcher {
     static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
-    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec) : morselSize(UINT64_MAX) {
-        maxThreadsForExec.store(_maxThreadsForExec);
-    }
+    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec);
 
     void init(common::table_id_t _tableID, common::offset_t _numOffsets);
 
@@ -103,7 +98,7 @@ public:
 private:
     std::atomic<uint64_t> maxThreadsForExec;
     std::atomic<common::table_id_t> tableID;
-    std::atomic<uint64_t> numOffsets;
+    std::atomic<common::offset_t> numOffsets;
     std::atomic<common::offset_t> nextOffset;
     uint64_t morselSize;
 };
@@ -124,6 +119,94 @@ public:
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
+};
+
+/**
+ * A GDSFrontier implementation that keeps the lengths of the paths from a source node to
+ * destination nodes. This is a light-weight implementation that can keep lengths up to and
+ * including UINT16_MAX - 1. The length stored for the source node is 0. Length UINT16_MAX is
+ * reserved for marking nodes that are not visited. The lengths stored per node are effectively the
+ * iteration numbers that a node is visited. For example, if the running computation is shortest
+ * path, then the length stored is the shortest path length.
+ *
+ * Note: This class can be used to represent both the current and next frontierPair for shortest
+ * paths computations, which have the guarantee that a vertex is part of only one frontier level.
+ * Specifically, at iteration i of the shortest path algorithm (iterations start from 0), nodes with
+ * mask values i are in the current frontier. Nodes with any other values are not in the frontier.
+ * Similarly at iteration i setting a node u active sets its mask value to i+1. To enable this
+ * usage, this class contains functions to expose two frontierPair to users, e.g.,
+ * getMaskValueFromCur/NextFrontierFixedMask. In the case of shortest path computations, using this
+ * class to represent two frontierPair should be faster or take less space than keeping two separate
+ * frontierPair.
+ *
+ * However, this is not necessary and the caller can also use this to represent a single frontier.
+ */
+class PathLengths : public GDSFrontier {
+    friend class SinglePathLengthsFrontierPair;
+
+public:
+    static constexpr uint16_t UNVISITED = UINT16_MAX;
+
+    explicit PathLengths(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+        storage::MemoryManager* mm);
+
+    uint16_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
+        return getCurFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
+    }
+
+    uint16_t getMaskValueFromNextFrontierFixedMask(common::offset_t nodeOffset) {
+        return getNextFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
+    }
+
+    bool isActive(common::nodeID_t nodeID) override {
+        return getCurFrontierFixedMask()[nodeID.offset] ==
+               curIter.load(std::memory_order_relaxed) - 1;
+    }
+
+    void setActive(common::nodeID_t nodeID) override {
+        getNextFrontierFixedMask()[nodeID.offset].store(curIter.load(std::memory_order_relaxed),
+            std::memory_order_relaxed);
+    }
+
+    void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
+
+    void fixCurFrontierNodeTable(common::table_id_t tableID);
+
+    void fixNextFrontierNodeTable(common::table_id_t tableID);
+
+    uint64_t getNumNodesInCurFrontierFixedNodeTable() {
+        KU_ASSERT(curFrontierFixedMask.load(std::memory_order_relaxed) != nullptr);
+        return maxNodesInCurFrontierFixedMask.load(std::memory_order_relaxed);
+    }
+
+    uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
+
+private:
+    std::atomic<uint16_t>* getCurFrontierFixedMask() {
+        auto retVal = curFrontierFixedMask.load(std::memory_order_relaxed);
+        KU_ASSERT(retVal != nullptr);
+        return retVal;
+    }
+
+    std::atomic<uint16_t>* getNextFrontierFixedMask() {
+        auto retVal = nextFrontierFixedMask.load(std::memory_order_relaxed);
+        KU_ASSERT(retVal != nullptr);
+        return retVal;
+    }
+
+private:
+    // We do not need to make nodeTableIDAndNumNodesMap and masks atomic because they should only
+    // be accessed by functions that are called by the "master GDS thread" (so not accessed inside
+    // the parallel functions in GDSUtils, which are called by other "worker threads").
+    std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
+    // See FrontierPair::curIter. We keep a copy of curIter here because PathLengths stores
+    // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
+    std::atomic<uint16_t> curIter;
+    std::atomic<common::table_id_t> curTableID;
+    std::atomic<uint64_t> maxNodesInCurFrontierFixedMask;
+    std::atomic<std::atomic<uint16_t>*> curFrontierFixedMask;
+    std::atomic<std::atomic<uint16_t>*> nextFrontierFixedMask;
 };
 
 /**
@@ -156,7 +239,8 @@ public:
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
         common::table_id_t nextFrontierTableID) = 0;
 
-    common::idx_t getNextIter() { return curIter.load() + 1u; }
+    uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
+    uint16_t getNextIter() { return curIter.load() + 1u; }
 
     bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
 
@@ -178,6 +262,55 @@ protected:
     std::shared_ptr<GDSFrontier> curFrontier;
     std::shared_ptr<GDSFrontier> nextFrontier;
     uint64_t maxThreadsForExec;
+};
+
+class SinglePathLengthsFrontierPair : public FrontierPair {
+    friend class AllSPLengthsEdgeCompute;
+    friend class AllSPPathsEdgeCompute;
+    friend class SingleSPLengthsEdgeCompute;
+    friend class SingleSPPathsEdgeCompute;
+
+public:
+    explicit SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
+        uint64_t maxThreadsForExec)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
+              1 /* initial num active nodes */, maxThreadsForExec),
+          pathLengths{pathLengths}, morselDispatcher(maxThreadsForExec) {}
+
+    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
+
+    void initRJFromSource(common::nodeID_t source) override;
+
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) override;
+
+    void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
+
+private:
+    std::shared_ptr<PathLengths> pathLengths;
+    FrontierMorselDispatcher morselDispatcher;
+};
+
+class DoublePathLengthsFrontierPair : public FrontierPair {
+public:
+    DoublePathLengthsFrontierPair(
+        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+        uint64_t maxThreadsForExec, storage::MemoryManager* mm);
+
+    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
+
+    void initRJFromSource(common::nodeID_t source) override;
+
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) override;
+
+    void beginNewIterationInternalNoLock() override {
+        curFrontier->ptrCast<PathLengths>()->incrementCurIter();
+        nextFrontier->ptrCast<PathLengths>()->incrementCurIter();
+    }
+
+private:
+    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
 };
 
 } // namespace function
