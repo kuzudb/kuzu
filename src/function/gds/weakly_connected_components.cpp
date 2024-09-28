@@ -116,8 +116,10 @@ private:
         GraphScanState& scanState) {
         KU_ASSERT(!visitedMap.contains(nodeID));
         visitedMap.insert({nodeID, groupID});
-        auto nbrs = sharedState->graph->scanFwd(nodeID, scanState);
-        for (auto nbr : nbrs) {
+        auto scanResult = GraphScanResult();
+        sharedState->graph->scanFwd(nodeID, scanState, scanResult);
+        for (auto i = 0u; i < scanResult.size(); ++i) {
+            auto nbr = scanResult.nbrNodeIDs[i];
             if (visitedMap.contains(nbr)) {
                 continue;
             }

@@ -3,7 +3,16 @@
 --
 
 -CASE BasicAlgorithm
--SKIP
+
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID < 6
+           CALL VAR_LEN_JOINS(PK, a, 1, 2, true)
+           RETURN a.fName, COUNT(*);
+---- 4
+Alice|12
+Bob|12
+Carol|12
+Dan|12
 
 -STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- error

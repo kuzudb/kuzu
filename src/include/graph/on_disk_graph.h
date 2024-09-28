@@ -17,7 +17,8 @@ struct OnDiskGraphScanState {
     std::unique_ptr<storage::RelTableScanState> bwdScanState;
 
     explicit OnDiskGraphScanState(const storage::RelTable& table,
-        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector);
+        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+        common::ValueVector* relIDVector);
 };
 
 class OnDiskGraphScanStates : public GraphScanState {
@@ -31,6 +32,7 @@ private:
     std::shared_ptr<common::DataChunkState> dstNodeIDVectorState;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
+    std::unique_ptr<common::ValueVector> relIDVector;
 
     explicit OnDiskGraphScanStates(std::span<storage::RelTable*> tableIDs,
         storage::MemoryManager* mm);
@@ -59,17 +61,17 @@ public:
     std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(
         std::span<common::table_id_t> nodeTableIDs) override;
 
-    std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    void scanFwd(common::nodeID_t nodeID, GraphScanState& state, GraphScanResult& result) override;
     std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) override;
-    std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    void scanBwd(common::nodeID_t nodeID, GraphScanState& state, GraphScanResult& result) override;
     std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) override;
 
 private:
     void scan(common::nodeID_t nodeID, storage::RelTable* relTable,
         OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState,
-        std::vector<common::nodeID_t>& nbrNodeIDs) const;
+        GraphScanResult& result) const;
 
 private:
     main::ClientContext* context;

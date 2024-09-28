@@ -10,8 +10,11 @@
 -DATASET CSV gds-rec-joins-large
 
 --
+
+-CASE GDSLarge
+
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2):100, p1_3 (len 3): 1000, p1_4 (len 3): 100*20=2000, p1_4 (len 4): 1000*10=10000
--CASE VarLenJoins
+-LOG VarLenJoins
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 1, 30, true)
@@ -23,7 +26,7 @@
 4|10000
 
 # Layer by layer: p2_1 (len 1): 10, p1_2 (len 2):100, p2_3 (len 3): 1000, p2_4 (len 3): 100*20=2000, p1_4 (len 4): 1000 (from p2_3)*10=10000
--CASE VarLenJoinsMultilabel1
+-LOG VarLenJoinsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 1, 30, true)
@@ -35,7 +38,7 @@
 4|10000
 
 # Layer by layer distinct counts: p2_1: 10, p1_2: 10, p2_3: 10, p2_4: 10, p1:4: 10
--CASE VarLenJoinsMultilabel1CountDistinct
+-LOG VarLenJoinsMultilabel1CountDistinct
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 1, 30, true)
@@ -45,7 +48,7 @@
 
 # Layer by layer: p{i}_1 (len 1):10 (total 20), p{i}_2 (len 2) =20*10=200 (total 400), p{i}_3 (len 3): 400*10=4000 (total 8000)
 #                 p{i}_4 (len 3): 400*20=8000 (total 16000), p{i}_4 (len 4): 8000*10=80000 (total 160000). Note total len 3 = 16000+8000=24000
--CASE VarLenJoinsMultilabel2
+-LOG VarLenJoinsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 1, 30, true)
@@ -56,7 +59,7 @@
 3|24000
 4|160000
 
--CASE VarLenJoinsLowerBound1
+-LOG VarLenJoinsLowerBound1
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 2, 3, true)
@@ -65,7 +68,7 @@
 2|100
 3|3000
 
--CASE VarLenJoinsLowerBound2
+-LOG VarLenJoinsLowerBound2
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 4, 30, true)
@@ -73,7 +76,7 @@
 ---- 1
 4|10000
 
--CASE VarLenJoinsEmptyPaths
+-LOG VarLenJoinsEmptyPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 4
            CALL var_len_joins(PK, a, 1, 4, true)
@@ -82,7 +85,7 @@
 
 
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2): 100, p1_3 (len 3): 100*10=1000, p1:4 (len 3): 100*20=2000
--CASE AllSPDestinations
+-LOG AllSPDestinations
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_destinations(PK, a, 30, true)
@@ -91,7 +94,7 @@
 3110
 
 # Layer by layer: p1_1 (len 1): 10,  p2_2 (len 2): 100, p1_3 (len 3): 1000, p1_4 (len 3): 100*20=2000, p1_4 (len 4): 1000*10=10000
--CASE AllSPDestinationsMultilabel1
+-LOG AllSPDestinationsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_destinations(PK, a, 30, true)
@@ -101,7 +104,7 @@
 
 # Layer by layer: p{i}_1 (len 1): 10 (total 20), p{i}_2 (len 2): 100+100=200 (total 400), p{i}_3 (len 3): 2000+2000=4000 (total 8000)
 #                 p{i}_4 (len 3): 200*20 + 200*20=8000 (total 16000)
--CASE AllSPDestinationsMultilabel2
+-LOG AllSPDestinationsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_destinations(PK, a, 30, true)
@@ -110,7 +113,7 @@
 24420
 
 # See AllSPDestinations
--CASE AllSPLengths
+-LOG AllSPLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_lengths(PK, a, 30, true)
@@ -121,7 +124,7 @@
 3|3000
 
 # See AllSPDestinationsMultilabel1
--CASE AllSPLengthsMultilabel1
+-LOG AllSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_lengths(PK, a, 30, true)
@@ -133,7 +136,7 @@
 4|10000
 
 # See AllSPDestinationsMultilabel2
--CASE AllSPLengthsMultilabel2
+-LOG AllSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_lengths(PK, a, 30, true)
@@ -144,7 +147,7 @@
 3|24000
 
 # See AllSPDestinations. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
--CASE AllSPPaths
+-LOG AllSPPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_paths(PK, a, 5, true)
@@ -155,7 +158,7 @@
 2|3000
 
 # See AllSPDestinationsMultilabel2. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
--CASE AllSPPathsMultilabel1
+-LOG AllSPPathsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_paths(PK, a, 30, true)
@@ -167,7 +170,7 @@
 3|10000
 
 # See AllSPDestinationsMultilabel2. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
--CASE AllSPPathsMultilabel2
+-LOG AllSPPathsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_paths(PK, a, 30, true)
@@ -179,7 +182,7 @@
 
 
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2): 10, p1_3 (len 3): 10, p1:4 (len 3): 10
--CASE SingleSPDestinations
+-LOG SingleSPDestinations
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_destinations(PK, a, 30, true)
@@ -188,7 +191,7 @@
 40
 
 # Layer by layer: p1_1 (len 1): 10,  p2_2 (len 2): 10, p1_3 (len 3): 10, p1_4 (len 3): 10, p1_4 (len 4): 10
--CASE SingleSPDestinationsMultilabel1
+-LOG SingleSPDestinationsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_destinations(PK, a, 30, true)
@@ -197,7 +200,7 @@
 50
 
 # Layer by layer: p{i}_{j} (len j except when j=4 len is 3): 10
--CASE SingleSPDestinationsMultilabel2
+-LOG SingleSPDestinationsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_destinations(PK, a, 30, true)
@@ -206,7 +209,7 @@
 80
 
 # See SingleSPDestinations
--CASE SingleSPLengths
+-LOG SingleSPLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_lengths(PK, a, 30, true)
@@ -217,7 +220,7 @@
 3|20
 
 # See SingleSPDestinationsMultilabel1
--CASE SingleSPLengthsMultilabel1
+-LOG SingleSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_lengths(PK, a, 30, true)
@@ -229,7 +232,7 @@
 4|10
 
 # See SingleSPDestinationsMultilabel2
--CASE SingleSPLengthsMultilabel2
+-LOG SingleSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_lengths(PK, a, 30, true)
@@ -240,7 +243,7 @@
 3|40
 
 # See SingleSPDestinations. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
--CASE SingleSPPaths
+-LOG SingleSPPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_paths(PK, a, 5, true)
@@ -251,7 +254,7 @@
 2|20
 
 # See SingleSPDestinationsMultilabel1. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
--CASE SingleSPPathsMultilabel1
+-LOG SingleSPPathsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_paths(PK, a, 30, true)
@@ -263,7 +266,7 @@
 3|10
 
 # See SingleSPDestinationsMultilabel2. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
--CASE SingleSPPathsMultilabel2
+-LOG SingleSPPathsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_paths(PK, a, 30, true)

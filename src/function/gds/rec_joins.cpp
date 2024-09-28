@@ -65,12 +65,17 @@ expression_vector RJAlgorithm::getNodeIDResultColumns() const {
     return columns;
 }
 
-std::shared_ptr<binder::Expression> RJAlgorithm::getLengthColumn(Binder* binder) const {
+std::shared_ptr<Expression> RJAlgorithm::getLengthColumn(Binder* binder) const {
     return binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
 }
 
-std::shared_ptr<binder::Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
+std::shared_ptr<Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
     return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+        LogicalType::LIST(LogicalType::INTERNAL_ID()));
+}
+
+std::shared_ptr<Expression> RJAlgorithm::getPathEdgeIDsColumn(Binder* binder) const {
+    return binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
@@ -259,17 +264,32 @@ SPOutputs::SPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableI
     pathLengths = std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm);
 }
 
-void PathVectorWriter::beginWritingNewPath(uint64_t length) {
-    nextPathPos = length > 1 ? length - 1 : 0;
-    pathNodeIDsVector->resetAuxiliaryBuffer();
-    curPathListEntry = ListVector::addList(pathNodeIDsVector, nextPathPos);
-    pathNodeIDsVector->setValue(0, curPathListEntry);
+static void addListEntry(ValueVector* vector, uint64_t length) {
+    vector->resetAuxiliaryBuffer();
+    auto entry = ListVector::addList(vector, length);
+    KU_ASSERT(entry.offset == 0);
+    vector->setValue(0, entry);
 }
 
-void PathVectorWriter::addNewNodeID(nodeID_t curIntNode) {
-    ListVector::getDataVector(pathNodeIDsVector)
-        ->setValue(curPathListEntry.offset + nextPathPos - 1, curIntNode);
-    nextPathPos--;
+void PathVectorWriter::beginWritingNewPath(uint64_t length) const {
+    addListEntry(nodeIDsVector, length > 1 ? length - 1 : 0);
+    if (edgeIDsVector != nullptr) {
+        addListEntry(edgeIDsVector, length);
+    }
+}
+
+void PathVectorWriter::addNode(nodeID_t nodeID, sel_t pos) const {
+    ListVector::getDataVector(nodeIDsVector)->setValue(pos, nodeID);
+}
+
+void PathVectorWriter::addEdge(relID_t edgeID, sel_t pos) const {
+    ListVector::getDataVector(edgeIDsVector)->setValue(pos, edgeID);
+}
+
+void PathVectorWriter::addNodeEdge(nodeID_t nodeID, relID_t edgeID, sel_t pos) const {
+    KU_ASSERT(pos > 0);
+    ListVector::getDataVector(nodeIDsVector)->setValue(pos - 1, nodeID);
+    ListVector::getDataVector(edgeIDsVector)->setValue(pos, edgeID);
 }
 
 void SPOutputWriterDsts::writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t,

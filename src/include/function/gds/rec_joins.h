@@ -103,7 +103,7 @@ private:
     // See FrontierPair::curIter. We keep a copy of curIter here because PathLengths stores
     // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
     std::atomic<uint16_t> curIter;
-    std::atomic<table_id_t> curTableID;
+    std::atomic<common::table_id_t> curTableID;
     std::atomic<uint64_t> maxNodesInCurFrontierFixedMask;
     std::atomic<std::atomic<uint16_t>*> curFrontierFixedMask;
     std::atomic<std::atomic<uint16_t>*> nextFrontierFixedMask;
@@ -124,10 +124,10 @@ public:
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
 
-    void initRJFromSource(nodeID_t source) override;
+    void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override;
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) override;
 
     void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
 
@@ -146,10 +146,10 @@ public:
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
 
-    void initRJFromSource(nodeID_t source) override;
+    void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override;
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) override;
 
     void beginNewIterationInternalNoLock() override {
         curFrontier->ptrCast<PathLengths>()->incrementCurIter();
@@ -197,28 +197,28 @@ struct RJBindData final : public function::GDSBindData {
 
 struct RJOutputs {
 public:
-    explicit RJOutputs(nodeID_t sourceNodeID);
+    explicit RJOutputs(common::nodeID_t sourceNodeID);
     virtual ~RJOutputs() = default;
 
-    virtual void initRJFromSource(nodeID_t) {}
-    virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) = 0;
+    virtual void initRJFromSource(common::nodeID_t) {}
+    virtual void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) = 0;
     // This function is called after the recursive join computation stage, at the stage when the
     // outputs that are stored in RJOutputs is being written to FactorizedTable.
-    virtual void beginWritingOutputsForDstNodesInTable(table_id_t tableID) = 0;
+    virtual void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
 
 public:
-    nodeID_t sourceNodeID;
+    common::nodeID_t sourceNodeID;
 };
 
 struct SPOutputs : public RJOutputs {
 public:
     explicit SPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        nodeID_t sourceNodeID, storage::MemoryManager* mm);
+        common::nodeID_t sourceNodeID, storage::MemoryManager* mm);
 
 public:
     std::shared_ptr<PathLengths> pathLengths;
@@ -230,29 +230,34 @@ public:
  */
 class PathVectorWriter {
 public:
-    explicit PathVectorWriter(common::ValueVector* pathNodeIDsVector)
-        : pathNodeIDsVector{pathNodeIDsVector}, curPathListEntry{}, nextPathPos{0} {}
-    void beginWritingNewPath(uint64_t length);
-    void addNewNodeID(nodeID_t curIntNode);
+    // This is a temporary solution to provide backward compatibility for single shortest path.
+    // TODO(Xiyang): remove this once we track properly for single shortest path.
+    explicit PathVectorWriter(common::ValueVector* nodeIDsVector)
+        : nodeIDsVector{nodeIDsVector}, edgeIDsVector{nullptr} {}
+    PathVectorWriter(common::ValueVector* nodeIDsVector, common::ValueVector* edgeIDsVector)
+        : nodeIDsVector{nodeIDsVector}, edgeIDsVector{edgeIDsVector} {}
+    void beginWritingNewPath(uint64_t length) const;
+    void addNode(common::nodeID_t nodeID, common::sel_t pos) const;
+    void addEdge(common::relID_t edgeID, common::sel_t pos) const;
+    void addNodeEdge(common::nodeID_t nodeID, common::relID_t edgeID, common::sel_t pos) const;
 
 public:
-    common::ValueVector* pathNodeIDsVector;
-    list_entry_t curPathListEntry;
-    uint64_t nextPathPos;
+    common::ValueVector* nodeIDsVector;
+    common::ValueVector* edgeIDsVector;
 };
 
 class RJOutputWriter {
 public:
-    explicit RJOutputWriter(main::ClientContext* contex, RJOutputs* rjOutputs);
+    explicit RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs);
     virtual ~RJOutputWriter() = default;
 
-    void beginWritingForDstNodesInTable(table_id_t tableID) {
+    void beginWritingForDstNodesInTable(common::table_id_t tableID) {
         rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
     }
 
-    virtual bool skipWriting(nodeID_t dstNodeID) const = 0;
+    virtual bool skipWriting(common::nodeID_t dstNodeID) const = 0;
 
-    virtual void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const = 0;
+    virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const = 0;
 
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
@@ -276,7 +281,7 @@ struct RJCompState {
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter);
 
-    void initRJFromSource(nodeID_t sourceNodeID) const {
+    void initRJFromSource(common::nodeID_t sourceNodeID) const {
         frontierPair->initRJFromSource(sourceNodeID);
         outputs->initRJFromSource(sourceNodeID);
     }
@@ -290,8 +295,8 @@ struct RJCompState {
     // extensions are be given to the data structures of the computation, e.g., FrontierPairs and
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) const {
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) const {
         frontierPair->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
         outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
     }
@@ -302,9 +307,9 @@ public:
     explicit SPOutputWriterDsts(main::ClientContext* context, RJOutputs* rjOutputs)
         : RJOutputWriter(context, rjOutputs){};
 
-    void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const override;
+    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
 
-    bool skipWriting(nodeID_t dstNodeID) const override {
+    bool skipWriting(common::nodeID_t dstNodeID) const override {
         return dstNodeID == rjOutputs->ptrCast<SPOutputs>()->sourceNodeID ||
                PathLengths::UNVISITED ==
                    rjOutputs->ptrCast<SPOutputs>()
@@ -316,7 +321,7 @@ public:
     }
 
 protected:
-    virtual void writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+    virtual void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         uint16_t length) const;
 };
 
@@ -324,6 +329,7 @@ class RJAlgorithm : public GDSAlgorithm {
 protected:
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
+    static constexpr char PATH_EDGE_IDS_COLUMN_NAME[] = "pathEdgeIDs";
 
 public:
     RJAlgorithm() = default;
@@ -331,7 +337,7 @@ public:
 
     void exec(processor::ExecutionContext* executionContext) override;
     virtual RJCompState getRJCompState(processor::ExecutionContext* executionContext,
-        nodeID_t sourceNodeID) = 0;
+        common::nodeID_t sourceNodeID) = 0;
 
 protected:
     void validateLowerUpperBound(int64_t lowerBound, int64_t upperBound);
@@ -339,6 +345,7 @@ protected:
     binder::expression_vector getNodeIDResultColumns() const;
     std::shared_ptr<binder::Expression> getLengthColumn(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getPathNodeIDsColumn(binder::Binder* binder) const;
+    std::shared_ptr<binder::Expression> getPathEdgeIDsColumn(binder::Binder* binder) const;
 };
 
 class SPAlgorithm : public RJAlgorithm {
@@ -354,8 +361,9 @@ public:
      * upperBound::INT64
      * outputProperty::BOOL
      */
-    std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::BOOL};
+    std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
+        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
+            common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
     }
 
     void bind(const binder::expression_vector& params, binder::Binder* binder,

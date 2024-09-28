@@ -84,6 +84,7 @@ struct SingleSPOutputs : public SPOutputs {
 
 struct SingleSPOutputsPaths : public SPOutputs {
     std::unique_ptr<SinglePaths> singlePaths;
+
     explicit SingleSPOutputsPaths(
         std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
         common::nodeID_t sourceNodeID, MemoryManager* mm)
@@ -146,11 +147,10 @@ protected:
         lengthVector->setValue<int64_t>(0, length);
         PathVectorWriter writer(pathNodeIDsVector.get());
         writer.beginWritingNewPath(length);
-        common::nodeID_t curIntNode = dstNodeID;
-        while (writer.nextPathPos > 0) {
-            curIntNode =
-                rjOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths->getParent(curIntNode);
-            writer.addNewNodeID(curIntNode);
+        common::nodeID_t nodeID = dstNodeID;
+        for (auto i = 0; i < (int64_t)length - 1; ++i) {
+            nodeID = rjOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths->getParent(nodeID);
+            writer.addNode(nodeID, length - 2 - i);
         }
         fTable.append(vectors);
     }
@@ -164,7 +164,7 @@ struct SingleSPLengthsEdgeCompute : public EdgeCompute {
     explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* pathLengthsFrontiers)
         : pathLengthsFrontiers{pathLengthsFrontiers} {};
 
-    bool edgeCompute(common::nodeID_t, common::nodeID_t nbrID) override {
+    bool edgeCompute(common::nodeID_t, common::nodeID_t nbrID, relID_t) override {
         return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                    nbrID.offset) == PathLengths::UNVISITED;
     }
@@ -181,7 +181,7 @@ struct SingleSPPathsEdgeCompute : public SingleSPLengthsEdgeCompute {
         SinglePaths* singlePaths)
         : SingleSPLengthsEdgeCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
 
-    bool edgeCompute(common::nodeID_t curNodeID, common::nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID, relID_t) override {
         auto retVal = pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
                           nbrID.offset) == PathLengths::UNVISITED;
         if (retVal) {

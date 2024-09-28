@@ -17,16 +17,17 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
+// TODO(Xiyang): optimize if edgeID is not needed.
 class ParentList {
-    friend class ParentPtrsAtomics;
-
 public:
-    ParentList(uint16_t iter_, nodeID_t node) { store(iter_, node); }
+    ParentList(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) { store(iter_, nodeID, edgeID); }
 
-    void store(uint16_t iter_, nodeID_t node) {
+    void store(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) {
         iter.store(iter_, std::memory_order_relaxed);
-        nodeOffset.store(node.offset, std::memory_order_relaxed);
-        nodeTableID.store(node.tableID, std::memory_order_relaxed);
+        nodeOffset.store(nodeID.offset, std::memory_order_relaxed);
+        nodeTableID.store(nodeID.tableID, std::memory_order_relaxed);
+        edgeOffset.store(edgeID.offset, std::memory_order_relaxed);
+        edgeTableID.store(edgeID.tableID, std::memory_order_relaxed);
     }
 
     void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
@@ -39,6 +40,10 @@ public:
         return {nodeOffset.load(std::memory_order_relaxed),
             nodeTableID.load(std::memory_order_relaxed)};
     }
+    relID_t getEdgeID() {
+        return {edgeOffset.load(std::memory_order_relaxed),
+            edgeTableID.load(std::memory_order_relaxed)};
+    }
 
 private:
     // Iteration level
@@ -46,6 +51,9 @@ private:
     // Node information
     std::atomic<offset_t> nodeOffset;
     std::atomic<table_id_t> nodeTableID;
+    // Edge information
+    std::atomic<offset_t> edgeOffset;
+    std::atomic<table_id_t> edgeTableID;
     // Next pointer
     std::atomic<ParentList*> next;
 };
@@ -86,15 +94,15 @@ public:
 
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
     // function.
-    void addParent(uint16_t iter, ObjectBlock<ParentList>* parentPtrsBlock, common::nodeID_t child,
-        common::nodeID_t parent) {
+    void addParent(uint16_t iter, ObjectBlock<ParentList>* parentPtrsBlock, nodeID_t childNodeID,
+        nodeID_t parentNodeID, relID_t edgeID) {
         auto parentEdgePtr = parentPtrsBlock->reserveNext();
-        parentEdgePtr->store(iter, parent);
+        parentEdgePtr->store(iter, parentNodeID, edgeID);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
         KU_ASSERT(curPtr != nullptr);
         // Since by default the parentPtr of each node is nullptr, that's what we start with.
         ParentList* expected = nullptr;
-        while (!curPtr[child.offset].compare_exchange_strong(expected, parentEdgePtr))
+        while (!curPtr[childNodeID.offset].compare_exchange_strong(expected, parentEdgePtr))
             ;
         parentEdgePtr->setNextPtr(expected);
     }
@@ -295,7 +303,7 @@ private:
 
 class VarLenAndAllSPOutputWriterPaths : public RJOutputWriter {
 public:
-    explicit VarLenAndAllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs,
+    VarLenAndAllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs,
         uint16_t lowerBound, uint16_t upperBound)
         : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound} {
         lengthVector =
@@ -306,22 +314,28 @@ public:
             LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
         pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
         vectors.push_back(pathNodeIDsVector.get());
+        pathEdgeIDsVector = std::make_unique<ValueVector>(
+            LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
+        pathEdgeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
+        vectors.push_back(pathEdgeIDsVector.get());
     }
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override {
-        VarLenOrAllSPPathsOutputs* allSpOutputs = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
-        PathVectorWriter writer(pathNodeIDsVector.get());
-        auto firstParent = allSpOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-            std::memory_order_relaxed);
+        auto output = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
+        auto& bfsGraph = output->bfsGraph;
+        auto sourceNodeID = output->sourceNodeID;
+        PathVectorWriter writer(pathNodeIDsVector.get(), pathEdgeIDsVector.get());
+        dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
+        auto firstParent =
+            bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
+
         if (firstParent == nullptr) {
             // This case should only run for variable length joins.
-            dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
             lengthVector->setValue<int64_t>(0, 0);
             writer.beginWritingNewPath(0);
             fTable.append(vectors);
             return;
         }
-        dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
         lengthVector->setValue<int64_t>(0, firstParent->getIter());
         std::vector<ParentList*> curPath;
         curPath.push_back(firstParent);
@@ -329,13 +343,14 @@ public:
         while (!curPath.empty()) {
             auto top = curPath[curPath.size() - 1];
             auto topNodeID = top->getNodeID();
-            if (topNodeID == allSpOutputs->sourceNodeID) {
-                auto curPathSize = curPath.size();
-                writer.beginWritingNewPath(curPathSize);
-                while (writer.nextPathPos > 0) {
-                    writer.addNewNodeID(
-                        curPath[curPathSize - (writer.nextPathPos + 1)]->getNodeID());
+            if (topNodeID == sourceNodeID) {
+                writer.beginWritingNewPath(curPath.size());
+                for (auto i = 1u; i < curPath.size(); i++) {
+                    auto p = curPath[curPath.size() - 1 - i];
+                    writer.addNodeEdge(p->getNodeID(), p->getEdgeID(), i);
                 }
+                writer.addEdge(curPath[curPath.size() - 1]->getEdgeID(), 0);
+
                 fTable.append(vectors);
                 backtracking = true;
             }
@@ -365,7 +380,7 @@ public:
                     curPath.pop_back();
                 }
             } else {
-                auto parent = allSpOutputs->bfsGraph.getInitialParentAndNextPtr(topNodeID);
+                auto parent = bfsGraph.getInitialParentAndNextPtr(topNodeID);
                 while (parent->getIter() != top->getIter() - 1) {
                     parent = parent->getNextPtr();
                 }
@@ -380,6 +395,7 @@ protected:
     uint16_t upperBound;
     std::unique_ptr<common::ValueVector> lengthVector;
     std::unique_ptr<common::ValueVector> pathNodeIDsVector;
+    std::unique_ptr<common::ValueVector> pathEdgeIDsVector;
 };
 
 class AllSPOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
@@ -433,35 +449,34 @@ public:
 };
 
 struct AllSPLengthsEdgeCompute : public EdgeCompute {
-    explicit AllSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* pathLengthsFrontiers,
+    AllSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
         PathMultiplicities* multiplicities)
-        : pathLengthsFrontiers{pathLengthsFrontiers}, multiplicities{multiplicities} {};
+        : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
-    bool edgeCompute(common::nodeID_t curNodeID, common::nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrID, relID_t) override {
         auto nbrVal =
-            pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
+            frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
         // the first time, i.e., when its value in the pathLengths frontier is
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
         // so it's value is curIter + 1.
-        auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                            nbrVal == pathLengthsFrontiers->pathLengths->getCurIter();
+        auto shouldUpdate =
+            nbrVal == PathLengths::UNVISITED || nbrVal == frontierPair->pathLengths->getCurIter();
         if (shouldUpdate) {
             // Note: This is safe because curNodeID is in the current frontier, so its
             // shortest paths multiplicity is guaranteed to not change in the current iteration.
             multiplicities->incrementTargetMultiplicity(nbrID.offset,
-                multiplicities->getBoundMultiplicity(curNodeID.offset));
+                multiplicities->getBoundMultiplicity(boundNodeID.offset));
         }
         return nbrVal == PathLengths::UNVISITED;
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<AllSPLengthsEdgeCompute>(this->pathLengthsFrontiers,
-            this->multiplicities);
+        return std::make_unique<AllSPLengthsEdgeCompute>(frontierPair, multiplicities);
     }
 
 private:
-    SinglePathLengthsFrontierPair* pathLengthsFrontiers;
+    SinglePathLengthsFrontierPair* frontierPair;
     PathMultiplicities* multiplicities;
 };
 
@@ -475,9 +490,9 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
 
-    bool edgeCompute(common::nodeID_t curNodeID, common::nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
         auto nbrLen =
-            frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
+            frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
         // the first time, i.e., when its value in the pathLengths frontier is
         // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
@@ -489,7 +504,7 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
                 parentPtrsBlock = bfsGraph->addNewBlock();
             }
             bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
-                parentPtrsBlock, nbrID /* child */, curNodeID /* parent */);
+                parentPtrsBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
         }
         return nbrLen == PathLengths::UNVISITED;
     }
@@ -572,6 +587,7 @@ public:
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
+        columns.push_back(getPathEdgeIDsColumn(binder));
         return columns;
     }
 
@@ -606,13 +622,13 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
 
-    bool edgeCompute(common::nodeID_t curNodeID, common::nodeID_t nbrID) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
         // We should always update the nbrID in variable length joins
         if (!parentPtrsBlock->hasSpace()) {
             parentPtrsBlock = bfsGraph->addNewBlock();
         }
         bfsGraph->addParent(frontierPair->curIter.load(std::memory_order_relaxed), parentPtrsBlock,
-            nbrID /* child */, curNodeID /* parent */);
+            nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
         return true;
     }
 
@@ -661,6 +677,7 @@ public:
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
+        columns.push_back(getPathEdgeIDsColumn(binder));
         return columns;
     }
 

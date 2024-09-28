@@ -1,8 +1,9 @@
 #include "function/gds/gds_frontier.h"
+
 namespace kuzu {
 namespace function {
 
-void FrontierMorselDispatcher::init(table_id_t _tableID, common::offset_t _numOffsets) {
+void FrontierMorselDispatcher::init(common::table_id_t _tableID, common::offset_t _numOffsets) {
     tableID.store(_tableID);
     numOffsets.store(_numOffsets);
     nextOffset.store(0u);

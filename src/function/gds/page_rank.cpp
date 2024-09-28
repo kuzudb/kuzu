@@ -122,15 +122,19 @@ public:
         // Compute page rank.
         auto nodeTableIDs = graph->getNodeTableIDs();
         auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
+        auto scanResult = GraphScanResult();
+        auto otherScanResult = GraphScanResult();
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
             for (auto tableID : nodeTableIDs) {
                 for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
-                    auto nbrs = graph->scanFwd(nodeID, *scanState);
-                    for (auto& nbr : nbrs) {
-                        auto numNbrOfNbr = graph->scanFwd(nbr, *scanState).size();
+                    graph->scanFwd(nodeID, *scanState, scanResult);
+                    for (auto j = 0u; j < scanResult.size(); ++j) {
+                        auto nbr = scanResult.nbrNodeIDs[j];
+                        graph->scanFwd(nbr, *scanState, otherScanResult);
+                        auto numNbrOfNbr = otherScanResult.size();
                         if (numNbrOfNbr == 0) {
                             numNbrOfNbr = graph->getNumNodes();
                         }

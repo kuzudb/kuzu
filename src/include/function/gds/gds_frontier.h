@@ -5,8 +5,6 @@
 
 #include "common/types/types.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace graph {
 class Graph;
@@ -23,12 +21,13 @@ class EdgeCompute {
 public:
     virtual ~EdgeCompute() = default;
 
-    // Does any work that is needed while extending the (curNodeID, nbrID) edge. curNodeID is the
-    // nodeID that is in the current frontier and currently executing. Returns true if the neighbor
-    // should be put in the next frontier. So if the implementing class has access to the next
-    // frontier as a field, **do not** call setActive. Helper functions in GDSUtils will do that
-    // work.
-    virtual bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID) = 0;
+    // Does any work that is needed while extending the (boundNodeID, nbrNodeID, edgeID) edge.
+    // boundNodeID is the nodeID that is in the current frontier and currently executing.
+    // Returns true if the neighbor should be put in the next frontier.
+    // So if the implementing class has access to the next frontier as a field,
+    // **do not** call setActive. Helper functions in GDSUtils will do that work.
+    virtual bool edgeCompute(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
+        common::relID_t edgeID) = 0;
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };
@@ -41,7 +40,7 @@ public:
     // GDSUtils::runVertexComputeIteration function. runVertexComputeIteration loops through
     // each node table T on the graph on which vertexCompute should run and then before
     // parallelizing the computation on T calls this function.
-    virtual void beginOnTable(table_id_t) {}
+    virtual void beginOnTable(common::table_id_t) {}
 
     // This function is called by each worker thread T on each node in the morsel that T grabs.
     // Does any vertex-centric work that is needed while running on the curNodeID. This function
@@ -50,7 +49,7 @@ public:
     // GDSUtils helper functions call isActive on nodes to check if any work should be done for
     // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
     // the function on each node in a graph.
-    virtual void vertexCompute(nodeID_t curNodeID) = 0;
+    virtual void vertexCompute(common::nodeID_t curNodeID) = 0;
 
     // This function is called by each worker thread T once at the end of
     // GDSUtils::runVertexComputeIteration().
@@ -67,10 +66,11 @@ public:
 
     bool hasNextOffset() const { return nextOffset < endOffsetExclusive; }
 
-    nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
+    common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
 
 protected:
-    void initMorsel(table_id_t _tableID, offset_t _beginOffset, offset_t _endOffsetExclusive) {
+    void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
+        common::offset_t _endOffsetExclusive) {
         tableID = _tableID;
         beginOffset = _beginOffset;
         endOffsetExclusive = _endOffsetExclusive;
@@ -78,10 +78,10 @@ protected:
     }
 
 private:
-    table_id_t tableID = INVALID_TABLE_ID;
-    offset_t beginOffset = INVALID_OFFSET;
-    offset_t endOffsetExclusive = INVALID_OFFSET;
-    offset_t nextOffset = INVALID_OFFSET;
+    common::table_id_t tableID = common::INVALID_TABLE_ID;
+    common::offset_t beginOffset = common::INVALID_OFFSET;
+    common::offset_t endOffsetExclusive = common::INVALID_OFFSET;
+    common::offset_t nextOffset = common::INVALID_OFFSET;
 };
 
 class FrontierMorselDispatcher {
@@ -96,15 +96,15 @@ public:
         maxThreadsForExec.store(_maxThreadsForExec);
     }
 
-    void init(table_id_t _tableID, common::offset_t _numOffsets);
+    void init(common::table_id_t _tableID, common::offset_t _numOffsets);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
 
 private:
     std::atomic<uint64_t> maxThreadsForExec;
-    std::atomic<table_id_t> tableID;
+    std::atomic<common::table_id_t> tableID;
     std::atomic<uint64_t> numOffsets;
-    std::atomic<offset_t> nextOffset;
+    std::atomic<common::offset_t> nextOffset;
     uint64_t morselSize;
 };
 
@@ -118,8 +118,8 @@ private:
 class GDSFrontier {
 public:
     virtual ~GDSFrontier() = default;
-    virtual bool isActive(nodeID_t nodeID) = 0;
-    virtual void setActive(nodeID_t nodeID) = 0;
+    virtual bool isActive(common::nodeID_t nodeID) = 0;
+    virtual void setActive(common::nodeID_t nodeID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
@@ -151,12 +151,12 @@ public:
     }
     void beginNewIteration();
 
-    virtual void initRJFromSource(nodeID_t source) = 0;
+    virtual void initRJFromSource(common::nodeID_t source) = 0;
 
-    virtual void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) = 0;
+    virtual void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) = 0;
 
-    idx_t getNextIter() { return curIter.load() + 1u; }
+    common::idx_t getNextIter() { return curIter.load() + 1u; }
 
     bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
 
