@@ -110,7 +110,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
         localState.dummyAllNullDataChunk->state->getSelVectorUnsafe().setSelSize(numGapsToFill);
         std::vector<ValueVector*> dummyVectors;
         for (auto i = 0u; i < relInfo.columnTypes.size(); i++) {
-            dummyVectors.push_back(localState.dummyAllNullDataChunk->getValueVector(i).get());
+            dummyVectors.push_back(&localState.dummyAllNullDataChunk->getValueVectorMutable(i));
         }
         const auto numGapsFilled = localState.chunkedGroup->append(&transaction::DUMMY_TRANSACTION,
             dummyVectors, 0, numGapsToFill);

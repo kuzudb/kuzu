@@ -9,12 +9,12 @@ namespace function {
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
-    auto outputVector = dataChunk.getValueVector(0);
+    auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
     }
     auto pos = dataChunk.state->getSelVector()[0];
-    outputVector->setValue(pos, std::string(KUZU_VERSION));
+    outputVector.setValue(pos, std::string(KUZU_VERSION));
     return 1;
 }
 

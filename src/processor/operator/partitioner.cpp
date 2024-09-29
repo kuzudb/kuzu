@@ -171,7 +171,7 @@ void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
     std::vector<ValueVector*> vectorsToAppend;
     vectorsToAppend.reserve(chunkToCopyFrom.getNumValueVectors());
     for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
-        vectorsToAppend.push_back(chunkToCopyFrom.getValueVector(j).get());
+        vectorsToAppend.push_back(&chunkToCopyFrom.getValueVectorMutable(j));
     }
     for (auto i = 0u; i < chunkToCopyFrom.state->getSelVector().getSelSize(); i++) {
         const auto posToCopyFrom = chunkToCopyFrom.state->getSelVector()[i];

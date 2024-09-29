@@ -115,7 +115,8 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
     for (auto i = 0u; i < arrowScanData->columnTypes.size(); i++) {
         if (!skipCols[i]) {
             common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
-                arrowLocalState->arrowArray->children[i], *output.dataChunk.getValueVector(i));
+                arrowLocalState->arrowArray->children[i],
+                output.dataChunk.getValueVectorMutable(i));
         }
     }
     auto len = arrowLocalState->arrowArray->length;

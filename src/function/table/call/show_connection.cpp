@@ -46,10 +46,10 @@ static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t output
     auto srcTablePrimaryKey = srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     auto dstTablePrimaryKey = dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     // Write result to dataChunk
-    outputDataChunk.getValueVector(0)->setValue(outputPos, srcTableName);
-    outputDataChunk.getValueVector(1)->setValue(outputPos, dstTableName);
-    outputDataChunk.getValueVector(2)->setValue(outputPos, srcTablePrimaryKey);
-    outputDataChunk.getValueVector(3)->setValue(outputPos, dstTablePrimaryKey);
+    outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcTableName);
+    outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstTableName);
+    outputDataChunk.getValueVectorMutable(2).setValue(outputPos, srcTablePrimaryKey);
+    outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstTablePrimaryKey);
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {

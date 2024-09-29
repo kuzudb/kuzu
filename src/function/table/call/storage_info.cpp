@@ -122,21 +122,22 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, Dat
     }
     }
     auto& columnType = chunkData.getDataType();
-    outputChunk.getValueVector(0)->setValue(vectorPos, outputData.tableType);
-    outputChunk.getValueVector(1)->setValue<uint64_t>(vectorPos, outputData.nodeGroupIdx);
-    outputChunk.getValueVector(2)->setValue<uint64_t>(vectorPos, outputData.chunkIdx);
-    outputChunk.getValueVector(3)->setValue(vectorPos, ResidencyStateUtils::toString(residency));
-    outputChunk.getValueVector(4)->setValue(vectorPos,
+    outputChunk.getValueVectorMutable(0).setValue(vectorPos, outputData.tableType);
+    outputChunk.getValueVectorMutable(1).setValue<uint64_t>(vectorPos, outputData.nodeGroupIdx);
+    outputChunk.getValueVectorMutable(2).setValue<uint64_t>(vectorPos, outputData.chunkIdx);
+    outputChunk.getValueVectorMutable(3).setValue(vectorPos,
+        ResidencyStateUtils::toString(residency));
+    outputChunk.getValueVectorMutable(4).setValue(vectorPos,
         outputData.columns[outputData.columnIdx++]->getName());
-    outputChunk.getValueVector(5)->setValue(vectorPos, columnType.toString());
-    outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.pageIdx);
-    outputChunk.getValueVector(7)->setValue<uint64_t>(vectorPos, metadata.numPages);
-    outputChunk.getValueVector(8)->setValue<uint64_t>(vectorPos, metadata.numValues);
+    outputChunk.getValueVectorMutable(5).setValue(vectorPos, columnType.toString());
+    outputChunk.getValueVectorMutable(6).setValue<uint64_t>(vectorPos, metadata.pageIdx);
+    outputChunk.getValueVectorMutable(7).setValue<uint64_t>(vectorPos, metadata.numPages);
+    outputChunk.getValueVectorMutable(8).setValue<uint64_t>(vectorPos, metadata.numValues);
 
     auto customToString = [&]<typename T>(T) {
-        outputChunk.getValueVector(9)->setValue(vectorPos,
+        outputChunk.getValueVectorMutable(9).setValue(vectorPos,
             std::to_string(metadata.compMeta.min.get<T>()));
-        outputChunk.getValueVector(10)->setValue(vectorPos,
+        outputChunk.getValueVectorMutable(10).setValue(vectorPos,
             std::to_string(metadata.compMeta.max.get<T>()));
     };
     auto physicalType = columnType.getPhysicalType();
@@ -149,18 +150,19 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, Dat
         {
             auto min = metadata.compMeta.min.get<T>();
             auto max = metadata.compMeta.max.get<T>();
-            outputChunk.getValueVector(9)->setValue(vectorPos,
+            outputChunk.getValueVectorMutable(9).setValue(vectorPos,
                 TypeUtils::entryToString(columnType, (uint8_t*)&min,
-                    outputChunk.getValueVector(9).get()));
-            outputChunk.getValueVector(10)->setValue(vectorPos,
+                    &outputChunk.getValueVectorMutable(9)));
+            outputChunk.getValueVectorMutable(10).setValue(vectorPos,
                 TypeUtils::entryToString(columnType, (uint8_t*)&max,
-                    outputChunk.getValueVector(10).get()));
+                    &outputChunk.getValueVectorMutable(10)));
         },
         // Types which don't support statistics.
         // types not supported by TypeUtils::visit can
         // also be ignored since we don't track statistics for them
         [](int128_t) {}, [](struct_entry_t) {}, [](interval_t) {});
-    outputChunk.getValueVector(11)->setValue(vectorPos, metadata.compMeta.toString(physicalType));
+    outputChunk.getValueVectorMutable(11).setValue(vectorPos,
+        metadata.compMeta.toString(physicalType));
     outputChunk.state->getSelVectorUnsafe().incrementSelSize();
     if (columnType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
         ignoreNull = true;
@@ -251,10 +253,10 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             auto& chunk = localState->dataChunkCollection->getChunkUnsafe(localState->currChunkIdx);
             auto numValuesToOutput = chunk.state->getSelVector().getSelSize();
             for (auto columnIdx = 0u; columnIdx < dataChunk.getNumValueVectors(); columnIdx++) {
-                auto localVector = chunk.getValueVector(columnIdx);
-                auto outputVector = dataChunk.getValueVector(columnIdx);
+                const auto& localVector = chunk.getValueVector(columnIdx);
+                auto& outputVector = dataChunk.getValueVectorMutable(columnIdx);
                 for (auto i = 0u; i < numValuesToOutput; i++) {
-                    outputVector->copyFromVectorData(i, localVector.get(), i);
+                    outputVector.copyFromVectorData(i, &localVector, i);
                 }
             }
             dataChunk.state->getSelVectorUnsafe().setToUnfiltered(numValuesToOutput);

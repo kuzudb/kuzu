@@ -33,8 +33,11 @@ public:
 
     inline uint32_t getNumValueVectors() const { return valueVectors.size(); }
 
-    inline const std::shared_ptr<ValueVector>& getValueVector(uint64_t valueVectorPos) const {
-        return valueVectors[valueVectorPos];
+    inline const ValueVector& getValueVector(uint64_t valueVectorPos) const {
+        return *valueVectors[valueVectorPos];
+    }
+    inline ValueVector& getValueVectorMutable(uint64_t valueVectorPos) const {
+        return *valueVectors[valueVectorPos];
     }
 
 public:

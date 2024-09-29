@@ -142,10 +142,10 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, DataChunk& resul
             continue;
         }
         auto fileColIdx = colIdx;
-        const auto& resultVector = result.getValueVector(colIdx);
+        auto& resultVector = result.getValueVectorMutable(colIdx);
         auto childReader = rootReader->getChildReader(fileColIdx);
-        auto rowsRead = childReader->read(resultVector->state->getSelVector().getSelSize(),
-            filterMask, definePtr, repeatPtr, resultVector.get());
+        auto rowsRead = childReader->read(resultVector.state->getSelVector().getSelSize(),
+            filterMask, definePtr, repeatPtr, &resultVector);
         // LCOV_EXCL_START
         if (rowsRead != result.state->getSelVector().getSelSize()) {
             throw CopyException(

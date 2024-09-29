@@ -48,13 +48,13 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numSequencesToOutput; i++) {
         auto sequenceInfo = sequences[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, sequenceInfo.name);
-        dataChunk.getValueVector(1)->setValue(i, sequenceInfo.databaseName);
-        dataChunk.getValueVector(2)->setValue(i, sequenceInfo.startValue);
-        dataChunk.getValueVector(3)->setValue(i, sequenceInfo.increment);
-        dataChunk.getValueVector(4)->setValue(i, sequenceInfo.minValue);
-        dataChunk.getValueVector(5)->setValue(i, sequenceInfo.maxValue);
-        dataChunk.getValueVector(6)->setValue(i, sequenceInfo.cycle);
+        dataChunk.getValueVectorMutable(0).setValue(i, sequenceInfo.name);
+        dataChunk.getValueVectorMutable(1).setValue(i, sequenceInfo.databaseName);
+        dataChunk.getValueVectorMutable(2).setValue(i, sequenceInfo.startValue);
+        dataChunk.getValueVectorMutable(3).setValue(i, sequenceInfo.increment);
+        dataChunk.getValueVectorMutable(4).setValue(i, sequenceInfo.minValue);
+        dataChunk.getValueVectorMutable(5).setValue(i, sequenceInfo.maxValue);
+        dataChunk.getValueVectorMutable(6).setValue(i, sequenceInfo.cycle);
     }
     return numSequencesToOutput;
 }

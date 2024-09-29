@@ -20,8 +20,8 @@ void DataChunkCollection::append(DataChunk& chunk) {
             for (auto i = 0u; i < numTuplesToCopy; i++) {
                 auto srcPos = chunk.state->getSelVector()[numTuplesAppended + i];
                 auto dstPos = chunkToAppend.state->getSelVector().getSelSize() + i;
-                chunkToAppend.getValueVector(vectorIdx)->copyFromVectorData(dstPos,
-                    chunk.getValueVector(vectorIdx).get(), srcPos);
+                chunkToAppend.getValueVectorMutable(vectorIdx).copyFromVectorData(dstPos,
+                    &chunk.getValueVector(vectorIdx), srcPos);
             }
         }
         chunkToAppend.state->getSelVectorUnsafe().incrementSelSize(numTuplesToCopy);
@@ -35,7 +35,7 @@ void DataChunkCollection::merge(DataChunk chunk) {
     }
     KU_ASSERT(chunk.getNumValueVectors() == types.size());
     for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-        KU_ASSERT(chunk.getValueVector(vectorIdx)->dataType == types[vectorIdx]);
+        KU_ASSERT(chunk.getValueVector(vectorIdx).dataType == types[vectorIdx]);
     }
     chunks.push_back(std::move(chunk));
 }
@@ -44,7 +44,7 @@ void DataChunkCollection::initTypes(DataChunk& chunk) {
     types.clear();
     types.reserve(chunk.getNumValueVectors());
     for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-        types.push_back(chunk.getValueVector(vectorIdx)->dataType.copy());
+        types.push_back(chunk.getValueVector(vectorIdx).dataType.copy());
     }
 }
 
@@ -52,7 +52,7 @@ void DataChunkCollection::allocateChunk(DataChunk& chunk) {
     if (chunks.empty()) {
         types.reserve(chunk.getNumValueVectors());
         for (auto vectorIdx = 0u; vectorIdx < chunk.getNumValueVectors(); vectorIdx++) {
-            types.push_back(chunk.getValueVector(vectorIdx)->dataType.copy());
+            types.push_back(chunk.getValueVector(vectorIdx).dataType.copy());
         }
     }
     DataChunk newChunk(types.size(), std::make_shared<DataChunkState>());

@@ -189,7 +189,7 @@ static void convertDuckDBResultToVector(duckdb::DataChunk& duckDBResult, DataChu
             KU_ASSERT(duckDBResult.data[duckdbResultColIdx].GetVectorType() ==
                       duckdb::VectorType::FLAT_VECTOR);
             bindData.conversionFunctions[i](duckDBResult.data[duckdbResultColIdx],
-                *result.getValueVector(i), result.state->getSelVector().getSelSize());
+                result.getValueVectorMutable(i), result.state->getSelVector().getSelSize());
             duckdbResultColIdx++;
         }
     }

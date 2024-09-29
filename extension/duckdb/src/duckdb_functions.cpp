@@ -19,7 +19,7 @@ static offset_t clearCacheTableFunc(TableFuncInput& input, TableFuncOutput& outp
     }
     auto bindData = input.bindData->constPtrCast<ClearCacheBindData>();
     bindData->databaseManager->invalidateCache();
-    dataChunk.getValueVector(0)->setValue<std::string>(0,
+    dataChunk.getValueVectorMutable(0).setValue<std::string>(0,
         "All attached database caches have been cleared.");
     return 1;
 }

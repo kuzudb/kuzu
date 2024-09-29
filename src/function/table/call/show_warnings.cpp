@@ -32,11 +32,11 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numWarningsToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numWarningsToOutput; i++) {
         auto tableInfo = warnings[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, tableInfo.queryID);
-        dataChunk.getValueVector(1)->setValue(i, tableInfo.warning.message);
-        dataChunk.getValueVector(2)->setValue(i, tableInfo.warning.filePath);
-        dataChunk.getValueVector(3)->setValue(i, tableInfo.warning.lineNumber);
-        dataChunk.getValueVector(4)->setValue(i, tableInfo.warning.skippedLineOrRecord);
+        dataChunk.getValueVectorMutable(0).setValue(i, tableInfo.queryID);
+        dataChunk.getValueVectorMutable(1).setValue(i, tableInfo.warning.message);
+        dataChunk.getValueVectorMutable(2).setValue(i, tableInfo.warning.filePath);
+        dataChunk.getValueVectorMutable(3).setValue(i, tableInfo.warning.lineNumber);
+        dataChunk.getValueVectorMutable(4).setValue(i, tableInfo.warning.skippedLineOrRecord);
     }
     return numWarningsToOutput;
 }

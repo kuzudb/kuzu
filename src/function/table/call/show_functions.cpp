@@ -41,9 +41,9 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numSequencesToOutput; i++) {
         auto FunctionInfo = sequences[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, FunctionInfo.name);
-        dataChunk.getValueVector(1)->setValue(i, FunctionInfo.type);
-        dataChunk.getValueVector(2)->setValue(i, FunctionInfo.signature);
+        dataChunk.getValueVectorMutable(0).setValue(i, FunctionInfo.name);
+        dataChunk.getValueVectorMutable(1).setValue(i, FunctionInfo.type);
+        dataChunk.getValueVectorMutable(2).setValue(i, FunctionInfo.signature);
     }
     return numSequencesToOutput;
 }
