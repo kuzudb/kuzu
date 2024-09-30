@@ -15,7 +15,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planSingleQuery(
     auto propertyCollector = binder::PropertyCollector();
     propertyCollector.visitSingleQuery(*singleQuery);
     auto properties = propertyCollector.getProperties();
-    for (auto& expr : propertyCollector.getProperties()) {
+    for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
         propertyExprCollection.addProperties(property.getVariableName(), expr);
     }

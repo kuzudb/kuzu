@@ -80,6 +80,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::STANDALONE_CALL: {
         appendStandaloneCall(statement, *plan);
     } break;
+    case StatementType::VOID_FUNCTION_CALL: {
+        appendVoidFunctionCall(statement, *plan);
+    } break;
     case StatementType::EXPLAIN: {
         appendExplain(statement, *plan);
     } break;

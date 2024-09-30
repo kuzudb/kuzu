@@ -229,7 +229,8 @@ oC_Cypher
     : oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )?;
 
 oC_Statement
-    : oC_Query
+    : kU_StandaloneCall
+        | oC_Query
         | kU_CreateNodeTable
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
@@ -241,7 +242,6 @@ oC_Statement
         | kU_CopyFrom
         | kU_CopyFromByColumn
         | kU_CopyTO
-        | kU_StandaloneCall
         | kU_CreateMacro
         | kU_CommentOn
         | kU_Transaction
@@ -292,7 +292,17 @@ kU_UseDatabase
     : USE SP oC_SchemaName;
 
 kU_StandaloneCall
-    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression;
+    : CALL SP
+        (
+            kU_DBSettingCall
+            | kU_VoidFunctionCall
+        ) ;
+
+kU_DBSettingCall
+    : oC_SymbolicName SP? '=' SP? oC_Expression ;
+
+kU_VoidFunctionCall
+    : oC_FunctionName SP?  '('  ')' ;
 
 kU_CommentOn
     : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
@@ -460,13 +470,10 @@ oC_SingleQuery
         ;
 
 oC_SinglePartQuery
-    : ( oC_ReadingClause SP? )*
-        (
-            oC_MandatoryReturnReadingClause? SP? oC_Return
-            | oC_OptionalReturnReadingClause SP? oC_Return?
-            | oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )?
-            | oC_MandatoryReturnReadingClause SP? { notifyQueryNotConcludeWithReturn($ctx->start); }
-        );
+    : ( oC_ReadingClause SP? )* oC_Return
+        | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
+        | ( oC_ReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
+        ;
 
 oC_MultiPartQuery
     : ( kU_QueryPart SP? )+ oC_SinglePartQuery;
@@ -481,33 +488,17 @@ oC_UpdatingClause
         | oC_Delete
         ;
 
-oC_OptionalReturnReadingClause
-    : kU_InQueryTableFunctionCall;
-
-oC_MandatoryReturnReadingClause
+oC_ReadingClause
     : oC_Match
         | oC_Unwind
-        | kU_InQueryBuiltInCall
+        | kU_InQueryCall
         | kU_LoadFrom
-        ;
-
-oC_ReadingClause
-    : oC_OptionalReturnReadingClause
-        | oC_MandatoryReturnReadingClause
         ;
 
 kU_LoadFrom
     :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
 
 kU_InQueryCall
-    : kU_InQueryTableFunctionCall
-        | kU_InQueryBuiltInCall
-        ;
-
-kU_InQueryTableFunctionCall
-    : ( kU_ProjectGraph SP? )? CALL SP oC_TableFunctionCall (SP? oC_Where)? ;
-
-kU_InQueryBuiltInCall
     : ( kU_ProjectGraph SP? )? CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
 
 kU_GraphProjectionTableItem
@@ -747,7 +738,6 @@ oC_Atom
         | oC_CaseExpression
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
-        | oC_TableFunctionCall
         | oC_PathPatterns
         | oC_ExistSubquery
         | kU_CountSubquery
@@ -799,10 +789,8 @@ oC_ParenthesizedExpression
 
 oC_FunctionInvocation
     : COUNT SP? '(' SP? '*' SP? ')'
-        | CAST SP? '(' SP? kU_FunctionParameter SP? ( ( AS SP? kU_DataType ) | ( ',' SP? kU_FunctionParameter ) ) SP? ')' ;
-
-oC_TableFunctionCall
-    : oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
+        | CAST SP? '(' SP? kU_FunctionParameter SP? ( ( AS SP? kU_DataType ) | ( ',' SP? kU_FunctionParameter ) ) SP? ')'
+        | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
 
 oC_FunctionName
     : oC_SymbolicName ;

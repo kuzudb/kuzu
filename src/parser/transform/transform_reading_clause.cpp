@@ -10,32 +10,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace parser {
 
-std::unique_ptr<ReadingClause> Transformer::transformMandatoryReturnReadingClause(
-    CypherParser::OC_MandatoryReturnReadingClauseContext& ctx) {
+std::unique_ptr<ReadingClause> Transformer::transformReadingClause(
+    CypherParser::OC_ReadingClauseContext& ctx) {
     if (ctx.oC_Match()) {
         return transformMatch(*ctx.oC_Match());
     } else if (ctx.oC_Unwind()) {
         return transformUnwind(*ctx.oC_Unwind());
-    } else if (ctx.kU_InQueryBuiltInCall()) {
-        return transformInQueryBuiltInCall(*ctx.kU_InQueryBuiltInCall());
+    } else if (ctx.kU_InQueryCall()) {
+        return transformInQueryCall(*ctx.kU_InQueryCall());
     } else if (ctx.kU_LoadFrom()) {
         return transformLoadFrom(*ctx.kU_LoadFrom());
-    }
-    KU_UNREACHABLE;
-}
-
-std::unique_ptr<ReadingClause> Transformer::transformOptionalReturnReadingClause(
-    CypherParser::OC_OptionalReturnReadingClauseContext& ctx) {
-    KU_ASSERT(ctx.kU_InQueryTableFunctionCall());
-    return transformInQueryTableFunctionCall(*ctx.kU_InQueryTableFunctionCall());
-}
-
-std::unique_ptr<ReadingClause> Transformer::transformReadingClause(
-    CypherParser::OC_ReadingClauseContext& ctx) {
-    if (ctx.oC_MandatoryReturnReadingClause()) {
-        return transformMandatoryReturnReadingClause(*ctx.oC_MandatoryReturnReadingClause());
-    } else if (ctx.oC_OptionalReturnReadingClause()) {
-        return transformOptionalReturnReadingClause(*ctx.oC_OptionalReturnReadingClause());
     }
     KU_UNREACHABLE;
 }
@@ -83,34 +67,14 @@ std::unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_Unw
     return std::make_unique<UnwindClause>(std::move(expression), std::move(transformedVariable));
 }
 
-std::unique_ptr<ReadingClause> Transformer::transformInQueryBuiltInCall(
-    CypherParser::KU_InQueryBuiltInCallContext& ctx) {
+std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
+    CypherParser::KU_InQueryCallContext& ctx) {
     auto inQueryCall = std::make_unique<InQueryCallClause>(
         Transformer::transformFunctionInvocation(*ctx.oC_FunctionInvocation()));
     if (ctx.oC_Where()) {
         inQueryCall->setWherePredicate(transformWhere(*ctx.oC_Where()));
     }
     return inQueryCall;
-}
-
-std::unique_ptr<ReadingClause> Transformer::transformInQueryTableFunctionCall(
-    CypherParser::KU_InQueryTableFunctionCallContext& ctx) {
-    auto tableFunctionCall = std::make_unique<InQueryCallClause>(
-        Transformer::transformTableFunctionCall(*ctx.oC_TableFunctionCall()));
-    if (ctx.oC_Where()) {
-        tableFunctionCall->setWherePredicate(transformWhere(*ctx.oC_Where()));
-    }
-    return tableFunctionCall;
-}
-
-std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
-    CypherParser::KU_InQueryCallContext& ctx) {
-    if (ctx.kU_InQueryBuiltInCall()) {
-        return transformInQueryBuiltInCall(*ctx.kU_InQueryBuiltInCall());
-    } else {
-        KU_ASSERT(ctx.kU_InQueryTableFunctionCall());
-        return transformInQueryTableFunctionCall(*ctx.kU_InQueryTableFunctionCall());
-    }
 }
 
 std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(

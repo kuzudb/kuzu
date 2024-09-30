@@ -382,8 +382,6 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
         return transformCountSubquery(*ctx.kU_CountSubquery());
     } else if (ctx.oC_Quantifier()) {
         return transformOcQuantifier(*ctx.oC_Quantifier());
-    } else if (ctx.oC_TableFunctionCall()) {
-        return transformTableFunctionCall(*ctx.oC_TableFunctionCall());
     } else {
         KU_ASSERT(ctx.oC_Variable());
         return std::make_unique<ParsedVariableExpression>(transformVariable(*ctx.oC_Variable()),
@@ -479,11 +477,13 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     std::string functionName;
     if (ctx.COUNT()) {
         functionName = "COUNT";
-    } else {
-        KU_ASSERT(ctx.CAST());
+    } else if (ctx.CAST()) {
         functionName = "CAST";
+    } else {
+        functionName = transformFunctionName(*ctx.oC_FunctionName());
     }
-    auto expression = std::make_unique<ParsedFunctionExpression>(functionName, ctx.getText());
+    auto expression = std::make_unique<ParsedFunctionExpression>(functionName, ctx.getText(),
+        ctx.DISTINCT() != nullptr);
     if (ctx.CAST()) {
         for (auto& functionParameter : ctx.kU_FunctionParameter()) {
             expression->addChild(transformFunctionParameterExpression(*functionParameter));
@@ -496,17 +496,6 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
         for (auto& functionParameter : ctx.kU_FunctionParameter()) {
             expression->addChild(transformFunctionParameterExpression(*functionParameter));
         }
-    }
-    return expression;
-}
-
-std::unique_ptr<ParsedExpression> Transformer::transformTableFunctionCall(
-    CypherParser::OC_TableFunctionCallContext& ctx) {
-    std::string functionName = transformFunctionName(*ctx.oC_FunctionName());
-    auto expression = std::make_unique<ParsedFunctionExpression>(functionName, ctx.getText(),
-        ctx.DISTINCT() != nullptr);
-    for (auto& functionParameter : ctx.kU_FunctionParameter()) {
-        expression->addChild(transformFunctionParameterExpression(*functionParameter));
     }
     return expression;
 }

@@ -179,6 +179,7 @@ public:
 
     /*** bind call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindVoidFunctionCall(const parser::Statement& statement);
 
     /*** bind create macro ***/
     std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement);

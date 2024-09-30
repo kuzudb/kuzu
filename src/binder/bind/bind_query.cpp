@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
 #include "common/exception/binder.h"
@@ -66,24 +65,6 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
     return boundRegularQuery;
 }
 
-static void handleIllegalEmptyStatementResult(std::string_view name) {
-    throw BinderException(stringFormat("Function call {} must conclude with RETURN clause", name));
-}
-
-static void checkLegalEmptyStatementResult(const NormalizedQueryPart& lastQueryPart) {
-    if (lastQueryPart.hasUpdatingClause()) {
-        return;
-    }
-    for (idx_t i = 0; i < lastQueryPart.getNumReadingClause(); ++i) {
-        const auto& readingClause = lastQueryPart.getReadingClause(i);
-        KU_ASSERT(readingClause->getClauseType() == common::ClauseType::TABLE_FUNCTION_CALL);
-        const auto& inQueryCallClause = readingClause->constCast<const BoundTableFunctionCall&>();
-        if (inQueryCallClause.getBindData()->getNumColumns() > 0) {
-            handleIllegalEmptyStatementResult(inQueryCallClause.getTableFunc().name);
-        }
-    }
-}
-
 NormalizedSingleQuery Binder::bindSingleQuery(const SingleQuery& singleQuery) {
     auto normalizedSingleQuery = NormalizedSingleQuery();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
@@ -102,7 +83,6 @@ NormalizedSingleQuery Binder::bindSingleQuery(const SingleQuery& singleQuery) {
         lastQueryPart.setProjectionBody(boundReturnClause.getProjectionBody()->copy());
         statementResult = boundReturnClause.getStatementResult()->copy();
     } else {
-        checkLegalEmptyStatementResult(lastQueryPart);
         statementResult = BoundStatementResult::createEmptyResult();
     }
     normalizedSingleQuery.appendQueryPart(std::move(lastQueryPart));

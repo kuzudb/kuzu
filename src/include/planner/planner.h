@@ -74,6 +74,7 @@ public:
     void appendDrop(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendStandaloneCall(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendVoidFunctionCall(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendExplain(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendCreateMacro(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendTransaction(const binder::BoundStatement& statement, LogicalPlan& plan);

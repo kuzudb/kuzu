@@ -56,6 +56,7 @@ enum class PhysicalOperatorType : uint8_t {
     SKIP,
     STANDALONE_CALL,
     TABLE_FUNCTION_CALL,
+    VOID_FUNCTION_CALL,
     TOP_K,
     TOP_K_SCAN,
     TRANSACTION,

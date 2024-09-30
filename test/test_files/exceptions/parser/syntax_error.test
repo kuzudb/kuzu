@@ -12,7 +12,9 @@ Parser exception: Query must conclude with RETURN clause (line: 1, offset: 0)
 -CASE NonVoidCallNotConcludeWithReturn
 -STATEMENT CALL show_tables();
 ---- error
-Binder exception: Function call SHOW_TABLES must conclude with RETURN clause
+Parser exception: Query must conclude with RETURN clause (line: 1, offset: 0)
+"CALL show_tables();"
+ ^^^^
 
 -CASE InvalidNotEqualOperator)
 -STATEMENT MATCH (a) WHERE a.age != 1 RETURN *;

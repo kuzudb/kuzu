@@ -108,6 +108,8 @@ private:
     std::unique_ptr<PhysicalOperator> mapStandaloneCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapTableFunctionCall(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapVoidFunctionCall(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapTransaction(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);

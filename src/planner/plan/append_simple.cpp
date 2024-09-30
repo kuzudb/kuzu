@@ -6,6 +6,7 @@
 #include "binder/bound_standalone_call.h"
 #include "binder/bound_transaction_statement.h"
 #include "binder/bound_use_database.h"
+#include "binder/bound_void_function_call.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
@@ -20,6 +21,7 @@
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_transaction.h"
+#include "planner/operator/logical_void_function_call.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_extension.h"
@@ -74,6 +76,13 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
     auto& standaloneCallClause = statement.constCast<BoundStandaloneCall>();
     auto op = make_shared<LogicalStandaloneCall>(standaloneCallClause.getOption(),
         standaloneCallClause.getOptionValue());
+    plan.setLastOperator(std::move(op));
+}
+
+void Planner::appendVoidFunctionCall(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& voidFunctionCallClause = statement.constCast<BoundVoidFunctionCall>();
+    auto op = std::make_shared<LogicalVoidFunctionCall>(voidFunctionCallClause.getFunction(),
+        voidFunctionCallClause.getBindData()->copy());
     plan.setLastOperator(std::move(op));
 }
 

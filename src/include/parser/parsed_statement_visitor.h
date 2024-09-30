@@ -45,6 +45,7 @@ private:
     virtual void visitCopyFrom(const Statement& /*statement*/) {}
     virtual void visitCopyTo(const Statement& /*statement*/) {}
     virtual void visitStandaloneCall(const Statement& /*statement*/) {}
+    virtual void visitVoidFunctionCall(const Statement& /*statement*/) {}
     virtual void visitExplain(const Statement& /*statement*/);
     virtual void visitCreateMacro(const Statement& /*statement*/) {}
     virtual void visitTransaction(const Statement& /*statement*/) {}
