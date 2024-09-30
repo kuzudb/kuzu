@@ -238,7 +238,7 @@ void SerialCSVReader::resetReaderState() {
         handleCopyException("Failed to seek to the beginning of the file.", true);
         return;
     }
-
+        
     // Reset buffer-related variables
     buffer.reset();
     bufferSize = 0;
@@ -246,6 +246,8 @@ void SerialCSVReader::resetReaderState() {
     osFileOffset = 0;
     bufferIdx = 0;
     lineContext.setNewLine(getFileOffset());
+
+    readBOM();
 }
 
 void SerialCSVReader::detectDialect() {
