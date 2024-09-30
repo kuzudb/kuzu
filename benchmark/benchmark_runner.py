@@ -229,6 +229,7 @@ def serialize_dataset(dataset_name):
 def run_kuzu(serialized_graph_path):
     is_error = False
     for group, _ in benchmark_group.group_to_benchmarks.items():
+        is_current_group_error = False
         benchmark_cmd = [
             kuzu_benchmark_tool,
             '--dataset=' + serialized_graph_path,
@@ -245,11 +246,14 @@ def run_kuzu(serialized_graph_path):
         for line in iter(process.stdout.readline, b''):
             line_decoded = line.decode("utf-8")
             if '[error]' in line_decoded:
-                is_error = True
+                is_current_group_error = True
             print(line_decoded, end='', flush=True)
         process.wait()
         if process.returncode != 0:
-            is_error = True
+            is_current_group_error = True
+        if is_current_group_error:
+            print("Error occurred while running group: " + group)
+        is_error = is_error or is_current_group_error
     return not is_error
 
 
