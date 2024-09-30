@@ -1,4 +1,5 @@
 #include "binder/expression/expression_util.h"
+#include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
@@ -17,113 +18,6 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-// TODO(Xiyang): optimize if edgeID is not needed.
-class ParentList {
-public:
-    ParentList(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) { store(iter_, nodeID, edgeID); }
-
-    void store(uint16_t iter_, nodeID_t nodeID, relID_t edgeID) {
-        iter.store(iter_, std::memory_order_relaxed);
-        nodeOffset.store(nodeID.offset, std::memory_order_relaxed);
-        nodeTableID.store(nodeID.tableID, std::memory_order_relaxed);
-        edgeOffset.store(edgeID.offset, std::memory_order_relaxed);
-        edgeTableID.store(edgeID.tableID, std::memory_order_relaxed);
-    }
-
-    void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
-
-    ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
-
-    uint16_t getIter() { return iter.load(std::memory_order_relaxed); }
-
-    nodeID_t getNodeID() {
-        return {nodeOffset.load(std::memory_order_relaxed),
-            nodeTableID.load(std::memory_order_relaxed)};
-    }
-    relID_t getEdgeID() {
-        return {edgeOffset.load(std::memory_order_relaxed),
-            edgeTableID.load(std::memory_order_relaxed)};
-    }
-
-private:
-    // Iteration level
-    std::atomic<uint16_t> iter;
-    // Node information
-    std::atomic<offset_t> nodeOffset;
-    std::atomic<table_id_t> nodeTableID;
-    // Edge information
-    std::atomic<offset_t> edgeOffset;
-    std::atomic<table_id_t> edgeTableID;
-    // Next pointer
-    std::atomic<ParentList*> next;
-};
-
-class BFSGraph {
-    static constexpr uint64_t ALL_PATHS_BLOCK_SIZE = (std::uint64_t)1 << 19;
-    // Data type that is allocated to max num nodes per node table.
-    using parent_entry_t = std::atomic<ParentList*>;
-
-public:
-    BFSGraph(std::unordered_map<table_id_t, offset_t> nodeTableIDAndNumNodes, MemoryManager* mm)
-        : mm{mm} {
-        for (auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            parentArray.allocate(tableID, numNodes, mm);
-            auto data = parentArray.getData(tableID);
-            for (uint64_t i = 0; i < numNodes; ++i) {
-                // Note: We are using memory_order_relaxed here because we are assuming that
-                // this code is running by a master thread which will run a memory barrier
-                // before worker threads start.
-                data[i].store(nullptr, std::memory_order_relaxed);
-            }
-        }
-    }
-
-    // This function is thread safe and should be called by a worker thread Ti to grab a block
-    // of memory that Ti owns and writes to.
-    ObjectBlock<ParentList>* addNewBlock() {
-        std::unique_lock lck{mtx};
-        auto memBlock = mm->allocateBuffer(false /* don't init to 0 */, ALL_PATHS_BLOCK_SIZE);
-        blocks.push_back(
-            std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), ALL_PATHS_BLOCK_SIZE));
-        return blocks[blocks.size() - 1].get();
-    }
-
-    ParentList* getInitialParentAndNextPtr(common::nodeID_t nodeID) {
-        return parentArray.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
-    }
-
-    // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
-    // function.
-    void addParent(uint16_t iter, ObjectBlock<ParentList>* parentPtrsBlock, nodeID_t childNodeID,
-        nodeID_t parentNodeID, relID_t edgeID) {
-        auto parentEdgePtr = parentPtrsBlock->reserveNext();
-        parentEdgePtr->store(iter, parentNodeID, edgeID);
-        auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
-        KU_ASSERT(curPtr != nullptr);
-        // Since by default the parentPtr of each node is nullptr, that's what we start with.
-        ParentList* expected = nullptr;
-        while (!curPtr[childNodeID.offset].compare_exchange_strong(expected, parentEdgePtr))
-            ;
-        parentEdgePtr->setNextPtr(expected);
-    }
-
-    parent_entry_t* getCurFixedParentPtrs() {
-        return currParentPtrs.load(std::memory_order_relaxed);
-    }
-
-    void pinNodeTable(common::table_id_t tableID) {
-        KU_ASSERT(parentArray.contains(tableID));
-        currParentPtrs.store(parentArray.getData(tableID), std::memory_order_relaxed);
-    }
-
-private:
-    std::mutex mtx;
-    MemoryManager* mm;
-    ObjectArraysMap<parent_entry_t> parentArray;
-    std::atomic<parent_entry_t*> currParentPtrs;
-    std::vector<std::unique_ptr<ObjectBlock<ParentList>>> blocks;
-};
-
 /**
  * A dense storage structures for multiplicities for multiple node tables.
  */
@@ -132,9 +26,8 @@ class PathMultiplicities {
     using multiplicity_entry_t = std::atomic<uint64_t>;
 
 public:
-    explicit PathMultiplicities(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        MemoryManager* mm) {
+    PathMultiplicities(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+        storage::MemoryManager* mm) {
         for (auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
             multiplicityArray.allocate(tableID, numNodes, mm);
             // Question to Trevor: Do I need to use atomics? If so, why?
@@ -149,21 +42,21 @@ public:
     // it fixes the target node table. This should not be done at a part of the computation when
     // worker threads might be incrementing multiplicity using the incrementTargetMultiplicity
     // function that assumes curTargetMultiplicities is already fixed to something.
-    void incrementMultiplicity(nodeID_t nodeID, uint64_t multiplicity) {
+    void incrementMultiplicity(common::nodeID_t nodeID, uint64_t multiplicity) {
         fixTargetNodeTable(nodeID.tableID);
         auto curPtr = getCurTargetMultiplicities();
         curPtr[nodeID.offset].fetch_add(multiplicity);
     }
 
-    void incrementTargetMultiplicity(offset_t nodeIDOffset, uint64_t multiplicity) {
+    void incrementTargetMultiplicity(common::offset_t nodeIDOffset, uint64_t multiplicity) {
         getCurTargetMultiplicities()[nodeIDOffset].fetch_add(multiplicity);
     }
 
-    uint64_t getBoundMultiplicity(offset_t nodeOffset) {
+    uint64_t getBoundMultiplicity(common::offset_t nodeOffset) {
         return getCurBoundMultiplicities()[nodeOffset].load(std::memory_order_relaxed);
     }
 
-    uint64_t getTargetMultiplicity(offset_t nodeOffset) {
+    uint64_t getTargetMultiplicity(common::offset_t nodeOffset) {
         return getCurTargetMultiplicities()[nodeOffset].load(std::memory_order_relaxed);
     }
 
@@ -199,11 +92,9 @@ private:
 };
 
 struct AllSPMultiplicitiesOutputs : public SPOutputs {
-
 public:
-    explicit AllSPMultiplicitiesOutputs(
-        std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes, nodeID_t sourceNodeID,
-        MemoryManager* mm = nullptr)
+    AllSPMultiplicitiesOutputs(std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes,
+        nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
         : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
           multiplicities{nodeTableIDAndNumNodes, mm} {}
 
@@ -228,35 +119,13 @@ public:
     PathMultiplicities multiplicities;
 };
 
-struct VarLenOrAllSPPathsOutputs : public SPOutputs {
-    VarLenOrAllSPPathsOutputs(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        common::nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
-          bfsGraph{nodeTableIDAndNumNodes, mm} {}
-
-    void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override {
-        // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
-        // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
-        bfsGraph.pinNodeTable(nextFrontierTableID);
-    };
-
-    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
-        pathLengths->fixCurFrontierNodeTable(tableID);
-        bfsGraph.pinNodeTable(tableID);
-    }
-
+class AllSPDestinationsOutputWriter : public DestinationsOutputWriter {
 public:
-    BFSGraph bfsGraph;
-};
-
-class AllSPOutputWriterDsts : public SPOutputWriterDsts {
-public:
-    explicit AllSPOutputWriterDsts(main::ClientContext* context, RJOutputs* rjOutputs)
-        : SPOutputWriterDsts(context, rjOutputs) {}
+    AllSPDestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
+        : DestinationsOutputWriter(context, rjOutputs) {}
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPOutputWriterDsts>(context, rjOutputs);
+        return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs);
     }
 
 protected:
@@ -271,10 +140,10 @@ protected:
     }
 };
 
-class AllSPOutputWriterLengths : public SPOutputWriterDsts {
+class AllSPLengthsOutputWriter : public DestinationsOutputWriter {
 public:
-    explicit AllSPOutputWriterLengths(main::ClientContext* context, RJOutputs* rjOutputs)
-        : SPOutputWriterDsts(context, rjOutputs) {
+    AllSPLengthsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
+        : DestinationsOutputWriter(context, rjOutputs) {
         lengthVector =
             std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -282,7 +151,7 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPOutputWriterLengths>(context, rjOutputs);
+        return std::make_unique<AllSPLengthsOutputWriter>(context, rjOutputs);
     }
 
 protected:
@@ -301,132 +170,14 @@ private:
     std::unique_ptr<common::ValueVector> lengthVector;
 };
 
-class VarLenAndAllSPOutputWriterPaths : public RJOutputWriter {
+class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
-    VarLenAndAllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs,
-        uint16_t lowerBound, uint16_t upperBound)
-        : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound} {
-        lengthVector =
-            std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
-        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(lengthVector.get());
-        pathNodeIDsVector = std::make_unique<ValueVector>(
-            LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
-        pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(pathNodeIDsVector.get());
-        pathEdgeIDsVector = std::make_unique<ValueVector>(
-            LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
-        pathEdgeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(pathEdgeIDsVector.get());
-    }
-
-    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override {
-        auto output = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
-        auto& bfsGraph = output->bfsGraph;
-        auto sourceNodeID = output->sourceNodeID;
-        PathVectorWriter writer(pathNodeIDsVector.get(), pathEdgeIDsVector.get());
-        dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
-        auto firstParent =
-            bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
-
-        if (firstParent == nullptr) {
-            // This case should only run for variable length joins.
-            lengthVector->setValue<int64_t>(0, 0);
-            writer.beginWritingNewPath(0);
-            fTable.append(vectors);
-            return;
-        }
-        lengthVector->setValue<int64_t>(0, firstParent->getIter());
-        std::vector<ParentList*> curPath;
-        curPath.push_back(firstParent);
-        auto backtracking = false;
-        while (!curPath.empty()) {
-            auto top = curPath[curPath.size() - 1];
-            auto topNodeID = top->getNodeID();
-            if (topNodeID == sourceNodeID) {
-                writer.beginWritingNewPath(curPath.size());
-                for (auto i = 1u; i < curPath.size(); i++) {
-                    auto p = curPath[curPath.size() - 1 - i];
-                    writer.addNodeEdge(p->getNodeID(), p->getEdgeID(), i);
-                }
-                writer.addEdge(curPath[curPath.size() - 1]->getEdgeID(), 0);
-
-                fTable.append(vectors);
-                backtracking = true;
-            }
-            if (backtracking) {
-                // This code checks if we should switch from backtracking to forward-tracking, i.e.,
-                // moving forward in the DFS logic to find paths. We switch from backtracking if:
-                // (i) the current top element in the stack has a nextPtr, i.e., the top node has
-                // more parent edges in the BFS graph AND:
-                // (ii.1) if this is the first element in the stack (curPath.size() == 1), i.e., we
-                // are enumerating the parents of the destination, then we should switch to
-                // forward-tracking if the next parent has visited the destination at a length
-                // that's greater than or equal to the lower bound of the recursive join. Otherwise,
-                // we'll enumerate paths that are smaller than the lower; OR
-                // (ii.2) if this is not the first element in the stack, i.e., then we should switch
-                // to forward tracking only if the next parent of the top node in the stack has the
-                // same iter value as the current parent. That's because the levels/iter need to
-                // decrease by 1 each time we add a new node in the stack.
-                if (top->getNextPtr() != nullptr &&
-                    ((curPath.size() == 1 && top->getNextPtr()->getIter() >= lowerBound) ||
-                        top->getNextPtr()->getIter() == top->getIter())) {
-                    curPath[curPath.size() - 1] = top->getNextPtr();
-                    backtracking = false;
-                    if (curPath.size() == 1) {
-                        lengthVector->setValue<int64_t>(0, curPath[0]->getIter());
-                    }
-                } else {
-                    curPath.pop_back();
-                }
-            } else {
-                auto parent = bfsGraph.getInitialParentAndNextPtr(topNodeID);
-                while (parent->getIter() != top->getIter() - 1) {
-                    parent = parent->getNextPtr();
-                }
-                curPath.push_back(parent);
-                backtracking = false;
-            }
-        }
-    }
-
-protected:
-    uint16_t lowerBound;
-    uint16_t upperBound;
-    std::unique_ptr<common::ValueVector> lengthVector;
-    std::unique_ptr<common::ValueVector> pathNodeIDsVector;
-    std::unique_ptr<common::ValueVector> pathEdgeIDsVector;
-};
-
-class AllSPOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
-public:
-    explicit AllSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs,
+    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
         uint16_t upperBound)
-        : VarLenAndAllSPOutputWriterPaths(context, rjOutputs, 1 /* lower bound */, upperBound) {}
+        : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
-        auto allSpOutputsPaths = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
-        // For all shortest path computations, we do not output any results from source to source.
-        // We also do not output any results if a destination node has not been reached.
-        return dstNodeID == allSpOutputsPaths->sourceNodeID ||
-               nullptr ==
-                   allSpOutputsPaths->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-                       std::memory_order_relaxed);
-    }
-
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPOutputWriterPaths>(context, rjOutputs, upperBound);
-    }
-};
-
-class VarLenOutputWriterPaths : public VarLenAndAllSPOutputWriterPaths {
-public:
-    explicit VarLenOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs,
-        uint16_t lowerBound, uint16_t upperBound)
-        : VarLenAndAllSPOutputWriterPaths(context, rjOutputs, lowerBound, upperBound) {}
-
-    bool skipWriting(common::nodeID_t dstNodeID) const override {
-        auto pathsOutputs = rjOutputs->ptrCast<VarLenOrAllSPPathsOutputs>();
+        auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
         auto firstIterParentAndNextPtr =
             pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
                 std::memory_order_relaxed);
@@ -443,12 +194,13 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<VarLenOutputWriterPaths>(context, rjOutputs, lowerBound,
+        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound,
             upperBound);
     }
 };
 
-struct AllSPLengthsEdgeCompute : public EdgeCompute {
+class AllSPLengthsEdgeCompute : public EdgeCompute {
+public:
     AllSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
         PathMultiplicities* multiplicities)
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
@@ -480,15 +232,12 @@ private:
     PathMultiplicities* multiplicities;
 };
 
-struct AllSPPathsEdgeCompute : public EdgeCompute {
-    SinglePathLengthsFrontierPair* frontiersPair;
-    BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
-
+class AllSPPathsEdgeCompute : public EdgeCompute {
+public:
     AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : frontiersPair{frontiersPair}, bfsGraph{bfsGraph} {
-        parentPtrsBlock = bfsGraph->addNewBlock();
-    };
+        parentListBlock = bfsGraph->addNewBlock();
+    }
 
     bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
         auto nbrLen =
@@ -500,11 +249,11 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
         auto shouldUpdate =
             nbrLen == PathLengths::UNVISITED || nbrLen == frontiersPair->pathLengths->getCurIter();
         if (shouldUpdate) {
-            if (!parentPtrsBlock->hasSpace()) {
-                parentPtrsBlock = bfsGraph->addNewBlock();
+            if (!parentListBlock->hasSpace()) {
+                parentListBlock = bfsGraph->addNewBlock();
             }
             bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
-                parentPtrsBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
+                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
         }
         return nbrLen == PathLengths::UNVISITED;
     }
@@ -512,6 +261,11 @@ struct AllSPPathsEdgeCompute : public EdgeCompute {
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<AllSPPathsEdgeCompute>(frontiersPair, bfsGraph);
     }
+
+private:
+    SinglePathLengthsFrontierPair* frontiersPair;
+    BFSGraph* bfsGraph;
+    ObjectBlock<ParentList>* parentListBlock = nullptr;
 };
 
 /**
@@ -537,7 +291,8 @@ private:
         auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
             sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPOutputWriterDsts>(clientContext, output.get());
+        auto outputWriter =
+            std::make_unique<AllSPDestinationsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -568,7 +323,7 @@ private:
         auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
             sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPOutputWriterLengths>(clientContext, output.get());
+        auto outputWriter = std::make_unique<AllSPLengthsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -598,10 +353,10 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<VarLenOrAllSPPathsOutputs>(
-            sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
-            clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPOutputWriterPaths>(clientContext, output.get(),
+        auto output =
+            std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
+                sourceNodeID, clientContext->getMemoryManager());
+        auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
             bindData->ptrCast<RJBindData>()->upperBound);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
@@ -627,8 +382,8 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         if (!parentPtrsBlock->hasSpace()) {
             parentPtrsBlock = bfsGraph->addNewBlock();
         }
-        bfsGraph->addParent(frontierPair->curIter.load(std::memory_order_relaxed), parentPtrsBlock,
-            nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
+        bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock, nbrNodeID /* child */,
+            boundNodeID /* parent */, edgeID);
         return true;
     }
 
@@ -690,10 +445,9 @@ private:
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
         auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
-        auto output =
-            std::make_unique<VarLenOrAllSPPathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
+        auto output = std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto outputWriter = std::make_unique<VarLenOutputWriterPaths>(clientContext, output.get(),
+        auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
             rjBindData->lowerBound, rjBindData->upperBound);
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
             clientContext->getMaxNumThreadForExec(), mm);

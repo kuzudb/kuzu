@@ -1,3 +1,4 @@
+#include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
@@ -16,60 +17,8 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class SinglePaths {
-    // Data type that is allocated to max num nodes per node table.
-    using array_entry_t = std::atomic<uint64_t>;
-
-public:
-    explicit SinglePaths(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        MemoryManager* mm) {
-        for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-            parentEdges.allocate(tableID, numNodes, mm);
-        }
-    }
-
-    common::nodeID_t getParent(common::nodeID_t nodeID) {
-        auto offsetPos = nodeID.offset << 1;
-        auto tableIDPos = offsetPos + 1;
-        auto bufPtr = parentEdges.getData(nodeID.tableID);
-        return common::nodeID_t(bufPtr[offsetPos].load(std::memory_order_relaxed),
-            bufPtr[tableIDPos].load(std::memory_order_relaxed));
-    }
-
-    void setParentEdge(common::nodeID_t nodeID, common::nodeID_t parentEdge) {
-        KU_ASSERT(currentFixedParentEdges.load(std::memory_order_relaxed) != nullptr);
-        // Note: We are changing 2 values non-atomically without any locking or atomics. This
-        // should be fine because we assume that all extensions that are being done in a
-        // particular iteration happen from the same relationship table, so if there are multiple
-        // writes to update the parentEdge for nodeID, say parentEdge1 and parentEdge2, they will
-        // have the same tableID. Further they can write different offsets but that's fine because
-        // we are keeping track of only 1 singlePath so regardless of which one writes first
-        // is fine.
-        // Warning: However, this logic has to change when we write both a relID and the offset of
-        // the parent. That is because then we need to ensure that both relID and nodeOffset are
-        // written atomically. Then we should change this implementation to also use
-        // ParentIterAndNextPtr pointers as done with AllShortestPaths and VariableLength joins
-        // instead of this more optimized implementation (and *NOT* use software locks).
-        auto offsetPos = nodeID.offset << 1;
-        auto tableIDPos = offsetPos + 1;
-        auto bufPtr = currentFixedParentEdges.load(std::memory_order_relaxed);
-        bufPtr[offsetPos].store(parentEdge.offset, std::memory_order_relaxed);
-        bufPtr[tableIDPos].store(parentEdge.tableID, std::memory_order_relaxed);
-    }
-
-    void pinNodeTable(common::table_id_t tableID) {
-        KU_ASSERT(parentEdges.contains(tableID));
-        currentFixedParentEdges.store(parentEdges.getData(tableID), std::memory_order_relaxed);
-    }
-
-private:
-    ObjectArraysMap<array_entry_t> parentEdges;
-    std::atomic<std::atomic<uint64_t>*> currentFixedParentEdges;
-};
-
 struct SingleSPOutputs : public SPOutputs {
-    explicit SingleSPOutputs(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    SingleSPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
         common::nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
         : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {}
     // Note: We do not fix the node table for pathLengths, because PathLengths is a
@@ -82,30 +31,10 @@ struct SingleSPOutputs : public SPOutputs {
     }
 };
 
-struct SingleSPOutputsPaths : public SPOutputs {
-    std::unique_ptr<SinglePaths> singlePaths;
-
-    explicit SingleSPOutputsPaths(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        common::nodeID_t sourceNodeID, MemoryManager* mm)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {
-        singlePaths = std::make_unique<SinglePaths>(nodeTableIDAndNumNodes, mm);
-    }
-
-    void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override {
-        singlePaths->pinNodeTable(nextFrontierTableID);
-    };
-
-    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
-        pathLengths->fixCurFrontierNodeTable(tableID);
-        singlePaths->pinNodeTable(tableID);
-    }
-};
-
-class SingleSPOutputWriterLengths : public SPOutputWriterDsts {
+class SingleSPDestinationsLengthOutputWriter : public DestinationsOutputWriter {
 public:
-    explicit SingleSPOutputWriterLengths(main::ClientContext* context, RJOutputs* rjOutputs)
-        : SPOutputWriterDsts(context, rjOutputs) {
+    SingleSPDestinationsLengthOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
+        : DestinationsOutputWriter(context, rjOutputs) {
         lengthVector =
             std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
         lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -113,7 +42,7 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SingleSPOutputWriterLengths>(context, rjOutputs);
+        return std::make_unique<SingleSPDestinationsLengthOutputWriter>(context, rjOutputs);
     }
 
 protected:
@@ -127,74 +56,52 @@ protected:
     std::unique_ptr<common::ValueVector> lengthVector;
 };
 
-class SingleSPOutputWriterPaths : public SingleSPOutputWriterLengths {
+class SingleSPLengthsEdgeCompute : public EdgeCompute {
 public:
-    explicit SingleSPOutputWriterPaths(main::ClientContext* context, RJOutputs* rjOutputs)
-        : SingleSPOutputWriterLengths(context, rjOutputs) {
-        pathNodeIDsVector = std::make_unique<ValueVector>(
-            LogicalType::LIST(LogicalType::INTERNAL_ID()), context->getMemoryManager());
-        pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(pathNodeIDsVector.get());
+    explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+        : frontierPair{frontierPair} {};
+
+    bool edgeCompute(common::nodeID_t, common::nodeID_t nbrID, relID_t) override {
+        return frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset) ==
+               PathLengths::UNVISITED;
     }
 
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SingleSPOutputWriterPaths>(context, rjOutputs);
-    }
-
-protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
-        uint16_t length) const override {
-        lengthVector->setValue<int64_t>(0, length);
-        PathVectorWriter writer(pathNodeIDsVector.get());
-        writer.beginWritingNewPath(length);
-        common::nodeID_t nodeID = dstNodeID;
-        for (auto i = 0; i < (int64_t)length - 1; ++i) {
-            nodeID = rjOutputs->ptrCast<SingleSPOutputsPaths>()->singlePaths->getParent(nodeID);
-            writer.addNode(nodeID, length - 2 - i);
-        }
-        fTable.append(vectors);
+    std::unique_ptr<EdgeCompute> copy() override {
+        return std::make_unique<SingleSPLengthsEdgeCompute>(frontierPair);
     }
 
 private:
-    std::unique_ptr<common::ValueVector> pathNodeIDsVector;
+    SinglePathLengthsFrontierPair* frontierPair;
 };
 
-struct SingleSPLengthsEdgeCompute : public EdgeCompute {
-    SinglePathLengthsFrontierPair* pathLengthsFrontiers;
-    explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* pathLengthsFrontiers)
-        : pathLengthsFrontiers{pathLengthsFrontiers} {};
-
-    bool edgeCompute(common::nodeID_t, common::nodeID_t nbrID, relID_t) override {
-        return pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
-                   nbrID.offset) == PathLengths::UNVISITED;
+class SingleSPPathsEdgeCompute : public EdgeCompute {
+public:
+    SingleSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
+        : frontierPair{frontierPair}, bfsGraph{bfsGraph} {
+        parentListBlock = bfsGraph->addNewBlock();
     }
 
-    std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<SingleSPLengthsEdgeCompute>(this->pathLengthsFrontiers);
-    }
-};
-
-struct SingleSPPathsEdgeCompute : public SingleSPLengthsEdgeCompute {
-    SinglePaths* singlePaths;
-
-    SingleSPPathsEdgeCompute(SinglePathLengthsFrontierPair* pathLengthsFrontiers,
-        SinglePaths* singlePaths)
-        : SingleSPLengthsEdgeCompute(pathLengthsFrontiers), singlePaths{singlePaths} {};
-
-    bool edgeCompute(nodeID_t curNodeID, nodeID_t nbrID, relID_t) override {
-        auto retVal = pathLengthsFrontiers->pathLengths->getMaskValueFromNextFrontierFixedMask(
-                          nbrID.offset) == PathLengths::UNVISITED;
-        if (retVal) {
-            // We set the nbrID's parent edge to curNodeID;
-            singlePaths->setParentEdge(nbrID, curNodeID);
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
+        auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                                nbrNodeID.offset) == PathLengths::UNVISITED;
+        if (shouldUpdate) {
+            if (!parentListBlock->hasSpace()) {
+                parentListBlock = bfsGraph->addNewBlock();
+            }
+            bfsGraph->tryAddSingleParent(frontierPair->curIter.load(std::memory_order_relaxed),
+                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
         }
-        return retVal;
+        return shouldUpdate;
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<SingleSPPathsEdgeCompute>(this->pathLengthsFrontiers,
-            this->singlePaths);
+        return std::make_unique<SingleSPPathsEdgeCompute>(frontierPair, bfsGraph);
     }
+
+private:
+    SinglePathLengthsFrontierPair* frontierPair;
+    BFSGraph* bfsGraph;
+    ObjectBlock<ParentList>* parentListBlock = nullptr;
 };
 
 /**
@@ -221,7 +128,7 @@ private:
         auto output =
             std::make_unique<SingleSPOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<SPOutputWriterDsts>(clientContext, output.get());
+        auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<SingleSPLengthsEdgeCompute>(frontierPair.get());
@@ -252,7 +159,7 @@ private:
             std::make_unique<SingleSPOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
         auto outputWriter =
-            std::make_unique<SingleSPOutputWriterLengths>(clientContext, output.get());
+            std::make_unique<SingleSPDestinationsLengthOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<SingleSPLengthsEdgeCompute>(frontierPair.get());
@@ -270,6 +177,7 @@ public:
         auto columns = getNodeIDResultColumns();
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
+        columns.push_back(getPathEdgeIDsColumn(binder));
         return columns;
     }
 
@@ -281,14 +189,15 @@ private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto output =
-            std::make_unique<SingleSPOutputsPaths>(sharedState->graph->getNodeTableIDAndNumNodes(),
+            std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
-        auto outputWriter =
-            std::make_unique<SingleSPOutputWriterPaths>(clientContext, output.get());
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
+            rjBindData->upperBound);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
-        auto edgeCompute = std::make_unique<SingleSPPathsEdgeCompute>(frontierPair.get(),
-            output->singlePaths.get());
+        auto edgeCompute =
+            std::make_unique<SingleSPPathsEdgeCompute>(frontierPair.get(), &output->bfsGraph);
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }

@@ -6,7 +6,6 @@
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -16,18 +15,6 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
-
-RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-    : context{context}, rjOutputs{rjOutputs} {
-    auto mm = context->getMemoryManager();
-    srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-    dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-    srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
-    dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(srcNodeIDVector.get());
-    vectors.push_back(dstNodeIDVector.get());
-}
 
 RJCompState::RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
@@ -147,14 +134,6 @@ private:
     std::unique_ptr<RJOutputWriter> localRJOutputWriter;
 };
 
-void SPOutputWriterDsts::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {
-    auto length =
-        rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
-            dstNodeID.offset);
-    dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-    writeMoreAndAppend(fTable, dstNodeID, length);
-}
-
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
     for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
         if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
@@ -180,121 +159,5 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
     }
 }
 
-PathLengths::PathLengths(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-    storage::MemoryManager* mm) {
-    curIter.store(0);
-    for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-        nodeTableIDAndNumNodesMap[tableID] = numNodes;
-        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
-        std::atomic<uint16_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->buffer.data());
-        for (uint64_t i = 0; i < numNodes; ++i) {
-            memBufferPtr[i].store(UNVISITED, std::memory_order_relaxed);
-        }
-        masks.insert({tableID, std::move(memBuffer)});
-    }
-}
-
-void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
-    KU_ASSERT(masks.contains(tableID));
-    curTableID.store(tableID, std::memory_order_relaxed);
-    curFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->buffer.data()),
-        std::memory_order_relaxed);
-    maxNodesInCurFrontierFixedMask.store(
-        nodeTableIDAndNumNodesMap[curTableID.load(std::memory_order_relaxed)],
-        std::memory_order_relaxed);
-}
-
-void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
-    KU_ASSERT(masks.contains(tableID));
-    nextFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->buffer.data()),
-        std::memory_order_relaxed);
-}
-
-void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-    table_id_t nextFrontierTableID) {
-    pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
-    pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselDispatcher.init(curFrontierTableID,
-        pathLengths->getNumNodesInCurFrontierFixedNodeTable());
-}
-
-bool SinglePathLengthsFrontierPair::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselDispatcher.getNextRangeMorsel(frontierMorsel);
-}
-
-void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
-    pathLengths->fixNextFrontierNodeTable(source.tableID);
-    pathLengths->setActive(source);
-}
-
-DoublePathLengthsFrontierPair::DoublePathLengthsFrontierPair(
-    std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-    uint64_t maxThreadsForExec, storage::MemoryManager* mm)
-    : FrontierPair(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm),
-          std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm),
-          1 /* initial num active nodes */, maxThreadsForExec) {
-    morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExec);
-}
-
-bool DoublePathLengthsFrontierPair::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselDispatcher->getNextRangeMorsel(frontierMorsel);
-}
-
-void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-    table_id_t nextFrontierTableID) {
-    curFrontier->ptrCast<PathLengths>()->fixCurFrontierNodeTable(curFrontierTableID);
-    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselDispatcher->init(curFrontierTableID,
-        curFrontier->ptrCast<PathLengths>()->getNumNodesInCurFrontierFixedNodeTable());
-}
-
-void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
-    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(source.tableID);
-    nextFrontier->ptrCast<PathLengths>()->setActive(source);
-}
-
-RJOutputs::RJOutputs(nodeID_t sourceNodeID) : sourceNodeID{sourceNodeID} {}
-
-SPOutputs::SPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-    nodeID_t sourceNodeID, storage::MemoryManager* mm)
-    : RJOutputs(sourceNodeID) {
-    pathLengths = std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm);
-}
-
-static void addListEntry(ValueVector* vector, uint64_t length) {
-    vector->resetAuxiliaryBuffer();
-    auto entry = ListVector::addList(vector, length);
-    KU_ASSERT(entry.offset == 0);
-    vector->setValue(0, entry);
-}
-
-void PathVectorWriter::beginWritingNewPath(uint64_t length) const {
-    addListEntry(nodeIDsVector, length > 1 ? length - 1 : 0);
-    if (edgeIDsVector != nullptr) {
-        addListEntry(edgeIDsVector, length);
-    }
-}
-
-void PathVectorWriter::addNode(nodeID_t nodeID, sel_t pos) const {
-    ListVector::getDataVector(nodeIDsVector)->setValue(pos, nodeID);
-}
-
-void PathVectorWriter::addEdge(relID_t edgeID, sel_t pos) const {
-    ListVector::getDataVector(edgeIDsVector)->setValue(pos, edgeID);
-}
-
-void PathVectorWriter::addNodeEdge(nodeID_t nodeID, relID_t edgeID, sel_t pos) const {
-    KU_ASSERT(pos > 0);
-    ListVector::getDataVector(nodeIDsVector)->setValue(pos - 1, nodeID);
-    ListVector::getDataVector(edgeIDsVector)->setValue(pos, edgeID);
-}
-
-void SPOutputWriterDsts::writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t,
-    uint16_t) const {
-    fTable.append(vectors);
-}
 } // namespace function
 } // namespace kuzu

@@ -23,6 +23,7 @@ public:
         nextPosToWrite.fetch_add(1, std::memory_order_relaxed);
         return result;
     }
+    void revertLast() { nextPosToWrite.fetch_sub(1, std::memory_order_relaxed); }
 
     bool hasSpace() const {
         return nextPosToWrite.load(std::memory_order_relaxed) <
