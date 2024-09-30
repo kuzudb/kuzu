@@ -382,13 +382,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
                     escapePositions.push_back(position - start);
                     goto handle_escape;
                 } else if (isNewLine(buffer[position])) {
-                    if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
-                        auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
-                        sniffDriver.error = true;
-                        goto ignore_error;
-                    } else {
-                        [[unlikely]] if (!handleQuotedNewline()) { goto ignore_error; }
-                    }
+                    [[unlikely]] if (!handleQuotedNewline()) { goto ignore_error; }
                 }
             }
         } while (readBuffer(&start));
