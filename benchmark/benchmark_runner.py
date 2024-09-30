@@ -227,6 +227,7 @@ def serialize_dataset(dataset_name):
 
 
 def run_kuzu(serialized_graph_path):
+    is_error = False
     for group, _ in benchmark_group.group_to_benchmarks.items():
         benchmark_cmd = [
             kuzu_benchmark_tool,
@@ -242,13 +243,14 @@ def run_kuzu(serialized_graph_path):
         process = subprocess.Popen(
             tuple(benchmark_cmd), stdout=subprocess.PIPE)
         for line in iter(process.stdout.readline, b''):
-            print(line.decode("utf-8"), end='', flush=True)
+            line_decoded = line.decode("utf-8")
+            if '[error]' in line_decoded:
+                is_error = True
+            print(line_decoded, end='', flush=True)
         process.wait()
         if process.returncode != 0:
-            print()
-            logging.error("An error has occurred while running benchmark!")
-            logging.error("Command: " + ' '.join(benchmark_cmd))
-            sys.exit(1)
+            is_error = True
+    return not is_error
 
 
 def parse_args():
@@ -392,8 +394,9 @@ if __name__ == '__main__':
 
     logging.info("Running benchmark...")
     serialized_graph_path = serialized_graphs_path[args.dataset + '-ku']
-    run_kuzu(serialized_graph_path)
+    is_success = run_kuzu(serialized_graph_path)
     logging.info("Benchmark finished")
+    logging.info("Benchmark result: %s", "success" if is_success else "fail")
 
     total_size = get_total_files_size(serialized_graph_path)
     logging.info("Serialized dataset size: %d MiB", total_size / 1024 ** 2)
@@ -417,3 +420,5 @@ if __name__ == '__main__':
         f.write("Branch commit hash: `{}` \n\n".format(_get_git_revision_hash()))
         f.write(compare_result)
     logging.info("Compare result saved to compare_result.md")
+    if not is_success:
+        sys.exit(1)
