@@ -1,7 +1,7 @@
 #include "function/gds/output_writer.h"
 
-#include "main/client_context.h"
 #include "function/gds/gds_frontier.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 
@@ -31,8 +31,8 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutput
     vectors.push_back(dstNodeIDVector.get());
 }
 
-PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
-    RJOutputs* rjOutputs, uint16_t lowerBound, uint16_t upperBound)
+PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+    uint16_t lowerBound, uint16_t upperBound)
     : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound} {
     lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
     lengthVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -53,7 +53,6 @@ static void addListEntry(ValueVector* vector, uint64_t length) {
     KU_ASSERT(entry.offset == 0);
     vector->setValue(0, entry);
 }
-
 
 /**
  * Helper class to write paths to a ValueVector. The ValueVector should be a ListVector. The path
@@ -90,8 +89,8 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     auto sourceNodeID = output->sourceNodeID;
     PathVectorWriter writer(pathNodeIDsVector.get(), pathEdgeIDsVector.get());
     dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
-    auto firstParent = bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-        std::memory_order_relaxed);
+    auto firstParent =
+        bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
 
     if (firstParent == nullptr) {
         // This case should only run for variable length joins.
@@ -165,8 +164,8 @@ void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_
 bool DestinationsOutputWriter::skipWriting(common::nodeID_t dstNodeID) const {
     return dstNodeID == rjOutputs->ptrCast<SPOutputs>()->sourceNodeID ||
            PathLengths::UNVISITED ==
-               rjOutputs->ptrCast<SPOutputs>()
-                   ->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
+               rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
+                   dstNodeID.offset);
 }
 
 void DestinationsOutputWriter::writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t,
@@ -174,6 +173,5 @@ void DestinationsOutputWriter::writeMoreAndAppend(processor::FactorizedTable& fT
     fTable.append(vectors);
 }
 
-}
-}
-
+} // namespace function
+} // namespace kuzu

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "storage/buffer_manager/memory_manager.h"
 #include "gds_object_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace function {
@@ -55,7 +55,8 @@ class BFSGraph {
     using parent_entry_t = std::atomic<ParentList*>;
 
 public:
-    BFSGraph(std::unordered_map<common::table_id_t, common::offset_t> nodeTableIDAndNumNodes, storage::MemoryManager* mm)
+    BFSGraph(std::unordered_map<common::table_id_t, common::offset_t> nodeTableIDAndNumNodes,
+        storage::MemoryManager* mm)
         : mm{mm} {
         for (auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
             parentArray.allocate(tableID, numNodes, mm);
@@ -85,8 +86,8 @@ public:
 
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
     // function.
-    void addParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock, common::nodeID_t childNodeID,
-        common::nodeID_t parentNodeID, common::relID_t edgeID) {
+    void addParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock,
+        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID) {
         auto parentEdgePtr = parentListBlock->reserveNext();
         parentEdgePtr->store(iter, parentNodeID, edgeID);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
@@ -99,8 +100,8 @@ public:
     }
 
     // For single shortest path, we do NOT add parent if a parent has already existed.
-    void tryAddSingleParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock, common::nodeID_t childNodeID,
-        common::nodeID_t parentNodeID, common::relID_t edgeID) {
+    void tryAddSingleParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock,
+        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID) {
         auto parentEdgePtr = parentListBlock->reserveNext();
         parentEdgePtr->store(iter, parentNodeID, edgeID);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
@@ -130,5 +131,5 @@ private:
     std::vector<std::unique_ptr<ObjectBlock<ParentList>>> blocks;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

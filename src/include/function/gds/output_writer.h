@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bfs_graph.h"
 #include "common/types/types.h"
 #include "processor/result/factorized_table.h"
-#include "bfs_graph.h"
 
 namespace kuzu {
 namespace function {
@@ -39,13 +39,13 @@ public:
 };
 
 struct PathsOutputs : public SPOutputs {
-    PathsOutputs(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    PathsOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
         common::nodeID_t sourceNodeID, storage::MemoryManager* mm = nullptr)
         : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
           bfsGraph{nodeTableIDAndNumNodes, mm} {}
 
-    void beginFrontierComputeBetweenTables(common::table_id_t, common::table_id_t nextFrontierTableID) override {
+    void beginFrontierComputeBetweenTables(common::table_id_t,
+        common::table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
         // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
         bfsGraph.pinNodeTable(nextFrontierTableID);
@@ -100,8 +100,8 @@ protected:
 
 class PathsOutputWriter : public RJOutputWriter {
 public:
-    PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        uint16_t lowerBound, uint16_t upperBound);
+    PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
+        uint16_t upperBound);
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
 
@@ -115,8 +115,7 @@ protected:
 
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
-    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        uint16_t upperBound)
+    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t upperBound)
         : PathsOutputWriter(context, rjOutputs, 1 /* lower bound */, upperBound) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
@@ -124,9 +123,8 @@ public:
         // For single/all shortest path computations, we do not output any results from source to
         // source. We also do not output any results if a destination node has not been reached.
         return dstNodeID == pathsOutputs->sourceNodeID ||
-               nullptr ==
-                   pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-                       std::memory_order_relaxed);
+               nullptr == pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
+                              std::memory_order_relaxed);
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
@@ -134,5 +132,5 @@ public:
     }
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

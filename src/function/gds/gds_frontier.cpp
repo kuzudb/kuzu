@@ -5,7 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t _maxThreadsForExec) : morselSize(UINT64_MAX) {
+FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t _maxThreadsForExec)
+    : morselSize(UINT64_MAX) {
     maxThreadsForExec.store(_maxThreadsForExec);
     tableID.store(INVALID_TABLE_ID);
     numOffsets.store(INVALID_OFFSET);

@@ -1,4 +1,5 @@
 #include "binder/expression/expression_util.h"
+#include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
@@ -7,7 +8,6 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "function/gds/bfs_graph.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -26,8 +26,7 @@ class PathMultiplicities {
     using multiplicity_entry_t = std::atomic<uint64_t>;
 
 public:
-    PathMultiplicities(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    PathMultiplicities(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
         storage::MemoryManager* mm) {
         for (auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
             multiplicityArray.allocate(tableID, numNodes, mm);
@@ -94,9 +93,8 @@ private:
 
 struct AllSPMultiplicitiesOutputs : public SPOutputs {
 public:
-    AllSPMultiplicitiesOutputs(
-        std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes, nodeID_t sourceNodeID,
-        MemoryManager* mm = nullptr)
+    AllSPMultiplicitiesOutputs(std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes,
+        nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
         : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
           multiplicities{nodeTableIDAndNumNodes, mm} {}
 
@@ -174,8 +172,8 @@ private:
 
 class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
-    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        uint16_t lowerBound, uint16_t upperBound)
+    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
+        uint16_t upperBound)
         : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
@@ -293,7 +291,8 @@ private:
         auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
             sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPDestinationsOutputWriter>(clientContext, output.get());
+        auto outputWriter =
+            std::make_unique<AllSPDestinationsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -354,9 +353,9 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<PathsOutputs>(
-            sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
-            clientContext->getMemoryManager());
+        auto output =
+            std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
+                sourceNodeID, clientContext->getMemoryManager());
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
             bindData->ptrCast<RJBindData>()->upperBound);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
@@ -383,8 +382,8 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         if (!parentPtrsBlock->hasSpace()) {
             parentPtrsBlock = bfsGraph->addNewBlock();
         }
-        bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock,
-            nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
+        bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock, nbrNodeID /* child */,
+            boundNodeID /* parent */, edgeID);
         return true;
     }
 
@@ -446,8 +445,7 @@ private:
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
         auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
-        auto output =
-            std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
+        auto output = std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
             rjBindData->lowerBound, rjBindData->upperBound);
