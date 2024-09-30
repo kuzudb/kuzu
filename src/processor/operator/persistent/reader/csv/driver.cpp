@@ -124,6 +124,11 @@ bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t column
     (void)rowNum;
     (void)columnIdx;
     (void)value;
+    uint64_t length = value.length();
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
+    }
     current_column_count++;
     return true;
 }
@@ -180,6 +185,10 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         rowEmpty = true;
     } else {
         rowEmpty = false;
+    }
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
     }
     auto& csvOption = reader->getCSVOption();
     if (columns.size() < columnIdx + 1 && csvOption.hasHeader && rowNum > 0) {
