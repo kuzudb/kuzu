@@ -18,8 +18,18 @@
 
 -STATEMENT CREATE NODE TABLE personAlt(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice');
 ---- ok
+-STATEMENT CALL TABLE_INFO('personAlt') RETURN *;
+---- 2
+0|id|INT64|NULL|True
+1|prop|STRING|'Alice'|False
+
 -STATEMENT CREATE NODE TABLE personAlt2(id INT64, prop STRING DEFAULT 'Alice' PRIMARY KEY);
 ---- ok
+-STATEMENT CALL TABLE_INFO('personAlt2') RETURN *;
+---- 2
+0|id|INT64|NULL|False
+1|prop|STRING|'Alice'|True
+
 -STATEMENT CREATE NODE TABLE personAlt3(id INT64, prop STRING DEFAULT 'Alice');
 ---- error
 Parser exception: Invalid input <CREATE NODE TABLE personAlt3(id INT64, prop STRING DEFAULT 'Alice')>: expected rule kU_CreateNodeTable (line: 1, offset: 66)
