@@ -290,7 +290,6 @@ public:
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
 
-    void validatePropertyName(const std::vector<PropertyDefinition>& definitions);
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
     void validateDropTable(const parser::Statement& dropTable);
