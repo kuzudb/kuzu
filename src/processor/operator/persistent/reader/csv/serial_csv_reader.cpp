@@ -308,7 +308,7 @@ void SerialCSVReader::detectDialect() {
             best_consistent_rows = consistent_rows;
             max_columns_found = num_cols;
             validDialects.clear();
-            validDialects.emplace_back(std::move(dialectOption));
+            validDialects.emplace_back(dialectOption);
         }
 
         if (more_than_one_row && more_than_one_column && num_cols == max_columns_found) {
@@ -320,7 +320,7 @@ void SerialCSVReader::detectDialect() {
             }
 
             if (!same_quote) {
-                validDialects.emplace_back(std::move(dialectOption));
+                validDialects.emplace_back(dialectOption);
             }
         }
     }
@@ -331,10 +331,10 @@ void SerialCSVReader::detectDialect() {
         for (auto& validDialect : validDialects) {
             if (validDialect.ever_quoted) {
                 finalDialects.clear();
-                finalDialects.emplace_back(std::move(validDialect));
+                finalDialects.emplace_back(validDialect);
                 break;
             }
-            finalDialects.emplace_back(std::move(validDialect));
+            finalDialects.emplace_back(validDialect);
         }
     }
     // Apply the detected dialect to the CSV options
