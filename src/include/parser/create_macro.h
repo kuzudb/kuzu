@@ -8,7 +8,7 @@ namespace parser {
 
 using default_macro_args = std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>;
 
-class CreateMacro : public Statement {
+class CreateMacro final : public Statement {
 public:
     CreateMacro(std::string macroName, std::unique_ptr<ParsedExpression> macroExpression,
         std::vector<std::string> positionalArgs, default_macro_args defaultArgs)

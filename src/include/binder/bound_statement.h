@@ -23,11 +23,11 @@ public:
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const BoundStatement&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<BoundStatement&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
 private:

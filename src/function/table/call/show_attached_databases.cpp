@@ -34,8 +34,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     auto numDatabasesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numDatabasesToOutput; i++) {
         auto attachedDatabase = attachedDatabases[morsel.startOffset + i];
-        dataChunk.getValueVector(0)->setValue(i, attachedDatabase->getDBName());
-        dataChunk.getValueVector(1)->setValue(i, attachedDatabase->getDBType());
+        dataChunk.getValueVectorMutable(0).setValue(i, attachedDatabase->getDBName());
+        dataChunk.getValueVectorMutable(1).setValue(i, attachedDatabase->getDBType());
     }
     return numDatabasesToOutput;
 }

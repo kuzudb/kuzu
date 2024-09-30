@@ -18,7 +18,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     KU_ASSERT(morsel.endOffset - morsel.startOffset == singleValueReturnOffset);
     static constexpr uint64_t statusCodeColumnIdx = 0;
     static constexpr uint8_t successStatusCode = 0;
-    dataChunk.getValueVector(statusCodeColumnIdx)->setValue(morsel.startOffset, successStatusCode);
+    dataChunk.getValueVectorMutable(statusCodeColumnIdx)
+        .setValue(morsel.startOffset, successStatusCode);
     return singleValueReturnOffset;
 }
 

@@ -27,7 +27,7 @@ struct AggregateInput {
     common::ValueVector* aggregateVector;
     std::vector<common::DataChunk*> multiplicityChunks;
 
-    AggregateInput() = default;
+    AggregateInput() : aggregateVector{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(AggregateInput);
 
 private:

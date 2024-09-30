@@ -42,7 +42,7 @@ bool date_t::operator>=(const date_t& rhs) const {
 date_t date_t::operator+(const interval_t& interval) const {
     date_t result{};
     if (interval.months != 0) {
-        int32_t year, month, day, maxDayInMonth;
+        int32_t year = 0, month = 0, day = 0, maxDayInMonth = 0;
         Date::convert(*this, year, month, day);
         int32_t year_diff = interval.months / Interval::MONTHS_PER_YEAR;
         year += year_diff;
@@ -207,7 +207,7 @@ void Date::extractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset) {
 
 void Date::convert(date_t date, int32_t& out_year, int32_t& out_month, int32_t& out_day) {
     auto n = date.days;
-    int32_t year_offset;
+    int32_t year_offset = 0;
     Date::extractYearOffset(n, out_year, year_offset);
 
     out_day = n - Date::CUMULATIVE_YEAR_DAYS[year_offset];
@@ -274,7 +274,6 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     int32_t day = 0;
     int32_t month = -1;
     int32_t year = 0;
-    char sep;
 
     // skip leading spaces
     while (pos < len && StringUtils::isSpace(buf[pos])) {
@@ -301,7 +300,7 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     }
 
     // fetch the separator
-    sep = buf[pos++];
+    char sep = buf[pos++];
     if (sep != ' ' && sep != '-' && sep != '/' && sep != '\\') {
         // invalid separator
         return false;
@@ -349,7 +348,7 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
 
 date_t Date::fromCString(const char* str, uint64_t len) {
     date_t result;
-    uint64_t pos;
+    uint64_t pos = 0;
     if (!tryConvertDate(str, len, pos, result)) {
         throw ConversionException("Error occurred during parsing date. Given: \"" +
                                   std::string(str, len) + "\". Expected format: (YYYY-MM-DD)");
@@ -359,8 +358,8 @@ date_t Date::fromCString(const char* str, uint64_t len) {
 
 std::string Date::toString(date_t date) {
     int32_t dateUnits[3];
-    uint64_t yearLength;
-    bool addBC;
+    uint64_t yearLength = 0;
+    bool addBC = false;
     Date::convert(date, dateUnits[0], dateUnits[1], dateUnits[2]);
 
     auto length = DateToStringCast::Length(dateUnits, yearLength, addBC);
@@ -400,13 +399,13 @@ std::string Date::getDayName(date_t& date) {
 std::string Date::getMonthName(date_t& date) {
     std::string monthNames[] = {"January", "February", "March", "April", "May", "June", "July",
         "August", "September", "October", "November", "December"};
-    int32_t year, month, day;
+    int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     return monthNames[month - 1];
 }
 
 date_t Date::getLastDay(date_t& date) {
-    int32_t year, month, day;
+    int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     year += (month / 12);
     month %= 12;
@@ -415,13 +414,14 @@ date_t Date::getLastDay(date_t& date) {
 }
 
 int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
-    int32_t year, month, day;
+    int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     switch (specifier) {
-    case DatePartSpecifier::YEAR:
-        int32_t yearOffset;
+    case DatePartSpecifier::YEAR: {
+        int32_t yearOffset = 0;
         extractYearOffset(date.days, year, yearOffset);
         return year;
+    }
     case DatePartSpecifier::MONTH:
         return month;
     case DatePartSpecifier::DAY:
@@ -465,11 +465,12 @@ date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
     case DatePartSpecifier::MILLENNIUM:
         return Date::fromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 1000) * 1000,
             1 /* month */, 1 /* day */);
-    case DatePartSpecifier::QUARTER:
-        int32_t year, month, day;
+    case DatePartSpecifier::QUARTER: {
+        int32_t year = 0, month = 0, day = 0;
         Date::convert(date, year, month, day);
         month = 1 + (((month - 1) / 3) * 3);
         return Date::fromDate(year, month, 1);
+    }
     default:
         return date;
     }

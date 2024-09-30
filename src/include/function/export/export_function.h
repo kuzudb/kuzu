@@ -11,7 +11,7 @@ struct ExportFuncLocalState {
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<ExportFuncLocalState&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 };
 
@@ -22,7 +22,7 @@ struct ExportFuncSharedState {
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<ExportFuncSharedState&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
     virtual void init(main::ClientContext& context, const ExportFuncBindData& bindData) = 0;
@@ -42,7 +42,7 @@ struct ExportFuncBindData {
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const ExportFuncBindData&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     virtual std::unique_ptr<ExportFuncBindData> copy() const = 0;

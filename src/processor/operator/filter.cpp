@@ -21,7 +21,7 @@ void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 bool Filter::getNextTuplesInternal(ExecutionContext* context) {
-    bool hasAtLeastOneSelectedValue;
+    bool hasAtLeastOneSelectedValue = false;
     do {
         restoreSelVector(*state);
         if (!children[0]->getNextTuple(context)) {
@@ -43,7 +43,7 @@ void NodeLabelFiler::initLocalStateInternal(ResultSet* /*resultSet_*/,
 }
 
 bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
-    sel_t numSelectValue;
+    sel_t numSelectValue = 0;
     do {
         restoreSelVector(*nodeIDVector->state);
         if (!children[0]->getNextTuple(context)) {

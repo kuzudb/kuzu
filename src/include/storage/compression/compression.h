@@ -117,7 +117,7 @@ struct ExtraMetadata {
 
 // used only for compressing floats/doubles
 struct ALPMetadata : ExtraMetadata {
-    ALPMetadata() = default;
+    ALPMetadata() : exp(0), fac(0), exceptionCount(0), exceptionCapacity(0) {}
     explicit ALPMetadata(const alp::state& alpState, common::PhysicalTypeID physicalType);
 
     uint8_t exp;
@@ -178,11 +178,10 @@ struct CompressionMetadata {
         return extraMetadata.value().get();
     }
     inline const ALPMetadata* floatMetadata() const {
-        return common::ku_dynamic_cast<const ExtraMetadata*, const ALPMetadata*>(
-            getExtraMetadata());
+        return common::ku_dynamic_cast<const ALPMetadata*>(getExtraMetadata());
     }
     inline ALPMetadata* floatMetadata() {
-        return common::ku_dynamic_cast<ExtraMetadata*, ALPMetadata*>(getExtraMetadata());
+        return common::ku_dynamic_cast<ALPMetadata*>(getExtraMetadata());
     }
 
     void serialize(common::Serializer& serializer) const;

@@ -202,7 +202,7 @@ void Binder::restoreScope(BinderScope prevScope) {
 }
 
 function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const ReaderConfig& config) {
-    function::Function* func;
+    function::Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());

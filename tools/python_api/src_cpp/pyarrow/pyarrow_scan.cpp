@@ -115,7 +115,8 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
     for (auto i = 0u; i < arrowScanData->columnTypes.size(); i++) {
         if (!skipCols[i]) {
             common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
-                arrowLocalState->arrowArray->children[i], *output.dataChunk.getValueVector(i));
+                arrowLocalState->arrowArray->children[i],
+                output.dataChunk.getValueVectorMutable(i));
         }
     }
     auto len = arrowLocalState->arrowArray->length;
@@ -124,8 +125,7 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
 }
 
 static double progressFunc(function::TableFuncSharedState* sharedState) {
-    PyArrowTableScanSharedState* state =
-        ku_dynamic_cast<TableFuncSharedState*, PyArrowTableScanSharedState*>(sharedState);
+    PyArrowTableScanSharedState* state = ku_dynamic_cast<PyArrowTableScanSharedState*>(sharedState);
     if (state->chunks.size() == 0) {
         return 0.0;
     }

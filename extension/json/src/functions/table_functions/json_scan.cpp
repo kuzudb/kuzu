@@ -7,9 +7,12 @@
 #include "common/exception/runtime.h"
 #include "common/json_common.h"
 #include "common/string_utils.h"
+#include "function/table/bind_data.h"
 #include "function/table/scan_functions.h"
+#include "json_extension.h"
 #include "json_utils.h"
 #include "processor/execution_context.h"
+#include "processor/operator/persistent/reader/file_error_handler.h"
 #include "processor/warning_context.h"
 #include "reader/buffered_json_reader.h"
 
@@ -20,6 +23,25 @@ using namespace kuzu::function;
 using namespace kuzu::common;
 
 struct JsonScanBindData;
+
+struct JSONWarningSourceData {
+    JSONWarningSourceData() = default;
+    static JSONWarningSourceData constructFrom(const processor::WarningSourceData& warningData);
+
+    uint64_t startByteOffset;
+    uint64_t endByteOffset;
+    uint64_t blockIdx;
+    uint32_t offsetInBlock;
+};
+
+JSONWarningSourceData JSONWarningSourceData::constructFrom(
+    const processor::WarningSourceData& warningData) {
+    KU_ASSERT(warningData.numValues == JsonConstant::JSON_WARNING_DATA_NUM_COLUMNS);
+
+    JSONWarningSourceData ret{};
+    warningData.dumpTo(ret.blockIdx, ret.offsetInBlock, ret.startByteOffset, ret.endByteOffset);
+    return ret;
+}
 
 struct JsonScanConfig {
     JsonScanFormat format = JsonConstant::DEFAULT_JSON_FORMAT;
@@ -77,18 +99,40 @@ struct JSONScanSharedState : public BaseScanSharedState {
     std::mutex lock;
     std::unique_ptr<BufferedJsonReader> jsonReader;
     uint64_t numRows;
+    processor::populate_func_t populateErrorFunc;
+    processor::SharedFileErrorHandler sharedErrorHandler;
 
     JSONScanSharedState(main::ClientContext& context, std::string fileName, JsonScanFormat format,
         uint64_t numRows)
         : BaseScanSharedState{}, jsonReader{std::make_unique<BufferedJsonReader>(context,
                                      std::move(fileName), BufferedJSONReaderOptions{format})},
-          numRows{numRows} {}
+          numRows{numRows}, populateErrorFunc(constructPopulateFunc()),
+          sharedErrorHandler(JsonExtension::JSON_SCAN_FILE_IDX, &lock, populateErrorFunc) {}
 
     uint64_t getNumRows() const override { return numRows; }
+
+    processor::populate_func_t constructPopulateFunc() {
+        return [this](processor::CopyFromFileError error,
+                   [[maybe_unused]] idx_t fileIdx) -> processor::PopulatedCopyFromError {
+            KU_ASSERT(fileIdx == JsonExtension::JSON_SCAN_FILE_IDX);
+            const auto warningData = JSONWarningSourceData::constructFrom(error.warningData);
+            const auto lineNumber =
+                sharedErrorHandler.getLineNumber(warningData.blockIdx, warningData.offsetInBlock);
+            const char* incompleteLineSuffix = error.completedLine ? "" : "...";
+            return processor::PopulatedCopyFromError{
+                .message = StringUtils::rtrim(std::move(error.message)),
+                .filePath = jsonReader->getFileName(),
+                .skippedLineOrRecord = jsonReader->reconstructLine(warningData.startByteOffset,
+                                           warningData.endByteOffset) +
+                                       incompleteLineSuffix,
+                .lineNumber = lineNumber,
+            };
+        };
+    }
 };
 
 struct JSONScanLocalState : public TableFuncLocalState {
-    yyjson_val* values[DEFAULT_VECTOR_CAPACITY];
+    yyjson_doc* docs[DEFAULT_VECTOR_CAPACITY];
     BufferedJsonReader* currentReader = nullptr;
     JsonScanBufferHandle* currentBufferHandle = nullptr;
     bool isLast = false;
@@ -97,23 +141,64 @@ struct JSONScanLocalState : public TableFuncLocalState {
     uint8_t* bufferPtr = nullptr;
     idx_t bufferOffset = 0;
     uint64_t bufferSize = 0;
+    uint64_t bufferStartByteOffsetInFile = 0;
     uint64_t numValuesToOutput = 0;
     storage::MemoryManager& mm;
+    idx_t lineCountInBuffer;
+    std::unique_ptr<processor::LocalFileErrorHandler> errorHandler;
 
-    JSONScanLocalState(storage::MemoryManager& mm, BufferedJsonReader* reader)
-        : currentReader{reader}, reconstructBuffer{mm.allocateBuffer(false /* initializeToZero */,
-                                     JsonConstant::SCAN_BUFFER_CAPACITY)},
-          mm{mm} {}
+    JSONScanLocalState(storage::MemoryManager& mm, JSONScanSharedState& sharedState,
+        main::ClientContext* context)
+        : docs{}, currentReader{sharedState.jsonReader.get()},
+          reconstructBuffer{
+              mm.allocateBuffer(false /* initializeToZero */, JsonConstant::SCAN_BUFFER_CAPACITY)},
+          mm{mm}, lineCountInBuffer(0),
+          errorHandler(std::make_unique<processor::LocalFileErrorHandler>(
+              &sharedState.sharedErrorHandler, false, context)) {}
 
-    uint64_t readNext();
+    ~JSONScanLocalState() override;
+
+    uint64_t readNext(const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool readNextBuffer();
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
     bool readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone);
     void skipOverArrayStart();
-    void parseNextChunk();
-    void parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining);
+    void parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
+    void parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining, idx_t numLinesInJson,
+        const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool reconstructFirstObject();
+
+    void replaceDoc(idx_t idx, yyjson_doc* newDoc);
+
+    void addValuesToWarningDataVectors(processor::WarningSourceData warningData,
+        uint64_t recordNumber, const std::optional<std::vector<ValueVector*>>& warningDataVectors);
+    uint64_t getFileOffset() const;
+
+    idx_t getNewlineCount(uint64_t startByteOffset, uint64_t endByteOffset) const;
+    processor::WarningSourceData getWarningData(uint64_t startByteOffset, uint64_t endByteOffset,
+        uint64_t extraLineCount = 0) const;
+    void handleParseError(yyjson_read_err& err, bool completedParsingObject = true,
+        const std::string& extra = "") const;
 };
+
+JSONScanLocalState::~JSONScanLocalState() {
+    for (uint64_t i = 0; i < DEFAULT_VECTOR_CAPACITY; ++i) {
+        if (nullptr != docs[i]) {
+            yyjson_doc_free(docs[i]);
+        }
+    }
+}
+
+void JSONScanLocalState::replaceDoc(idx_t idx, yyjson_doc* newDoc) {
+    if (docs[idx]) {
+        yyjson_doc_free(docs[idx]);
+    }
+    docs[idx] = newDoc;
+}
+
+uint64_t JSONScanLocalState::getFileOffset() const {
+    return bufferStartByteOffsetInFile + bufferOffset;
+}
 
 bool JSONScanLocalState::readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone) {
     if (!readNextBufferSeek(bufferIdx, fileDone)) {
@@ -127,8 +212,8 @@ bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone)
     auto fileHandle = currentReader->getFileHandle();
     auto requestSize =
         JsonConstant::SCAN_BUFFER_CAPACITY - prevBufferRemainder - YYJSON_PADDING_SIZE;
-    uint64_t readPosition;
-    uint64_t readSize;
+    uint64_t readPosition = 0;
+    uint64_t readSize = 0;
     {
         std::lock_guard<std::mutex> mtx(currentReader->lock);
         if (fileHandle->isLastReadRequested()) {
@@ -142,11 +227,16 @@ bool JSONScanLocalState::readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone)
     }
     bufferSize = prevBufferRemainder + readSize;
     fileHandle->readAtPosition(bufferPtr + prevBufferRemainder, readSize, readPosition, fileDone);
+    bufferStartByteOffsetInFile = readPosition - prevBufferRemainder;
     return true;
 }
 
-static void skipWhitespace(uint8_t* bufferPtr, idx_t& bufferOffset, const uint64_t& bufferSize) {
+static void skipWhitespace(uint8_t* bufferPtr, idx_t& bufferOffset, const uint64_t& bufferSize,
+    idx_t* lineCount = nullptr) {
     for (; bufferOffset != bufferSize; bufferOffset++) {
+        if (lineCount && bufferPtr[bufferOffset] == '\n') {
+            ++(*lineCount);
+        }
         if (!common::StringUtils::isSpace(bufferPtr[bufferOffset])) {
             break;
         }
@@ -155,7 +245,7 @@ static void skipWhitespace(uint8_t* bufferPtr, idx_t& bufferOffset, const uint64
 
 void JSONScanLocalState::skipOverArrayStart() {
     // First read of this buffer, check if it's actually an array and skip over the bytes
-    skipWhitespace(bufferPtr, bufferOffset, bufferSize);
+    skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
     if (bufferOffset == bufferSize) {
         return; // Empty file
     }
@@ -166,14 +256,14 @@ void JSONScanLocalState::skipOverArrayStart() {
             "\nTry setting format='auto' or format='newline_delimited'.",
             (reinterpret_cast<char*>(bufferPtr))[bufferOffset], currentReader->getFileName()));
     }
-    skipWhitespace(bufferPtr, ++bufferOffset, bufferSize);
+    skipWhitespace(bufferPtr, ++bufferOffset, bufferSize, &lineCountInBuffer);
     if (bufferOffset >= bufferSize) {
         throw Exception(common::stringFormat(
             "Missing closing brace ']' in JSON array with format='array' in file \"{}\"",
             currentReader->getFileName()));
     }
     if (bufferPtr[bufferOffset] == ']') {
-        skipWhitespace(bufferPtr, ++bufferOffset, bufferSize);
+        skipWhitespace(bufferPtr, ++bufferOffset, bufferSize, &lineCountInBuffer);
         if (bufferOffset != bufferSize) {
             throw Exception(common::stringFormat("Empty array with trailing data when parsing JSON "
                                                  "array with format='array' in file \"{}\"",
@@ -183,7 +273,7 @@ void JSONScanLocalState::skipOverArrayStart() {
     }
 }
 
-static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end) {
+static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end, idx_t& lineCountInBuffer) {
     uint64_t parents = 0;
     while (ptr != end) {
         switch (*ptr++) {
@@ -204,9 +294,16 @@ static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end) {
                     if (ptr != end) {
                         ptr++; // Skip the escaped char
                     }
+                } else if (strChar == '\n') {
+                    ++lineCountInBuffer;
                 }
             }
             break;
+            // on windows each '\r' should come with a '\n' so counting '\n' should be enough to get
+            // the line number
+        case '\n':
+            ++lineCountInBuffer;
+            // fall through to continue
         default:
             continue;
         }
@@ -219,13 +316,14 @@ static uint8_t* nextJsonDefault(uint8_t* ptr, const uint8_t* end) {
     return ptr;
 }
 
-static uint8_t* nextJson(uint8_t* ptr, uint64_t size) {
+static uint8_t* nextJson(uint8_t* ptr, uint64_t size, idx_t& lineCountInJson) {
+    lineCountInJson = 0;
     auto end = ptr + size;
     switch (*ptr) {
     case '{':
     case '[':
     case '"':
-        ptr = nextJsonDefault(ptr, end);
+        ptr = nextJsonDefault(ptr, end, lineCountInJson);
         break;
     default:
         // Special case: JSON array containing JSON without clear "parents", i.e., not obj/arr/str
@@ -235,31 +333,70 @@ static uint8_t* nextJson(uint8_t* ptr, uint64_t size) {
             case ']':
                 ptr--;
                 break;
+            case '\n':
+                ++lineCountInJson;
+                // fall through to continue
             default:
                 continue;
             }
             break;
         }
     }
+
     return ptr == end ? nullptr : ptr;
 }
 
-void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining) {
-    yyjson_doc* doc;
+idx_t JSONScanLocalState::getNewlineCount(uint64_t startByteOffset, uint64_t endByteOffset) const {
+    std::string jsonString;
+    jsonString.resize(endByteOffset - startByteOffset);
+    bool finishedFile = false;
+    currentReader->getFileHandle()->readAtPosition(reinterpret_cast<uint8_t*>(jsonString.data()),
+        jsonString.size(), startByteOffset, finishedFile);
+    return std::count(jsonString.begin(), jsonString.end(), '\n');
+}
+
+processor::WarningSourceData JSONScanLocalState::getWarningData(uint64_t startByteOffset,
+    uint64_t endByteOffset, uint64_t extraLineCount) const {
+    KU_ASSERT(currentBufferHandle);
+    return processor::WarningSourceData::constructFrom(currentBufferHandle->bufferIdx,
+        lineCountInBuffer + extraLineCount, startByteOffset, endByteOffset);
+}
+
+void JSONScanLocalState::handleParseError(yyjson_read_err& err, bool completedParsingObject,
+    const std::string& extra) const {
+    const uint64_t startByteOffset = getFileOffset();
+    const uint64_t endByteOffset = startByteOffset + err.pos + 1;
+    currentReader->throwParseError(err, completedParsingObject,
+        getWarningData(startByteOffset, endByteOffset,
+            getNewlineCount(startByteOffset, endByteOffset)),
+        errorHandler.get(), extra);
+}
+
+void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining,
+    idx_t numLinesInJson, const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
+    yyjson_doc* doc = nullptr;
     yyjson_read_err err;
     doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG, &err);
     if (err.code != YYJSON_READ_SUCCESS) {
-        currentReader->throwParseError(err);
+        handleParseError(err, false);
+    }
+
+    idx_t numBytesRead = yyjson_doc_get_read_size(doc);
+    if (warningDataVectors && !warningDataVectors->empty()) {
+        const auto recordStartOffset = getFileOffset();
+        const auto recordEndOffset = getFileOffset() + numBytesRead;
+        addValuesToWarningDataVectors(
+            getWarningData(recordStartOffset, recordEndOffset, numLinesInJson), numValuesToOutput,
+            warningDataVectors);
     }
 
     // We parse with YYJSON_STOP_WHEN_DONE, so we need to check this by hand
-    idx_t numBytesRead = yyjson_doc_get_read_size(doc);
     if (numBytesRead > size) {
         // Can't go past the boundary, even with ignore_errors
         err.code = YYJSON_READ_ERROR_UNEXPECTED_END;
         err.msg = "unexpected end of data";
         err.pos = size;
-        currentReader->throwParseError(err, "Try auto-detecting the JSON format");
+        handleParseError(err, "Try auto-detecting the JSON format");
     } else if (numBytesRead < size) {
         auto off = numBytesRead;
         auto rem = size;
@@ -268,33 +405,49 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
             err.code = YYJSON_READ_ERROR_UNEXPECTED_CONTENT;
             err.msg = "unexpected content after document";
             err.pos = numBytesRead;
-            currentReader->throwParseError(err, "Try auto-detecting the JSON format");
+            handleParseError(err, "Try auto-detecting the JSON format");
         }
     }
+
     if (!doc) {
-        values[numValuesToOutput] = nullptr;
+        replaceDoc(numValuesToOutput, nullptr);
         return;
     }
-    values[numValuesToOutput] = doc->root;
+    replaceDoc(numValuesToOutput, doc);
+}
+
+void JSONScanLocalState::addValuesToWarningDataVectors(processor::WarningSourceData warningData,
+    uint64_t recordNumber, const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
+    KU_ASSERT(warningDataVectors);
+    KU_ASSERT(warningDataVectors->size() == warningData.numValues);
+    for (column_id_t i = 0; i < warningData.numValues; ++i) {
+        auto* vectorToSet = (*warningDataVectors)[i];
+        std::visit(
+            [vectorToSet, recordNumber](
+                auto warningDataField) { vectorToSet->setValue(recordNumber, warningDataField); },
+            warningData.values[i]);
+    }
 }
 
 static uint8_t* nextNewLine(uint8_t* ptr, idx_t size) {
     return reinterpret_cast<uint8_t*>(memchr(ptr, '\n', size));
 }
 
-void JSONScanLocalState::parseNextChunk() {
+void JSONScanLocalState::parseNextChunk(
+    const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     auto format = currentReader->getFormat();
     for (; numValuesToOutput < DEFAULT_VECTOR_CAPACITY; numValuesToOutput++) {
-        skipWhitespace(bufferPtr, bufferOffset, bufferSize);
+        skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
         auto jsonStart = bufferPtr + bufferOffset;
         auto remaining = bufferSize - bufferOffset;
         if (remaining == 0) {
             break;
         }
         KU_ASSERT(format != JsonScanFormat::AUTO_DETECT);
+        idx_t lineCountInJson = 0;
         auto jsonEnd = format == JsonScanFormat::NEWLINE_DELIMITED ?
                            nextNewLine(jsonStart, remaining) :
-                           nextJson(jsonStart, remaining);
+                           nextJson(jsonStart, remaining, lineCountInJson);
         if (jsonEnd == nullptr) {
             if (!isLast) {
                 if (format != JsonScanFormat::NEWLINE_DELIMITED) {
@@ -307,11 +460,12 @@ void JSONScanLocalState::parseNextChunk() {
             jsonEnd = jsonStart + remaining;
         }
         auto jsonSize = jsonEnd - jsonStart;
-        parseJson(jsonStart, jsonSize, remaining);
+        parseJson(jsonStart, jsonSize, remaining, lineCountInJson, warningDataVectors);
         bufferOffset += jsonSize;
+        lineCountInBuffer += lineCountInJson;
 
         if (format == JsonScanFormat::ARRAY) {
-            skipWhitespace(bufferPtr, bufferOffset, bufferSize);
+            skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
             if (bufferPtr[bufferOffset] == ',' || bufferPtr[bufferOffset] == ']') {
                 bufferOffset++;
             } else {
@@ -319,10 +473,10 @@ void JSONScanLocalState::parseNextChunk() {
                 err.code = YYJSON_READ_ERROR_UNEXPECTED_CHARACTER;
                 err.msg = "unexpected character";
                 err.pos = jsonSize;
-                currentReader->throwParseError(err);
+                handleParseError(err);
             }
         }
-        skipWhitespace(bufferPtr, bufferOffset, bufferSize);
+        skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
     }
 }
 
@@ -335,7 +489,9 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
         auto doc = yyjson_read_opts(reinterpret_cast<char*>(buffer_ptr), line_size,
             JSONCommon::READ_FLAG, nullptr /* alc */, &error);
         if (error.code == YYJSON_READ_SUCCESS) {
-            if (yyjson_is_arr(doc->root) && line_size == buffer_size) {
+            const bool isArr = yyjson_is_arr(doc->root);
+            yyjson_doc_free(doc);
+            if (isArr && line_size == buffer_size) {
                 return JsonScanFormat::ARRAY;
             } else {
                 return JsonScanFormat::NEWLINE_DELIMITED;
@@ -364,6 +520,7 @@ static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size
     if (error.code == YYJSON_READ_SUCCESS) {
         KU_ASSERT(yyjson_is_arr(doc->root));
         buffer_offset += yyjson_doc_get_read_size(doc);
+        yyjson_doc_free(doc);
         skipWhitespace(buffer_ptr, buffer_offset, buffer_size);
         remaining = buffer_size - buffer_offset;
         if (remaining != 0) {
@@ -378,12 +535,14 @@ bool JSONScanLocalState::readNextBuffer() {
     std::unique_ptr<storage::MemoryBuffer> buffer = nullptr;
 
     if (currentReader && currentBufferHandle) {
+        errorHandler->reportFinishedBlock(currentBufferHandle->bufferIdx, lineCountInBuffer);
         if (--currentBufferHandle->numReaders == 0) {
             // If the buffer used before is no longer used, we can reuse that buffer instead of
             // doing a new memory allocation.
             buffer = currentReader->removeBuffer(*currentBufferHandle);
         }
     }
+    lineCountInBuffer = 0;
 
     if (buffer == nullptr) {
         buffer =
@@ -396,7 +555,7 @@ bool JSONScanLocalState::readNextBuffer() {
         memcpy(bufferPtr, reconstructBuffer->getData(), prevBufferRemainder);
     }
 
-    uint64_t bufferIdx;
+    uint64_t bufferIdx = 0;
     while (true) {
         if (currentReader) {
             bool doneRead = false;
@@ -469,6 +628,7 @@ bool JSONScanLocalState::reconstructFirstObject() {
     }
 
     auto lineSize = firstPartSize;
+    static constexpr idx_t linesInJson = 1;
     if (bufferSize != 0) {
         auto lineEnd = nextNewLine(bufferPtr, bufferSize);
         if (lineEnd == nullptr) {
@@ -488,11 +648,13 @@ bool JSONScanLocalState::reconstructFirstObject() {
         bufferOffset += secondPartSize;
     }
 
-    parseJson(reconstructBufferPtr, lineSize, lineSize);
+    parseJson(reconstructBufferPtr, lineSize, lineSize, linesInJson);
+    lineCountInBuffer += linesInJson;
     return true;
 }
 
-uint64_t JSONScanLocalState::readNext() {
+uint64_t JSONScanLocalState::readNext(
+    const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     numValuesToOutput = 0;
     while (numValuesToOutput == 0) {
         if (bufferOffset == bufferSize) {
@@ -506,7 +668,7 @@ uint64_t JSONScanLocalState::readNext() {
                 }
             }
         }
-        parseNextChunk();
+        parseNextChunk(warningDataVectors);
     }
     return numValuesToOutput;
 }
@@ -516,10 +678,11 @@ struct JsonScanBindData : public ScanBindData {
     JsonScanFormat format;
 
     JsonScanBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, ReaderConfig config, main::ClientContext* ctx,
-        case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
-        : ScanBindData(std::move(columnTypes), std::move(columnNames), 0 /* numWarningColumns */,
-              std::move(config), ctx),
+        std::vector<std::string> columnNames, column_id_t numWarningDataColumns,
+        ReaderConfig config, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
+        JsonScanFormat format)
+        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx,
+              numWarningDataColumns),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
@@ -553,20 +716,21 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
     std::vector<std::string>& names, common::case_insensitive_map_t<idx_t>& colNameToIdx) {
     auto numRowsToDetect = config.breadth;
     JSONScanSharedState sharedState(*context, filePath, config.format, 0);
-    JSONScanLocalState localState(*context->getMemoryManager(), sharedState.jsonReader.get());
+    JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
     while (numRowsToDetect != 0) {
         auto numTuplesRead = localState.readNext();
         if (numTuplesRead == 0) {
             break;
         }
         auto next = std::min<uint64_t>(numTuplesRead, numRowsToDetect);
-        yyjson_val *key, *ele;
+        yyjson_val *key = nullptr, *ele = nullptr;
         for (auto i = 0u; i < next; i++) {
-            const auto& val = localState.values[i];
-            auto objIter = yyjson_obj_iter_with(val);
+            auto* doc = localState.docs[i];
+            KU_ASSERT(nullptr != doc);
+            auto objIter = yyjson_obj_iter_with(doc->root);
             while ((key = yyjson_obj_iter_next(&objIter))) {
                 ele = yyjson_obj_iter_get_val(key);
-                KU_ASSERT(yyjson_get_type(val) == YYJSON_TYPE_OBJ);
+                KU_ASSERT(yyjson_get_type(doc->root) == YYJSON_TYPE_OBJ);
                 std::string fieldName = yyjson_get_str(key);
                 if (!colNameToIdx.contains(fieldName)) {
                     std::regex pattern(R"(^[^.]+\.(.*))");
@@ -575,7 +739,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
                         fieldName = match[1];
                     }
                 }
-                idx_t colIdx;
+                idx_t colIdx = 0;
                 if (colNameToIdx.contains(fieldName)) {
                     colIdx = colNameToIdx.at(fieldName);
                     types[colIdx] = LogicalTypeUtils::combineTypes(types[colIdx],
@@ -617,22 +781,47 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
 
         if (scanConfig.format == JsonScanFormat::AUTO_DETECT) {
-            JSONScanSharedState sharedState(*context, scanInput->config.getFilePath(0),
-                scanConfig.format, 0);
-            JSONScanLocalState localState(*context->getMemoryManager(),
-                sharedState.jsonReader.get());
+            JSONScanSharedState sharedState(*context,
+                scanInput->config.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig.format,
+                0);
+            JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
             localState.readNext();
             scanConfig.format = sharedState.jsonReader->getFormat();
         }
     } else {
-        scanConfig.format = autoDetect(context, scanInput->config.getFilePath(0), scanConfig,
-            columnTypes, columnNames, colNameToIdx);
+        scanConfig.format =
+            autoDetect(context, scanInput->config.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
+                scanConfig, columnTypes, columnNames, colNameToIdx);
     }
     scanInput->tableFunction->canParallelFunc = [scanConfig]() {
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;
     };
+
+    const bool ignoreErrors = scanInput->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+        CopyConstants::DEFAULT_IGNORE_ERRORS);
+    column_id_t numWarningDataColumns = 0;
+    if (ignoreErrors) {
+        numWarningDataColumns = JsonConstant::JSON_WARNING_DATA_NUM_COLUMNS;
+        for (idx_t i = 0; i < JsonConstant::JSON_WARNING_DATA_NUM_COLUMNS; ++i) {
+            columnNames.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_NAMES[i]);
+            columnTypes.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_TYPES[i]);
+        }
+    }
+
     return std::make_unique<JsonScanBindData>(std::move(columnTypes), std::move(columnNames),
-        scanInput->config.copy(), context, std::move(colNameToIdx), scanConfig.format);
+        numWarningDataColumns, scanInput->config.copy(), context, std::move(colNameToIdx),
+        scanConfig.format);
+}
+
+static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t numWarningColumns) {
+    KU_ASSERT(numWarningColumns <= chunk.getNumValueVectors());
+
+    std::vector<ValueVector*> ret;
+    for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
+         i < chunk.getNumValueVectors(); ++i) {
+        ret.push_back(&chunk.getValueVectorMutable(i));
+    }
+    return ret;
 }
 
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
@@ -643,11 +832,14 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
         valueVector->setAllNull();
         valueVector->resetAuxiliaryBuffer();
     }
-    auto count = localState->readNext();
-    yyjson_val** values = localState->values;
-    yyjson_val *key, *ele;
+    const auto warningDataVectors =
+        getWarningDataVectors(output.dataChunk, bindData->numWarningDataColumns);
+    auto count = localState->readNext(warningDataVectors);
+    yyjson_doc** docs = localState->docs;
+    yyjson_val *key = nullptr, *ele = nullptr;
     for (auto i = 0u; i < count; i++) {
-        auto objIter = yyjson_obj_iter_with(values[i]);
+        KU_ASSERT(nullptr != docs[i]);
+        auto objIter = yyjson_obj_iter_with(docs[i]->root);
         while ((key = yyjson_obj_iter_next(&objIter))) {
             ele = yyjson_obj_iter_get_val(key);
             auto columnIdx = bindData->getFieldIdx(yyjson_get_str(key));
@@ -667,10 +859,13 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitIn
         jsonBindData->config.filePaths[0], jsonBindData->format, 0);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& /*input*/,
+static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& input,
     TableFuncSharedState* state, storage::MemoryManager* mm) {
+    auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     auto sharedState = state->ptrCast<JSONScanSharedState>();
-    return std::make_unique<JSONScanLocalState>(*mm, sharedState->jsonReader.get());
+    auto localState =
+        std::make_unique<JSONScanLocalState>(*mm, *sharedState, jsonBindData->context);
+    return localState;
 }
 
 static double progressFunc(TableFuncSharedState* /*state*/) {
@@ -678,9 +873,15 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
     return 0;
 }
 
-static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*,
-    TableFuncLocalState*) {
-    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState* sharedState,
+    TableFuncLocalState* localState) {
+    auto* jsonSharedState = sharedState->ptrCast<JSONScanSharedState>();
+    auto* jsonLocalState = localState->ptrCast<JSONScanLocalState>();
+
+    jsonLocalState->errorHandler->finalize();
+    jsonSharedState->sharedErrorHandler.throwCachedErrorsIfNeeded();
+    ctx->clientContext->getWarningContextUnsafe().populateWarnings(ctx->queryID,
+        jsonSharedState->populateErrorFunc);
 }
 
 std::unique_ptr<TableFunction> JsonScan::getFunction() {

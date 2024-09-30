@@ -33,7 +33,8 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
+NpyReader::NpyReader(const std::string& filePath)
+    : filePath{filePath}, dataOffset{0}, type{LogicalTypeID::ANY} {
     fd = open(filePath.c_str(), O_RDONLY);
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
@@ -246,7 +247,7 @@ NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths
 
 void NpyMultiFileReader::readBlock(block_idx_t blockIdx, common::DataChunk& dataChunkToRead) const {
     for (auto i = 0u; i < fileReaders.size(); i++) {
-        fileReaders[i]->readBlock(blockIdx, dataChunkToRead.getValueVector(i).get());
+        fileReaders[i]->readBlock(blockIdx, &dataChunkToRead.getValueVectorMutable(i));
     }
 }
 
@@ -319,8 +320,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         reader->validate(resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), 0 /* numWarningColumns */, scanInput->config.copy(),
-        scanInput->context);
+        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(

@@ -18,12 +18,8 @@ std::vector<common::NodeSemiMask*> GDSCall::getSemiMasks() const {
     return masks;
 }
 
-void GDSCall::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    info.gds->init(sharedState.get(), context->clientContext);
-}
-
 void GDSCall::executeInternal(ExecutionContext* executionContext) {
-    info.gds->exec(executionContext);
+    gds->exec(executionContext);
 }
 
 } // namespace processor

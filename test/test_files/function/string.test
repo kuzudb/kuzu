@@ -629,6 +629,26 @@ hellolongstringtest
 ---- 1
 [,,,,,]
 
+-LOG RegexpSplitToArrayBasic
+-STATEMENT Return regexp_split_to_array('hello world', ' ');
+---- 1
+[hello,world]
+
+-LOG RegexpSplitToArrayLongString
+-STATEMENT Return regexp_split_to_array('hello world, this is a very long string, I want to split it based on commas and space', ',? ');
+---- 1
+[hello,world,this,is,a,very,long,string,I,want,to,split,it,based,on,commas,and,space]
+
+-LOG RegexpSplitToArrayUncommonRegex
+-STATEMENT Return regexp_split_to_array('hello world! 42?', 'o');
+---- 1
+[hell, w,rld! 42?]
+
+-LOG RegexpSplitToArrayEscapedCharacters
+-STATEMENT Return regexp_split_to_array("hello? world? 42?", "\\?");
+---- 1
+[hello, world, 42]
+
 -LOG LevenshteinDistance
 -STATEMENT return levenshtein('kitten', 'sitting');
 ---- 1

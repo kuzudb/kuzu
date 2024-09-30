@@ -7,10 +7,17 @@
 ---- ok
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json' RETURN *;
 ---- error
-Runtime exception: Malformed JSON in file "${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json", at byte 6 in record/value: unexpected character, expected a valid JSON value.
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json'(format='unstructured') RETURN *;
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured.json on line 3: Malformed JSON: unexpected character, expected a valid JSON value. Line/record containing the error: '{"c":}...'
+
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured_trailing_comma.json' RETURN *;
 ---- error
-Runtime exception: Malformed JSON in file "${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json", at byte 6 in record/value: unexpected character, expected a valid JSON value.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/structured_trailing_comma.json on line 11: Malformed JSON: unexpected character, expected a valid root value. Line/record containing the error: ']...'
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/newline_delimited_invalid_value.json' RETURN *;
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/newline_delimited_invalid_value.json on line 2: Malformed JSON: unexpected character, expected a comma or a closing brace. Line/record containing the error: '{"b": 2a...'
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json'(format='unstructured') RETURN *;
+---- error(regex)
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json on line 5: Malformed JSON: unexpected character, expected a valid JSON value. Line/record containing the error: '\{\s*"c":3,\s*"d":,...'
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(IGNORE_ERRORS="abc") RETURN *;
 ---- error
 Binder exception: IGNORE_ERRORS parameter must be a bool.

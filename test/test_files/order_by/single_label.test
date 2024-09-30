@@ -348,3 +348,67 @@ Elizabeth
 {_ID: 0:5, _LABEL: person, ID: 8, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16}|1
 {_ID: 0:6, _LABEL: person, ID: 9, fName: Greg, gender: 2, isStudent: False, isWorker: False, age: 40, eyeSight: 4.900000, birthdate: 1980-10-26, registerTime: 1976-12-23 04:41:42, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1], usedNames: [Grad], courseScoresPerTerm: [[10]], grades: [43,83,67,43], height: 1.600000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17}|1
 {_ID: 0:7, _LABEL: person, ID: 10, fName: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender: 2, isStudent: False, isWorker: True, age: 83, eyeSight: 4.900000, birthdate: 1990-11-27, registerTime: 2023-02-21 13:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,11,12,3,4,5,6,7], usedNames: [Ad,De,Hi,Kye,Orlan], courseScoresPerTerm: [[7],[10],[6,7]], grades: [77,64,100,54], height: 1.323000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18}|1
+
+-LOG TopKInt64Test
+-STATEMENT MATCH (p:person) RETURN p.ID ORDER BY p.ID DESC LIMIT 4
+-CHECK_ORDER
+-PARALLELISM 3
+---- 4
+10
+9
+8
+7
+
+-LOG TopKInt32Test
+-STATEMENT MATCH (m:movies) RETURN m.length ORDER BY m.length LIMIT 2
+-CHECK_ORDER
+---- 2
+126
+298
+
+-LOG TopKInt16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length LIMIT 2
+-CHECK_ORDER
+---- 2
+5
+22
+
+-LOG TopKInt8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.level ORDER BY e.level LIMIT 2
+-CHECK_ORDER
+---- 2
+2
+5
+
+-LOG TopKUInt64Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.code ORDER BY e.code LIMIT 1
+-CHECK_ORDER
+---- 1
+23
+
+-LOG TopKUInt32Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.temperature ORDER BY e.temperature LIMIT 1
+-CHECK_ORDER
+---- 1
+1
+
+-LOG TopKUInt16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.ulength ORDER BY e.ulength LIMIT 1
+-CHECK_ORDER
+---- 1
+90
+
+-LOG TopKUInt8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.ulevel ORDER BY e.ulevel LIMIT 2
+-CHECK_ORDER
+---- 2
+12
+220
+
+-LOG TopKInt128Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.hugedata ORDER BY e.hugedata LIMIT 3
+-CHECK_ORDER
+---- 3
+-1844674407370955161511
+-15
+1844674407370955161811111111

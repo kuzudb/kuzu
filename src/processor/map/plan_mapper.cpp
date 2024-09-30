@@ -10,7 +10,7 @@ namespace processor {
 
 static void setPhysicalPlanIfProfile(const LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan) {
     if (logicalPlan->isProfile()) {
-        ku_dynamic_cast<PhysicalOperator*, Profile*>(physicalPlan->lastOperator->getChild(0))
+        ku_dynamic_cast<Profile*>(physicalPlan->lastOperator->getChild(0))
             ->setPhysicalPlan(physicalPlan);
     }
 }

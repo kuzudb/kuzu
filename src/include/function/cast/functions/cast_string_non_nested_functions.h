@@ -185,7 +185,7 @@ inline void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) 
 
 template<typename T, bool IS_SIGNED = true>
 KUZU_API inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
-    IntegerCastData<T> data;
+    IntegerCastData<T> data{};
     data.result = 0;
     if (tryIntegerCast<IntegerCastData<T>, IS_SIGNED>(input, len, data)) {
         result = data.result;

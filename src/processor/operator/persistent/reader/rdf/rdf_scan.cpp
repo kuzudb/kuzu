@@ -66,7 +66,7 @@ static common::offset_t scanTableFunc(TableFuncInput& input, TableFuncOutput& ou
 
 static std::unique_ptr<TableFuncSharedState> inMemScanInitSharedState(
     TableFunctionInitInput& input) {
-    auto bindData = ku_dynamic_cast<TableFuncBindData*, RdfScanBindData*>(input.bindData);
+    auto bindData = ku_dynamic_cast<RdfScanBindData*>(input.bindData);
     return std::make_unique<RdfInMemScanSharedState>(bindData->store);
 }
 
@@ -89,76 +89,72 @@ static std::unique_ptr<function::TableFuncBindData> RdfAllTripleScanBindFunc(mai
 }
 
 static offset_t RdfResourceInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
-    auto sVector = output.dataChunk.getValueVector(0).get();
+    auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
+    auto& sVector = output.dataChunk.getValueVectorMutable(0);
     auto vectorPos = 0u;
     // Scan resource triples
-    auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
+    auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     auto [rStartIdx, rNumTuplesToScan] = sharedState->getResourceTripleRange();
     if (rNumTuplesToScan == 0) {
         // scan literal triples
         auto [lStartIdx, lNumTuplesToScan] = sharedState->getLiteralTripleRange();
         for (auto i = 0u; i < lNumTuplesToScan; ++i) {
-            StringVector::addString(sVector, vectorPos++, store.ltStore.subjects[lStartIdx + i]);
-            StringVector::addString(sVector, vectorPos++, store.ltStore.predicates[lStartIdx + i]);
+            StringVector::addString(&sVector, vectorPos++, store.ltStore.subjects[lStartIdx + i]);
+            StringVector::addString(&sVector, vectorPos++, store.ltStore.predicates[lStartIdx + i]);
         }
         return vectorPos;
     }
     for (auto i = 0u; i < rNumTuplesToScan; ++i) {
-        StringVector::addString(sVector, vectorPos++, store.rtStore.subjects[rStartIdx + i]);
-        StringVector::addString(sVector, vectorPos++, store.rtStore.predicates[rStartIdx + i]);
-        StringVector::addString(sVector, vectorPos++, store.rtStore.objects[rStartIdx + i]);
+        StringVector::addString(&sVector, vectorPos++, store.rtStore.subjects[rStartIdx + i]);
+        StringVector::addString(&sVector, vectorPos++, store.rtStore.predicates[rStartIdx + i]);
+        StringVector::addString(&sVector, vectorPos++, store.rtStore.objects[rStartIdx + i]);
     }
     return vectorPos;
 }
 
 static offset_t RdfLiteralInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
-    auto oVector = output.dataChunk.getValueVector(0).get();
-    auto langVector = output.dataChunk.getValueVector(1).get();
-    auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
+    auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
+    auto& oVector = output.dataChunk.getValueVectorMutable(0);
+    auto& langVector = output.dataChunk.getValueVectorMutable(1);
+    auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
     for (auto i = 0u; i < numTuplesToScan; ++i) {
         auto& object = store.ltStore.objects[startIdx + i];
         auto& objectType = store.ltStore.objectTypes[startIdx + i];
         auto& lang = store.ltStore.langs[startIdx + i];
-        RdfUtils::addRdfLiteral(oVector, i, object, objectType);
-        StringVector::addString(langVector, i, lang);
+        RdfUtils::addRdfLiteral(&oVector, i, object, objectType);
+        StringVector::addString(&langVector, i, lang);
     }
     return numTuplesToScan;
 }
 
 static offset_t RdfResourceTripleInMemScanTableFunc(TableFuncInput& input,
     TableFuncOutput& output) {
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
+    auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getResourceTripleRange();
-    auto sVector = output.dataChunk.getValueVector(0).get();
-    auto pVector = output.dataChunk.getValueVector(1).get();
-    auto oVector = output.dataChunk.getValueVector(2).get();
-    auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
+    auto& sVector = output.dataChunk.getValueVectorMutable(0);
+    auto& pVector = output.dataChunk.getValueVectorMutable(1);
+    auto& oVector = output.dataChunk.getValueVectorMutable(2);
+    auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(sVector, i, store.rtStore.subjects[startIdx + i]);
-        StringVector::addString(pVector, i, store.rtStore.predicates[startIdx + i]);
-        StringVector::addString(oVector, i, store.rtStore.objects[startIdx + i]);
+        StringVector::addString(&sVector, i, store.rtStore.subjects[startIdx + i]);
+        StringVector::addString(&pVector, i, store.rtStore.predicates[startIdx + i]);
+        StringVector::addString(&oVector, i, store.rtStore.objects[startIdx + i]);
     }
     return numTuplesToScan;
 }
 
 static offset_t RdfLiteralTripleInMemScanTableFunc(TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(input.sharedState);
+    auto sharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(input.sharedState);
     auto [startIdx, numTuplesToScan] = sharedState->getLiteralTripleRange();
-    auto sVector = output.dataChunk.getValueVector(0).get();
-    auto pVector = output.dataChunk.getValueVector(1).get();
-    auto oVector = output.dataChunk.getValueVector(2).get();
-    auto& store = ku_dynamic_cast<RdfStore&, TripleStore&>(*sharedState->store);
+    auto& sVector = output.dataChunk.getValueVectorMutable(0);
+    auto& pVector = output.dataChunk.getValueVectorMutable(1);
+    auto& oVector = output.dataChunk.getValueVectorMutable(2);
+    auto& store = ku_dynamic_cast<TripleStore&>(*sharedState->store);
     for (auto i = 0u; i < numTuplesToScan; ++i) {
-        StringVector::addString(sVector, i, store.ltStore.subjects[startIdx + i]);
-        StringVector::addString(pVector, i, store.ltStore.predicates[startIdx + i]);
-        oVector->setValue(i, startIdx + i);
+        StringVector::addString(&sVector, i, store.ltStore.subjects[startIdx + i]);
+        StringVector::addString(&pVector, i, store.ltStore.predicates[startIdx + i]);
+        oVector.setValue(i, startIdx + i);
     }
     return numTuplesToScan;
 }
@@ -197,17 +193,15 @@ static std::unique_ptr<TableFuncSharedState> RdfLiteralTripleScanInitSharedState
 
 static std::unique_ptr<TableFuncSharedState> RdfAllTripleScanInitSharedState(
     TableFunctionInitInput& input) {
-    auto bindData = ku_dynamic_cast<TableFuncBindData*, RdfScanBindData*>(input.bindData);
+    auto bindData = ku_dynamic_cast<RdfScanBindData*>(input.bindData);
     auto rdfConfig = RdfReaderConfig::construct(bindData->config.options);
     return std::make_unique<RdfTripleScanSharedState>(bindData->config.copy(), std::move(rdfConfig),
         bindData->store);
 }
 
 static double RdfResourceInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t rtSize =
-        ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->rtStore.size();
+    auto rdfSharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(sharedState);
+    uint64_t rtSize = ku_dynamic_cast<TripleStore*>(rdfSharedState->store.get())->rtStore.size();
     if (rtSize == 0) {
         return 0.0;
     }
@@ -215,10 +209,8 @@ static double RdfResourceInMemScanProgressFunc(TableFuncSharedState* sharedState
 }
 
 static double RdfLiteralInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    uint64_t ltSize =
-        ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get())->ltStore.size();
+    auto rdfSharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(sharedState);
+    uint64_t ltSize = ku_dynamic_cast<TripleStore*>(rdfSharedState->store.get())->ltStore.size();
     if (ltSize == 0) {
         return 0.0;
     }
@@ -226,9 +218,8 @@ static double RdfLiteralInMemScanProgressFunc(TableFuncSharedState* sharedState)
 }
 
 static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* sharedState) {
-    auto rdfSharedState =
-        ku_dynamic_cast<TableFuncSharedState*, RdfInMemScanSharedState*>(sharedState);
-    TripleStore* store = ku_dynamic_cast<RdfStore*, TripleStore*>(rdfSharedState->store.get());
+    auto rdfSharedState = ku_dynamic_cast<RdfInMemScanSharedState*>(sharedState);
+    TripleStore* store = ku_dynamic_cast<TripleStore*>(rdfSharedState->store.get());
     uint64_t size = store->rtStore.size() + store->ltStore.size();
     if (size == 0) {
         return 0.0;
@@ -238,15 +229,15 @@ static double RdfResourceTripleInMemScanProgressFunc(TableFuncSharedState* share
 
 static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
     TableFuncLocalState*) {
-    auto state = ku_dynamic_cast<TableFuncSharedState*, RdfScanSharedState*>(sharedState);
+    auto state = ku_dynamic_cast<RdfScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
-        ctx->clientContext->getWarningContextUnsafe().populateWarnings(i, ctx->queryID);
+        ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
     }
 }
 
 static void finalizeFuncInMem(ExecutionContext* ctx, TableFuncSharedState*, TableFuncLocalState*) {
     // file idx doesn't apply here
-    ctx->clientContext->getWarningContextUnsafe().populateWarnings(0, ctx->queryID);
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set RdfResourceScan::getFunctionSet() {

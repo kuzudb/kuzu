@@ -19,6 +19,22 @@ public:
     virtual ~GraphScanState() = default;
 };
 
+// TODO(Ben): feel free to remove this class.
+struct GraphScanResult {
+    std::vector<common::nodeID_t> nbrNodeIDs;
+    std::vector<common::relID_t> edgeIDs;
+
+    common::idx_t size() const {
+        KU_ASSERT(nbrNodeIDs.size() == edgeIDs.size());
+        return nbrNodeIDs.size();
+    }
+
+    void clear() {
+        nbrNodeIDs.clear();
+        edgeIDs.clear();
+    }
+};
+
 /**
  * Graph interface to be use by GDS algorithms to get neighbors of nodes.
  *
@@ -38,6 +54,8 @@ public:
     // Get id for all relationship tables.
     virtual std::vector<common::table_id_t> getRelTableIDs() = 0;
 
+    virtual std::unordered_map<common::table_id_t, uint64_t> getNodeTableIDAndNumNodes() = 0;
+
     // Get num rows for all node tables.
     virtual common::offset_t getNumNodes() = 0;
     // Get num rows for given node table.
@@ -56,8 +74,8 @@ public:
     // group will be scanned at once.
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
-    virtual std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID,
-        GraphScanState& state) = 0;
+    virtual void scanFwd(common::nodeID_t nodeID, GraphScanState& state,
+        GraphScanResult& result) = 0;
 
     // Scans multiple nodeIDs in random mode, which is optimized for small lookups and does minimal
     // caching of CSR headers.
@@ -73,8 +91,8 @@ public:
         std::span<common::table_id_t> nodeTableIDs) = 0;
 
     // Get dst nodeIDs for given src nodeID tables using backward adjList.
-    virtual std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID,
-        GraphScanState& state) = 0;
+    virtual void scanBwd(common::nodeID_t nodeID, GraphScanState& state,
+        GraphScanResult& result) = 0;
     virtual std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) = 0;
 };

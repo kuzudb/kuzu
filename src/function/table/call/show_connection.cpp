@@ -33,7 +33,7 @@ static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t output
     ClientContext* context, table_id_t tableID) {
     auto catalog = context->getCatalog();
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
-    auto relTableEntry = ku_dynamic_cast<TableCatalogEntry*, RelTableCatalogEntry*>(tableEntry);
+    auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(tableEntry);
     KU_ASSERT(tableEntry->getTableType() == TableType::REL);
     // Get src and dst name
     auto srcTableID = relTableEntry->getSrcTableID();
@@ -46,10 +46,10 @@ static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t output
     auto srcTablePrimaryKey = srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     auto dstTablePrimaryKey = dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     // Write result to dataChunk
-    outputDataChunk.getValueVector(0)->setValue(outputPos, srcTableName);
-    outputDataChunk.getValueVector(1)->setValue(outputPos, dstTableName);
-    outputDataChunk.getValueVector(2)->setValue(outputPos, srcTablePrimaryKey);
-    outputDataChunk.getValueVector(3)->setValue(outputPos, dstTablePrimaryKey);
+    outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcTableName);
+    outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstTableName);
+    outputDataChunk.getValueVectorMutable(2).setValue(outputPos, srcTablePrimaryKey);
+    outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstTablePrimaryKey);
 }
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
@@ -68,7 +68,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
-        auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
         auto relTableIDs = relGroupEntry->getRelTableIDs();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
             outputRelTableConnection(dataChunk, vectorPos, bindData->context,
@@ -105,7 +105,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     common::offset_t maxOffset = 1;
     if (tableEntry->getTableType() == common::TableType::REL_GROUP) {
-        auto relGroupEntry = ku_dynamic_cast<TableCatalogEntry*, RelGroupCatalogEntry*>(tableEntry);
+        auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
         maxOffset = relGroupEntry->getRelTableIDs().size();
     }
     return std::make_unique<ShowConnectionBindData>(context, tableEntry, std::move(columnTypes),

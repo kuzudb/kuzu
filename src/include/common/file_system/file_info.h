@@ -33,22 +33,22 @@ struct KUZU_API FileInfo {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<FileInfo*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const FileInfo*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const FileInfo&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<FileInfo&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 
     const std::string path;

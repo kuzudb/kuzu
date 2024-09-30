@@ -33,7 +33,7 @@ public:
 
     template<typename T>
     T Load(const uint8_t* ptr) {
-        T ret;
+        T ret{};
         memcpy(&ret, ptr, sizeof(ret));
         return ret;
     }

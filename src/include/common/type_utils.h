@@ -25,6 +25,18 @@ struct overload : Funcs... {
 
 class TypeUtils {
 public:
+    template<typename Func, typename... Types, size_t... indices>
+    static void paramPackForEachHelper(const Func& func, std::index_sequence<indices...>,
+        Types&&... values) {
+        ((func(indices, values)), ...);
+    }
+
+    template<typename Func, typename... Types>
+    static void paramPackForEach(const Func& func, Types&&... values) {
+        paramPackForEachHelper(func, std::index_sequence_for<Types...>(),
+            std::forward<Types>(values)...);
+    }
+
     static std::string entryToString(const LogicalType& dataType, const uint8_t* value,
         ValueVector* vector);
 
@@ -32,6 +44,8 @@ public:
     static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
         if constexpr (std::is_same_v<T, std::string>) {
             return val;
+        } else if constexpr (std::is_same_v<T, ku_string_t>) {
+            return val.getAsString();
         } else {
             static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
                           std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||

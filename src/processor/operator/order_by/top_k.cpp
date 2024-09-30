@@ -1,6 +1,7 @@
 #include "processor/operator/order_by/top_k.h"
 
 #include "binder/expression/expression_util.h"
+#include "common/type_utils.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"
 
@@ -147,36 +148,11 @@ void TopKBuffer::initVectors() {
 template<typename FUNC>
 void TopKBuffer::getSelectComparisonFunction(common::PhysicalTypeID typeID,
     vector_select_comparison_func& selectFunc) {
-    switch (typeID) {
-    case common::PhysicalTypeID::INT64: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<int64_t, int64_t, FUNC>;
-    } break;
-    case common::PhysicalTypeID::INT32: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<int32_t, int32_t, FUNC>;
-    } break;
-    case common::PhysicalTypeID::INT16: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<int16_t, int16_t, FUNC>;
-    } break;
-    case common::PhysicalTypeID::DOUBLE: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<double, double, FUNC>;
-    } break;
-    case common::PhysicalTypeID::FLOAT: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<float, float, FUNC>;
-    } break;
-    case common::PhysicalTypeID::BOOL: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<bool, bool, FUNC>;
-    } break;
-    case common::PhysicalTypeID::STRING: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<common::ku_string_t,
-            common::ku_string_t, FUNC>;
-    } break;
-    case common::PhysicalTypeID::INTERVAL: {
-        selectFunc = function::BinaryFunctionExecutor::selectComparison<common::interval_t,
-            common::interval_t, FUNC>;
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
+    common::TypeUtils::visit(
+        typeID,
+        [&selectFunc]<ComparableTypes T>(
+            T) { selectFunc = function::BinaryFunctionExecutor::selectComparison<T, T, FUNC>; },
+        [](auto) { KU_UNREACHABLE; });
 }
 
 void TopKBuffer::initCompareFuncs() {

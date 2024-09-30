@@ -186,7 +186,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         if (cpy.size() >= 1 + NumericLimits<int128_t>::digits()) {
             return LogicalType::DOUBLE();
         }
-        int128_t val;
+        int128_t val = 0;
         if (!trySimpleInt128Cast(cpy.data(), cpy.length(), val)) {
             return LogicalType::STRING();
         }

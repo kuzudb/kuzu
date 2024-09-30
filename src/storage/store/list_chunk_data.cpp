@@ -221,7 +221,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
 void ListChunkData::initializeScanState(ChunkState& state, Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
-    auto* listColumn = ku_dynamic_cast<Column*, ListColumn*>(column);
+    auto* listColumn = ku_dynamic_cast<ListColumn*>(column);
     state.childrenStates.resize(CHILD_COLUMN_COUNT);
     sizeColumnChunk->initializeScanState(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
         listColumn->getSizeColumn());

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "processor/operator/persistent/batch_insert_error_handler.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -16,14 +17,13 @@ struct IndexLookupInfo {
     std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
+    std::vector<DataPos> warningDataVectorPos;
 
     IndexLookupInfo(storage::NodeTable* nodeTable, const DataPos& keyVectorPos,
-        const DataPos& resultVectorPos)
+        const DataPos& resultVectorPos, std::vector<DataPos> warningDataVectorPos)
         : nodeTable{nodeTable}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
-          resultVectorPos{resultVectorPos} {}
-    IndexLookupInfo(const IndexLookupInfo& other)
-        : nodeTable{other.nodeTable}, batchInsertSharedState{other.batchInsertSharedState},
-          keyVectorPos{other.keyVectorPos}, resultVectorPos{other.resultVectorPos} {}
+          resultVectorPos{resultVectorPos}, warningDataVectorPos(std::move(warningDataVectorPos)) {}
+    IndexLookupInfo(const IndexLookupInfo& other) = default;
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
         return std::make_unique<IndexLookupInfo>(*this);
@@ -46,6 +46,14 @@ private:
         : OPPrintInfo{other}, expressions{other.expressions} {}
 };
 
+struct IndexLookupLocalState {
+    explicit IndexLookupLocalState(std::unique_ptr<BatchInsertErrorHandler> errorHandler)
+        : errorHandler(std::move(errorHandler)) {}
+
+    std::unique_ptr<BatchInsertErrorHandler> errorHandler;
+    std::vector<common::ValueVector*> warningDataVectors;
+};
+
 class IndexLookup : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 
@@ -56,6 +64,8 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           infos{std::move(infos)} {}
 
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+
     void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
@@ -64,13 +74,11 @@ public:
 
 private:
     void lookup(transaction::Transaction* transaction, const IndexLookupInfo& info);
-    void checkNullKeys(common::ValueVector* keyVector);
-    void fillOffsetArraysFromVector(transaction::Transaction* transaction,
-        const IndexLookupInfo& info, common::ValueVector* keyVector,
-        common::ValueVector* resultVector);
 
 private:
     std::vector<std::unique_ptr<IndexLookupInfo>> infos;
+
+    std::unique_ptr<IndexLookupLocalState> localState;
 };
 
 } // namespace processor

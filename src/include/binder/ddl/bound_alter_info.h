@@ -12,11 +12,11 @@ struct BoundExtraAlterInfo {
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const BoundExtraAlterInfo*, const TARGET*>(this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const BoundExtraAlterInfo&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     virtual std::unique_ptr<BoundExtraAlterInfo> copy() const = 0;

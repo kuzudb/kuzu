@@ -103,7 +103,7 @@ public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : id{id}, operatorType{operatorType}, printInfo{std::move(printInfo)} {}
+        : id{id}, operatorType{operatorType}, resultSet(nullptr), printInfo{std::move(printInfo)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);
@@ -150,11 +150,11 @@ public:
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<PhysicalOperator*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
     template<class TARGET>
     const TARGET& constCast() {
-        return common::ku_dynamic_cast<const PhysicalOperator&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
 protected:

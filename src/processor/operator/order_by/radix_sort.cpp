@@ -188,7 +188,7 @@ void RadixSort::findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
                 }
             }
 
-            uint8_t result;
+            uint8_t result = UINT8_MAX;
             function::NotEquals::operation<TYPE, TYPE>(iValue,
                 factorizedTable.getData<TYPE>(
                     OrderByKeyEncoder::getEncodedFTBlockIdx(jTupleInfoPtr),

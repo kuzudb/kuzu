@@ -4,10 +4,8 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "graph_test/base_graph_test.h"
-// #include "gtest/gtest.h"
 #include "main/client_context.h"
 #include "main_test_helper/private_main_test_helper.h"
-// #include "transaction/transaction.h"
 
 using kuzu::common::nodeID_t;
 
@@ -38,6 +36,29 @@ class RelScanTestAmazon : public RelScanTest {
         return kuzu::testing::TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
     }
 };
+
+// Test correctness of scan fwd
+TEST_F(RelScanTest, ScanFwd) {
+    auto tableID = catalog->getTableID(context->getTx(), "person");
+    auto relTableID = catalog->getTableID(context->getTx(), "knows");
+    auto scanState = graph->prepareScan(relTableID);
+    auto scanResult = graph::GraphScanResult();
+    std::vector<nodeID_t> result{nodeID_t{1, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}};
+    graph->scanFwd(nodeID_t{0, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
+    graph->scanBwd(nodeID_t{0, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
+    result = {nodeID_t{0, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}};
+    graph->scanFwd(nodeID_t{1, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
+    graph->scanBwd(nodeID_t{1, tableID}, *scanState, scanResult);
+    EXPECT_EQ(scanResult.nbrNodeIDs, result);
+    result = {nodeID_t{0, tableID}, nodeID_t{1, tableID}, nodeID_t{3, tableID}};
+    graph->scanFwd(nodeID_t{2, tableID}, *scanState, scanResult);
+    ASSERT_EQ(scanResult.nbrNodeIDs, result);
+    graph->scanBwd(nodeID_t{2, tableID}, *scanState, scanResult);
+    ASSERT_EQ(scanResult.nbrNodeIDs, result);
+}
 
 // Test correctness of a random access scan
 // TEST_F(RelScanTest, RandomAccessScan) {

@@ -7,7 +7,6 @@ namespace kuzu {
 namespace processor {
 
 class FactorizedTable;
-struct PopulatedCSVError;
 
 struct ExecutionContext {
     uint64_t queryID;

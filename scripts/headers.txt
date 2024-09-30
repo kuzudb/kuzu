@@ -1,6 +1,7 @@
 # Please keep this list sorted. All headers should be relative to the root of the repository
 src/include/binder/expression/expression.h
 src/include/common/api.h
+src/include/common/array_utils.h
 src/include/common/arrow/arrow.h
 src/include/common/assert.h
 src/include/common/case_insensitive_map.h
@@ -72,6 +73,7 @@ src/include/main/version.h
 src/include/parser/statement.h
 src/include/processor/result/flat_tuple.h
 src/include/processor/warning_context.h
+src/include/processor/operator/persistent/reader/copy_from_error.h
 src/include/storage/storage_version_info.h
 src/include/transaction/transaction.h
 src/include/transaction/transaction_context.h

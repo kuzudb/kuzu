@@ -109,7 +109,7 @@ public:
     //   so, return false, else insert the key to the local storage.
     bool insertInternal(const transaction::Transaction* transaction, Key key,
         common::offset_t value, visible_func isVisible) {
-        common::offset_t tmpResult;
+        common::offset_t tmpResult = 0;
         auto localLookupState = localStorage->lookup(key, tmpResult, isVisible);
         if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
             return false;
@@ -131,7 +131,7 @@ public:
         if (indexHeaderForWriteTrx.numEntries > 0) {
             localStorage->reserveSpaceForAppend(buffer.size() - bufferOffset);
             size_t numValuesInserted = 0;
-            common::offset_t result;
+            common::offset_t result = 0;
             for (size_t i = bufferOffset; i < buffer.size(); i++) {
                 const auto& [key, value] = buffer[i];
                 if (lookupInPersistentIndex(transaction, key, result, isVisible)) {
@@ -311,13 +311,12 @@ public:
 
     template<typename T>
     inline HashIndex<HashIndexType<T>>* getTypedHashIndex(T key) {
-        return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<HashIndexType<T>>*>(
+        return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(
             hashIndices[HashIndexUtils::getHashIndexPosition(key)].get());
     }
     template<common::IndexHashable T>
     inline HashIndex<T>* getTypedHashIndexByPos(uint64_t indexPos) {
-        return common::ku_dynamic_cast<OnDiskHashIndex*, HashIndex<HashIndexType<T>>*>(
-            hashIndices[indexPos].get());
+        return common::ku_dynamic_cast<HashIndex<HashIndexType<T>>*>(hashIndices[indexPos].get());
     }
 
     inline bool lookup(const transaction::Transaction* trx, common::ku_string_t key,

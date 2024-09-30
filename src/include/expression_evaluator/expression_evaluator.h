@@ -7,8 +7,8 @@ namespace kuzu {
 namespace evaluator {
 
 struct EvaluatorLocalState {
-    main::ClientContext* clientContext;
-    uint64_t count;
+    main::ClientContext* clientContext = nullptr;
+    uint64_t count = 0;
 };
 
 enum class EvaluatorType : uint8_t {
@@ -59,15 +59,15 @@ public:
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const ExpressionEvaluator&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<ExpressionEvaluator&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<ExpressionEvaluator*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
 protected:

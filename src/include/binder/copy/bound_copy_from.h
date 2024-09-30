@@ -15,7 +15,7 @@ struct ExtraBoundCopyFromInfo {
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const ExtraBoundCopyFromInfo&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 };
 
@@ -58,8 +58,7 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
     ExtraBoundCopyRelInfo(std::vector<common::idx_t> internalIDColumnIndices,
         std::vector<IndexLookupInfo> infos)
         : internalIDColumnIndices{std::move(internalIDColumnIndices)}, infos{std::move(infos)} {}
-    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
-        : internalIDColumnIndices{other.internalIDColumnIndices}, infos{other.infos} {}
+    ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other) = default;
 
     std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);

@@ -10,6 +10,7 @@
 #include "function/string/functions/regexp_full_match_function.h"
 #include "function/string/functions/regexp_matches_function.h"
 #include "function/string/functions/regexp_replace_function.h"
+#include "function/string/functions/regexp_split_to_array_function.h"
 #include "function/string/functions/repeat_function.h"
 #include "function/string/functions/right_function.h"
 #include "function/string/functions/rpad_function.h"
@@ -299,6 +300,17 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, list_entry_t,
             RegexpExtractAll>,
         nullptr, bindFunc));
+    return functionSet;
+}
+
+function_set RegexpSplitToArrayFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::LIST,
+        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
+            RegexpSplitToArray>,
+        bindFunc));
     return functionSet;
 }
 

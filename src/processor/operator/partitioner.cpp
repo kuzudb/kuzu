@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
+#include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
@@ -46,11 +47,13 @@ void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
     Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
 }
 
-partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx) {
+partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
+    RelBatchInsertProgressSharedState& progressSharedState) {
     std::unique_lock xLck{mtx};
     if (nextPartitionIdx >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;
     }
+    progressSharedState.partitionsDone++;
     return nextPartitionIdx++;
 }
 
@@ -168,7 +171,7 @@ void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
     std::vector<ValueVector*> vectorsToAppend;
     vectorsToAppend.reserve(chunkToCopyFrom.getNumValueVectors());
     for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {
-        vectorsToAppend.push_back(chunkToCopyFrom.getValueVector(j).get());
+        vectorsToAppend.push_back(&chunkToCopyFrom.getValueVectorMutable(j));
     }
     for (auto i = 0u; i < chunkToCopyFrom.state->getSelVector().getSelSize(); i++) {
         const auto posToCopyFrom = chunkToCopyFrom.state->getSelVector()[i];
@@ -177,7 +180,7 @@ void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
             partitionIdx < localState->getPartitioningBuffer(partitioningIdx)->partitions.size());
         const auto& partition =
             localState->getPartitioningBuffer(partitioningIdx)->partitions[partitionIdx];
-        partition->append(memoryManager, vectorsToAppend, posToCopyFrom, 1);
+        partition->append(memoryManager, vectorsToAppend, i, 1);
     }
 }
 

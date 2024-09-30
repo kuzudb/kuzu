@@ -24,7 +24,7 @@ struct TableFuncSharedState {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TableFuncSharedState*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 
@@ -33,7 +33,7 @@ struct TableFuncLocalState {
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TableFuncLocalState*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 };
 
@@ -65,8 +65,10 @@ struct TableFuncOutput {
 
 struct TableFunctionInitInput {
     TableFuncBindData* bindData;
+    uint64_t queryID;
 
-    explicit TableFunctionInitInput(TableFuncBindData* bindData) : bindData{bindData} {}
+    explicit TableFunctionInitInput(TableFuncBindData* bindData, uint64_t queryID)
+        : bindData{bindData}, queryID(queryID) {}
 
     virtual ~TableFunctionInitInput() = default;
 };

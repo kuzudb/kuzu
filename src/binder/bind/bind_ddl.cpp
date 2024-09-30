@@ -31,12 +31,16 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-static void validateUniquePropertyName(const std::vector<PropertyDefinition>& definitions) {
+void Binder::validatePropertyName(const std::vector<PropertyDefinition>& definitions) {
     common::case_insensitve_set_t nameSet;
     for (auto& definition : definitions) {
         if (nameSet.contains(definition.getName())) {
             throw BinderException(stringFormat(
                 "Duplicated column name: {}, column name must be unique.", definition.getName()));
+        }
+        if (reservedInColumnName(definition.getName())) {
+            throw BinderException(
+                stringFormat("{} is a reserved property name.", definition.getName()));
         }
         nameSet.insert(definition.getName());
     }
@@ -65,13 +69,7 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
         auto columnDefinition = ColumnDefinition(parsedDefinition.getName(), std::move(type));
         definitions.emplace_back(std::move(columnDefinition), std::move(expr));
     }
-    validateUniquePropertyName(definitions);
-    for (auto& definition : definitions) {
-        if (reservedInColumnName(definition.getName())) {
-            throw BinderException(
-                stringFormat("{} is a reserved property name.", definition.getName()));
-        }
-    }
+    validatePropertyName(definitions);
     return definitions;
 }
 
@@ -211,11 +209,10 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     auto& createSequence = statement.constCast<CreateSequence>();
     auto info = createSequence.getInfo();
     auto sequenceName = info.sequenceName;
-    int64_t startWith;
-    int64_t increment;
-    int64_t minValue;
-    int64_t maxValue;
-    ku_string_t literal;
+    int64_t startWith = 0;
+    int64_t increment = 0;
+    int64_t minValue = 0;
+    int64_t maxValue = 0;
     switch (info.onConflict) {
     case common::ConflictAction::ON_CONFLICT_THROW: {
         if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
@@ -225,7 +222,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     default:
         break;
     }
-    literal = ku_string_t{info.increment.c_str(), info.increment.length()};
+    auto literal = ku_string_t{info.increment.c_str(), info.increment.length()};
     if (!function::CastString::tryCast(literal, increment)) {
         throw BinderException("Out of bounds: SEQUENCE accepts integers within INT64.");
     }
@@ -427,7 +424,7 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
-    auto extraInfo = ku_dynamic_cast<ExtraAlterInfo*, ExtraRenameTableInfo*>(info->extraInfo.get());
+    auto extraInfo = ku_dynamic_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
     validateTableExist(tableName);

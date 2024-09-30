@@ -121,6 +121,8 @@ public:
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
 
+    static void validatePropertyName(const std::vector<PropertyDefinition>& definitions);
+
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,

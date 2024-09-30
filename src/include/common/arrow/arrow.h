@@ -56,7 +56,7 @@ struct ArrowArray {
 #endif
 
 struct ArrowSchemaWrapper : public ArrowSchema {
-    ArrowSchemaWrapper() { release = nullptr; }
+    ArrowSchemaWrapper() : ArrowSchema{} { release = nullptr; }
     ~ArrowSchemaWrapper() {
         if (release) {
             release(this);
@@ -65,7 +65,7 @@ struct ArrowSchemaWrapper : public ArrowSchema {
 };
 
 struct ArrowArrayWrapper : public ArrowArray {
-    ArrowArrayWrapper() { release = nullptr; }
+    ArrowArrayWrapper() : ArrowArray{} { release = nullptr; }
     ~ArrowArrayWrapper() {
         if (release) {
             release(this);

@@ -16,7 +16,7 @@ struct ArrayExtract {
             return;
         }
         auto stringVal = str.getAsString();
-        int64_t strLen;
+        int64_t strLen = 0;
         ListLen::operation(str, strLen);
         auto idxPos = idx > 0 ? std::min(idx, strLen) : std::max(strLen + idx, (int64_t)0) + 1;
         auto startPos = idxPos - 1;

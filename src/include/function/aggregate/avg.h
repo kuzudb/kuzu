@@ -17,7 +17,7 @@ struct AvgFunction {
                 reinterpret_cast<uint8_t*>(&avg), outputVector->getNumBytesPerValue());
         }
 
-        T sum;
+        T sum{};
         uint64_t count = 0;
         double avg = 0;
     };

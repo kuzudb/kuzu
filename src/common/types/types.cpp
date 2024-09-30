@@ -284,8 +284,7 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
 }
 
 bool DecimalTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherDecimalTypeInfo =
-        ku_dynamic_cast<const ExtraTypeInfo*, const DecimalTypeInfo*>(&other);
+    auto otherDecimalTypeInfo = ku_dynamic_cast<const DecimalTypeInfo*>(&other);
     if (otherDecimalTypeInfo) {
         return precision == otherDecimalTypeInfo->precision && scale == otherDecimalTypeInfo->scale;
     }
@@ -297,7 +296,7 @@ std::unique_ptr<ExtraTypeInfo> DecimalTypeInfo::copy() const {
 }
 
 std::unique_ptr<ExtraTypeInfo> DecimalTypeInfo::deserialize(Deserializer& deserializer) {
-    uint32_t precision, scale;
+    uint32_t precision = 0, scale = 0;
     deserializer.deserializeValue<uint32_t>(precision);
     deserializer.deserializeValue<uint32_t>(scale);
     return std::make_unique<DecimalTypeInfo>(precision, scale);
@@ -313,7 +312,7 @@ bool ListTypeInfo::containsAny() const {
 }
 
 bool ListTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherListTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ListTypeInfo*>(&other);
+    auto otherListTypeInfo = ku_dynamic_cast<const ListTypeInfo*>(&other);
     if (otherListTypeInfo) {
         return childType == otherListTypeInfo->childType;
     }
@@ -333,7 +332,7 @@ void ListTypeInfo::serializeInternal(Serializer& serializer) const {
 }
 
 bool ArrayTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherArrayTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const ArrayTypeInfo*>(&other);
+    auto otherArrayTypeInfo = ku_dynamic_cast<const ArrayTypeInfo*>(&other);
     if (otherArrayTypeInfo) {
         return childType == otherArrayTypeInfo->childType &&
                numElements == otherArrayTypeInfo->numElements;
@@ -343,7 +342,7 @@ bool ArrayTypeInfo::operator==(const ExtraTypeInfo& other) const {
 
 std::unique_ptr<ExtraTypeInfo> ArrayTypeInfo::deserialize(Deserializer& deserializer) {
     auto childType = LogicalType::deserialize(deserializer);
-    uint64_t numElements;
+    uint64_t numElements = 0;
     deserializer.deserializeValue(numElements);
     return std::make_unique<ArrayTypeInfo>(std::move(childType), numElements);
 }
@@ -460,7 +459,7 @@ bool StructTypeInfo::containsAny() const {
 }
 
 bool StructTypeInfo::operator==(const ExtraTypeInfo& other) const {
-    auto otherStructTypeInfo = ku_dynamic_cast<const ExtraTypeInfo*, const StructTypeInfo*>(&other);
+    auto otherStructTypeInfo = ku_dynamic_cast<const StructTypeInfo*>(&other);
     if (otherStructTypeInfo) {
         if (fields.size() != otherStructTypeInfo->fields.size()) {
             return false;
@@ -553,22 +552,21 @@ bool LogicalType::operator!=(const LogicalType& other) const {
 std::string LogicalType::toString() const {
     switch (typeID) {
     case LogicalTypeID::MAP: {
-        auto structType =
-            ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get())->getChildType();
+        auto structType = ku_dynamic_cast<ListTypeInfo*>(extraTypeInfo.get())->getChildType();
         auto fieldTypes = StructType::getFieldTypes(structType);
         return "MAP(" + fieldTypes[0]->toString() + ", " + fieldTypes[1]->toString() + ")";
     }
     case LogicalTypeID::LIST: {
-        auto listTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ListTypeInfo*>(extraTypeInfo.get());
+        auto listTypeInfo = ku_dynamic_cast<ListTypeInfo*>(extraTypeInfo.get());
         return listTypeInfo->getChildType().toString() + "[]";
     }
     case LogicalTypeID::ARRAY: {
-        auto arrayTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, ArrayTypeInfo*>(extraTypeInfo.get());
+        auto arrayTypeInfo = ku_dynamic_cast<ArrayTypeInfo*>(extraTypeInfo.get());
         return arrayTypeInfo->getChildType().toString() + "[" +
                std::to_string(arrayTypeInfo->getNumElements()) + "]";
     }
     case LogicalTypeID::UNION: {
-        auto unionTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
+        auto unionTypeInfo = ku_dynamic_cast<StructTypeInfo*>(extraTypeInfo.get());
         std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
         auto numFields = unionTypeInfo->getChildrenTypes().size();
         auto fieldNames = unionTypeInfo->getChildrenNames();
@@ -580,7 +578,7 @@ std::string LogicalType::toString() const {
         return dataTypeStr;
     }
     case LogicalTypeID::STRUCT: {
-        auto structTypeInfo = ku_dynamic_cast<ExtraTypeInfo*, StructTypeInfo*>(extraTypeInfo.get());
+        auto structTypeInfo = ku_dynamic_cast<StructTypeInfo*>(extraTypeInfo.get());
         std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
         auto numFields = structTypeInfo->getChildrenTypes().size();
         auto fieldNames = structTypeInfo->getChildrenNames();
@@ -594,8 +592,7 @@ std::string LogicalType::toString() const {
         return dataTypeStr + ")";
     }
     case LogicalTypeID::DECIMAL: {
-        auto decimalTypeInfo =
-            ku_dynamic_cast<ExtraTypeInfo*, DecimalTypeInfo*>(extraTypeInfo.get());
+        auto decimalTypeInfo = ku_dynamic_cast<DecimalTypeInfo*>(extraTypeInfo.get());
         return "DECIMAL(" + std::to_string(decimalTypeInfo->getPrecision()) + ", " +
                std::to_string(decimalTypeInfo->getScale()) + ")";
     }
@@ -653,7 +650,7 @@ static LogicalType parseDecimalType(const std::string& trimmedStr);
 bool LogicalType::isBuiltInType(const std::string& str) {
     auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(str));
     auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
-    LogicalTypeID id;
+    auto id = LogicalTypeID::ANY;
     try {
         if (upperDataTypeString.ends_with("[]")) {
             parseListType(trimmedStr);
@@ -716,9 +713,9 @@ void LogicalType::serialize(Serializer& serializer) const {
 }
 
 LogicalType LogicalType::deserialize(Deserializer& deserializer) {
-    LogicalTypeID typeID;
+    auto typeID = LogicalTypeID::ANY;
     deserializer.deserializeValue(typeID);
-    PhysicalTypeID physicalType;
+    auto physicalType = PhysicalTypeID::ANY;
     deserializer.deserializeValue(physicalType);
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
     switch (physicalType) {
@@ -1551,7 +1548,7 @@ static bool tryUnsignedToSigned(const LogicalTypeID& input, LogicalTypeID& resul
 
 static LogicalTypeID joinDifferentSignIntegrals(const LogicalTypeID& signedType,
     const LogicalTypeID& unsignedType) {
-    LogicalTypeID unsignedToSigned;
+    auto unsignedToSigned = LogicalTypeID::ANY;
     if (!tryUnsignedToSigned(unsignedType, unsignedToSigned)) {
         return LogicalTypeID::DOUBLE;
     } else {
@@ -1850,7 +1847,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const LogicalType& left, const Logic
             // LCOV_EXCL_END
         }
     }
-    LogicalTypeID resultID;
+    auto resultID = LogicalTypeID::ANY;
     if (!tryGetMaxLogicalTypeID(left.typeID, right.typeID, resultID)) {
         return false;
     }

@@ -13,9 +13,9 @@ struct TableFunctionCallSharedState {
 };
 
 struct TableFunctionCallLocalState {
-    std::unique_ptr<function::TableFuncLocalState> funcState;
-    function::TableFuncInput funcInput;
-    function::TableFuncOutput funcOutput;
+    std::unique_ptr<function::TableFuncLocalState> funcState = nullptr;
+    function::TableFuncInput funcInput{};
+    function::TableFuncOutput funcOutput{};
 
     TableFunctionCallLocalState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableFunctionCallLocalState);
@@ -28,11 +28,11 @@ enum class TableScanOutputType : uint8_t {
 };
 
 struct TableFunctionCallInfo {
-    function::TableFunction function;
+    function::TableFunction function{};
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outPosV;
     DataPos rowOffsetPos;
-    TableScanOutputType outputType;
+    TableScanOutputType outputType = TableScanOutputType::EMPTY;
 
     TableFunctionCallInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(TableFunctionCallInfo);

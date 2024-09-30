@@ -63,8 +63,7 @@ std::unique_ptr<function::TableFuncSharedState> initSharedState(
         throw RuntimeException("PandasScan called but GIL was already held!");
     }
     // LCOV_EXCL_STOP
-    auto scanBindData =
-        ku_dynamic_cast<TableFuncBindData*, PandasScanFunctionData*>(input.bindData);
+    auto scanBindData = ku_dynamic_cast<PandasScanFunctionData*>(input.bindData);
     return std::make_unique<PandasScanSharedState>(scanBindData->numRows);
 }
 
@@ -94,7 +93,7 @@ offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     for (auto i = 0u; i < pandasScanData->columnNames.size(); i++) {
         if (!skips[i]) {
             pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
-                pandasLocalState->start, output.dataChunk.getValueVector(i).get());
+                pandasLocalState->start, &output.dataChunk.getValueVectorMutable(i));
         }
     }
     output.dataChunk.state->getSelVectorUnsafe().setSelSize(numValuesToOutput);

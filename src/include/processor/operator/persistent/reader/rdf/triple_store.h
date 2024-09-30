@@ -18,7 +18,7 @@ struct RdfStore {
 
     template<class TARGET>
     TARGET& cast() {
-        return common::ku_dynamic_cast<RdfStore&, TARGET&>(*this);
+        return common::ku_dynamic_cast<TARGET&>(*this);
     }
 };
 

@@ -62,10 +62,10 @@ void RDFGraphCatalogEntry::serialize(common::Serializer& serializer) const {
 std::unique_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::deserialize(
     common::Deserializer& deserializer) {
     std::string debuggingInfo;
-    common::table_id_t resourceTableID;
-    common::table_id_t literalTableID;
-    common::table_id_t resourceTripleTableID;
-    common::table_id_t literalTripleTableID;
+    common::table_id_t resourceTableID = common::INVALID_TABLE_ID;
+    common::table_id_t literalTableID = common::INVALID_TABLE_ID;
+    common::table_id_t resourceTripleTableID = common::INVALID_TABLE_ID;
+    common::table_id_t literalTripleTableID = common::INVALID_TABLE_ID;
     deserializer.validateDebuggingInfo(debuggingInfo, "resourceTableID");
     deserializer.deserializeValue(resourceTableID);
     deserializer.validateDebuggingInfo(debuggingInfo, "literalTableID");
@@ -96,7 +96,7 @@ static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTab
     transaction::Transaction* transaction, const CatalogEntrySet& entries,
     common::table_id_t tableID) {
     for (auto& [name, entry] : entries) {
-        auto current = common::ku_dynamic_cast<CatalogEntry*, TableCatalogEntry*>(entry);
+        auto current = common::ku_dynamic_cast<TableCatalogEntry*>(entry);
         if (current->getTableID() == tableID) {
             auto boundInfo = current->getBoundCreateTableInfo(transaction);
             return boundInfo;

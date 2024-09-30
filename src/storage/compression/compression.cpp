@@ -125,8 +125,11 @@ const CompressionMetadata& CompressionMetadata::getChild(offset_t idx) const {
     return children[idx];
 }
 
-CompressionMetadata::CompressionMetadata(const CompressionMetadata& o) {
-    *this = o;
+CompressionMetadata::CompressionMetadata(const CompressionMetadata& o)
+    : min{o.min}, max{o.max}, compression{o.compression}, children{o.children} {
+    if (o.extraMetadata.has_value()) {
+        this->extraMetadata = o.extraMetadata.value()->copy();
+    }
 }
 
 CompressionMetadata& CompressionMetadata::operator=(const CompressionMetadata& o) {
@@ -160,9 +163,9 @@ void CompressionMetadata::serialize(Serializer& serializer) const {
 }
 
 CompressionMetadata CompressionMetadata::deserialize(common::Deserializer& deserializer) {
-    StorageValue min;
-    StorageValue max;
-    CompressionType compressionType;
+    StorageValue min{};
+    StorageValue max{};
+    CompressionType compressionType{};
     deserializer.deserializeValue(min);
     deserializer.deserializeValue(max);
     deserializer.deserializeValue(compressionType);
@@ -399,7 +402,7 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT128: {
         uint8_t size = chunk.getNumBytesPerValue();
-        StorageValue value;
+        StorageValue value{};
         KU_ASSERT(size <= sizeof(value.unsignedInt));
         // If there are no values, or only one value, we will always use constant compression
         // since the loop won't execute
@@ -537,9 +540,9 @@ template<IntegerBitpackingType T>
 BitpackInfo<T> IntegerBitpacking<T>::getPackingInfo(const CompressionMetadata& metadata) {
     auto max = metadata.max.get<T>();
     auto min = metadata.min.get<T>();
-    bool hasNegative;
+    bool hasNegative = false;
     T offset = 0;
-    uint8_t bitWidth;
+    uint8_t bitWidth = 0;
     // Frame of reference encoding is only used when values are either all positive or all
     // negative, and when we will save at least 1 bit per value. when the chunk was first
     // compressed

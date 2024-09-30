@@ -228,7 +228,6 @@ bool KeyBlockMerger::compareTuplePtrWithStringCol(uint8_t* leftTuplePtr,
                 factorizedTables[OrderByKeyEncoder::getEncodedFTIdx(leftTupleInfo)];
             auto& rightFactorizedTable =
                 factorizedTables[OrderByKeyEncoder::getEncodedFTIdx(rightTupleInfo)];
-            uint8_t result;
             auto leftStr = leftFactorizedTable->getData<ku_string_t>(leftBlockIdx, leftBlockOffset,
                 strKeyColInfo.colOffsetInFT);
             auto rightStr = rightFactorizedTable->getData<ku_string_t>(rightBlockIdx,

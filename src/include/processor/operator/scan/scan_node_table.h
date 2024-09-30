@@ -22,10 +22,10 @@ public:
           numUnCommittedNodeGroups{0}, semiMask{std::move(semiMask)} {};
 
     void initialize(const transaction::Transaction* transaction, storage::NodeTable* table,
-        std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState);
+        ScanNodeTableProgressSharedState& progressSharedState);
 
     void nextMorsel(storage::NodeTableScanState& scanState,
-        std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState);
+        ScanNodeTableProgressSharedState& progressSharedState);
 
     common::NodeSemiMask* getSemiMask() const { return semiMask.get(); }
 
@@ -112,6 +112,7 @@ public:
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
+    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 private:
     common::idx_t currentTableIdx;

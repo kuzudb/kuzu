@@ -17,7 +17,7 @@ struct MinMaxFunction {
         inline void setVal(T& val_, storage::MemoryManager* /*memoryManager*/) { val = val_; }
 
         std::unique_ptr<common::InMemOverflowBuffer> overflowBuffer;
-        T val;
+        T val{};
     };
 
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<MinMaxState>(); }
@@ -57,7 +57,7 @@ struct MinMaxFunction {
             state->setVal(val, memoryManager);
             state->isNull = false;
         } else {
-            uint8_t compare_result;
+            uint8_t compare_result = 0;
             OP::template operation<T, T>(val, state->val, compare_result, nullptr /* leftVector */,
                 nullptr /* rightVector */);
             if (compare_result) {
@@ -78,7 +78,7 @@ struct MinMaxFunction {
             state->setVal(otherState->val, memoryManager);
             state->isNull = false;
         } else {
-            uint8_t compareResult;
+            uint8_t compareResult = 0;
             OP::template operation<T, T>(otherState->val, state->val, compareResult,
                 nullptr /* leftVector */, nullptr /* rightVector */);
             if (compareResult) {

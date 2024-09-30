@@ -37,7 +37,7 @@ struct IndexBufferWithWarningData {
     OptionalWarningDataBuffer warningDataBuffer;
 
     bool full() const;
-    void append(T key, common::offset_t value, OptionalWarningSourceData warningData);
+    void append(T key, common::offset_t value, OptionalWarningSourceData&& warningData);
 };
 
 class IndexBuilderGlobalQueues {
@@ -67,6 +67,7 @@ private:
     storage::NodeTable* nodeTable;
 
     template<typename T>
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-member-init)
     struct Queue {
         std::array<common::MPSCQueue<IndexBufferWithWarningData<T>>, storage::NUM_HASH_INDEXES>
             array;
@@ -86,7 +87,7 @@ class IndexBuilderLocalBuffers {
 public:
     explicit IndexBuilderLocalBuffers(IndexBuilderGlobalQueues& globalQueues);
 
-    void insert(std::string key, common::offset_t value, OptionalWarningSourceData warningData,
+    void insert(std::string key, common::offset_t value, OptionalWarningSourceData&& warningData,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(std::string_view(key));
         auto& stringBuffer = (*std::get<UniqueBuffers<std::string>>(buffers))[indexPos];
@@ -102,7 +103,7 @@ public:
     }
 
     template<common::HashablePrimitive T>
-    void insert(T key, common::offset_t value, OptionalWarningSourceData warningData,
+    void insert(T key, common::offset_t value, OptionalWarningSourceData&& warningData,
         NodeBatchInsertErrorHandler& errorHandler) {
         auto indexPos = storage::HashIndexUtils::getHashIndexPosition(key);
         auto& buffer = (*std::get<UniqueBuffers<T>>(buffers))[indexPos];

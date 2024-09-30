@@ -26,7 +26,7 @@ std::string ScanNodeTablePrintInfo::toString() const {
 }
 
 void ScanNodeTableSharedState::initialize(const transaction::Transaction* transaction,
-    NodeTable* table, std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {
+    NodeTable* table, ScanNodeTableProgressSharedState& progressSharedState) {
     this->table = table;
     this->currentCommittedGroupIdx = 0;
     this->currentUnCommittedGroupIdx = 0;
@@ -38,15 +38,15 @@ void ScanNodeTableSharedState::initialize(const transaction::Transaction* transa
             this->numUnCommittedNodeGroups = localNodeTable.getNumNodeGroups();
         }
     }
-    progressSharedState->numGroups += numCommittedNodeGroups;
+    progressSharedState.numGroups += numCommittedNodeGroups;
 }
 
 void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
-    std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState) {
+    ScanNodeTableProgressSharedState& progressSharedState) {
     std::unique_lock lck{mtx};
     if (currentCommittedGroupIdx < numCommittedNodeGroups) {
         scanState.nodeGroupIdx = currentCommittedGroupIdx++;
-        progressSharedState->numGroupsScanned++;
+        progressSharedState.numGroupsScanned++;
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
@@ -68,8 +68,8 @@ void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
             columns.push_back(&table->getColumn(columnID));
         }
     }
-    localScanState =
-        std::make_unique<NodeTableScanState>(columnIDs, columns, copyVector(columnPredicates));
+    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns,
+        copyVector(columnPredicates));
     localScanState->semiMask = semiMask;
 }
 
@@ -90,11 +90,17 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     }
 }
 
+void ScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
+    ScanTable::initVectors(state, resultSet);
+    state.rowIdxVector->state = state.nodeIDVector->state;
+    state.outState = state.rowIdxVector->state.get();
+}
+
 void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == nodeInfos.size());
     for (auto i = 0u; i < nodeInfos.size(); i++) {
         sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table,
-            progressSharedState);
+            *progressSharedState);
     }
 }
 
@@ -103,21 +109,16 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     while (currentTableIdx < nodeInfos.size()) {
         const auto& info = nodeInfos[currentTableIdx];
         auto& scanState = *info.localScanState;
-        const auto skipScan =
-            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-        if (!skipScan) {
-            while (scanState.source != TableScanSource::NONE &&
-                   info.table->scan(transaction, scanState)) {
-                if (scanState.outState->getSelVector().getSelSize() > 0) {
-                    return true;
-                }
+        while (info.table->scan(transaction, scanState)) {
+            if (scanState.outState->getSelVector().getSelSize() > 0) {
+                return true;
             }
         }
-        sharedStates[currentTableIdx]->nextMorsel(scanState, progressSharedState);
+        sharedStates[currentTableIdx]->nextMorsel(scanState, *progressSharedState);
         if (scanState.source == TableScanSource::NONE) {
             currentTableIdx++;
         } else {
-            info.table->initializeScanState(transaction, scanState);
+            info.table->initScanState(transaction, scanState);
         }
     }
     return false;

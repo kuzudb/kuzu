@@ -108,7 +108,7 @@ void PropertyDefinitionCollection::serialize(Serializer& serializer) const {
 
 PropertyDefinitionCollection PropertyDefinitionCollection::deserialize(Deserializer& deserializer) {
     std::string debuggingInfo;
-    column_id_t nextColumnID;
+    column_id_t nextColumnID = 0;
     deserializer.validateDebuggingInfo(debuggingInfo, "nextColumnID");
     deserializer.deserializeValue(nextColumnID);
     std::vector<PropertyDefinition> definitions;

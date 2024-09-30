@@ -67,7 +67,7 @@ void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKey
 
 template<typename T>
 static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
-    uint8_t result;
+    uint8_t result = 0;
     auto key = vector->getData() + vectorPos * vector->getNumBytesPerValue();
     function::Equals::operation(*(T*)key, *(T*)entry, result, nullptr /* leftVector */,
         nullptr /* rightVector */);
@@ -159,9 +159,7 @@ static compare_function_t getCompareEntryFunc(PhysicalTypeID type) {
     return func;
 }
 
-void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock_) {
-    KU_ASSERT(numSlotsPerBlock_ == common::nextPowerOfTwo(numSlotsPerBlock_));
-    numSlotsPerBlock = numSlotsPerBlock_;
+void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock) {
     numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask =
         common::BitmaskUtils::all1sMaskForLeastSignificantBits<uint64_t>(numSlotsPerBlockLog2);

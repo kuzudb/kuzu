@@ -953,7 +953,7 @@ uint64_t Value::computeHash() const {
     if (isNull_) {
         return function::NULL_HASH;
     }
-    hash_t hashValue;
+    hash_t hashValue = 0;
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         function::Hash::operation(val.booleanVal, hashValue);

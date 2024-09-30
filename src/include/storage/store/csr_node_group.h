@@ -122,16 +122,23 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // States at the csr list level. Cached during scan over a single csr list.
     CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
 
-    CSRNodeGroupScanState(MemoryManager& memoryManager, common::idx_t numChunks)
-        : NodeGroupScanState{numChunks},
-          csrHeader{std::make_unique<ChunkedCSRHeader>(memoryManager, false,
-              common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY)} {}
+    explicit CSRNodeGroupScanState(common::idx_t numChunks)
+        : NodeGroupScanState{numChunks}, csrHeader{nullptr} {}
+
+    void initCSRHeader(MemoryManager& mm) {
+        if (!csrHeader) {
+            csrHeader = std::make_unique<ChunkedCSRHeader>(mm, false /*enableCompression*/,
+                common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        }
+    }
 
     void resetState() override {
         NodeGroupScanState::resetState();
-        csrHeader->resetToEmpty();
         source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
         persistentCSRList = csr_list_t();
+        if (csrHeader) {
+            csrHeader->resetToEmpty();
+        }
     }
 };
 
@@ -227,8 +234,6 @@ private:
 
     void populateCSRLengthInMemOnly(const common::UniqLock& lock, common::offset_t numNodes,
         const CSRNodeGroupCheckpointState& csrState);
-    void initInMemScanChunkAndScanState(const CSRNodeGroupCheckpointState& csrState,
-        common::DataChunk& dataChunk, TableScanState& scanState) const;
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
         const CSRNodeGroupCheckpointState& csrState);
@@ -245,6 +250,8 @@ private:
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
 
+    static void initScanStateFromScanChunk(const CSRNodeGroupCheckpointState& csrState,
+        const common::DataChunk& dataChunk, TableScanState& scanState);
     static void redistributeCSRRegions(const CSRNodeGroupCheckpointState& csrState,
         const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(

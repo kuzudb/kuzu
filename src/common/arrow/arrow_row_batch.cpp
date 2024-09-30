@@ -230,13 +230,13 @@ static void getBitPosition(std::int64_t pos, std::int64_t& bytePos, std::int64_t
 }
 
 static void setBitToZero(std::uint8_t* data, std::int64_t pos) {
-    std::int64_t bytePos, bitOffset;
+    std::int64_t bytePos = 0, bitOffset = 0;
     getBitPosition(pos, bytePos, bitOffset);
     data[bytePos] &= ~((std::uint64_t)1 << bitOffset);
 }
 
 static void setBitToOne(std::uint8_t* data, std::int64_t pos) {
-    std::int64_t bytePos, bitOffset;
+    std::int64_t bytePos = 0, bitOffset = 0;
     getBitPosition(pos, bytePos, bitOffset);
     data[bytePos] |= ((std::uint64_t)1 << bitOffset);
 }
@@ -932,7 +932,7 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(ArrowVector& vector, const Logic
 
 ArrowArray ArrowRowBatch::toArray() {
     auto rootHolder = std::make_unique<ArrowVector>();
-    ArrowArray result;
+    ArrowArray result{};
     rootHolder->childPointers.resize(types.size());
     result.children = rootHolder->childPointers.data();
     result.n_children = (std::int64_t)types.size();

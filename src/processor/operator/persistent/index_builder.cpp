@@ -4,6 +4,7 @@
 
 #include "common/assert.h"
 #include "common/cast.h"
+#include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
@@ -24,13 +25,13 @@ bool IndexBufferWithWarningData<T>::full() const {
 
 template<typename T>
 void IndexBufferWithWarningData<T>::append(T key, common::offset_t value,
-    OptionalWarningSourceData warningData) {
+    OptionalWarningSourceData&& warningData) {
     indexBuffer.push_back(std::make_pair(key, value));
     if (warningData.has_value()) {
         if (warningDataBuffer == nullptr) {
             warningDataBuffer = std::make_unique<OptionalWarningDataBuffer::element_type>();
         }
-        warningDataBuffer->push_back(warningData.value());
+        warningDataBuffer->push_back(std::move(warningData.value()));
     }
 }
 
@@ -129,13 +130,7 @@ static OptionalWarningSourceData getWarningDataFromChunks(
     const std::vector<storage::ColumnChunkData*>& chunks, common::idx_t posInChunk) {
     OptionalWarningSourceData ret;
     if (!chunks.empty()) {
-        KU_ASSERT(chunks.size() == CopyConstants::WARNING_METADATA_NUM_COLUMNS);
-        ret = WarningSourceData{
-            chunks[0]->getValue<decltype(WarningSourceData::startByteOffset)>(posInChunk),
-            chunks[1]->getValue<decltype(WarningSourceData::endByteOffset)>(posInChunk),
-            chunks[2]->getValue<decltype(WarningSourceData::fileIdx)>(posInChunk),
-            chunks[3]->getValue<decltype(WarningSourceData::blockIdx)>(posInChunk),
-            chunks[4]->getValue<decltype(WarningSourceData::rowOffsetInBlock)>(posInChunk)};
+        ret = WarningSourceData::constructFromData(chunks, posInChunk);
     }
     return ret;
 }
@@ -155,8 +150,7 @@ void IndexBuilder::insert(const ColumnChunkData& chunk,
             }
         },
         [&](ku_string_t) {
-            auto& stringColumnChunk =
-                ku_dynamic_cast<const ColumnChunkData&, const StringChunkData&>(chunk);
+            auto& stringColumnChunk = ku_dynamic_cast<const StringChunkData&>(chunk);
             for (auto i = 0u; i < numNodes; i++) {
                 if (checkNonNullConstraint(chunk, warningData, nodeOffset, i, errorHandler)) {
                     auto value = stringColumnChunk.getValue<std::string>(i);

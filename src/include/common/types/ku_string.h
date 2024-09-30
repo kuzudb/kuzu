@@ -22,7 +22,7 @@ struct KUZU_API ku_string_t {
         uint64_t overflowPtr;
     };
 
-    ku_string_t() : len{0}, overflowPtr{0} {}
+    ku_string_t() : len{0}, prefix{}, overflowPtr{0} {}
     ku_string_t(const char* value, uint64_t length);
 
     static bool isShortString(uint32_t len) { return len <= SHORT_STR_LENGTH; }

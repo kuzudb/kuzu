@@ -40,7 +40,7 @@ enum class WALRecordType : uint8_t {
 };
 
 struct WALRecord {
-    WALRecordType type;
+    WALRecordType type = WALRecordType::INVALID_RECORD;
 
     WALRecord() = default;
     explicit WALRecord(WALRecordType type) : type{type} {}
@@ -53,7 +53,7 @@ struct WALRecord {
 
     template<class TARGET>
     const TARGET& constCast() const {
-        return common::ku_dynamic_cast<const WALRecord&, const TARGET&>(*this);
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 };
 

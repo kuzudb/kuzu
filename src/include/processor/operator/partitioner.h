@@ -37,6 +37,7 @@ struct PartitioningBuffer {
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerDataInfo;
+struct RelBatchInsertProgressSharedState;
 struct PartitionerSharedState {
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;
@@ -45,7 +46,7 @@ struct PartitionerSharedState {
     storage::MemoryManager& mm;
 
     explicit PartitionerSharedState(storage::MemoryManager& mm)
-        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, mm{mm} {}
+        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm} {}
 
     // FIXME(Guodong): we should not maintain maxNodeOffsets.
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
@@ -57,7 +58,9 @@ struct PartitionerSharedState {
 
     void initialize(const PartitionerDataInfo& dataInfo);
 
-    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx);
+    common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
+        RelBatchInsertProgressSharedState& progressSharedState);
+
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
 

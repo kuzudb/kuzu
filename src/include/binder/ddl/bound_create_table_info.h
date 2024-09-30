@@ -17,13 +17,12 @@ struct BoundExtraCreateCatalogEntryInfo {
 
     template<class TARGET>
     const TARGET* constPtrCast() const {
-        return common::ku_dynamic_cast<const BoundExtraCreateCatalogEntryInfo*, const TARGET*>(
-            this);
+        return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
     template<class TARGET>
     TARGET* ptrCast() {
-        return common::ku_dynamic_cast<BoundExtraCreateCatalogEntryInfo*, TARGET*>(this);
+        return common::ku_dynamic_cast<TARGET*>(this);
     }
 
     virtual void serialize(common::Serializer& serializer) const = 0;
@@ -32,9 +31,9 @@ struct BoundExtraCreateCatalogEntryInfo {
 };
 
 struct BoundCreateTableInfo {
-    common::TableType type;
+    common::TableType type{};
     std::string tableName;
-    common::ConflictAction onConflict;
+    common::ConflictAction onConflict = common::ConflictAction::INVALID;
     bool hasParent = false;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
 

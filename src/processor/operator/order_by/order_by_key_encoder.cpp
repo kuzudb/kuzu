@@ -363,7 +363,7 @@ void OrderByKeyEncoder::encodeData(timestamp_t data, uint8_t* resultPtr, bool sw
 
 template<>
 void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swapBytes) {
-    int64_t months, days, micros;
+    int64_t months = 0, days = 0, micros = 0;
     Interval::normalizeIntervalEntries(data, months, days, micros);
     encodeData((int32_t)months, resultPtr, swapBytes);
     resultPtr += sizeof(data.months);

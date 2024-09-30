@@ -18,8 +18,7 @@ namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
     const ParsedExpression& parsedExpr) {
-    auto& subqueryExpr =
-        ku_dynamic_cast<const ParsedExpression&, const ParsedSubqueryExpression&>(parsedExpr);
+    auto& subqueryExpr = ku_dynamic_cast<const ParsedSubqueryExpression&>(parsedExpr);
     auto prevScope = binder->saveScope();
     auto boundGraphPattern = binder->bindGraphPattern(subqueryExpr.getPatternElements());
     if (subqueryExpr.hasWhereClause()) {

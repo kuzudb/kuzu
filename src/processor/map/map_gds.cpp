@@ -17,7 +17,6 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
     auto outSchema = call.getSchema();
-    auto info = GDSCallInfo(call.getInfo().getGDS()->copy());
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     auto columns = call.getInfo().outExprs;
     for (auto& expr : columns) {
@@ -45,8 +44,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto sharedState =
         std::make_shared<GDSCallSharedState>(table, std::move(graph), std::move(masks));
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
+    auto gdsAlgorithm = call.getInfo().getGDS()->copy();
     auto gdsCall = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
-        std::move(info), sharedState, getOperatorID(), std::move(printInfo));
+        std::move(gdsAlgorithm), sharedState, getOperatorID(), std::move(printInfo));
     physical_op_vector_t children;
     children.push_back(std::move(gdsCall));
     return createFTableScanAligned(columns, outSchema, table, DEFAULT_VECTOR_CAPACITY,

@@ -2,33 +2,56 @@
 
 #include "common/task_system/task.h"
 #include "function/gds/gds_frontier.h"
+#include "graph/graph.h"
 
 namespace kuzu {
 namespace function {
 
 class FrontierTaskSharedState {
 public:
-    FrontierTaskSharedState(Frontiers& frontiers, graph::Graph* graph, FrontierCompute& fc,
-        table_id_t relTableIDToScan)
-        : frontiers{frontiers}, graph{graph}, fc{fc}, relTableIDToScan{relTableIDToScan} {};
+    FrontierTaskSharedState(FrontierPair& frontierPair, graph::Graph* graph, EdgeCompute& ec,
+        common::table_id_t relTableIDToScan)
+        : frontierPair{frontierPair}, graph{graph}, ec{ec}, relTableIDToScan{relTableIDToScan} {};
 
 public:
-    Frontiers& frontiers;
+    FrontierPair& frontierPair;
     graph::Graph* graph;
-    FrontierCompute& fc;
-    table_id_t relTableIDToScan;
+    EdgeCompute& ec;
+    common::table_id_t relTableIDToScan;
 };
 
-class GDSTask : public common::Task {
-
+class FrontierTask : public common::Task {
 public:
-    GDSTask(uint64_t maxNumThreads, std::shared_ptr<FrontierTaskSharedState> sharedState)
+    FrontierTask(uint64_t maxNumThreads, std::shared_ptr<FrontierTaskSharedState> sharedState)
         : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {}
 
     void run() override;
 
 private:
     std::shared_ptr<FrontierTaskSharedState> sharedState;
+};
+
+class VertexComputeTaskSharedState {
+public:
+    VertexComputeTaskSharedState(graph::Graph* graph, VertexCompute& vc,
+        uint64_t maxThreadsForExecution);
+
+public:
+    graph::Graph* graph;
+    VertexCompute& vc;
+    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
+};
+
+class VertexComputeTask : public common::Task {
+public:
+    VertexComputeTask(uint64_t maxNumThreads,
+        std::shared_ptr<VertexComputeTaskSharedState> sharedState)
+        : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {};
+
+    void run() override;
+
+private:
+    std::shared_ptr<VertexComputeTaskSharedState> sharedState;
 };
 } // namespace function
 } // namespace kuzu

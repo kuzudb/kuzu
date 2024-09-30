@@ -9,8 +9,8 @@ namespace processor {
 struct OrderByScanLocalState {
     std::vector<common::ValueVector*> vectorsToRead;
     std::unique_ptr<PayloadScanner> payloadScanner;
-    uint64_t numTuples;
-    uint64_t numTuplesRead;
+    uint64_t numTuples = 0;
+    uint64_t numTuplesRead = 0;
 
     void init(std::vector<DataPos>& outVectorPos, SortSharedState& sharedState,
         ResultSet& resultSet);

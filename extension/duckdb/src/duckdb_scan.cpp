@@ -18,8 +18,8 @@ void getDuckDBVectorConversionFunc(PhysicalTypeID physicalTypeID,
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
     const DuckDBConnector& connector)
-    : TableFuncBindData{std::move(columnTypes), std::move(columnNames), 0 /* numWarningColumns */,},
-      query{std::move(query)}, connector{connector} {
+    : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, query{std::move(query)},
+      connector{connector} {
     conversionFunctions.resize(this->columnTypes.size());
     for (auto i = 0u; i < this->columnTypes.size(); i++) {
         getDuckDBVectorConversionFunc(this->columnTypes[i].getPhysicalType(),
@@ -189,7 +189,7 @@ static void convertDuckDBResultToVector(duckdb::DataChunk& duckDBResult, DataChu
             KU_ASSERT(duckDBResult.data[duckdbResultColIdx].GetVectorType() ==
                       duckdb::VectorType::FLAT_VECTOR);
             bindData.conversionFunctions[i](duckDBResult.data[duckdbResultColIdx],
-                *result.getValueVector(i), result.state->getSelVector().getSelSize());
+                result.getValueVectorMutable(i), result.state->getSelVector().getSelSize());
             duckdbResultColIdx++;
         }
     }

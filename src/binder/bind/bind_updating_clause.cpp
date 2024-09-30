@@ -209,8 +209,7 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
     }
     if (parentTableEntry != nullptr) {
         KU_ASSERT(parentTableEntry->getTableType() == TableType::RDF);
-        auto rdfGraphEntry = ku_dynamic_cast<const TableCatalogEntry*, const RDFGraphCatalogEntry*>(
-            parentTableEntry);
+        auto rdfGraphEntry = ku_dynamic_cast<const RDFGraphCatalogEntry*>(parentTableEntry);
         if (!rel->hasPropertyDataExpr(std::string(rdf::IRI))) {
             throw BinderException(stringFormat(
                 "Insert relationship {} expects {} property as input.", rel->toString(), rdf::IRI));
@@ -326,7 +325,7 @@ expression_pair Binder::bindSetItem(parser::ParsedExpression* column,
 }
 
 static void validateRdfResourceDeletion(Expression* pattern, main::ClientContext* context) {
-    auto node = ku_dynamic_cast<Expression*, NodeExpression*>(pattern);
+    auto node = ku_dynamic_cast<NodeExpression*>(pattern);
     for (auto& entry : node->getEntries()) {
         for (auto& rdfGraphEntry : context->getCatalog()->getRdfGraphEntries(context->getTx())) {
             if (rdfGraphEntry->isParent(entry->getTableID()) &&

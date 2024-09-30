@@ -50,60 +50,55 @@ std::string ScanRelTablePrintInfo::toString() const {
     return result;
 }
 
-void ScanRelTableInfo::initScanState(MemoryManager& memoryManager) {
+void ScanRelTableInfo::initScanState() {
     std::vector<Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
         if (columnID == INVALID_COLUMN_ID) {
             columns.push_back(nullptr);
         } else {
+            KU_ASSERT(columnID < table->getNumColumns());
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(memoryManager, columnIDs, columns,
+    scanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
         table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
         copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    ScanTable::initLocalStateInternal(resultSet, context);
-    relInfo.initScanState(*context->clientContext->getMemoryManager());
+    relInfo.initScanState();
     initVectors(*relInfo.scanState, *resultSet);
     if (const auto localRelTable =
             context->clientContext->getTx()->getLocalStorage()->getLocalTable(
                 relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(relInfo.direction, relInfo.scanState->columnIDs);
-        relInfo.scanState->localTableScanState =
-            std::make_unique<LocalRelTableScanState>(*context->clientContext->getMemoryManager(),
-                *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
+        relInfo.scanState->localTableScanState = std::make_unique<LocalRelTableScanState>(
+            *relInfo.scanState, localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
     }
 }
 
 void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
     ScanTable::initVectors(state, resultSet);
-    state.cast<RelTableScanState>().boundNodeIDVector =
-        resultSet.getValueVector(relInfo.boundNodeIDPos).get();
+    KU_ASSERT(!info.outVectorsPos.empty());
+    state.rowIdxVector->state = resultSet.getValueVector(info.outVectorsPos[0])->state;
+    state.outState = state.rowIdxVector->state.get();
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     const auto transaction = context->clientContext->getTx();
     auto& scanState = *relInfo.scanState;
     while (true) {
-        const auto skipScan =
-            transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
-        if (!skipScan) {
-            while (scanState.source != TableScanSource::NONE &&
-                   relInfo.table->scan(transaction, scanState)) {
-                if (scanState.outState->getSelVector().getSelSize() > 0) {
-                    return true;
-                }
+        while (relInfo.table->scan(transaction, scanState)) {
+            if (scanState.outState->getSelVector().getSelSize() > 0) {
+                return true;
             }
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        relInfo.table->initializeScanState(transaction, scanState);
+        relInfo.table->initScanState(transaction, scanState);
     }
 }
 

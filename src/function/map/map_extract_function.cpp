@@ -20,7 +20,7 @@ static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpres
 
 static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     validateKeyType(input.arguments[0], input.arguments[1]);
-    auto scalarFunction = ku_dynamic_cast<Function*, ScalarFunction*>(input.definition);
+    auto scalarFunction = ku_dynamic_cast<ScalarFunction*>(input.definition);
     TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(), [&]<typename T>(T) {
         scalarFunction->execFunc =
             ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, list_entry_t, MapExtract>;

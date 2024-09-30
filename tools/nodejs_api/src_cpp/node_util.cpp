@@ -314,12 +314,12 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         std::unique_ptr<uint64_t[]> words(new uint64_t[wordsCount]());
         int signBit = 0;
         bigInt.ToWords(&signBit, &wordsCount, words.get());
-        kuzu::common::int128_t val;
+        int128_t val{};
         val.low = words[0];
         val.high = wordsCount > 1 ? words[1] : 0;
         // Ignore words[2] and beyond as we only support 128-bit integers but BigInt can be larger.
         if (signBit) {
-            kuzu::common::Int128_t::negateInPlace(val);
+            Int128_t::negateInPlace(val);
         }
         return Value(val);
     }

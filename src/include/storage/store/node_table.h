@@ -27,16 +27,20 @@ namespace storage {
 struct NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
-    explicit NodeTableScanState(std::vector<common::column_id_t> columnIDs)
-        : NodeTableScanState{std::move(columnIDs), {}} {}
-    NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns)
-        : NodeTableScanState{std::move(columnIDs), std::move(columns),
+    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
+        : NodeTableScanState{tableID, std::move(columnIDs), {}} {}
+    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns)
+        : NodeTableScanState{tableID, std::move(columnIDs), std::move(columns),
               std::vector<ColumnPredicateSet>{}} {}
-    NodeTableScanState(std::vector<common::column_id_t> columnIDs, std::vector<Column*> columns,
-        std::vector<ColumnPredicateSet> columnPredicateSets)
-        : TableScanState{std::move(columnIDs), std::move(columns), std::move(columnPredicateSets)} {
+    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
+        : TableScanState{tableID, std::move(columnIDs), std::move(columns),
+              std::move(columnPredicateSets)} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
+
+    bool scanNext(transaction::Transaction* transaction) override;
 };
 
 struct NodeTableInsertState final : TableInsertState {
@@ -80,8 +84,9 @@ public:
         return types;
     }
 
-    NodeTable(StorageManager* storageManager, const catalog::NodeTableCatalogEntry* nodeTableEntry,
-        MemoryManager* memoryManager, common::VirtualFileSystem* vfs, main::ClientContext* context,
+    NodeTable(const StorageManager* storageManager,
+        const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
+        common::VirtualFileSystem* vfs, main::ClientContext* context,
         common::Deserializer* deSer = nullptr);
 
     static std::unique_ptr<NodeTable> loadTable(common::Deserializer& deSer,
@@ -94,8 +99,7 @@ public:
 
     common::row_idx_t getNumRows() override { return nodeGroups->getNumRows(); }
 
-    void initializeScanState(transaction::Transaction* transaction,
-        TableScanState& scanState) override;
+    void initScanState(transaction::Transaction* transaction, TableScanState& scanState) override;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     bool lookup(transaction::Transaction* transaction, const TableScanState& scanState) const;

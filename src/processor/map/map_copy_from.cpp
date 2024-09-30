@@ -26,6 +26,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logicalOperator) {
     const auto& copyFrom = logicalOperator->cast<LogicalCopyFrom>();
+    clientContext->getWarningContextUnsafe().setIgnoreErrorsForCurrentQuery(
+        copyFrom.getInfo()->source->getIgnoreErrorsOption());
     switch (copyFrom.getInfo()->tableEntry->getTableType()) {
     case TableType::NODE: {
         auto op = mapCopyNodeFrom(logicalOperator);
@@ -90,22 +92,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
 
-    column_id_t numWarningDataColumns = 0;
-    bool ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
-    if (copyFromInfo->source->type == common::ScanSourceType::FILE) {
-        const auto* boundScanSource = ku_dynamic_cast<BoundBaseScanSource*, BoundTableScanSource*>(
-            copyFromInfo->source.get());
-        auto* bindData = ku_dynamic_cast<function::TableFuncBindData*, function::ScanBindData*>(
-            boundScanSource->info.bindData.get());
-        ignoreErrors = bindData->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            CopyConstants::DEFAULT_IGNORE_ERRORS);
-        numWarningDataColumns = bindData->numWarningDataColumns;
-    }
-
+    const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,
         storageManager->compressionEnabled(), std::move(columnTypes), std::move(columnEvaluators),
-        copyFromInfo->columnEvaluateTypes, ignoreErrors, numWarningDataColumns);
+        copyFromInfo->columnEvaluateTypes, numWarningDataColumns);
 
     auto printInfo =
         std::make_unique<NodeBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
@@ -159,9 +150,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto outFSchema = copyFrom.getSchema();
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto offsetVectorIdx = direction == RelDataDirection::FWD ? 0 : 1;
+
+    const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
+    KU_ASSERT(numWarningDataColumns <= copyFromInfo->columnExprs.size());
+    for (column_id_t i = numWarningDataColumns; i >= 1; --i) {
+        columnTypes.push_back(
+            copyFromInfo->columnExprs[copyFromInfo->columnExprs.size() - i]->getDataType().copy());
+    }
+
     auto relBatchInsertInfo = std::make_unique<RelBatchInsertInfo>(copyFromInfo->tableEntry,
         clientContext->getStorageManager()->compressionEnabled(), direction, partitioningIdx,
-        offsetVectorIdx, std::move(columnTypes));
+        offsetVectorIdx, std::move(columnTypes), numWarningDataColumns);
     auto printInfo =
         std::make_unique<RelBatchInsertPrintInfo>(copyFrom.getInfo()->tableEntry->getName());
     return std::make_unique<RelBatchInsert>(std::move(relBatchInsertInfo),
@@ -206,7 +205,7 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* logicalOperator) {
-    const auto copyFrom = ku_dynamic_cast<LogicalOperator*, LogicalCopyFrom*>(logicalOperator);
+    const auto copyFrom = ku_dynamic_cast<LogicalCopyFrom*>(logicalOperator);
     const auto logicalRRLChild = logicalOperator->getChild(0).get();
     const auto logicalRRRChild = logicalOperator->getChild(1).get();
     const auto logicalLChild = logicalOperator->getChild(2).get();
@@ -221,31 +220,27 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* lo
 
     auto rChild = mapCopyNodeFrom(logicalRChild);
     KU_ASSERT(rChild->getOperatorType() == PhysicalOperatorType::BATCH_INSERT);
-    const auto rCopy = ku_dynamic_cast<PhysicalOperator*, NodeBatchInsert*>(rChild.get());
+    const auto rCopy = ku_dynamic_cast<NodeBatchInsert*>(rChild.get());
     auto lChild = mapCopyNodeFrom(logicalLChild);
-    const auto lCopy = ku_dynamic_cast<PhysicalOperator*, NodeBatchInsert*>(lChild.get());
+    const auto lCopy = ku_dynamic_cast<NodeBatchInsert*>(lChild.get());
     auto rrrChildren = mapCopyRelFrom(logicalRRRChild);
     KU_ASSERT(rrrChildren[2]->getOperatorType() == PhysicalOperatorType::PARTITIONER);
-    const auto rrrPartitioner =
-        ku_dynamic_cast<PhysicalOperator*, Partitioner*>(rrrChildren[2].get());
+    const auto rrrPartitioner = ku_dynamic_cast<Partitioner*>(rrrChildren[2].get());
     rrrPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         rCopy->getSharedState());
     rrrPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         rCopy->getSharedState());
     KU_ASSERT(rrrChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
-    const auto rrrLookup =
-        ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrrChildren[2]->getChild(0));
+    const auto rrrLookup = ku_dynamic_cast<IndexLookup*>(rrrChildren[2]->getChild(0));
     rrrLookup->setBatchInsertSharedState(rCopy->getSharedState());
     auto rrlChildren = mapCopyRelFrom(logicalRRLChild);
-    const auto rrLPartitioner =
-        ku_dynamic_cast<PhysicalOperator*, Partitioner*>(rrlChildren[2].get());
+    const auto rrLPartitioner = ku_dynamic_cast<Partitioner*>(rrlChildren[2].get());
     rrLPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         rCopy->getSharedState());
     rrLPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
         lCopy->getSharedState());
     KU_ASSERT(rrlChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
-    const auto rrlLookup =
-        ku_dynamic_cast<PhysicalOperator*, IndexLookup*>(rrlChildren[2]->getChild(0));
+    const auto rrlLookup = ku_dynamic_cast<IndexLookup*>(rrlChildren[2]->getChild(0));
     rrlLookup->setBatchInsertSharedState(rCopy->getSharedState());
     auto sharedState = std::make_shared<CopyRdfSharedState>();
     const auto fTable =

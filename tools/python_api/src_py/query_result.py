@@ -278,6 +278,10 @@ class QueryResult:
         while self.has_next():
             row = self.get_next()
             for i in properties_to_extract:
+                # Skip empty nodes and rels, which may be returned by
+                # OPTIONAL MATCH
+                if row[i] is None or row[i] == {}:
+                    continue
                 column_type, _ = properties_to_extract[i]
                 if column_type == Type.NODE.value:
                     _id = row[i]["_id"]

@@ -20,8 +20,8 @@ using string_map_t = std::unordered_map<common::ku_string_t, T, StringHash, Stri
 
 class StringStatisticsState : public ColumnWriterStatistics {
 public:
-    bool hasStats;
-    bool valuesTooBig;
+    bool hasStats = false;
+    bool valuesTooBig = false;
     std::string min;
     std::string max;
 
@@ -40,13 +40,14 @@ class StringColumnWriterState : public BasicColumnWriterState {
 public:
     StringColumnWriterState(kuzu_parquet::format::RowGroup& rowGroup, uint64_t colIdx,
         storage::MemoryManager* mm)
-        : BasicColumnWriterState{rowGroup, colIdx},
-          overflowBuffer{std::make_unique<common::InMemOverflowBuffer>(mm)} {}
+        : BasicColumnWriterState{rowGroup, colIdx}, estimatedDictPageSize{0},
+          estimatedRlePagesSize{0}, estimatedPlainSize{0},
+          overflowBuffer{std::make_unique<common::InMemOverflowBuffer>(mm)}, keyBitWidth{0} {}
 
     // Analysis state.
-    uint64_t estimatedDictPageSize = 0;
-    uint64_t estimatedRlePagesSize = 0;
-    uint64_t estimatedPlainSize = 0;
+    uint64_t estimatedDictPageSize;
+    uint64_t estimatedRlePagesSize;
+    uint64_t estimatedPlainSize;
 
     // Dictionary and accompanying string heap.
     string_map_t<uint32_t> dictionary;

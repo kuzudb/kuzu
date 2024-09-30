@@ -41,7 +41,7 @@ void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /
 
 void Intersect::probeHTs() {
     std::vector<std::vector<overflow_value_t>> flatTuples(probeKeyVectors.size());
-    hash_t hashVal;
+    hash_t hashVal = 0;
     for (auto i = 0u; i < probeKeyVectors.size(); i++) {
         KU_ASSERT(probeKeyVectors[i]->state->isFlat());
         probedFlatTuples[i].clear();

@@ -129,7 +129,7 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
 
 void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
     CatalogEntry::copyFrom(other);
-    auto& otherTable = ku_dynamic_cast<const CatalogEntry&, const TableCatalogEntry&>(other);
+    auto& otherTable = ku_dynamic_cast<const TableCatalogEntry&>(other);
     set = otherTable.set;
     comment = otherTable.comment;
     propertyCollection = otherTable.propertyCollection.copy();

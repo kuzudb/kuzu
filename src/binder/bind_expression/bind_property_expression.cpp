@@ -107,7 +107,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(
     // & rel expression.
     if (propertyName == InternalKeyword::ID &&
         child.dataType.getLogicalTypeID() == common::LogicalTypeID::NODE) {
-        auto& node = ku_dynamic_cast<const Expression&, const NodeExpression&>(child);
+        auto& node = ku_dynamic_cast<const NodeExpression&>(child);
         return node.getInternalID();
     }
     if (!nodeOrRel.hasPropertyExpression(propertyName)) {

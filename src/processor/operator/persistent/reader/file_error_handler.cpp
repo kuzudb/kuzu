@@ -1,12 +1,12 @@
-#include "processor/operator/persistent/reader/csv/csv_error_handler.h"
+#include "processor/operator/persistent/reader/file_error_handler.h"
 
 #include <algorithm>
 
 #include "common/assert.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
-#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
 namespace kuzu {
 using namespace common;
@@ -22,39 +22,31 @@ void LineContext::setEndOfLine(uint64_t end) {
     isCompleteLine = true;
 }
 
-SharedCSVFileErrorHandler::SharedCSVFileErrorHandler(std::string filePath, std::mutex* sharedMtx)
-    : mtx(sharedMtx), filePath(std::move(filePath)), headerNumRows(0) {}
+SharedFileErrorHandler::SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx,
+    populate_func_t populateErrorFunc)
+    : mtx(sharedMtx), fileIdx(fileIdx), populateErrorFunc(populateErrorFunc), headerNumRows(0) {}
 
-uint64_t SharedCSVFileErrorHandler::getNumCachedErrors() {
+uint64_t SharedFileErrorHandler::getNumCachedErrors() {
     return cachedErrors.size();
 }
 
-populate_func_t SharedCSVFileErrorHandler::getPopulateCSVErrorFunc() {
-    return [this](CSVError error, SerialCSVReader* reader) -> PopulatedCSVError {
-        const auto lineNumber =
-            getLineNumber(error.warningData.blockIdx, error.warningData.rowOffsetInBlock);
-        return getPopulatedError(reader, std::move(error), lineNumber);
-    };
-}
-
-void SharedCSVFileErrorHandler::tryCacheError(CSVError error, const common::UniqLock&) {
+void SharedFileErrorHandler::tryCacheError(CopyFromFileError error, const common::UniqLock&) {
     if (cachedErrors.size() < MAX_CACHED_ERROR_COUNT) {
         cachedErrors.push_back(std::move(error));
     }
 }
 
-void SharedCSVFileErrorHandler::handleError(BaseCSVReader* reader, CSVError error) {
+void SharedFileErrorHandler::handleError(CopyFromFileError error) {
     auto lockGuard = lock();
 
-    const auto blockIdx = error.warningData.blockIdx;
+    const auto blockIdx = error.warningData.getBlockIdx();
     if (blockIdx >= linesPerBlock.size()) {
         linesPerBlock.resize(blockIdx + 1);
     }
     ++linesPerBlock[blockIdx].invalidLines;
 
     if (error.mustThrow || canGetLineNumber(blockIdx)) {
-        const auto lineNumber = getLineNumber(blockIdx, error.warningData.rowOffsetInBlock);
-        throwError(reader, std::move(error), lineNumber);
+        throwError(std::move(error));
     } else {
         // we only cache an error in the shared handler if we cannot throw right now but we want to
         // do it later
@@ -64,12 +56,12 @@ void SharedCSVFileErrorHandler::handleError(BaseCSVReader* reader, CSVError erro
     }
 }
 
-void SharedCSVFileErrorHandler::throwCachedErrorsIfNeeded(BaseCSVReader* reader) {
+void SharedFileErrorHandler::throwCachedErrorsIfNeeded() {
     auto lockGuard = lock();
-    tryThrowFirstCachedError(reader);
+    tryThrowFirstCachedError();
 }
 
-void SharedCSVFileErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader) {
+void SharedFileErrorHandler::tryThrowFirstCachedError() {
     if (cachedErrors.empty()) {
         return;
     }
@@ -80,45 +72,52 @@ void SharedCSVFileErrorHandler::tryThrowFirstCachedError(BaseCSVReader* reader) 
     const auto error = *cachedErrors.cbegin();
     KU_ASSERT(!error.mustThrow);
 
-    const bool errorIsThrowable = canGetLineNumber(error.warningData.blockIdx);
+    const bool errorIsThrowable = canGetLineNumber(error.warningData.getBlockIdx());
     if (errorIsThrowable) {
-        const auto lineNumber =
-            getLineNumber(error.warningData.blockIdx, error.warningData.rowOffsetInBlock);
-        throwError(reader, error, lineNumber);
+        throwError(error);
     }
 }
 
-std::string SharedCSVFileErrorHandler::getErrorMessage(BaseCSVReader* reader, CSVError error,
-    uint64_t lineNumber) const {
-    const auto populatedError = getPopulatedError(reader, std::move(error), lineNumber);
-    return stringFormat("Error in file {} on line {}: {} Line containing the error: '{}'",
-        populatedError.filePath, lineNumber, populatedError.message, populatedError.skippedLine);
+namespace {
+std::string getFilePathMessage(std::string_view filePath) {
+    static constexpr std::string_view invalidFilePath = "";
+    return filePath == invalidFilePath ? std::string{} :
+                                         common::stringFormat(" in file {}", filePath);
 }
 
-PopulatedCSVError SharedCSVFileErrorHandler::getPopulatedError(BaseCSVReader* reader,
-    CSVError error, uint64_t lineNumber) const {
-    const char* incompleteLineSuffix = error.completedLine ? "" : "...";
-    return {.message = std::move(error.message),
-        .filePath = filePath,
-        .skippedLine = reader->reconstructLine(error.warningData.startByteOffset,
-                           error.warningData.endByteOffset) +
-                       incompleteLineSuffix,
-        .lineNumber = lineNumber};
+std::string getLineNumberMessage(uint64_t lineNumber) {
+    static constexpr uint64_t invalidLineNumber = 0;
+    return lineNumber == invalidLineNumber ? std::string{} :
+                                             common::stringFormat(" on line {}", lineNumber);
 }
 
-void SharedCSVFileErrorHandler::throwError(BaseCSVReader* reader, CSVError error,
-    uint64_t lineNumber) const {
-    throw CopyException(getErrorMessage(reader, std::move(error), lineNumber));
+std::string getSkippedLineMessage(std::string_view skippedLineOrRecord) {
+    static constexpr std::string_view emptySkippedLine = "";
+    return skippedLineOrRecord == emptySkippedLine ?
+               std::string{} :
+               common::stringFormat(" Line/record containing the error: '{}'", skippedLineOrRecord);
+}
+} // namespace
+
+std::string SharedFileErrorHandler::getErrorMessage(PopulatedCopyFromError populatedError) const {
+    return common::stringFormat("Error{}{}: {}{}", getFilePathMessage(populatedError.filePath),
+        getLineNumberMessage(populatedError.lineNumber), populatedError.message,
+        getSkippedLineMessage(populatedError.skippedLineOrRecord));
 }
 
-common::UniqLock SharedCSVFileErrorHandler::lock() {
+void SharedFileErrorHandler::throwError(CopyFromFileError error) const {
+    KU_ASSERT(populateErrorFunc);
+    throw CopyException(getErrorMessage(populateErrorFunc(std::move(error), fileIdx)));
+}
+
+common::UniqLock SharedFileErrorHandler::lock() {
     if (mtx) {
         return common::UniqLock{*mtx};
     }
     return common::UniqLock{};
 }
 
-bool SharedCSVFileErrorHandler::canGetLineNumber(uint64_t blockIdx) const {
+bool SharedFileErrorHandler::canGetLineNumber(uint64_t blockIdx) const {
     if (blockIdx > linesPerBlock.size()) {
         return false;
     }
@@ -131,7 +130,11 @@ bool SharedCSVFileErrorHandler::canGetLineNumber(uint64_t blockIdx) const {
     return true;
 }
 
-uint64_t SharedCSVFileErrorHandler::getLineNumber(uint64_t blockIdx,
+void SharedFileErrorHandler::setPopulateErrorFunc(populate_func_t newPopulateErrorFunc) {
+    populateErrorFunc = newPopulateErrorFunc;
+}
+
+uint64_t SharedFileErrorHandler::getLineNumber(uint64_t blockIdx,
     uint64_t numRowsReadInBlock) const {
     // 1-indexed
     uint64_t res = numRowsReadInBlock + headerNumRows + 1;
@@ -142,7 +145,7 @@ uint64_t SharedCSVFileErrorHandler::getLineNumber(uint64_t blockIdx,
     return res;
 }
 
-void SharedCSVFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
+void SharedFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
     if (numRows == headerNumRows) {
         return;
     }
@@ -150,7 +153,7 @@ void SharedCSVFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
     headerNumRows = numRows;
 }
 
-void SharedCSVFileErrorHandler::updateLineNumberInfo(
+void SharedFileErrorHandler::updateLineNumberInfo(
     const std::map<uint64_t, LinesPerBlock>& newLinesPerBlock) {
     const auto lockGuard = lock();
 
@@ -170,17 +173,17 @@ void SharedCSVFileErrorHandler::updateLineNumberInfo(
     }
 }
 
-LocalCSVFileErrorHandler::LocalCSVFileErrorHandler(SharedCSVFileErrorHandler* sharedErrorHandler,
+LocalFileErrorHandler::LocalFileErrorHandler(SharedFileErrorHandler* sharedErrorHandler,
     bool ignoreErrors, main::ClientContext* context, bool cacheErrors)
     : sharedErrorHandler(sharedErrorHandler), context(context),
       maxCachedErrorCount(
           std::min(this->context->getClientConfig()->warningLimit, LOCAL_WARNING_LIMIT)),
       ignoreErrors(ignoreErrors), cacheIgnoredErrors(cacheErrors) {}
 
-void LocalCSVFileErrorHandler::handleError(BaseCSVReader* reader, CSVError error) {
+void LocalFileErrorHandler::handleError(CopyFromFileError error) {
     if (error.mustThrow || !ignoreErrors) {
         // we delegate throwing to the shared error handler
-        sharedErrorHandler->handleError(reader, std::move(error));
+        sharedErrorHandler->handleError(std::move(error));
         return;
     }
 
@@ -189,30 +192,30 @@ void LocalCSVFileErrorHandler::handleError(BaseCSVReader* reader, CSVError error
         flushCachedErrors();
     }
 
-    ++linesPerBlock[error.warningData.blockIdx].invalidLines;
+    ++linesPerBlock[error.warningData.getBlockIdx()].invalidLines;
     if (cacheIgnoredErrors) {
         cachedErrors.push_back(std::move(error));
     }
 }
 
-void LocalCSVFileErrorHandler::reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead) {
+void LocalFileErrorHandler::reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead) {
     linesPerBlock[blockIdx].validLines += numRowsRead;
     linesPerBlock[blockIdx].doneParsingBlock = true;
 }
 
-void LocalCSVFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
+void LocalFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
     sharedErrorHandler->setHeaderNumRows(numRows);
 }
 
-LocalCSVFileErrorHandler::~LocalCSVFileErrorHandler() {
+LocalFileErrorHandler::~LocalFileErrorHandler() {
     finalize();
 }
 
-void LocalCSVFileErrorHandler::finalize() {
+void LocalFileErrorHandler::finalize() {
     flushCachedErrors();
 }
 
-void LocalCSVFileErrorHandler::flushCachedErrors() {
+void LocalFileErrorHandler::flushCachedErrors() {
     if (!linesPerBlock.empty()) {
         sharedErrorHandler->updateLineNumberInfo(linesPerBlock);
         linesPerBlock.clear();

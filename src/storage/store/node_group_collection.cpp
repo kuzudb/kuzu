@@ -2,7 +2,6 @@
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/file_handle.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
@@ -106,10 +105,10 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
     Transaction* transaction, ChunkedNodeGroup& chunkedGroup) {
-    NodeGroup* lastNodeGroup;
+    NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
-    bool directFlushWhenAppend;
+    bool directFlushWhenAppend = false;
     {
         const auto lock = nodeGroups.lock();
         startOffset = numRows;

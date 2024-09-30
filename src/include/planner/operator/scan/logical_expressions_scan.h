@@ -11,7 +11,7 @@ class LogicalExpressionsScan : public LogicalOperator {
 public:
     explicit LogicalExpressionsScan(binder::expression_vector expressions)
         : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN},
-          expressions{std::move(expressions)} {}
+          expressions{std::move(expressions)}, outerAccumulate{nullptr} {}
 
     inline void computeFactorizedSchema() final { computeSchema(); }
     inline void computeFlatSchema() final { computeSchema(); }
