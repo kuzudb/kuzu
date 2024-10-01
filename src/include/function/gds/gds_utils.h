@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "common/enums/extend_direction.h"
 
 namespace kuzu {
 namespace processor {
@@ -12,20 +12,13 @@ class Graph;
 }
 
 namespace function {
-class FrontierPair;
-class EdgeCompute;
-class FrontierTaskSharedState;
+struct FrontierTaskSharedState;
 struct RJCompState;
 class VertexCompute;
 class GDSUtils {
 public:
-public:
-    explicit GDSUtils();
-
-    static void parallelizeFrontierCompute(processor::ExecutionContext* executionContext,
-        std::shared_ptr<FrontierTaskSharedState> sharedState);
     static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
-        RJCompState& rjCompState, graph::Graph* graph, uint64_t maxIters);
+        RJCompState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection, uint64_t maxIters);
     static void runVertexComputeIteration(processor::ExecutionContext* executionContext,
         graph::Graph* graph, VertexCompute& vc);
 };

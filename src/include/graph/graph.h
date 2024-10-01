@@ -98,7 +98,6 @@ public:
     Graph() = default;
     virtual ~Graph() = default;
 
-    virtual std::unique_ptr<Graph> copy() = 0;
     // Get id for all node tables.
     virtual std::vector<common::table_id_t> getNodeTableIDs() = 0;
     // Get id for all relationship tables.

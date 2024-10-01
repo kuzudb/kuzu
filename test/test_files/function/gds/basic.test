@@ -6,26 +6,49 @@
 
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS(PK, a, 1, 2)
+           CALL VAR_LEN_JOINS(PK, a, 1, 2, "FWD")
            RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
 Bob|12
 Carol|12
 Dan|12
-
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID < 6
+           CALL VAR_LEN_JOINS(PK, a, 1, 2, "BWD")
+           RETURN a.fName, COUNT(*);
+---- 4
+Alice|12
+Bob|12
+Carol|12
+Dan|12
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID < 6
+           CALL VAR_LEN_JOINS(PK, a, 1, 2, "BOTH")
+           RETURN a.fName, COUNT(*);
+---- 4
+Alice|42
+Bob|42
+Carol|42
+Dan|42
 -STATEMENT PROJECT GRAPH PK (person {age}, knows) CALL variable_length_path(PK, 1, 1) RETURN *;
 ---- error
 Parser exception: Filtering or projecting properties in graph projection is not supported.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_LENGTHS(PK, a, 2)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, "FWD")
            RETURN a.fName, _node.name, length;
 ---- error
 Binder exception: Cannot find property name for _node.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_LENGTHS(PK, a, 2)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, "X")
+           RETURN a.fName, _node.name, length;
+---- error
+Runtime exception: Cannot parse X as ExtendDirection.
+-STATEMENT PROJECT GRAPH PK (person, knows)
+           MATCH (a:person) WHERE a.ID = 0
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, "FWD")
            RETURN a.fName, _node.fName, length;
 ---- 3
 Alice|Bob|1
@@ -33,7 +56,7 @@ Alice|Carol|1
 Alice|Dan|1
 -STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_LENGTHS(PK, a, 2)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2, "FWD")
            RETURN a.fName, _node.fName, _node.name, length;
 ---- 5
 Alice|Bob||1
