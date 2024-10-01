@@ -338,10 +338,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->numThreads = stoi(currentToken.params[1]);
         break;
     }
-    case TokenType::ENCODED_JOIN: {
-        statement->encodedJoin = paramsToString(1);
-        break;
-    }
     case TokenType::CHECK_COLUMN_NAMES: {
         statement->checkColumnNames = true;
         break;

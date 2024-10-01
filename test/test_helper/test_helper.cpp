@@ -37,8 +37,6 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
             currentConfig->query = line.substr(7, line.length());
         } else if (line.starts_with("-PARALLELISM")) {
             currentConfig->numThreads = stoi(line.substr(13, line.length()));
-        } else if (line.starts_with("-ENCODED_JOIN")) {
-            currentConfig->encodedJoin = line.substr(14, line.length());
         } else if (line.starts_with("-ENUMERATE")) {
             currentConfig->enumerate = true;
         } else if (line.starts_with("----")) {
