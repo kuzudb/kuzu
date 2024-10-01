@@ -28,9 +28,13 @@ void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionConte
 
 bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
+        for (auto& [mask, maskerIdx] : info->getSingleTableMasks()) {
+            mask->incrementNumMaskedNodes(numMaskedValues);
+        }
         return false;
     }
     auto& selVector = keyVector->state->getSelVector();
+    numMaskedValues += selVector.getSelSize();
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);

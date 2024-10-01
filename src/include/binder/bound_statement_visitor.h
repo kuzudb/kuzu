@@ -24,6 +24,8 @@ protected:
     virtual void visitCreateTable(const BoundStatement&) {}
     virtual void visitDropTable(const BoundStatement&) {}
     virtual void visitCreateType(const BoundStatement&) {}
+    virtual void visitCreateVectorIndex(const BoundStatement&) {}
+    virtual void visitUpdateVectorIndex(const BoundStatement&) {}
     virtual void visitAlter(const BoundStatement&) {}
     virtual void visitCopyFrom(const BoundStatement&);
     virtual void visitCopyTo(const BoundStatement&);

@@ -96,13 +96,15 @@ struct StorageConstants {
     static constexpr char DATA_FILE_NAME[] = "data.kz";
     static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
     static constexpr char LOCK_FILE_NAME[] = ".lock";
+    static constexpr char VECTOR_INDEX_METADATA_FILE_NAME[] = "vector_index.metadata";
+    static constexpr char VECTOR_INDEX_METADATA_FILE_NAME_FOR_WAL[] = "vector_index.metadata.wal";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
     static constexpr uint64_t PAGE_GROUP_SIZE = (uint64_t)1 << PAGE_GROUP_SIZE_LOG2;
     static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK = ((uint64_t)1 << PAGE_GROUP_SIZE_LOG2) - 1;
 
-    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
+    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 12; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
     static constexpr uint64_t NUM_VECTORS_PER_NODE_GROUP =
         NODE_GROUP_SIZE / DEFAULT_VECTOR_CAPACITY;

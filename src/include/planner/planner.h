@@ -83,6 +83,10 @@ public:
     void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendUseDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
 
+    // Plan vector index.
+    void appendCreateVectorIndex(const binder::BoundStatement& statement, LogicalPlan& plan);
+    void appendUpdateVectorIndex(const binder::BoundStatement& statement, LogicalPlan& plan);
+
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);
     std::unique_ptr<LogicalPlan> planCopyFrom(const binder::BoundStatement& statement);

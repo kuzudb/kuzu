@@ -58,6 +58,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::CREATE_TYPE: {
         physicalOperator = mapCreateType(logicalOperator);
     } break;
+    case LogicalOperatorType::CREATE_VECTOR_INDEX: {
+        physicalOperator = mapCreateVectorIndex(logicalOperator);
+    } break;
+    case LogicalOperatorType::UPDATE_VECTOR_INDEX: {
+        physicalOperator = mapUpdateVectorIndex(logicalOperator);
+    } break;
     case LogicalOperatorType::CROSS_PRODUCT: {
         physicalOperator = mapCrossProduct(logicalOperator);
     } break;
@@ -159,6 +165,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     } break;
     case LogicalOperatorType::SEMI_MASKER: {
         physicalOperator = mapSemiMasker(logicalOperator);
+    } break;
+    case LogicalOperatorType::SEMI_MASK_DEPENDENCY: {
+        physicalOperator = mapSemiMaskDependency(logicalOperator);
     } break;
     case LogicalOperatorType::SET_PROPERTY: {
         physicalOperator = mapSetProperty(logicalOperator);

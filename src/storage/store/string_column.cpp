@@ -191,7 +191,7 @@ void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& read
 }
 
 void StringColumn::lookupInternal(Transaction* transaction, ChunkState& readState,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
+    const ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); i++) {

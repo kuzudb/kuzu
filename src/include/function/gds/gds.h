@@ -34,6 +34,8 @@ struct GDSBindData {
     virtual bool hasNodeInput() const { return false; }
     virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
 
+    virtual bool hasSelectiveOutput() const { return false; }
+
     virtual bool hasNodeOutput() const { return outputAsNode; }
     virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nodeOutput; }
 

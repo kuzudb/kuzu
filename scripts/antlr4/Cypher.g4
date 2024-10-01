@@ -202,6 +202,8 @@ UNWIND : ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'N' | 'n' ) (
 
 USE : ( 'U' | 'u' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
+UPDATE : ( 'U' | 'u' ) ( 'P' | 'p' ) ( 'D' | 'd' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
+
 WHEN : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ;
 
 WHERE : ( 'W' | 'w' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ;
@@ -211,6 +213,10 @@ WITH : ( 'W' | 'w' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'H' | 'h' ) ;
 WRITE : ( 'W' | 'w' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
 XOR : ( 'X' | 'x' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+
+VECTOR : ( 'V' | 'v' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
+
+INDEX : ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'X' | 'x' ) ;
 
 
 
@@ -228,6 +234,7 @@ oC_Statement
         | kU_CreateRdfGraph
         | kU_CreateSequence
         | kU_CreateType
+        | kU_CreateVectorIndex
         | kU_Drop
         | kU_AlterTable
         | kU_CopyFrom
@@ -242,7 +249,8 @@ oC_Statement
         | kU_ImportDatabase
         | kU_AttachDatabase
         | kU_DetachDatabase
-        | kU_UseDatabase;
+        | kU_UseDatabase
+        | kU_UpdateVectorIndex;
 
 kU_CopyFrom
     : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
@@ -329,6 +337,12 @@ kU_CreateSequence
 
 kU_CreateType
     : CREATE SP TYPE SP oC_SchemaName SP AS SP kU_DataType SP? ;
+
+kU_CreateVectorIndex
+    : CREATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ( SP? kU_ParsingOptions )? ;
+
+kU_UpdateVectorIndex
+    : UPDATE SP VECTOR SP INDEX SP ON SP oC_SchemaName '.' oC_PropertyKeyName ;
 
 kU_SequenceOptions
     : kU_IncrementBy

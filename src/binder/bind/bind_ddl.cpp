@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
+#include "binder/ddl/bound_create_vector_index.h"
 #include "binder/ddl/bound_drop_sequence.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "binder/expression/expression_util.h"
@@ -15,6 +16,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
+#include "common/vector_index/vector_index_config.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "main/client_context.h"
@@ -23,6 +25,7 @@
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/create_type.h"
+#include "parser/ddl/create_vector_index.h"
 #include "parser/ddl/drop.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -277,6 +280,20 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     auto boundInfo = BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue,
         info.cycle, info.onConflict);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCreateVectorIndex(const Statement& statement) {
+    auto& createIndex = ku_dynamic_cast<const Statement&, const CreateVectorIndex&>(statement);
+    auto catalog = clientContext->getCatalog();
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(),
+        bindTableID(createIndex.getTableName()));
+    if (tableEntry->getTableType() != TableType::NODE) {
+        throw BinderException("Vector index can only be created on node tables.");
+    }
+    auto propertyId = tableEntry->getPropertyID(createIndex.getPropertyName());
+    auto indexConfig =
+        VectorIndexConfig::construct(bindParsingOptions(createIndex.getParsingOptionsRef()));
+    return std::make_unique<BoundCreateVectorIndex>(tableEntry, propertyId, std::move(indexConfig));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {

@@ -71,6 +71,7 @@ private:
     std::atomic<uint64_t> size;
     const uint64_t capacity;
     std::unique_ptr<std::atomic<EvictionCandidate>[]> data;
+    std::chrono::nanoseconds insertDuration = std::chrono::nanoseconds::zero();
 };
 
 /**
@@ -246,6 +247,8 @@ private:
     // hold two sizes of PAGE_4KB and PAGE_256KB.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
     std::vector<std::unique_ptr<BMFileHandle>> fileHandles;
+
+    std::chrono::nanoseconds pinDuration = std::chrono::nanoseconds::zero();
 };
 
 } // namespace storage

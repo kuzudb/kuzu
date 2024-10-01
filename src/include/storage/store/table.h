@@ -93,7 +93,7 @@ public:
     virtual bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) = 0;
 
     virtual void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        evaluator::ExpressionEvaluator& defaultEvaluator) = 0;
+        evaluator::ExpressionEvaluator* defaultEvaluator) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
     virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;

@@ -18,6 +18,8 @@ enum class LogicalOperatorType : uint8_t {
     CREATE_SEQUENCE,
     CREATE_TABLE,
     CREATE_TYPE,
+    CREATE_VECTOR_INDEX,
+    UPDATE_VECTOR_INDEX,
     CROSS_PRODUCT,
     DELETE,
     DETACH_DATABASE,
@@ -52,6 +54,7 @@ enum class LogicalOperatorType : uint8_t {
     SCAN_FILE,
     SCAN_NODE_TABLE,
     SEMI_MASKER,
+    SEMI_MASK_DEPENDENCY,
     SET_PROPERTY,
     STANDALONE_CALL,
     TABLE_FUNCTION_CALL,
@@ -85,6 +88,9 @@ public:
     std::shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
     std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return children; }
     void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
+        if (children.size() <= idx) {
+            children.resize(idx + 1);
+        }
         children[idx] = std::move(child);
     }
 

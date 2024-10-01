@@ -32,6 +32,10 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "CREATE_TABLE";
     case PhysicalOperatorType::CREATE_TYPE:
         return "CREATE_TYPE";
+    case PhysicalOperatorType::CREATE_VECTOR_INDEX:
+        return "CREATE_VECTOR_INDEX";
+    case PhysicalOperatorType::UPDATE_VECTOR_INDEX:
+        return "UPDATE_VECTOR_INDEX";
     case PhysicalOperatorType::CROSS_PRODUCT:
         return "CROSS_PRODUCT";
     case PhysicalOperatorType::DETACH_DATABASE:
@@ -76,8 +80,12 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "MERGE";
     case PhysicalOperatorType::MULTIPLICITY_REDUCER:
         return "MULTIPLICITY_REDUCER";
+    case PhysicalOperatorType::NOOP_SINK:
+        return "NOOP_SINK";
     case PhysicalOperatorType::OFFSET_SCAN_NODE_TABLE:
         return "OFFSET_SCAN_NODE_TABLE";
+    case PhysicalOperatorType::MULTIPLE_OFFSET_SCAN_NODE_TABLE:
+        return "MULTIPLE_OFFSET_SCAN_NODE_TABLE";
     case PhysicalOperatorType::PARTITIONER:
         return "PARTITIONER";
     case PhysicalOperatorType::PATH_PROPERTY_PROBE:
@@ -102,6 +110,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "SCAN_REL_TABLE";
     case PhysicalOperatorType::SEMI_MASKER:
         return "SEMI_MASKER";
+    case PhysicalOperatorType::SEMI_MASK_DEPENDENCY:
+        return "SEMI_MASK_DEPENDENCY";
     case PhysicalOperatorType::SET_PROPERTY:
         return "SET_PROPERTY";
     case PhysicalOperatorType::SKIP:

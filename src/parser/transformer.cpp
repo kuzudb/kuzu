@@ -42,6 +42,10 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformCreateSequence(*ctx.kU_CreateSequence());
     } else if (ctx.kU_CreateType()) {
         return transformCreateType(*ctx.kU_CreateType());
+    } else if (ctx.kU_CreateVectorIndex()) {
+        return transformCreateVectorIndex(*ctx.kU_CreateVectorIndex());
+    } else if (ctx.kU_UpdateVectorIndex()) {
+        return transformUpdateVectorIndex(*ctx.kU_UpdateVectorIndex());
     } else if (ctx.kU_Drop()) {
         return transformDrop(*ctx.kU_Drop());
     } else if (ctx.kU_AlterTable()) {

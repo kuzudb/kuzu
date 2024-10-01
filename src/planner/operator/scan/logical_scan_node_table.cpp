@@ -13,6 +13,15 @@ LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
 }
 
 void LogicalScanNodeTable::computeFactorizedSchema() {
+    if (scanType == LogicalScanNodeTableType::MULTIPLE_OFFSET_SCAN) {
+        copyChildSchema(0);
+        const auto groupPos = schema->getGroupPos(*nodeID);
+        for (auto& property : properties) {
+            schema->insertToGroupAndScope(property, groupPos);
+        }
+        return;
+    }
+
     createEmptySchema();
     const auto groupPos = schema->createGroup();
     KU_ASSERT(groupPos == 0);
@@ -35,6 +44,13 @@ void LogicalScanNodeTable::computeFactorizedSchema() {
 }
 
 void LogicalScanNodeTable::computeFlatSchema() {
+    if (scanType == LogicalScanNodeTableType::MULTIPLE_OFFSET_SCAN) {
+        copyChildSchema(0);
+        for (auto& property : properties) {
+            schema->insertToGroupAndScope(property, 0);
+        }
+        return;
+    }
     createEmptySchema();
     schema->createGroup();
     schema->insertToGroupAndScope(nodeID, 0);

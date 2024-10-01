@@ -63,7 +63,7 @@ public:
     void dropColumn(common::column_id_t columnID) { columns.erase(columns.begin() + columnID); }
     void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
         DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
-        const catalog::Property& property, evaluator::ExpressionEvaluator& defaultEvaluator);
+        const catalog::Property& property, evaluator::ExpressionEvaluator* defaultEvaluator);
 
     common::idx_t getNumColumns() const { return columns.size(); }
     Column* getColumn(common::column_id_t columnID) const {

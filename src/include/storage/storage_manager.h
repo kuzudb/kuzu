@@ -5,6 +5,7 @@
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/rel_table.h"
+#include "storage/index/vector_index_header.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {
@@ -27,6 +28,15 @@ public:
     void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
         main::ClientContext* context);
     void dropTable(common::table_id_t tableID, common::VirtualFileSystem* vfs);
+    void addVectorIndex(std::unique_ptr<VectorIndexHeader> header);
+    inline VectorIndexHeader* getVectorIndexHeaderWriteVersion(table_id_t nodeTableId,
+        property_id_t embeddingPropertyId) {
+        return vectorIndexHeaders->getHeaderWriteVersion(nodeTableId, embeddingPropertyId);
+    }
+    inline VectorIndexHeader* getVectorIndexHeaderReadOnlyVersion(table_id_t nodeTableId,
+        property_id_t embeddingPropertyId) {
+        return vectorIndexHeaders->getHeaderReadOnlyVersion(nodeTableId, embeddingPropertyId);
+    }
 
     void prepareCommit(transaction::Transaction* transaction, common::VirtualFileSystem* vfs);
     void prepareRollback();
@@ -52,6 +62,7 @@ public:
         return nodesStatisticsAndDeletedIDs.get();
     }
     RelsStoreStats* getRelsStatistics() { return relsStatistics.get(); }
+    VectorIndexHeaders* getVectorIndexHeaders() { return vectorIndexHeaders.get(); }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
@@ -79,6 +90,7 @@ private:
     std::unique_ptr<DiskArrayCollection> metadataDAC;
     std::unique_ptr<NodesStoreStatsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
     std::unique_ptr<RelsStoreStats> relsStatistics;
+    std::unique_ptr<VectorIndexHeaders> vectorIndexHeaders;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;

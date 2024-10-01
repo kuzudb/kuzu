@@ -94,6 +94,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "SCAN_NODE_TABLE";
     case LogicalOperatorType::SEMI_MASKER:
         return "SEMI_MASKER";
+    case LogicalOperatorType::SEMI_MASK_DEPENDENCY:
+        return "SEMI_MASK_DEPENDENCY";
     case LogicalOperatorType::SET_PROPERTY:
         return "SET_PROPERTY";
     case LogicalOperatorType::STANDALONE_CALL:
@@ -110,6 +112,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "USE_DATABASE";
     case LogicalOperatorType::CREATE_TYPE:
         return "CREATE_TYPE";
+    case LogicalOperatorType::CREATE_VECTOR_INDEX:
+        return "CREATE_VECTOR_INDEX";
     default:
         throw RuntimeException("Unknown logical operator type.");
     }

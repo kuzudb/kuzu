@@ -1,5 +1,6 @@
 add_subdirectory(reader)
 add_subdirectory(writer/parquet)
+add_subdirectory(vector_index)
 
 add_library(kuzu_processor_operator_persistent
         OBJECT
@@ -14,8 +15,7 @@ add_library(kuzu_processor_operator_persistent
         insert_executor.cpp
         merge.cpp
         set.cpp
-        set_executor.cpp
-)
+        set_executor.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_persistent>

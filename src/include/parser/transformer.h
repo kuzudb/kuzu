@@ -202,6 +202,10 @@ private:
     std::unique_ptr<Statement> transformCreateSequence(CypherParser::KU_CreateSequenceContext& ctx);
     std::unique_ptr<Statement> transformCreateType(CypherParser::KU_CreateTypeContext& ctx);
     std::unique_ptr<Statement> transformDrop(CypherParser::KU_DropContext& ctx);
+    std::unique_ptr<Statement> transformCreateVectorIndex(
+        CypherParser::KU_CreateVectorIndexContext& ctx);
+    std::unique_ptr<Statement> transformUpdateVectorIndex(
+        CypherParser::KU_UpdateVectorIndexContext& ctx);
     std::unique_ptr<Statement> transformRenameTable(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformAddProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformDropProperty(CypherParser::KU_AlterTableContext& ctx);

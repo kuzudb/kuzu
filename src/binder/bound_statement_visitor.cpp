@@ -28,6 +28,12 @@ void BoundStatementVisitor::visit(const BoundStatement& statement) {
     case StatementType::CREATE_TYPE: {
         visitCreateType(statement);
     } break;
+    case StatementType::CREATE_VECTOR_INDEX: {
+        visitCreateVectorIndex(statement);
+    } break;
+    case StatementType::UPDATE_VECTOR_INDEX: {
+        visitUpdateVectorIndex(statement);
+    } break;
     case StatementType::DROP_TABLE: {
         visitDropTable(statement);
     } break;

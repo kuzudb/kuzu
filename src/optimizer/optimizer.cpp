@@ -10,6 +10,7 @@
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 #include "optimizer/top_k_optimizer.h"
+#include "optimizer/gds_selectivity_optimizer.h"
 
 namespace kuzu {
 namespace optimizer {
@@ -39,6 +40,10 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
 
     auto topKOptimizer = TopKOptimizer();
     topKOptimizer.rewrite(plan);
+
+    // Remove hash join with SemiMaskDependency if possible
+    auto gdsSelectivityOptimizer = GDSSelectivityOptimizer();
+    gdsSelectivityOptimizer.rewrite(plan);
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

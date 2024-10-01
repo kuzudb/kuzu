@@ -27,6 +27,7 @@
 #include "planner/operator/simple/logical_extension.h"
 #include "planner/operator/simple/logical_use_database.h"
 #include "planner/planner.h"
+#include "binder/expression/property_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

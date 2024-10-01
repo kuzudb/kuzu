@@ -57,6 +57,9 @@ protected:
 protected:
     std::unique_ptr<SemiMaskerInfo> info;
     common::ValueVector* keyVector;
+
+    // numMaskedValues is used to track the number of masked values in the mask.
+    uint64_t numMaskedValues = 0;
 };
 
 class SingleTableSemiMasker : public BaseSemiMasker {

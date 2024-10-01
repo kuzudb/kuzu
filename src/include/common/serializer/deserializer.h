@@ -23,6 +23,10 @@ public:
         reader->read((uint8_t*)&value, sizeof(T));
     }
 
+    void deserializeValue(uint8_t* value, uint64_t size) {
+        reader->read(value, size);
+    }
+
     template<typename T>
     void deserializeOptionalValue(std::unique_ptr<T>& value) {
         bool isNull;
@@ -42,6 +46,18 @@ public:
             deserializeValue<T1>(key);
             auto val = T2::deserialize(*this);
             values.emplace(key, std::move(val));
+        }
+    }
+
+    template<typename T1, typename T2, typename T3>
+    void deserializeUnorderedMap(std::unordered_map<T1, std::unique_ptr<T2>, T3>& values) {
+        uint64_t mapSize;
+        deserializeValue<uint64_t>(mapSize);
+        values.reserve(mapSize);
+        for (auto i = 0u; i < mapSize; i++) {
+            auto key = T1::deserialize(*this);
+            auto val = T2::deserialize(*this);
+            values.emplace(std::move(key), std::move(val));
         }
     }
 

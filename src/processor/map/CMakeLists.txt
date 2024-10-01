@@ -13,6 +13,7 @@ add_library(kuzu_processor_mapper
         map_copy_from.cpp
         map_insert.cpp
         map_create_macro.cpp
+        map_vector_index.cpp
         map_cross_product.cpp
         map_ddl.cpp
         map_delete.cpp

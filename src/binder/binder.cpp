@@ -13,6 +13,7 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
+#include "processor/operator/persistent/reader/fvec/fvec_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
 using namespace kuzu::catalog;
@@ -34,6 +35,12 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     } break;
     case StatementType::CREATE_SEQUENCE: {
         boundStatement = bindCreateSequence(statement);
+    } break;
+    case StatementType::CREATE_VECTOR_INDEX: {
+        boundStatement = bindCreateVectorIndex(statement);
+    } break;
+    case StatementType::UPDATE_VECTOR_INDEX: {
+        boundStatement = bindUpdateVectorIndex(statement);
     } break;
     case StatementType::COPY_FROM: {
         boundStatement = bindCopyFromClause(statement);

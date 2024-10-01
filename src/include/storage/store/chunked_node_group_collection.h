@@ -38,6 +38,7 @@ public:
 
     inline uint64_t getNumChunkedGroups() const { return chunkedGroups.size(); }
     inline void clear() { chunkedGroups.clear(); }
+    inline const std::vector<common::LogicalType>& getTypes() const { return types; }
 
 private:
     std::vector<common::LogicalType> types;

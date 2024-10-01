@@ -60,6 +60,8 @@ private:
     std::unique_ptr<PhysicalOperator> mapCreateSequence(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateType(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateVectorIndex(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapUpdateVectorIndex(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCrossProduct(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDelete(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);
@@ -98,6 +100,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapScanFile(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanNodeTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapSemiMaskDependency(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);

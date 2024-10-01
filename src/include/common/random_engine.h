@@ -11,7 +11,7 @@ class ClientContext;
 namespace common {
 
 struct RandomState {
-    pcg32 pcg;
+    pcg64 pcg;
 
     RandomState() {}
 };
@@ -21,6 +21,9 @@ public:
     RandomEngine();
 
     uint32_t nextRandomInteger();
+    float randomFloat();
+    uint64_t randomInt(uint64_t max);
+    void randomPermutation(uint64_t n, uint64_t* perm, uint64_t nPerm);
 
 private:
     RandomState randomState;

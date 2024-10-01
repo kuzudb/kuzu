@@ -102,7 +102,7 @@ public:
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector);
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        evaluator::ExpressionEvaluator& defaultEvaluator) override;
+        evaluator::ExpressionEvaluator* defaultEvaluator) override;
     void dropColumn(common::column_id_t columnID) override {
         fwdRelTableData->dropColumn(columnID);
         bwdRelTableData->dropColumn(columnID);

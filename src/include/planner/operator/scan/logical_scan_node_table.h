@@ -11,6 +11,7 @@ enum class LogicalScanNodeTableType : uint8_t {
     SCAN = 0,
     OFFSET_SCAN = 1,
     PRIMARY_KEY_SCAN = 2,
+    MULTIPLE_OFFSET_SCAN = 3,
 };
 
 struct ExtraScanNodeTableInfo {

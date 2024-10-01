@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "processor/operator/scan/multiple_offset_scan_node_table.h"
 #include "processor/operator/scan/offset_scan_node_table.h"
 #include "processor/operator/scan/primary_key_scan_node_table.h"
 #include "processor/operator/scan/scan_node_table.h"
@@ -19,7 +20,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
     auto transaction = clientContext->getTx();
     auto& scan = logicalOperator->constCast<LogicalScanNodeTable>();
     const auto outSchema = scan.getSchema();
-    auto nodeIDPos = getDataPos(*scan.getNodeID(), *outSchema);
+    DataPos nodeIDPos;
+    if (scan.getScanType() == LogicalScanNodeTableType::MULTIPLE_OFFSET_SCAN) {
+        KU_ASSERT(scan.getChildren().size() == 1);
+        const auto inSchema = scan.getChild(0)->getSchema();
+        nodeIDPos = getDataPos(*scan.getNodeID(), *inSchema);
+    } else {
+        nodeIDPos = getDataPos(*scan.getNodeID(), *outSchema);
+    }
     std::vector<DataPos> outVectorsPos;
     for (auto& expression : scan.getProperties()) {
         outVectorsPos.emplace_back(getDataPos(*expression, *outSchema));
@@ -72,6 +80,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         auto sharedState = std::make_shared<PrimaryKeyScanSharedState>(tableInfos.size());
         return std::make_unique<PrimaryKeyScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
             std::move(evaluator), std::move(sharedState), getOperatorID(), std::move(printInfo));
+    }
+    case LogicalScanNodeTableType::MULTIPLE_OFFSET_SCAN: {
+        KU_ASSERT(tableIDs.size() == 1);
+        auto prevOperator = mapOperator(scan.getChild(0).get());
+        return std::make_unique<MultipleOffsetScanNodeTable>(std::move(scanInfo),
+            std::move(prevOperator), tableInfos[0].copy(), getOperatorID(), std::move(printInfo));
     }
     default:
         KU_UNREACHABLE;

@@ -8,6 +8,7 @@
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
 #include "graph/graph_entry.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 
@@ -107,6 +108,7 @@ public:
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateVectorIndex(const parser::Statement& statement);
 
     std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropSequence(const parser::Statement& statement);
@@ -120,6 +122,9 @@ public:
     std::vector<PropertyInfo> bindPropertyInfo(
         const std::vector<parser::PropertyDefinitionDDL>& propertyDefinitions,
         const std::string& tableName);
+
+    /*** bind vector index ***/
+    std::unique_ptr<BoundStatement> bindUpdateVectorIndex(const parser::Statement& statement);
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
@@ -181,6 +186,9 @@ public:
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindVectorSearchCall(std::string functionName,
+        catalog::CatalogEntry* functionCatalogEntry,
+        const parser::ParsedFunctionExpression* functionExpr);
     std::unique_ptr<BoundReadingClause> bindLoadFrom(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/

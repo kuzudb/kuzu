@@ -23,5 +23,11 @@ struct PageRankFunction {
     static function_set getFunctionSet();
 };
 
+struct VectorSearchFunction {
+    static constexpr const char* name = "ANN_SEARCH";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

@@ -5,7 +5,9 @@ add_library(kuzu_function_algorithm
         page_rank.cpp
         shortest_paths.cpp
         gds_utils.cpp
-        weakly_connected_components.cpp)
+        weakly_connected_components.cpp
+        vector_search.cpp
+        vector_search_task.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function_algorithm>

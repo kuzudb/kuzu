@@ -20,12 +20,14 @@ TableData::TableData(BMFileHandle* dataFH, DiskArrayCollection* metadataDAC,
 
 void TableData::addColumn(Transaction* transaction, const std::string& colNamePrefix,
     DiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDAHInfo,
-    const catalog::Property& property, ExpressionEvaluator& defaultEvaluator) {
+    const catalog::Property& property, ExpressionEvaluator* defaultEvaluator) {
     auto colName = StorageUtils::getColumnName(property.getName(),
         StorageUtils::ColumnType::DEFAULT, colNamePrefix);
     auto column = ColumnFactory::createColumn(colName, property.getDataType().copy(),
         metadataDAHInfo, dataFH, *metadataDAC, bufferManager, wal, transaction, enableCompression);
-    column->populateWithDefaultVal(transaction, metadataDA, defaultEvaluator);
+    if (defaultEvaluator != nullptr) {
+        column->populateWithDefaultVal(transaction, metadataDA, *defaultEvaluator);
+    }
     columns.push_back(std::move(column));
 }
 

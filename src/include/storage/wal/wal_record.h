@@ -61,6 +61,7 @@ enum class WALRecordType : uint8_t {
     PAGE_UPDATE_OR_INSERT_RECORD = 20,
     TABLE_STATISTICS_RECORD = 30,
     UPDATE_SEQUENCE_RECORD = 40,
+    VECTOR_INDEX_HEADER_RECORD = 50,
 };
 
 struct WALRecord {
@@ -148,6 +149,14 @@ struct TableStatisticsRecord final : public WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableStatisticsRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct VectorIndexHeaderRecord final : public WALRecord {
+    VectorIndexHeaderRecord()
+        : WALRecord{WALRecordType::VECTOR_INDEX_HEADER_RECORD} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<VectorIndexHeaderRecord> deserialize(common::Deserializer& deserializer);
 };
 
 struct DropCatalogEntryRecord final : public WALRecord {

@@ -11,7 +11,8 @@ add_library(kuzu_optimizer
         projection_push_down_optimizer.cpp
         remove_factorization_rewriter.cpp
         remove_unnecessary_join_optimizer.cpp
-        top_k_optimizer.cpp)
+        top_k_optimizer.cpp
+        gds_selectivity_optimizer.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_optimizer>

@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
@@ -120,15 +121,17 @@ public:
         }
         auto dampingValue = (1 - extraData->dampingFactor) / numNodes;
         // Compute page rank.
+        auto nodeTableIDs = graph->getNodeTableIDs();
+        auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
-            for (auto tableID : graph->getNodeTableIDs()) {
+            for (auto tableID : nodeTableIDs) {
                 for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
-                    auto nbrs = graph->scanFwd(nodeID);
+                    auto nbrs = graph->scanFwd(nodeID, *scanState);
                     for (auto& nbr : nbrs) {
-                        auto numNbrOfNbr = graph->scanFwd(nbr).size();
+                        auto numNbrOfNbr = graph->scanFwd(nbr, *scanState).size();
                         if (numNbrOfNbr == 0) {
                             numNbrOfNbr = graph->getNumNodes();
                         }

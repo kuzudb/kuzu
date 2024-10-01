@@ -16,6 +16,8 @@ public:
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
+    void updateVectorIdx(storage::NodeTableScanState& scanState);
+
     void nextMorsel(storage::NodeTableScanState& scanState);
 
     NodeSemiMask* getSemiMask() const { return semiMask.get(); }
@@ -24,6 +26,8 @@ private:
     std::mutex mtx;
     storage::NodeTable* table;
     common::node_group_idx_t currentCommittedGroupIdx;
+    std::vector<common::idx_t> committedNodeGroupVectorIdx;
+    std::vector<bool> committedNodeGroupFinished;
     common::node_group_idx_t currentUnCommittedGroupIdx;
     common::node_group_idx_t numCommittedNodeGroups;
     std::vector<storage::LocalNodeGroup*> localNodeGroups;

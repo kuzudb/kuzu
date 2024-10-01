@@ -97,7 +97,7 @@ public:
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        evaluator::ExpressionEvaluator& defaultEvaluator) override;
+        evaluator::ExpressionEvaluator* defaultEvaluator) override;
     void dropColumn(common::column_id_t columnID) override { tableData->dropColumn(columnID); }
 
     common::column_id_t getPKColumnID() const { return pkColumnID; }

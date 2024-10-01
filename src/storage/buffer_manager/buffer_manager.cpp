@@ -23,6 +23,7 @@ namespace kuzu {
 namespace storage {
 
 bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
+    auto start = std::chrono::high_resolution_clock::now();
     EvictionCandidate candidate{fileIndex, pageIndex};
     while (size < capacity) {
         // Weak is fine since spurious failure is acceptable.
@@ -31,9 +32,13 @@ bool EvictionQueue::insert(uint32_t fileIndex, common::page_idx_t pageIndex) {
         if (data[insertCursor.fetch_add(1, std::memory_order_relaxed) % capacity]
                 .compare_exchange_weak(emptyCandidate, candidate)) {
             size++;
+            insertDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now() - start);
             return true;
         }
     }
+    insertDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now() - start);
     return false;
 }
 
@@ -120,7 +125,8 @@ uint8_t* BufferManager::pin(BMFileHandle& fileHandle, page_idx_t pageIdx,
                     throw BufferManagerException(
                         "Eviction queue is full! This should be impossible.");
                 }
-                return getFrame(fileHandle, pageIdx);
+               auto frame = getFrame(fileHandle, pageIdx);
+               return frame;
             }
         } break;
         case PageState::UNLOCKED:

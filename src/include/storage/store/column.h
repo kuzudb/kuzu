@@ -89,7 +89,7 @@ public:
         common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        const common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
 
     // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
@@ -180,7 +180,7 @@ protected:
         uint64_t numValuesToScan, const common::SelectionVector& selVector,
         common::ValueVector* resultVector, const ColumnChunkMetadata& chunkMeta);
     virtual void lookupInternal(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        const common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
@@ -294,7 +294,7 @@ public:
     }
 
     void lookup(transaction::Transaction* transaction, ChunkState& state,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
+        const common::ValueVector* nodeIDVector, common::ValueVector* resultVector) override {
         Column::lookup(transaction, state, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }

@@ -35,14 +35,15 @@ public:
     RDFGRAPH = 119, READ = 120, REL = 121, RENAME = 122, RETURN = 123, ROLLBACK = 124, 
     ROLLBACK_SKIP_CHECKPOINT = 125, SEQUENCE = 126, SET = 127, SHORTEST = 128, 
     START = 129, STARTS = 130, TABLE = 131, THEN = 132, TO = 133, TRANSACTION = 134, 
-    TRUE = 135, TYPE = 136, UNION = 137, UNWIND = 138, USE = 139, WHEN = 140, 
-    WHERE = 141, WITH = 142, WRITE = 143, XOR = 144, DECIMAL = 145, STAR = 146, 
-    L_SKIP = 147, INVALID_NOT_EQUAL = 148, MINUS = 149, FACTORIAL = 150, 
-    COLON = 151, StringLiteral = 152, EscapedChar = 153, DecimalInteger = 154, 
-    HexLetter = 155, HexDigit = 156, Digit = 157, NonZeroDigit = 158, NonZeroOctDigit = 159, 
-    ZeroDigit = 160, RegularDecimalReal = 161, UnescapedSymbolicName = 162, 
-    IdentifierStart = 163, IdentifierPart = 164, EscapedSymbolicName = 165, 
-    SP = 166, WHITESPACE = 167, CypherComment = 168, Unknown = 169
+    TRUE = 135, TYPE = 136, UNION = 137, UNWIND = 138, USE = 139, UPDATE = 140, 
+    WHEN = 141, WHERE = 142, WITH = 143, WRITE = 144, XOR = 145, VECTOR = 146, 
+    INDEX = 147, DECIMAL = 148, STAR = 149, L_SKIP = 150, INVALID_NOT_EQUAL = 151, 
+    MINUS = 152, FACTORIAL = 153, COLON = 154, StringLiteral = 155, EscapedChar = 156, 
+    DecimalInteger = 157, HexLetter = 158, HexDigit = 159, Digit = 160, 
+    NonZeroDigit = 161, NonZeroOctDigit = 162, ZeroDigit = 163, RegularDecimalReal = 164, 
+    UnescapedSymbolicName = 165, IdentifierStart = 166, IdentifierPart = 167, 
+    EscapedSymbolicName = 168, SP = 169, WHITESPACE = 170, CypherComment = 171, 
+    Unknown = 172
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

@@ -72,6 +72,12 @@ void WAL::logTableStatisticsRecord(TableType tableType) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logVectorIndexHeaderRecord() {
+    lock_t lck{mtx};
+    VectorIndexHeaderRecord walRecord;
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
     lock_t lck{mtx};
     CreateCatalogEntryRecord walRecord(catalogEntry);
@@ -113,6 +119,7 @@ void WAL::clearWAL() {
     bufferedWriter->getFileInfo().truncate(0);
     bufferedWriter->resetOffsets();
     StorageUtils::removeCatalogAndStatsWALFiles(directory, vfs);
+    StorageUtils::removeVectorIndexHeaderFile(directory, vfs);
     updatedTables.clear();
 }
 

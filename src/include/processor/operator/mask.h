@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <atomic>
 
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
@@ -16,6 +17,7 @@ struct MaskUtil {
     }
 };
 
+// TODO: Why not use bitset to save memory?
 struct MaskData {
     uint8_t* data;
 
@@ -23,18 +25,31 @@ struct MaskData {
         dataBuffer = std::make_unique<uint8_t[]>(size);
         data = dataBuffer.get();
         std::fill(data, data + size, defaultVal);
+        numMaskedNodes = 0;
     }
 
-    inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
+    inline void setMask(uint64_t pos, uint8_t maskValue) {
+        data[pos] = maskValue;
+    }
+
+    inline void incrementNumMaskedNodes(uint64_t delta) {
+        numMaskedNodes += delta;
+    }
+
     inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
         return data[pos] == trueMaskVal;
     }
     inline uint8_t getMaskValue(uint64_t pos) const { return data[pos]; }
     inline uint64_t getSize() const { return size; }
+    inline uint64_t getNumMaskedNodes() const { return numMaskedNodes; }
 
 private:
     std::unique_ptr<uint8_t[]> dataBuffer;
     uint64_t size;
+    // Add some padding to avoid false sharing.
+    char padding[64 - sizeof(uint64_t)];
+    // Number of nodes that are masked.
+    std::atomic_uint64_t numMaskedNodes;
 };
 
 // MaskCollection represents multiple mask on the same domain with AND semantic.
@@ -63,8 +78,12 @@ public:
         }
     }
 
+    void incrementNumMaskedNodes(uint64_t delta) { maskData->incrementNumMaskedNodes(delta); }
+
     uint8_t getNumMasks() const { return numMasks; }
     void incrementNumMasks() { numMasks++; }
+
+    inline uint64_t getNumMaskedNodes() const { return maskData->getNumMaskedNodes(); }
 
 private:
     std::mutex mtx;
@@ -86,9 +105,12 @@ public:
     virtual void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) = 0;
     virtual bool isMasked(common::offset_t nodeOffset) = 0;
 
+    inline void incrementNumMaskedNodes(uint64_t delta) { maskCollection.incrementNumMaskedNodes(delta); }
+
     bool isEnabled() const { return getNumMasks() > 0; }
     uint8_t getNumMasks() const { return maskCollection.getNumMasks(); }
     void incrementNumMasks() { maskCollection.incrementNumMasks(); }
+    uint64_t getNumMaskedNodes() const { return maskCollection.getNumMaskedNodes(); }
 
 protected:
     common::table_id_t tableID;

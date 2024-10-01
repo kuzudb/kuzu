@@ -1,7 +1,10 @@
+#include "planner/operator/logical_semi_mask_dependency.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/gds_call.h"
+#include "processor/operator/noop_sink.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan/scan_node_table.h"
+#include "processor/operator/semi_mask_dependency.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
 
@@ -74,6 +77,27 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     default:
         KU_UNREACHABLE;
     }
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMaskDependency(
+    planner::LogicalOperator* logicalOperator) {
+    const auto& logical = logicalOperator->cast<LogicalSemiMaskDependency>();
+    KU_ASSERT(logical.getChildren().size() == 2);
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    auto semiMaskOperator = mapOperator(logicalOperator->getChild(1).get());
+
+    // Wrap over noopsink
+    auto resultSet =
+        std::make_unique<ResultSetDescriptor>(logicalOperator->getChild(1)->getSchema());
+    auto noopSink = std::make_unique<NOOPSink>(std::move(resultSet), std::move(semiMaskOperator),
+        getOperatorID(), std::make_unique<OPPrintInfo>("NOOP_SINK"));
+
+    std::vector<std::unique_ptr<PhysicalOperator>> children;
+    children.push_back(std::move(prevOperator));
+    children.push_back(std::move(noopSink));
+    auto printInfo = std::make_unique<OPPrintInfo>(logical.getExpressionsForPrinting());
+    return std::make_unique<SemiMaskDependency>(std::move(children), getOperatorID(),
+        std::move(printInfo));
 }
 
 } // namespace processor

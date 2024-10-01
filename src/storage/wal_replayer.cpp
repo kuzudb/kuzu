@@ -74,6 +74,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord,
     case WALRecordType::TABLE_STATISTICS_RECORD: {
         replayTableStatisticsRecord(walRecord);
     } break;
+    case WALRecordType::VECTOR_INDEX_HEADER_RECORD: {
+        replayVectorIndexHeaderRecord(walRecord);
+    } break;
     case WALRecordType::COMMIT_RECORD: {
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
@@ -190,6 +193,28 @@ void WALReplayer::replayTableStatisticsRecord(const WALRecord& walRecord) {
     }
 }
 
+void WALReplayer::replayVectorIndexHeaderRecord(const WALRecord& walRecord) {
+    auto vfs = clientContext.getVFSUnsafe();
+    auto storageManager = clientContext.getStorageManager();
+    if (isCheckpoint) {
+        auto checkpointFile = StorageUtils::getVectorIndexHeadersFilePath(vfs,
+            clientContext.getDatabasePath(), common::FileVersionType::WAL_VERSION);
+        if (!vfs->fileOrPathExists(walFilePath, &clientContext)) {
+            // This is a temp hack: multiple transactions can log multiple vector index headers
+            // before checkpoint.
+            return;
+        }
+        auto originalFilePath = StorageUtils::getVectorIndexHeadersFilePath(vfs,
+            clientContext.getDatabasePath(), common::FileVersionType::ORIGINAL);
+        vfs->overwriteFile(checkpointFile, originalFilePath);
+        if (!isRecovering) {
+            storageManager->getVectorIndexHeaders()->checkpointInMemoryIfNecessary();
+        }
+    } else {
+        storageManager->getVectorIndexHeaders()->rollbackInMemoryIfNecessary();
+    }
+}
+
 void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) {
     if (!(isCheckpoint && isRecovering)) {
         // Nothing to do.
@@ -267,18 +292,27 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) {
         auto exprBinder = binder.getExpressionBinder();
         auto addInfo =
             alterEntryRecord.ownedAlterInfo->extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
-        // We don't implicit cast here since it must already be done the first time
-        auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
-        auto exprMapper = ExpressionMapper();
-        auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
         auto schema = clientContext.getCatalog()->getTableCatalogEntry(&DUMMY_WRITE_TRANSACTION,
             alterEntryRecord.ownedAlterInfo->tableID);
         auto addedPropID = schema->getPropertyID(addInfo->propertyName);
         auto addedProp = schema->getProperty(addedPropID);
-        if (clientContext.getStorageManager()) {
-            auto storageManager = clientContext.getStorageManager();
-            storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
-                ->addColumn(&DUMMY_WRITE_TRANSACTION, *addedProp, *defaultValueEvaluator);
+        // TODO: Messy code, fix it. Probably use optional and unique_ptr.
+        if (addInfo->defaultValue != nullptr) {
+            // We don't implicit cast here since it must already be done the first time
+            auto boundDefault = exprBinder->bindExpression(*addInfo->defaultValue);
+            auto exprMapper = ExpressionMapper();
+            auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
+            if (clientContext.getStorageManager()) {
+                auto storageManager = clientContext.getStorageManager();
+                storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
+                    ->addColumn(&DUMMY_WRITE_TRANSACTION, *addedProp, defaultValueEvaluator.get());
+            }
+        } else {
+            if (clientContext.getStorageManager()) {
+                auto storageManager = clientContext.getStorageManager();
+                storageManager->getTable(alterEntryRecord.ownedAlterInfo->tableID)
+                    ->addColumn(&DUMMY_WRITE_TRANSACTION, *addedProp, nullptr);
+            }
         }
     }
 }
