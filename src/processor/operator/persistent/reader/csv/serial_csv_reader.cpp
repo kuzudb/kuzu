@@ -235,10 +235,7 @@ function_set SerialCSVScan::getFunctionSet() {
 void SerialCSVReader::resetReaderState() {
     // Reset file position to the beginning
     if (-1 == fileInfo->seek(0, SEEK_SET)) {
-        std::string errMsg = "Failed to seek to the beginning of the file: ";
-        int error = errno;
-        errMsg += strerror(error);
-        handleCopyException(errMsg, true);
+        handleCopyException(stringFormat("Failed to seek to the beginning of the file:, errno: {}.", errno), true);
         return;
     }
 
