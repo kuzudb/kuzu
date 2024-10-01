@@ -24,8 +24,7 @@ struct RJBindData final : public GDSBindData {
     uint16_t upperBound;
 
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound,
-        uint16_t upperBound)
+        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound)
         : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
           lowerBound{lowerBound}, upperBound{upperBound} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);

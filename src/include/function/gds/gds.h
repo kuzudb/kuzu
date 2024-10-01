@@ -23,9 +23,8 @@ struct GDSBindData {
     std::shared_ptr<binder::Expression> nodeOutput;
 
     explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput)
-        : nodeOutput{std::move(nodeOutput)}{}
-    GDSBindData(const GDSBindData& other)
-        : nodeOutput{other.nodeOutput} {}
+        : nodeOutput{std::move(nodeOutput)} {}
+    GDSBindData(const GDSBindData& other) : nodeOutput{other.nodeOutput} {}
 
     virtual ~GDSBindData() = default;
 
