@@ -27,7 +27,6 @@ enum class TokenType {
     DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
-    ENCODED_JOIN,
     END_OF_STATEMENT_BLOCK,
     ENUMERATE,
     INSERT_STATEMENT_BLOCK,
@@ -58,7 +57,7 @@ enum class TokenType {
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenType::DATASET},
     {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
-    {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
+    {"-CHECK_ORDER", TokenType::CHECK_ORDER},
     {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE}, {"-PARALLELISM", TokenType::PARALLELISM},
     {"-SKIP", TokenType::SKIP}, {"-SKIP_MUSL", TokenType::SKIP_MUSL},
