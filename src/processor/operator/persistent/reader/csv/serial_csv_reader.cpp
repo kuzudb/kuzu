@@ -236,7 +236,7 @@ void SerialCSVReader::resetReaderState() {
     // Reset file position to the beginning
     if (-1 == fileInfo->seek(0, SEEK_SET)) {
         std::string errMsg = "Failed to seek to the beginning of the file: ";
-        errMsg += strerror(err);
+        errMsg += strerror(errno);
         handleCopyException(errMsg, true);
         return;
     }
