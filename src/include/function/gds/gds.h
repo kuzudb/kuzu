@@ -21,14 +21,10 @@ namespace function {
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
     std::shared_ptr<binder::Expression> nodeOutput;
-    // If outputAsNode is true, we will scan all properties of the node.
-    // Otherwise, we return node ID only.
-    bool outputAsNode;
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
-        : nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
 
-    GDSBindData(const GDSBindData& other)
-        : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput)
+        : nodeOutput{std::move(nodeOutput)} {}
+    GDSBindData(const GDSBindData& other) : nodeOutput{other.nodeOutput} {}
 
     virtual ~GDSBindData() = default;
 
@@ -36,9 +32,10 @@ struct GDSBindData {
 
     virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
 
-    virtual bool hasNodeOutput() const { return outputAsNode; }
-
-    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nodeOutput; }
+    virtual std::shared_ptr<binder::Expression> getNodeOutput() const {
+        KU_ASSERT(nodeOutput != nullptr);
+        return nodeOutput;
+    }
 
     virtual std::unique_ptr<GDSBindData> copy() const {
         return std::make_unique<GDSBindData>(*this);

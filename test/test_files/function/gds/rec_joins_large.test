@@ -17,7 +17,7 @@
 -LOG VarLenJoins
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, true)
+           CALL var_len_joins(PK, a, 1, 30)
            RETURN length, count(*);
 ---- 4
 1|10
@@ -29,7 +29,7 @@
 -LOG VarLenJoinsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, true)
+           CALL var_len_joins(PK, a, 1, 30)
            RETURN length, count(*);
 ---- 4
 1|10
@@ -41,7 +41,7 @@
 -LOG VarLenJoinsMultilabel1CountDistinct
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, true)
+           CALL var_len_joins(PK, a, 1, 30)
            RETURN count(distinct _node);
 ---- 1
 50
@@ -51,7 +51,7 @@
 -LOG VarLenJoinsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, true)
+           CALL var_len_joins(PK, a, 1, 30)
            RETURN length, count(*)
 ---- 4
 1|20
@@ -62,7 +62,7 @@
 -LOG VarLenJoinsLowerBound1
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 2, 3, true)
+           CALL var_len_joins(PK, a, 2, 3)
            RETURN length, count(*);
 ---- 2
 2|100
@@ -71,7 +71,7 @@
 -LOG VarLenJoinsLowerBound2
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 4, 30, true)
+           CALL var_len_joins(PK, a, 4, 30)
            RETURN length, count(*);
 ---- 1
 4|10000
@@ -79,7 +79,7 @@
 -LOG VarLenJoinsEmptyPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 4
-           CALL var_len_joins(PK, a, 1, 4, true)
+           CALL var_len_joins(PK, a, 1, 4)
            RETURN length, count(*);
 ---- 0
 
@@ -88,7 +88,7 @@
 -LOG AllSPDestinations
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK, a, 30, true)
+           CALL all_sp_destinations(PK, a, 30)
            RETURN count(*)
 ---- 1
 3110
@@ -97,7 +97,7 @@
 -LOG AllSPDestinationsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK, a, 30, true)
+           CALL all_sp_destinations(PK, a, 30)
            RETURN count(*)
 ---- 1
 13110
@@ -107,7 +107,7 @@
 -LOG AllSPDestinationsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK, a, 30, true)
+           CALL all_sp_destinations(PK, a, 30)
            RETURN count(*)
 ---- 1
 24420
@@ -116,7 +116,7 @@
 -LOG AllSPLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_lengths(PK, a, 30, true)
+           CALL all_sp_lengths(PK, a, 30)
            RETURN length, count(*);
 ---- 3
 1|10
@@ -127,7 +127,7 @@
 -LOG AllSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_lengths(PK, a, 30, true)
+           CALL all_sp_lengths(PK, a, 30)
            RETURN length, count(*);
 ---- 4
 1|10
@@ -139,7 +139,7 @@
 -LOG AllSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_lengths(PK, a, 30, true)
+           CALL all_sp_lengths(PK, a, 30)
            RETURN length, count(*);
 ---- 3
 1|20
@@ -150,7 +150,7 @@
 -LOG AllSPPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK, a, 5, true)
+           CALL all_sp_paths(PK, a, 5)
            RETURN size(pathNodeIDs), count(*);
 ---- 3
 0|10
@@ -161,7 +161,7 @@
 -LOG AllSPPathsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK, a, 30, true)
+           CALL all_sp_paths(PK, a, 30)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|10
@@ -173,7 +173,7 @@
 -LOG AllSPPathsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK, a, 30, true)
+           CALL all_sp_paths(PK, a, 30)
            RETURN size(pathNodeIDs), count(*);
 ---- 3
 0|20
@@ -185,7 +185,7 @@
 -LOG SingleSPDestinations
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK, a, 30, true)
+           CALL single_sp_destinations(PK, a, 30)
            RETURN count(*);
 ---- 1
 40
@@ -194,7 +194,7 @@
 -LOG SingleSPDestinationsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK, a, 30, true)
+           CALL single_sp_destinations(PK, a, 30)
            RETURN count(*);
 ---- 1
 50
@@ -203,7 +203,7 @@
 -LOG SingleSPDestinationsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK, a, 30, true)
+           CALL single_sp_destinations(PK, a, 30)
            RETURN count(*);
 ---- 1
 80
@@ -212,7 +212,7 @@
 -LOG SingleSPLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_lengths(PK, a, 30, true)
+           CALL single_sp_lengths(PK, a, 30)
            RETURN length, count(*);
 ---- 3
 1|10
@@ -223,7 +223,7 @@
 -LOG SingleSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_lengths(PK, a, 30, true)
+           CALL single_sp_lengths(PK, a, 30)
            RETURN length, count(*);
 ---- 4
 1|10
@@ -235,7 +235,7 @@
 -LOG SingleSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_lengths(PK, a, 30, true)
+           CALL single_sp_lengths(PK, a, 30)
            RETURN length, count(*);
 ---- 3
 1|20
@@ -246,7 +246,7 @@
 -LOG SingleSPPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK, a, 5, true)
+           CALL single_sp_paths(PK, a, 5)
            RETURN size(pathNodeIDs), count(*);
 ---- 3
 0|10
@@ -257,7 +257,7 @@
 -LOG SingleSPPathsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK, a, 30, true)
+           CALL single_sp_paths(PK, a, 30)
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|10
@@ -269,7 +269,7 @@
 -LOG SingleSPPathsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK, a, 30, true)
+           CALL single_sp_paths(PK, a, 30)
            RETURN size(pathNodeIDs), count(*)
 ---- 3
 0|20

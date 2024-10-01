@@ -409,11 +409,10 @@ public:
      * srcNode::NODE
      * lowerBound::INT64
      * upperBound::INT64
-     * outputProperty::BOOL
      */
     std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
-            LogicalTypeID::BOOL};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64,
+            LogicalTypeID::INT64};
     }
 
     void bind(const expression_vector& params, Binder* binder,
@@ -423,9 +422,7 @@ public:
         auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
         validateLowerUpperBound(lowerBound, upperBound);
-        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[4]);
-        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound,
-            upperBound);
+        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound);
     }
 
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {

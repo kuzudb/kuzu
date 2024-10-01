@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
@@ -58,10 +57,9 @@ public:
      * Inputs are
      *
      * graph::ANY
-     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::BOOL};
+        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
     }
 
     /*
@@ -78,10 +76,9 @@ public:
         return columns;
     }
 
-    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+    void bind(const expression_vector&, Binder* binder, GraphEntry& graphEntry) override {
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
-        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
-        bindData = std::make_unique<GDSBindData>(nodeOutput, outputProperty);
+        bindData = std::make_unique<GDSBindData>(nodeOutput);
     }
 
     void initLocalState(main::ClientContext* context) override {
