@@ -21,9 +21,9 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t file
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
-    ///////////////////////STEP1: Dialect Detection//////////////////////////////////
+
     detectDialect();
-    ///////////////////////STEP2: Type Detection/////////////////////////////////////
+
     SniffCSVNameAndTypeDriver driver{this, bindInput};
     parseCSV(driver);
     // finalize the columns; rename duplicate names
@@ -235,10 +235,12 @@ function_set SerialCSVScan::getFunctionSet() {
 void SerialCSVReader::resetReaderState() {
     // Reset file position to the beginning
     if (-1 == fileInfo->seek(0, SEEK_SET)) {
-        handleCopyException("Failed to seek to the beginning of the file.", true);
+        std::string errMsg = "Failed to seek to the beginning of the file: ";
+        errMsg += strerror(err);
+        handleCopyException(errMsg, true);
         return;
     }
-        
+
     // Reset buffer-related variables
     buffer.reset();
     bufferSize = 0;
@@ -259,8 +261,8 @@ void SerialCSVReader::detectDialect() {
     // Generate dialect options based on the non-user-specified options
     auto dialectSearchSpace = generateDialectOptions(candidates, option);
 
-    idx_t best_consistent_rows = 0;
-    idx_t max_columns_found = 0;
+    idx_t bestConsistentRows = 0;
+    idx_t maxColumnsFound = 0;
     std::vector<DialectOption> validDialects;
     std::vector<DialectOption> finalDialects;
     for (auto& dialectOption : dialectSearchSpace) {
@@ -274,46 +276,46 @@ void SerialCSVReader::detectDialect() {
         parseCSV(driver);
         // Reset the file position and buffer to start reading from the beginning after detection
         resetReaderState();
-        // If never unquoting quoted values, discard this dialect.
-        if (driver.error) {
+        // If never unquoting quoted values or any other error during the parsing, discard this dialect.
+        if (driver.getError()) {
             continue;
         }
 
-        idx_t consistent_rows = 0;
-        idx_t num_cols = driver.result_position == 0 ? 1 : driver.column_counts[0];
-        dialectOption.ever_quoted = driver.ever_quoted;
+        idx_t consistentRows = 0;
+        idx_t numCols = driver.getResultPosition() == 0 ? 1 : driver.getColumnCount(0);
+        dialectOption.everQuoted = driver.getEverQuoted();
 
-        for (idx_t row = 0; row < driver.result_position; row++) {
-            if (num_cols < driver.column_counts[row]) {
-                num_cols = driver.column_counts[row];
-                consistent_rows = 1;
+        for (idx_t row = 0; row < driver.getResultPosition(); row++) {
+            if (numCols < driver.getColumnCount(row)) {
+                numCols = driver.getColumnCount(row);
+                consistentRows = 1;
             }
             // TODO: If a Dialect have unfinished QUOTE, Discard it
             //       If cosistent_row > best_consistent_row, choose this dialect
-            //       If consistent_row == best_consistent_row && num_cols > best_num_cols, choose
+            //       If consistent_row == best_consistent_row && numCols > best_numCols, choose
             //       this dialect If one dialect is everquoted, the other one is not, use the quoted
             //       one.
-            if (driver.column_counts[row] == num_cols) {
-                consistent_rows++;
+            if (driver.getColumnCount(row) == numCols) {
+                consistentRows++;
             }
         }
 
-        bool more_values = consistent_rows > best_consistent_rows && num_cols >= max_columns_found;
-        bool single_column_before = max_columns_found < 2 && num_cols > max_columns_found;
-        bool more_than_one_row = consistent_rows > 1;
-        bool more_than_one_column = num_cols > 1;
+        auto moreValues = consistentRows > bestConsistentRows && numCols >= maxColumnsFound;
+        auto singleColumnBefore = maxColumnsFound < 2 && numCols > maxColumnsFound;
+        auto moreThanOneRow = consistentRows > 1;
+        auto moreThanOneColumn = numCols > 1;
 
-        if (single_column_before || more_values) {
-            if (max_columns_found == num_cols) {
+        if (singleColumnBefore || moreValues) {
+            if (maxColumnsFound == numCols) {
                 continue;
             }
-            best_consistent_rows = consistent_rows;
-            max_columns_found = num_cols;
+            bestConsistentRows = consistentRows;
+            maxColumnsFound = numCols;
             validDialects.clear();
             validDialects.emplace_back(dialectOption);
         }
 
-        if (more_than_one_row && more_than_one_column && num_cols == max_columns_found) {
+        if (moreThanOneRow && moreThanOneColumn && numCols == maxColumnsFound) {
             bool same_quote = false;
             for (auto& validDialect : validDialects) {
                 if (validDialect.quoteChar == dialectOption.quoteChar) {
@@ -331,7 +333,7 @@ void SerialCSVReader::detectDialect() {
     // that have actually quoted values, otherwise we will choose quotes = '\"'
     if (!validDialects.empty()) {
         for (auto& validDialect : validDialects) {
-            if (validDialect.ever_quoted) {
+            if (validDialect.everQuoted) {
                 finalDialects.clear();
                 finalDialects.emplace_back(validDialect);
                 break;

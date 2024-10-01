@@ -10,7 +10,7 @@ struct DialectOption {
     char delimiter = ',';
     char quoteChar = '"';
     char escapeChar = '"';
-    bool ever_quoted = false;
+    bool everQuoted = false;
 };
 
 struct DialectCandidates {
@@ -18,10 +18,8 @@ struct DialectCandidates {
     std::vector<char> quoteChars;
     std::vector<char> escapeChars;
 
-    // Constructor to initialize the default candidates
     DialectCandidates();
 };
 
-// Function to generate all combinations of dialect options
 std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candidates,
     const CSVOption& option);

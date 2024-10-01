@@ -2,19 +2,16 @@
 
 using namespace kuzu::common;
 
-// Constructor for DialectCandidates to initialize default values
 DialectCandidates::DialectCandidates() {
-    delimiters = {',', ';', '\t', '|'};
-    quoteChars = {'"', '\''};
-    escapeChars = {'"', '\\', '\''};
+    delimiters = CopyConstants::DEFAULT_CSV_DELIMITER_SEARCH_SPACE;
+    quoteChars = CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE;
+    escapeChars = CopyConstants::DEFAULT_CSV_ESCAPE_SEARCH_SPACE;
 }
 
-// Generates all combinations of dialect options
 std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candidates,
     const CSVOption& option) {
     std::vector<DialectOption> options;
 
-    // Determine the valid delimiters, quotes, and escapes based on user input
     std::vector<char> delimiters =
         option.setDelim ? std::vector<char>{option.delimiter} : candidates.delimiters;
     std::vector<char> quoteChars =
@@ -22,10 +19,9 @@ std::vector<DialectOption> generateDialectOptions(const DialectCandidates& candi
     std::vector<char> escapeChars =
         option.setEscape ? std::vector<char>{option.escapeChar} : candidates.escapeChars;
 
-    // Generate only the necessary combinations based on the adjusted search space
-    for (char delim : delimiters) {
-        for (char quote : quoteChars) {
-            for (char escape : escapeChars) {
+    for (auto& delim : delimiters) {
+        for (auto& quote : quoteChars) {
+            for (auto& escape : escapeChars) {
                 DialectOption option{delim, quote, escape};
                 options.push_back(option);
             }

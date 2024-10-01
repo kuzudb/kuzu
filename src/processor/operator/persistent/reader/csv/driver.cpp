@@ -116,49 +116,42 @@ SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
     : SerialParsingDriver(getDummyDataChunk(), reader) {
     auto& csvOption = reader->getCSVOption();
     (void)bindInput;
-    column_counts = std::vector<idx_t>(csvOption.sampleSize, 0);
+    columnCounts = std::vector<idx_t>(csvOption.sampleSize, 0);
 }
 
-bool SniffCSVDialectDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
+bool SniffCSVDialectDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
     std::string_view value) {
-    (void)rowNum;
-    (void)columnIdx;
-    (void)value;
     uint64_t length = value.length();
     if (columnIdx == reader->getNumColumns() && length == 0) {
         // skip a single trailing delimiter in last columnIdx
         return true;
     }
-    current_column_count++;
+    currentColumnCount++;
     return true;
 }
 
-bool SniffCSVDialectDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
-    std::optional<WarningDataWithColumnInfo> warningData) {
-    (void)rowNum;
-    (void)columnCount;
-    (void)warningData;
+bool SniffCSVDialectDriver::addRow(uint64_t /*rowNum*/, common::column_id_t /*columnCount*/,
+    std::optional<WarningDataWithColumnInfo> /*warningData*/) {
     auto& csvOption = reader->getCSVOption();
-    if (result_position < csvOption.sampleSize) {
-        column_counts[result_position] = current_column_count + 1;
-        current_column_count = 0;
-        result_position++;
+    if (resultPosition < csvOption.sampleSize) {
+        columnCounts[resultPosition] = currentColumnCount + 1;
+        currentColumnCount = 0;
+        resultPosition++;
     }
     return true;
 }
 
 bool SniffCSVDialectDriver::done(uint64_t rowNum) const {
-    (void)rowNum;
     auto& csvOption = reader->getCSVOption();
     return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
 }
 
 void SniffCSVDialectDriver::reset() {
-    column_counts = std::vector<idx_t>(column_counts.size(), 0);
-    current_column_count = 0;
+    columnCounts = std::vector<idx_t>(columnCounts.size(), 0);
+    currentColumnCount = 0;
     error = false;
-    result_position = 0;
-    ever_quoted = false;
+    resultPosition = 0;
+    everQuoted = false;
 }
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,

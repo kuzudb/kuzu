@@ -372,7 +372,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             for (; position < bufferSize; position++) {
                 if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
                     auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
-                    sniffDriver.ever_quoted = true;
+                    sniffDriver.setEverQuoted();
                 }
                 if (buffer[position] == option.quoteChar) {
                     // quote: move to unquoted state
@@ -417,7 +417,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         } else {
             if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
-                sniffDriver.error = true;
+                sniffDriver.setError();
             } else {
                 [[unlikely]] handleCopyException("quote should be followed by "
                                                  "end of file, end of value, end of "
@@ -433,7 +433,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             [[unlikely]] lineContext.setEndOfLine(getFileOffset());
             if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
-                sniffDriver.error = true;
+                sniffDriver.setError();
             } else {
                 handleCopyException("escape at end of file.");
             }
@@ -443,7 +443,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             ++position; // consume the invalid char
             if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
-                sniffDriver.error = true;
+                sniffDriver.setError();
             } else {
                 [[unlikely]] handleCopyException(
                     "neither QUOTE nor ESCAPE is proceeded by ESCAPE.");

@@ -154,6 +154,9 @@ struct CopyConstants {
     static constexpr char DEFAULT_CSV_LINE_BREAK = '\n';
     static constexpr bool DEFAULT_IGNORE_ERRORS = false;
     static constexpr bool DEFAULT_CSV_SET_DIALECT = false;
+    static constexpr std::array DEFAULT_CSV_DELIMITER_SEARCH_SPACE = {',', ';', '\t', '|'};
+    static constexpr std::array DEFAULT_CSV_QUOTE_SEARCH_SPACE = {'"', '\''};
+    static constexpr std::array DEFAULT_CSV_ESCAPE_SEARCH_SPACE = {'"', '\\', '\''};
     static constexpr const char* ROW_IDX_COLUMN_NAME = "ROW_IDX";
     static constexpr uint64_t PANDAS_PARTITION_COUNT = 50 * DEFAULT_VECTOR_CAPACITY;
 

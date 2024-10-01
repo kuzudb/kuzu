@@ -87,12 +87,20 @@ public:
         std::optional<WarningDataWithColumnInfo> warningData) override;
     void reset();
 
-public:
-    std::vector<common::idx_t> column_counts;
-    common::idx_t current_column_count = 0;
+    void setEverQuoted() {everQuoted=true;}
+    void setError() {error=true;}
+
+    bool getEverQuoted() {return everQuoted;}
+    bool getError() {return error;}
+    common::idx_t getResultPosition() {return resultPosition;}
+    common::idx_t getColumnCount(common::idx_t index) {return columnCounts[index];}
+
+private:
+    std::vector<common::idx_t> columnCounts;
+    common::idx_t currentColumnCount = 0;
     bool error = false;
-    common::idx_t result_position = 0;
-    bool ever_quoted = false;
+    common::idx_t resultPosition = 0;
+    bool everQuoted = false;
 };
 
 class SniffCSVNameAndTypeDriver : public SerialParsingDriver {
