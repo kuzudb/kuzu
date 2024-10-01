@@ -57,8 +57,8 @@ enum class TokenType {
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenType::DATASET},
     {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
-    {"-CHECK_ORDER", TokenType::CHECK_ORDER},
-    {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
+    {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-LOG", TokenType::LOG},
+    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE}, {"-PARALLELISM", TokenType::PARALLELISM},
     {"-SKIP", TokenType::SKIP}, {"-SKIP_MUSL", TokenType::SKIP_MUSL},
     {"-SKIP_LINE", TokenType::DEFINE}, {"-SKIP_32BIT", TokenType::SKIP_32BIT},
