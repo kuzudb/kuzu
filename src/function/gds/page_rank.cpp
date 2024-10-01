@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
@@ -23,8 +22,8 @@ struct PageRankBindData final : public GDSBindData {
     int64_t maxIteration = 10;
     double delta = 0.0001; // detect convergence
 
-    PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
-        : GDSBindData{std::move(nodeOutput), outputAsNode} {};
+    explicit PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput)
+        : GDSBindData{std::move(nodeOutput)} {};
     PageRankBindData(const PageRankBindData& other)
         : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
           delta{other.delta} {}
@@ -75,10 +74,9 @@ public:
      * Inputs are
      *
      * graph::ANY
-     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::BOOL};
+        return {LogicalTypeID::ANY};
     }
 
     /*
@@ -95,10 +93,9 @@ public:
         return columns;
     }
 
-    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+    void bind(const expression_vector&, Binder* binder, GraphEntry& graphEntry) override {
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
-        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
-        bindData = std::make_unique<PageRankBindData>(nodeOutput, outputProperty);
+        bindData = std::make_unique<PageRankBindData>(nodeOutput);
     }
 
     void initLocalState(main::ClientContext* context) override {
