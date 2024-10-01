@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace function {
 
-struct RJBindData final : public function::GDSBindData {
+struct RJBindData final : public GDSBindData {
     static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = (uint16_t)255;
 
     std::shared_ptr<binder::Expression> nodeInput;
@@ -24,9 +24,8 @@ struct RJBindData final : public function::GDSBindData {
     uint16_t upperBound;
 
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode, uint16_t lowerBound,
-        uint16_t upperBound)
-        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
+        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound)
+        : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
           lowerBound{lowerBound}, upperBound{upperBound} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
     }
@@ -109,11 +108,10 @@ public:
      * graph::ANY
      * srcNode::NODE
      * upperBound::INT64
-     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-            common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
+            common::LogicalTypeID::INT64};
     }
 
     void bind(const binder::expression_vector& params, binder::Binder* binder,

@@ -76,16 +76,14 @@ static void validateSPUpperBound(int64_t upperBound) {
 
 void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 4);
+    KU_ASSERT(params.size() == 3);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
     auto lowerBound = 1;
     auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
-    auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-    bindData =
-        std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound);
 }
 
 class RJOutputWriterVCSharedState {

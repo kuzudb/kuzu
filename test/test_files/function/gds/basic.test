@@ -6,7 +6,7 @@
 
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS(PK, a, 1, 2, true)
+           CALL VAR_LEN_JOINS(PK, a, 1, 2)
            RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
@@ -19,13 +19,13 @@ Dan|12
 Parser exception: Filtering or projecting properties in graph projection is not supported.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_LENGTHS(PK, a, 2, true)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2)
            RETURN a.fName, _node.name, length;
 ---- error
 Binder exception: Cannot find property name for _node.
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_LENGTHS(PK, a, 2, true)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2)
            RETURN a.fName, _node.fName, length;
 ---- 3
 Alice|Bob|1
@@ -33,7 +33,7 @@ Alice|Carol|1
 Alice|Dan|1
 -STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
            MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_LENGTHS(PK, a, 2, true)
+           CALL SINGLE_SP_LENGTHS(PK, a, 2)
            RETURN a.fName, _node.fName, _node.name, length;
 ---- 5
 Alice|Bob||1
@@ -41,7 +41,7 @@ Alice|Carol||1
 Alice|Dan||1
 Alice||CsWork|2
 Alice||DEsWork|2
--STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK, true) RETURN _node.fName, group_id;
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK) RETURN _node.fName, group_id;
 ---- 8
 Alice|0
 Bob|0
@@ -51,7 +51,7 @@ Elizabeth|1
 Farooq|1
 Greg|1
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
--STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK, true) RETURN _node.fName, _node.name, group_id;
+-STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK) RETURN _node.fName, _node.name, group_id;
 ---- 11
 Alice||0
 Bob||0
@@ -64,7 +64,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||2
 |ABFsUni|3
 |CsWork|0
 |DEsWork|0
--STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK, true) RETURN _node.fName, rank;
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK) RETURN _node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
