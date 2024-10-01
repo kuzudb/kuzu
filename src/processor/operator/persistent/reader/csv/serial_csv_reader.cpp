@@ -256,10 +256,8 @@ void SerialCSVReader::detectDialect() {
     // Extract a sample of rows from the file for dialect detection
     SniffCSVDialectDriver driver{this, bindInput};
 
-    DialectCandidates candidates;
-
     // Generate dialect options based on the non-user-specified options
-    auto dialectSearchSpace = generateDialectOptions(candidates, option);
+    auto dialectSearchSpace = generateDialectOptions(option);
 
     idx_t bestConsistentRows = 0;
     idx_t maxColumnsFound = 0;
