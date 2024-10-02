@@ -235,7 +235,8 @@ function_set SerialCSVScan::getFunctionSet() {
 void SerialCSVReader::resetReaderState() {
     // Reset file position to the beginning
     if (-1 == fileInfo->seek(0, SEEK_SET)) {
-        handleCopyException(stringFormat("Failed to seek to the beginning of the file:, errno: {}.", errno), true);
+        handleCopyException(
+            stringFormat("Failed to seek to the beginning of the file:, errno: {}.", errno), true);
         return;
     }
 
@@ -277,7 +278,8 @@ void SerialCSVReader::detectDialect() {
         parseCSV(driver);
         // Reset the file position and buffer to start reading from the beginning after detection
         resetReaderState();
-        // If never unquoting quoted values or any other error during the parsing, discard this dialect.
+        // If never unquoting quoted values or any other error during the parsing, discard this
+        // dialect.
         if (driver.getError()) {
             continue;
         }
@@ -312,7 +314,8 @@ void SerialCSVReader::detectDialect() {
         }
 
         auto moreValues = consistentRows > bestConsistentRows && numCols >= maxColumnsFound;
-        auto singleColumnBefore = maxColumnsFound < 2 && numCols > maxColumnsFound * validDialects.size();
+        auto singleColumnBefore =
+            maxColumnsFound < 2 && numCols > maxColumnsFound * validDialects.size();
         auto moreThanOneRow = consistentRows > 1;
         auto moreThanOneColumn = numCols > 1;
 
@@ -320,10 +323,11 @@ void SerialCSVReader::detectDialect() {
             if (maxColumnsFound == numCols && ignoredRows > minIgnoredRows) {
                 continue;
             }
-            if (!validDialects.empty() && validDialects.front().everQuoted && !dialectOption.everQuoted) {
-			// Give preference to quoted dialect.
-			    continue;
-		    }
+            if (!validDialects.empty() && validDialects.front().everQuoted &&
+                !dialectOption.everQuoted) {
+                // Give preference to quoted dialect.
+                continue;
+            }
 
             if (consistentRows >= bestConsistentRows) {
                 bestConsistentRows = consistentRows;

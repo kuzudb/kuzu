@@ -87,13 +87,13 @@ public:
         std::optional<WarningDataWithColumnInfo> warningData) override;
     void reset();
 
-    void setEverQuoted() {everQuoted=true;}
-    void setError() {error=true;}
+    void setEverQuoted() { everQuoted = true; }
+    void setError() { error = true; }
 
-    bool getEverQuoted() const {return everQuoted;}
-    bool getError() const {return error;}
-    common::idx_t getResultPosition() const {return resultPosition;}
-    common::idx_t getColumnCount(common::idx_t index) const {return columnCounts[index];}
+    bool getEverQuoted() const { return everQuoted; }
+    bool getError() const { return error; }
+    common::idx_t getResultPosition() const { return resultPosition; }
+    common::idx_t getColumnCount(common::idx_t index) const { return columnCounts[index]; }
 
 private:
     std::vector<common::idx_t> columnCounts;

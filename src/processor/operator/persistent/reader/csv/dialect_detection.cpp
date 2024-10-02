@@ -11,24 +11,24 @@ std::vector<DialectOption> generateDialectOptions(const CSVOption& option) {
     if (option.setDelim) {
         delimiters += option.delimiter;
     } else {
-        delimiters.assign(CopyConstants::DEFAULT_CSV_DELIMITER_SEARCH_SPACE.begin(), 
-                          CopyConstants::DEFAULT_CSV_DELIMITER_SEARCH_SPACE.end());
+        delimiters.assign(CopyConstants::DEFAULT_CSV_DELIMITER_SEARCH_SPACE.begin(),
+            CopyConstants::DEFAULT_CSV_DELIMITER_SEARCH_SPACE.end());
     }
 
     if (option.setQuote) {
         quoteChars += option.quoteChar;
     } else {
-        quoteChars.assign(CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.begin(), 
-                          CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.end());
+        quoteChars.assign(CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.begin(),
+            CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.end());
     }
 
     if (option.setEscape) {
         escapeChars += option.escapeChar;
     } else {
-        escapeChars.assign(CopyConstants::DEFAULT_CSV_ESCAPE_SEARCH_SPACE.begin(), 
-                           CopyConstants::DEFAULT_CSV_ESCAPE_SEARCH_SPACE.end());
+        escapeChars.assign(CopyConstants::DEFAULT_CSV_ESCAPE_SEARCH_SPACE.begin(),
+            CopyConstants::DEFAULT_CSV_ESCAPE_SEARCH_SPACE.end());
     }
- 
+
     for (auto& delim : delimiters) {
         for (auto& quote : quoteChars) {
             for (auto& escape : escapeChars) {

@@ -11,7 +11,7 @@ struct DialectOption {
     char quoteChar = '"';
     char escapeChar = '"';
     bool everQuoted = false;
-    
+
     DialectOption() = default;
     DialectOption(char delim, char quote, char escape)
         : delimiter(delim), quoteChar(quote), escapeChar(escape), everQuoted(false) {}
