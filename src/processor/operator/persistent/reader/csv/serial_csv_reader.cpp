@@ -268,6 +268,7 @@ void SerialCSVReader::detectDialect() {
         option.delimiter = dialectOption.delimiter;
         option.quoteChar = dialectOption.quoteChar;
         option.escapeChar = dialectOption.escapeChar;
+        dialectOption.everQuoted = false;
         // reset Driver
         driver.reset();
         // Try parsing it with current dialect
@@ -337,7 +338,7 @@ void SerialCSVReader::detectDialect() {
             }
 
             if (!same_quote) {
-                validDialects.push_back(dialectOption);
+                validDialects.emplace(dialectOption);
             }
         }
     }
