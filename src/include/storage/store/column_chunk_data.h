@@ -66,6 +66,7 @@ struct ChunkState {
 
     void resetState() {
         numValuesPerPage = UINT64_MAX;
+        metadata = ColumnChunkMetadata{};
         if (nullState) {
             nullState->resetState();
         }

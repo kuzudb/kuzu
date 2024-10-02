@@ -111,6 +111,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         auto& scanState = *info.localScanState;
         while (info.table->scan(transaction, scanState)) {
             if (scanState.outState->getSelVector().getSelSize() > 0) {
+                scanState.outState->setToUnflat();
                 return true;
             }
         }

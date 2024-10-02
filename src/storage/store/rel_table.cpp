@@ -18,13 +18,14 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-RelTableScanState::RelTableScanState(table_id_t tableID, const std::vector<column_id_t>& columnIDs,
-    const std::vector<Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
-    RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
+RelTableScanState::RelTableScanState(MemoryManager& mm, table_id_t tableID,
+    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns,
+    Column* csrOffsetCol, Column* csrLengthCol, RelDataDirection direction,
+    std::vector<ColumnPredicateSet> columnPredicateSets)
     : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
-      direction{direction}, boundNodeOffset{INVALID_OFFSET}, csrOffsetColumn{csrOffsetCol},
+      direction{direction}, currBoundNodeIdx{0}, csrOffsetColumn{csrOffsetCol},
       csrLengthColumn{csrLengthCol}, localTableScanState{nullptr} {
-    nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
+    nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm, this->columnIDs.size());
     if (!this->columnPredicateSets.empty()) {
         // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
         this->columnPredicateSets.insert(this->columnPredicateSets.begin(), ColumnPredicateSet());
@@ -33,53 +34,78 @@ RelTableScanState::RelTableScanState(table_id_t tableID, const std::vector<colum
 
 void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup) {
     this->nodeGroup = nodeGroup;
+    initCachedBoundNodeIDSelVector();
     if (this->nodeGroup) {
-        source = TableScanSource::COMMITTED;
-        this->nodeGroup->initializeScanState(transaction, *this);
-    } else if (localTableScanState) {
-        source = TableScanSource::UNCOMMITTED;
-        initLocalState();
+        initStateForCommitted(transaction);
+    } else if (hasUnComittedData()) {
+        initStateForUncommitted();
     } else {
         source = TableScanSource::NONE;
     }
 }
 
+void RelTableScanState::initCachedBoundNodeIDSelVector() {
+    if (nodeIDVector->state->getSelVector().isUnfiltered()) {
+        cachedBoundNodeSelVector.setToUnfiltered();
+    } else {
+        cachedBoundNodeSelVector.setToFiltered();
+        memcpy(cachedBoundNodeSelVector.getMultableBuffer().data(),
+            nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer().data(),
+            nodeIDVector->state->getSelVector().getSelSize() * sizeof(sel_t));
+    }
+    cachedBoundNodeSelVector.setSelSize(nodeIDVector->state->getSelVector().getSelSize());
+}
+
+bool RelTableScanState::hasUnComittedData() const {
+    return localTableScanState && localTableScanState->localRelTable;
+}
+
+void RelTableScanState::initStateForCommitted(Transaction* transaction) {
+    source = TableScanSource::COMMITTED;
+    currBoundNodeIdx = 0;
+    nodeGroup->initializeScanState(transaction, *this);
+}
+
+void RelTableScanState::initStateForUncommitted() {
+    KU_ASSERT(localTableScanState);
+    source = TableScanSource::UNCOMMITTED;
+    currBoundNodeIdx = 0;
+    localTableScanState->localRelTable->initializeScan(*this);
+}
+
 bool RelTableScanState::scanNext(Transaction* transaction) {
-    switch (source) {
-    case TableScanSource::COMMITTED: {
-        const auto scanResult = nodeGroup->scan(transaction, *this);
-        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-            if (localTableScanState) {
-                source = TableScanSource::UNCOMMITTED;
-                initLocalState();
-            } else {
-                source = TableScanSource::NONE;
-                return false;
+    while (true) {
+        switch (source) {
+        case TableScanSource::COMMITTED: {
+            const auto scanResult = nodeGroup->scan(transaction, *this);
+            if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+                if (hasUnComittedData()) {
+                    initStateForUncommitted();
+                } else {
+                    source = TableScanSource::NONE;
+                }
+                continue;
             }
+            return true;
         }
-        return true;
-    }
-    case TableScanSource::UNCOMMITTED: {
-        KU_ASSERT(localTableScanState && localTableScanState->localRelTable);
-        return localTableScanState->localRelTable->scan(transaction, *this);
-    }
-    case TableScanSource::NONE: {
-        return false;
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
+        case TableScanSource::UNCOMMITTED: {
+            KU_ASSERT(localTableScanState && localTableScanState->localRelTable);
+            return localTableScanState->localRelTable->scan(transaction, *this);
+        }
+        case TableScanSource::NONE: {
+            return false;
+        }
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
     }
 }
 
-void RelTableScanState::initLocalState() const {
-    KU_ASSERT(localTableScanState);
-    auto& localScanState = *localTableScanState;
-    KU_ASSERT(localScanState.localRelTable);
-    localScanState.boundNodeOffset = boundNodeOffset;
-    localScanState.rowIdxVector->setState(rowIdxVector->state);
-    localScanState.localRelTable->initializeScan(*localTableScanState);
-    localScanState.nextRowToScan = 0;
+void RelTableScanState::setNodeIDVectorToFlat(sel_t selPos) const {
+    nodeIDVector->state->setToFlat();
+    nodeIDVector->state->getSelVectorShared()->setToFiltered(1);
+    nodeIDVector->state->getSelVectorUnsafe()[0] = selPos;
 }
 
 RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
@@ -116,12 +142,14 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
 
 void RelTable::initScanState(Transaction* transaction, TableScanState& scanState) {
     auto& relScanState = scanState.cast<RelTableScanState>();
-    relScanState.boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(
+    // Note there we directly read node at pos 0 here regardless the selVector is filtered or not.
+    // This is because we're assuming the nodeIDVector is always a sequence here.
+    const auto boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(
         relScanState.nodeIDVector->state->getSelVector()[0]);
     NodeGroup* nodeGroup = nullptr;
-    if (relScanState.boundNodeOffset < StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+    if (boundNodeOffset < StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
         // Check if the node group idx is same as previous scan.
-        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relScanState.boundNodeOffset);
+        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeOffset);
         if (relScanState.nodeGroupIdx != nodeGroupIdx) {
             // We need to re-initialize the node group scan state.
             nodeGroup = relScanState.direction == RelDataDirection::FWD ?
@@ -135,8 +163,7 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
-    auto& relScanState = scanState.cast<RelTableScanState>();
-    return relScanState.scanNext(transaction);
+    return scanState.scanNext(transaction);
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
@@ -229,8 +256,9 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
     std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     const auto relReadState =
-        std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
-            tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
+        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
+            tableID, columnsToScan, tableData->getColumns(), tableData->getCSROffsetColumn(),
+            tableData->getCSRLengthColumn(), direction);
     relReadState->nodeIDVector = &deleteState->srcNodeIDVector;
     relReadState->outputVectors =
         std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};

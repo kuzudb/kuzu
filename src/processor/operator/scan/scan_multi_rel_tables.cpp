@@ -35,11 +35,15 @@ bool RelTableCollectionScanner::scan(Transaction* transaction) {
             }
         } else {
             currentTableIdx = nextTableIdx;
+            if (currentTableIdx == 0) {
+                for (auto tableIdx = 0u; tableIdx < relInfos.size(); ++tableIdx) {
+                    relInfos[tableIdx].table->initScanState(transaction,
+                        *relInfos[tableIdx].scanState);
+                }
+            }
             if (currentTableIdx == relInfos.size()) {
                 return false;
             }
-            relInfos[currentTableIdx].table->initScanState(transaction,
-                *relInfos[currentTableIdx].scanState);
             nextTableIdx++;
         }
     }
@@ -51,7 +55,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     outState = resultSet->getValueVector(info.outVectorsPos[0])->state.get();
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
-            relInfo.initScanState();
+            relInfo.initScanState(context);
             initVectors(*relInfo.scanState, *resultSet);
             auto& scanState = relInfo.scanState->cast<RelTableScanState>();
             KU_ASSERT(outState == scanState.outState);

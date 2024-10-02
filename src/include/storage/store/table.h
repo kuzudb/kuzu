@@ -61,6 +61,8 @@ struct TableScanState {
 
     virtual bool scanNext(transaction::Transaction*) { KU_UNREACHABLE; }
 
+    void resetOutVectors();
+
     virtual void resetState() {
         source = TableScanSource::NONE;
         nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;

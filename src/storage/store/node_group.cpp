@@ -109,7 +109,7 @@ void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& st
 void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableScanState& state) {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.chunkedGroupIdx = 0;
-    nodeGroupScanState.nextRowToScan = 0;
+    nodeGroupScanState.numScannedRows = 0;
     ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
     if (firstChunkedGroup != nullptr &&
         firstChunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
@@ -132,7 +132,7 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     KU_ASSERT(nodeGroupScanState.chunkedGroupIdx < chunkedGroups.getNumGroups(lock));
     const auto chunkedGroup = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
-    if (chunkedGroup && nodeGroupScanState.nextRowToScan >=
+    if (chunkedGroup && nodeGroupScanState.numScannedRows >=
                             chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
         nodeGroupScanState.chunkedGroupIdx++;
     }
@@ -142,23 +142,23 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     const auto& chunkedGroupToScan =
         *chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
     const auto rowIdxInChunkToScan =
-        nodeGroupScanState.nextRowToScan - chunkedGroupToScan.getStartRowIdx();
+        nodeGroupScanState.numScannedRows - chunkedGroupToScan.getStartRowIdx();
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
     if (state.source == TableScanSource::COMMITTED && state.semiMask &&
         state.semiMask->isEnabled()) {
-        const auto startNodeOffset = nodeGroupScanState.nextRowToScan +
+        const auto startNodeOffset = nodeGroupScanState.numScannedRows +
                                      StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
         if (!state.semiMask->isMasked(startNodeOffset, startNodeOffset + numRowsToScan - 1)) {
             state.outState->getSelVectorUnsafe().setSelSize(0);
-            nodeGroupScanState.nextRowToScan += numRowsToScan;
-            return NodeGroupScanResult{nodeGroupScanState.nextRowToScan, 0};
+            nodeGroupScanState.numScannedRows += numRowsToScan;
+            return NodeGroupScanResult{nodeGroupScanState.numScannedRows, 0};
         }
     }
     chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
         numRowsToScan);
-    const auto startRow = nodeGroupScanState.nextRowToScan;
-    nodeGroupScanState.nextRowToScan += numRowsToScan;
+    const auto startRow = nodeGroupScanState.numScannedRows;
+    nodeGroupScanState.numScannedRows += numRowsToScan;
     return NodeGroupScanResult{startRow, numRowsToScan};
 }
 
