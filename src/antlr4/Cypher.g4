@@ -95,8 +95,7 @@ kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' 
-    | CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitionsWithConstraint SP? ')' ;
+    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' ;
 
 kU_CreateRelTable
     : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
@@ -169,17 +168,9 @@ kU_ColumnDefinition : oC_PropertyKeyName SP kU_DataType ;
 
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
-kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ;
-
-kU_PropertyDefinitionBeforeConstraint : kU_ColumnDefinition ( SP kU_Default )? ;
-
-kU_PropertyDefinitionAfterConstraint : kU_ColumnDefinition ( SP kU_Default )? ;
+kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ( SP PRIMARY SP KEY)?;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
-
-kU_PropertyDefinitionWithConstraint: kU_ColumnDefinition ( SP kU_Default )? SP? PRIMARY SP KEY ;
-
-kU_PropertyDefinitionsWithConstraint : ( kU_PropertyDefinitionBeforeConstraint ',' SP? )* kU_PropertyDefinitionWithConstraint ( SP? ',' SP? kU_PropertyDefinitionAfterConstraint)* ;
 
 DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 

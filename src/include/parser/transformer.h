@@ -214,17 +214,14 @@ private:
     std::unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
+    std::string getPKName(CypherParser::KU_CreateNodeTableContext& ctx);
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
-    std::string transformPrimaryKey(CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx);
-    std::string transformPrimaryKey(CypherParser::KU_PropertyDefinitionWithConstraintContext& ctx);
     std::string transformPrimaryKey(CypherParser::KU_ColumnDefinitionContext& ctx);
     std::vector<ParsedColumnDefinition> transformColumnDefinitions(
         CypherParser::KU_ColumnDefinitionsContext& ctx);
     ParsedColumnDefinition transformColumnDefinition(CypherParser::KU_ColumnDefinitionContext& ctx);
     std::vector<ParsedPropertyDefinition> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
-    std::vector<ParsedPropertyDefinition> transformPropertyDefinitions(
-        CypherParser::KU_PropertyDefinitionsWithConstraintContext& ctx);
 
     // Transform standalone call.
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);

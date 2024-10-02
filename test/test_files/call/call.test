@@ -32,19 +32,13 @@
 
 -STATEMENT CREATE NODE TABLE personAlt3(id INT64, prop STRING DEFAULT 'Alice');
 ---- error
-Parser exception: Invalid input <CREATE NODE TABLE personAlt3(id INT64, prop STRING DEFAULT 'Alice')>: expected rule kU_CreateNodeTable (line: 1, offset: 66)
-"CREATE NODE TABLE personAlt3(id INT64, prop STRING DEFAULT 'Alice');"
-                                                                   ^
+throw ParserException("Error while handling PRIMARY KEY Definition: please specify PRIMARY KEY.");
 -STATEMENT CREATE NODE TABLE personALt4(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice' PRIMARY KEY);
 ---- error
-Parser exception: mismatched input 'PRIMARY' expecting ')' (line: 1, offset: 79)
-"CREATE NODE TABLE personALt4(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice' PRIMARY KEY);"
-                                                                                ^^^^^^^
+Parser exception: Error while handling PRIMARY KEY Definition: multiple PRIMARY KEY found.
 -STATEMENT CREATE NODE TABLE personAlt5(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
 ---- error
-Parser exception: mismatched input 'PRIMARY' expecting {ADD, ALTER, AS, ATTACH, BEGIN, BY, CALL, CHECKPOINT, COMMENT, COMMIT, CONTAINS, COPY, COUNT, CYCLE, DATABASE, DELETE, DETACH, DROP, EXPLAIN, EXPORT, EXTENSION, GRAPH, IMPORT, IF, INCREMENT, IS, KEY, LIMIT, LOAD, MATCH, MAXVALUE, MERGE, MINVALUE, NO, NODE, PROJECT, READ, REL, RENAME, RETURN, ROLLBACK, SEQUENCE, SET, START, TRANSACTION, TYPE, USE, WRITE, DECIMAL, L_SKIP, HexLetter, UnescapedSymbolicName, EscapedSymbolicName} (line: 1, offset: 80)
-"CREATE NODE TABLE personAlt5(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));"
-                                                                                 ^^^^^^^
+Parser exception: Error while handling PRIMARY KEY Definition: multiple PRIMARY KEY found.
 -STATEMENT CREATE NODE TABLE personOne(id INT64, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE personTwo(id INT64, prop STRING DEFAULT gen_random_uuid(), PRIMARY KEY(id));
