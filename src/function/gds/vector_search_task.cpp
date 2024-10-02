@@ -93,7 +93,6 @@ namespace kuzu {
                     }
                     searchIter++;
                     if (searchIter == syncAfterIter) {
-                        searchIter = 0;
                         break;
                     }
                 }
