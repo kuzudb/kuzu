@@ -286,13 +286,13 @@ void SerialCSVReader::detectDialect() {
 
         // If the columns didn't match the user input columns number
         if (getNumColumns() != 0 && getNumColumns() != numCols) {
-             continue;
+            //continue;
         }
 
         for (idx_t row = 0; row < driver.getResultPosition(); row++) {
             if (getNumColumns() != 0 && getNumColumns() != driver.getColumnCount(row)) {
                 notExpected = true;
-                break;
+                //break;
             }
             if (numCols < driver.getColumnCount(row)) {
                 numCols = driver.getColumnCount(row);
@@ -305,7 +305,7 @@ void SerialCSVReader::detectDialect() {
         }
 
         if (notExpected) {
-            continue;
+            //continue;
         }
 
         auto moreValues = consistentRows > bestConsistentRows && numCols >= maxColumnsFound;
@@ -317,7 +317,7 @@ void SerialCSVReader::detectDialect() {
             if (maxColumnsFound == numCols && ignoredRows > minIgnoredRows) {
                 continue;
             }
-            if (!validDialects.empty() && validDialects[0].everQuoted && !dialectOption.everQuoted) {
+            if (!validDialects.empty() && validDialects.front().everQuoted && !dialectOption.everQuoted) {
 			// Give preference to quoted dialect.
 			    continue;
 		    }
@@ -337,7 +337,7 @@ void SerialCSVReader::detectDialect() {
             }
 
             if (!same_quote) {
-                validDialects.emplace_back(dialectOption);
+                validDialects.push_back(dialectOption);
             }
         }
     }
