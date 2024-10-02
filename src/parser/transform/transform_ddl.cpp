@@ -37,7 +37,8 @@ std::string Transformer::getPKName(CypherParser::KU_CreateNodeTableContext& ctx)
         }
     }
     if (ctx.kU_CreateNodeConstraint()) {
-        // In the case where no pkName has been found, or the Node Constraint's name is different than the pkName found, add the counter.
+        // In the case where no pkName has been found, or the Node Constraint's name is different
+        // than the pkName found, add the counter.
         if (pkCount == 0 || transformPrimaryKey(*ctx.kU_CreateNodeConstraint()) != pkName) {
             pkCount++;
         }
