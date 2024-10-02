@@ -280,7 +280,7 @@ kU_AttachDatabase
     : ATTACH SP StringLiteral (SP AS SP oC_SchemaName)? SP '(' SP? DBTYPE SP oC_SymbolicName (SP? ',' SP? kU_Options)? SP? ')' ;
 
 kU_Option
-    : oC_SymbolicName SP? '=' SP? oC_Literal ;
+    : oC_SymbolicName (SP? '=' SP? | SP*) oC_Literal | oC_SymbolicName;
 
 kU_Options
     : kU_Option ( SP? ',' SP? kU_Option )* ;
@@ -318,7 +318,7 @@ kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
 kU_CreateNodeTable
-    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint ) SP? ')' ;
+    : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' ;
 
 kU_CreateRelTable
     : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
@@ -391,7 +391,7 @@ kU_ColumnDefinition : oC_PropertyKeyName SP kU_DataType ;
 
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
-kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ;
+kU_PropertyDefinition : kU_ColumnDefinition ( SP kU_Default )? ( SP PRIMARY SP KEY)?;
 
 kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' ;
 
@@ -954,10 +954,6 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | WRITE
-        | SINGLE
-        | NONE
-        | ANY
-        | ALL
         ;
 
 UnescapedSymbolicName

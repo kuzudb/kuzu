@@ -686,8 +686,8 @@ public:
     antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
-    KU_CreateNodeConstraintContext *kU_CreateNodeConstraint();
     KU_IfNotExistsContext *kU_IfNotExists();
+    KU_CreateNodeConstraintContext *kU_CreateNodeConstraint();
 
    
   };
@@ -1073,8 +1073,11 @@ public:
     KU_PropertyDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     KU_ColumnDefinitionContext *kU_ColumnDefinition();
-    antlr4::tree::TerminalNode *SP();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
     KU_DefaultContext *kU_Default();
+    antlr4::tree::TerminalNode *PRIMARY();
+    antlr4::tree::TerminalNode *KEY();
 
    
   };
