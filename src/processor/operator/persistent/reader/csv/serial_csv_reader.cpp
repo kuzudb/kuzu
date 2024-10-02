@@ -262,13 +262,14 @@ void SerialCSVReader::detectDialect() {
     std::vector<DialectOption> validDialects;
     std::vector<DialectOption> finalDialects;
     for (auto& dialectOption : dialectSearchSpace) {
+        bool notExpected = false;
         // Load current dialect option
         option.delimiter = dialectOption.delimiter;
         option.quoteChar = dialectOption.quoteChar;
         option.escapeChar = dialectOption.escapeChar;
-        // Try parsing it with current dialect
         // reset Driver
         driver.reset();
+        // Try parsing it with current dialect
         parseCSV(driver);
         // Reset the file position and buffer to start reading from the beginning after detection
         resetReaderState();
@@ -281,7 +282,16 @@ void SerialCSVReader::detectDialect() {
         idx_t numCols = driver.getResultPosition() == 0 ? 1 : driver.getColumnCount(0);
         dialectOption.everQuoted = driver.getEverQuoted();
 
+        // If the columns didn't match the user input columns number
+        if (getNumColumns() != 0 && getNumColumns() != numCols) {
+             continue;
+        }
+
         for (idx_t row = 0; row < driver.getResultPosition(); row++) {
+            if (getNumColumns() != 0 && getNumColumns() != driver.getColumnCount(row)) {
+                notExpected = true;
+                break;
+            }
             if (numCols < driver.getColumnCount(row)) {
                 numCols = driver.getColumnCount(row);
                 consistentRows = 1;
@@ -294,6 +304,10 @@ void SerialCSVReader::detectDialect() {
             if (driver.getColumnCount(row) == numCols) {
                 consistentRows++;
             }
+        }
+
+        if (notExpected) {
+            continue;
         }
 
         auto moreValues = consistentRows > bestConsistentRows && numCols >= maxColumnsFound;
@@ -338,9 +352,11 @@ void SerialCSVReader::detectDialect() {
         }
     }
     // Apply the detected dialect to the CSV options
-    option.delimiter = finalDialects[0].delimiter;
-    option.quoteChar = finalDialects[0].quoteChar;
-    option.escapeChar = finalDialects[0].escapeChar;
+    if (!finalDialects.empty()) {
+        option.delimiter = finalDialects[0].delimiter;
+        option.quoteChar = finalDialects[0].quoteChar;
+        option.escapeChar = finalDialects[0].escapeChar;
+    }
 }
 
 } // namespace processor
