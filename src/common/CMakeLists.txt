@@ -8,6 +8,7 @@ add_subdirectory(signal)
 add_subdirectory(task_system)
 add_subdirectory(types)
 add_subdirectory(vector)
+add_subdirectory(vector_index)
 add_subdirectory(file_system)
 
 add_library(kuzu_common

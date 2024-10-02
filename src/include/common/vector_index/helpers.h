@@ -9,6 +9,7 @@
 #include "common/types/types.h"
 #include <sys/fcntl.h>
 #include "atomic"
+#include "thread"
 
 namespace kuzu {
 namespace common {
@@ -36,20 +37,69 @@ private:
     uint8_t visited_id;
 };
 
-struct NodeDistCloser {
-    explicit NodeDistCloser(vector_id_t id, double dist) : id(id), dist(dist) {}
-    vector_id_t id;
-    float dist;
-    bool operator<(const NodeDistCloser& other) const { return dist < other.dist; }
-};
+        struct NodeDistCloser {
+            explicit NodeDistCloser(vector_id_t id = INVALID_VECTOR_ID, double dist = std::numeric_limits<double>::max())
+                    : id(id), dist(dist) {}
 
-struct NodeDistFarther {
-    explicit NodeDistFarther(vector_id_t id, double dist, int depth = 0) : id(id), dist(dist), depth(depth) {}
-    vector_id_t id;
-    float dist;
-    int depth = 0;
-    bool operator<(const NodeDistFarther& other) const { return dist > other.dist; }
-};
+            vector_id_t id;
+            double dist;
+
+            bool operator<(const NodeDistCloser &other) const {
+                return dist < other.dist;
+            }
+
+            bool operator>(const NodeDistCloser &other) const {
+                return dist > other.dist;
+            }
+
+            bool operator>= (const NodeDistCloser &other) const {
+                return dist >= other.dist;
+            }
+
+            bool operator<= (const NodeDistCloser &other) const {
+                return dist <= other.dist;
+            }
+
+            bool operator==(const NodeDistCloser &other) const {
+                return id == other.id && dist == other.dist;
+            }
+
+            inline bool isInvalid() const {
+                return id == INVALID_VECTOR_ID;
+            }
+        };
+
+        struct NodeDistFarther {
+            explicit NodeDistFarther(vector_id_t id = INVALID_VECTOR_ID, double dist = -1)
+                    : id(id), dist(dist) {}
+
+            vector_id_t id;
+            double dist;
+
+            bool operator<(const NodeDistFarther &other) const {
+                return dist > other.dist;
+            }
+
+            bool operator>(const NodeDistFarther &other) const {
+                return dist < other.dist;
+            }
+
+            bool operator>= (const NodeDistFarther &other) const {
+                return dist <= other.dist;
+            }
+
+            bool operator<= (const NodeDistFarther &other) const {
+                return dist >= other.dist;
+            }
+
+            bool operator==(const NodeDistFarther &other) const {
+                return id == other.id && dist == other.dist;
+            }
+
+            inline bool isInvalid() const {
+                return id == INVALID_VECTOR_ID;
+            }
+        };
 
 static void allocAligned(void** ptr, size_t size, size_t align) {
     *ptr = nullptr;
@@ -156,5 +206,96 @@ private:
     std::vector<std::atomic<uint8_t>> visited;
     const uint8_t visited_id;
 };
+
+// TODO: Maybe optimize this class if needed
+struct Spinlock {
+    std::atomic_flag flag = ATOMIC_FLAG_INIT;
+
+    // Lock the spinlock
+    void lock() {
+        while (flag.test_and_set(std::memory_order_acquire)) {
+            // Yield the processor to reduce contention (useful in high-contention scenarios)
+            std::this_thread::yield();
+        }
+    }
+
+    // Unlock the spinlock
+    void unlock() {
+        flag.clear(std::memory_order_release);
+    }
+};
+
+// Optimized version of binary heap for multi-threaded environments
+template<typename T>
+class BinaryHeap {
+public:
+    explicit BinaryHeap(int capacity);
+
+    void push(T val);
+
+    T popMin();
+
+    inline const int size() const {
+        return actual_size;
+    };
+
+    inline const T *top() const {
+        return &nodes[1];
+    }
+
+    inline void lock() {
+        mtx.lock();
+    }
+
+    inline void unlock() {
+        mtx.unlock();
+    }
+
+    inline const T *getMinElement() {
+        return minElement.load(std::memory_order_relaxed);
+    }
+
+private:
+    void pushToHeap(T val);
+
+    void popMinFromHeap();
+
+    void popMaxFromHeap();
+
+private:
+    int capacity;
+    int actual_size;
+    std::vector<T> nodes;
+    Spinlock mtx; // Spinlock
+
+    // Redundantly store the min element separately
+    std::atomic<T *> minElement;
+};
+
+// Based on this paper: https://arxiv.org/abs/1411.1209
+template<typename T>
+class ParallelMultiQueue {
+public:
+    explicit ParallelMultiQueue(int num_queues, int reserve_size);
+
+    void push(T val);
+
+    void bulkPush(T *vals, int num_vals);
+
+    T popMin();
+
+    const T *top();
+
+    int size();
+
+private:
+    int getRandQueueIndex() const;
+
+public:
+    std::vector<std::unique_ptr<BinaryHeap<T>>> queues;
+    std::vector<std::atomic_int> queueSizes;
+    const int maxSize;
+};
+
 } // namespace common
 } // namespace kuzu
