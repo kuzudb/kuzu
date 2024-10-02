@@ -328,69 +328,69 @@ namespace kuzu {
 
             // findFilteredNextKNeighboursV2 (uses priority queue) expands the closest first
             // Assumption is that distance computation gets cheaper as we move forward, using quantization
-            inline int
-            findFilteredNextKNeighboursSmart(DistanceComputer *dc, ExecutionContext *context, common::nodeID_t entryPoint, GraphScanState &state,
-                                             std::vector<common::nodeID_t> &nbrs,
-                                             NodeOffsetLevelSemiMask *filterMask,
-                                             VisitedTable &visited, int minK, int maxNeighboursCheck, int& totalDistanceComputations, int& depth) {
-                auto graph = sharedState->graph.get();
-                auto tableId = entryPoint.tableID;
-                // Initialize the priority queue with the entry point
-
-                std::unordered_map<vector_id_t, std::vector<nodeID_t>> cachedNbrs;
-                std::priority_queue<NodeDistFarther> candidates;
-                candidates.emplace(entryPoint.offset, MAXFLOAT);
-                std::priority_queue<NodeDistFarther> exploreCandidates;
-                exploreCandidates.emplace(entryPoint.offset, MAXFLOAT);
-                std::unordered_set<offset_t> visitedSet;
-                auto neighboursChecked = 0;
-                while (neighboursChecked <= maxNeighboursCheck && !candidates.empty()) {
-                    auto candidate = candidates.top();
-                    candidates.pop();
-                    if (visitedSet.contains(candidate.id)) {
-                        continue;
-                    }
-                    visitedSet.insert(candidate.id);
-                    visited.set(candidate.id);
-                    auto neighbors = graph->scanFwdRandom({candidate.id, tableId}, state);
-                    neighboursChecked += 1;
-                    depth = std::max(depth, candidate.depth);
-                    for (auto &neighbor: neighbors) {
-                        if (visited.get(neighbor.offset)) {
-                            continue;
-                        }
-                        if (filterMask->isMasked(neighbor.offset)) {
-                            nbrs.push_back(neighbor);
-                            visited.set(neighbor.offset);
-                        }
-                    }
-
-                    if (nbrs.size() >= minK) {
-                        break;
-                    }
-                    cachedNbrs[candidate.id] = std::move(neighbors);
-                    if (candidates.empty()) {
-                        if (exploreCandidates.empty()) {
-                            break;
-                        }
-                        auto exploreCandidate = exploreCandidates.top();
-                        exploreCandidates.pop();
-                        for (auto &neighbor: cachedNbrs[exploreCandidate.id]) {
-                            if (visited.get(neighbor.offset) || visitedSet.contains(neighbor.offset)) {
-                                continue;
-                            }
-                            // TODO: This will get optimized when we cache the neighbours in memory
-                            auto embedding = getEmbedding(context, neighbor.offset);
-                            double dist;
-                            totalDistanceComputations += 1;
-                            dc->computeDistance(embedding, &dist);
-                            candidates.emplace(neighbor.offset, dist, exploreCandidate.depth + 1);
-                            exploreCandidates.emplace(neighbor.offset, dist, exploreCandidate.depth + 1);
-                        }
-                    }
-                }
-                return neighboursChecked;
-            }
+//            inline int
+//            findFilteredNextKNeighboursSmart(DistanceComputer *dc, ExecutionContext *context, common::nodeID_t entryPoint, GraphScanState &state,
+//                                             std::vector<common::nodeID_t> &nbrs,
+//                                             NodeOffsetLevelSemiMask *filterMask,
+//                                             VisitedTable &visited, int minK, int maxNeighboursCheck, int& totalDistanceComputations, int& depth) {
+//                auto graph = sharedState->graph.get();
+//                auto tableId = entryPoint.tableID;
+//                // Initialize the priority queue with the entry point
+//
+//                std::unordered_map<vector_id_t, std::vector<nodeID_t>> cachedNbrs;
+//                std::priority_queue<NodeDistFarther> candidates;
+//                candidates.emplace(entryPoint.offset, MAXFLOAT);
+//                std::priority_queue<NodeDistFarther> exploreCandidates;
+//                exploreCandidates.emplace(entryPoint.offset, MAXFLOAT);
+//                std::unordered_set<offset_t> visitedSet;
+//                auto neighboursChecked = 0;
+//                while (neighboursChecked <= maxNeighboursCheck && !candidates.empty()) {
+//                    auto candidate = candidates.top();
+//                    candidates.pop();
+//                    if (visitedSet.contains(candidate.id)) {
+//                        continue;
+//                    }
+//                    visitedSet.insert(candidate.id);
+//                    visited.set(candidate.id);
+//                    auto neighbors = graph->scanFwdRandom({candidate.id, tableId}, state);
+//                    neighboursChecked += 1;
+//                    depth = std::max(depth, candidate.depth);
+//                    for (auto &neighbor: neighbors) {
+//                        if (visited.get(neighbor.offset)) {
+//                            continue;
+//                        }
+//                        if (filterMask->isMasked(neighbor.offset)) {
+//                            nbrs.push_back(neighbor);
+//                            visited.set(neighbor.offset);
+//                        }
+//                    }
+//
+//                    if (nbrs.size() >= minK) {
+//                        break;
+//                    }
+//                    cachedNbrs[candidate.id] = std::move(neighbors);
+//                    if (candidates.empty()) {
+//                        if (exploreCandidates.empty()) {
+//                            break;
+//                        }
+//                        auto exploreCandidate = exploreCandidates.top();
+//                        exploreCandidates.pop();
+//                        for (auto &neighbor: cachedNbrs[exploreCandidate.id]) {
+//                            if (visited.get(neighbor.offset) || visitedSet.contains(neighbor.offset)) {
+//                                continue;
+//                            }
+//                            // TODO: This will get optimized when we cache the neighbours in memory
+//                            auto embedding = getEmbedding(context, neighbor.offset);
+//                            double dist;
+//                            totalDistanceComputations += 1;
+//                            dc->computeDistance(embedding, &dist);
+//                            candidates.emplace(neighbor.offset, dist, exploreCandidate.depth + 1);
+//                            exploreCandidates.emplace(neighbor.offset, dist, exploreCandidate.depth + 1);
+//                        }
+//                    }
+//                }
+//                return neighboursChecked;
+//            }
 
             inline void findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
                                             std::vector<common::nodeID_t> &nbrs, AtomicVisitedTable* visited) {

@@ -89,7 +89,6 @@ namespace kuzu {
                 }
             }
 
-
         }
 
         int VectorSearchTask::findFilteredNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
