@@ -259,6 +259,7 @@ void SerialCSVReader::detectDialect() {
 
     idx_t bestConsistentRows = 0;
     idx_t maxColumnsFound = 0;
+    idx_t minIgnoredRows = 0;
     std::vector<DialectOption> validDialects;
     std::vector<DialectOption> finalDialects;
     for (auto& dialectOption : dialectSearchSpace) {
@@ -278,6 +279,7 @@ void SerialCSVReader::detectDialect() {
             continue;
         }
 
+        idx_t ignoredRows = 0;
         idx_t consistentRows = 0;
         idx_t numCols = driver.getResultPosition() == 0 ? 1 : driver.getColumnCount(0);
         dialectOption.everQuoted = driver.getEverQuoted();
@@ -295,14 +297,10 @@ void SerialCSVReader::detectDialect() {
             if (numCols < driver.getColumnCount(row)) {
                 numCols = driver.getColumnCount(row);
                 consistentRows = 1;
-            }
-            // TODO: If a Dialect have unfinished QUOTE, Discard it
-            //       If cosistent_row > best_consistent_row, choose this dialect
-            //       If consistent_row == best_consistent_row && numCols > best_numCols, choose
-            //       this dialect If one dialect is everquoted, the other one is not, use the quoted
-            //       one.
-            if (driver.getColumnCount(row) == numCols) {
+            } else if (driver.getColumnCount(row) == numCols) {
                 consistentRows++;
+            } else {
+                ignoredRows++;
             }
         }
 
@@ -315,12 +313,17 @@ void SerialCSVReader::detectDialect() {
         auto moreThanOneRow = consistentRows > 1;
         auto moreThanOneColumn = numCols > 1;
 
-        if (singleColumnBefore || moreValues) {
-            if (maxColumnsFound == numCols) {
+        if (singleColumnBefore || moreValues || moreThanOneColumn) {
+            if (maxColumnsFound == numCols && ignoredRows > minIgnoredRows) {
                 continue;
             }
+            if (!validDialects.empty() && validDialects.front().everQuoted && !dialectOption.everQuoted) {
+			// Give preference to quoted dialect.
+			    continue;
+		    }
             bestConsistentRows = consistentRows;
             maxColumnsFound = numCols;
+            minIgnoredRows = ignoredRows;
             validDialects.clear();
             validDialects.emplace_back(dialectOption);
         }
