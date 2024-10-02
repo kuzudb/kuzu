@@ -164,16 +164,29 @@ namespace kuzu {
                 int q_id = getRandQueueIndex();
                 vals_per_queue[q_id].push_back(i);
             }
-
-            // bulk push
+            std::unordered_set<int> pendingQueues(queues.size());
             for (int i = 0; i < queues.size(); i++) {
-                queues[i]->lock();
-                auto size = vals_per_queue[i].size();
-                for (int j = 0; j < size; j++) {
-                    queues[i]->push(vals[vals_per_queue[i][j]]);
+                pendingQueues.insert(i);
+            }
+
+            while (!pendingQueues.empty()) {
+                for (const int q_id : pendingQueues) {
+                    if (vals_per_queue[q_id].empty()) {
+                        pendingQueues.erase(q_id);
+                        break;
+                    }
+                    if (queues[q_id]->try_lock()) {
+                        auto size = vals_per_queue[q_id].size();
+                        for (int j = 0; j < size; j++) {
+                            queues[q_id]->push(vals[vals_per_queue[q_id][j]]);
+                        }
+                        queueSizes[q_id].fetch_add(size);
+                        queues[q_id]->unlock();
+                        vals_per_queue[q_id].clear();
+                        pendingQueues.erase(q_id);
+                        break;
+                    }
                 }
-                queueSizes[i].fetch_add(size);
-                queues[i]->unlock();
             }
         }
 

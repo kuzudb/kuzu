@@ -28,8 +28,8 @@ namespace kuzu {
             DistanceComputer *distanceComputer;
             NodeOffsetLevelSemiMask *filterMask;
             VectorIndexHeader *indexHeader;
-            AtomicVisitedTable *visited;
-            std::vector<std::priority_queue<NodeDistCloser>> topKResults;
+            BitVectorVisitedTable *visited;
+            ParallelMultiQueue<NodeDistFarther>* parallelResults;
             std::atomic_uint8_t threadIdCounter = 0;
             std::vector<std::vector<NodeDistCloser>> entrypoints;
 
@@ -38,13 +38,13 @@ namespace kuzu {
                                                  graph::Graph *graph,
                                                  DistanceComputer *distanceComputer,
                                                  NodeOffsetLevelSemiMask *filterMask,
-                                                 VectorIndexHeader *indexHeader, AtomicVisitedTable *visited,
+                                                 VectorIndexHeader *indexHeader, BitVectorVisitedTable *visited,
+                                                 ParallelMultiQueue<NodeDistFarther> *parallelResults,
                                                  std::vector<std::vector<NodeDistCloser>> entrypoints)
                     : efSearch(efSearch), maxK(maxK), maxNumThreads(maxNumThreads), context(context), graph(graph),
                       distanceComputer(distanceComputer), filterMask(filterMask),
-                      indexHeader(indexHeader), visited(visited), entrypoints(std::move(entrypoints)) {
-                topKResults.resize(maxNumThreads);
-            };
+                      indexHeader(indexHeader), visited(visited), parallelResults(parallelResults),
+                      entrypoints(std::move(entrypoints)) {};
 
             inline int getThreadId() {
                 return threadIdCounter++;
@@ -108,11 +108,11 @@ namespace kuzu {
             inline int findFilteredNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
                                                    std::vector<common::nodeID_t> &nbrs,
                                                    NodeOffsetLevelSemiMask *filterMask,
-                                                   AtomicVisitedTable *visited, int maxK, int maxNeighboursCheck,
+                                                   BitVectorVisitedTable *visited, int maxK, int maxNeighboursCheck,
                                                    Graph *graph);
 
             inline void findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
-                                            std::vector<common::nodeID_t> &nbrs, AtomicVisitedTable *visited,
+                                            std::vector<common::nodeID_t> &nbrs, BitVectorVisitedTable *visited,
                                             Graph *graph);
 
             inline bool isMasked(common::offset_t offset, NodeOffsetLevelSemiMask *filterMask);

@@ -232,6 +232,49 @@ namespace kuzu {
                 }
             }
 
+            void searchANNOnUpperLayer(ExecutionContext *context, VectorIndexHeader *header,
+                                       const float *query, CosineDistanceComputer *dc, vector_id_t &entrypoint,
+                                       double &entrypointDist, std::priority_queue<NodeDistCloser> &results,
+                                       BitVectorVisitedTable *visited, int efSearch) {
+                std::priority_queue<NodeDistFarther> candidates;
+                candidates.emplace(entrypoint, entrypointDist);
+                results.emplace(entrypoint, entrypointDist);
+                visited->set_bit(entrypoint);
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    if (candidate.dist > results.top().dist) {
+                        break;
+                    }
+                    candidates.pop();
+                    size_t begin, end;
+                    auto neighbors = header->getNeighbors(candidate.id, begin, end);
+
+                    for (size_t i = begin; i < end; i++) {
+                        auto neighbor = neighbors[i];
+                        if (neighbor == INVALID_VECTOR_ID) {
+                            break;
+                        }
+                        if (visited->is_bit_set(neighbor)) {
+                            continue;
+                        }
+                        visited->set_bit(neighbor);
+                        double dist;
+                        auto actualNbr = header->getActualId(neighbor);
+                        auto embed = getEmbedding(context, actualNbr);
+                        dc->computeDistance(embed, &dist);
+                        if (results.size() < efSearch || dist < results.top().dist) {
+                            candidates.emplace(neighbor, dist);
+                            results.emplace(actualNbr, dist);
+                            if (results.size() > efSearch) {
+                                results.pop();
+                            }
+                        }
+                    }
+                }
+                // Reset the visited table
+                visited->reset();
+            }
+
             // TODO: Use in-mem compressed vectors
             // TODO: Maybe try using separate threads to separate io and computation (ideal async io)
             const uint8_t *getCompressedEmbedding(processor::ExecutionContext *context, vector_id_t id) {
@@ -545,51 +588,76 @@ namespace kuzu {
                 KU_ASSERT(bindState->queryVector.size() == header->getDim());
                 auto query = bindState->queryVector.data();
                 auto state = graph->prepareScan(header->getCSRRelTableId());
-                auto visited = std::make_unique<AtomicVisitedTable>(header->getNumVectors());
+                auto visited = std::make_unique<BitVectorVisitedTable>(header->getNumVectors());
                 auto dc = std::make_unique<CosineDistanceComputer>(query, header->getDim(), header->getNumVectors());
                 dc->setQuery(query);
                 auto filterMask = sharedState->inputNodeOffsetMasks.at(header->getNodeTableId()).get();
-                auto isFilteredSearch = filterMask->isEnabled();
-                auto useInFilterSearch = false;
-
-                if (isFilteredSearch) {
-                    auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
-                    if (selectivity <= 0.005) {
-                        printf("skipping search since selectivity too low\n");
-                        return;
-                    }
-                    if (selectivity > 0.3) {
-                        useInFilterSearch = true;
-                    }
-                    maxK = calculateMaxK(filterMask->getNumMaskedNodes(), header->getNumVectors());
-                }
-
-                vector_id_t entrypoint;
-                double entrypointDist;
-                findEntrypointUsingUpperLayer(context, header, query, dc.get(), entrypoint, &entrypointDist);
-                std::priority_queue<NodeDistCloser> results;
-                coreSearch(context, searchLocalState, bindState, graph, dc.get(), isFilteredSearch, useInFilterSearch, filterMask, state.get(),
-                           entrypoint, entrypointDist, maxK, results, visited.get(), header, 64);
-                visited->reset();
                 auto maxNumThreads = context->clientContext->getMaxNumThreadForExec();
+                std::unique_ptr<ParallelMultiQueue<NodeDistFarther>> parallelResults = std::make_unique<ParallelMultiQueue<NodeDistFarther>>(
+                        maxNumThreads * 2, efSearch);
+
+//                if (isFilteredSearch) {
+//                    auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
+//                    if (selectivity <= 0.005) {
+//                        printf("skipping search since selectivity too low\n");
+//                        return;
+//                    }
+//                    if (selectivity > 0.3) {
+//                        useInFilterSearch = true;
+//                    }
+//                    maxK = calculateMaxK(filterMask->getNumMaskedNodes(), header->getNumVectors());
+//                }
+
+//                vector_id_t entrypoint;
+//                double entrypointDist;
+//                findEntrypointUsingUpperLayer(context, header, query, dc.get(), entrypoint, &entrypointDist);
+//                std::priority_queue<NodeDistCloser> results;
+//                coreSearch(context, searchLocalState, bindState, graph, dc.get(), isFilteredSearch, useInFilterSearch, filterMask, state.get(),
+//                           entrypoint, entrypointDist, maxK, results, visited.get(), header, 64);
+//                visited->reset();
+
+                std::priority_queue<NodeDistCloser> candidates;
+                uint8_t entrypointLevel;
+                vector_id_t entrypoint;
+                header->getEntrypoint(entrypoint, entrypointLevel);
+                assert(entrypointLevel == 1);
+                int entrypointNodes = maxNumThreads * 2;
+                auto embedding = getEmbedding(context, header->getActualId(entrypoint));
+                double entrypointDist;
+                dc->computeDistance(embedding, &entrypointDist);
+                searchANNOnUpperLayer(context, header, query, dc.get(), entrypoint, entrypointDist, candidates, visited.get(), 64);
+                assert(candidates.size() > entrypointNodes);
+
                 std::vector<std::vector<NodeDistCloser>> entrypointsPerThread(maxNumThreads);
                 int count = 0;
-                while (!results.empty()) {
-                    auto res = results.top();
-                    results.pop();
-                    entrypointsPerThread[count % maxNumThreads].emplace_back(res.id, res.dist);
-                    count++;
+                while (!candidates.empty()) {
+                    auto res = candidates.top();
+                    candidates.pop();
+                    if (candidates.size() <= entrypointNodes) {
+                        entrypointsPerThread[count % maxNumThreads].emplace_back(res.id, res.dist);
+                        count++;
+                        if (isMasked(res.id, filterMask)) {
+                            parallelResults->push(NodeDistFarther(res.id, res.dist));
+                            visited->atomic_set_bit(res.id);
+                        }
+                    }
                 }
                 auto taskSharedState = std::make_shared<VectorSearchTaskSharedState>(maxNumThreads, efSearch, maxK, context,
                                                                                graph, dc.get(), filterMask, header, visited.get(),
+                                                                               parallelResults.get(),
                                                                                std::move(entrypointsPerThread));
                 auto taskLocalState = std::make_unique<NodeTableLookupLocalState>(context,
                                                                                   searchLocalState->embeddingColumn,
                                                                                   nullptr, nullptr);
                 auto task = std::make_shared<VectorSearchTask>(maxNumThreads, taskSharedState, std::move(taskLocalState));
                 context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context);
-                // TODO: Add results from each thread to main results
-                searchLocalState->materialize(graph, results, *sharedState->fTable, k);
+                for (auto& queue : parallelResults->queues) {
+                    while (queue->size() > 0) {
+                        auto min = queue->popMin();
+                        candidates.push(NodeDistCloser(min.id, min.dist));
+                    }
+                }
+                searchLocalState->materialize(graph, candidates, *sharedState->fTable, k);
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {

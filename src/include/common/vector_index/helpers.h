@@ -223,6 +223,12 @@ struct Spinlock {
     void unlock() {
         flag.clear(std::memory_order_release);
     }
+
+    // Try to lock the spinlock, returns true if the lock is acquired, false otherwise
+    bool try_lock() {
+        // Attempt to acquire the lock without blocking
+        return !flag.test_and_set(std::memory_order_acquire);
+    }
 };
 
 // Optimized version of binary heap for multi-threaded environments
@@ -245,6 +251,10 @@ public:
 
     inline void lock() {
         mtx.lock();
+    }
+
+    inline bool try_lock() {
+        return mtx.try_lock();
     }
 
     inline void unlock() {
@@ -297,5 +307,79 @@ public:
     const int maxSize;
 };
 
+// Bit vector based visited table
+class BitVectorVisitedTable {
+private:
+    uint8_t *data_;
+    uint32_t num_bytes_;
+public:
+    explicit BitVectorVisitedTable(uint32_t num_bits)
+    {
+        num_bytes_ = (num_bits + 7) >> 3; // (n + 7) / 8
+        data_ = new uint8_t[num_bytes_];
+        memset(data_, 0, num_bytes_);
+    }
+
+    ~BitVectorVisitedTable()
+    {
+        delete[] data_;
+        num_bytes_ = 0;
+    }
+
+    uint8_t atomic_is_bit_set(const uint32_t x)
+    {
+        const uint32_t i_byte = x >> 3;
+        const uint32_t i_bit = x - (i_byte << 3);
+        return (__atomic_load_n(data_ + i_byte, __ATOMIC_ACQUIRE) >> i_bit) & 1;
+    }
+
+    void atomic_reset_bit(const uint32_t x)
+    {
+        const uint32_t i_byte = x >> 3;
+        const uint32_t i_bit = x - (i_byte << 3);
+        __atomic_and_fetch(data_ + i_byte, ~(1 << i_bit), __ATOMIC_RELEASE);
+    }
+
+    void atomic_set_bit(const uint32_t x)
+    {
+        const uint32_t i_byte = x >> 3;
+        const uint32_t i_bit = x - (i_byte << 3);
+        __atomic_or_fetch(data_ + i_byte, 1 << i_bit, __ATOMIC_RELEASE);
+    }
+
+    uint8_t is_bit_set(const uint32_t x)
+    {
+        const uint32_t i_byte = x >> 3;
+        const uint32_t i_bit = x - (i_byte << 3);
+        return (data_[i_byte] >> i_bit) & 1;
+    }
+
+    void reset_bit(const uint32_t x)
+    {
+        const uint32_t i_byte = x >> 3;
+        const uint32_t i_bit = x - (i_byte << 3);
+        data_[i_byte] &= ~(1 << i_bit);
+    }
+
+    void resize(const uint32_t num_bits)
+    {
+        delete[] data_;
+        num_bytes_ = (num_bits + 7) >> 3; // (n + 7) / 8
+        data_ = new uint8_t[num_bytes_];
+        memset(data_, 0, num_bytes_);
+    }
+
+    void set_bit(const uint32_t x)
+    {
+        const uint32_t i_byte = x >> 3;
+        const uint32_t i_bit = x - (i_byte << 3);
+        data_[i_byte] |= (1 << i_bit);
+    }
+
+    void reset()
+    {
+        memset(data_, 0, num_bytes_);
+    }
+};
 } // namespace common
 } // namespace kuzu

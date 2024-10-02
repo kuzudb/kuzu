@@ -11,7 +11,7 @@ namespace kuzu {
             auto threadId = sharedState->getThreadId();
             auto context = sharedState->context;
             auto readLocalState = localState->clone(context);
-            auto efSearch = (sharedState->efSearch / sharedState->maxNumThreads) * 1.2;
+            auto efSearch = ((float) sharedState->efSearch / sharedState->maxNumThreads) * 1.2;
             auto visited = sharedState->visited;
             auto dc = sharedState->distanceComputer;
             auto header = sharedState->indexHeader;
@@ -20,6 +20,9 @@ namespace kuzu {
             auto state = graph->prepareScan(header->getCSRRelTableId());
             auto filterMask = sharedState->filterMask;
             auto maxK = sharedState->maxK;
+            auto parallelResults = sharedState->parallelResults;
+            // sync into the final result after every 2 iterations
+            int syncAfterIter = 3;
             auto isFilteredSearch = filterMask->isEnabled();
             auto useInFilterSearch = false;
             // Find maxK value based on selectivity
@@ -35,66 +38,72 @@ namespace kuzu {
                 }
                 maxK = calculateMaxK(filterMask->getNumMaskedNodes(), header->getNumVectors());
             }
+            // Initialize the results and candidates
             std::priority_queue<NodeDistFarther> candidates;
-            auto &results = sharedState->topKResults[threadId];
+            std::vector<NodeDistFarther> localResults;
             auto &entrypoints = sharedState->entrypoints[threadId];
             for (auto &entrypoint: entrypoints) {
                 candidates.emplace(entrypoint.id, entrypoint.dist);
-                if (isFilteredSearch && isMasked(entrypoint.id, filterMask)) {
-                    results.emplace(entrypoint.id, entrypoint.dist);
-                    visited->set(entrypoint.id);
-                }
             }
 
             while (!candidates.empty()) {
-                auto candidate = candidates.top();
-                candidates.pop();
-                std::vector<common::nodeID_t> neighbors;
-                if (isFilteredSearch && !useInFilterSearch) {
-                    findFilteredNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors,
-                                                                      filterMask, visited, maxK, efSearch,
-                                                                      sharedState->graph);
-                    // If empty, work with unfiltered neighbours to move forward
-                    if (candidates.empty() && neighbors.empty()) {
-                        // Figure out how expensive this is!!
-                        // Push a random masked neighbour to continue the search
-                        for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
-                            if (filterMask->isMasked(i) && !visited->get(i)) {
-                                neighbors.push_back({i, nodeTableId});
-                                break;
+                auto queueSize = parallelResults->size();
+                auto topDist = parallelResults->top()->dist;
+                int searchIter = 0;
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    candidates.pop();
+                    std::vector<common::nodeID_t> neighbors;
+                    if (isFilteredSearch && !useInFilterSearch) {
+                        findFilteredNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors,
+                                                    filterMask, visited, maxK, efSearch,
+                                                    sharedState->graph);
+                        // If empty, work with unfiltered neighbours to move forward
+                        if (candidates.empty() && neighbors.empty()) {
+                            // Figure out how expensive this is!!
+                            // Push a random masked neighbour to continue the search
+                            for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
+                                if (filterMask->isMasked(i) && !visited->atomic_is_bit_set(i)) {
+                                    neighbors.push_back({i, nodeTableId});
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // TODO: Fix this!!
+                        findNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors, visited, graph);
+                    }
+                    // TODO: Try batch compute distances
+                    for (auto neighbor: neighbors) {
+                        double dist;
+                        auto embed = readLocalState->getEmbedding(context, neighbor.offset);
+                        dc->computeDistance(embed, &dist);
+                        if (queueSize < efSearch || dist < topDist) {
+                            candidates.emplace(neighbor.offset, dist);
+                            if (!useInFilterSearch || isMasked(neighbor.offset, filterMask)) {
+                                localResults.emplace_back(neighbor.offset, dist);
+                                queueSize++;
                             }
                         }
                     }
-                } else {
-                    findNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors, visited, graph);
-                }
-                // TODO: Try batch compute distances
-                for (auto neighbor: neighbors) {
-                    double dist;
-                    auto embed = readLocalState->getEmbedding(context, neighbor.offset);
-                    dc->computeDistance(embed, &dist);
-                    if (results.size() < efSearch || dist < results.top().dist) {
-                        candidates.emplace(neighbor.offset, dist);
-                        if (!useInFilterSearch || isMasked(neighbor.offset, filterMask)) {
-                            results.emplace(neighbor.offset, dist);
-                            if (results.size() > efSearch) {
-                                results.pop();
-                            }
-                        }
+                    searchIter++;
+                    if (searchIter == syncAfterIter) {
+                        searchIter = 0;
                     }
                 }
-
-                if (!results.empty() && candidate.dist > results.top().dist) {
+                // Push to the parallel results
+                parallelResults->bulkPush(localResults.data(), localResults.size());
+                localResults.clear();
+                if (candidates.empty() || candidates.top().dist > parallelResults->top()->dist) {
                     break;
                 }
             }
-
         }
 
         int VectorSearchTask::findFilteredNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
                                                           std::vector<common::nodeID_t> &nbrs,
                                                           NodeOffsetLevelSemiMask *filterMask,
-                                                          AtomicVisitedTable *visited, int maxK,
+                                                          BitVectorVisitedTable *visited, int maxK,
                                                           int maxNeighboursCheck, Graph *graph) {
             std::queue<std::pair<common::nodeID_t, int>> candidates;
             candidates.push({nodeID, 0});
@@ -108,21 +117,24 @@ namespace kuzu {
                     continue;
                 }
                 visitedSet.insert(candidate.first.offset);
-                visited->set(candidate.first.offset);
+                visited->atomic_set_bit(candidate.first.offset);
                 auto neighbors = graph->scanFwdRandom(candidate.first, state);
                 neighboursChecked += 1;
                 for (auto &neighbor: neighbors) {
-                    if (visited->get(neighbor.offset)) {
+                    if (visited->atomic_is_bit_set(neighbor.offset)) {
                         continue;
                     }
 
-                    if (filterMask->isMasked(neighbor.offset) && visited->getAndSet(neighbor.offset)) {
+                    if (filterMask->isMasked(neighbor.offset)) {
                         nbrs.push_back(neighbor);
-                        if (nbrs.size() >= maxK) {
-                            return neighboursChecked;
-                        }
+                        // Maybe try to do it with a getAndSet.
+                        // TODO: Fix as this can cause duplicates!!
+                        visited->atomic_set_bit(neighbor.offset);
                     }
                     candidates.push({neighbor, currentDepth + 1});
+                }
+                if (nbrs.size() >= maxK) {
+                    return neighboursChecked;
                 }
             }
             return neighboursChecked;
@@ -130,13 +142,14 @@ namespace kuzu {
 
         void VectorSearchTask::findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
                                                    std::vector<common::nodeID_t> &nbrs,
-                                                   AtomicVisitedTable *visited,
+                                                   BitVectorVisitedTable *visited,
                                                    Graph *graph) {
             // TODO: Implement like findFilteredNextKNeighbours
             auto unFilteredNbrs = graph->scanFwdRandom(nodeID, state);
             for (auto &neighbor: unFilteredNbrs) {
-                if (visited->getAndSet(neighbor.offset)) {
+                if (!visited->atomic_is_bit_set(neighbor.offset)) {
                     nbrs.push_back(neighbor);
+                    visited->atomic_set_bit(neighbor.offset);
                 }
             }
         }
