@@ -49,6 +49,11 @@ void LogicalRecursiveExtend::computeFactorizedSchema() {
 
 void LogicalPathPropertyProbe::computeFactorizedSchema() {
     copyChildSchema(0);
+    if (pathNodeIDs != nullptr) {
+        KU_ASSERT(schema->getNumGroups() == 1);
+        schema->insertToGroupAndScope(recursiveRel, 0);
+    }
+
     if (nodeChild != nullptr) {
         auto rewriter = optimizer::FactorizationRewriter();
         rewriter.visitOperator(nodeChild.get());
@@ -61,6 +66,11 @@ void LogicalPathPropertyProbe::computeFactorizedSchema() {
 
 void LogicalPathPropertyProbe::computeFlatSchema() {
     copyChildSchema(0);
+    if (pathNodeIDs != nullptr) {
+        KU_ASSERT(schema->getNumGroups() == 1);
+        schema->insertToGroupAndScope(recursiveRel, 0);
+    }
+
     if (nodeChild != nullptr) {
         auto rewriter = optimizer::RemoveFactorizationRewriter();
         rewriter.visitOperator(nodeChild);
@@ -77,6 +87,10 @@ std::unique_ptr<LogicalOperator> LogicalPathPropertyProbe::copy() {
     auto op = std::make_unique<LogicalPathPropertyProbe>(recursiveRel, children[0]->copy(),
         std::move(nodeChildCopy), std::move(relChildCopy), joinType);
     op->sipInfo = sipInfo;
+    op->direction = direction;
+    op->extendFromSource_ = extendFromSource_;
+    op->pathNodeIDs = pathNodeIDs;
+    op->pathEdgeIDs = pathEdgeIDs;
     return op;
 }
 

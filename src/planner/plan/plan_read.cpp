@@ -137,7 +137,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         joinConditions.push_back(node.getInternalID());
         for (auto& plan : plans) {
             auto probePlan = LogicalPlan();
-            auto gdsCall = getGDSCall(readingClause);
+            auto gdsCall = getGDSCall(call.getInfo());
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
             if (!predicatesToPush.empty()) {
@@ -147,7 +147,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         }
     } else {
         for (auto& plan : plans) {
-            planReadOp(getGDSCall(readingClause), predicatesToPush, *plan);
+            planReadOp(getGDSCall(call.getInfo()), predicatesToPush, *plan);
         }
     }
 

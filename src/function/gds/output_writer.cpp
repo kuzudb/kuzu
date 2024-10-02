@@ -36,9 +36,9 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutput
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    uint16_t lowerBound, uint16_t upperBound, bool writeEdgeDirection)
+    uint16_t lowerBound, uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection)
     : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound},
-      writeEdgeDirection{writeEdgeDirection} {
+      extendFromSource{extendFromSource}, writeEdgeDirection{writeEdgeDirection} {
     auto mm = context->getMemoryManager();
     if (writeEdgeDirection) {
         directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm, vectors);
@@ -65,10 +65,13 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     auto firstParent =
         bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
     if (firstParent == nullptr) {
-        // This case should only run for variable length joins.
-        lengthVector->setValue<int64_t>(0, 0);
-        beginWritingNewPath(0);
-        fTable.append(vectors);
+        if (sourceNodeID == dstNodeID) {
+            // We still output a path from src to src if required path length is 0.
+            // This case should only run for variable length joins.
+            lengthVector->setValue<int64_t>(0, 0);
+            beginWritingNewPath(0);
+            fTable.append(vectors);
+        }
         return;
     }
     lengthVector->setValue<int64_t>(0, firstParent->getIter());
@@ -80,14 +83,27 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         auto topNodeID = top->getNodeID();
         if (topNodeID == sourceNodeID) {
             beginWritingNewPath(curPath.size());
-            // Write path in reverse order. The calls to addNewNodeID should be done in the reverse
-            // order of the nodes/edges that should be placed into the ListVector.
-            for (auto i = 1u; i < curPath.size(); i++) {
-                auto p = curPath[curPath.size() - 1 - i];
-                addNodeEdge(p->getNodeID(), p->getEdgeID(), p->isFwdEdge(), i);
+            if (extendFromSource) {
+                // Write path in reverse direction because we append ParentList from dst to src.
+                for (auto i = 1u; i < curPath.size(); i++) {
+                    auto p = curPath[curPath.size() - 1 - i];
+                    addNode(p->getNodeID(), i - 1);
+                    addEdge(p->getEdgeID(), p->isFwdEdge(), i);
+                }
+                auto lastPathElement = curPath[curPath.size() - 1];
+                addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(), 0);
+            } else {
+                // Write path in original direction because computation started from dst node.
+                // We want to present result in src->dst order.
+                for (auto i = 0u; i < curPath.size() - 1; i++) {
+                    auto p = curPath[i];
+                    addNode(p->getNodeID(), i);
+                    addEdge(p->getEdgeID(), p->isFwdEdge(), i);
+                }
+                auto lastPathElement = curPath[curPath.size() - 1];
+                addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(),
+                    curPath.size() - 1);
             }
-            auto lastPathElement = curPath[curPath.size() - 1];
-            addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(), 0);
 
             fTable.append(vectors);
             backtracking = true;
@@ -143,14 +159,8 @@ void PathsOutputWriter::addEdge(relID_t edgeID, bool fwdEdge, sel_t pos) const {
     }
 }
 
-void PathsOutputWriter::addNodeEdge(nodeID_t nodeID, relID_t edgeID, bool fwdEdge,
-    sel_t pos) const {
-    KU_ASSERT(pos > 0);
-    ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos - 1, nodeID);
-    ListVector::getDataVector(pathEdgeIDsVector.get())->setValue(pos, edgeID);
-    if (writeEdgeDirection) {
-        ListVector::getDataVector(directionVector.get())->setValue(pos, fwdEdge);
-    }
+void PathsOutputWriter::addNode(common::nodeID_t nodeID, common::sel_t pos) const {
+    ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos, nodeID);
 }
 
 void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {

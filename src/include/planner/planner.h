@@ -22,6 +22,7 @@ class NormalizedQueryPart;
 class BoundReadingClause;
 class BoundUpdatingClause;
 class BoundProjectionBody;
+struct BoundGDSCallInfo;
 } // namespace binder
 namespace planner {
 
@@ -246,6 +247,10 @@ public:
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         LogicalPlan& plan);
+    void appendRecursiveExtendAsGDS(const std::shared_ptr<binder::NodeExpression>& boundNode,
+        const std::shared_ptr<binder::NodeExpression>& nbrNode,
+        const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
+        LogicalPlan& plan);
     void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo,
         common::ExtendDirection direction, bool extendFromSource, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
@@ -322,7 +327,7 @@ public:
         const binder::BoundTableScanSourceInfo& info);
     std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
-    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundReadingClause& readingClause);
+    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundGDSCallInfo& info);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

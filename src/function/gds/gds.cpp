@@ -10,7 +10,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, GraphEntry& graphEntry) {
+std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder,
+    const GraphEntry& graphEntry) {
     auto node =
         binder->createQueryNode(NODE_COLUMN_NAME, binder->getTableEntries(graphEntry.nodeTableIDs));
     binder->addToScope(NODE_COLUMN_NAME, node);

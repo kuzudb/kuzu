@@ -26,6 +26,12 @@ struct RJBindData final : public GDSBindData {
 
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
+    bool extendFromSource = true;
+    std::shared_ptr<binder::Expression> directionExpr = nullptr;
+    std::shared_ptr<binder::Expression> lengthExpr = nullptr;
+    std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
+    std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
+
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
         std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
         common::ExtendDirection extendDirection)
@@ -35,7 +41,10 @@ struct RJBindData final : public GDSBindData {
     }
     RJBindData(const RJBindData& other)
         : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
-          upperBound{other.upperBound}, extendDirection{other.extendDirection} {}
+          upperBound{other.upperBound}, extendDirection{other.extendDirection},
+          extendFromSource{other.extendFromSource}, directionExpr{other.directionExpr},
+          lengthExpr{other.lengthExpr}, pathNodeIDsExpr{other.pathNodeIDsExpr},
+          pathEdgeIDsExpr{other.pathEdgeIDsExpr} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }

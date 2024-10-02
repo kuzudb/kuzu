@@ -42,10 +42,10 @@ class LogicalPathPropertyProbe : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::PATH_PROPERTY_PROBE;
 
 public:
-    LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> recursiveRel,
+    LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> rel,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
         std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType)
-        : LogicalOperator{type_, std::move(probeChild)}, recursiveRel{std::move(recursiveRel)},
+        : LogicalOperator{type_, std::move(probeChild)}, recursiveRel{std::move(rel)},
           nodeChild{std::move(nodeChild)}, relChild{std::move(relChild)}, joinType{joinType} {}
 
     void computeFactorizedSchema() final;
@@ -54,6 +54,8 @@ public:
     std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
 
     std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
+    std::shared_ptr<binder::Expression> getPathNodeIDs() const { return pathNodeIDs; }
+    std::shared_ptr<binder::Expression> getPathEdgeIDs() const { return pathEdgeIDs; }
 
     void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
     RecursiveJoinType getJoinType() const { return joinType; }
@@ -72,6 +74,12 @@ private:
     std::shared_ptr<LogicalOperator> relChild;
     RecursiveJoinType joinType;
     SIPInfo sipInfo;
+
+public:
+    common::ExtendDirection direction = common::ExtendDirection::FWD;
+    bool extendFromSource_ = true;
+    std::shared_ptr<binder::Expression> pathNodeIDs;
+    std::shared_ptr<binder::Expression> pathEdgeIDs;
 };
 
 } // namespace planner

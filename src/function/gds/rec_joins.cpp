@@ -49,23 +49,36 @@ expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
     columns.push_back(inputNode.getInternalID());
     auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(outputNode.getInternalID());
-    if (bindData->ptrCast<RJBindData>()->extendDirection == ExtendDirection::BOTH) {
-        columns.push_back(
-            binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL())));
+    auto rjBindData = bindData->ptrCast<RJBindData>();
+    if (rjBindData->extendDirection == ExtendDirection::BOTH) {
+        if (rjBindData->directionExpr != nullptr) {
+            columns.push_back(rjBindData->directionExpr);
+        } else {
+            columns.push_back(binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL())));
+        }
     }
     return columns;
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getLengthColumn(Binder* binder) const {
+    if (bindData->ptrCast<RJBindData>()->lengthExpr != nullptr) {
+        return bindData->ptrCast<RJBindData>()->lengthExpr;
+    }
     return binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
+    if (bindData->ptrCast<RJBindData>()->pathNodeIDsExpr != nullptr) {
+        return bindData->ptrCast<RJBindData>()->pathNodeIDsExpr;
+    }
     return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getPathEdgeIDsColumn(Binder* binder) const {
+    if (bindData->ptrCast<RJBindData>()->pathEdgeIDsExpr != nullptr) {
+        return bindData->ptrCast<RJBindData>()->pathEdgeIDsExpr;
+    }
     return binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
