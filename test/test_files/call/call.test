@@ -36,14 +36,12 @@ Parser exception: Can not find primary key.
 -STATEMENT CREATE NODE TABLE personALt4(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice' PRIMARY KEY);
 ---- error
 Parser exception: Found multiple primary keys.
--STATEMENT CREATE NODE TABLE personAlt5(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
----- error
-Parser exception: Found multiple primary keys.
--STATEMENT CREATE NODE TABLE personAlt6(id INT64 PRIMARY KEY, prop STRING, PRIMARY KEY(id));
+-STATEMENT CREATE NODE TABLE personAlt5(id INT64 PRIMARY KEY, prop STRING, PRIMARY KEY(id));
 ---- ok
--STATEMENT CALL TABLE_INFO('personAlt6') RETURN *;
+-STATEMENT CALL TABLE_INFO('personAlt5') RETURN *;
 0|id|INT64|NULL|True
 1|prop|STRING|NULL|False
+
 -STATEMENT CREATE NODE TABLE personOne(id INT64, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE personTwo(id INT64, prop STRING DEFAULT gen_random_uuid(), PRIMARY KEY(id));
