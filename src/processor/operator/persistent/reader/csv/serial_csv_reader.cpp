@@ -268,7 +268,6 @@ void SerialCSVReader::detectDialect() {
         option.delimiter = dialectOption.delimiter;
         option.quoteChar = dialectOption.quoteChar;
         option.escapeChar = dialectOption.escapeChar;
-        dialectOption.everQuoted = false;
         // reset Driver
         driver.reset();
         // Try parsing it with current dialect
