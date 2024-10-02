@@ -31,7 +31,7 @@ std::string Transformer::getPKName(CypherParser::KU_CreateNodeTableContext& ctx)
     std::string pkName;
     auto& propertyDefinitions = *ctx.kU_PropertyDefinitions();
     for (auto& definition : propertyDefinitions.kU_PropertyDefinition()) {
-        if(definition->PRIMARY() && definition->KEY()) {
+        if (definition->PRIMARY() && definition->KEY()) {
             pkCount++;
             pkName = transformPrimaryKey(*definition->kU_ColumnDefinition());
         }
@@ -42,13 +42,14 @@ std::string Transformer::getPKName(CypherParser::KU_CreateNodeTableContext& ctx)
     }
     if (pkCount == 0) {
         // Raise exception when no PRIMARY KEY is specified.
-        throw ParserException("Error while handling PRIMARY KEY Definition: please specify PRIMARY KEY.");
+        throw ParserException(
+            "Error while handling PRIMARY KEY Definition: please specify PRIMARY KEY.");
     } else if (pkCount > 1) {
-        throw ParserException("Error while handling PRIMARY KEY Definition: multiple PRIMARY KEY found.");
+        throw ParserException(
+            "Error while handling PRIMARY KEY Definition: multiple PRIMARY KEY found.");
     }
     return pkName;
 }
-
 
 std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     CypherParser::KU_CreateNodeTableContext& ctx) {
