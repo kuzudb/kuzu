@@ -69,6 +69,7 @@ namespace kuzu {
                             for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
                                 if (filterMask->isMasked(i) && !visited->atomic_is_bit_set(i)) {
                                     neighbors.push_back({i, nodeTableId});
+                                    visited->atomic_set_bit(i);
                                     break;
                                 }
                             }
@@ -93,6 +94,7 @@ namespace kuzu {
                     searchIter++;
                     if (searchIter == syncAfterIter) {
                         searchIter = 0;
+                        break;
                     }
                 }
                 // Push to the parallel results
