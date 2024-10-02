@@ -317,10 +317,10 @@ void SerialCSVReader::detectDialect() {
             if (maxColumnsFound == numCols && ignoredRows > minIgnoredRows) {
                 continue;
             }
-            //if (!validDialects.empty() && validDialects.front().everQuoted && !dialectOption.everQuoted) {
+            if (!validDialects.empty() && validDialects[0].everQuoted && !dialectOption.everQuoted) {
 			// Give preference to quoted dialect.
-			    //continue;
-		    //}
+			    continue;
+		    }
             bestConsistentRows = consistentRows;
             maxColumnsFound = numCols;
             minIgnoredRows = ignoredRows;
