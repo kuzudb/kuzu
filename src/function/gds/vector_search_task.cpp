@@ -48,7 +48,10 @@ namespace kuzu {
 
             while (!candidates.empty()) {
                 auto queueSize = parallelResults->size();
-                auto topDist = parallelResults->top()->dist;
+                double topDist = std::numeric_limits<double>::max();
+                if (queueSize > 0) {
+                    topDist = parallelResults->top()->dist;
+                }
                 int searchIter = 0;
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
