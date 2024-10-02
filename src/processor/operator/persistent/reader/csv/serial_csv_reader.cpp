@@ -257,6 +257,9 @@ void SerialCSVReader::detectDialect() {
     // Generate dialect options based on the non-user-specified options
     auto dialectSearchSpace = generateDialectOptions(option);
 
+    // Save default for dialect not found situation
+    DialectOption defaultOption{option.delimiter, option.quoteChar, option.escapeChar};
+
     idx_t bestConsistentRows = 0;
     idx_t maxColumnsFound = 0;
     idx_t minIgnoredRows = 0;
@@ -286,13 +289,13 @@ void SerialCSVReader::detectDialect() {
 
         // If the columns didn't match the user input columns number
         if (getNumColumns() != 0 && getNumColumns() != numCols) {
-            //continue;
+            continue;
         }
 
         for (idx_t row = 0; row < driver.getResultPosition(); row++) {
             if (getNumColumns() != 0 && getNumColumns() != driver.getColumnCount(row)) {
                 notExpected = true;
-                //break;
+                break;
             }
             if (numCols < driver.getColumnCount(row)) {
                 numCols = driver.getColumnCount(row);
@@ -305,11 +308,11 @@ void SerialCSVReader::detectDialect() {
         }
 
         if (notExpected) {
-            //continue;
+            continue;
         }
 
         auto moreValues = consistentRows > bestConsistentRows && numCols >= maxColumnsFound;
-        auto singleColumnBefore = maxColumnsFound < 2 && numCols > maxColumnsFound;
+        auto singleColumnBefore = maxColumnsFound < 2 && numCols > maxColumnsFound * validDialects.size();
         auto moreThanOneRow = consistentRows > 1;
         auto moreThanOneColumn = numCols > 1;
 
@@ -321,11 +324,14 @@ void SerialCSVReader::detectDialect() {
 			// Give preference to quoted dialect.
 			    continue;
 		    }
-            bestConsistentRows = consistentRows;
-            maxColumnsFound = numCols;
-            minIgnoredRows = ignoredRows;
-            validDialects.clear();
-            validDialects.emplace_back(dialectOption);
+
+            if (consistentRows >= bestConsistentRows) {
+                bestConsistentRows = consistentRows;
+                maxColumnsFound = numCols;
+                minIgnoredRows = ignoredRows;
+                validDialects.clear();
+                validDialects.emplace_back(dialectOption);
+            }
         }
 
         if (moreThanOneRow && moreThanOneColumn && numCols == maxColumnsFound) {
@@ -359,6 +365,10 @@ void SerialCSVReader::detectDialect() {
         option.delimiter = finalDialects[0].delimiter;
         option.quoteChar = finalDialects[0].quoteChar;
         option.escapeChar = finalDialects[0].escapeChar;
+    } else {
+        option.delimiter = defaultOption.delimiter;
+        option.quoteChar = defaultOption.quoteChar;
+        option.escapeChar = defaultOption.escapeChar;
     }
 }
 

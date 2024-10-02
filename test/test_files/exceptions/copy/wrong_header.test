@@ -25,7 +25,7 @@ True
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Guodong" to INT64. Line/record containing the error: '10,Guodong'
 -STATEMENT COPY person3 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
 ---- error
-Binder exception: Number of columns mismatch. Expected 1 but got 2.
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv on line 2: expected 1 values per row, but got more. Line/record containing the error: '10,Guodong'
 -STATEMENT COPY person FROM
        ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv",
         "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv"] (HEADER=true)
