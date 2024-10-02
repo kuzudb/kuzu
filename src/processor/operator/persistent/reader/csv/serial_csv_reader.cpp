@@ -338,7 +338,7 @@ void SerialCSVReader::detectDialect() {
             }
 
             if (!same_quote) {
-                validDialects.emplace(dialectOption);
+                validDialects.push_back(std::move(dialectOption));
             }
         }
     }
