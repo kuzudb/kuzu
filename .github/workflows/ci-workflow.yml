@@ -844,7 +844,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
-      ASAN_OPTIONS: detect_leaks=0
+      ASAN_OPTIONS: detect_leaks=1
 
     steps:
       - uses: actions/checkout@v4
@@ -877,6 +877,11 @@ jobs:
           HTTP_CACHE_FILE: false
         run: |
           make extension-test && make clean
+
+      # TODO(Royi) there is currently a known memory leak issue in the DuckDB postgres extension so we avoid running the postgres extension tests with Leak Sanitizer
+      - name: Extension test with asan
+        run: |
+          make clean && make extension-test ASAN=1 WERROR=0 EXTENSION_TEST_EXCLUDE_FILTER="postgres" && make clean
 
   macos-extension-test:
     name: macos extension test
