@@ -329,7 +329,6 @@ public:
     static KUZU_API LogicalType UNION(std::vector<StructField>&& fields);
 
     static KUZU_API LogicalType LIST(LogicalType childType);
-
     template<class T>
     static inline LogicalType LIST(T&& childType) {
         return LogicalType::LIST(LogicalType(std::forward<T>(childType)));
