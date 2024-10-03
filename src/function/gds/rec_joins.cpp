@@ -83,8 +83,10 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
-    auto extendDirection = ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
-    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound, extendDirection);
+    auto extendDirection =
+        ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+        extendDirection);
 }
 
 class RJOutputWriterVCSharedState {

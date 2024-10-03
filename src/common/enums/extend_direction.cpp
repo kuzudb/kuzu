@@ -1,7 +1,7 @@
 #include "common/enums/extend_direction.h"
 
-#include "common/string_utils.h"
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -19,5 +19,5 @@ ExtendDirection ExtendDirectionUtil::fromString(const std::string& str) {
     }
 }
 
-}
-}
+} // namespace common
+} // namespace kuzu

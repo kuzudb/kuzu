@@ -1,9 +1,9 @@
 #pragma once
 
+#include "common/enums/extend_direction.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "output_writer.h"
-#include "common/enums/extend_direction.h"
 
 namespace kuzu {
 namespace function {
@@ -27,7 +27,8 @@ struct RJBindData final : public GDSBindData {
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound, common::ExtendDirection extendDirection)
+        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
+        common::ExtendDirection extendDirection)
         : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
           lowerBound{lowerBound}, upperBound{upperBound}, extendDirection{extendDirection} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);

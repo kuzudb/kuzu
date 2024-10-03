@@ -221,7 +221,7 @@ class FrontierPair {
     friend class FrontierTask;
 
 public:
-     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
+    FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
         uint64_t maxThreadsForExec);
 

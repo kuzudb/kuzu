@@ -5,8 +5,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static uint64_t computeScanResult(nodeID_t sourceNodeID, const std::span<const nodeID_t>& nbrNodeIDs,
-    const std::span<const relID_t>& edgeIDs, EdgeCompute& ec, FrontierPair& frontierPair) {
+static uint64_t computeScanResult(nodeID_t sourceNodeID,
+    const std::span<const nodeID_t>& nbrNodeIDs, const std::span<const relID_t>& edgeIDs,
+    EdgeCompute& ec, FrontierPair& frontierPair) {
     KU_ASSERT(nbrNodeIDs.size() == edgeIDs.size());
     uint64_t numComputedResult = 0;
     for (size_t i = 0; i < nbrNodeIDs.size(); i++) {
@@ -33,20 +34,24 @@ void FrontierTask::run() {
                 switch (info.direction) {
                 case ExtendDirection::FWD: {
                     for (const auto [nodes, edges] : graph->scanFwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges, *localEc, sharedState->frontierPair);
+                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
+                            *localEc, sharedState->frontierPair);
                     }
                 } break;
                 case ExtendDirection::BWD: {
                     for (const auto [nodes, edges] : graph->scanBwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges, *localEc, sharedState->frontierPair);
+                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
+                            *localEc, sharedState->frontierPair);
                     }
                 } break;
                 case ExtendDirection::BOTH: {
                     for (const auto [nodes, edges] : graph->scanFwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges, *localEc, sharedState->frontierPair);
+                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
+                            *localEc, sharedState->frontierPair);
                     }
                     for (const auto [nodes, edges] : graph->scanBwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges, *localEc, sharedState->frontierPair);
+                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
+                            *localEc, sharedState->frontierPair);
                     }
                 } break;
                 default:

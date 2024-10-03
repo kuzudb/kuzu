@@ -412,8 +412,8 @@ public:
      * direction::STRING
      */
     std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64,
-            LogicalTypeID::INT64, LogicalTypeID::STRING};
+        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
+            LogicalTypeID::STRING};
     }
 
     void bind(const expression_vector& params, Binder* binder,
@@ -423,8 +423,10 @@ public:
         auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
         validateLowerUpperBound(lowerBound, upperBound);
-        auto extendDirection = ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[4]));
-        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound, extendDirection);
+        auto extendDirection = ExtendDirectionUtil::fromString(
+            ExpressionUtil::getLiteralValue<std::string>(*params[4]));
+        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+            extendDirection);
     }
 
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
@@ -460,7 +462,8 @@ private:
 function_set VarLenJoinsFunction::getFunctionSet() {
     function_set result;
     auto algo = std::make_unique<VarLenJoinsAlgorithm>();
-    result.push_back(std::make_unique<GDSFunction>(name,algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
@@ -483,7 +486,8 @@ function_set AllSPLengthsFunction::getFunctionSet() {
 function_set AllSPPathsFunction::getFunctionSet() {
     function_set result;
     auto algo = std::make_unique<AllSPPathsAlgorithm>();
-    result.push_back(std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
