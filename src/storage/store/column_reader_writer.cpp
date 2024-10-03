@@ -348,12 +348,30 @@ private:
 
         const auto bitpackHeader = FloatCompression<T>::getBitpackInfo(state.metadata.compMeta);
         offset_t curExceptionIdx = exceptionChunk->findFirstExceptionAtOrPastOffset(offsetInChunk);
+
+        const auto maxWrittenPosInChunk = offsetInChunk + numValues;
+        uint32_t curExceptionPosInChunk =
+            (curExceptionIdx < exceptionChunk->getExceptionCount()) ?
+                exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk :
+                maxWrittenPosInChunk;
+
         for (size_t i = 0; i < numValues; ++i) {
             const size_t writeOffset = offsetInChunk + i;
             const size_t readOffset = srcOffset + i;
 
             if (nullMask && nullMask->isNull(readOffset)) {
                 continue;
+            }
+
+            while (curExceptionPosInChunk < writeOffset) {
+                ++curExceptionIdx;
+                if (curExceptionIdx < exceptionChunk->getExceptionCount()) {
+                    curExceptionPosInChunk =
+                        exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk;
+                } else {
+
+                    curExceptionPosInChunk = maxWrittenPosInChunk;
+                }
             }
 
             const T newValue = writeToPageBufferHelper.getValue(readOffset);
@@ -369,8 +387,7 @@ private:
 
             // if the previous value was an exception
             // either overwrite it (if the new value is also an exception) or remove it
-            if (curExceptionIdx < exceptionChunk->getExceptionCount() &&
-                exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk == writeOffset) {
+            if (curExceptionPosInChunk == writeOffset) {
                 if (newValueIsException) {
                     exceptionChunk->writeException(
                         EncodeException<T>{newValue, safeIntegerConversion<uint32_t>(writeOffset)},
@@ -378,7 +395,6 @@ private:
                 } else {
                     exceptionChunk->removeExceptionAt(curExceptionIdx);
                 }
-                ++curExceptionIdx;
             } else if (newValueIsException) {
                 exceptionChunk->addException(
                     EncodeException<T>{newValue, safeIntegerConversion<uint32_t>(writeOffset)});
