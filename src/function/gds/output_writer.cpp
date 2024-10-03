@@ -19,32 +19,33 @@ void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tabl
     bfsGraph.pinNodeTable(tableID);
 }
 
+static std::unique_ptr<ValueVector> createVector(const LogicalType& type, storage::MemoryManager* mm, std::vector<ValueVector*>& vectors) {
+    auto vector = std::make_unique<ValueVector>(type.copy(), mm);
+    vector->state = DataChunkState::getSingleValueDataChunkState();
+    vectors.push_back(vector.get());
+    return vector;
+}
+
 RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
     : context{context}, rjOutputs{rjOutputs} {
     auto mm = context->getMemoryManager();
-    srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-    dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-    srcNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
+    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm, vectors);
+    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm, vectors);
     srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
-    dstNodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(srcNodeIDVector.get());
-    vectors.push_back(dstNodeIDVector.get());
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    uint16_t lowerBound, uint16_t upperBound)
-    : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound} {
-    lengthVector = std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
-    lengthVector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(lengthVector.get());
-    pathNodeIDsVector = std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()),
-        context->getMemoryManager());
-    pathNodeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(pathNodeIDsVector.get());
-    pathEdgeIDsVector = std::make_unique<ValueVector>(LogicalType::LIST(LogicalType::INTERNAL_ID()),
-        context->getMemoryManager());
-    pathEdgeIDsVector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(pathEdgeIDsVector.get());
+    uint16_t lowerBound, uint16_t upperBound, bool writeEdgeDirection)
+    : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound}, writeEdgeDirection{writeEdgeDirection} {
+    auto mm = context->getMemoryManager();
+    if (writeEdgeDirection) {
+        directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm, vectors);
+    } else {
+        directionVector = nullptr;
+    }
+    lengthVector = createVector(LogicalType::INT64(), mm, vectors);
+    pathNodeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm, vectors);
+    pathEdgeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm, vectors);
 }
 
 static void addListEntry(ValueVector* vector, uint64_t length) {
@@ -54,48 +55,17 @@ static void addListEntry(ValueVector* vector, uint64_t length) {
     vector->setValue(0, entry);
 }
 
-/**
- * Helper class to write paths to a ValueVector. The ValueVector should be a ListVector. The path
- * is written in reverse order, so the calls to addNewNodeID should be done in the reverse order of
- * the nodes that should be placed into the ListVector.
- */
-class PathVectorWriter {
-public:
-    PathVectorWriter(common::ValueVector* nodeIDsVector, common::ValueVector* edgeIDsVector)
-        : nodeIDsVector{nodeIDsVector}, edgeIDsVector{edgeIDsVector} {}
-    void beginWritingNewPath(uint64_t length) const {
-        addListEntry(nodeIDsVector, length > 1 ? length - 1 : 0);
-        if (edgeIDsVector != nullptr) {
-            addListEntry(edgeIDsVector, length);
-        }
-    }
-    void addEdge(common::relID_t edgeID, common::sel_t pos) const {
-        ListVector::getDataVector(edgeIDsVector)->setValue(pos, edgeID);
-    }
-    void addNodeEdge(common::nodeID_t nodeID, common::relID_t edgeID, common::sel_t pos) const {
-        KU_ASSERT(pos > 0);
-        ListVector::getDataVector(nodeIDsVector)->setValue(pos - 1, nodeID);
-        ListVector::getDataVector(edgeIDsVector)->setValue(pos, edgeID);
-    }
-
-public:
-    common::ValueVector* nodeIDsVector;
-    common::ValueVector* edgeIDsVector;
-};
-
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
     auto& bfsGraph = output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
-    PathVectorWriter writer(pathNodeIDsVector.get(), pathEdgeIDsVector.get());
     dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
     auto firstParent =
         bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
-
     if (firstParent == nullptr) {
         // This case should only run for variable length joins.
         lengthVector->setValue<int64_t>(0, 0);
-        writer.beginWritingNewPath(0);
+        beginWritingNewPath(0);
         fTable.append(vectors);
         return;
     }
@@ -107,12 +77,15 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         auto top = curPath[curPath.size() - 1];
         auto topNodeID = top->getNodeID();
         if (topNodeID == sourceNodeID) {
-            writer.beginWritingNewPath(curPath.size());
+            beginWritingNewPath(curPath.size());
+            // Write path in reverse order. The calls to addNewNodeID should be done in the reverse
+            // order of the nodes/edges that should be placed into the ListVector.
             for (auto i = 1u; i < curPath.size(); i++) {
                 auto p = curPath[curPath.size() - 1 - i];
-                writer.addNodeEdge(p->getNodeID(), p->getEdgeID(), i);
+                addNodeEdge(p->getNodeID(), p->getEdgeID(), p->isFwdEdge(),  i);
             }
-            writer.addEdge(curPath[curPath.size() - 1]->getEdgeID(), 0);
+            auto lastPathElement = curPath[curPath.size() - 1];
+            addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(), 0);
 
             fTable.append(vectors);
             backtracking = true;
@@ -150,6 +123,30 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             curPath.push_back(parent);
             backtracking = false;
         }
+    }
+}
+
+void PathsOutputWriter::beginWritingNewPath(uint64_t length) const {
+    addListEntry(pathNodeIDsVector.get(), length > 1 ? length - 1 : 0);
+    addListEntry(pathEdgeIDsVector.get(), length);
+    if (writeEdgeDirection) {
+        addListEntry(directionVector.get(), length);
+    }
+}
+
+void PathsOutputWriter::addEdge(relID_t edgeID, bool fwdEdge, sel_t pos) const {
+    ListVector::getDataVector(pathEdgeIDsVector.get())->setValue(pos, edgeID);
+    if (writeEdgeDirection) {
+        ListVector::getDataVector(directionVector.get())->setValue(pos, fwdEdge);
+    }
+}
+
+void PathsOutputWriter::addNodeEdge(nodeID_t nodeID, relID_t edgeID, bool fwdEdge, sel_t pos) const {
+    KU_ASSERT(pos > 0);
+    ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos - 1, nodeID);
+    ListVector::getDataVector(pathEdgeIDsVector.get())->setValue(pos, edgeID);
+    if (writeEdgeDirection) {
+        ListVector::getDataVector(directionVector.get())->setValue(pos, fwdEdge);
     }
 }
 

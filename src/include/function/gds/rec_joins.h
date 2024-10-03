@@ -79,7 +79,7 @@ struct RJCompState {
 };
 
 class RJAlgorithm : public GDSAlgorithm {
-protected:
+    static constexpr char DIRECTION_COLUMN_NAME[] = "direction";
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
     static constexpr char PATH_EDGE_IDS_COLUMN_NAME[] = "pathEdgeIDs";
@@ -95,7 +95,7 @@ public:
 protected:
     void validateLowerUpperBound(int64_t lowerBound, int64_t upperBound);
 
-    binder::expression_vector getNodeIDResultColumns() const;
+    binder::expression_vector getBaseResultColumns(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getLengthColumn(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getPathNodeIDsColumn(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getPathEdgeIDsColumn(binder::Binder* binder) const;

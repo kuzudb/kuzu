@@ -173,8 +173,8 @@ private:
 class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
     VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
-        uint16_t upperBound)
-        : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound) {}
+        uint16_t upperBound, bool writeEdgeDirection)
+        : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound, writeEdgeDirection) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
@@ -195,7 +195,7 @@ public:
 
     std::unique_ptr<RJOutputWriter> copy() override {
         return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound,
-            upperBound);
+            upperBound, writeEdgeDirection);
     }
 };
 
@@ -205,7 +205,7 @@ public:
         PathMultiplicities* multiplicities)
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrID, relID_t) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrID, relID_t, bool ) override {
         auto nbrVal =
             frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
@@ -239,7 +239,7 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID, bool fwdEdge) override {
         auto nbrLen =
             frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
@@ -253,7 +253,7 @@ public:
                 parentListBlock = bfsGraph->addNewBlock();
             }
             bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
-                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
+                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID, fwdEdge);
         }
         return nbrLen == PathLengths::UNVISITED;
     }
@@ -279,7 +279,7 @@ public:
     AllSPDestinationsAlgorithm() = default;
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
+    expression_vector getResultColumns(Binder* binder) const override { return getBaseResultColumns(binder); }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
@@ -308,7 +308,7 @@ public:
     AllSPLengthsAlgorithm(const AllSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         return columns;
     }
@@ -339,7 +339,7 @@ public:
     AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
         columns.push_back(getPathEdgeIDsColumn(binder));
@@ -356,8 +356,10 @@ private:
         auto output =
             std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            bindData->ptrCast<RJBindData>()->upperBound);
+            rjBindData->upperBound, writeDirection);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -377,13 +379,13 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID, bool isFwd) override {
         // We should always update the nbrID in variable length joins
         if (!parentPtrsBlock->hasSpace()) {
             parentPtrsBlock = bfsGraph->addNewBlock();
         }
         bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock, nbrNodeID /* child */,
-            boundNodeID /* parent */, edgeID);
+            boundNodeID /* parent */, edgeID, isFwd);
         return true;
     }
 
@@ -429,8 +431,8 @@ public:
             extendDirection);
     }
 
-    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+    binder::expression_vector getResultColumns(Binder* binder) const override {
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
         columns.push_back(getPathEdgeIDsColumn(binder));
@@ -448,8 +450,9 @@ private:
         auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
         auto output = std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->lowerBound, rjBindData->upperBound);
+            rjBindData->lowerBound, rjBindData->upperBound, writeDirection);
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
             clientContext->getMaxNumThreadForExec(), mm);
         auto edgeCompute =
