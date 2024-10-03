@@ -5,6 +5,7 @@
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"
+#include "processor/operator/persistent/reader/csv/dialect_detection.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,7 +18,7 @@ public:
         const function::ScanTableFuncBindInput* bindInput = nullptr);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
-    std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
+    std::vector<std::pair<std::string, common::LogicalType>> sniffCSV(DialectOption &detectedDialect);
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
 
 protected:
@@ -26,7 +27,7 @@ protected:
 private:
     const function::ScanTableFuncBindInput* bindInput;
     void resetReaderState();
-    void detectDialect();
+    DialectOption detectDialect();
 };
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
@@ -56,7 +57,7 @@ struct SerialCSVScan {
 
     static function::function_set getFunctionSet();
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
-        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes);
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes, DialectOption& detectedDialect);
 };
 
 } // namespace processor

@@ -2,7 +2,6 @@
 
 #include "function/table/bind_data.h"
 #include "processor/execution_context.h"
-#include "processor/operator/persistent/reader/csv/dialect_detection.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 
@@ -19,10 +18,10 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t file
           errorHandler},
       bindInput{bindInput} {}
 
-std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
+std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(DialectOption &detectedDialect) {
     readBOM();
 
-    detectDialect();
+    detectedDialect = detectDialect();
 
     SniffCSVNameAndTypeDriver driver{this, bindInput};
     parseCSV(driver);
@@ -127,7 +126,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes, DialectOption& detectedDialect) {
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
     auto columnInfo = CSVColumnInfo(bindInput->expectedColumnNames.size() /* numColumns */,
         {} /* columnSkips */, {} /*warningDataColumns*/);
@@ -144,7 +143,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
             return BaseCSVReader::basePopulateErrorFunc(std::move(error), &sharedErrorHandler,
                 &csvReader, bindInput->config.filePaths[fileIdx]);
         });
-    auto sniffedColumns = csvReader.sniffCSV();
+    auto sniffedColumns = csvReader.sniffCSV(detectedDialect);
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
         columnTypes.push_back(type.copy());
@@ -152,13 +151,13 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
 }
 
 void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes, DialectOption& detectedDialect) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
-    bindColumnsFromFile(bindInput, 0, columnNames, columnTypes);
+    bindColumnsFromFile(bindInput, 0, columnNames, columnTypes, detectedDialect);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
-        bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes);
+        bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes, detectedDialect);
         ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
     }
 }
@@ -169,13 +168,20 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
         scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
             Value((int64_t)0)); // only scan headers
     }
+    DialectOption detectedDialect;
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
-    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
+    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes, detectedDialect);
+    std::string quote(1, detectedDialect.quoteChar);
+    std::string delim(1, detectedDialect.delimiter);
+    std::string escape(1, detectedDialect.escapeChar);
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
+    scanInput->config.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
+    scanInput->config.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
+    scanInput->config.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
 
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
         resultColumnNames, resultColumnTypes, scanInput->config);
@@ -251,7 +257,7 @@ void SerialCSVReader::resetReaderState() {
     readBOM();
 }
 
-void SerialCSVReader::detectDialect() {
+DialectOption SerialCSVReader::detectDialect() {
     // Extract a sample of rows from the file for dialect detection
     SniffCSVDialectDriver driver{this, bindInput};
 
@@ -374,6 +380,9 @@ void SerialCSVReader::detectDialect() {
         option.quoteChar = defaultOption.quoteChar;
         option.escapeChar = defaultOption.escapeChar;
     }
+
+    DialectOption ret{option.delimiter, option.quoteChar, option.escapeChar};
+    return ret;
 }
 
 } // namespace processor
