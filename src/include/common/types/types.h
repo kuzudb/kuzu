@@ -231,7 +231,6 @@ enum class PhysicalTypeID : uint8_t {
     ARRAY = 23,
     STRUCT = 24,
     POINTER = 25,
-    MAP = 26,
 };
 
 class ExtraTypeInfo;
