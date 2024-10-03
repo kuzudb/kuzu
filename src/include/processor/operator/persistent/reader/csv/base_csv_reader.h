@@ -105,9 +105,6 @@ protected:
     template<typename Driver>
     uint64_t parseCSV(Driver&);
 
-    template<typename Driver>
-    uint64_t parseCSVInternal(Driver&, bool isSniffDriver = false);
-
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
 
 protected:

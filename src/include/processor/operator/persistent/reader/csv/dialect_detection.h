@@ -4,8 +4,6 @@
 
 #include "common/copier_config/csv_reader_config.h"
 
-using namespace kuzu::common;
-
 struct DialectOption {
     char delimiter = ',';
     char quoteChar = '"';
@@ -18,4 +16,4 @@ struct DialectOption {
         : delimiter(delim), quoteChar(quote), escapeChar(escape), everQuoted(false), doDialectDetection(true) {}
 };
 
-std::vector<DialectOption> generateDialectOptions(const CSVOption& option);
+std::vector<DialectOption> generateDialectOptions(const kuzu::common::CSVOption& option);
