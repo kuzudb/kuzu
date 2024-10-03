@@ -1,0 +1,43 @@
+-DATASET CSV csv-dialect-detection
+--
+
+-CASE DIFFERENT_DELIMITER
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim1.csv"(header=true) return *
+---- 3
+0|1|2021|[wwAewsdndweusd,wek]|5|5|9223372036854775808|32800|33768|250|1844674407370955161811111111
+2|1|2020|[anew,jsdnwusklklklwewsd]|55|120|6689|1|90|220|-1844674407370955161511
+8|1|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|22|2|23|20|180|12|-15
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim2.csv"(header=true) return *
+---- 3
+0|1|2021|[wwAewsdndweusd,wek]|5|5|9223372036854775808|32800|33768|250|1844674407370955161811111111
+2|1|2020|[anew,jsdnwusklklklwewsd]|55|120|6689|1|90|220|-1844674407370955161511
+8|1|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|22|2|23|20|180|12|-15
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim1.csv"(header=true, AUTO_DETECTION = false) return *
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim1.csv on line 2: expected 0 values per row, but got more. Line/record containing the error: '0|1|2021|"[wwAewsdndweusd,wek]"|5|5|9223372036854775808|32800|33768|250|1844674407370955161811111111'
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim2.csv"(header=true, AUTO_DETECTION = false) return *
+---- error
+Copy exception: Error in file /home/sjs/kuzu/dataset/csv-dialect-detection/eStudyAt_delim2.csv on line 2: expected 0 values per row, but got more. Line/record containing the error: '0;1;2021;"[wwAewsdndweusd,wek]";5;5;9223372036854775808;32800;33768;250;1844674407370955161811111111'
+
+-CASE DIFFERENT_QUOTE
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_quote1.csv"(header=true) return *
+---- 3
+0|1|2021|[wwAewsdndweusd,wek]|5|5|9223372036854775808|32800|33768|250|1844674407370955161811111111
+2|1|2020|[anew,jsdnwusklklklwewsd]|55|120|6689|1|90|220|-1844674407370955161511
+8|1|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|22|2|23|20|180|12|-15
+
+-CASE DIFFERENT_ESCAPE
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_escape1.csv"(header=true, AUTO_DETECTION = false, escape = '\\', delim = ';') return *
+---- 3
+0|1|2021|114"514
+2|1|2020|1919810"514
+8|1|2020|gcd"gcd
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_escape1.csv"(header=true) return *
+---- 3
+0|1|2021|114"514
+2|1|2020|1919810"514
+8|1|2020|gcd"gcd
