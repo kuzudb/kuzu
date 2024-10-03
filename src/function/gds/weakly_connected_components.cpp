@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "common/types/internal_id_util.h"
+#include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
@@ -113,14 +114,11 @@ private:
         GraphScanState& scanState) {
         KU_ASSERT(!visitedMap.contains(nodeID));
         visitedMap.insert({nodeID, groupID});
-        auto scanResult = GraphScanResult();
-        sharedState->graph->scanFwd(nodeID, scanState, scanResult);
-        for (auto i = 0u; i < scanResult.size(); ++i) {
-            auto nbr = scanResult.nbrNodeIDs[i];
-            if (visitedMap.contains(nbr)) {
-                continue;
+        // Collect the nodes so that the recursive scan doesn't begin until this scan is done
+        for (auto& nbr : sharedState->graph->scanFwd(nodeID, scanState).collectNbrNodes()) {
+            if (!visitedMap.contains(nbr)) {
+                findConnectedComponent(nbr, groupID, scanState);
             }
-            findConnectedComponent(nbr, groupID, scanState);
         }
     }
 
