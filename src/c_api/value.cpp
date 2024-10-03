@@ -297,7 +297,8 @@ kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
+kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index,
+    kuzu_value* out_value) {
     return kuzu_value_get_list_element(value, index, out_value);
 }
 

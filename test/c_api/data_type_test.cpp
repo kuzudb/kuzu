@@ -259,7 +259,7 @@ TEST(CApiDataTypeTest, GetFixedNumElementsInList) {
     kuzu_logical_type dataType5;
     kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 0, &dataType5);
     ASSERT_NE(dataType5._data_type, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(&dataType5, &numElements), KuzuSuccess);    
+    ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(&dataType5, &numElements), KuzuSuccess);
 
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);
