@@ -330,7 +330,6 @@ public:
 
     static KUZU_API LogicalType LIST(LogicalType childType);
 
-    static KUZU_API LogicalType MAP(std::unique_ptr<StructTypeInfo> typeInfo);
     template<class T>
     static inline LogicalType LIST(T&& childType) {
         return LogicalType::LIST(LogicalType(std::forward<T>(childType)));
