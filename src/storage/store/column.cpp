@@ -36,10 +36,10 @@ struct ReadInternalIDValuesToVector {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
         std::unique_ptr<offset_t[]> bufferMgr;
-        offset_t singleValBuffer{};
+        offset_t fixedSizeBuffer[DEFAULT_VECTOR_CAPACITY];
         offset_t* bufferPtr = nullptr;
-        if (numValuesToRead == 1) {
-            bufferPtr = &singleValBuffer;
+        if (numValuesToRead <= DEFAULT_VECTOR_CAPACITY) {
+            bufferPtr = fixedSizeBuffer;
         } else {
             bufferMgr = std::make_unique<offset_t[]>(numValuesToRead);
             bufferPtr = bufferMgr.get();
