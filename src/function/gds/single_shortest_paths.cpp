@@ -205,22 +205,25 @@ private:
 
 function_set SingleSPDestinationsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<SingleSPDestinationsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<SingleSPDestinationsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<SingleSPLengthsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<SingleSPLengthsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<SingleSPPathsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<SingleSPPathsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 

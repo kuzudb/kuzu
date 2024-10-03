@@ -221,7 +221,7 @@ class FrontierPair {
     friend class FrontierTask;
 
 public:
-    explicit FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
+    FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
         uint64_t maxThreadsForExec);
 
@@ -241,6 +241,8 @@ public:
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
     uint16_t getNextIter() { return curIter.load() + 1u; }
+
+    GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
     bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
 

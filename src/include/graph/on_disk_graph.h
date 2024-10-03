@@ -125,9 +125,7 @@ private:
 class OnDiskGraph final : public Graph {
 public:
     OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
-    OnDiskGraph(const OnDiskGraph& other);
 
-    std::unique_ptr<Graph> copy() override { return std::make_unique<OnDiskGraph>(*this); }
     std::vector<common::table_id_t> getNodeTableIDs() override;
     std::vector<common::table_id_t> getRelTableIDs() override;
 

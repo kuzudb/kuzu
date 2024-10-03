@@ -96,12 +96,6 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
     }
 }
 
-OnDiskGraph::OnDiskGraph(const OnDiskGraph& other)
-    : context{other.context}, graphEntry{other.graphEntry.copy()},
-      nodeIDToNodeTable{other.nodeIDToNodeTable},
-      nodeTableIDToFwdRelTables{other.nodeTableIDToFwdRelTables},
-      nodeTableIDToBwdRelTables{other.nodeTableIDToBwdRelTables} {}
-
 std::vector<table_id_t> OnDiskGraph::getNodeTableIDs() {
     return graphEntry.nodeTableIDs;
 }

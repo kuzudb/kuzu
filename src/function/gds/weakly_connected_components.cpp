@@ -129,8 +129,9 @@ private:
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<WeaklyConnectedComponent>();
     auto function =
-        std::make_unique<GDSFunction>(name, std::make_unique<WeaklyConnectedComponent>());
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
     result.push_back(std::move(function));
     return result;
 }

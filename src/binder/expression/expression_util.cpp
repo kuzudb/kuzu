@@ -230,6 +230,12 @@ bool ExpressionUtil::getLiteralValue(const Expression& expr) {
     validateDataType(expr, LogicalType::BOOL());
     return expr.constCast<LiteralExpression>().getValue().getValue<bool>();
 }
+template<>
+std::string ExpressionUtil::getLiteralValue(const Expression& expr) {
+    validateExpressionType(expr, ExpressionType::LITERAL);
+    validateDataType(expr, LogicalType::STRING());
+    return expr.constCast<LiteralExpression>().getValue().getValue<std::string>();
+}
 
 // For primitive types, two types are compatible if they have the same id.
 // For nested types, two types are compatible if they have the same id and their children are also

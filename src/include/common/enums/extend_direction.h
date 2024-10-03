@@ -15,6 +15,8 @@ struct ExtendDirectionUtil {
         KU_ASSERT(direction != ExtendDirection::BOTH);
         return direction == ExtendDirection::FWD ? RelDataDirection::FWD : RelDataDirection::BWD;
     }
+
+    static ExtendDirection fromString(const std::string& str);
 };
 
 } // namespace common

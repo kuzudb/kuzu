@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/extend_direction.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "output_writer.h"
@@ -23,15 +24,18 @@ struct RJBindData final : public GDSBindData {
     uint16_t lowerBound;
     uint16_t upperBound;
 
+    common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
+
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound)
+        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
+        common::ExtendDirection extendDirection)
         : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
-          lowerBound{lowerBound}, upperBound{upperBound} {
+          lowerBound{lowerBound}, upperBound{upperBound}, extendDirection{extendDirection} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
     }
     RJBindData(const RJBindData& other)
         : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
-          upperBound{other.upperBound} {}
+          upperBound{other.upperBound}, extendDirection{other.extendDirection} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
@@ -49,11 +53,11 @@ struct RJCompState {
     std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<RJOutputWriter> outputWriter;
 
-    explicit RJCompState(std::unique_ptr<function::FrontierPair> frontierPair3,
+    RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter);
 
-    void initRJFromSource(common::nodeID_t sourceNodeID) const {
+    void initSource(common::nodeID_t sourceNodeID) const {
         frontierPair->initRJFromSource(sourceNodeID);
         outputs->initRJFromSource(sourceNodeID);
     }
@@ -108,10 +112,11 @@ public:
      * graph::ANY
      * srcNode::NODE
      * upperBound::INT64
+     * direction::STRING
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-            common::LogicalTypeID::INT64};
+            common::LogicalTypeID::INT64, common::LogicalTypeID::STRING};
     }
 
     void bind(const binder::expression_vector& params, binder::Binder* binder,

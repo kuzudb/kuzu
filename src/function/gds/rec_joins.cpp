@@ -76,14 +76,17 @@ static void validateSPUpperBound(int64_t upperBound) {
 
 void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 3);
+    KU_ASSERT(params.size() == 4);
     auto nodeInput = params[1];
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
     auto lowerBound = 1;
     auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
-    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound);
+    auto extendDirection =
+        ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+        extendDirection);
 }
 
 class RJOutputWriterVCSharedState {
@@ -144,9 +147,10 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
             RJCompState rjCompState = getRJCompState(executionContext, sourceNodeID);
-            rjCompState.initRJFromSource(sourceNodeID);
+            rjCompState.initSource(sourceNodeID);
+            auto rjBindData = bindData->ptrCast<RJBindData>();
             GDSUtils::runFrontiersUntilConvergence(executionContext, rjCompState,
-                sharedState->graph.get(), bindData->ptrCast<RJBindData>()->upperBound);
+                sharedState->graph.get(), rjBindData->extendDirection, rjBindData->upperBound);
             auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
                 executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
                 rjCompState.outputWriter.get());
