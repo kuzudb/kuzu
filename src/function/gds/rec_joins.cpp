@@ -50,7 +50,8 @@ expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
     auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(outputNode.getInternalID());
     if (bindData->ptrCast<RJBindData>()->extendDirection == ExtendDirection::BOTH) {
-        columns.push_back(binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL())));
+        columns.push_back(
+            binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL())));
     }
     return columns;
 }

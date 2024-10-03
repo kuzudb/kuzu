@@ -194,8 +194,8 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound,
-            upperBound, writeEdgeDirection);
+        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound, upperBound,
+            writeEdgeDirection);
     }
 };
 
@@ -205,7 +205,7 @@ public:
         PathMultiplicities* multiplicities)
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrID, relID_t, bool ) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrID, relID_t, bool) override {
         auto nbrVal =
             frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
@@ -239,7 +239,8 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID, bool fwdEdge) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID,
+        bool fwdEdge) override {
         auto nbrLen =
             frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
         // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
@@ -279,7 +280,9 @@ public:
     AllSPDestinationsAlgorithm() = default;
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder* binder) const override { return getBaseResultColumns(binder); }
+    expression_vector getResultColumns(Binder* binder) const override {
+        return getBaseResultColumns(binder);
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
@@ -379,7 +382,8 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID, bool isFwd) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID,
+        bool isFwd) override {
         // We should always update the nbrID in variable length joins
         if (!parentPtrsBlock->hasSpace()) {
             parentPtrsBlock = bfsGraph->addNewBlock();

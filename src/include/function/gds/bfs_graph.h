@@ -34,9 +34,7 @@ public:
         return {edgeOffset.load(std::memory_order_relaxed),
             edgeTableID.load(std::memory_order_relaxed)};
     }
-    bool isFwdEdge() {
-        return fwd_.load(std::memory_order_relaxed);
-    }
+    bool isFwdEdge() { return fwd_.load(std::memory_order_relaxed); }
 
 private:
     // Iteration level
@@ -91,7 +89,8 @@ public:
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
     // function.
     void addParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock,
-        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID, bool isFwd) {
+        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID,
+        bool isFwd) {
         auto parentEdgePtr = parentListBlock->reserveNext();
         parentEdgePtr->store(iter, parentNodeID, edgeID, isFwd);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
@@ -105,7 +104,8 @@ public:
 
     // For single shortest path, we do NOT add parent if a parent has already existed.
     void tryAddSingleParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock,
-        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID, bool isFwd) {
+        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID,
+        bool isFwd) {
         auto parentEdgePtr = parentListBlock->reserveNext();
         parentEdgePtr->store(iter, parentNodeID, edgeID, isFwd);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);

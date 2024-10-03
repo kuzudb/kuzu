@@ -19,7 +19,8 @@ void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tabl
     bfsGraph.pinNodeTable(tableID);
 }
 
-static std::unique_ptr<ValueVector> createVector(const LogicalType& type, storage::MemoryManager* mm, std::vector<ValueVector*>& vectors) {
+static std::unique_ptr<ValueVector> createVector(const LogicalType& type,
+    storage::MemoryManager* mm, std::vector<ValueVector*>& vectors) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     vectors.push_back(vector.get());
@@ -36,7 +37,8 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutput
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
     uint16_t lowerBound, uint16_t upperBound, bool writeEdgeDirection)
-    : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound}, writeEdgeDirection{writeEdgeDirection} {
+    : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound},
+      writeEdgeDirection{writeEdgeDirection} {
     auto mm = context->getMemoryManager();
     if (writeEdgeDirection) {
         directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm, vectors);
@@ -82,7 +84,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             // order of the nodes/edges that should be placed into the ListVector.
             for (auto i = 1u; i < curPath.size(); i++) {
                 auto p = curPath[curPath.size() - 1 - i];
-                addNodeEdge(p->getNodeID(), p->getEdgeID(), p->isFwdEdge(),  i);
+                addNodeEdge(p->getNodeID(), p->getEdgeID(), p->isFwdEdge(), i);
             }
             auto lastPathElement = curPath[curPath.size() - 1];
             addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(), 0);
@@ -141,7 +143,8 @@ void PathsOutputWriter::addEdge(relID_t edgeID, bool fwdEdge, sel_t pos) const {
     }
 }
 
-void PathsOutputWriter::addNodeEdge(nodeID_t nodeID, relID_t edgeID, bool fwdEdge, sel_t pos) const {
+void PathsOutputWriter::addNodeEdge(nodeID_t nodeID, relID_t edgeID, bool fwdEdge,
+    sel_t pos) const {
     KU_ASSERT(pos > 0);
     ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos - 1, nodeID);
     ListVector::getDataVector(pathEdgeIDsVector.get())->setValue(pos, edgeID);

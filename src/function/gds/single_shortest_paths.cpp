@@ -81,7 +81,8 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID, bool fwdEdge) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID,
+        bool fwdEdge) override {
         auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
                                 nbrNodeID.offset) == PathLengths::UNVISITED;
         if (shouldUpdate) {
@@ -116,7 +117,9 @@ public:
     SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
         : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder* binder) const override { return getBaseResultColumns(binder); }
+    expression_vector getResultColumns(Binder* binder) const override {
+        return getBaseResultColumns(binder);
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<SingleSPDestinationsAlgorithm>(*this);
