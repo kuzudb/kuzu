@@ -33,10 +33,12 @@ TEST(CApiDataTypeTest, Create) {
     ASSERT_EQ(dataTypeCpp4->getLogicalTypeID(), LogicalTypeID::STRUCT);
 
     kuzu_logical_type dataType5;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 0, &dataType5);
+    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 100, &dataType5);
     ASSERT_NE(dataType5._data_type, nullptr);
     auto dataTypeCpp5 = (LogicalType*)dataType5._data_type;
     ASSERT_EQ(dataTypeCpp5->getLogicalTypeID(), LogicalTypeID::MAP);
+    ASSERT_EQ(ArrayType::getNumElements(*dataTypeCpp5), 100);
+
 
     // Since child type is copied, we should be able to destroy the original type without an error.
     kuzu_data_type_destroy(&dataType);
@@ -257,9 +259,10 @@ TEST(CApiDataTypeTest, GetFixedNumElementsInList) {
     ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(&dataType4, &numElements), KuzuSuccess);
 
     kuzu_logical_type dataType5;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 0, &dataType5);
+    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 100, &dataType5);
     ASSERT_NE(dataType5._data_type, nullptr);
     ASSERT_EQ(kuzu_data_type_get_num_elements_in_array(&dataType5, &numElements), KuzuSuccess);
+    ASSERT_EQ(numElements, 100);
 
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);

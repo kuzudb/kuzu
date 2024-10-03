@@ -265,8 +265,8 @@ kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
 }
 
 kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result) {
-    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
-    if (physical_type_id != PhysicalTypeID::MAP) {
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
+    if (logical_type_id != LogicalTypeID::MAP) {
         return KuzuError;
     }
     auto val = static_cast<Value*>(value->_value);
@@ -280,8 +280,8 @@ kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result
 }
 
 kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char** out_result) {
-    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
-    if (physical_type_id != PhysicalTypeID::MAP) {
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
+    if (logical_type_id != LogicalTypeID::MAP) {
         return KuzuError;
     }
     auto val = static_cast<Value*>(value->_value);
