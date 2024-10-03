@@ -264,6 +264,43 @@ kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
     return kuzu_value_get_list_element(value, index, out_value);
 }
 
+kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result) {
+    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
+    if (physical_type_id != PhysicalTypeID::MAP) {
+        return KuzuError;
+    }
+    auto val = static_cast<Value*>(value->_value);
+    const auto& data_type = val->getDataType();
+    try {
+        *out_result = StructType::getNumFields(data_type);
+        return KuzuSuccess;
+    } catch (Exception& e) {
+        return KuzuError;
+    }
+}
+
+kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char** out_result) {
+    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
+    if (physical_type_id != PhysicalTypeID::MAP) {
+        return KuzuError;
+    }
+    auto val = static_cast<Value*>(value->_value);
+    const auto& data_type = val->getDataType();
+    if (index >= StructType::getNumFields(data_type)) {
+        return KuzuError;
+    }
+    std::string map_field_name = StructType::getFields(data_type)[index].getName();
+    if (map_field_name.empty()) {
+        return KuzuError;
+    }
+    *out_result = convertToOwnedCString(map_field_name);
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
+    return kuzu_value_get_list_element(value, index, out_value);
+}
+
 kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value, kuzu_value* out_value) {
     auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RECURSIVE_REL) {

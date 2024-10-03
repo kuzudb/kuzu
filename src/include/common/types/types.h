@@ -231,6 +231,7 @@ enum class PhysicalTypeID : uint8_t {
     ARRAY = 23,
     STRUCT = 24,
     POINTER = 25,
+    MAP = 26,
 };
 
 class ExtraTypeInfo;
@@ -329,6 +330,8 @@ public:
     static KUZU_API LogicalType UNION(std::vector<StructField>&& fields);
 
     static KUZU_API LogicalType LIST(LogicalType childType);
+
+    static KUZU_API LogicalType MAP(std::unique_ptr<StructTypeInfo> typeInfo);
     template<class T>
     static inline LogicalType LIST(T&& childType) {
         return LogicalType::LIST(LogicalType(std::forward<T>(childType)));
