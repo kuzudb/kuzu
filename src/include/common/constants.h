@@ -137,7 +137,7 @@ struct CopyConstants {
 
     static constexpr const char* IGNORE_ERRORS_OPTION_NAME = "IGNORE_ERRORS";
     static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL",
-        "LIST_UNBRACED", CopyConstants::IGNORE_ERRORS_OPTION_NAME};
+        "LIST_UNBRACED", "AUTODETECTION", "AUTO_DETECTION", CopyConstants::IGNORE_ERRORS_OPTION_NAME};
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
     static constexpr bool DEFAULT_CSV_PARALLEL = true;
 
@@ -153,6 +153,7 @@ struct CopyConstants {
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
     static constexpr char DEFAULT_CSV_LINE_BREAK = '\n';
     static constexpr bool DEFAULT_IGNORE_ERRORS = false;
+    static constexpr bool DEFAULT_CSV_AUTO_DETECTION = true;
     static constexpr bool DEFAULT_CSV_SET_DIALECT = false;
     static constexpr std::array DEFAULT_CSV_DELIMITER_SEARCH_SPACE = {',', ';', '\t', '|'};
     static constexpr std::array DEFAULT_CSV_QUOTE_SEARCH_SPACE = {'"', '\''};

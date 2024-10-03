@@ -18,6 +18,7 @@ struct CSVOption {
     bool allowUnbracedList;
     bool ignoreErrors;
 
+    bool autoDetection;
     bool setEscape;
     bool setDelim;
     bool setQuote;
@@ -31,6 +32,7 @@ struct CSVOption {
           sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
           allowUnbracedList{CopyConstants::DEFAULT_CSV_ALLOW_UNBRACED_LIST},
           ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
+          autoDetection{CopyConstants::DEFAULT_CSV_AUTO_DETECTION},
           setEscape{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setDelim{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
@@ -53,7 +55,7 @@ struct CSVOption {
                          other.sampleSize}, // Set to DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE if
                                             // sampleSize is 0
           allowUnbracedList{other.allowUnbracedList}, ignoreErrors{other.ignoreErrors},
-          setEscape{other.setEscape}, setDelim{other.setDelim}, setQuote{other.setQuote} {}
+          autoDetection{other.autoDetection}, setEscape{other.setEscape}, setDelim{other.setDelim}, setQuote{other.setQuote} {}
 };
 
 struct CSVReaderConfig {
