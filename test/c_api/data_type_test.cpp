@@ -39,7 +39,6 @@ TEST(CApiDataTypeTest, Create) {
     ASSERT_EQ(dataTypeCpp5->getLogicalTypeID(), LogicalTypeID::MAP);
     ASSERT_EQ(ArrayType::getNumElements(*dataTypeCpp5), 100);
 
-
     // Since child type is copied, we should be able to destroy the original type without an error.
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);
