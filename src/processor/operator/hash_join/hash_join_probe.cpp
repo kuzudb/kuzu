@@ -102,7 +102,7 @@ uint64_t HashJoinProbe::getInnerJoinResultForUnFlatKey() {
     auto& keySelVector = keyVectors[0]->state->getSelVectorUnsafe();
     if (keySelVector.getSelSize() != numTuplesToRead) {
         // Some keys have no matched tuple. So we modify selected position.
-        auto buffer = keySelVector.getMultableBuffer();
+        auto buffer = keySelVector.getMutableBuffer();
         for (auto i = 0u; i < numTuplesToRead; i++) {
             buffer[i] = probeState->matchedSelVector[i];
         }

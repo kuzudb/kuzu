@@ -49,8 +49,8 @@ void RelTableScanState::initCachedBoundNodeIDSelVector() {
         cachedBoundNodeSelVector.setToUnfiltered();
     } else {
         cachedBoundNodeSelVector.setToFiltered();
-        memcpy(cachedBoundNodeSelVector.getMultableBuffer().data(),
-            nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer().data(),
+        memcpy(cachedBoundNodeSelVector.getMutableBuffer().data(),
+            nodeIDVector->state->getSelVectorUnsafe().getMutableBuffer().data(),
             nodeIDVector->state->getSelVector().getSelSize() * sizeof(sel_t));
     }
     cachedBoundNodeSelVector.setSelSize(nodeIDVector->state->getSelVector().getSelSize());

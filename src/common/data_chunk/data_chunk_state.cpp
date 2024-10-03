@@ -15,7 +15,7 @@ void DataChunkState::slice(offset_t offset) {
     // instead of creating a new one.
     auto slicedSelVector = std::make_shared<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < selVector->getSelSize() - offset; i++) {
-        slicedSelVector->getMultableBuffer()[i] = selVector->operator[](i + offset);
+        slicedSelVector->getMutableBuffer()[i] = selVector->operator[](i + offset);
     }
     slicedSelVector->setToFiltered(selVector->getSelSize() - offset);
     selVector = std::move(slicedSelVector);

@@ -43,7 +43,7 @@ bool ValueVector::discardNull(ValueVector& vector) {
     } else {
         auto selectedPos = 0u;
         if (vector.state->getSelVector().isUnfiltered()) {
-            auto buffer = vector.state->getSelVectorUnsafe().getMultableBuffer();
+            auto buffer = vector.state->getSelVectorUnsafe().getMutableBuffer();
             for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
                 buffer[selectedPos] = i;
                 selectedPos += !vector.isNull(i);

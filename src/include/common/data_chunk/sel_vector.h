@@ -38,7 +38,7 @@ public:
         selectedSize = size;
     }
 
-    std::span<sel_t> getMultableBuffer() {
+    std::span<sel_t> getMutableBuffer() {
         return std::span<sel_t>(selectedPositionsBuffer.get(), capacity);
     }
     std::span<sel_t> getSelectedPositions() const {

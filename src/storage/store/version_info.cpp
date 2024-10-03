@@ -95,7 +95,7 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
             selVector.setSelSize(selVector.getSelSize() + numRows);
         } else {
             for (auto i = 0u; i < numRows; i++) {
-                selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
+                selVector.getMutableBuffer()[numSelected++] = startOutputPos + i;
             }
             selVector.setToFiltered(numSelected);
         }
@@ -103,7 +103,7 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
         for (auto i = 0u; i < numRows; i++) {
             if (const auto rowIdx = startRow + i; isInserted(startTS, transactionID, rowIdx) &&
                                                   !isDeleted(startTS, transactionID, rowIdx)) {
-                selVector.getMultableBuffer()[numSelected++] = startOutputPos + i;
+                selVector.getMutableBuffer()[numSelected++] = startOutputPos + i;
             }
         }
         selVector.setToFiltered(numSelected);
@@ -411,7 +411,7 @@ void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transact
                 selVector.setSelSize(numSelected + numRowsInVector);
             } else {
                 for (auto i = 0u; i < numRowsInVector; i++) {
-                    selVector.getMultableBuffer()[numSelected++] = outputPos + i;
+                    selVector.getMutableBuffer()[numSelected++] = outputPos + i;
                 }
                 selVector.setToFiltered(numSelected);
             }
