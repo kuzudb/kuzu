@@ -20,7 +20,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detecti
 
 -STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim2.csv"(header=true, AUTO_DETECTION = false) return *
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/csv-dialect-detection/eStudyAt_delim2.csv on line 2: expected 0 values per row, but got more. Line/record containing the error: '0;1;2021;"[wwAewsdndweusd,wek]";5;5;9223372036854775808;32800;33768;250;1844674407370955161811111111'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_delim2.csv on line 2: expected 0 values per row, but got more. Line/record containing the error: '0;1;2021;"[wwAewsdndweusd,wek]";5;5;9223372036854775808;32800;33768;250;1844674407370955161811111111'
 
 -CASE DIFFERENT_QUOTE
 -STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_quote1.csv"(header=true) return *
