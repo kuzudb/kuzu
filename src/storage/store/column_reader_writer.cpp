@@ -186,10 +186,26 @@ public:
             KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
             if (!filterFunc.has_value() ||
                 filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
-                readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-                    readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
-                        numValuesToScanInPage, chunkMeta.compMeta);
-                });
+                struct CaptureData {
+                    const read_values_from_page_func_t<OutputType>& readFunc;
+                    PageCursor pageCursor;
+                    OutputType result;
+                    uint64_t readOffset{};
+                    uint64_t numValuesToRead{};
+                    const CompressionMetadata& compMeta;
+
+                    void callReadFunc(uint8_t* frame) {
+                        readFunc(frame, pageCursor, result, readOffset, numValuesToRead, compMeta);
+                    }
+                };
+                CaptureData captureData{.readFunc = readFunc,
+                    .pageCursor = pageCursor,
+                    .result = result,
+                    .readOffset = numValuesScanned + startOffsetInResult,
+                    .numValuesToRead = numValuesToScanInPage,
+                    .compMeta = chunkMeta.compMeta};
+                readFromPage(transaction, pageCursor.pageIdx,
+                    [&captureData](uint8_t* frame) -> void { captureData.callReadFunc(frame); });
             }
             numValuesScanned += numValuesToScanInPage;
             pageCursor.nextPage();

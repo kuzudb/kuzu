@@ -56,6 +56,10 @@ void EncodeExceptionView<T>::setValue(EncodeException<T> exception,
 }
 
 template<std::floating_point T>
+FloatCompression<T>::FloatCompression()
+    : constantEncodedFloatBitpacker(getBitpackingLogicalType<T>()), encodedFloatBitpacker() {}
+
+template<std::floating_point T>
 uint64_t FloatCompression<T>::compressNextPage(const uint8_t*&, uint64_t, uint8_t*, uint64_t,
     const struct CompressionMetadata&) const {
     KU_UNREACHABLE;
@@ -100,7 +104,7 @@ uint64_t FloatCompression<T>::compressNextPageWithExceptions(const uint8_t*& src
     const auto* castedIntegerEncodedBuffer =
         reinterpret_cast<const uint8_t*>(integerEncodedValues.data());
     const auto compressedIntegerSize =
-        getEncodedFloatBitpacker(metadata)->compressNextPage(castedIntegerEncodedBuffer,
+        getEncodedFloatBitpacker(metadata).compressNextPage(castedIntegerEncodedBuffer,
             numValuesToCompress, dstBuffer, dstBufferSize, metadata.getChild(BITPACKING_CHILD_IDX));
 
     // zero out unused parts of the page
@@ -121,14 +125,16 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
     uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
     const struct CompressionMetadata& metadata) const {
 
-    std::vector<EncodedType> integerEncodedValues(numValues);
-    getEncodedFloatBitpacker(metadata)->decompressFromPage(srcBuffer, srcOffset,
-        reinterpret_cast<uint8_t*>(integerEncodedValues.data()), 0, numValues,
-        metadata.getChild(BITPACKING_CHILD_IDX));
+    // reuse dstBuffer for unpacking the bitpacked enocded floats then decode them in place
+    getEncodedFloatBitpacker(metadata).decompressFromPage(srcBuffer, srcOffset, dstBuffer,
+        dstOffset, numValues, metadata.getChild(BITPACKING_CHILD_IDX));
 
+    static_assert(sizeof(EncodedType) == sizeof(T));
+    auto* integerEncodedValues = reinterpret_cast<EncodedType*>(dstBuffer);
     for (size_t i = 0; i < numValues; ++i) {
-        reinterpret_cast<T*>(dstBuffer)[dstOffset + i] = alp::AlpDecode<T>::decode_value(
-            integerEncodedValues[i], metadata.floatMetadata()->fac, metadata.floatMetadata()->exp);
+        reinterpret_cast<T*>(dstBuffer)[dstOffset + i] =
+            alp::AlpDecode<T>::decode_value(integerEncodedValues[dstOffset + i],
+                metadata.floatMetadata()->fac, metadata.floatMetadata()->exp);
     }
 }
 
@@ -158,18 +164,18 @@ void FloatCompression<T>::setValuesFromUncompressed(const uint8_t* srcBuffer,
         integerEncodedValues[i] = encodedValue;
     }
 
-    getEncodedFloatBitpacker(metadata)->setValuesFromUncompressed(
+    getEncodedFloatBitpacker(metadata).setValuesFromUncompressed(
         reinterpret_cast<const uint8_t*>(integerEncodedValues.data()), 0, dstBuffer, dstOffset,
         numValues, metadata.getChild(BITPACKING_CHILD_IDX), nullMask);
 }
 
 template<std::floating_point T>
-std::unique_ptr<CompressionAlg> FloatCompression<T>::getEncodedFloatBitpacker(
+const CompressionAlg& FloatCompression<T>::getEncodedFloatBitpacker(
     const CompressionMetadata& metadata) const {
     if (metadata.getChild(BITPACKING_CHILD_IDX).isConstant()) {
-        return std::make_unique<ConstantCompression>(getBitpackingLogicalType<T>());
+        return constantEncodedFloatBitpacker;
     } else {
-        return std::make_unique<IntegerBitpacking<EncodedType>>();
+        return encodedFloatBitpacker;
     }
 }
 
