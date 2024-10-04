@@ -152,7 +152,8 @@ bool isInsideCommentOrQuote(const std::string& buffer) {
         }
     }
 
-    return insideSingleLineComment || insideMultiLineComment || insideDoubleQuote || insideSingleQuote;
+    return insideSingleLineComment || insideMultiLineComment || insideDoubleQuote ||
+           insideSingleQuote;
 }
 
 void completion(const char* buffer, linenoiseCompletions* lc) {
@@ -215,7 +216,8 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
             }
             // make the rest of the keyword the same case as the last character of buf
             auto caseTransform = islower(buf.back()) ? ::tolower : ::toupper;
-            std::transform(keyword.begin() + buf.size(), keyword.end(), transformedKeyword.begin() + buf.size(), caseTransform);
+            std::transform(keyword.begin() + buf.size(), keyword.end(),
+                transformedKeyword.begin() + buf.size(), caseTransform);
 
             linenoiseAddCompletion(lc, (prefix + transformedKeyword).c_str());
         }
