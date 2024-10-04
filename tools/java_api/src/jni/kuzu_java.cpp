@@ -253,8 +253,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1database_1init(JNIEnv* env,
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
-    SystemConfig systemConfig;
-    systemConfig.bufferPoolSize = buffer == 0 ? -1u : buffer;
+    SystemConfig systemConfig{};
+    systemConfig.bufferPoolSize = buffer == 0 ? systemConfig.bufferPoolSize : buffer;
     systemConfig.enableCompression = enable_compression;
     systemConfig.readOnly = read_only;
     systemConfig.maxDBSize = max_db_size == 0 ? systemConfig.maxDBSize : max_db_size;
