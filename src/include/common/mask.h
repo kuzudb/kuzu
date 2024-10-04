@@ -52,8 +52,11 @@ public:
         maskData = std::make_unique<MaskData>(maxOffset + 1);
     }
 
+    bool isMasked(common::offset_t offset) const {
+        return maskData->isMasked(offset, numMasks);
+    }
     // Return true if any offset between [startOffset, endOffset] is masked. Otherwise return false.
-    bool isMasked(common::offset_t startOffset, common::offset_t endOffset) const {
+    bool isAnyMasked(common::offset_t startOffset, common::offset_t endOffset) const {
         auto offset = startOffset;
         auto numMasked = 0u;
         while (offset <= endOffset) {
@@ -93,7 +96,8 @@ public:
     common::offset_t getMaxOffset() const { return maxOffset; }
 
     virtual void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) = 0;
-    virtual bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
+    virtual bool isMasked(common::offset_t offset) = 0;
+    virtual bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
 
     bool isEnabled() const { return getNumMasks() > 0; }
     uint8_t getNumMasks() const { return maskCollection.getNumMasks(); }
@@ -119,8 +123,11 @@ public:
         maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
-    bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
-        return maskCollection.isMasked(startNodeOffset, endNodeOffset);
+    bool isMasked(common::offset_t offset) override {
+        return maskCollection.isMasked(offset);
+    }
+    bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        return maskCollection.isAnyMasked(startNodeOffset, endNodeOffset);
     }
 };
 
@@ -137,8 +144,11 @@ public:
         maskCollection.incrementMaskValue(MaskUtil::getVectorIdx(nodeOffset), currentMaskValue);
     }
 
-    bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
-        return maskCollection.isMasked(MaskUtil::getVectorIdx(startNodeOffset),
+    bool isMasked(common::offset_t offset) override {
+        return maskCollection.isMasked(MaskUtil::getVectorIdx(offset));
+    }
+    bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        return maskCollection.isAnyMasked(MaskUtil::getVectorIdx(startNodeOffset),
             MaskUtil::getVectorIdx(endNodeOffset));
     }
 };
