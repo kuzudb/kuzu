@@ -27,9 +27,7 @@
 -STATEMENT COPY Person FROM
                    (
                        LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/transfer_demo/person.csv' (
-                           header = true,
-                           delim = ",",
-                           escape = '"'
+                           header = true
                        )
                        RETURN CAST(id, "INT64"), name, state, CAST(zipcode, "INT64"), email
                    );
@@ -43,9 +41,7 @@
 -STATEMENT COPY Owns FROM
                    (
                        LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/transfer_demo/account.csv' (
-                           header = true,
-                           delim = ",",
-                           escape = '"'
+                           header = true
                        )
                        RETURN CAST(owner, "INT64"), CAST(id, "INT64")
                    );

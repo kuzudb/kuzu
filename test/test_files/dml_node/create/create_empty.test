@@ -89,7 +89,7 @@ foobar|
 -CASE CreateAndCopySerial
 -STATEMENT CREATE NODE TABLE A(s SERIAL, id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY(s));
 ---- ok
--STATEMENT COPY A FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv' (HEADER=true, DELIM='|');
+-STATEMENT COPY A FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv' (HEADER=true);
 ---- ok
 -STATEMENT MATCH (a:A) RETURN COUNT(*);
 ---- 1
