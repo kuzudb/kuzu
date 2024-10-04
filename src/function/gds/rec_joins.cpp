@@ -146,7 +146,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         }
         auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
-            if (!mask->isMasked(offset, offset)) {
+            if (!mask->isMasked(offset)) {
                 continue;
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
