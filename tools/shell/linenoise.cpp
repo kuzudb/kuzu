@@ -208,8 +208,9 @@ static linenoiseCompletionCallback* completionCallback = NULL;
 static linenoiseHintsCallback* hintsCallback = NULL;
 static linenoiseFreeHintsCallback* freeHintsCallback = NULL;
 static linenoiseHighlightCallback* highlightCallback = NULL;
-static int highlightEnabled = 1; /* Enable syntax highlighting by default */
-static int errorsEnabled = 1;    /* Enable error highlighting by default */
+static int highlightEnabled = 1;  /* Enable syntax highlighting by default */
+static int errorsEnabled = 1;     /* Enable error highlighting by default */
+static int completionEnabled = 1; /* Enable completion by default */
 
 #ifndef _WIN32
 static struct termios orig_termios; /* In order to restore at exit.*/
@@ -227,6 +228,15 @@ struct searchMatch {
     size_t history_index;
     size_t match_start;
     size_t match_end;
+};
+
+struct Completion {
+    std::string completion;
+    uint64_t cursor_pos;
+};
+
+struct TabCompletion {
+    std::vector<Completion> completions;
 };
 
 /* The linenoiseState structure represents the state during line editing.
@@ -255,8 +265,9 @@ struct linenoiseState {
     bool render;                /* Whether or not to re-render */
     bool clear_screen;          /* Whether we are clearing the screen */
     bool hasMoreData; /* Whether or not there is more data available in the buffer (copy+paste)*/
-    bool continuePromptActive;               /* Whether or not the continue prompt is active */
-    std::string search_buf;                  //! The search buffer
+    bool continuePromptActive; /* Whether or not the continue prompt is active */
+    bool insert;               /* Whether or not the last action was inserting a new character */
+    std::string search_buf;    //! The search buffer
     std::vector<searchMatch> search_matches; //! The set of search matches in our history
     std::string prev_search_match;           //! The previous search match
     int prev_search_match_history_index;     //! The previous search match history index
@@ -1000,69 +1011,135 @@ static void freeCompletions(linenoiseCompletions* lc) {
         free(lc->cvec);
 }
 
+TabCompletion linenoiseTabComplete(struct linenoiseState* l) {
+    TabCompletion result;
+    if (!completionCallback) {
+        return result;
+    }
+    linenoiseCompletions lc;
+    lc.cvec = nullptr;
+    lc.len = 0;
+    // complete based on the cursor position
+    auto prev_char = l->buf[l->pos];
+    l->buf[l->pos] = '\0';
+    completionCallback(l->buf, &lc);
+    l->buf[l->pos] = prev_char;
+    result.completions.reserve(lc.len);
+    for (uint64_t i = 0; i < lc.len; i++) {
+        Completion c;
+        c.completion = lc.cvec[i];
+        c.cursor_pos = c.completion.size();
+        c.completion += l->buf + l->pos;
+        result.completions.emplace_back(std::move(c));
+    }
+    freeCompletions(&lc);
+    return result;
+}
+
 /* This is an helper function for linenoiseEdit() and is called when the
  * user types the <tab> key in order to complete the string currently in the
  * input.
  *
  * The state of the editing is encapsulated into the pointed linenoiseState
  * structure as described in the structure definition. */
-static int completeLine(struct linenoiseState* ls) {
-    linenoiseCompletions lc = {0, NULL};
+static int completeLine(struct linenoiseState* l) {
     int nread, nwritten;
     char c = 0;
 
-    completionCallback(ls->buf, &lc);
-    if (lc.len == 0) {
+    auto completion_list = linenoiseTabComplete(l);
+    auto& completions = completion_list.completions;
+    if (completions.empty()) {
         linenoiseBeep();
     } else {
-        size_t stop = 0, i = 0;
+        bool stop = false;
+        bool accept_completion = false;
+        uint64_t i = 0;
 
         while (!stop) {
             /* Show completion or original buffer */
-            if (i < lc.len) {
-                struct linenoiseState saved = *ls;
+            if (i < completions.size()) {
+                struct linenoiseState saved = *l;
 
-                ls->len = ls->pos = strlen(lc.cvec[i]);
-                ls->buf = lc.cvec[i];
-                refreshLine(ls);
-                ls->len = saved.len;
-                ls->pos = saved.pos;
-                ls->buf = saved.buf;
+                l->len = completions[i].completion.size();
+                l->pos = completions[i].cursor_pos;
+                l->buf = (char*)completions[i].completion.c_str();
+                refreshLine(l);
+                l->len = saved.len;
+                l->pos = saved.pos;
+                l->buf = saved.buf;
             } else {
-                refreshLine(ls);
+                refreshLine(l);
             }
 
-            nread = read(ls->ifd, &c, 1);
+            nread = read(l->ifd, &c, 1);
             if (nread <= 0) {
-                freeCompletions(&lc);
                 return -1;
             }
 
+            lndebug("\nComplete Character %d\n", (int)c);
             switch (c) {
-            case 9: /* tab */
-                i = (i + 1) % (lc.len + 1);
-                if (i == lc.len)
+            case TAB: /* tab */
+                i = (i + 1) % (completions.size() + 1);
+                if (i == completions.size()) {
                     linenoiseBeep();
-                break;
-            case 27: /* escape */
-                /* Re-show original buffer */
-                if (i < lc.len)
-                    refreshLine(ls);
-                stop = 1;
-                break;
-            default:
-                /* Update buffer and return */
-                if (i < lc.len) {
-                    nwritten = snprintf(ls->buf, ls->buflen, "%s", lc.cvec[i]);
-                    ls->len = ls->pos = nwritten;
                 }
-                stop = 1;
                 break;
+            case ESC: { /* escape */
+                char seq[5];
+                uint64_t length = 0;
+                if (read(l->ifd, seq, 1) == -1) {
+                    return 0;
+                }
+
+                if (seq[0] != '[') {
+                    length = 1;
+                } else if (read(l->ifd, seq + 1, 1) == -1) {
+                    length = 0;
+                } else if (seq[1] < '0' || seq[1] > '9') {
+                    length = 2;
+                }
+
+                lndebug("escape of length %d\n", length);
+                if (length == 1) {
+                    if (seq[0] == ESC) {
+                        /* Re-show original buffer */
+                        if (i < completions.size()) {
+                            refreshLine(l);
+                        }
+                        stop = true;
+                    }
+                } else if (length == 2) {
+                    if (seq[0] == '[') {
+                        if (seq[1] == 'Z') { /* Shift Tab */
+                            // shift-tab: move backwards
+                            if (i == 0) {
+                                linenoiseBeep();
+                            } else {
+                                i--;
+                            }
+                        }
+                    }
+                } else {
+                    accept_completion = true;
+                    stop = true;
+                }
+                break;
+            }
+            default:
+                accept_completion = true;
+                stop = true;
+                break;
+            }
+            if (stop && accept_completion && i < completions.size()) {
+                /* Update buffer and return */
+                if (i < completions.size()) {
+                    nwritten = snprintf(l->buf, l->buflen, "%s", completions[i].completion.c_str());
+                    l->pos = completions[i].cursor_pos;
+                    l->len = nwritten;
+                }
             }
         }
     }
-
-    freeCompletions(&lc);
     return c; /* Return last read character */
 }
 
@@ -1664,6 +1741,79 @@ std::string linenoiseHighlightText(char* buf, size_t len, size_t start_pos, size
     return ss.str();
 }
 
+bool isCompletionCharacter(char c) {
+    if (c >= 'A' && c <= 'Z') {
+        return true;
+    }
+    if (c >= 'a' && c <= 'z') {
+        return true;
+    }
+    if (c == '_') {
+        return true;
+    }
+    return false;
+}
+
+bool linenoiseAddCompletionMarker(const char* buf, uint64_t len, std::string& result_buffer,
+    std::vector<highlightToken>& tokens, struct linenoiseState* l) {
+    if (!completionEnabled) {
+        return false;
+    }
+    if (!l->continuePromptActive) {
+        // don't render when pressing ctrl+c, only when editing
+        return false;
+    }
+    static constexpr const uint64_t MAX_COMPLETION_LENGTH = 1000;
+    if (len >= MAX_COMPLETION_LENGTH) {
+        return false;
+    }
+    if (!l->insert || l->pos != len) {
+        // only show when inserting a character at the end
+        return false;
+    }
+    if (l->pos < 1) {
+        // we need at least 1 bytes
+        return false;
+    }
+    if (!tokens.empty() && tokens.back().type == tokenType::TOKEN_ERROR) {
+        // don't show auto-completion when we have errors
+        return false;
+    }
+    // we ONLY show completion if we have typed at least one character that is supported for
+    // completion for now this is ONLY the characters a-z, A-Z and underscore (_)
+    if (!isCompletionCharacter(buf[l->pos - 1])) {
+        return false;
+    }
+    auto completion = linenoiseTabComplete(l);
+    if (completion.completions.empty()) {
+        // no completions found
+        return false;
+    }
+    if (completion.completions[0].completion.size() <= len) {
+        // completion is not long enough
+        return false;
+    }
+    // we have stricter requirements for rendering completions - the completion must match exactly
+    for (uint64_t i = l->pos; i > 0; i--) {
+        auto cpos = i - 1;
+        if (!isCompletionCharacter(buf[cpos])) {
+            break;
+        }
+        if (completion.completions[0].completion[cpos] != buf[cpos]) {
+            return false;
+        }
+    }
+    // add the first completion found for rendering purposes
+    result_buffer = std::string(buf, len);
+    result_buffer += completion.completions[0].completion.substr(len);
+
+    highlightToken completion_token;
+    completion_token.start = len;
+    completion_token.type = tokenType::TOKEN_COMMENT;
+    tokens.push_back(completion_token);
+    return true;
+}
+
 static void truncateText(char*& buf, size_t& len, size_t pos, size_t cols, size_t plen,
     bool highlight, size_t& render_pos, char* highlightBuf) {
     if (Utf8Proc::isValid(buf, len)) {
@@ -1988,6 +2138,7 @@ static void refreshMultiLine(struct linenoiseState* l) {
     }
 
     std::vector<highlightToken> tokens;
+    std::string highlight_buffer;
     if (highlightEnabled) {
         bool is_shell_command = l->buf[0] == ':';
         tokens = highlightingTokenize(render_buf, render_len, is_shell_command);
@@ -1995,6 +2146,12 @@ static void refreshMultiLine(struct linenoiseState* l) {
         if (errorsEnabled) {
             // add error highlighting
             addErrorHighlighting(render_start, render_end, tokens, l);
+        }
+
+        // add completion hint
+        if (linenoiseAddCompletionMarker(render_buf, render_len, highlight_buffer, tokens, l)) {
+            render_buf = (char*)highlight_buffer.c_str();
+            render_len = highlight_buffer.size();
         }
     }
     std::string continue_buffer;
@@ -2005,7 +2162,6 @@ static void refreshMultiLine(struct linenoiseState* l) {
         render_buf = (char*)continue_buffer.c_str();
         render_len = continue_buffer.size();
     }
-    std::string highlight_buffer;
     if (highlightEnabled) {
         if (Utf8Proc::isValid(render_buf, render_len)) {
             highlight_buffer =
@@ -2757,6 +2913,7 @@ int linenoiseEditInsert(struct linenoiseState* l, char c) {
     if (l->hasMoreData) {
         l->render = false;
     }
+    l->insert = true;
     linenoiseInsertCharacter(c, l);
     refreshLine(l);
     return 0;
@@ -3081,6 +3238,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
     l.y_scroll = 0;
     l.clear_screen = false;
     l.continuePromptActive = true;
+    l.insert = false;
 
     /* Buffer starts empty. */
     l.buf[0] = '\0';
@@ -3131,6 +3289,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
 
         l.hasMoreData = pastedInput(l.ifd);
         l.render = true;
+        l.insert = false;
         if (!l.hasMoreData) {
             size_t new_cols = getColumns(stdin_fd, stdout_fd);
             size_t new_rows = getRows(stdin_fd, stdout_fd);
