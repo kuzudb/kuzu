@@ -3208,8 +3208,8 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
                 // check if this forms a complete Cypher statement or not or if enter is pressed in
                 // the middle of a line
                 l.buf[l.len] = '\0';
-                if (l.buf[0] != ':' && (l.pos != l.len || (!linenoiseAllWhitespace(l.buf) &&
-                                                              !cypherComplete(l.buf)))) {
+                if (l.buf[0] != ':' &&
+                    (l.pos != l.len || linenoiseAllWhitespace(l.buf) || !cypherComplete(l.buf))) {
                     if (linenoiseEditInsertMulti(&l, "\r\n")) {
                         return -1;
                     }
