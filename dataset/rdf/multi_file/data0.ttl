@@ -1,3 +1,0 @@
-@prefix : <https://test/> .
-:s0 :p0 0 .
-:s0 :p0 :mm .

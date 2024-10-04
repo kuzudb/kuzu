@@ -32,18 +32,17 @@ public:
     MAXVALUE = 105, MERGE = 106, MINVALUE = 107, MULTI_JOIN = 108, NO = 109, 
     NODE = 110, NOT = 111, NONE = 112, NULL_ = 113, ON = 114, ONLY = 115, 
     OPTIONAL = 116, OR = 117, ORDER = 118, PRIMARY = 119, PROFILE = 120, 
-    PROJECT = 121, RDFGRAPH = 122, READ = 123, REL = 124, RENAME = 125, 
-    RETURN = 126, ROLLBACK = 127, ROLLBACK_SKIP_CHECKPOINT = 128, SEQUENCE = 129, 
-    SET = 130, SHORTEST = 131, START = 132, STARTS = 133, TABLE = 134, THEN = 135, 
-    TO = 136, TRANSACTION = 137, TRUE = 138, TYPE = 139, UNION = 140, UNWIND = 141, 
-    USE = 142, WHEN = 143, WHERE = 144, WITH = 145, WRITE = 146, XOR = 147, 
-    SINGLE = 148, DECIMAL = 149, STAR = 150, L_SKIP = 151, INVALID_NOT_EQUAL = 152, 
-    MINUS = 153, FACTORIAL = 154, COLON = 155, StringLiteral = 156, EscapedChar = 157, 
-    DecimalInteger = 158, HexLetter = 159, HexDigit = 160, Digit = 161, 
-    NonZeroDigit = 162, NonZeroOctDigit = 163, ZeroDigit = 164, RegularDecimalReal = 165, 
-    UnescapedSymbolicName = 166, IdentifierStart = 167, IdentifierPart = 168, 
-    EscapedSymbolicName = 169, SP = 170, WHITESPACE = 171, CypherComment = 172, 
-    Unknown = 173
+    PROJECT = 121, READ = 122, REL = 123, RENAME = 124, RETURN = 125, ROLLBACK = 126, 
+    ROLLBACK_SKIP_CHECKPOINT = 127, SEQUENCE = 128, SET = 129, SHORTEST = 130, 
+    START = 131, STARTS = 132, TABLE = 133, THEN = 134, TO = 135, TRANSACTION = 136, 
+    TRUE = 137, TYPE = 138, UNION = 139, UNWIND = 140, USE = 141, WHEN = 142, 
+    WHERE = 143, WITH = 144, WRITE = 145, XOR = 146, SINGLE = 147, DECIMAL = 148, 
+    STAR = 149, L_SKIP = 150, INVALID_NOT_EQUAL = 151, MINUS = 152, FACTORIAL = 153, 
+    COLON = 154, StringLiteral = 155, EscapedChar = 156, DecimalInteger = 157, 
+    HexLetter = 158, HexDigit = 159, Digit = 160, NonZeroDigit = 161, NonZeroOctDigit = 162, 
+    ZeroDigit = 163, RegularDecimalReal = 164, UnescapedSymbolicName = 165, 
+    IdentifierStart = 166, IdentifierPart = 167, EscapedSymbolicName = 168, 
+    SP = 169, WHITESPACE = 170, CypherComment = 171, Unknown = 172
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

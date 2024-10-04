@@ -506,7 +506,6 @@ LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{n
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::MAP:
     case LogicalTypeID::UNION:
-    case LogicalTypeID::RDF_VARIANT:
         throw BinderException(getIncompleteTypeErrMsg(typeID));
     default:
         break;
@@ -624,7 +623,6 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::UUID:
     case LogicalTypeID::STRING:
     case LogicalTypeID::SERIAL:
-    case LogicalTypeID::RDF_VARIANT:
         return LogicalTypeUtils::toString(typeID);
     default:
         KU_UNREACHABLE;
@@ -692,8 +690,6 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
     } else if (upperDataTypeString.starts_with("DECIMAL") ||
                upperDataTypeString.starts_with("NUMERIC")) {
         type = parseDecimalType(trimmedStr);
-    } else if (upperDataTypeString == "RDF_VARIANT") {
-        type = LogicalType::RDF_VARIANT();
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else if (context != nullptr) {
@@ -848,8 +844,7 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::UNION:
-    case LogicalTypeID::STRUCT:
-    case LogicalTypeID::RDF_VARIANT: {
+    case LogicalTypeID::STRUCT: {
         return PhysicalTypeID::STRUCT;
     }
     case LogicalTypeID::POINTER: {
@@ -983,8 +978,6 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "ARRAY";
     case LogicalTypeID::STRUCT:
         return "STRUCT";
-    case LogicalTypeID::RDF_VARIANT:
-        return "RDF_VARIANT";
     case LogicalTypeID::SERIAL:
         return "SERIAL";
     case LogicalTypeID::MAP:
@@ -1147,7 +1140,6 @@ bool LogicalTypeUtils::isNested(kuzu::common::LogicalTypeID logicalTypeID) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::RDF_VARIANT:
         return true;
     default:
         return false;
@@ -1192,7 +1184,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
         LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::LIST,
         LogicalTypeID::ARRAY, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,
         LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::RECURSIVE_REL,
-        LogicalTypeID::STRUCT, LogicalTypeID::UNION, LogicalTypeID::RDF_VARIANT};
+        LogicalTypeID::STRUCT, LogicalTypeID::UNION};
 }
 
 std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
@@ -1228,7 +1220,6 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
     typeVec.push_back(LogicalType::REL(std::make_unique<StructTypeInfo>()));
     typeVec.push_back(LogicalType::STRUCT({}));
     typeVec.push_back(LogicalType::UNION({}));
-    typeVec.push_back(LogicalType::RDF_VARIANT());
     return typeVec;
 }
 
@@ -1372,14 +1363,6 @@ LogicalType LogicalType::NODE(std::unique_ptr<StructTypeInfo> typeInfo) {
 
 LogicalType LogicalType::REL(std::unique_ptr<StructTypeInfo> typeInfo) {
     return LogicalType(LogicalTypeID::REL, std::move(typeInfo));
-}
-
-LogicalType LogicalType::RDF_VARIANT() {
-    std::vector<StructField> fields;
-    fields.emplace_back("_type", LogicalType::UINT8());
-    fields.emplace_back("_value", LogicalType::BLOB());
-    auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
-    return LogicalType(LogicalTypeID::RDF_VARIANT, std::move(extraInfo));
 }
 
 LogicalType LogicalType::UNION(std::vector<StructField>&& fields) {
@@ -1653,8 +1636,6 @@ static int alwaysCastOrder(const LogicalTypeID& typeID) {
     switch (typeID) {
     case LogicalTypeID::ANY:
         return 0;
-    case LogicalTypeID::RDF_VARIANT:
-        return 1;
     case LogicalTypeID::STRING:
         return 2;
     default:
@@ -1666,7 +1647,6 @@ static bool canAlwaysCast(const LogicalTypeID& typeID) {
     switch (typeID) {
     case LogicalTypeID::ANY:
     case LogicalTypeID::STRING:
-    case LogicalTypeID::RDF_VARIANT:
         return true;
     default:
         return false;
@@ -1729,7 +1709,7 @@ bool LogicalTypeUtils::tryGetMaxLogicalTypeID(const LogicalTypeID& left, const L
 }
 
 static inline bool isSemanticallyNested(LogicalTypeID ID) {
-    return LogicalTypeUtils::isNested(ID) && ID != LogicalTypeID::RDF_VARIANT;
+    return LogicalTypeUtils::isNested(ID);
 }
 
 static inline bool tryCombineDecimalTypes(const LogicalType& left, const LogicalType& right,

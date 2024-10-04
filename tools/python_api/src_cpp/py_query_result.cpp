@@ -94,71 +94,6 @@ static py::object converTimestampToPyObject(timestamp_t& timestamp) {
         PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
 }
 
-py::object convertRdfVariantToPyObject(const Value& value) {
-    auto type = RdfVariant::getLogicalTypeID(&value);
-    switch (type) {
-    case LogicalTypeID::STRING: {
-        return py::str(RdfVariant::getValue<std::string>(&value));
-    }
-    case LogicalTypeID::BLOB: {
-        auto blobStr = RdfVariant::getValue<blob_t>(&value).value.getAsString();
-        return py::bytes(blobStr.c_str(), blobStr.size());
-    }
-    case LogicalTypeID::INT64: {
-        return py::cast(RdfVariant::getValue<int64_t>(&value));
-    }
-    case LogicalTypeID::INT32: {
-        return py::cast(RdfVariant::getValue<int32_t>(&value));
-    }
-    case LogicalTypeID::INT16: {
-        return py::cast(RdfVariant::getValue<int16_t>(&value));
-    }
-    case LogicalTypeID::INT8: {
-        return py::cast(RdfVariant::getValue<int8_t>(&value));
-    }
-    case LogicalTypeID::UINT64: {
-        return py::cast(RdfVariant::getValue<uint64_t>(&value));
-    }
-    case LogicalTypeID::UINT32: {
-        return py::cast(RdfVariant::getValue<uint32_t>(&value));
-    }
-    case LogicalTypeID::UINT16: {
-        return py::cast(RdfVariant::getValue<uint16_t>(&value));
-    }
-    case LogicalTypeID::UINT8: {
-        return py::cast(RdfVariant::getValue<uint8_t>(&value));
-    }
-    case LogicalTypeID::DOUBLE: {
-        return py::cast(RdfVariant::getValue<double>(&value));
-    }
-    case LogicalTypeID::FLOAT: {
-        return py::cast(RdfVariant::getValue<float>(&value));
-    }
-    case LogicalTypeID::BOOL: {
-        return py::cast(RdfVariant::getValue<bool>(&value));
-    }
-    case LogicalTypeID::DATE: {
-        auto dateVal = RdfVariant::getValue<date_t>(&value);
-        int32_t year = 0, month = 0, day = 0;
-        Date::convert(dateVal, year, month, day);
-        return py::cast<py::object>(PyDate_FromDate(year, month, day));
-    }
-    case LogicalTypeID::TIMESTAMP: {
-        auto timestampVal = RdfVariant::getValue<timestamp_t>(&value);
-        return converTimestampToPyObject(timestampVal);
-    }
-    case LogicalTypeID::INTERVAL: {
-        auto intervalVal = RdfVariant::getValue<interval_t>(&value);
-        auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
-        return py::cast<py::object>(importCache->datetime.timedelta()(py::arg("days") = days,
-            py::arg("microseconds") = intervalVal.micros));
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-}
-
 py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     if (value.isNull()) {
         return py::none();
@@ -340,9 +275,6 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::INTERNAL_ID: {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
-    }
-    case LogicalTypeID::RDF_VARIANT: {
-        return convertRdfVariantToPyObject(value);
     }
 
     default:

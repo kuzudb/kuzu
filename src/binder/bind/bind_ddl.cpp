@@ -7,7 +7,6 @@
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
@@ -115,9 +114,6 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* 
     }
     case TableType::REL_GROUP: {
         return bindCreateRelTableGroupInfo(info);
-    }
-    case TableType::RDF: {
-        return bindCreateRdfGraphInfo(info);
     }
     default: {
         KU_UNREACHABLE;
@@ -295,14 +291,6 @@ void Binder::validateDropTable(const Statement& statement) {
                     tableEntry->getName(), relTableEntry->getName()));
             }
         }
-        // Check node table is not referenced by rdf graph
-        for (auto& rdfEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
-            if (rdfEntry->isParent(tableEntry->getTableID())) {
-                throw BinderException(stringFormat(
-                    "Cannot delete node table {} because it is referenced by rdfGraph {}.",
-                    tableName, rdfEntry->getName()));
-            }
-        }
     } break;
     case TableType::REL: {
         // Check rel table is not referenced by rel group.
@@ -311,40 +299,6 @@ void Binder::validateDropTable(const Statement& statement) {
                 throw BinderException(stringFormat("Cannot delete relationship table {} because it "
                                                    "is referenced by relationship group {}.",
                     tableName, relTableGroupEntry->getName()));
-            }
-        }
-        // Check rel table is not referenced by rdf graph.
-        for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(clientContext->getTx())) {
-            if (rdfGraphEntry->isParent(tableEntry->getTableID())) {
-                throw BinderException(stringFormat(
-                    "Cannot delete relationship table {} because it is referenced by rdfGraph {}.",
-                    tableName, rdfGraphEntry->getName()));
-            }
-        }
-    } break;
-    case TableType::RDF: {
-        auto& rdfGraphEntry = tableEntry->constCast<RDFGraphCatalogEntry>();
-        // Check resource table is not referenced by rel table other than its triple table.
-        for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTx())) {
-            if (relTableEntry->getTableID() == rdfGraphEntry.getResourceTripleTableID() ||
-                relTableEntry->getTableID() == rdfGraphEntry.getLiteralTripleTableID()) {
-                continue;
-            }
-            if (relTableEntry->isParent(rdfGraphEntry.getResourceTableID())) {
-                throw BinderException(stringFormat("Cannot delete rdfGraph {} because its resource "
-                                                   "table is referenced by relationship table {}.",
-                    tableEntry->getName(), relTableEntry->getName()));
-            }
-        }
-        // Check literal table is not referenced by rel table other than its triple table.
-        for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTx())) {
-            if (relTableEntry->getTableID() == rdfGraphEntry.getLiteralTripleTableID()) {
-                continue;
-            }
-            if (relTableEntry->isParent(rdfGraphEntry.getLiteralTableID())) {
-                throw BinderException(stringFormat("Cannot delete rdfGraph {} because its literal "
-                                                   "table is referenced by relationship table {}.",
-                    tableEntry->getName(), relTableEntry->getName()));
             }
         }
     } break;
@@ -388,17 +342,6 @@ std::unique_ptr<BoundStatement> Binder::bindDrop(const Statement& statement) {
 
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = statement.constCast<Alter>();
-    auto catalog = clientContext->getCatalog();
-    auto tableID = catalog->getTableID(clientContext->getTx(), alter.getInfo()->tableName);
-    if (alter.getInfo()->type != AlterType::COMMENT) {
-        for (auto& schema : catalog->getRdfGraphEntries(clientContext->getTx())) {
-            if (schema->isParent(tableID)) {
-                throw BinderException(
-                    stringFormat("Cannot alter table {} because it is referenced by rdfGraph {}.",
-                        alter.getInfo()->tableName, schema->getName()));
-            }
-        }
-    }
     switch (alter.getInfo()->type) {
     case AlterType::RENAME_TABLE: {
         return bindRenameTable(statement);
@@ -455,8 +398,7 @@ static void validatePropertyNotExist(TableCatalogEntry* tableEntry,
 static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
     const std::string& ddlOperation) {
     switch (tableEntry->getTableType()) {
-    case TableType::REL_GROUP:
-    case TableType::RDF: {
+    case TableType::REL_GROUP: {
         throw BinderException(
             stringFormat("Cannot {} property on table {} with type {}.", ddlOperation,
                 tableEntry->getName(), TableTypeUtils::toString(tableEntry->getTableType())));

@@ -10,7 +10,6 @@ oC_Statement
         | kU_CreateNodeTable
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
-        | kU_CreateRdfGraph
         | kU_CreateSequence
         | kU_CreateType
         | kU_Drop
@@ -105,9 +104,6 @@ kU_CreateRelTableGroup
 
 kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
-
-kU_CreateRdfGraph
-    : CREATE SP RDFGRAPH SP (kU_IfNotExists SP)? oC_SchemaName ;
 
 kU_CreateSequence
     : CREATE SP SEQUENCE SP (kU_IfNotExists SP)? oC_SchemaName (SP kU_SequenceOptions)* ;

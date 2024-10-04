@@ -59,8 +59,6 @@ private:
     void createRelTableGroup(common::table_id_t tableID,
         const catalog::RelGroupCatalogEntry* tableSchema, const catalog::Catalog* catalog,
         transaction::Transaction* transaction);
-    void createRdfGraph(common::table_id_t tableID, catalog::RDFGraphCatalogEntry* tableSchema,
-        const catalog::Catalog* catalog, main::ClientContext* context);
 
 private:
     std::mutex mtx;

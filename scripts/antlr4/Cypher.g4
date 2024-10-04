@@ -166,8 +166,6 @@ PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) 
 
 PROJECT : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'J' | 'j' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'T' | 't' ) ;
 
-RDFGRAPH : ( 'R' | 'r' ) ( 'D' | 'd' ) ( 'F' | 'f' ) ( 'G' | 'g' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'P' | 'p' ) ( 'H' | 'h' ) ;
-
 READ : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ;
 
 REL : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ;
@@ -233,7 +231,6 @@ oC_Statement
         | kU_CreateNodeTable
         | kU_CreateRelTable
         | kU_CreateRelTableGroup
-        | kU_CreateRdfGraph
         | kU_CreateSequence
         | kU_CreateType
         | kU_Drop
@@ -328,9 +325,6 @@ kU_CreateRelTableGroup
 
 kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
-
-kU_CreateRdfGraph
-    : CREATE SP RDFGRAPH SP (kU_IfNotExists SP)? oC_SchemaName ;
 
 kU_CreateSequence
     : CREATE SP SEQUENCE SP (kU_IfNotExists SP)? oC_SchemaName (SP kU_SequenceOptions)* ;
