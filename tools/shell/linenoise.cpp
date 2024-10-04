@@ -1091,24 +1091,12 @@ static int completeLine(struct linenoiseState* l) {
                     return 0;
                 }
 
-                if (read(l->ifd, seq + 1, 1) == -1) {
+                if (seq[0] != '[') {
+                    length = 1;
+                } else if (read(l->ifd, seq + 1, 1) == -1) {
                     length = 0;
-                } else if (seq[0] != '[') {
-                    length = 2;
                 } else if (seq[1] < '0' || seq[1] > '9') {
                     length = 2;
-                }
-                /* Extended escape, read additional byte. */
-                else if (read(l->ifd, seq + 2, 1) == -1) {
-                    length = 0;
-                } else if (seq[2] == ';') {
-                    // read 2 extra bytes
-                    if (read(l->ifd, seq + 3, 2) == -1) {
-                        length = 0;
-                    }
-                    length = 5;
-                } else {
-                    length = 3;
                 }
 
                 lndebug("escape of length %d\n", length);
