@@ -261,12 +261,12 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
             explicit Filterer(const SelectionVector& selVector)
                 : selVector(selVector), posInSelVector(0) {}
             bool operator()(offset_t startIdx, offset_t endIdx) {
-                bool ret = isInRange(selVector[posInSelVector], startIdx, endIdx);
-                while (
-                    posInSelVector < selVector.getSelSize() && selVector[posInSelVector] < endIdx) {
+                while (posInSelVector < selVector.getSelSize() &&
+                       selVector[posInSelVector] < startIdx) {
                     posInSelVector++;
                 }
-                return ret;
+                return (posInSelVector < selVector.getSelSize() &&
+                        isInRange(selVector[posInSelVector], startIdx, endIdx));
             }
 
             const SelectionVector& selVector;

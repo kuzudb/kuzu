@@ -244,22 +244,78 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
                                ChunkState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
 
-        static constexpr size_t startOffset = 5 * 1024 + 7;
-        static constexpr size_t numValuesToRead = 32;
+        static constexpr size_t startOffset = 2 * 1024 + 7;
+        static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
+        const size_t startPageIdx = startOffset / state.numValuesPerPage;
 
         reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
             startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
-            [](offset_t startIdx, offset_t endIdx) {
-                for (size_t i = startIdx; i < endIdx; ++i) {
-                    if (((i - 2) % 6) == 0)
-                        return true;
-                }
-                return false;
+            [&state, startPageIdx](offset_t startIdx, offset_t) {
+                const auto pageIdx = (startOffset + startIdx) / state.numValuesPerPage;
+                return (pageIdx == startPageIdx);
             });
 
         for (size_t i = 0; i < numValuesToRead; ++i) {
-            if (((i - 2) % 6) == 0) {
+            const size_t pageIdx = (startOffset + i) / state.numValuesPerPage;
+            if (startPageIdx == pageIdx) {
                 EXPECT_EQ(src[i + startOffset], out.getValue<float>(i));
+            } else {
+                EXPECT_EQ(0, out.getValue<float>(i));
+            }
+        }
+    });
+}
+
+TEST_F(CompressChunkTest, TestFloatFilterStateful) {
+    std::vector<float> src(10 * 1024, 5.6);
+    src[4] = 0;
+    src[2] = -54387589.8341;
+    for (size_t i = 8; i < src.size(); i += 6) {
+        src[i] = src[i - 6] + -4385.2348;
+    }
+
+    testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
+                               ChunkState& state, const LogicalType& dataType) {
+        common::ValueVector out{LogicalType::FLOAT()};
+
+        static constexpr size_t startOffset = 2 * 1024 + 7;
+        static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
+        const size_t startPageIdx = startOffset / state.numValuesPerPage;
+
+        // the filter will pass if the value is:
+        // if it is an exception, the 1st exception read
+        // if it is not an exception if it is in the 1st page that is read from
+        reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
+            startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
+            [j = 0](offset_t, offset_t) mutable {
+                ++j;
+                return (j == 1);
+            });
+
+        const auto isException = [&src, &state](offset_t i) {
+            const auto encodedValue = alp::AlpEncode<float>::encode_value(src[i + startOffset],
+                state.metadata.compMeta.floatMetadata()->fac,
+                state.metadata.compMeta.floatMetadata()->exp);
+            const auto decodedValue = alp::AlpDecode<float>::decode_value(encodedValue,
+                state.metadata.compMeta.floatMetadata()->fac,
+                state.metadata.compMeta.floatMetadata()->exp);
+            return (decodedValue != src[i + startOffset]);
+        };
+        bool exceptionFound = false;
+        for (offset_t i = 0; i < numValuesToRead; ++i) {
+            bool passFilter = false;
+            if (isException(i)) {
+                passFilter = !exceptionFound;
+                exceptionFound = true;
+            } else {
+                const size_t pageIdx = (startOffset + i) / state.numValuesPerPage;
+                passFilter = (pageIdx == startPageIdx);
+            }
+
+            if (passFilter) {
+                EXPECT_EQ(src[i + startOffset], out.getValue<float>(i));
+            } else {
+                EXPECT_EQ(0, out.getValue<float>(i));
             }
         }
     });
