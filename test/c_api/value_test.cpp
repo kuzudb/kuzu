@@ -560,7 +560,8 @@ TEST_F(CApiValueTest, getMapValue) {
     kuzu_flat_tuple flatTuple;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
+    state = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_TRUE(kuzu_query_result_has_next(&result));
@@ -573,7 +574,7 @@ TEST_F(CApiValueTest, getMapValue) {
     kuzu_value fieldValue;
     ASSERT_EQ(kuzu_value_get_map_field_value(&value, 0, &fieldValue), KuzuSuccess);
     kuzu_logical_type fieldType;
-    kuzu_value_get_data_type(&fieldValue, &fieldType);  
+    kuzu_value_get_data_type(&fieldValue, &fieldType);
     ASSERT_EQ(kuzu_data_type_get_id(&fieldType), KUZU_STRUCT);
     char* fieldName;
     ASSERT_EQ(kuzu_value_get_struct_field_name(&fieldValue, 0, &fieldName), KuzuSuccess);
@@ -597,7 +598,7 @@ TEST_F(CApiValueTest, getMapValue) {
 
     ASSERT_EQ(kuzu_value_get_struct_field_value(&fieldValue, 2, &structFieldValue), KuzuError);
     ASSERT_EQ(kuzu_value_get_map_field_value(&value, 1, &fieldValue), KuzuError);
-    
+
     kuzu_value_destroy(&fieldValue);
     kuzu_value_destroy(&structFieldValue);
     kuzu_data_type_destroy(&fieldType);
