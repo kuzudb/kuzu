@@ -122,6 +122,7 @@ public:
         // We're using multiple overlapping iterators, both of which need access to a scan state, so
         // we need multiple scan states
         auto innerScanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
+        auto numNodesInGraph = graph->getNumNodes();
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
             for (auto tableID : nodeTableIDs) {
@@ -129,14 +130,16 @@ public:
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
                     auto iter = graph->scanFwd(nodeID, *scanState);
-                    for (const auto [nodes, edges] : iter) {
-                        for (const auto& nbr : nodes) {
-                            auto numNbrOfNbr = graph->scanFwd(nbr, *innerScanState).count();
+                    for (const auto chunk : iter) {
+                        chunk.selVector.forEach([&](auto i) {
+                            auto numNbrOfNbr =
+                                graph->scanFwd(chunk.nbrNodes[i], *innerScanState).count();
                             if (numNbrOfNbr == 0) {
-                                numNbrOfNbr = graph->getNumNodes();
+                                numNbrOfNbr = numNodesInGraph;
                             }
-                            rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
-                        }
+                            rank +=
+                                extraData->dampingFactor * (ranks[chunk.nbrNodes[i]] / numNbrOfNbr);
+                        });
                     }
                     rank += dampingValue;
                     double diff = ranks[nodeID] - rank;

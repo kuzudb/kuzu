@@ -48,14 +48,14 @@ TEST_F(RelScanTest, ScanFwd) {
 
     const auto compare = [&](uint64_t node, std::vector<nodeID_t> expected) {
         std::vector<nodeID_t> result;
-        for (const auto [nodes, edges] : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
-            result.insert(result.end(), nodes.begin(), nodes.end());
+        for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
+            chunk.selVector.forEach([&](auto i) { result.push_back(chunk.nbrNodes[i]); });
         }
         EXPECT_EQ(result, expected);
         EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(), expected);
         result.clear();
-        for (const auto [nodes, edges] : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
-            result.insert(result.end(), nodes.begin(), nodes.end());
+        for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
+            chunk.selVector.forEach([&](auto i) { result.push_back(chunk.nbrNodes[i]); });
         }
         EXPECT_EQ(result, expected);
         EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(), expected);

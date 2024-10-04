@@ -29,34 +29,35 @@ struct OnDiskGraphScanState {
         DELETE_COPY_DEFAULT_MOVE(InnerIterator);
 
         std::span<const common::nodeID_t> getNbrNodes() const {
-            // When scanning a single node, all returned results should be consecutive
-            // TODO(bmwinger): This won't be the case when we scan multiple
-            auto firstElement = dstSelVector().getSelectedPositions()[0];
-            RUNTIME_CHECK(for (size_t i = 0; i < dstSelVector().getSelSize(); i++) {
-                KU_ASSERT(firstElement + i == dstSelVector().getSelectedPositions()[i]);
+            RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
+                KU_ASSERT(
+                    getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
             });
             return std::span<const common::nodeID_t>(
-                &dstVector().getValue<const common::nodeID_t>(firstElement),
-                dstSelVector().getSelSize());
+                &dstVector().getValue<const common::nodeID_t>(0), common::DEFAULT_VECTOR_CAPACITY);
         }
         std::span<const common::nodeID_t> getEdges() const {
-            // When scanning a single node, all returned results should be consecutive
-            auto firstElement = dstSelVector().getSelectedPositions()[0];
-            RUNTIME_CHECK(for (size_t i = 0; i < dstSelVector().getSelSize(); i++) {
-                KU_ASSERT(firstElement + i == dstSelVector().getSelectedPositions()[i]);
+            RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
+                KU_ASSERT(
+                    getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
             });
             return std::span<const common::nodeID_t>(
-                &relIDVector().getValue<const common::nodeID_t>(firstElement),
-                dstSelVector().getSelSize());
+                &relIDVector().getValue<const common::nodeID_t>(0),
+                common::DEFAULT_VECTOR_CAPACITY);
+        }
+
+        common::SelectionVector& getSelVector() {
+            return tableScanState->outState->getSelVectorUnsafe();
+        }
+
+        const common::SelectionVector& getSelVector() const {
+            return tableScanState->outState->getSelVector();
         }
 
         bool next();
         void initScan();
 
     private:
-        const common::SelectionVector& dstSelVector() const {
-            return tableScanState->outState->getSelVector();
-        }
         common::ValueVector& dstVector() const { return *tableScanState->outputVectors[0]; }
         common::ValueVector& relIDVector() const { return *tableScanState->outputVectors[1]; }
 
@@ -79,11 +80,9 @@ class OnDiskGraphScanStates : public GraphScanState {
 public:
     ~OnDiskGraphScanStates() override = default;
 
-    std::span<const common::nodeID_t> getNbrNodes() const override {
-        return getInnerIterator().getNbrNodes();
-    }
-    std::span<const common::relID_t> getEdges() const override {
-        return getInnerIterator().getEdges();
+    GraphScanState::Chunk getChunk() override {
+        auto& iter = getInnerIterator();
+        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVector()};
     }
     bool next() override;
 
