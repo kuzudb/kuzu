@@ -182,7 +182,7 @@ static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& ds
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
-    if (LogicalTypeUtils::isNested(srcType) && LogicalTypeUtils::isNested(dstType) ) {
+    if (LogicalTypeUtils::isNested(srcType) && LogicalTypeUtils::isNested(dstType)) {
         if (srcType.getLogicalTypeID() == LogicalTypeID::ARRAY &&
             dstType.getLogicalTypeID() == LogicalTypeID::LIST) {
             return hasImplicitCastArrayToList(srcType, dstType);

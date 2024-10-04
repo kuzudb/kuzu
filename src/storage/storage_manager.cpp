@@ -97,7 +97,7 @@ void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* 
 }
 
 void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
-    const Catalog* , Transaction* ) {
+    const Catalog*, Transaction*) {
     tables[tableID] = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
 }
 
