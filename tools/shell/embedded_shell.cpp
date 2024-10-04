@@ -111,6 +111,50 @@ void addTableCompletion(const std::string& buf, const std::string& tableName,
     }
 }
 
+bool isInsideCommentOrQuote(const std::string& buffer) {
+    bool insideSingleLineComment = false;
+    bool insideMultiLineComment = false;
+    bool insideDoubleQuote = false;
+    bool insideSingleQuote = false;
+
+    for (size_t i = 0; i < buffer.size(); ++i) {
+        if (insideSingleLineComment) {
+            if (buffer[i] == '\n') {
+                insideSingleLineComment = false;
+            }
+        } else if (insideMultiLineComment) {
+            if (buffer[i] == '*' && i + 1 < buffer.size() && buffer[i + 1] == '/') {
+                insideMultiLineComment = false;
+                ++i;
+            }
+        } else if (insideDoubleQuote) {
+            if (buffer[i] == '"' && (i == 0 || buffer[i - 1] != '\\')) {
+                insideDoubleQuote = false;
+            }
+        } else if (insideSingleQuote) {
+            if (buffer[i] == '\'' && (i == 0 || buffer[i - 1] != '\\')) {
+                insideSingleQuote = false;
+            }
+        } else {
+            if (buffer[i] == '/' && i + 1 < buffer.size()) {
+                if (buffer[i + 1] == '/') {
+                    insideSingleLineComment = true;
+                    ++i;
+                } else if (buffer[i + 1] == '*') {
+                    insideMultiLineComment = true;
+                    ++i;
+                }
+            } else if (buffer[i] == '"') {
+                insideDoubleQuote = true;
+            } else if (buffer[i] == '\'') {
+                insideSingleQuote = true;
+            }
+        }
+    }
+
+    return insideSingleLineComment || insideMultiLineComment || insideDoubleQuote || insideSingleQuote;
+}
+
 void completion(const char* buffer, linenoiseCompletions* lc) {
     std::string buf = std::string(buffer);
 
@@ -121,6 +165,11 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
                 linenoiseAddCompletion(lc, command);
             }
         }
+        return;
+    }
+
+    // Skip completion if inside a comment or quote
+    if (isInsideCommentOrQuote(buf)) {
         return;
     }
 
@@ -156,10 +205,19 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     for (std::string keyword : keywordList) {
         std::string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
         if (regex_search(keyword, std::regex("^" + bufEscaped, std::regex_constants::icase))) {
-            if (islower(buf[0])) {
-                transform(keyword.begin(), keyword.end(), keyword.begin(), ::tolower);
+            std::string transformedKeyword = keyword;
+            for (size_t i = 0; i < buf.size() && i < keyword.size(); ++i) {
+                if (islower(buf[i])) {
+                    transformedKeyword[i] = tolower(keyword[i]);
+                } else if (isupper(buf[i])) {
+                    transformedKeyword[i] = toupper(keyword[i]);
+                }
             }
-            linenoiseAddCompletion(lc, (prefix + keyword).c_str());
+            // make the rest of the keyword the same case as the last character of buf
+            auto caseTransform = islower(buf.back()) ? ::tolower : ::toupper;
+            std::transform(keyword.begin() + buf.size(), keyword.end(), transformedKeyword.begin() + buf.size(), caseTransform);
+
+            linenoiseAddCompletion(lc, (prefix + transformedKeyword).c_str());
         }
     }
 }
