@@ -414,7 +414,6 @@ TEST_F(CApiValueTest, GetStructFieldName) {
         (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_TRUE(kuzu_query_result_has_next(&result));
     state = kuzu_query_result_get_next(&result, &flatTuple);
     ASSERT_EQ(state, KuzuSuccess);
@@ -554,6 +553,56 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+}
+
+TEST_F(CApiValueTest, getMapValue) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection, (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_FALSE(kuzu_query_result_has_next(&result));
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    kuzu_value fieldValue;
+    ASSERT_EQ(kuzu_value_get_map_field_value(&value, 0, &fieldValue), KuzuSuccess);
+    kuzu_logical_type fieldType;
+    kuzu_value_get_data_type(&fieldValue, &fieldType);  
+    ASSERT_EQ(kuzu_data_type_get_id(&fieldType), KUZU_STRUCT);
+    char* fieldName;
+    ASSERT_EQ(kuzu_value_get_struct_field_name(&fieldValue, 0, &fieldName), KuzuSuccess);
+    ASSERT_STREQ(fieldName, "KEY");
+
+    kuzu_value structFieldValue;
+    ASSERT_EQ(kuzu_value_get_struct_field_value(&fieldValue, 0, &structFieldValue), KuzuSuccess);
+    kuzu_logical_type structFieldType;
+    kuzu_value_get_data_type(&structFieldValue, &structFieldType);
+    ASSERT_EQ(kuzu_data_type_get_id(&structFieldType), KUZU_STRING);
+    char* structFieldKey;
+    ASSERT_EQ(kuzu_value_get_string(&structFieldValue, &structFieldKey), KuzuSuccess);
+    ASSERT_STREQ(structFieldKey, "audience1");
+
+    ASSERT_EQ(kuzu_value_get_struct_field_value(&fieldValue, 1, &structFieldValue), KuzuSuccess);
+    kuzu_value_get_data_type(&structFieldValue, &structFieldType);
+    ASSERT_EQ(kuzu_data_type_get_id(&structFieldType), KUZU_INT64);
+    int64_t structFieldNum;
+    ASSERT_EQ(kuzu_value_get_int64(&structFieldValue, &structFieldNum), KuzuSuccess);
+    ASSERT_EQ(structFieldNum, 33);
+
+    ASSERT_EQ(kuzu_value_get_struct_field_value(&fieldValue, 2, &structFieldValue), KuzuError);
+    ASSERT_EQ(kuzu_value_get_map_field_value(&value, 1, &fieldValue), KuzuError);
+    
+    kuzu_value_destroy(&fieldValue);
+    kuzu_value_destroy(&structFieldValue);
+    kuzu_data_type_destroy(&fieldType);
+    kuzu_query_result_destroy(&result);
+    kuzu_flat_tuple_destroy(&flatTuple);
 }
 
 TEST_F(CApiValueTest, GetDataType) {
