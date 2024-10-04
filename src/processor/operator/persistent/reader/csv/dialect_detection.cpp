@@ -41,5 +41,5 @@ std::vector<DialectOption> generateDialectOptions(const common::CSVOption& optio
     return options;
 }
 
-} // namespace common
+} // namespace processor
 } // namespace kuzu

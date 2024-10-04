@@ -31,7 +31,7 @@ static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& op
     } else if (optionName == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
         config.option.ignoreErrors = optionValue;
     } else if (optionName == "AUTODETECTION" || optionName == "AUTO_DETECTION") {
-        config.option.autoDetection = optionValue;  
+        config.option.autoDetection = optionValue;
     } else {
         KU_UNREACHABLE;
     }

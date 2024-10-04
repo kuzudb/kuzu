@@ -66,7 +66,8 @@ struct CSVOption {
                          other.sampleSize}, // Set to DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE if
                                             // sampleSize is 0
           allowUnbracedList{other.allowUnbracedList}, ignoreErrors{other.ignoreErrors},
-          autoDetection{other.autoDetection}, setEscape{other.setEscape}, setDelim{other.setDelim}, setQuote{other.setQuote} {}
+          autoDetection{other.autoDetection}, setEscape{other.setEscape}, setDelim{other.setDelim},
+          setQuote{other.setQuote} {}
 };
 
 struct CSVReaderConfig {

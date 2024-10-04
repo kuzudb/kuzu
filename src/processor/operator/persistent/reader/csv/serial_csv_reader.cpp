@@ -18,7 +18,8 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t file
           errorHandler},
       bindInput{bindInput} {}
 
-std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(DialectOption &detectedDialect) {
+std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(
+    DialectOption& detectedDialect) {
     readBOM();
 
     if (detectedDialect.doDialectDetection) {
@@ -128,7 +129,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes, DialectOption& detectedDialect) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
+    DialectOption& detectedDialect) {
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
     auto columnInfo = CSVColumnInfo(bindInput->expectedColumnNames.size() /* numColumns */,
         {} /* columnSkips */, {} /*warningDataColumns*/);
@@ -153,7 +155,8 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
 }
 
 void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes, DialectOption& detectedDialect) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
+    DialectOption& detectedDialect) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
     bindColumnsFromFile(bindInput, 0, columnNames, columnTypes, detectedDialect);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
@@ -177,7 +180,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
 
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
-    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes, detectedDialect);
+    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes,
+        detectedDialect);
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
