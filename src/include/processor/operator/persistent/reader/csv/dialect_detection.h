@@ -12,11 +12,12 @@ struct DialectOption {
     char quoteChar = '"';
     char escapeChar = '"';
     bool everQuoted = false;
+    bool everEscaped = false;
     bool doDialectDetection = true;
 
     DialectOption() = default;
     DialectOption(char delim, char quote, char escape)
-        : delimiter(delim), quoteChar(quote), escapeChar(escape), everQuoted(false), doDialectDetection(true) {}
+        : delimiter(delim), quoteChar(quote), escapeChar(escape), everQuoted(false), everEscaped(false), doDialectDetection(true) {}
 };
 
 std::vector<DialectOption> generateDialectOptions(const common::CSVOption& option);

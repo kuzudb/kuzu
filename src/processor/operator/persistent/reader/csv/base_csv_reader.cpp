@@ -405,6 +405,11 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         }
         if (buffer[position] == option.quoteChar &&
             (!option.escapeChar || option.escapeChar == option.quoteChar)) {
+            // the escapeChar is used correctly, record this for DialectSniff
+            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                    auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                    sniffDriver.setEverEscaped();
+            }
             // escaped quote, return to quoted state and store escape position
             escapePositions.push_back(position - start);
             goto in_quotes;
@@ -449,6 +454,11 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
                     "neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
             }
             goto ignore_error;
+        }
+        // the escapeChar is used correctly, record this for DialectSniff
+        if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.setEverEscaped();
         }
         // escape was followed by quote or escape, go back to quoted state
         goto in_quotes;

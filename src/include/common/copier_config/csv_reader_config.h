@@ -42,8 +42,19 @@ struct CSVOption {
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
     std::string toCypher() const {
         std::string header = hasHeader ? "true" : "false";
-        return stringFormat("(escape ='\\{}', delim ='{}', quote='\\{}', header={})", escapeChar,
-            delimiter, quoteChar, header);
+        std::string result = "(header=" + header + ")";
+        // Add the escape parameter IFF setEscape is true
+        if (setEscape) {
+            result += stringFormat(", escape='\\{}'", escapeChar);
+        }
+        if (setDelim) {
+            result += stringFormat(", delim='{}'", delimiter);
+        }
+        if (setQuote) {
+            result += stringFormat(", quote='\\{}'", quoteChar);
+        }
+
+        return result;
     }
 
     // Explicit copy constructor

@@ -164,6 +164,7 @@ void SniffCSVDialectDriver::reset() {
     error = false;
     resultPosition = 0;
     everQuoted = false;
+    everEscaped = false;
 }
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,

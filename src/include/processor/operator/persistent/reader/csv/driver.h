@@ -88,9 +88,11 @@ public:
     void reset();
 
     void setEverQuoted() { everQuoted = true; }
+    void setEverEscaped() { everEscaped = true; }
     void setError() { error = true; }
 
     bool getEverQuoted() const { return everQuoted; }
+    bool getEverEscaped() const { return everEscaped; }
     bool getError() const { return error; }
     common::idx_t getResultPosition() const { return resultPosition; }
     common::idx_t getColumnCount(common::idx_t index) const { return columnCounts[index]; }
@@ -101,6 +103,7 @@ private:
     bool error = false;
     common::idx_t resultPosition = 0;
     bool everQuoted = false;
+    bool everEscaped = false;
 };
 
 class SniffCSVNameAndTypeDriver : public SerialParsingDriver {

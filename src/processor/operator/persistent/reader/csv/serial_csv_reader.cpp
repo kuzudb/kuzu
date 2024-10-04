@@ -303,6 +303,7 @@ DialectOption SerialCSVReader::detectDialect() {
         idx_t consistentRows = 0;
         idx_t numCols = driver.getResultPosition() == 0 ? 1 : driver.getColumnCount(0);
         dialectOption.everQuoted = driver.getEverQuoted();
+        dialectOption.everEscaped = driver.getEverEscaped();
 
         // If the columns didn't match the user input columns number
         if (getNumColumns() != 0 && getNumColumns() != numCols) {
@@ -341,6 +342,12 @@ DialectOption SerialCSVReader::detectDialect() {
             if (!validDialects.empty() && validDialects.front().everQuoted &&
                 !dialectOption.everQuoted) {
                 // Give preference to quoted dialect.
+                continue;
+            }
+
+            if (!validDialects.empty() && validDialects.front().everEscaped &&
+                !dialectOption.everEscaped) {
+                // Give preference to Escaped dialect.
                 continue;
             }
 
