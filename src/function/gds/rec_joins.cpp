@@ -43,12 +43,16 @@ void RJAlgorithm::validateLowerUpperBound(int64_t lowerBound, int64_t upperBound
     }
 }
 
-expression_vector RJAlgorithm::getNodeIDResultColumns() const {
+expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
     expression_vector columns;
     auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
     columns.push_back(inputNode.getInternalID());
     auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(outputNode.getInternalID());
+    if (bindData->ptrCast<RJBindData>()->extendDirection == ExtendDirection::BOTH) {
+        columns.push_back(
+            binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL())));
+    }
     return columns;
 }
 

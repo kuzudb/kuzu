@@ -81,15 +81,15 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 1
            CALL var_len_joins(PK, a, 1, 2, "BOTH")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs, direction;
 ---- 7
-1|0|1|[]|[2:0]
-1|1|2|[0:0]|[2:0,2:0]
-1|1|2|[0:2]|[2:1,2:1]
-1|2|1|[]|[2:1]
-1|3|2|[0:2]|[2:1,2:2]
-1|4|2|[0:2]|[2:1,2:4]
-1|4|2|[0:2]|[2:1,2:5]
+1|0|1|[]|[2:0]|[False]
+1|1|2|[0:0]|[2:0,2:0]|[False,True]
+1|1|2|[0:2]|[2:1,2:1]|[True,False]
+1|2|1|[]|[2:1]|[True]
+1|3|2|[0:2]|[2:1,2:2]|[True,True]
+1|4|2|[0:2]|[2:1,2:4]|[True,True]
+1|4|2|[0:2]|[2:1,2:5]|[True,True]
 
 -LOG VarLenJoinsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
@@ -301,7 +301,6 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|3|3|[0:1,0:2]|[2:0,2:1,2:2]
 0|4|3|[0:1,0:2]|[2:0,2:1,2:4]
 0|4|3|[0:1,0:2]|[2:0,2:1,2:5]
--LOG AllSPPaths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 4
            CALL all_sp_paths(PK, a, 5, "BOTH")

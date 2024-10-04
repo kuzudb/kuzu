@@ -61,7 +61,7 @@ public:
     explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
         : frontierPair{frontierPair} {};
 
-    bool edgeCompute(common::nodeID_t, common::nodeID_t nbrID, relID_t) override {
+    bool edgeCompute(nodeID_t, nodeID_t nbrID, relID_t, bool) override {
         return frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset) ==
                PathLengths::UNVISITED;
     }
@@ -81,7 +81,8 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
+    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID,
+        bool fwdEdge) override {
         auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
                                 nbrNodeID.offset) == PathLengths::UNVISITED;
         if (shouldUpdate) {
@@ -89,7 +90,7 @@ public:
                 parentListBlock = bfsGraph->addNewBlock();
             }
             bfsGraph->tryAddSingleParent(frontierPair->curIter.load(std::memory_order_relaxed),
-                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
+                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID, fwdEdge);
         }
         return shouldUpdate;
     }
@@ -116,7 +117,9 @@ public:
     SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
         : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
+    expression_vector getResultColumns(Binder* binder) const override {
+        return getBaseResultColumns(binder);
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<SingleSPDestinationsAlgorithm>(*this);
@@ -143,7 +146,7 @@ public:
     SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         return columns;
     }
@@ -174,7 +177,7 @@ public:
     SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
         columns.push_back(getPathEdgeIDsColumn(binder));
@@ -192,8 +195,9 @@ private:
             std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->upperBound);
+            rjBindData->upperBound, writeDirection);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =

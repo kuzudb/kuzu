@@ -24,7 +24,7 @@ public:
     // So if the implementing class has access to the next frontier as a field,
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
     virtual bool edgeCompute(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
-        common::relID_t edgeID) = 0;
+        common::relID_t edgeID, bool fwdEdge) = 0;
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };

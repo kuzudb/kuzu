@@ -101,13 +101,21 @@ protected:
 class PathsOutputWriter : public RJOutputWriter {
 public:
     PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
-        uint16_t upperBound);
+        uint16_t upperBound, bool writeEdgeDirection);
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
+
+private:
+    void beginWritingNewPath(uint64_t length) const;
+    void addEdge(common::relID_t edgeID, bool fwdEdge, common::sel_t pos) const;
+    void addNodeEdge(common::nodeID_t nodeID, common::relID_t edgeID, bool fwdEdge,
+        common::sel_t pos) const;
 
 protected:
     uint16_t lowerBound;
     uint16_t upperBound;
+    bool writeEdgeDirection;
+    std::unique_ptr<common::ValueVector> directionVector;
     std::unique_ptr<common::ValueVector> lengthVector;
     std::unique_ptr<common::ValueVector> pathNodeIDsVector;
     std::unique_ptr<common::ValueVector> pathEdgeIDsVector;
@@ -115,8 +123,10 @@ protected:
 
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
-    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t upperBound)
-        : PathsOutputWriter(context, rjOutputs, 1 /* lower bound */, upperBound) {}
+    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t upperBound,
+        bool writeEdgeDirection)
+        : PathsOutputWriter(context, rjOutputs, 1 /* lower bound */, upperBound,
+              writeEdgeDirection) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
@@ -128,7 +138,8 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, upperBound);
+        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, upperBound,
+            writeEdgeDirection);
     }
 };
 
