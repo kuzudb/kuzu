@@ -121,6 +121,11 @@ SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
 bool SniffCSVDialectDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
     std::string_view value) {
     uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
     if (columnIdx == reader->getNumColumns() && length == 0) {
         // skip a single trailing delimiter in last columnIdx
         return true;
@@ -132,6 +137,14 @@ bool SniffCSVDialectDriver::addValue(uint64_t /*rowNum*/, common::column_id_t co
 bool SniffCSVDialectDriver::addRow(uint64_t /*rowNum*/, common::column_id_t /*columnCount*/,
     std::optional<WarningDataWithColumnInfo> /*warningData*/) {
     auto& csvOption = reader->getCSVOption();
+    if (rowEmpty) {
+        rowEmpty = false;
+        if (reader->getNumColumns() != 1) {
+            currentColumnCount = 0;
+            return false;
+        }
+        // Otherwise, treat it as null.
+    }
     if (resultPosition < csvOption.sampleSize) {
         columnCounts[resultPosition] = currentColumnCount;
         currentColumnCount = 0;

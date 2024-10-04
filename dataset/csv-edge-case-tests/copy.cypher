@@ -15,5 +15,5 @@ COPY `mixed-empty-lines-multiple-columns` FROM "dataset/csv-edge-case-tests/mixe
 COPY `mixed-empty-lines-single-column` FROM "dataset/csv-edge-case-tests/mixed-empty-lines-single-column.csv";
 COPY `mixed-newlines` FROM "dataset/csv-edge-case-tests/mixed-newlines.csv";
 COPY `quoted-values` FROM "dataset/csv-edge-case-tests/quoted-values.csv";
-COPY `tab-as-delim` FROM "dataset/csv-edge-case-tests/tab-as-delim.csv" (DELIM='\\t');
+COPY `tab-as-delim` FROM "dataset/csv-edge-case-tests/tab-as-delim.csv";
 COPY `unquote-escape` FROM "dataset/csv-edge-case-tests/unquote-escape.csv" (ESCAPE='"');

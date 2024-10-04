@@ -41,3 +41,28 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detecti
 0|1|2021|114"514
 2|1|2020|1919810"514
 8|1|2020|gcd"gcd
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_escape2.csv"(header=true) return *
+---- 3
+0|1|2021|114"514
+2|1|2020|1919810"514
+8|1|2020|gcd"gcd
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/eStudyAt_escape3.csv"(header=true) return *
+---- 3
+0|1|2021|114'514
+2|1|2020|1919810'514
+8|1|2020|gcd'gcd
+
+-CASE LOAD_FROM_LIST
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/list.csv"(header=true) return *
+---- 1
+[5,6,7,8]|[0.1,8.8]|[]||[[],[5,6]]|[]|[]
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/list_quote1.csv"(header=true) return *
+---- 1
+[5,6,7,8]|[0.1,8.8]|[]||[[],[5,6]]|[]|[]
+
+-STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/csv-dialect-detection/list_delim1.csv"(header=true) return *
+---- 1
+[5,6,7,8]|[0.1,8.8]|[]||[[],[5,6]]|[]|[]
