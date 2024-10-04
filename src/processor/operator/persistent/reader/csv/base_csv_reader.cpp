@@ -389,7 +389,12 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         [[unlikely]]
         // still in quoted state at the end of the file, error:
         lineContext.setEndOfLine(getFileOffset());
-        handleCopyException("unterminated quotes.");
+        if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+            auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+            sniffDriver.setError();
+        } else {
+            handleCopyException("unterminated quotes.");
+        }
         // we are ignoring this error, skip current row and restart state machine
         goto ignore_error;
     unquote:
