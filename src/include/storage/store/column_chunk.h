@@ -37,6 +37,9 @@ struct ColumnCheckpointState {
 
 class ColumnChunk {
 public:
+    // TODO(bmwinger): the dataType reference is copied when passing it to the ColumnChunkData
+    // It would be better to take it by value so that the caller can choose to either move or copy
+    // it
     ColumnChunk(MemoryManager& memoryManager, const common::LogicalType& dataType,
         uint64_t capacity, bool enableCompression, ResidencyState residencyState);
     ColumnChunk(MemoryManager& memoryManager, const common::LogicalType& dataType,
@@ -94,6 +97,9 @@ public:
             updateInfo.reset();
         }
     }
+
+    void loadFromDisk() { data->loadFromDisk(); }
+    uint64_t spillToDisk() { return data->spillToDisk(); }
 
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,

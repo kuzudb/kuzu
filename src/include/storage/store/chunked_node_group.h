@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 
 #include "common/enums/rel_multiplicity.h"
 #include "storage/enums/residency_state.h"
@@ -158,6 +159,15 @@ public:
         return common::ku_dynamic_cast<const TARGETT&>(*this);
     }
 
+    // Also marks the chunks as in-use
+    // I.e. if you want to be able to spill to disk again you must call setUnused first
+    void loadFromDisk(MemoryManager& mm);
+
+    // returns the amount of space reclaimed in bytes
+    uint64_t spillToDisk();
+
+    void setUnused(MemoryManager& mm);
+
 protected:
     NodeGroupDataFormat format;
     ResidencyState residencyState;
@@ -166,6 +176,10 @@ protected:
     std::atomic<common::row_idx_t> numRows;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     std::unique_ptr<VersionInfo> versionInfo;
+    std::mutex spillToDiskMutex;
+    // Used to track if the group may be in use and to verify that spillToDisk is only called when
+    // it is safe to do so. If false, it is safe to spill the data to disk.
+    bool dataInUse;
 };
 
 } // namespace storage

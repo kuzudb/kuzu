@@ -48,7 +48,7 @@ PathLengths::PathLengths(std::unordered_map<common::table_id_t, uint64_t> nodeTa
         nodeTableIDAndNumNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
         std::atomic<uint16_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->buffer.data());
+            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
         for (uint64_t i = 0; i < numNodes; ++i) {
             memBufferPtr[i].store(UNVISITED, std::memory_order_relaxed);
         }
@@ -60,7 +60,7 @@ void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
     curTableID.store(tableID, std::memory_order_relaxed);
     curFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->buffer.data()),
+        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->getData()),
         std::memory_order_relaxed);
     maxNodesInCurFrontierFixedMask.store(
         nodeTableIDAndNumNodesMap[curTableID.load(std::memory_order_relaxed)],
@@ -70,7 +70,7 @@ void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
 void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
     nextFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->buffer.data()),
+        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->getData()),
         std::memory_order_relaxed);
 }
 

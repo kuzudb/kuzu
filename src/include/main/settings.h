@@ -223,5 +223,17 @@ struct ForceCheckpointClosingDBSetting {
     }
 };
 
+struct SpillToDiskFileSetting {
+    static constexpr auto name = "spill_to_disk_tmp_file";
+    static constexpr auto inputType = common::LogicalTypeID::STRING;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getDBConfigUnsafe()->spillToDiskTmpFile = parameter.getValue<std::string>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value::createValue(context->getDBConfig()->spillToDiskTmpFile);
+    }
+};
+
 } // namespace main
 } // namespace kuzu

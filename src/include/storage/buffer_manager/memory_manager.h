@@ -10,9 +10,6 @@
 #include <span>
 
 namespace kuzu {
-namespace main {
-class ClientContext;
-}
 
 namespace common {
 class VirtualFileSystem;
@@ -23,20 +20,38 @@ namespace storage {
 class MemoryManager;
 class FileHandle;
 class BufferManager;
+class ChunkedNodeGroup;
 
-class KUZU_API MemoryBuffer {
+class MemoryBuffer {
+    friend class Spiller;
+
 public:
-    MemoryBuffer(MemoryManager* mm, common::page_idx_t blockIdx, uint8_t* buffer,
+    KUZU_API MemoryBuffer(MemoryManager* mm, common::page_idx_t blockIdx, uint8_t* buffer,
         uint64_t size = common::TEMP_PAGE_SIZE);
-    ~MemoryBuffer();
+    KUZU_API ~MemoryBuffer();
     DELETE_COPY_AND_MOVE(MemoryBuffer);
 
-    uint8_t* getData() const { return buffer.data(); }
+    std::span<uint8_t> getBuffer() const {
+        KU_ASSERT(!evicted);
+        return buffer;
+    }
+    uint8_t* getData() const { return getBuffer().data(); }
 
-public:
+    MemoryManager* getMemoryManager() const { return mm; }
+
+private:
+    // Can be called multiple times safely
+    void prepareLoadFromDisk();
+
+    // Must only be called once before loading from disk
+    void setSpilledToDisk(uint64_t filePosition);
+
+private:
     std::span<uint8_t> buffer;
-    common::page_idx_t pageIdx;
+    uint64_t filePosition = UINT64_MAX;
     MemoryManager* mm;
+    common::page_idx_t pageIdx;
+    bool evicted;
 };
 
 /*
@@ -58,9 +73,9 @@ class KUZU_API MemoryManager {
     friend class MemoryBuffer;
 
 public:
-    MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs, main::ClientContext* context);
+    MemoryManager(BufferManager* bm, common::VirtualFileSystem* vfs);
 
-    ~MemoryManager();
+    ~MemoryManager() = default;
 
     std::unique_ptr<MemoryBuffer> mallocBuffer(bool initializeToZero, uint64_t size);
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
@@ -71,6 +86,7 @@ public:
 
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
+    std::span<uint8_t> mallocBufferInternal(bool initializeToZero, uint64_t size);
 
 private:
     FileHandle* fh;

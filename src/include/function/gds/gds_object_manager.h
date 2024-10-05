@@ -31,7 +31,7 @@ public:
     }
 
 private:
-    T* getData() const { return reinterpret_cast<T*>(block->buffer.data()); }
+    T* getData() const { return reinterpret_cast<T*>(block->getData()); }
 
 private:
     std::unique_ptr<storage::MemoryBuffer> block;
@@ -53,7 +53,7 @@ public:
 
     T* getData(common::table_id_t tableID) const {
         KU_ASSERT(bufferPerTable.contains(tableID));
-        return reinterpret_cast<T*>(bufferPerTable.at(tableID)->buffer.data());
+        return reinterpret_cast<T*>(bufferPerTable.at(tableID)->getData());
     }
 
 private:

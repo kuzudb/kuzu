@@ -11,7 +11,15 @@
 #include "storage/file_handle.h"
 
 namespace kuzu {
+namespace common {
+class VirtualFileSystem;
+};
+namespace testing {
+class EmptyBufferManagerTest;
+};
 namespace storage {
+class ChunkedNodeGroup;
+class Spiller;
 
 // This class keeps state info for pages potentially can be evicted.
 // The page state of a candidate is set to MARKED when it is first enqueued. After enqueued, if the
@@ -165,14 +173,14 @@ private:
  * Umbra's design in his CS 848 course project:
  * https://github.com/fabubaker/kuzu/blob/umbra-bm/final_project_report.pdf.
  */
-
 class BufferManager {
     friend class FileHandle;
     friend class MemoryManager;
 
 public:
-    BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize);
-    ~BufferManager() = default;
+    BufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
+        uint64_t bufferPoolSize, uint64_t maxDBSize, common::VirtualFileSystem* vfs, bool readOnly);
+    ~BufferManager();
 
     // Currently, these functions are specifically used only for WAL files.
     void removeFilePagesFromFrames(FileHandle& fileHandle);
@@ -189,6 +197,12 @@ public:
     }
 
     uint64_t getUsedMemory() const { return usedMemory; }
+
+    void getSpillerOrSkip(std::function<void(Spiller&)> func) {
+        if (spiller) {
+            return func(*spiller);
+        }
+    }
 
 private:
     uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx,
@@ -219,10 +233,7 @@ private:
         PageReadPolicy pageReadPolicy);
     void removePageFromFrame(FileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
 
-    uint64_t freeUsedMemory(uint64_t size) {
-        KU_ASSERT(usedMemory.load() >= size);
-        return usedMemory.fetch_sub(size);
-    }
+    uint64_t freeUsedMemory(uint64_t size);
 
     void releaseFrameForPage(FileHandle& fileHandle, common::page_idx_t pageIdx) {
         vmRegions[fileHandle.getPageSizeClass()]->releaseFrame(fileHandle.getFrameIdx(pageIdx));
@@ -233,11 +244,16 @@ private:
 private:
     std::atomic<uint64_t> bufferPoolSize;
     EvictionQueue evictionQueue;
+    // Total memory used
     std::atomic<uint64_t> usedMemory;
+    // Amount of memory used which cannot be evicted
+    std::atomic<uint64_t> nonEvictableMemory;
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
     // hold two sizes of REGULAR_PAGE and TEMP_PAGE.
     std::vector<std::unique_ptr<VMRegion>> vmRegions;
     std::vector<std::unique_ptr<FileHandle>> fileHandles;
+    std::unique_ptr<Spiller> spiller;
+    common::VirtualFileSystem* vfs;
 };
 
 } // namespace storage

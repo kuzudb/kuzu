@@ -10,9 +10,13 @@ namespace main {
 class Database;
 }
 
+namespace storage {
+class BufferManager;
+};
 namespace common {
 
 class KUZU_API VirtualFileSystem final : public FileSystem {
+    friend class storage::BufferManager;
 
 public:
     VirtualFileSystem();

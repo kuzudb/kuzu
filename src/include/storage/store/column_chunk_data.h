@@ -9,7 +9,6 @@
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -91,10 +90,13 @@ struct ChunkState {
 };
 
 class FileHandle;
+class Spiller;
 // Base data segment covers all fixed-sized data types.
 class ColumnChunkData {
 public:
     friend struct ColumnChunkFactory;
+    // For spilling to disk we need access to the underlying buffer
+    friend class Spiller;
 
     ColumnChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
         bool enableCompression, ResidencyState residencyState, bool hasNullData);
@@ -102,7 +104,7 @@ public:
         const ColumnChunkMetadata& metadata, bool hasNullData);
     ColumnChunkData(MemoryManager& mm, common::PhysicalTypeID physicalType, bool enableCompression,
         const ColumnChunkMetadata& metadata, bool hasNullData);
-    virtual ~ColumnChunkData() = default;
+    virtual ~ColumnChunkData();
 
     template<typename T>
     T getValue(common::offset_t pos) const {
@@ -166,12 +168,12 @@ public:
     }
 
     uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
-    uint8_t* getData() const { return buffer->buffer.data(); }
+    uint8_t* getData() const;
     template<typename T>
     T* getData() const {
-        return reinterpret_cast<T*>(buffer->buffer.data());
+        return reinterpret_cast<T*>(getData());
     }
-    uint64_t getBufferSize() const { return buffer->buffer.size_bytes(); }
+    uint64_t getBufferSize() const;
 
     virtual void initializeScanState(ChunkState& state, Column* column) const;
     virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
@@ -227,8 +229,10 @@ public:
     const TARGET& cast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
     }
+    MemoryManager& getMemoryManager() const;
 
-    MemoryManager& getMemoryManager() const { return *buffer->mm; }
+    void loadFromDisk();
+    uint64_t spillToDisk();
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
@@ -331,11 +335,11 @@ public:
         numValues = 0;
     }
     void resetToNoNull() {
-        memset(buffer->buffer.data(), 0 /* non null */, buffer->buffer.size_bytes());
+        memset(getData(), 0 /* non null */, getBufferSize());
         mayHaveNullValue = false;
     }
     void resetToAllNull() override {
-        memset(getData(), 0xFF /* null */, buffer->buffer.size_bytes());
+        memset(getData(), 0xFF /* null */, getBufferSize());
         mayHaveNullValue = true;
     }
 

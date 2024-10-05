@@ -30,7 +30,7 @@ private:
 };
 
 struct RelBatchInsertProgressSharedState {
-    uint64_t partitionsDone;
+    std::atomic<uint64_t> partitionsDone;
     uint64_t partitionsTotal;
 
     RelBatchInsertProgressSharedState() : partitionsDone{0}, partitionsTotal{0} {};

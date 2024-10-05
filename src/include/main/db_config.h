@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "common/types/value/value.h"
@@ -60,6 +61,7 @@ struct DBConfig {
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
+    std::optional<std::string> spillToDiskTmpFile;
 
     explicit DBConfig(const SystemConfig& systemConfig);
 

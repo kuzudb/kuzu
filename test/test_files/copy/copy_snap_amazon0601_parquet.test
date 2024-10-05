@@ -1,4 +1,5 @@
 -DATASET CSV snap/amazon0601/parquet
+-BUFFER_POOL_SIZE 268435456
 -SKIP_IN_MEM
 --
 

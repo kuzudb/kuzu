@@ -246,7 +246,7 @@ void StringChunkData::finalize() {
     // We already de-duplicate as we go, but when out of place updates occur new values will be
     // appended to the end and the original values may be able to be pruned before flushing them to
     // disk
-    auto newDictionaryChunk = std::make_unique<DictionaryChunk>(*buffer->mm, numValues,
+    auto newDictionaryChunk = std::make_unique<DictionaryChunk>(getMemoryManager(), numValues,
         enableCompression, residencyState);
     // Each index is replaced by a new one for the de-duplicated data in the new dictionary.
     for (auto i = 0u; i < numValues; i++) {

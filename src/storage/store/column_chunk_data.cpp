@@ -12,8 +12,10 @@
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
+#include "storage/file_handle.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
 #include "storage/store/compression_flush_buffer.h"
@@ -168,8 +170,8 @@ void ColumnChunkData::resetToEmpty() {
     if (nullData) {
         nullData->resetToEmpty();
     }
-    KU_ASSERT(buffer->buffer.size_bytes() == getBufferSize(capacity));
-    memset(getData<uint8_t>(), 0x00, buffer->buffer.size_bytes());
+    KU_ASSERT(getBufferSize() == getBufferSize(capacity));
+    memset(getData<uint8_t>(), 0x00, getBufferSize());
     numValues = 0;
 }
 
@@ -187,8 +189,8 @@ ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
         minValue = min.value_or(StorageValue());
         maxValue = max.value_or(StorageValue());
     }
-    KU_ASSERT(buffer->buffer.size_bytes() == getBufferSize(capacity));
-    return getMetadataFunction(buffer->buffer, capacity, numValues, minValue, maxValue);
+    KU_ASSERT(getBufferSize() == getBufferSize(capacity));
+    return getMetadataFunction(buffer->getBuffer(), capacity, numValues, minValue, maxValue);
 }
 
 void ColumnChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
@@ -226,7 +228,7 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& metadata) {
     residencyState = ResidencyState::ON_DISK;
     capacity = 0;
     // Note: We don't need to set the buffer to nullptr, as it allows ColumnChunkDaat to be resized.
-    buffer = buffer->mm->mallocBuffer(true, 0 /*size*/);
+    buffer = buffer->getMemoryManager()->mallocBuffer(true, 0 /*size*/);
     this->metadata = metadata;
     this->numValues = metadata.numValues;
 }
@@ -235,7 +237,7 @@ ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, page_idx_t 
     const ColumnChunkMetadata& metadata) const {
     if (!metadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->buffer, dataFH, startPageIdx, metadata);
+        return flushBufferFunction(buffer->getBuffer(), dataFH, startPageIdx, metadata);
     }
     return metadata;
 }
@@ -395,8 +397,8 @@ void ColumnChunkData::resize(uint64_t newCapacity) {
     }
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
-        auto resizedBuffer = buffer->mm->mallocBuffer(true, numBytesAfterResize);
-        memcpy(resizedBuffer->buffer.data(), buffer->buffer.data(), getBufferSize());
+        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(true, numBytesAfterResize);
+        memcpy(resizedBuffer->getBuffer().data(), buffer->getBuffer().data(), getBufferSize());
         buffer = std::move(resizedBuffer);
     }
     if (nullData) {
@@ -422,7 +424,7 @@ void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluat
 
 void ColumnChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
     const SelectionVector& selVector) {
-    auto bufferToWrite = buffer->buffer.data() + startPosInChunk * numBytesPerValue;
+    auto bufferToWrite = buffer->getBuffer().data() + startPosInChunk * numBytesPerValue;
     KU_ASSERT(startPosInChunk + selVector.getSelSize() <= capacity);
     const auto vectorDataToWriteFrom = vector->getData();
     if (selVector.isUnfiltered()) {
@@ -472,7 +474,7 @@ bool ColumnChunkData::sanityCheck() const {
 }
 
 uint64_t ColumnChunkData::getEstimatedMemoryUsage() const {
-    return buffer->buffer.size() + (nullData ? nullData->getEstimatedMemoryUsage() : 0);
+    return buffer->getBuffer().size() + (nullData ? nullData->getEstimatedMemoryUsage() : 0);
 }
 
 void ColumnChunkData::serialize(Serializer& serializer) const {
@@ -859,6 +861,30 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Memor
 bool ColumnChunkData::isNull(offset_t pos) const {
     return nullData ? nullData->isNull(pos) : false;
 }
+
+MemoryManager& ColumnChunkData::getMemoryManager() const {
+    return *buffer->getMemoryManager();
+}
+
+uint8_t* ColumnChunkData::getData() const {
+    return buffer->getBuffer().data();
+}
+uint64_t ColumnChunkData::getBufferSize() const {
+    return buffer->getBuffer().size_bytes();
+}
+
+void ColumnChunkData::loadFromDisk() {
+    buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+        [&](auto& spiller) { spiller.loadFromDisk(*this); });
+}
+uint64_t ColumnChunkData::spillToDisk() {
+    uint64_t spilledBytes = 0;
+    buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+        [&](auto& spiller) { spilledBytes = spiller.spillToDisk(*this); });
+    return spilledBytes;
+}
+
+ColumnChunkData::~ColumnChunkData() = default;
 
 } // namespace storage
 } // namespace kuzu

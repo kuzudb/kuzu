@@ -38,10 +38,8 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
 }
 
 void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
-    maxNodeOffsets.resize(2);
     maxNodeOffsets[0] = srcNodeTable->getNumRows();
     maxNodeOffsets[1] = dstNodeTable->getNumRows();
-    numPartitions.resize(2);
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
     numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
     Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
@@ -49,12 +47,12 @@ void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
 
 partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
     RelBatchInsertProgressSharedState& progressSharedState) {
-    std::unique_lock xLck{mtx};
-    if (nextPartitionIdx >= numPartitions[partitioningIdx]) {
+    auto nextPartitionIdxToReturn = nextPartitionIdx++;
+    if (nextPartitionIdxToReturn >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;
     }
     progressSharedState.partitionsDone++;
-    return nextPartitionIdx++;
+    return nextPartitionIdxToReturn;
 }
 
 void PartitionerSharedState::resetState() {
@@ -116,7 +114,7 @@ DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>&
 
 void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataInfo,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-    const std::vector<partition_idx_t>& numPartitions) {
+    const std::array<partition_idx_t, PartitionerSharedState::DIRECTIONS>& numPartitions) {
     partitioningBuffers.resize(numPartitions.size());
     for (auto partitioningIdx = 0u; partitioningIdx < numPartitions.size(); partitioningIdx++) {
         const auto numPartition = numPartitions[partitioningIdx];

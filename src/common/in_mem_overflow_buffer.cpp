@@ -13,11 +13,11 @@ BufferBlock::BufferBlock(std::unique_ptr<storage::MemoryBuffer> block)
 BufferBlock::~BufferBlock() = default;
 
 uint64_t BufferBlock::size() const {
-    return block->buffer.size();
+    return block->getBuffer().size();
 }
 
 uint8_t* BufferBlock::data() const {
-    return block->buffer.data();
+    return block->getBuffer().data();
 }
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
