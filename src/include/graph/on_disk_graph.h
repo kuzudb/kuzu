@@ -11,7 +11,6 @@
 #include "graph.h"
 #include "graph_entry.h"
 #include "main/client_context.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
