@@ -9,11 +9,11 @@ class BoundProjectionBody {
     static constexpr uint64_t INVALID_NUMBER = UINT64_MAX;
 
 public:
-    explicit BoundProjectionBody(bool isDistinct)
-        : isDistinct{isDistinct}, skipNumber{INVALID_NUMBER}, limitNumber{INVALID_NUMBER} {}
+    explicit BoundProjectionBody(bool distinct)
+        : distinct{distinct}, skipNumber{INVALID_NUMBER}, limitNumber{INVALID_NUMBER} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundProjectionBody);
 
-    bool getIsDistinct() const { return isDistinct; }
+    bool isDistinct() const { return distinct; }
 
     void setProjectionExpressions(expression_vector expressions) {
         projectionExpressions = std::move(expressions);
@@ -51,14 +51,14 @@ public:
 
 private:
     BoundProjectionBody(const BoundProjectionBody& other)
-        : isDistinct{other.isDistinct}, projectionExpressions{other.projectionExpressions},
+        : distinct{other.distinct}, projectionExpressions{other.projectionExpressions},
           groupByExpressions{other.groupByExpressions},
           aggregateExpressions{other.aggregateExpressions},
           orderByExpressions{other.orderByExpressions}, isAscOrders{other.isAscOrders},
           skipNumber{other.skipNumber}, limitNumber{other.limitNumber} {}
 
 private:
-    bool isDistinct;
+    bool distinct;
     expression_vector projectionExpressions;
     expression_vector groupByExpressions;
     expression_vector aggregateExpressions;

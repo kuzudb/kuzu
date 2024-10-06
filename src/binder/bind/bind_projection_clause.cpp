@@ -194,7 +194,7 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
         // expressions in projection are available. Otherwise, expressions before projection are
         // also available
         expression_vector orderByExprs;
-        if (boundProjectionBody.hasAggregateExpressions()) {
+        if (boundProjectionBody.hasAggregateExpressions() || boundProjectionBody.isDistinct()) {
             scope.clear();
             KU_ASSERT(projectionBody.getProjectionExpressions().size() == projectionExprs.size());
             std::vector<std::string> tmpAliases;
