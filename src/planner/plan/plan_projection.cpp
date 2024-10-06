@@ -24,13 +24,27 @@ void Planner::planProjectionBody(const BoundProjectionBody* projectionBody, Logi
     if (!expressionsToAggregate.empty()) {
         planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
     }
-    if (projectionBody->hasOrderByExpressions()) {
+    // We might order by an expression that is not in projection list, so after order by we
+    // always need to append a projection.
+    // If distinct is presented in projection list, we need to first append project to evaluate the
+    // list, then take the distinct.
+    // Order by should always be the last operator (except for skip/limit) because other operators
+    // will break the order.
+    if (projectionBody->isDistinct() && projectionBody->hasOrderByExpressions()) {
+        appendProjection(expressionsToProject, plan);
+        appendDistinct(expressionsToProject, plan);
         planOrderBy(expressionsToProject, projectionBody->getOrderByExpressions(),
             projectionBody->getSortingOrders(), plan);
-    }
-    appendProjection(expressionsToProject, plan);
-    if (projectionBody->getIsDistinct()) {
+        appendProjection(expressionsToProject, plan);
+    } else if (projectionBody->isDistinct()) {
+        appendProjection(expressionsToProject, plan);
         appendDistinct(expressionsToProject, plan);
+    } else if (projectionBody->hasOrderByExpressions()) {
+        planOrderBy(expressionsToProject, projectionBody->getOrderByExpressions(),
+            projectionBody->getSortingOrders(), plan);
+        appendProjection(expressionsToProject, plan);
+    } else {
+        appendProjection(expressionsToProject, plan);
     }
     if (projectionBody->hasSkipOrLimit()) {
         appendMultiplicityReducer(plan);
