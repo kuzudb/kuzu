@@ -611,7 +611,8 @@ TEST_F(CApiValueTest, getMapValue) {
     kuzu_flat_tuple flatTuple;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
+    state = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_TRUE(kuzu_query_result_has_next(&result));
