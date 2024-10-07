@@ -112,7 +112,7 @@ Binder exception: Table knows does not exist.
 -CASE AddNodeProperty
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
 ---- ok
--STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true, DELIM='|');
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true);
 ---- ok
 -STATEMENT alter table Comment add propx int64;
 ---- ok
@@ -135,9 +135,9 @@ Binder exception: Table knows does not exist.
 ---- ok
 -STATEMENT create rel table replyOf (FROM Comment TO Comment, MANY_ONE);
 ---- ok
--STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true, DELIM='|');
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true);
 ---- ok
--STATEMENT copy replyOf from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment_replyOf_Comment.csv' (HEADER=true, DELIM='|');
+-STATEMENT copy replyOf from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment_replyOf_Comment.csv' (HEADER=true);
 ---- ok
 -STATEMENT alter table replyOf add propx int64;
 ---- ok

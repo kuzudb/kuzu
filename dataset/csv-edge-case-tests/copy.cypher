@@ -9,11 +9,11 @@ COPY `empty-lines-single-column` FROM "dataset/csv-edge-case-tests/empty-lines-s
 COPY `empty` FROM "dataset/csv-edge-case-tests/empty.csv";
 COPY `empty-with-header` FROM "dataset/csv-edge-case-tests/empty.csv" (HEADER=TRUE);
 COPY `eof-after-unquote` FROM "dataset/csv-edge-case-tests/eof-after-unquote.csv";
-COPY `escapes-in-quote` FROM "dataset/csv-edge-case-tests/escapes-in-quote.csv"(escape='\\');
+COPY `escapes-in-quote` FROM "dataset/csv-edge-case-tests/escapes-in-quote.csv";
 COPY `escapes-out-of-quote` FROM "dataset/csv-edge-case-tests/escapes-out-of-quote.csv" (sample_size=1);
 COPY `mixed-empty-lines-multiple-columns` FROM "dataset/csv-edge-case-tests/mixed-empty-lines-multiple-columns.csv";
 COPY `mixed-empty-lines-single-column` FROM "dataset/csv-edge-case-tests/mixed-empty-lines-single-column.csv";
 COPY `mixed-newlines` FROM "dataset/csv-edge-case-tests/mixed-newlines.csv";
 COPY `quoted-values` FROM "dataset/csv-edge-case-tests/quoted-values.csv";
-COPY `tab-as-delim` FROM "dataset/csv-edge-case-tests/tab-as-delim.csv" (DELIM='\\t');
-COPY `unquote-escape` FROM "dataset/csv-edge-case-tests/unquote-escape.csv" (ESCAPE='"');
+COPY `tab-as-delim` FROM "dataset/csv-edge-case-tests/tab-as-delim.csv";
+COPY `unquote-escape` FROM "dataset/csv-edge-case-tests/unquote-escape.csv";

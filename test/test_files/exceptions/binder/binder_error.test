@@ -313,7 +313,7 @@ Binder exception: Unrecognized csv parsing option: LIST_END.
 Binder exception: Unrecognized csv parsing option: LIST_BEGIN.
 
 -LOG LoadCSVInvalidCol
--STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/quote_error.csv" RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/list/quote_error.csv" (AUTO_DETECT=false) RETURN * ;
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 3.
 

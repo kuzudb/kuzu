@@ -18,8 +18,14 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, common::idx_t file
           errorHandler},
       bindInput{bindInput} {}
 
-std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
+std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(
+    DialectOption& detectedDialect) {
     readBOM();
+
+    if (detectedDialect.doDialectDetection) {
+        detectedDialect = detectDialect();
+    }
+
     SniffCSVNameAndTypeDriver driver{this, bindInput};
     parseCSV(driver);
     // finalize the columns; rename duplicate names
@@ -123,7 +129,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
+    DialectOption& detectedDialect) {
     auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
     auto columnInfo = CSVColumnInfo(bindInput->expectedColumnNames.size() /* numColumns */,
         {} /* columnSkips */, {} /*warningDataColumns*/);
@@ -140,7 +147,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
             return BaseCSVReader::basePopulateErrorFunc(std::move(error), &sharedErrorHandler,
                 &csvReader, bindInput->config.filePaths[fileIdx]);
         });
-    auto sniffedColumns = csvReader.sniffCSV();
+    auto sniffedColumns = csvReader.sniffCSV(detectedDialect);
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
         columnTypes.push_back(type.copy());
@@ -148,13 +155,14 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
 }
 
 void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
+    DialectOption& detectedDialect) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
-    bindColumnsFromFile(bindInput, 0, columnNames, columnTypes);
+    bindColumnsFromFile(bindInput, 0, columnNames, columnTypes, detectedDialect);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
-        bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes);
+        bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes, detectedDialect);
         ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
     }
 }
@@ -165,13 +173,28 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
         scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
             Value((int64_t)0)); // only scan headers
     }
+
+    DialectOption detectedDialect;
+    auto csvOption = CSVReaderConfig::construct(scanInput->config.options).option;
+    detectedDialect.doDialectDetection = csvOption.autoDetection;
+
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
-    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
+    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes,
+        detectedDialect);
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
+
+    if (detectedDialect.doDialectDetection) {
+        std::string quote(1, detectedDialect.quoteChar);
+        std::string delim(1, detectedDialect.delimiter);
+        std::string escape(1, detectedDialect.escapeChar);
+        scanInput->config.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
+        scanInput->config.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
+        scanInput->config.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
+    }
 
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
         resultColumnNames, resultColumnTypes, scanInput->config);
@@ -226,6 +249,169 @@ function_set SerialCSVScan::getFunctionSet() {
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
             progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
     return functionSet;
+}
+
+void SerialCSVReader::resetReaderState() {
+    // Reset file position to the beginning.
+    if (-1 == fileInfo->seek(0, SEEK_SET)) {
+        handleCopyException(
+            stringFormat("Failed to seek to the beginning of the file:, errno: {}.", errno), true);
+        return;
+    }
+
+    buffer.reset();
+    bufferSize = 0;
+    position = 0;
+    osFileOffset = 0;
+    bufferIdx = 0;
+    lineContext.setNewLine(getFileOffset());
+
+    readBOM();
+}
+
+DialectOption SerialCSVReader::detectDialect() {
+    // Extract a sample of rows from the file for dialect detection.
+    SniffCSVDialectDriver driver{this, bindInput};
+
+    // Generate dialect options based on the non-user-specified options.
+    auto dialectSearchSpace = generateDialectOptions(option);
+
+    // Save default for dialect not found situation.
+    DialectOption defaultOption{option.delimiter, option.quoteChar, option.escapeChar};
+
+    idx_t bestConsistentRows = 0;
+    idx_t maxColumnsFound = 0;
+    idx_t minIgnoredRows = 0;
+    std::vector<DialectOption> validDialects;
+    std::vector<DialectOption> finalDialects;
+    for (auto& dialectOption : dialectSearchSpace) {
+        bool notExpected = false;
+        // Load current dialect option.
+        option.delimiter = dialectOption.delimiter;
+        option.quoteChar = dialectOption.quoteChar;
+        option.escapeChar = dialectOption.escapeChar;
+        // reset Driver.
+        driver.reset();
+        // Try parsing it with current dialect.
+        parseCSV(driver);
+        // Reset the file position and buffer to start reading from the beginning after detection.
+        resetReaderState();
+        // If never unquoting quoted values or any other error during the parsing, discard this
+        // dialect.
+        if (driver.getError()) {
+            continue;
+        }
+
+        idx_t ignoredRows = 0;
+        idx_t consistentRows = 0;
+        idx_t numCols = driver.getResultPosition() == 0 ? 1 : driver.getColumnCount(0);
+        dialectOption.everQuoted = driver.getEverQuoted();
+        dialectOption.everEscaped = driver.getEverEscaped();
+
+        // If the columns didn't match the user input columns number.
+        if (getNumColumns() != 0 && getNumColumns() != numCols) {
+            continue;
+        }
+
+        for (auto row = 0u; row < driver.getResultPosition(); row++) {
+            if (getNumColumns() != 0 && getNumColumns() != driver.getColumnCount(row)) {
+                notExpected = true;
+                break;
+            }
+            if (numCols < driver.getColumnCount(row)) {
+                numCols = driver.getColumnCount(row);
+                consistentRows = 1;
+            } else if (driver.getColumnCount(row) == numCols) {
+                consistentRows++;
+            } else {
+                ignoredRows++;
+            }
+        }
+
+        if (notExpected) {
+            continue;
+        }
+
+        auto moreValues = consistentRows > bestConsistentRows && numCols >= maxColumnsFound;
+        auto singleColumnBefore =
+            maxColumnsFound < 2 && numCols > maxColumnsFound * validDialects.size();
+        auto moreThanOneRow = consistentRows > 1;
+        auto moreThanOneColumn = numCols > 1;
+
+        if (singleColumnBefore || moreValues || moreThanOneColumn) {
+            if (maxColumnsFound == numCols && ignoredRows > minIgnoredRows) {
+                continue;
+            }
+            if (!validDialects.empty() && validDialects.front().everQuoted &&
+                !dialectOption.everQuoted) {
+                // Give preference to quoted dialect.
+                continue;
+            }
+
+            if (!validDialects.empty() && validDialects.front().everEscaped &&
+                !dialectOption.everEscaped) {
+                // Give preference to Escaped dialect.
+                continue;
+            }
+
+            if (consistentRows >= bestConsistentRows) {
+                bestConsistentRows = consistentRows;
+                maxColumnsFound = numCols;
+                minIgnoredRows = ignoredRows;
+                validDialects.clear();
+                validDialects.emplace_back(dialectOption);
+            }
+        }
+
+        if (moreThanOneRow && moreThanOneColumn && numCols == maxColumnsFound) {
+            bool same_quote = false;
+            for (auto& validDialect : validDialects) {
+                if (validDialect.quoteChar == dialectOption.quoteChar) {
+                    same_quote = true;
+                }
+            }
+
+            if (!same_quote) {
+                validDialects.push_back(std::move(dialectOption));
+            }
+        }
+    }
+
+    // If we have multiple validDialect with quotes set, we will give the preference to ones
+    // that have actually quoted values.
+    if (!validDialects.empty()) {
+        for (auto& validDialect : validDialects) {
+            if (validDialect.everQuoted) {
+                finalDialects.clear();
+                finalDialects.emplace_back(validDialect);
+                break;
+            }
+            finalDialects.emplace_back(validDialect);
+        }
+    }
+
+    // If the Dialect we found doesn't need Quote, we use empty as QuoteChar.
+    if (!finalDialects.empty() && !finalDialects[0].everQuoted) {
+        finalDialects[0].quoteChar = '\0';
+    }
+    // If the Dialect we found doesn't need Escape, we use empty as EscapeChar.
+    if (!finalDialects.empty() && !finalDialects[0].everEscaped) {
+        finalDialects[0].escapeChar = '\0';
+    }
+
+    // Apply the detected dialect to the CSV options.
+    if (!finalDialects.empty()) {
+        option.delimiter = finalDialects[0].delimiter;
+        option.quoteChar = finalDialects[0].quoteChar;
+        option.escapeChar = finalDialects[0].escapeChar;
+    } else {
+        option.delimiter = defaultOption.delimiter;
+        option.quoteChar = defaultOption.quoteChar;
+        option.escapeChar = defaultOption.escapeChar;
+    }
+
+    DialectOption ret{option.delimiter, option.quoteChar, option.escapeChar};
+    return ret;
 }
 
 } // namespace processor
