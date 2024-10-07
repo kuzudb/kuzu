@@ -282,7 +282,7 @@ kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char
     kuzu_value map_name_value;
     if (kuzu_value_get_struct_field_value(&map_entry, 0, &map_name_value) == KuzuError) {
         return KuzuError;
-    } 
+    }
     return kuzu_value_get_string(&map_name_value, out_result);
 }
 
