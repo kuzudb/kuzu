@@ -27,11 +27,5 @@ public:
     }
 };
 
-class APIRdfGraphTest : public BaseGraphTest {
-public:
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/rdf/rdf_variant/");
-    }
-};
 } // namespace testing
 } // namespace kuzu

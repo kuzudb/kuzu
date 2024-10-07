@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/constants.h"
-#include "common/keyword/rdf_keyword.h"
 #include "expression.h"
 
 namespace kuzu {
@@ -53,7 +52,6 @@ public:
     bool hasProperty(common::table_id_t tableID) const;
 
     bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
-    bool isIRI() const { return getPropertyName() == common::rdf::IRI; }
 
     std::unique_ptr<Expression> copy() const override {
         return make_unique<PropertyExpression>(*this);

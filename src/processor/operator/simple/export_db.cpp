@@ -76,17 +76,13 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx, std::
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
     for (const auto& entry : catalog->getRelTableEntries(tx)) {
-        if (catalog->tableInRelGroup(tx, entry->getTableID()) ||
-            catalog->tableInRDFGraph(tx, entry->getTableID())) {
+        if (catalog->tableInRelGroup(tx, entry->getTableID())) {
             continue;
         }
         ss << entry->toCypher(clientContext) << std::endl;
     }
     for (const auto& relGroupEntry : catalog->getRelTableGroupEntries(tx)) {
         ss << relGroupEntry->toCypher(clientContext) << std::endl;
-    }
-    if (catalog->getRdfGraphEntries(tx).size() != 0) {
-        extraMsg = " But we skip exporting RDF graphs.";
     }
     for (const auto sequenceEntry : catalog->getSequenceEntries(tx)) {
         ss << sequenceEntry->toCypher(clientContext) << std::endl;
@@ -101,15 +97,9 @@ std::string getCopyCypher(const Catalog* catalog, Transaction* tx,
     const ReaderConfig* boundFileInfo) {
     stringstream ss;
     for (const auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
-        if (catalog->tableInRDFGraph(tx, nodeTableEntry->getTableID())) {
-            continue;
-        }
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
     for (const auto& entry : catalog->getRelTableEntries(tx)) {
-        if (catalog->tableInRDFGraph(tx, entry->getTableID())) {
-            continue;
-        }
         writeCopyStatement(ss, entry, boundFileInfo);
     }
     return ss.str();

@@ -75,8 +75,6 @@ private:
 
     static uint32_t castFromString(common::LogicalTypeID inputTypeID);
 
-    static uint32_t castFromRDFVariant(common::LogicalTypeID inputTypeID);
-
     static uint32_t castUUID(common::LogicalTypeID targetTypeID);
 
     static uint32_t castList(common::LogicalTypeID targetTypeID);

@@ -1,8 +1,0 @@
--DATASET TTL rdf/memory_bug
-
---
-
--CASE MemoryBug
--STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*);
----- 1
-124

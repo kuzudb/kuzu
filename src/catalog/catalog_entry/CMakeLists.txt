@@ -7,7 +7,6 @@ add_library(kuzu_catalog_entry
         node_table_catalog_entry.cpp
         rel_table_catalog_entry.cpp
         rel_group_catalog_entry.cpp
-        rdf_graph_catalog_entry.cpp
         scalar_macro_catalog_entry.cpp
         type_catalog_entry.cpp
         sequence_catalog_entry.cpp)

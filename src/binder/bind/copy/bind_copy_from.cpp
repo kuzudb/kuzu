@@ -2,7 +2,6 @@
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
@@ -43,10 +42,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     case TableType::REL: {
         auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
         return bindCopyRelFrom(statement, relTableEntry);
-    }
-    case TableType::RDF: {
-        auto rdfGraphEntry = tableEntry->ptrCast<RDFGraphCatalogEntry>();
-        return bindCopyRdfFrom(statement, rdfGraphEntry);
     }
     default: {
         KU_UNREACHABLE;

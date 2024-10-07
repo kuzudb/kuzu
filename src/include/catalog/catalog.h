@@ -41,7 +41,6 @@ class TableCatalogEntry;
 class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
-class RDFGraphCatalogEntry;
 class FunctionCatalogEntry;
 class SequenceCatalogEntry;
 
@@ -78,13 +77,10 @@ public:
         transaction::Transaction* transaction) const;
     std::vector<RelGroupCatalogEntry*> getRelTableGroupEntries(
         transaction::Transaction* transaction) const;
-    std::vector<RDFGraphCatalogEntry*> getRdfGraphEntries(
-        transaction::Transaction* transaction) const;
     std::vector<TableCatalogEntry*> getTableEntries(
         const transaction::Transaction* transaction) const;
     std::vector<TableCatalogEntry*> getTableEntries(const transaction::Transaction* transaction,
         const common::table_id_vector_t& tableIDs) const;
-    bool tableInRDFGraph(transaction::Transaction* transaction, common::table_id_t tableID) const;
     bool tableInRelGroup(transaction::Transaction* transaction, common::table_id_t tableID) const;
     common::table_id_set_t getFwdRelTableIDs(transaction::Transaction* transaction,
         common::table_id_t nodeTableID) const;
@@ -174,15 +170,11 @@ private:
     std::vector<common::table_id_t> getTableIDs(transaction::Transaction* transaction,
         CatalogEntryType catalogType) const;
 
-    void alterRdfChildTableEntries(transaction::Transaction* transaction, CatalogEntry* tableEntry,
-        const binder::BoundAlterInfo& info) const;
     std::unique_ptr<CatalogEntry> createNodeTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableGroupEntry(transaction::Transaction* transaction,
-        const binder::BoundCreateTableInfo& info);
-    std::unique_ptr<CatalogEntry> createRdfGraphEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
 
     // ----------------------------- Sequence entries ----------------------------
