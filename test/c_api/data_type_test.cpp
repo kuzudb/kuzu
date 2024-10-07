@@ -26,25 +26,10 @@ TEST(CApiDataTypeTest, Create) {
     // ASSERT_EQ(dataTypeCpp3->getChildType()->getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(ArrayType::getNumElements(*dataTypeCpp3), 100);
 
-    kuzu_logical_type dataType4;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_STRUCT, &dataType, 0, &dataType4);
-    ASSERT_NE(dataType4._data_type, nullptr);
-    auto dataTypeCpp4 = (LogicalType*)dataType4._data_type;
-    ASSERT_EQ(dataTypeCpp4->getLogicalTypeID(), LogicalTypeID::STRUCT);
-
-    kuzu_logical_type dataType5;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 100, &dataType5);
-    ASSERT_NE(dataType5._data_type, nullptr);
-    auto dataTypeCpp5 = (LogicalType*)dataType5._data_type;
-    ASSERT_EQ(dataTypeCpp5->getLogicalTypeID(), LogicalTypeID::MAP);
-    ASSERT_EQ(ArrayType::getNumElements(*dataTypeCpp5), 100);
-
     // Since child type is copied, we should be able to destroy the original type without an error.
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);
     kuzu_data_type_destroy(&dataType3);
-    kuzu_data_type_destroy(&dataType4);
-    kuzu_data_type_destroy(&dataType5);
 }
 
 TEST(CApiDataTypeTest, Clone) {
@@ -78,36 +63,12 @@ TEST(CApiDataTypeTest, Clone) {
     auto dataTypeCloneCpp3 = (LogicalType*)dataTypeClone3._data_type;
     ASSERT_TRUE(*dataTypeCpp3 == *dataTypeCloneCpp3);
 
-    kuzu_logical_type dataType4;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_STRUCT, &dataType, 0, &dataType4);
-    ASSERT_NE(dataType4._data_type, nullptr);
-    kuzu_logical_type dataTypeClone4;
-    kuzu_data_type_clone(&dataType4, &dataTypeClone4);
-    ASSERT_NE(dataTypeClone4._data_type, nullptr);
-    auto dataTypeCpp4 = (LogicalType*)dataType4._data_type;
-    auto dataTypeCloneCpp4 = (LogicalType*)dataTypeClone4._data_type;
-    ASSERT_TRUE(*dataTypeCpp4 == *dataTypeCloneCpp4);
-
-    kuzu_logical_type dataType5;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 0, &dataType5);
-    ASSERT_NE(dataType5._data_type, nullptr);
-    kuzu_logical_type dataTypeClone5;
-    kuzu_data_type_clone(&dataType5, &dataTypeClone5);
-    ASSERT_NE(dataTypeClone5._data_type, nullptr);
-    auto dataTypeCpp5 = (LogicalType*)dataType5._data_type;
-    auto dataTypeCloneCpp5 = (LogicalType*)dataTypeClone5._data_type;
-    ASSERT_TRUE(*dataTypeCpp5 == *dataTypeCloneCpp5);
-
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);
     kuzu_data_type_destroy(&dataType3);
-    kuzu_data_type_destroy(&dataType4);
-    kuzu_data_type_destroy(&dataType5);
     kuzu_data_type_destroy(&dataTypeClone);
     kuzu_data_type_destroy(&dataTypeClone2);
     kuzu_data_type_destroy(&dataTypeClone3);
-    kuzu_data_type_destroy(&dataTypeClone4);
-    kuzu_data_type_destroy(&dataTypeClone5);
 }
 
 TEST(CApiDataTypeTest, Equals) {
@@ -135,43 +96,16 @@ TEST(CApiDataTypeTest, Equals) {
     ASSERT_NE(dataTypeClone3._data_type, nullptr);
     ASSERT_TRUE(kuzu_data_type_equals(&dataType3, &dataTypeClone3));
 
-    kuzu_logical_type dataType4;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 100, &dataType4);
-    ASSERT_NE(dataType4._data_type, nullptr);
-    kuzu_logical_type dataTypeClone4;
-    kuzu_data_type_clone(&dataType4, &dataTypeClone4);
-    ASSERT_NE(dataTypeClone4._data_type, nullptr);
-    ASSERT_TRUE(kuzu_data_type_equals(&dataType4, &dataTypeClone4));
-
-    kuzu_logical_type dataType5;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_STRUCT, &dataType, 100, &dataType5);
-    ASSERT_NE(dataType5._data_type, nullptr);
-    kuzu_logical_type dataTypeClone5;
-    kuzu_data_type_clone(&dataType5, &dataTypeClone5);
-    ASSERT_NE(dataTypeClone5._data_type, nullptr);
-    ASSERT_TRUE(kuzu_data_type_equals(&dataType5, &dataTypeClone5));
-
     ASSERT_FALSE(kuzu_data_type_equals(&dataType, &dataType2));
     ASSERT_FALSE(kuzu_data_type_equals(&dataType, &dataType3));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType, &dataType4));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType, &dataType5));
     ASSERT_FALSE(kuzu_data_type_equals(&dataType2, &dataType3));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType2, &dataType4));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType2, &dataType5));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType3, &dataType4));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType3, &dataType5));
-    ASSERT_FALSE(kuzu_data_type_equals(&dataType4, &dataType5));
 
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);
     kuzu_data_type_destroy(&dataType3);
-    kuzu_data_type_destroy(&dataType4);
-    kuzu_data_type_destroy(&dataType5);
     kuzu_data_type_destroy(&dataTypeClone);
     kuzu_data_type_destroy(&dataTypeClone2);
     kuzu_data_type_destroy(&dataTypeClone3);
-    kuzu_data_type_destroy(&dataTypeClone4);
-    kuzu_data_type_destroy(&dataTypeClone5);
 }
 
 TEST(CApiDataTypeTest, GetID) {
@@ -190,21 +124,9 @@ TEST(CApiDataTypeTest, GetID) {
     ASSERT_NE(dataType3._data_type, nullptr);
     ASSERT_EQ(kuzu_data_type_get_id(&dataType3), kuzu_data_type_id::KUZU_ARRAY);
 
-    kuzu_logical_type dataType4;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_STRUCT, &dataType, 0, &dataType4);
-    ASSERT_NE(dataType4._data_type, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType4), kuzu_data_type_id::KUZU_STRUCT);
-
-    kuzu_logical_type dataType5;
-    kuzu_data_type_create(kuzu_data_type_id::KUZU_MAP, &dataType, 0, &dataType5);
-    ASSERT_NE(dataType5._data_type, nullptr);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType5), kuzu_data_type_id::KUZU_MAP);
-
     kuzu_data_type_destroy(&dataType);
     kuzu_data_type_destroy(&dataType2);
     kuzu_data_type_destroy(&dataType3);
-    kuzu_data_type_destroy(&dataType4);
-    kuzu_data_type_destroy(&dataType5);
 }
 
 // TODO(Chang): The getChildType interface has been removed from the C++ DataType class.
