@@ -264,6 +264,37 @@ kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
     return kuzu_value_get_list_element(value, index, out_value);
 }
 
+kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result) {
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
+    if (logical_type_id != LogicalTypeID::MAP) {
+        return KuzuError;
+    }
+    auto listValue = static_cast<Value*>(value->_value);
+    *out_result = NestedVal::getChildrenSize(listValue);
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char** out_result) {
+    kuzu_value map_entry;
+    if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
+        return KuzuError;
+    }
+    kuzu_value map_name_value;
+    if (kuzu_value_get_struct_field_value(&map_entry, 0, &map_name_value) == KuzuError) {
+        return KuzuError;
+    }
+    return kuzu_value_get_string(&map_name_value, out_result);
+}
+
+kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index,
+    kuzu_value* out_value) {
+    kuzu_value map_entry;
+    if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
+        return KuzuError;
+    }
+    return kuzu_value_get_struct_field_value(&map_entry, 1, out_value);
+}
+
 kuzu_state kuzu_value_get_recursive_rel_node_list(kuzu_value* value, kuzu_value* out_value) {
     auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::RECURSIVE_REL) {
