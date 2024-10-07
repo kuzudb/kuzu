@@ -4,7 +4,6 @@ package com.kuzudb;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigInteger;
 import java.math.BigDecimal;
@@ -1039,6 +1038,56 @@ public class ValueTest extends TestBase {
         assertNull(fieldValue);
         fieldValue = ValueStructUtil.getValueByIndex(value, 0);
         assertEquals(fieldValue.getValue(), 1223.0);
+        fieldValue.destroy();
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetNumFields() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertEquals(ValueMapUtil.getNumFields(value), 1);
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetIndexByFieldName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertEquals(ValueMapUtil.getIndexByFieldName(value, "NOT_EXIST"), -1);
+
+        assertEquals(ValueMapUtil.getIndexByFieldName(value, "audience1"), 0);
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetValueByIndex() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        Value fieldValue = ValueMapUtil.getValueByIndex(value, 1024);
+        assertNull(fieldValue);
+        fieldValue = ValueMapUtil.getValueByIndex(value, -1);
+        assertNull(fieldValue);
+        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
+        assertEquals(fieldValue.getValue(), 33.0);
         fieldValue.destroy();
         value.destroy();
         flatTuple.destroy();

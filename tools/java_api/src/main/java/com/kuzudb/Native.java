@@ -213,7 +213,11 @@ public class Native {
 
     protected static native String kuzu_value_get_struct_field_name(Value struct_val, long index);
 
+    protected static native String kuzu_value_get_map_field_name(Value struct_val, long index);
+
     protected static native long kuzu_value_get_struct_index(Value struct_val, String field_name);
+
+    protected static native long kuzu_value_get_map_index(Value struct_val, String field_name);
 
     protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
 
