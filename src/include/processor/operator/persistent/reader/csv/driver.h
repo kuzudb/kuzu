@@ -17,6 +17,17 @@ namespace processor {
 // TODO(Keenan): Split up this file.
 class BaseCSVReader;
 
+// Driver type identifications.
+enum class DriverType {
+    PARSING,
+    PARALLEL,
+    SERIAL,
+    SNIFF_CSV_DIALECT,
+    SNIFF_CSV_NAME_AND_TYPE,
+    HEADER,
+    SKIP_ROW
+};
+
 struct WarningDataWithColumnInfo {
     WarningDataWithColumnInfo(WarningSourceData warningSourceData,
         uint64_t warningDataStartColumnIdx)
@@ -29,13 +40,16 @@ struct WarningDataWithColumnInfo {
 
 class ParsingDriver {
 public:
-    explicit ParsingDriver(common::DataChunk& chunk);
+    explicit ParsingDriver(common::DataChunk& chunk, DriverType type = DriverType::PARSING);
     virtual ~ParsingDriver() = default;
 
     bool done(uint64_t rowNum);
     virtual bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     virtual bool addRow(uint64_t rowNum, common::column_id_t columnCount,
         std::optional<WarningDataWithColumnInfo> warningData);
+
+public:
+    const DriverType driverType;
 
 private:
     virtual bool doneEarly() = 0;
@@ -45,7 +59,7 @@ private:
     common::DataChunk& chunk;
 
 protected:
-    bool rowEmpty;
+    bool rowEmpty;    
 };
 
 class ParallelCSVReader;
@@ -66,7 +80,7 @@ class SerialCSVReader;
 
 class SerialParsingDriver : public ParsingDriver {
 public:
-    SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader);
+    SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader, DriverType type = DriverType::SERIAL);
     bool doneEarly() override;
 
 private:

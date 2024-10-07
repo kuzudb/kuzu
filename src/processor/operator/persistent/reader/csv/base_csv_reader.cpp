@@ -85,6 +85,7 @@ bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
 }
 
 struct SkipRowDriver {
+    DriverType driverType = DriverType::SKIP_ROW;
     explicit SkipRowDriver(uint64_t skipNum) : skipNum{skipNum} {}
     bool done(uint64_t rowNum) const { return rowNum >= skipNum; }
     bool addRow(uint64_t, column_id_t, std::optional<WarningDataWithColumnInfo>) { return true; }
@@ -117,6 +118,7 @@ void BaseCSVReader::readBOM() {
 
 // Dummy driver that just skips a row.
 struct HeaderDriver {
+    DriverType driverType = DriverType::HEADER;
     bool done(uint64_t) { return true; }
     bool addRow(uint64_t, column_id_t, std::optional<WarningDataWithColumnInfo>) { return true; }
     bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
@@ -370,7 +372,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         position++;
         do {
             for (; position < bufferSize; position++) {
-                if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+                if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
                     auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
                     sniffDriver.setEverQuoted();
                 }
@@ -389,7 +391,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         [[unlikely]]
         // still in quoted state at the end of the file, error:
         lineContext.setEndOfLine(getFileOffset());
-        if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+        if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
             auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
             sniffDriver.setError();
         } else {
@@ -411,7 +413,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         if (buffer[position] == option.quoteChar &&
             (!option.escapeChar || option.escapeChar == option.quoteChar)) {
             // the escapeChar is used correctly, record this for DialectSniff
-            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
                 sniffDriver.setEverEscaped();
             }
@@ -425,7 +427,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         } else if (isNewLine(buffer[position])) {
             goto add_row;
         } else {
-            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
                 sniffDriver.setError();
             } else {
@@ -441,7 +443,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         position++;
         if (!maybeReadBuffer(&start)) {
             [[unlikely]] lineContext.setEndOfLine(getFileOffset());
-            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
                 sniffDriver.setError();
             } else {
@@ -451,7 +453,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         }
         if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
             ++position; // consume the invalid char
-            if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
                 auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
                 sniffDriver.setError();
             } else {
@@ -461,7 +463,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             goto ignore_error;
         }
         // the escapeChar is used correctly, record this for DialectSniff
-        if (typeid(driver) == typeid(SniffCSVDialectDriver)) {
+        if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
             auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
             sniffDriver.setEverEscaped();
         }

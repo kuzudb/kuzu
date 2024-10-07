@@ -259,7 +259,6 @@ void SerialCSVReader::resetReaderState() {
         return;
     }
 
-    // Reset buffer-related variables.
     buffer.reset();
     bufferSize = 0;
     position = 0;
@@ -314,7 +313,7 @@ DialectOption SerialCSVReader::detectDialect() {
             continue;
         }
 
-        for (idx_t row = 0; row < driver.getResultPosition(); row++) {
+        for (auto row = 0u; row < driver.getResultPosition(); row++) {
             if (getNumColumns() != 0 && getNumColumns() != driver.getColumnCount(row)) {
                 notExpected = true;
                 break;

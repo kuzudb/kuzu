@@ -10,7 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-ParsingDriver::ParsingDriver(common::DataChunk& chunk) : chunk(chunk), rowEmpty(false) {}
+ParsingDriver::ParsingDriver(common::DataChunk& chunk, DriverType type /* = DriverType::PARSING */) : driverType(type), chunk(chunk), rowEmpty(false) {}
 
 bool ParsingDriver::done(uint64_t rowNum) {
     return rowNum >= DEFAULT_VECTOR_CAPACITY || doneEarly();
@@ -85,7 +85,7 @@ bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
 }
 
 ParallelParsingDriver::ParallelParsingDriver(common::DataChunk& chunk, ParallelCSVReader* reader)
-    : ParsingDriver(chunk), reader(reader) {}
+    : ParsingDriver(chunk, DriverType::PARALLEL), reader(reader) {}
 
 bool ParallelParsingDriver::doneEarly() {
     return reader->finishedBlock();
@@ -95,8 +95,8 @@ BaseCSVReader* ParallelParsingDriver::getReader() {
     return reader;
 }
 
-SerialParsingDriver::SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader)
-    : ParsingDriver(chunk), reader(reader) {}
+SerialParsingDriver::SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader, DriverType type /*= DriverType::SERIAL*/)
+    : ParsingDriver(chunk, type), reader(reader) {}
 
 bool SerialParsingDriver::doneEarly() {
     return false;
@@ -113,7 +113,7 @@ common::DataChunk& getDummyDataChunk() {
 
 SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* /*bindInput*/)
-    : SerialParsingDriver(getDummyDataChunk(), reader) {
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_DIALECT) {
     auto& csvOption = reader->getCSVOption();
     columnCounts = std::vector<idx_t>(csvOption.sampleSize, 0);
 }
@@ -169,7 +169,7 @@ void SniffCSVDialectDriver::reset() {
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
-    : SerialParsingDriver(getDummyDataChunk(), reader) {
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_NAME_AND_TYPE) {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
             columns.push_back(
