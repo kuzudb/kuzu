@@ -1105,7 +1105,8 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
     return env->NewStringUTF(name.c_str());
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env, jclass, jobject thisSV, jlong index) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env,
+    jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
     const auto& dataType = sv->getDataType();
     auto fieldNames = StructType::getFieldNames(dataType);
@@ -1130,7 +1131,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
     }
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIEnv* env, jclass, jobject thisSV, jstring field_name) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIEnv* env, jclass,
+    jobject thisSV, jstring field_name) {
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     const auto& dataType = sv->getDataType();
