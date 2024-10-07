@@ -35,8 +35,8 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, cons
         CompressionMetadata(StorageValue{0}, StorageValue{1}, CompressionType::UNCOMPRESSED);
     const auto exceptionChunkMeta = ColumnChunkMetadata(exceptionBaseCursor.pageIdx,
         safeIntegerConversion<page_idx_t>(
-            EncodeException<T>::numPagesFromExceptions(exceptionCount)),
-        exceptionCount, compMeta);
+            EncodeException<T>::numPagesFromExceptions(exceptionCapacity)),
+        exceptionCapacity, compMeta);
     chunkState = std::make_unique<ChunkState>(exceptionChunkMeta,
         EncodeException<T>::exceptionBytesPerPage() / EncodeException<T>::sizeInBytes());
 
@@ -113,8 +113,8 @@ EncodeException<T> InMemoryExceptionChunk<T>::getExceptionAt(size_t exceptionIdx
 template<std::floating_point T>
 void InMemoryExceptionChunk<T>::writeException(EncodeException<T> exception, size_t exceptionIdx) {
     KU_ASSERT(exceptionIdx < exceptionCount);
-    return EncodeExceptionView<T>{reinterpret_cast<std::byte*>(chunkData->getData())}.setValue(
-        exception, exceptionIdx);
+    EncodeExceptionView<T>{reinterpret_cast<std::byte*>(chunkData->getData())}.setValue(exception,
+        exceptionIdx);
 }
 
 template<std::floating_point T>
