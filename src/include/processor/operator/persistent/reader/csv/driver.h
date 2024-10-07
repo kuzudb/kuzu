@@ -59,7 +59,7 @@ private:
     common::DataChunk& chunk;
 
 protected:
-    bool rowEmpty;    
+    bool rowEmpty;
 };
 
 class ParallelCSVReader;
@@ -80,7 +80,8 @@ class SerialCSVReader;
 
 class SerialParsingDriver : public ParsingDriver {
 public:
-    SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader, DriverType type = DriverType::SERIAL);
+    SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader,
+        DriverType type = DriverType::SERIAL);
     bool doneEarly() override;
 
 private:

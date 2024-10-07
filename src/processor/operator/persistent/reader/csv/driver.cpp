@@ -10,7 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-ParsingDriver::ParsingDriver(common::DataChunk& chunk, DriverType type /* = DriverType::PARSING */) : driverType(type), chunk(chunk), rowEmpty(false) {}
+ParsingDriver::ParsingDriver(common::DataChunk& chunk, DriverType type /* = DriverType::PARSING */)
+    : driverType(type), chunk(chunk), rowEmpty(false) {}
 
 bool ParsingDriver::done(uint64_t rowNum) {
     return rowNum >= DEFAULT_VECTOR_CAPACITY || doneEarly();
@@ -95,7 +96,8 @@ BaseCSVReader* ParallelParsingDriver::getReader() {
     return reader;
 }
 
-SerialParsingDriver::SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader, DriverType type /*= DriverType::SERIAL*/)
+SerialParsingDriver::SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader,
+    DriverType type /*= DriverType::SERIAL*/)
     : ParsingDriver(chunk, type), reader(reader) {}
 
 bool SerialParsingDriver::doneEarly() {

@@ -393,11 +393,11 @@ DialectOption SerialCSVReader::detectDialect() {
     // If the Dialect we found doesn't need Quote, we use empty as QuoteChar.
     if (!finalDialects.empty() && !finalDialects[0].everQuoted) {
         finalDialects[0].quoteChar = '\0';
-    }   
+    }
     // If the Dialect we found doesn't need Escape, we use empty as EscapeChar.
     if (!finalDialects.empty() && !finalDialects[0].everEscaped) {
         finalDialects[0].escapeChar = '\0';
-    } 
+    }
 
     // Apply the detected dialect to the CSV options.
     if (!finalDialects.empty()) {

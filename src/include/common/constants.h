@@ -137,8 +137,7 @@ struct CopyConstants {
 
     static constexpr const char* IGNORE_ERRORS_OPTION_NAME = "IGNORE_ERRORS";
     static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL",
-        "LIST_UNBRACED", "AUTODETECT", "AUTO_DETECT",
-        CopyConstants::IGNORE_ERRORS_OPTION_NAME};
+        "LIST_UNBRACED", "AUTODETECT", "AUTO_DETECT", CopyConstants::IGNORE_ERRORS_OPTION_NAME};
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
     static constexpr bool DEFAULT_CSV_PARALLEL = true;
 
