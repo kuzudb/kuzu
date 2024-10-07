@@ -25,7 +25,7 @@ ShadowPageAndFrame ShadowUtils::createShadowVersionIfNecessaryAndPinPage(page_id
                 shadowFile.getShadowingFH().pinPage(shadowPage, PageReadPolicy::DONT_READ_PAGE);
             if (!insertingNewPage) {
                 fileHandle.optimisticReadPage(originalPage,
-                    [&](const uint8_t* frame) -> void { memcpy(shadowFrame, frame, PAGE_SIZE); });
+                    [&](const uint8_t* frame) -> void { memcpy(shadowFrame, frame, KUZU_PAGE_SIZE); });
             }
         }
         // The shadow page existing already does not mean that it's already dirty

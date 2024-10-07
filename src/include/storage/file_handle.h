@@ -112,7 +112,7 @@ private:
     bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
     bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
     uint64_t getPageSize() const {
-        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::PAGE_SIZE;
+        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::KUZU_PAGE_SIZE;
     }
 
     common::page_idx_t addNewPageWithoutLock();

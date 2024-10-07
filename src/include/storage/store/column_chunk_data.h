@@ -161,7 +161,7 @@ public:
         const ColumnChunkMetadata& metadata) const;
 
     static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
-        return (numBytes + common::PAGE_SIZE - 1) / common::PAGE_SIZE;
+        return (numBytes + common::KUZU_PAGE_SIZE - 1) / common::KUZU_PAGE_SIZE;
     }
 
     uint64_t getNumBytesPerValue() const { return numBytesPerValue; }

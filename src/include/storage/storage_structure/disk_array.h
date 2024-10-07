@@ -22,7 +22,7 @@ class FileHandle;
 class BufferManager;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
-    (common::PAGE_SIZE - sizeof(common::page_idx_t)) / sizeof(common::page_idx_t);
+    (common::KUZU_PAGE_SIZE - sizeof(common::page_idx_t)) / sizeof(common::page_idx_t);
 
 struct DiskArrayHeader {
     DiskArrayHeader() : numElements{0}, firstPIPPageIdx{common::INVALID_PAGE_IDX} {}
@@ -50,7 +50,7 @@ struct PIP {
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
 };
-static_assert(sizeof(PIP) == common::PAGE_SIZE);
+static_assert(sizeof(PIP) == common::KUZU_PAGE_SIZE);
 
 struct PIPWrapper {
     PIPWrapper(const FileHandle& fileHandle, common::page_idx_t pipPageIdx);
@@ -260,7 +260,7 @@ inline std::span<std::byte> getSpan(U& val) {
 
 template<typename U>
 class DiskArray {
-    static_assert(sizeof(U) <= common::PAGE_SIZE);
+    static_assert(sizeof(U) <= common::KUZU_PAGE_SIZE);
 
 public:
     // If bypassWAL is set, the buffer manager is used to pages new to this transaction to the
@@ -357,13 +357,13 @@ public:
     // memory and not on disk (nor on the wal).
     uint8_t* operator[](uint64_t idx) const;
 
-    uint64_t getMemUsage() const { return inMemArrayPages.size() * common::PAGE_SIZE; }
+    uint64_t getMemUsage() const { return inMemArrayPages.size() * common::KUZU_PAGE_SIZE; }
 
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
-        inMemArrayPages.emplace_back(std::make_unique<uint8_t[]>(common::PAGE_SIZE));
+        inMemArrayPages.emplace_back(std::make_unique<uint8_t[]>(common::KUZU_PAGE_SIZE));
         if (setToZero) {
-            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, common::PAGE_SIZE);
+            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, common::KUZU_PAGE_SIZE);
         }
         return inMemArrayPages.size() - 1;
     }

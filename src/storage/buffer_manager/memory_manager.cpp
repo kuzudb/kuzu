@@ -13,7 +13,7 @@ namespace kuzu {
 namespace storage {
 
 MemoryBuffer::MemoryBuffer(MemoryManager* mm, page_idx_t pageIdx, uint8_t* buffer, uint64_t size)
-    : buffer{buffer, size}, pageIdx{pageIdx}, mm{mm} {}
+    : buffer{buffer, (size_t)size}, pageIdx{pageIdx}, mm{mm} {}
 
 MemoryBuffer::~MemoryBuffer() {
     if (buffer.data() != nullptr) {

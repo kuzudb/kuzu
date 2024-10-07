@@ -165,6 +165,12 @@ pytest-debug: python-debug
 rusttest: rust
 	cd tools/rust_api && cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
 
+
+wasm:
+	mkdir -p build/wasm && cd build/wasm &&\
+	emcmake cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=TRUE -DBUILD_SHELL=FALSE -DBUILD_PYTHON_API=FALSE -DENABLE_WERROR=FALSE ../.. && \
+	cmake --build . --config Release
+
 # Other misc build targets
 benchmark:
 	$(call run-cmake-release, -DBUILD_BENCHMARK=TRUE)

@@ -74,7 +74,7 @@ ColumnChunkMetadata GetBitpackingMetadata::operator()(std::span<const uint8_t> /
             },
             [&](auto) {});
     }
-    const auto numValuesPerPage = compMeta.numValues(PAGE_SIZE, dataType);
+    const auto numValuesPerPage = compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     const auto numPages =
         numValuesPerPage == UINT64_MAX ?
             0 :
@@ -167,7 +167,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(std::span<const u
         return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
     }
 
-    std::span<const T> castedBuffer{reinterpret_cast<const T*>(buffer.data()), numValues};
+    std::span<const T> castedBuffer{reinterpret_cast<const T*>(buffer.data()), (size_t)numValues};
     alp::state alpMetadata = getAlpMetadata<T>(castedBuffer.data(), numValues);
     if (alpMetadata.scheme != alp::SCHEME::ALP) {
         return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
@@ -182,7 +182,7 @@ ColumnChunkMetadata GetFloatCompressionMetadata<T>::operator()(std::span<const u
         return uncompressedGetMetadataInternal(buffer.size(), numValues, min, max);
     }
 
-    const auto numValuesPerPage = compMeta.numValues(PAGE_SIZE, dataType);
+    const auto numValuesPerPage = compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     const auto numPagesForEncoded = ceilDiv(capacity, numValuesPerPage);
     const auto numPagesForExceptions =
         EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity);

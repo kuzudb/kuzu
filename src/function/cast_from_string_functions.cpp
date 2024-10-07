@@ -349,7 +349,7 @@ static inline void startListCast(const char* input, uint64_t len, T split, const
                          splitPossibleUnbracedList(std::string_view(input, len), split, option) :
                          splitCStringList(input, len, split, option);
     if (!validList) {
-        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+        throw ConversionException("Cast failed. " + std::string{input, (size_t)len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
 }
@@ -518,7 +518,7 @@ void CastStringHelper::cast(const char* input, uint64_t len, map_entry_t& /*resu
 
     SplitStringMapOperation split{list_entry.offset, structVector};
     if (!splitCStringMap(input, len, split, option)) {
-        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+        throw ConversionException("Cast failed. " + std::string{input, (size_t)len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
 }
@@ -632,7 +632,7 @@ template<>
 void CastStringHelper::cast(const char* input, uint64_t len, struct_entry_t& /*result*/,
     ValueVector* vector, uint64_t rowToAdd, const CSVOption* option) {
     if (!tryCastStringToStruct(input, len, vector, rowToAdd, option)) {
-        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+        throw ConversionException("Cast failed. " + std::string{input, (size_t)len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
 }
@@ -818,7 +818,7 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
 
     if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
         throw ConversionException{stringFormat("Could not convert to union type {}: {}.",
-            type.toString(), std::string{input, len})};
+            type.toString(), std::string{input, (size_t)len})};
     }
     StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
         ->setValue(rowToAdd, selectedFieldIdx);
