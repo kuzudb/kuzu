@@ -30,7 +30,7 @@ static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& op
         config.option.allowUnbracedList = optionValue;
     } else if (optionName == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
         config.option.ignoreErrors = optionValue;
-    } else if (optionName == "AUTODETECTION" || optionName == "AUTO_DETECTION") {
+    } else if (optionName == "AUTODETECT" || optionName == "AUTO_DETECT") {
         config.option.autoDetection = optionValue;
     } else {
         KU_UNREACHABLE;

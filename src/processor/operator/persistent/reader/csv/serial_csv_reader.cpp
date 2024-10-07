@@ -252,14 +252,14 @@ function_set SerialCSVScan::getFunctionSet() {
 }
 
 void SerialCSVReader::resetReaderState() {
-    // Reset file position to the beginning
+    // Reset file position to the beginning.
     if (-1 == fileInfo->seek(0, SEEK_SET)) {
         handleCopyException(
             stringFormat("Failed to seek to the beginning of the file:, errno: {}.", errno), true);
         return;
     }
 
-    // Reset buffer-related variables
+    // Reset buffer-related variables.
     buffer.reset();
     bufferSize = 0;
     position = 0;
@@ -271,13 +271,13 @@ void SerialCSVReader::resetReaderState() {
 }
 
 DialectOption SerialCSVReader::detectDialect() {
-    // Extract a sample of rows from the file for dialect detection
+    // Extract a sample of rows from the file for dialect detection.
     SniffCSVDialectDriver driver{this, bindInput};
 
-    // Generate dialect options based on the non-user-specified options
+    // Generate dialect options based on the non-user-specified options.
     auto dialectSearchSpace = generateDialectOptions(option);
 
-    // Save default for dialect not found situation
+    // Save default for dialect not found situation.
     DialectOption defaultOption{option.delimiter, option.quoteChar, option.escapeChar};
 
     idx_t bestConsistentRows = 0;
@@ -287,15 +287,15 @@ DialectOption SerialCSVReader::detectDialect() {
     std::vector<DialectOption> finalDialects;
     for (auto& dialectOption : dialectSearchSpace) {
         bool notExpected = false;
-        // Load current dialect option
+        // Load current dialect option.
         option.delimiter = dialectOption.delimiter;
         option.quoteChar = dialectOption.quoteChar;
         option.escapeChar = dialectOption.escapeChar;
-        // reset Driver
+        // reset Driver.
         driver.reset();
-        // Try parsing it with current dialect
+        // Try parsing it with current dialect.
         parseCSV(driver);
-        // Reset the file position and buffer to start reading from the beginning after detection
+        // Reset the file position and buffer to start reading from the beginning after detection.
         resetReaderState();
         // If never unquoting quoted values or any other error during the parsing, discard this
         // dialect.
@@ -309,7 +309,7 @@ DialectOption SerialCSVReader::detectDialect() {
         dialectOption.everQuoted = driver.getEverQuoted();
         dialectOption.everEscaped = driver.getEverEscaped();
 
-        // If the columns didn't match the user input columns number
+        // If the columns didn't match the user input columns number.
         if (getNumColumns() != 0 && getNumColumns() != numCols) {
             continue;
         }
@@ -379,7 +379,7 @@ DialectOption SerialCSVReader::detectDialect() {
     }
 
     // If we have multiple validDialect with quotes set, we will give the preference to ones
-    // that have actually quoted values, otherwise we will choose quotes = '\"'
+    // that have actually quoted values.
     if (!validDialects.empty()) {
         for (auto& validDialect : validDialects) {
             if (validDialect.everQuoted) {
@@ -390,7 +390,17 @@ DialectOption SerialCSVReader::detectDialect() {
             finalDialects.emplace_back(validDialect);
         }
     }
-    // Apply the detected dialect to the CSV options
+
+    // If the Dialect we found doesn't need Quote, we use empty as QuoteChar.
+    if (!finalDialects.empty() && !finalDialects[0].everQuoted) {
+        finalDialects[0].quoteChar = '\0';
+    }   
+    // If the Dialect we found doesn't need Escape, we use empty as EscapeChar.
+    if (!finalDialects.empty() && !finalDialects[0].everEscaped) {
+        finalDialects[0].escapeChar = '\0';
+    } 
+
+    // Apply the detected dialect to the CSV options.
     if (!finalDialects.empty()) {
         option.delimiter = finalDialects[0].delimiter;
         option.quoteChar = finalDialects[0].quoteChar;

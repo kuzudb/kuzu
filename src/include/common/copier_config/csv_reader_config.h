@@ -32,7 +32,7 @@ struct CSVOption {
           sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
           allowUnbracedList{CopyConstants::DEFAULT_CSV_ALLOW_UNBRACED_LIST},
           ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
-          autoDetection{CopyConstants::DEFAULT_CSV_AUTO_DETECTION},
+          autoDetection{CopyConstants::DEFAULT_CSV_AUTO_DETECT},
           setEscape{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setDelim{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
