@@ -186,26 +186,18 @@ public:
             KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
             if (!filterFunc.has_value() ||
                 filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
-                struct CaptureData {
-                    const read_values_from_page_func_t<OutputType>& readFunc;
-                    PageCursor pageCursor;
-                    OutputType result;
-                    uint64_t readOffset{};
-                    uint64_t numValuesToRead{};
-                    const CompressionMetadata& compMeta;
 
-                    void callReadFunc(uint8_t* frame) {
-                        readFunc(frame, pageCursor, result, readOffset, numValuesToRead, compMeta);
-                    }
-                };
-                CaptureData captureData{.readFunc = readFunc,
-                    .pageCursor = pageCursor,
-                    .result = result,
-                    .readOffset = numValuesScanned + startOffsetInResult,
-                    .numValuesToRead = numValuesToScanInPage,
-                    .compMeta = chunkMeta.compMeta};
+                // to keep the size of the lambda small
+                // we pack all the arguments to readFunc into a tuple and capture the tuple by
+                // this makes it more likely that we avoid any heap allocations when the lambda is
+                // copied into an std::function
+                const auto startReadOffset = numValuesScanned + startOffsetInResult;
+                auto readFuncArgs = std::tie(pageCursor, result, startReadOffset,
+                    numValuesToScanInPage, chunkMeta.compMeta);
                 readFromPage(transaction, pageCursor.pageIdx,
-                    [&captureData](uint8_t* frame) -> void { captureData.callReadFunc(frame); });
+                    [&readFunc, &readFuncArgs](uint8_t* frame) -> void {
+                        std::apply(readFunc, std::tuple_cat(std::make_tuple(frame), readFuncArgs));
+                    });
             }
             numValuesScanned += numValuesToScanInPage;
             pageCursor.nextPage();

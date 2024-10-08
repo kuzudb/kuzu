@@ -285,12 +285,16 @@ TEST_F(CompressChunkTest, TestFloatFilterStateful) {
         // the filter will pass if the value is:
         // if it is an exception, the 1st exception read
         // if it is not an exception if it is in the 1st page that is read from
-        reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
-            startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
-            [j = 0](offset_t, offset_t) mutable {
+        struct MutableFilterFunc {
+            int j = 0;
+            bool operator()(offset_t, offset_t) {
                 ++j;
                 return (j == 1);
-            });
+            }
+        } filterFunc;
+        reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
+            startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
+            filterFunc);
 
         const auto isException = [&src, &state](offset_t i) {
             const auto encodedValue = alp::AlpEncode<float>::encode_value(src[i + startOffset],

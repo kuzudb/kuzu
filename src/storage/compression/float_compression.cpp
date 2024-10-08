@@ -125,7 +125,7 @@ void FloatCompression<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t 
     uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
     const struct CompressionMetadata& metadata) const {
 
-    // reuse dstBuffer for unpacking the bitpacked enocded floats then decode them in place
+    // use dstBuffer for unpacking the ALP encoded values then decode them in place
     getEncodedFloatBitpacker(metadata).decompressFromPage(srcBuffer, srcOffset, dstBuffer,
         dstOffset, numValues, metadata.getChild(BITPACKING_CHILD_IDX));
 
