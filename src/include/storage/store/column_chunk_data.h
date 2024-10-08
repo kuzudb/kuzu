@@ -247,11 +247,13 @@ protected:
         const common::SelectionVector& selVector);
 
 private:
+    using flush_buffer_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
+        FileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
+    flush_buffer_func_t initializeFlushBufferFunction(
+        std::shared_ptr<CompressionAlg> compression) const;
     uint64_t getBufferSize(uint64_t capacity_) const;
 
 protected:
-    using flush_buffer_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
-        FileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>;
     using get_metadata_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
         uint64_t, uint64_t, StorageValue, StorageValue)>;
     using get_min_max_func_t =
