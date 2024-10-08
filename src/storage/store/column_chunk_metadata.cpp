@@ -68,10 +68,6 @@ ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uin
 
 ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t /*capacity*/,
     uint64_t numValues, StorageValue min, StorageValue max) {
-    if (min == max) {
-        return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues,
-            CompressionMetadata(min, max, CompressionType::CONSTANT));
-    }
     return ColumnChunkMetadata(INVALID_PAGE_IDX,
         ColumnChunkData::getNumPagesForBytes(buffer.size()), numValues,
         CompressionMetadata(min, max, CompressionType::BOOLEAN_BITPACKING));

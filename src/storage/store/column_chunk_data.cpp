@@ -115,16 +115,17 @@ void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, Memo
 void ColumnChunkData::initializeFunction(bool enableCompression) {
     const auto compression = getCompression(dataType, enableCompression);
     getMetadataFunction = GetCompressionMetadata(compression, dataType);
-    initializeFlushBufferFunction(compression);
+    flushBufferFunction = initializeFlushBufferFunction(compression);
 }
 
-void ColumnChunkData::initializeFlushBufferFunction(std::shared_ptr<CompressionAlg> compression) {
+ColumnChunkData::flush_buffer_func_t ColumnChunkData::initializeFlushBufferFunction(
+    std::shared_ptr<CompressionAlg> compression) const {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         // Since we compress into memory, storage is the same as fixed-sized
         // values, but we need to mark it as being boolean compressed.
-        flushBufferFunction = uncompressedFlushBuffer;
-    } break;
+        return uncompressedFlushBuffer;
+    }
     case PhysicalTypeID::STRING:
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
@@ -138,16 +139,16 @@ void ColumnChunkData::initializeFlushBufferFunction(std::shared_ptr<CompressionA
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::INT128: {
-        flushBufferFunction = CompressedFlushBuffer(compression, dataType);
-    } break;
+        return CompressedFlushBuffer(compression, dataType);
+    }
     case PhysicalTypeID::DOUBLE: {
-        flushBufferFunction = CompressedFloatFlushBuffer<double>(compression, dataType);
-    } break;
+        return CompressedFloatFlushBuffer<double>(compression, dataType);
+    }
     case PhysicalTypeID::FLOAT: {
-        flushBufferFunction = CompressedFloatFlushBuffer<float>(compression, dataType);
-    } break;
+        return CompressedFloatFlushBuffer<float>(compression, dataType);
+    }
     default: {
-        flushBufferFunction = uncompressedFlushBuffer;
+        return uncompressedFlushBuffer;
     }
     }
 }
