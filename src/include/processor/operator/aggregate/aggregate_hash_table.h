@@ -70,7 +70,7 @@ public:
     }
 
     //! update aggregate states for an input
-    void append(const std::vector<common::ValueVector*>& flatKeyVectors,
+    uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,

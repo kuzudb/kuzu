@@ -20,7 +20,7 @@ bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* conte
     hasExecuted = true;
     outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],
         stringFormat("Macro: {} has been created.", createMacroInfo->macroName));
-    metrics->numOutputTuple.increase(1);
+    metrics->numOutputTuple.incrementByOne();
     return true;
 }
 

@@ -35,7 +35,11 @@ public:
         : PhysicalOperator(type_, std::move(child), id, std::move(printInfo)),
           expressionEvaluators(std::move(expressionEvaluators)),
           expressionsOutputPos{std::move(expressionsOutputPos)},
-          discardedDataChunksPos{std::move(discardedDataChunksPos)}, prevMultiplicity{1} {}
+          discardedDataChunksPos{std::move(discardedDataChunksPos)}, prevMultiplicity{1} {
+        for (auto i = 0u; i < this->expressionsOutputPos.size(); ++i) {
+            expressionsOutputDataChunksPos.insert(this->expressionsOutputPos[i].dataChunkPos);
+        }
+    }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -51,6 +55,7 @@ private:
 private:
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators;
     std::vector<DataPos> expressionsOutputPos;
+    std::unordered_set<uint32_t> expressionsOutputDataChunksPos;
     std::unordered_set<uint32_t> discardedDataChunksPos;
 
     uint64_t prevMultiplicity;

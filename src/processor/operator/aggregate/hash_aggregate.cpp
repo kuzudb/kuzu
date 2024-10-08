@@ -97,10 +97,10 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
         0, std::move(info.tableSchema));
 }
 
-void HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
+uint64_t HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
     uint64_t multiplicity) const {
-    aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState,
-        aggregateInputs, multiplicity);
+    return aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
+        leadingState, aggregateInputs, multiplicity);
 }
 
 void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -115,7 +115,8 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        localState.append(aggInputs, resultSet->multiplicity);
+        const auto numAppendedFlatTuples = localState.append(aggInputs, resultSet->multiplicity);
+        metrics->numOutputTuple.increase(numAppendedFlatTuples);
     }
     sharedState->appendAggregateHashTable(std::move(localState.aggregateHashTable));
 }

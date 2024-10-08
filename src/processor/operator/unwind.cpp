@@ -67,6 +67,7 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(startIndex);
     } while (outValueVector->state->getSelVector().getSelSize() == 0);
+    metrics->numOutputTuple.increase(outValueVector->state->getSelVector().getSelSize());
     return true;
 }
 

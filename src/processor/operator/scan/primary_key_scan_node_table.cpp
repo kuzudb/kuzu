@@ -84,6 +84,7 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     }
     nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState);
+    metrics->numOutputTuple.incrementByOne();
     return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
 }
 
