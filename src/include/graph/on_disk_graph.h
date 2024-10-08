@@ -46,7 +46,7 @@ struct OnDiskGraphScanState {
                 common::DEFAULT_VECTOR_CAPACITY);
         }
 
-        common::SelectionVector& getSelVector() {
+        common::SelectionVector& getSelVectorUnsafe() {
             return tableScanState->outState->getSelVectorUnsafe();
         }
 
@@ -54,7 +54,7 @@ struct OnDiskGraphScanState {
             return tableScanState->outState->getSelVector();
         }
 
-        bool next();
+        bool next(evaluator::ExpressionEvaluator* predicate);
         void initScan();
 
     private:
@@ -69,25 +69,25 @@ struct OnDiskGraphScanState {
     InnerIterator fwdIterator;
     InnerIterator bwdIterator;
 
-    explicit OnDiskGraphScanState(main::ClientContext* context, storage::RelTable& table,
-        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
-        common::ValueVector* relIDVector);
+    OnDiskGraphScanState(main::ClientContext* context, storage::RelTable& table,
+        std::unique_ptr<storage::RelTableScanState> fwdState,
+        std::unique_ptr<storage::RelTableScanState> bwdState)
+        : fwdIterator{context, &table, std::move(fwdState)},
+          bwdIterator{context, &table, std::move(bwdState)} {}
 };
 
 class OnDiskGraphScanStates : public GraphScanState {
     friend class OnDiskGraph;
 
 public:
-    ~OnDiskGraphScanStates() override = default;
-
     GraphScanState::Chunk getChunk() override {
         auto& iter = getInnerIterator();
-        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVector()};
+        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe()};
     }
     bool next() override;
 
-    void startScan(common::RelDataDirection direction) {
-        this->direction = direction;
+    void startScan(common::RelDataDirection direction_) {
+        this->direction = direction_;
         iteratorIndex = 0;
     }
 
@@ -107,16 +107,16 @@ private:
     }
 
 private:
-    std::shared_ptr<common::DataChunkState> srcNodeIDVectorState;
-    std::shared_ptr<common::DataChunkState> dstNodeIDVectorState;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
     size_t iteratorIndex;
     common::RelDataDirection direction;
 
+    std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
+
     explicit OnDiskGraphScanStates(main::ClientContext* context,
-        std::span<storage::RelTable*> tableIDs);
+        std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
 
@@ -141,15 +141,12 @@ public:
         std::span<common::table_id_t> nodeTableIDs) override;
 
     Graph::Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
-    std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
-        GraphScanState& state) override;
     Graph::Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
-    std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
-        GraphScanState& state) override;
 
 private:
     main::ClientContext* context;
     GraphEntry graphEntry;
+
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
     common::table_id_map_t<common::table_id_map_t<storage::RelTable*>> nodeTableIDToFwdRelTables;
     common::table_id_map_t<common::table_id_map_t<storage::RelTable*>> nodeTableIDToBwdRelTables;

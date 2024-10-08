@@ -58,9 +58,7 @@ private:
 
 class Schema {
 public:
-    size_t getNumGroups() const { return groups.size(); }
-    size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
-    size_t getNumUnFlatGroups() const { return getNumGroups(false /* isFlat */); }
+    common::idx_t getNumGroups() const { return groups.size(); }
 
     FactorizationGroup* getGroup(const std::shared_ptr<binder::Expression>& expression) const {
         return getGroup(getGroupPos(expression->getUniqueName()));

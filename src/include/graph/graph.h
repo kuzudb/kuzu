@@ -126,11 +126,6 @@ public:
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
 
-    // Scans multiple nodeIDs in random mode, which is optimized for small lookups and does minimal
-    // caching of CSR headers.
-    virtual std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
-        GraphScanState& state) = 0;
-
     // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
     // Also, algorithm may only need adjList index in single direction so we should make double
     // indexing optional.
@@ -141,8 +136,6 @@ public:
 
     // Get dst nodeIDs for given src nodeID tables using backward adjList.
     virtual Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
-    virtual std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
-        GraphScanState& state) = 0;
 };
 
 } // namespace graph

@@ -11,10 +11,11 @@ namespace processor {
 
 class ResultSet {
 public:
-    explicit ResultSet(uint32_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
+    ResultSet() : ResultSet(0) {}
+    explicit ResultSet(common::idx_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
     ResultSet(ResultSetDescriptor* resultSetDescriptor, storage::MemoryManager* memoryManager);
 
-    void insert(uint32_t pos, std::shared_ptr<common::DataChunk> dataChunk) {
+    void insert(common::idx_t pos, std::shared_ptr<common::DataChunk> dataChunk) {
         KU_ASSERT(dataChunks.size() > pos);
         dataChunks[pos] = std::move(dataChunk);
     }
