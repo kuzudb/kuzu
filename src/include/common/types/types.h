@@ -236,7 +236,6 @@ enum class PhysicalTypeID : uint8_t {
 class ExtraTypeInfo;
 class StructField;
 class StructTypeInfo;
-class MapTypeInfo;
 
 class LogicalType {
     friend struct LogicalTypeUtils;
@@ -551,8 +550,6 @@ struct KUZU_API MapType {
     static const LogicalType& getKeyType(const LogicalType& type);
 
     static const LogicalType& getValueType(const LogicalType& type);
-
-    static const LogicalType& getFieldIdx(const LogicalType& type, const std::string& key);
 };
 
 struct KUZU_API UnionType {
