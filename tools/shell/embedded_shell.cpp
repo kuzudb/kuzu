@@ -250,8 +250,10 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
             if (it != nodeTableMap.end()) {
                 auto columnNames = it->second;
                 for (auto& columnName : columnNames) {
-                    if (regex_search(columnName, std::regex("^" + buf.substr(tempNodeNames[i].size() + 1)))) {
-                        linenoiseAddCompletion(lc, (prefix + tempNodeNames[i] + "." + columnName).c_str());
+                    if (regex_search(columnName,
+                            std::regex("^" + buf.substr(tempNodeNames[i].size() + 1)))) {
+                        linenoiseAddCompletion(lc,
+                            (prefix + tempNodeNames[i] + "." + columnName).c_str());
                     }
                 }
             }
@@ -264,8 +266,10 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
             if (it != relTableMap.end()) {
                 auto columnNames = it->second;
                 for (auto& columnName : columnNames) {
-                    if (regex_search(columnName, std::regex("^" + buf.substr(tempRelNames[i].size() + 1)))) {
-                        linenoiseAddCompletion(lc, (prefix + tempRelNames[i] + "." + columnName).c_str());
+                    if (regex_search(columnName,
+                            std::regex("^" + buf.substr(tempRelNames[i].size() + 1)))) {
+                        linenoiseAddCompletion(lc,
+                            (prefix + tempRelNames[i] + "." + columnName).c_str());
                     }
                 }
             }
