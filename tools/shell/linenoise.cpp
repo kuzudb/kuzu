@@ -1751,6 +1751,12 @@ bool isCompletionCharacter(char c) {
     if (c == '_') {
         return true;
     }
+    if (c == '.') {
+        return true;
+    }
+    if (c == ':') {
+        return true;
+    }
     return false;
 }
 
@@ -1780,7 +1786,7 @@ bool linenoiseAddCompletionMarker(const char* buf, uint64_t len, std::string& re
         return false;
     }
     // we ONLY show completion if we have typed at least one character that is supported for
-    // completion for now this is ONLY the characters a-z, A-Z and underscore (_)
+    // completion for now this is ONLY the characters a-z, A-Z, underscore (_), period (.), and colon (:)
     if (!isCompletionCharacter(buf[l->pos - 1])) {
         return false;
     }

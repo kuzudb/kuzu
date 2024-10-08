@@ -73,6 +73,8 @@ const std::regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 
 std::vector<std::string> nodeTableNames;
 std::vector<std::string> relTableNames;
+std::unordered_map<std::string, std::vector<std::string>> nodeTableMap;
+std::unordered_map<std::string, std::vector<std::string>> relTableMap;
 
 bool continueLine = false;
 std::string currLine;
@@ -93,10 +95,21 @@ void EmbeddedShell::updateTableNames() {
     for (auto& nodeTableEntry :
         database->catalog->getNodeTableEntries(&transaction::DUMMY_TRANSACTION)) {
         nodeTableNames.push_back(nodeTableEntry->getName());
+        std::vector<std::string> nodeTableColumnNames;
+        for (auto& column : nodeTableEntry->getProperties()) {
+            nodeTableColumnNames.push_back(column.getName());
+        }
+        nodeTableMap[nodeTableEntry->getName()] = nodeTableColumnNames;
     }
     for (auto& relTableEntry :
         database->catalog->getRelTableEntries(&transaction::DUMMY_TRANSACTION)) {
         relTableNames.push_back(relTableEntry->getName());
+        std::vector<std::string> relTableColumnNames;
+        auto& relColumns = relTableEntry->getProperties();
+        for (auto i = 1u; i < relColumns.size(); i++) {
+            relTableColumnNames.push_back(relColumns[i].getName());
+        }
+        relTableMap[relTableEntry->getName()] = relTableColumnNames;
     }
 }
 
@@ -193,6 +206,33 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         return;
     }
 
+    std::vector<std::string> tempNodeNames;
+    std::vector<std::string> foundNodeTableNames;
+    for (auto& node : nodeTableNames) {
+        std::regex nodeTableRegex("\\(([^:]+):" + node + "\\)");
+        auto matches_begin = std::sregex_iterator(buf.begin(), buf.end(), nodeTableRegex);
+        auto matches_end = std::sregex_iterator();
+
+        for (std::sregex_iterator i = matches_begin; i != matches_end; ++i) {
+            std::smatch match = *i;
+            tempNodeNames.push_back(match[1].str());
+            foundNodeTableNames.push_back(node);
+        }
+    }
+    std::vector<std::string> tempRelNames;
+    std::vector<std::string> foundRelTableNames;
+    for (auto& rel : relTableNames) {
+        std::regex relTableRegex("\\[([^:]+):" + rel + "\\]");
+        auto matches_begin = std::sregex_iterator(buf.begin(), buf.end(), relTableRegex);
+        auto matches_end = std::sregex_iterator();
+
+        for (std::sregex_iterator i = matches_begin; i != matches_end; ++i) {
+            std::smatch match = *i;
+            tempRelNames.push_back(match[1].str());
+            foundRelTableNames.push_back(rel);
+        }
+    }
+
     // Keyword completion.
     std::string prefix;
     auto lastKeywordPos = buf.rfind(' ') + 1;
@@ -203,6 +243,36 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     if (buf.empty()) {
         return;
     }
+
+    for (size_t i = 0; i < tempNodeNames.size(); ++i) {
+        if (regex_search(buf, std::regex("^" + tempNodeNames[i] + R"(\.[^.]*)"))) {
+            auto it = nodeTableMap.find(foundNodeTableNames[i]);
+            if (it != nodeTableMap.end()) {
+                auto columnNames = it->second;
+                for (auto& columnName : columnNames) {
+                    if (regex_search(columnName, std::regex("^" + buf.substr(tempNodeNames[i].size() + 1)))) {
+                        linenoiseAddCompletion(lc, (prefix + tempNodeNames[i] + "." + columnName).c_str());
+                    }
+                }
+            }
+            return;
+        }
+    }
+    for (size_t i = 0; i < tempRelNames.size(); ++i) {
+        if (regex_search(buf, std::regex("^" + tempRelNames[i] + R"(\.[^.]*)"))) {
+            auto it = relTableMap.find(foundRelTableNames[i]);
+            if (it != relTableMap.end()) {
+                auto columnNames = it->second;
+                for (auto& columnName : columnNames) {
+                    if (regex_search(columnName, std::regex("^" + buf.substr(tempRelNames[i].size() + 1)))) {
+                        linenoiseAddCompletion(lc, (prefix + tempRelNames[i] + "." + columnName).c_str());
+                    }
+                }
+            }
+            return;
+        }
+    }
+
     for (std::string keyword : keywordList) {
         std::string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
         if (regex_search(keyword, std::regex("^" + bufEscaped, std::regex_constants::icase))) {
