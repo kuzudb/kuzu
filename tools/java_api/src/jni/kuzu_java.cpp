@@ -1107,9 +1107,9 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env,
     jclass, jobject thisMV, jlong index) {
-    auto *mv = getValue(env, thisMV);
+    auto* mv = getValue(env, thisMV);
     auto children_size = NestedVal::getChildrenSize(mv);
-    auto cindex = (long) index;
+    auto cindex = (long)index;
     if (cindex < 0 || cindex >= children_size) {
         return nullptr;
     }
@@ -1134,22 +1134,22 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIEnv* env, jclass,
     jobject thisMV, jstring field_name) {
-        auto *mv = getValue(env, thisMV);
-        const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
-        auto children_size = NestedVal::getChildrenSize(mv);
-        for (int i = 0; i < children_size; ++i) {
-            auto child = NestedVal::getChildVal(mv, i);
-            auto child_name = *NestedVal::getChildVal(child, 0);
-            auto child_name_cstr = child_name.toString().c_str();
+    auto* mv = getValue(env, thisMV);
+    const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
+    auto children_size = NestedVal::getChildrenSize(mv);
+    for (int i = 0; i < children_size; ++i) {
+        auto child = NestedVal::getChildVal(mv, i);
+        auto child_name = *NestedVal::getChildVal(child, 0);
+        auto child_name_cstr = child_name.toString().c_str();
 
-            if (strcmp(field_name_cstr, child_name_cstr) == 0) {
-                env->ReleaseStringUTFChars(field_name, field_name_cstr);
-                jlong jindex = (jlong) i;
-                return jindex;
-            }
+        if (strcmp(field_name_cstr, child_name_cstr) == 0) {
+            env->ReleaseStringUTFChars(field_name, field_name_cstr);
+            jlong jindex = (jlong)i;
+            return jindex;
         }
-        env->ReleaseStringUTFChars(field_name, field_name_cstr);
-        return -1;
+    }
+    env->ReleaseStringUTFChars(field_name, field_name_cstr);
+    return -1;
 }
 
 // protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
