@@ -32,7 +32,7 @@ static bool discardNullFromKeys(const std::vector<ValueVector*>& vectors) {
     return hasNonNullKeys;
 }
 
-void JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVectors,
+uint64_t JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVectors,
     const std::vector<ValueVector*>& payloadVectors, DataChunkState* keyState) {
     discardNullFromKeys(keyVectors);
     auto numTuplesToAppend = keyState->getSelVector().getSelSize();
@@ -47,6 +47,7 @@ void JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVectors,
     }
     appendVector(hashVector.get(), appendInfos, colIdx);
     factorizedTable->numTuples += numTuplesToAppend;
+    return numTuplesToAppend;
 }
 
 void JoinHashTable::appendVector(ValueVector* vector,
@@ -72,7 +73,7 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
     });
 }
 
-void JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
+uint64_t JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
     std::vector<ValueVector*> payloadVectors) {
     auto numTuplesToAppend = 1;
     KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
@@ -101,6 +102,7 @@ void JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
         payloadsState->getSelVectorUnsafe().setToUnfiltered();
     }
     factorizedTable->numTuples += numTuplesToAppend;
+    return numTuplesToAppend;
 }
 
 void JoinHashTable::allocateHashSlots(uint64_t numTuples) {

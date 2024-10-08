@@ -36,7 +36,7 @@ bool Projection::getNextTuplesInternal(ExecutionContext* context) {
         resultSet->multiplicity *=
             resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
     }
-    metrics->numOutputTuple.increase(1);
+    metrics->numOutputTuple.increase(resultSet->multiplicity);
     return true;
 }
 
