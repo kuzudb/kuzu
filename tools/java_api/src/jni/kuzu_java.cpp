@@ -1106,15 +1106,16 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
 }
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env,
-    jclass, jobject thisSV, jlong index) {
-    auto* sv = getValue(env, thisSV);
-    const auto& dataType = sv->getDataType();
-    auto fieldNames = StructType::getFieldNames(dataType);
-    if ((uint64_t)index >= fieldNames.size() || index < 0) {
+    jclass, jobject thisMV, jlong index) {
+    auto *mv = getValue(env, thisMV);
+    auto children_size = NestedVal::getChildrenSize(mv);
+    auto cindex = (long) index;
+    if (cindex < 0 || cindex >= children_size) {
         return nullptr;
     }
-    auto name = fieldNames[index];
-    return env->NewStringUTF(name.c_str());
+    auto child = NestedVal::getChildVal(mv, cindex);
+    auto child_field_name = *NestedVal::getChildVal(child, 0);
+    return env->NewStringUTF(child_field_name.toString().c_str());
 }
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(JNIEnv* env, jclass,
@@ -1132,17 +1133,23 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
 }
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIEnv* env, jclass,
-    jobject thisSV, jstring field_name) {
-    auto* sv = getValue(env, thisSV);
-    const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
-    const auto& dataType = sv->getDataType();
-    auto index = MapType::getFieldIdx(dataType, field_name_cstr);
-    env->ReleaseStringUTFChars(field_name, field_name_cstr);
-    if (index == INVALID_STRUCT_FIELD_IDX) {
+    jobject thisMV, jstring field_name) {
+        auto *mv = getValue(env, thisMV);
+        const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
+        auto children_size = NestedVal::getChildrenSize(mv);
+        for (int i = 0; i < children_size; ++i) {
+            auto child = NestedVal::getChildVal(mv, i);
+            auto child_name = *NestedVal::getChildVal(child, 0);
+            auto child_name_cstr = child_name.toString().c_str();
+
+            if (strcmp(field_name_cstr, child_name_cstr) == 0) {
+                env->ReleaseStringUTFChars(field_name, field_name_cstr);
+                jlong jindex = (jlong) i;
+                return jindex;
+            }
+        }
+        env->ReleaseStringUTFChars(field_name, field_name_cstr);
         return -1;
-    } else {
-        return static_cast<jlong>(index);
-    }
 }
 
 // protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);

@@ -507,12 +507,6 @@ private:
     std::unordered_map<std::string, struct_field_idx_t> fieldNameToIdxMap;
 };
 
-class MapTypeInfo final : public ExtraTypeInfo {
-public:
-    // Constructors to be implemented
-    // Functions to be implemented
-}
-
 using logical_type_vec_t = std::vector<LogicalType>;
 
 struct KUZU_API DecimalType {
@@ -559,8 +553,6 @@ struct KUZU_API MapType {
     static const LogicalType& getValueType(const LogicalType& type);
 
     static const LogicalType& getFieldIdx(const LogicalType& type, const std::string& key);
-
-    // Extra functions to be added
 };
 
 struct KUZU_API UnionType {

@@ -1066,14 +1066,38 @@ public class ValueTest extends TestBase {
         FlatTuple flatTuple = result.getNext();
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertEquals(ValueMapUtil.getIndexByFieldName(value, "NOT_EXIST"), -1);
+        long index = ValueMapUtil.getIndexByFieldName(value, "audience1");
+        assertEquals(index, 0);
+        index = ValueMapUtil.getIndexByFieldName(value, "NOT_EXXIST");
+        assertEquals(index, -1);
 
-        assertEquals(ValueMapUtil.getIndexByFieldName(value, "audience1"), 0);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
     }
 
+    @Test
+    void MapValGetFieldNameByIndex() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        String fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
+        assertEquals(fieldName, "audience1");
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, -1);
+        assertNull(fieldName);
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, 1024);
+        assertNull(fieldName);
+
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+
+    // TODO: Need fixing
     @Test
     void MapValGetValueByIndex() throws ObjectRefDestroyedException {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience");
@@ -1093,6 +1117,8 @@ public class ValueTest extends TestBase {
         flatTuple.destroy();
         result.destroy();
     }
+
+    // TODO: Add more testing
 
     @Test
     void RecursiveRelGetNodeAndRelList() throws ObjectRefDestroyedException {
