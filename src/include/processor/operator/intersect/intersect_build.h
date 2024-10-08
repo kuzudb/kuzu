@@ -48,9 +48,9 @@ public:
             children[0]->clone(), id, printInfo->copy());
     }
 
-    void appendVectors() final {
+    uint64_t appendVectors() final {
         KU_ASSERT(keyVectors.size() == 1);
-        hashTable->appendVectorWithSorting(keyVectors[0], payloadVectors);
+        return hashTable->appendVectorWithSorting(keyVectors[0], payloadVectors);
     }
 };
 

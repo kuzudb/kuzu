@@ -11,13 +11,13 @@ public:
     JoinHashTable(storage::MemoryManager& memoryManager, common::logical_type_vec_t keyTypes,
         FactorizedTableSchema tableSchema);
 
-    void appendVectors(const std::vector<common::ValueVector*>& keyVectors,
+    uint64_t appendVectors(const std::vector<common::ValueVector*>& keyVectors,
         const std::vector<common::ValueVector*>& payloadVectors, common::DataChunkState* keyState);
     void appendVector(common::ValueVector* vector,
         const std::vector<BlockAppendingInfo>& appendInfos, ft_col_idx_t colIdx);
 
     // Used in worst-case optimal join
-    void appendVectorWithSorting(common::ValueVector* keyVector,
+    uint64_t appendVectorWithSorting(common::ValueVector* keyVector,
         std::vector<common::ValueVector*> payloadVectors);
 
     void allocateHashSlots(uint64_t numTuples);

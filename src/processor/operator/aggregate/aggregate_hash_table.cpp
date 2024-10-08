@@ -31,14 +31,16 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     initializeTmpVectors();
 }
 
-void AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVectors,
+uint64_t AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     const std::vector<ValueVector*>& dependentKeyVectors, DataChunkState* leadingState,
     const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
-    resizeHashTableIfNecessary(leadingState->getSelVector().getSelSize());
+    const auto numFlatTuples = leadingState->getSelVector().getSelSize();
+    resizeHashTableIfNecessary(numFlatTuples);
     computeVectorHashes(flatKeyVectors, unFlatKeyVectors);
     findHashSlots(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState);
     updateAggStates(flatKeyVectors, unFlatKeyVectors, aggregateInputs, resultSetMultiplicity);
+    return numFlatTuples;
 }
 
 bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(

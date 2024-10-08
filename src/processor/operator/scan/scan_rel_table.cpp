@@ -92,6 +92,8 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         while (relInfo.table->scan(transaction, scanState)) {
             if (relInfo.scanState->outState->getSelVector().getSelSize() > 0) {
+                metrics->numOutputTuple.increase(
+                    relInfo.scanState->outState->getSelVector().getSelSize());
                 return true;
             }
         }

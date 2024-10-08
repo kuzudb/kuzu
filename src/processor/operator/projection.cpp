@@ -36,7 +36,10 @@ bool Projection::getNextTuplesInternal(ExecutionContext* context) {
         resultSet->multiplicity *=
             resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
     }
-    metrics->numOutputTuple.increase(1);
+    // The if statement is added to avoid the cost of calculating numTuples when metric is disabled.
+    if (metrics->numOutputTuple.enabled) [[unlikely]] {
+        metrics->numOutputTuple.increase(resultSet->getNumTuples(expressionsOutputDataChunksPos));
+    }
     return true;
 }
 

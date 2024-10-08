@@ -23,7 +23,7 @@ bool Profile::getNextTuplesInternal(ExecutionContext* context) {
     auto& selVector = outputVector->state->getSelVectorUnsafe();
     selVector.setSelSize(1);
     outputVector->setValue<ku_string_t>(selVector[0], profileStr);
-    metrics->numOutputTuple.increase(1);
+    metrics->numOutputTuple.incrementByOne();
     return true;
 }
 

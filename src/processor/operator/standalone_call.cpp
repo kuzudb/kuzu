@@ -28,7 +28,7 @@ bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* co
             standaloneCallInfo->optionValue);
         break;
     }
-    metrics->numOutputTuple.increase(1);
+    metrics->numOutputTuple.incrementByOne();
     return true;
 }
 

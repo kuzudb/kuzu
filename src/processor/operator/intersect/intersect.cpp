@@ -219,6 +219,7 @@ bool Intersect::getNextTuplesInternal(ExecutionContext* context) {
             carryBuildSideIdx = -1u;
         }
     } while (outKeyVector->state->getSelVector().getSelSize() == 0);
+    metrics->numOutputTuple.increase(outKeyVector->state->getSelVector().getSelSize());
     return true;
 }
 
