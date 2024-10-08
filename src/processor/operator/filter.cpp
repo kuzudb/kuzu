@@ -51,7 +51,7 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(*nodeIDVector->state);
         numSelectValue = 0;
-        auto buffer = nodeIDVector->state->getSelVectorUnsafe().getMultableBuffer();
+        auto buffer = nodeIDVector->state->getSelVectorUnsafe().getMutableBuffer();
         for (auto i = 0u; i < nodeIDVector->state->getSelVector().getSelSize(); ++i) {
             auto pos = nodeIDVector->state->getSelVector()[i];
             buffer[numSelectValue] = pos;

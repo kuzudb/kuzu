@@ -127,7 +127,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         // TODO(Guodong): Should add `slice` interface to SelVector.
         SelectionVector selVector(numRowsToAppendInChunk);
         for (auto row = 0u; row < numRowsToAppendInChunk; row++) {
-            selVector.getMultableBuffer()[row] =
+            selVector.getMutableBuffer()[row] =
                 columnVector->state->getSelVector()[startRowInVectors + row];
         }
         selVector.setToFiltered(numRowsToAppendInChunk);

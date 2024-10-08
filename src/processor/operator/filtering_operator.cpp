@@ -28,7 +28,7 @@ void SelVectorOverWriter::resetCurrentSelVector(const SelectionVector& selVector
     if (selVector.isUnfiltered()) {
         currentSelVector->setToUnfiltered();
     } else {
-        std::memcpy(currentSelVector->getMultableBuffer().data(),
+        std::memcpy(currentSelVector->getMutableBuffer().data(),
             selVector.getSelectedPositions().data(), selVector.getSelSize() * sizeof(sel_t));
         currentSelVector->setToFiltered();
     }

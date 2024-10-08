@@ -61,7 +61,7 @@ void JoinHashTable::appendVector(ValueVector* vector,
 static void sortSelectedPos(ValueVector* nodeIDVector) {
     auto& selVector = nodeIDVector->state->getSelVectorUnsafe();
     auto size = selVector.getSelSize();
-    auto buffer = selVector.getMultableBuffer();
+    auto buffer = selVector.getMutableBuffer();
     if (selVector.isUnfiltered()) {
         std::memcpy(buffer.data(), &SelectionVector::INCREMENTAL_SELECTED_POS,
             size * sizeof(sel_t));

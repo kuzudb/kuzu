@@ -110,37 +110,18 @@ struct BinaryFunctionExecutor {
         if (left.isNull(lPos)) {
             result.setAllNull();
         } else if (right.hasNoNullsGuarantee()) {
-            if (rightSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
+            rightSelVector.forEach([&](auto i) {
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
+                    result, lPos, i, i, dataPtr);
+            });
+        } else {
+            rightSelVector.forEach([&](auto i) {
+                result.setNull(i, right.isNull(i)); // left is always not null
+                if (!result.isNull(i)) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
                         right, result, lPos, i, i, dataPtr);
                 }
-            } else {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = rightSelVector[i];
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, lPos, rPos, rPos, dataPtr);
-                }
-            }
-        } else {
-            if (rightSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    result.setNull(i, right.isNull(i)); // left is always not null
-                    if (!result.isNull(i)) {
-                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                            right, result, lPos, i, i, dataPtr);
-                    }
-                }
-            } else {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = rightSelVector[i];
-                    result.setNull(rPos, right.isNull(rPos)); // left is always not null
-                    if (!result.isNull(rPos)) {
-                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                            right, result, lPos, rPos, rPos, dataPtr);
-                    }
-                }
-            }
+            });
         }
     }
 
@@ -153,37 +134,18 @@ struct BinaryFunctionExecutor {
         if (right.isNull(rPos)) {
             result.setAllNull();
         } else if (left.hasNoNullsGuarantee()) {
-            if (leftSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
+            leftSelVector.forEach([&](auto i) {
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
+                    result, i, rPos, i, dataPtr);
+            });
+        } else {
+            leftSelVector.forEach([&](auto i) {
+                result.setNull(i, left.isNull(i)); // right is always not null
+                if (!result.isNull(i)) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
                         right, result, i, rPos, i, dataPtr);
                 }
-            } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = leftSelVector[i];
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, lPos, rPos, lPos, dataPtr);
-                }
-            }
-        } else {
-            if (leftSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    result.setNull(i, left.isNull(i)); // right is always not null
-                    if (!result.isNull(i)) {
-                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                            right, result, i, rPos, i, dataPtr);
-                    }
-                }
-            } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = leftSelVector[i];
-                    result.setNull(lPos, left.isNull(lPos)); // right is always not null
-                    if (!result.isNull(lPos)) {
-                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                            right, result, lPos, rPos, lPos, dataPtr);
-                    }
-                }
-            }
+            });
         }
     }
 
@@ -194,37 +156,18 @@ struct BinaryFunctionExecutor {
         KU_ASSERT(left.state == right.state);
         auto& resultSelVector = result.state->getSelVector();
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-            if (resultSelVector.isUnfiltered()) {
-                for (uint64_t i = 0; i < resultSelVector.getSelSize(); i++) {
+            resultSelVector.forEach([&](auto i) {
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
+                    result, i, i, i, dataPtr);
+            });
+        } else {
+            resultSelVector.forEach([&](auto i) {
+                result.setNull(i, left.isNull(i) || right.isNull(i));
+                if (!result.isNull(i)) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
                         right, result, i, i, i, dataPtr);
                 }
-            } else {
-                for (uint64_t i = 0; i < resultSelVector.getSelSize(); i++) {
-                    auto pos = resultSelVector[i];
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, pos, pos, pos, dataPtr);
-                }
-            }
-        } else {
-            if (resultSelVector.isUnfiltered()) {
-                for (uint64_t i = 0; i < resultSelVector.getSelSize(); i++) {
-                    result.setNull(i, left.isNull(i) || right.isNull(i));
-                    if (!result.isNull(i)) {
-                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                            right, result, i, i, i, dataPtr);
-                    }
-                }
-            } else {
-                for (uint64_t i = 0; i < resultSelVector.getSelSize(); i++) {
-                    auto pos = resultSelVector[i];
-                    result.setNull(pos, left.isNull(pos) || right.isNull(pos));
-                    if (!result.isNull(pos)) {
-                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                            right, result, pos, pos, pos, dataPtr);
-                    }
-                }
-            }
+            });
         }
     }
 
@@ -345,40 +288,22 @@ struct BinaryFunctionExecutor {
         common::SelectionVector& selVector) {
         auto lPos = left.state->getSelVector()[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& rightSelVector = right.state->getSelVector();
         if (left.isNull(lPos)) {
             return numSelectedValues;
         } else if (right.hasNoNullsGuarantee()) {
-            if (rightSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
+            rightSelVector.forEach([&](auto i) {
+                selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, lPos, i, i,
+                    numSelectedValues, selectedPositionsBuffer);
+            });
+        } else {
+            rightSelVector.forEach([&](auto i) {
+                if (!right.isNull(i)) {
                     selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, lPos, i,
                         i, numSelectedValues, selectedPositionsBuffer);
                 }
-            } else {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = rightSelVector[i];
-                    selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, lPos,
-                        rPos, rPos, numSelectedValues, selectedPositionsBuffer);
-                }
-            }
-        } else {
-            if (rightSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    if (!right.isNull(i)) {
-                        selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right,
-                            lPos, i, i, numSelectedValues, selectedPositionsBuffer);
-                    }
-                }
-            } else {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = rightSelVector[i];
-                    if (!right.isNull(rPos)) {
-                        selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right,
-                            lPos, rPos, rPos, numSelectedValues, selectedPositionsBuffer);
-                    }
-                }
-            }
+            });
         }
         selVector.setSelSize(numSelectedValues);
         return numSelectedValues > 0;
@@ -389,40 +314,22 @@ struct BinaryFunctionExecutor {
         common::SelectionVector& selVector) {
         auto rPos = right.state->getSelVector()[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& leftSelVector = left.state->getSelVector();
         if (right.isNull(rPos)) {
             return numSelectedValues;
         } else if (left.hasNoNullsGuarantee()) {
-            if (leftSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
+            leftSelVector.forEach([&](auto i) {
+                selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, rPos, i,
+                    numSelectedValues, selectedPositionsBuffer);
+            });
+        } else {
+            leftSelVector.forEach([&](auto i) {
+                if (!left.isNull(i)) {
                     selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, rPos,
                         i, numSelectedValues, selectedPositionsBuffer);
                 }
-            } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = leftSelVector[i];
-                    selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, lPos,
-                        rPos, lPos, numSelectedValues, selectedPositionsBuffer);
-                }
-            }
-        } else {
-            if (leftSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    if (!left.isNull(i)) {
-                        selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i,
-                            rPos, i, numSelectedValues, selectedPositionsBuffer);
-                    }
-                }
-            } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = leftSelVector[i];
-                    if (!left.isNull(lPos)) {
-                        selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right,
-                            lPos, rPos, lPos, numSelectedValues, selectedPositionsBuffer);
-                    }
-                }
-            }
+            });
         }
         selVector.setSelSize(numSelectedValues);
         return numSelectedValues > 0;
@@ -433,40 +340,21 @@ struct BinaryFunctionExecutor {
     static bool selectBothUnFlat(common::ValueVector& left, common::ValueVector& right,
         common::SelectionVector& selVector) {
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& leftSelVector = left.state->getSelVector();
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-            if (leftSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); i++) {
+            leftSelVector.forEach([&](auto i) {
+                selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, i, i,
+                    numSelectedValues, selectedPositionsBuffer);
+            });
+        } else {
+            leftSelVector.forEach([&](auto i) {
+                auto isNull = left.isNull(i) || right.isNull(i);
+                if (!isNull) {
                     selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, i, i,
                         numSelectedValues, selectedPositionsBuffer);
                 }
-            } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); i++) {
-                    auto pos = leftSelVector[i];
-                    selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, pos,
-                        pos, pos, numSelectedValues, selectedPositionsBuffer);
-                }
-            }
-        } else {
-            if (leftSelVector.isUnfiltered()) {
-                for (uint64_t i = 0; i < leftSelVector.getSelSize(); i++) {
-                    auto isNull = left.isNull(i) || right.isNull(i);
-                    if (!isNull) {
-                        selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i,
-                            i, i, numSelectedValues, selectedPositionsBuffer);
-                    }
-                }
-            } else {
-                for (uint64_t i = 0; i < leftSelVector.getSelSize(); i++) {
-                    auto pos = leftSelVector[i];
-                    auto isNull = left.isNull(pos) || right.isNull(pos);
-                    if (!isNull) {
-                        selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, pos,
-                            pos, pos, numSelectedValues, selectedPositionsBuffer);
-                    }
-                }
-            }
+            });
         }
         selVector.setSelSize(numSelectedValues);
         return numSelectedValues > 0;

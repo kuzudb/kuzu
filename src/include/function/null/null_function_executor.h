@@ -43,7 +43,7 @@ struct NullOperationExecutor {
             return resultValue == true;
         } else {
             uint64_t numSelectedValues = 0;
-            auto buffer = selVector.getMultableBuffer();
+            auto buffer = selVector.getMutableBuffer();
             for (auto i = 0ul; i < operandSelVector.getSelSize(); i++) {
                 auto pos = operandSelVector[i];
                 selectOnValue<FUNC>(operand, pos, numSelectedValues, buffer);

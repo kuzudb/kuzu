@@ -173,7 +173,7 @@ struct BinaryBooleanFunctionExecutor {
         common::SelectionVector& selVector) {
         auto lPos = left.state->getSelVector()[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& rightSelVector = right.state->getSelVector();
         if (rightSelVector.isUnfiltered()) {
             for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
@@ -196,7 +196,7 @@ struct BinaryBooleanFunctionExecutor {
         common::SelectionVector& selVector) {
         auto rPos = right.state->getSelVector()[0];
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& leftSelVector = left.state->getSelVector();
         if (leftSelVector.isUnfiltered()) {
             for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
@@ -218,7 +218,7 @@ struct BinaryBooleanFunctionExecutor {
     static bool selectBothUnFlat(common::ValueVector& left, common::ValueVector& right,
         common::SelectionVector& selVector) {
         uint64_t numSelectedValues = 0;
-        auto selectedPositionsBuffer = selVector.getMultableBuffer();
+        auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& leftSelVector = left.state->getSelVector();
         if (leftSelVector.isUnfiltered()) {
             for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
@@ -311,7 +311,7 @@ struct UnaryBooleanOperationExecutor {
         } else {
             auto& operandSelVector = operand.state->getSelVector();
             uint64_t numSelectedValues = 0;
-            auto selectedPositionBuffer = selVector.getMultableBuffer();
+            auto selectedPositionBuffer = selVector.getMutableBuffer();
             if (operandSelVector.isUnfiltered()) {
                 for (auto i = 0ul; i < operandSelVector.getSelSize(); i++) {
                     selectOnValue<FUNC>(operand, i, numSelectedValues, selectedPositionBuffer);

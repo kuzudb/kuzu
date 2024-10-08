@@ -13,7 +13,7 @@ inline static bool isTrue(ValueVector& vector, uint64_t pos) {
 
 bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
     uint64_t numSelectedValues = 0;
-    auto selectedBuffer = resultVector->state->getSelVectorUnsafe().getMultableBuffer();
+    auto selectedBuffer = resultVector->state->getSelVectorUnsafe().getMutableBuffer();
     if (resultVector->state->getSelVector().isUnfiltered()) {
         for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
             selectedBuffer[numSelectedValues] = i;

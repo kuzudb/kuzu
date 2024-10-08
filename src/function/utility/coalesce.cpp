@@ -54,7 +54,7 @@ static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
         }
     }
     auto numSelectedValues = 0u;
-    auto selectedPositionsBuffer = selVector.getMultableBuffer();
+    auto selectedPositionsBuffer = selVector.getMutableBuffer();
     for (auto i = 0u; i < params[unFlatVectorIdx]->state->getSelVector().getSelSize(); ++i) {
         auto resultPos = params[unFlatVectorIdx]->state->getSelVector()[i];
         auto resultValue = false;

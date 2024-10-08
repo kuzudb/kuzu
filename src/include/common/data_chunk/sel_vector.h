@@ -11,7 +11,7 @@ namespace common {
 
 class SelectionVector {
 public:
-    KUZU_API static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
+    KUZU_API static const std::array<sel_t, DEFAULT_VECTOR_CAPACITY> INCREMENTAL_SELECTED_POS;
 
     explicit SelectionVector(sel_t capacity)
         : selectedSize{0}, capacity{capacity}, selectedPositions{nullptr} {
@@ -21,12 +21,18 @@ public:
 
     SelectionVector() : SelectionVector{DEFAULT_VECTOR_CAPACITY} {}
 
-    bool isUnfiltered() const { return selectedPositions == (sel_t*)&INCREMENTAL_SELECTED_POS; }
+    bool isUnfiltered() const { return selectedPositions == INCREMENTAL_SELECTED_POS.data(); }
+    bool isContinuous() const {
+        return selectedPositions >= &*INCREMENTAL_SELECTED_POS.begin() &&
+               selectedPositions <= &*INCREMENTAL_SELECTED_POS.end();
+    }
 
-    void setToUnfiltered() { selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS; }
+    void setToUnfiltered() {
+        selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data());
+    }
     void setToUnfiltered(sel_t size) {
         KU_ASSERT(size <= capacity);
-        selectedPositions = (sel_t*)&INCREMENTAL_SELECTED_POS;
+        selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data());
         selectedSize = size;
     }
 
@@ -38,11 +44,25 @@ public:
         selectedSize = size;
     }
 
-    std::span<sel_t> getMultableBuffer() {
+    std::span<sel_t> getMutableBuffer() const {
         return std::span<sel_t>(selectedPositionsBuffer.get(), capacity);
     }
-    std::span<sel_t> getSelectedPositions() const {
-        return std::span<sel_t>(selectedPositions, selectedSize);
+    std::span<const sel_t> getSelectedPositions() const {
+        return std::span<const sel_t>(selectedPositions, selectedSize);
+    }
+
+    template<class Func>
+    void forEach(Func&& func) const {
+        if (isContinuous()) {
+            const auto start = selectedPositions[0];
+            for (size_t i = start; i < start + selectedSize; i++) {
+                func(i);
+            }
+        } else {
+            for (size_t i = 0; i < selectedSize; i++) {
+                func(selectedPositions[i]);
+            }
+        }
     }
 
     sel_t getSelSize() const { return selectedSize; }
