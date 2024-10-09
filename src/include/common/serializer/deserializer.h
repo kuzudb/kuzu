@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "common/assert.h"
+#include "common/case_insensitive_map.h"
 #include "common/serializer/reader.h"
 
 namespace kuzu {
@@ -108,6 +109,8 @@ public:
             values.insert(value);
         }
     }
+
+    void deserializeCaseInsensitiveSet(common::case_insensitve_set_t& values);
 
 private:
     std::unique_ptr<Reader> reader;

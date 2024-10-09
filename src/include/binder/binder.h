@@ -58,6 +58,7 @@ class BoundReturnClause;
 struct ExportedTableData;
 struct BoundJoinHintNode;
 struct BoundCopyFromInfo;
+struct BoundTableFunction;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -83,7 +84,7 @@ public:
 
     bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
         const catalog::Catalog& catalog, transaction::Transaction* tx);
-    std::shared_ptr<Expression> createVariable(const std::string& name,
+    KUZU_API std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
 
     std::shared_ptr<Expression> bindWhereExpression(
@@ -163,6 +164,10 @@ public:
 
     /*** bind standalone call function ***/
     std::unique_ptr<BoundStatement> bindStandaloneCallFunction(const parser::Statement& statement);
+
+    /*** bind table function ***/
+    BoundTableFunction bindTableFunc(std::string tableFuncName,
+        const parser::ParsedExpression& expr, expression_vector& columns);
 
     /*** bind create macro ***/
     std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement);

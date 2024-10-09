@@ -31,7 +31,7 @@ public:
 
     common::table_id_t getTableID() const { return oid; }
 
-    std::unique_ptr<TableCatalogEntry> alter(const binder::BoundAlterInfo& alterInfo) const;
+    virtual std::unique_ptr<TableCatalogEntry> alter(const binder::BoundAlterInfo& alterInfo) const;
 
     virtual bool isParent(common::table_id_t /*tableID*/) { return false; };
     virtual common::TableType getTableType() const = 0;

@@ -1,4 +1,5 @@
 #include "function/table/call_functions.h"
+#include "processor/execution_context.h"
 #include "processor/warning_context.h"
 
 using namespace kuzu::common;
@@ -7,7 +8,7 @@ namespace kuzu {
 namespace function {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
-    input.context->getWarningContextUnsafe().clearPopulatedWarnings();
+    input.context->clientContext->getWarningContextUnsafe().clearPopulatedWarnings();
     return 0;
 }
 

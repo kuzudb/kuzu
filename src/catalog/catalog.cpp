@@ -4,6 +4,7 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
@@ -49,6 +50,7 @@ Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
+        indexes = std::make_unique<CatalogSet>();
         if (!isInMemMode) {
             // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
             saveToFile(directory, vfs, FileVersionType::ORIGINAL);
@@ -300,6 +302,29 @@ LogicalType Catalog::getType(const Transaction* transaction, const std::string& 
 
 bool Catalog::containsType(const Transaction* transaction, const std::string& typeName) const {
     return types->containsEntry(transaction, typeName);
+}
+
+void Catalog::createIndex(Transaction* transaction,
+    std::unique_ptr<IndexCatalogEntry> indexCatalogEntry) {
+    indexes->createEntry(transaction, std::move(indexCatalogEntry));
+}
+
+IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, common::table_id_t tableID,
+    std::string indexName) const {
+    return indexes->getEntry(transaction, common::stringFormat("{}_{}", tableID, indexName))
+        ->ptrCast<IndexCatalogEntry>();
+}
+
+bool Catalog::containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
+    std::string indexName) const {
+    return indexes->containsEntry(transaction, common::stringFormat("{}_{}", tableID, indexName));
+}
+
+void Catalog::dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
+    std::string indexName) const {
+    auto uniqueName = common::stringFormat("{}_{}", tableID, indexName);
+    const auto entry = indexes->getEntry(transaction, uniqueName);
+    indexes->dropEntry(transaction, std::move(uniqueName), entry->getOID());
 }
 
 void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,

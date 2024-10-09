@@ -1,0 +1,74 @@
+-DATASET CSV fts-small
+
+--
+
+# These ground truth numbers were obtained from DuckDB and we double checked that
+# our results and DuckDB's results is within three decimal places.
+-CASE fts-search-simple
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- ok
+-LOG SingleKeyWordUpperCase
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
+---- 2
+0|0.271133
+3|0.209476
+-LOG SingleKeyWordLowerCase
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN node.ID, score
+---- 2
+0|0.271133
+3|0.209476
+-LOG QueryEmptyString
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', '') RETURN node.ID, score
+---- 0
+-LOG QueryStopWord
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'at') RETURN node.ID, score
+---- 0
+-LOG QuerySingular
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studys') RETURN node.ID, score
+---- 3
+0|0.055171
+20|0.059514
+3|0.059514
+-LOG QueryPresentTense
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') RETURN node.ID, score
+---- 3
+0|0.055171
+20|0.059514
+3|0.059514
+-LOG QueryWithSpecialChar
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study ->') RETURN node.ID, score
+---- 3
+0|0.055171
+20|0.059514
+3|0.059514
+-LOG MultipleIndexes
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content', 'author'])
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx2', ['content'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'toronto') RETURN node.ID, score
+---- 1
+0|0.565815
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'toronto') RETURN node.ID, score
+---- 1
+0|0.400747
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'toronto') RETURN node.ID, score
+---- 1
+0|0.393753
+-LOG DropAndRecreate
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content', 'name'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN node.ID, score
+---- 2
+0|0.192034
+20|0.210752
+-STATEMENT CALL DROP_FTS_INDEX('doc', 'docIdx4')
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content', 'name'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN node.ID, score
+---- 2
+0|0.192034
+20|0.210752

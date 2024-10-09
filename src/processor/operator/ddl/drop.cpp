@@ -15,6 +15,7 @@ bool isValidEntry(parser::DropInfo& dropInfo, main::ClientContext* context) {
     case common::DropType::SEQUENCE: {
         validEntry = context->getCatalog()->containsSequence(context->getTx(), dropInfo.name);
     } break;
+        // TODO(Ziyi): If the table has indexes, we should drop those indexes as well.
     case common::DropType::TABLE: {
         validEntry = context->getCatalog()->containsTable(context->getTx(), dropInfo.name);
     } break;

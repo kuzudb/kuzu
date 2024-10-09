@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/case_insensitive_map.h"
 #include "common/serializer/writer.h"
 
 namespace kuzu {
@@ -93,6 +94,8 @@ public:
             serializeValue(value);
         }
     }
+
+    void serializeCaseInsensitiveSet(const common::case_insensitve_set_t& values);
 
 private:
     std::shared_ptr<Writer> writer;

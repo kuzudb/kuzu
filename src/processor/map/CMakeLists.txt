@@ -42,6 +42,7 @@ add_library(kuzu_processor_mapper
         map_transaction.cpp
         map_union.cpp
         map_unwind.cpp
+        map_property_collector.cpp
         plan_mapper.cpp)
 
 set(ALL_OBJECT_FILES

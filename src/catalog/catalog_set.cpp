@@ -4,6 +4,7 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/catalog.h"

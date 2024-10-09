@@ -3,6 +3,9 @@
 #include "statement.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace parser {
 
 class SingleQuery;
@@ -14,7 +17,7 @@ class ReturnClause;
 
 class StatementVisitor {
 public:
-    StatementVisitor() = default;
+    StatementVisitor() {}
     virtual ~StatementVisitor() = default;
 
     void visit(const Statement& statement);

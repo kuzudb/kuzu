@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace binder {
 
-struct ExpressionUtil {
+struct KUZU_API ExpressionUtil {
     static expression_vector getExpressionsWithDataType(const expression_vector& expressions,
         common::LogicalTypeID dataTypeID);
 

@@ -6,8 +6,8 @@
 #include "function.h"
 
 namespace kuzu {
-namespace main {
-class ClientContext;
+namespace parser {
+class ParsedExpression;
 }
 
 namespace processor {
@@ -41,11 +41,11 @@ struct TableFuncInput {
     TableFuncBindData* bindData;
     TableFuncLocalState* localState;
     TableFuncSharedState* sharedState;
-    main::ClientContext* context;
+    processor::ExecutionContext* context;
 
     TableFuncInput() = default;
     TableFuncInput(TableFuncBindData* bindData, TableFuncLocalState* localState,
-        TableFuncSharedState* sharedState, main::ClientContext* context)
+        TableFuncSharedState* sharedState, processor::ExecutionContext* context)
         : bindData{bindData}, localState{localState}, sharedState{sharedState}, context{context} {}
     DELETE_COPY_DEFAULT_MOVE(TableFuncInput);
 };
@@ -85,6 +85,8 @@ using table_func_can_parallel_t = std::function<bool()>;
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 using table_func_finalize_t =
     std::function<void(processor::ExecutionContext*, TableFuncSharedState*, TableFuncLocalState*)>;
+using table_func_rewrite_t =
+    std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
 
 struct KUZU_API TableFunction : public Function {
     table_func_t tableFunc;
@@ -94,6 +96,7 @@ struct KUZU_API TableFunction : public Function {
     table_func_can_parallel_t canParallelFunc = [] { return true; };
     table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
     table_func_finalize_t finalizeFunc = [](auto, auto, auto) {};
+    table_func_rewrite_t rewriteFunc;
 
     TableFunction()
         : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
@@ -123,6 +126,10 @@ struct KUZU_API TableFunction : public Function {
 
     std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);
+    }
+
+    virtual std::unique_ptr<TableFunction> copy() const {
+        return std::make_unique<TableFunction>(*this);
     }
 };
 
