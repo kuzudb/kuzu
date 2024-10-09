@@ -267,19 +267,17 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
 }
 
 TEST_F(CompressChunkTest, TestFloatFilterStateful) {
+    static constexpr size_t startOffset = 2 * 1024 + 7;
+    static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
     std::vector<float> src(10 * 1024, 5.6);
     src[4] = 0;
-    src[2] = -543875.8341;
-    for (size_t i = 12; i < src.size(); i += 10) {
-        src[i] = src[i - 10] + -4385.2348;
-    }
+    src[startOffset + 5] = 1234.5678 * 2345.6789 * 3456.7891;
+    src[startOffset + 10] = 1234.5678 * 2345.6789 / 3456.7891;
 
     testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
                                ChunkState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
 
-        static constexpr size_t startOffset = 2 * 1024 + 7;
-        static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
         const size_t startPageIdx = startOffset / state.numValuesPerPage;
 
         // the filter will pass:
