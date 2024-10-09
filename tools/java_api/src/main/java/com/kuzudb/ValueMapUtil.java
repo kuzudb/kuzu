@@ -1,6 +1,4 @@
 package com.kuzudb;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Utility functions for Value of map type.
