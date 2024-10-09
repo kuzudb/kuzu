@@ -1152,7 +1152,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIE
     return -1;
 }
 
-JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JNIEnv* env, jclass, jobject thisMV, jlong index) {
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JNIEnv* env, jclass,
+    jobject thisMV, jlong index) {
     auto* mv = getValue(env, thisMV);
     auto children_size = NestedVal::getChildrenSize(mv);
     auto cindex = (long)index;
