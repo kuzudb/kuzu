@@ -26,7 +26,12 @@ public class ValueMapUtil {
      */
     public static long getIndexByFieldName(Value value, String fieldName) throws ObjectRefDestroyedException {
         value.checkNotDestroyed();
-        return Native.kuzu_value_get_map_index(value, fieldName);
+        for (long i = 0; i < getNumFields(value); i++) {
+            if (fieldName.equals(getFieldNameByIndex(value, i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -51,10 +56,10 @@ public class ValueMapUtil {
     public static Value getValueByFieldName(Value value, String fieldName) throws ObjectRefDestroyedException {
         value.checkNotDestroyed();
         long index = getIndexByFieldName(value, fieldName);
-        if (index < 0) {
+        if (index == -1) {
             return null;
         }
-        return getValueByIndex(value, index);
+        return Native.kuzu_value_get_map_value(value, index);
     }
 
     /**
@@ -70,25 +75,5 @@ public class ValueMapUtil {
             return null;
         }
         return Native.kuzu_value_get_map_value(value, index);
-    }
-
-    public static String extractKey(Value map_value) {
-        String map_string = map_value.toString();
-        Pattern keyPattern = Pattern.compile("KEY:\\s*(\\S+),\\s+VALUE:");
-        Matcher keyMatcher = keyPattern.matcher(map_string);
-
-        if (keyMatcher.find()) {
-            return keyMatcher.group(1);  // Return the captured key
-        }
-        return null;
-    }
-
-    public static int extractValue(Value map_value) {
-        String map_string = map_value.toString();
-        Pattern valuePattern = Pattern.compile("VALUE:\\s*(\\S+)");
-        Matcher valueMatcher = valuePattern.matcher(map_string);
-
-        int int_value = Integer.parseInt(valueMatcher.group(1));
-        return int_value;
     }
 }

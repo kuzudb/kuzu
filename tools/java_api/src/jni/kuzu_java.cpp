@@ -1105,19 +1105,6 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field
     return env->NewStringUTF(name.c_str());
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env,
-    jclass, jobject thisMV, jlong index) {
-    auto* mv = getValue(env, thisMV);
-    auto children_size = NestedVal::getChildrenSize(mv);
-    auto cindex = (long)index;
-    if (cindex < 0 || cindex >= children_size) {
-        return nullptr;
-    }
-    auto child = NestedVal::getChildVal(mv, cindex);
-    auto child_field_name = *NestedVal::getChildVal(child, 0);
-    return env->NewStringUTF(child_field_name.toString().c_str());
-}
-
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(JNIEnv* env, jclass,
     jobject thisSV, jstring field_name) {
     auto* sv = getValue(env, thisSV);
@@ -1132,24 +1119,17 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
     }
 }
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIEnv* env, jclass,
-    jobject thisMV, jstring field_name) {
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env,
+    jclass, jobject thisMV, jlong index) {
     auto* mv = getValue(env, thisMV);
-    const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     auto children_size = NestedVal::getChildrenSize(mv);
-    for (int i = 0; i < children_size; ++i) {
-        auto child = NestedVal::getChildVal(mv, i);
-        auto child_name = *NestedVal::getChildVal(child, 0);
-        auto child_name_cstr = child_name.toString().c_str();
-
-        if (strcmp(field_name_cstr, child_name_cstr) == 0) {
-            env->ReleaseStringUTFChars(field_name, field_name_cstr);
-            jlong jindex = (jlong)i;
-            return jindex;
-        }
+    auto cindex = (long)index;
+    if (cindex < 0 || cindex >= children_size) {
+        return nullptr;
     }
-    env->ReleaseStringUTFChars(field_name, field_name_cstr);
-    return -1;
+    auto child = NestedVal::getChildVal(mv, cindex);
+    auto child_field_name = *NestedVal::getChildVal(child, 0);
+    return env->NewStringUTF(child_field_name.toString().c_str());
 }
 
 JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JNIEnv* env, jclass,
@@ -1160,9 +1140,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JN
     if (cindex < 0 || cindex >= children_size) {
         return nullptr;
     }
-
-    uint64_t idx = static_cast<uint64_t>(index);
-    auto val = NestedVal::getChildVal(mv, 0);
+    
+    auto child = NestedVal::getChildVal(mv, cindex);
+    auto val = NestedVal::getChildVal(child, 1);
 
     jobject element = createJavaObject(env, val, J_C_Value, J_C_Value_F_v_ref);
     env->SetBooleanField(element, J_C_Value_F_isOwnedByCPP, static_cast<jboolean>(true));
