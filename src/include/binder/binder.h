@@ -89,7 +89,7 @@ public:
 
     bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
         const catalog::Catalog& catalog, transaction::Transaction* tx);
-    std::shared_ptr<Expression> createVariable(const std::string& name,
+    KUZU_API std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
 
     std::shared_ptr<Expression> bindWhereExpression(

@@ -73,6 +73,8 @@ bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
         return false;
     }
     saveSelVector(*keyVector->state);
+    auto key0 = keyVectors[0]->getValue<nodeID_t>(0);
+    auto key1 = keyVectors[0]->getValue<nodeID_t>(0);
     sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
         probeState->probedTuples.get());
     auto numMatchedTuples =

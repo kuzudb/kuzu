@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace processor {
 struct ExecutionContext;
@@ -17,8 +19,8 @@ class EdgeCompute;
 class FrontierTaskSharedState;
 struct RJCompState;
 class VertexCompute;
-class GDSUtils {
-public:
+class FTSState;
+class KUZU_API GDSUtils {
 public:
     explicit GDSUtils();
 
