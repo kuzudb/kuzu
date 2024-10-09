@@ -9,11 +9,10 @@ namespace processor {
 std::string GDSCallPrintInfo::toString() const {
     return "Algorithm: " + funcName;
 }
-
-std::vector<common::NodeSemiMask*> GDSCall::getSemiMasks() const {
-    std::vector<common::NodeSemiMask*> masks;
+mask_vector GDSCall::getSemiMasks() const {
+    std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> masks;
     for (auto& [_, mask] : sharedState->inputNodeOffsetMasks) {
-        masks.push_back(mask.get());
+        masks.push_back(mask);
     }
     return masks;
 }

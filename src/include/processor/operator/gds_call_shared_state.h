@@ -11,10 +11,10 @@ struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
-    common::table_id_map_t<std::unique_ptr<common::NodeOffsetLevelSemiMask>> inputNodeOffsetMasks;
+    common::table_id_map_t<std::shared_ptr<common::RoaringBitMapSemiMask>> inputNodeOffsetMasks;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
-        common::table_id_map_t<std::unique_ptr<common::NodeOffsetLevelSemiMask>>
+        common::table_id_map_t<std::shared_ptr<common::RoaringBitMapSemiMask>>
             inputNodeOffsetMasks)
         : fTable{std::move(fTable)}, graph{std::move(graph)},
           inputNodeOffsetMasks{std::move(inputNodeOffsetMasks)} {}

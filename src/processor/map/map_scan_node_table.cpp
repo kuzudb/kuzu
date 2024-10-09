@@ -47,7 +47,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     for (auto& tableID : tableIDs) {
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
-        auto semiMask = std::make_unique<NodeVectorLevelSemiMask>(tableID, table->getNumRows());
+        auto semiMask =
+            RoaringBitMapSemiMaskUtil::createRoaringBitMapSemiMask(tableID, table->getNumRows());
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>(std::move(semiMask)));
     }
 
