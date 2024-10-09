@@ -556,7 +556,7 @@ bool ClientContext::canExecuteWriteQuery() {
     return true;
 }
 
-void ClientContext::runQuery(std::string query) {
+std::unique_ptr<QueryResult> ClientContext::runQuery(std::string query) {
     // TODO(Jimain): this is special for "Import database". Should refactor after we support
     // multiple query statements in one Tx.
     // Currently, we split multiple query statements into single query and execute them one by one,
@@ -574,6 +574,7 @@ void ClientContext::runQuery(std::string query) {
     if (parsedStatements.empty()) {
         throw ConnectionException("Connection Exception: Query is empty.");
     }
+    std::unique_ptr<QueryResult> lastQueryResult;
     try {
         for (auto& statement : parsedStatements) {
             auto preparedStatement = prepareNoLock(statement, false, "", false);
@@ -581,11 +582,12 @@ void ClientContext::runQuery(std::string query) {
             if (!currentQueryResult->isSuccess()) {
                 throw ConnectionException(currentQueryResult->errMsg);
             }
+            lastQueryResult = std::move(currentQueryResult);
         }
     } catch (std::exception& exception) {
         throw ConnectionException(exception.what());
     }
-    return;
+    return lastQueryResult;
 }
 
 processor::WarningContext& ClientContext::getWarningContextUnsafe() {

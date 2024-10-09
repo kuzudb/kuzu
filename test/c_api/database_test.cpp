@@ -100,3 +100,38 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
 #endif
+
+TEST_F(CApiDatabaseTest, CreationHomeDir1) {
+    createDBAndConn();
+    printf("%s",
+        conn->query("LOAD EXTENSION "
+                    "'/Users/z473chen/Desktop/code/kuzu/extension/fts/build/libfts.kuzu_extension'")
+            ->toString()
+            .c_str());
+    printf("%s", conn->query("create node table person (id int64, content string, author string, "
+                             "primary key(id));")
+                     ->toString()
+                     .c_str());
+    printf("%s",
+        conn->query("create (p:person {id: 5, content: 'monster hero', author: 'monster'})")
+            ->toString()
+            .c_str());
+    printf("%s",
+        conn->query("create (p:person {id: 20, content: 'beats hero', author: 'monster beats'})")
+            ->toString()
+            .c_str());
+    printf("%s",
+        conn->query("CALL create_fts_index('person', 'test', ['content', 'author']) RETURN *")
+            ->toString()
+            .c_str());
+    printf("%s", conn->query("match (a:person_dict)-[e:person_terms]->(b:person_docs) RETURN a.term, b.offset")
+                     ->toString()
+                     .c_str());
+    printf("%s", conn->query("match (p:person_dict) RETURN p.*")->toString().c_str());
+    printf("%s", conn->query(" PROJECT GRAPH PK (person_dict, person_docs, person_terms) "
+                             "MATCH (a:person_dict) where list_contains(['monster'], a.term) "
+                             "CALL FTS(PK, a, 'monster', true) "
+                             "RETURN _node, score;")
+                     ->toString()
+                     .c_str());
+}

@@ -230,7 +230,7 @@ private:
  *
  * All functions supported in this base interface are thread-safe.
  */
-class FrontierPair {
+class KUZU_API FrontierPair {
     friend class FrontierTask;
 
 public:
@@ -306,7 +306,7 @@ private:
     FrontierMorselDispatcher morselDispatcher;
 };
 
-class DoublePathLengthsFrontierPair : public FrontierPair {
+class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(
         std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,

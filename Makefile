@@ -79,7 +79,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -94,7 +94,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -182,7 +182,7 @@ example:
 
 extension-test-build:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 	)
 
@@ -203,13 +203,13 @@ extension-json-test: extension-json-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_KUZU=FALSE \
 	)
 
@@ -249,6 +249,7 @@ clean-extension:
 	cmake -E rm -rf extension/duckdb/build
 	cmake -E rm -rf extension/postgres/build
 	cmake -E rm -rf extension/sqlite/build
+	cmake -E rm -rf extension/fts/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build
