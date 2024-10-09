@@ -35,21 +35,14 @@ struct ReadInternalIDValuesToVector {
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
-        std::unique_ptr<offset_t[]> bufferMgr;
-        offset_t fixedSizeBuffer[DEFAULT_VECTOR_CAPACITY];
-        offset_t* bufferPtr = nullptr;
-        if (numValuesToRead <= DEFAULT_VECTOR_CAPACITY) {
-            bufferPtr = fixedSizeBuffer;
-        } else {
-            bufferMgr = std::make_unique<offset_t[]>(numValuesToRead);
-            bufferPtr = bufferMgr.get();
-        }
+        KU_ASSERT(numValuesToRead <= DEFAULT_VECTOR_CAPACITY);
+        offset_t offsetBuffer[DEFAULT_VECTOR_CAPACITY];
 
-        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(bufferPtr), 0,
+        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(offsetBuffer), 0,
             numValuesToRead, metadata);
         auto resultData = reinterpret_cast<internalID_t*>(resultVector->getData());
         for (auto i = 0u; i < numValuesToRead; i++) {
-            resultData[posInVector + i].offset = bufferPtr[i];
+            resultData[posInVector + i].offset = offsetBuffer[i];
         }
     }
 

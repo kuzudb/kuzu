@@ -187,17 +187,11 @@ public:
             if (!filterFunc.has_value() ||
                 filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
 
-                // to keep the size of the lambda small
-                // we pack all the arguments to readFunc into a tuple and capture the tuple by
-                // this makes it more likely that we avoid any heap allocations when the lambda is
-                // copied into an std::function
-                const auto startReadOffset = numValuesScanned + startOffsetInResult;
-                auto readFuncArgs = std::tie(pageCursor, result, startReadOffset,
-                    numValuesToScanInPage, chunkMeta.compMeta);
-                readFromPage(transaction, pageCursor.pageIdx,
-                    [&readFunc, &readFuncArgs](uint8_t* frame) -> void {
-                        std::apply(readFunc, std::tuple_cat(std::make_tuple(frame), readFuncArgs));
-                    });
+                const auto readFromPageFunc = [&](uint8_t* frame) -> void {
+                    readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
+                        numValuesToScanInPage, chunkMeta.compMeta);
+                };
+                readFromPage(transaction, pageCursor.pageIdx, std::cref(readFromPageFunc));
             }
             numValuesScanned += numValuesToScanInPage;
             pageCursor.nextPage();
