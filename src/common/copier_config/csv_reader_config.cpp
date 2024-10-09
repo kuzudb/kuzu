@@ -58,7 +58,15 @@ static void bindIntParsingOption(CSVReaderConfig& config, const std::string& opt
 
 template<uint64_t size>
 static bool hasOption(const char* const (&arr)[size], const std::string& option) {
-    return std::find(std::begin(arr), std::end(arr), option) != std::end(arr);
+    for (auto& item : arr) {
+        if (item == nullptr) {
+            continue;
+        }
+        if (option.compare(item) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static bool validateBoolParsingOptionName(const std::string& parsingOptionName) {
