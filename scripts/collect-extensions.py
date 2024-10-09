@@ -13,7 +13,7 @@ def collect_exts():
         if not os.path.exists(ext_build_path):
             continue
         print("Found extension: " + ext)
-        ext_dst_path = os.path.abspath(os.path.join(DST_DIR, ext))
+        ext_dst_path = os.path.abspath(DST_DIR)
         os.makedirs(ext_dst_path, exist_ok=True)
         for f in os.listdir(ext_build_path):
             if not f.endswith(".kuzu_extension"):
@@ -51,7 +51,6 @@ def main():
     shutil.rmtree(DST_DIR, ignore_errors=True)
     os.makedirs(DST_DIR, exist_ok=True)
     collect_exts()
-    copy_duckdb()
 
 
 if __name__ == "__main__":
