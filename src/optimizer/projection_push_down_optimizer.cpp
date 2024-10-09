@@ -342,8 +342,9 @@ void ProjectionPushDownOptimizer::preAppendProjection(LogicalOperator* op, idx_t
         // We don't have a way to handle
         return;
     }
-    auto projection =
-        std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto projection = std::make_shared<LogicalProjection>(std::move(expressions),
+        op->getChild(childIdx), std::move(printInfo));
     projection->computeFlatSchema();
     op->setChild(childIdx, std::move(projection));
 }

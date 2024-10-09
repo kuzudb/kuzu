@@ -49,6 +49,67 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     return retval;
 }
 
+std::string BoundCreateTableInfo::toString() const {
+    std::string result = "";
+    switch (type) {
+    case TableType::NODE: {
+        result += "Create Node Table: ";
+        result += tableName;
+        result += ",Properties: ";
+        auto nodeInfo = extraInfo->ptrCast<BoundExtraCreateNodeTableInfo>();
+        for (auto& definition : nodeInfo->propertyDefinitions) {
+            result += definition.getName();
+            result += ", ";
+        }
+        break;
+    }
+    case TableType::REL: {
+        result += "Create Relationship Table: ";
+        result += tableName;
+        result += ",Multiplicity: ";
+        auto* relInfo = extraInfo->ptrCast<BoundExtraCreateRelTableInfo>();
+        if (relInfo->srcMultiplicity == RelMultiplicity::ONE) {
+            result += "ONE";
+        } else {
+            result += "MANY";
+        }
+        result += "_";
+        if (relInfo->dstMultiplicity == RelMultiplicity::ONE) {
+            result += "ONE";
+        } else {
+            result += "MANY";
+        }
+        result += ",Properties: ";
+        for (auto& definition : relInfo->propertyDefinitions) {
+            result += definition.getName();
+            result += ", ";
+        }
+        break;
+    }
+    case TableType::REL_GROUP: {
+        result += "Create Relationship Group Table: ";
+        result += tableName;
+        auto* relGroupInfo = extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
+        result += ",Tables: ";
+        for (auto& createInfo : relGroupInfo->infos) {
+            result += createInfo.tableName;
+            result += ", ";
+        }
+        auto* groupTableInfo =
+            relGroupInfo->infos[0].extraInfo->ptrCast<BoundExtraCreateTableInfo>();
+        result += "Properties: ";
+        for (auto& definition : groupTableInfo->propertyDefinitions) {
+            result += definition.getName();
+            result += ", ";
+        }
+        break;
+    }
+    default:
+        break;
+    }
+    return result;
+}
+
 void BoundExtraCreateTableInfo::serialize(Serializer& serializer) const {
     serializer.serializeVector(propertyDefinitions);
 }

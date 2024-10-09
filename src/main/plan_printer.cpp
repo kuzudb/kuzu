@@ -3,9 +3,11 @@
 #include <sstream>
 
 #include "json.hpp"
+#include "planner/operator/logical_plan.h"
 #include "processor/physical_plan.h"
 
 using namespace kuzu::common;
+using namespace kuzu::planner;
 using namespace kuzu::processor;
 
 namespace kuzu {
@@ -26,10 +28,12 @@ OpProfileBox::OpProfileBox(std::string opName, const std::string& paramsName,
             paramStr = subStr;
             subParam = true;
             continue;
-        } else if (subParam && subStr.find(')') == std::string::npos) {
+        }
+        if (subParam && subStr.find(')') == std::string::npos) {
             paramStr += "," + subStr;
             continue;
-        } else if (subParam) {
+        }
+        if (subParam) {
             subStr = paramStr + ")";
             paramStr = "";
             subParam = false;
@@ -62,7 +66,7 @@ std::string OpProfileBox::getAttribute(uint32_t idx) const {
     return attributes[idx];
 }
 
-OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
+OpProfileTree::OpProfileTree(const PhysicalOperator* op, Profiler& profiler) {
     auto numRows = 0u, numCols = 0u;
     calculateNumRowsAndColsForOp(op, numRows, numCols);
     opProfileBoxes.resize(numRows);
@@ -77,6 +81,22 @@ OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
     this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
 }
 
+OpProfileTree::OpProfileTree(const LogicalOperator* op) {
+    auto numRows = 0u, numCols = 0u;
+    calculateNumRowsAndColsForOp(op, numRows, numCols);
+    opProfileBoxes.resize(numRows);
+    for_each(opProfileBoxes.begin(), opProfileBoxes.end(),
+        [numCols](std::vector<std::unique_ptr<OpProfileBox>>& profileBoxes) {
+            profileBoxes.resize(numCols);
+        });
+    auto maxFieldWidth = 0u;
+    fillOpProfileBoxes(op, 0 /* rowIdx */, 0 /* colIdx */, maxFieldWidth);
+    // The width of each profileBox = fieldWidth + leftIndentWidth + boxLeftFrameWidth +
+    // rightIndentWidth + boxRightFrameWidth;
+    this->opProfileBoxWidth = std::max<uint32_t>(
+        maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH), MIN_LOGICAL_BOX_WIDTH);
+}
+
 void printSpaceIfNecessary(uint32_t idx, std::ostringstream& oss) {
     if (idx > 0) {
         oss << " ";
@@ -85,7 +105,7 @@ void printSpaceIfNecessary(uint32_t idx, std::ostringstream& oss) {
 
 std::ostringstream OpProfileTree::printPlanToOstream() const {
     std::ostringstream oss;
-    prettyPrintPlanTitle(oss);
+    prettyPrintPlanTitle(oss, "Physical Plan");
     for (auto i = 0u; i < opProfileBoxes.size(); i++) {
         printOpProfileBoxUpperFrame(i, oss);
         printOpProfileBoxes(i, oss);
@@ -94,7 +114,18 @@ std::ostringstream OpProfileTree::printPlanToOstream() const {
     return oss;
 }
 
-void OpProfileTree::calculateNumRowsAndColsForOp(PhysicalOperator* op, uint32_t& numRows,
+std::ostringstream OpProfileTree::printLogicalPlanToOstream() const {
+    std::ostringstream oss;
+    prettyPrintPlanTitle(oss, "Logical Plan");
+    for (auto i = 0u; i < opProfileBoxes.size(); i++) {
+        printOpProfileBoxUpperFrame(i, oss);
+        printOpProfileBoxes(i, oss);
+        printOpProfileBoxLowerFrame(i, oss);
+    }
+    return oss;
+}
+
+void OpProfileTree::calculateNumRowsAndColsForOp(const PhysicalOperator* op, uint32_t& numRows,
     uint32_t& numCols) {
     if (!op->getNumChildren()) {
         numRows = 1;
@@ -111,8 +142,25 @@ void OpProfileTree::calculateNumRowsAndColsForOp(PhysicalOperator* op, uint32_t&
     numRows++;
 }
 
-uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
-    uint32_t& maxFieldWidth, Profiler& profiler) {
+void OpProfileTree::calculateNumRowsAndColsForOp(const LogicalOperator* op, uint32_t& numRows,
+    uint32_t& numCols) {
+    if (!op->getNumChildren()) {
+        numRows = 1;
+        numCols = 1;
+        return;
+    }
+
+    for (auto i = 0u; i < op->getNumChildren(); i++) {
+        auto numRowsInChild = 0u, numColsInChild = 0u;
+        calculateNumRowsAndColsForOp(op->getChild(i).get(), numRowsInChild, numColsInChild);
+        numCols += numColsInChild;
+        numRows = std::max(numRowsInChild, numRows);
+    }
+    numRows++;
+}
+
+uint32_t OpProfileTree::fillOpProfileBoxes(const PhysicalOperator* op, uint32_t rowIdx,
+    uint32_t colIdx, uint32_t& maxFieldWidth, Profiler& profiler) {
     auto opProfileBox = std::make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
         PlanPrinter::getOperatorParams(op), op->getProfilerAttributes(profiler));
     maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
@@ -125,6 +173,24 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
     for (auto i = 0u; i < op->getNumChildren(); i++) {
         colOffset += fillOpProfileBoxes(op->getChild(i), rowIdx + 1, colIdx + colOffset,
             maxFieldWidth, profiler);
+    }
+    return colOffset;
+}
+
+uint32_t OpProfileTree::fillOpProfileBoxes(const LogicalOperator* op, uint32_t rowIdx,
+    uint32_t colIdx, uint32_t& maxFieldWidth) {
+    auto opProfileBox = std::make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
+        PlanPrinter::getOperatorParams(op), std::vector<std::string>());
+    maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
+    insertOpProfileBox(rowIdx, colIdx, std::move(opProfileBox));
+    if (!op->getNumChildren()) {
+        return 1;
+    }
+
+    uint32_t colOffset = 0;
+    for (auto i = 0u; i < op->getNumChildren(); i++) {
+        colOffset += fillOpProfileBoxes(op->getChild(i).get(), rowIdx + 1, colIdx + colOffset,
+            maxFieldWidth);
     }
     return colOffset;
 }
@@ -263,14 +329,14 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, std::ostringstr
     oss << '\n';
 }
 
-void OpProfileTree::prettyPrintPlanTitle(std::ostringstream& oss) const {
-    const std::string physicalPlan = "Physical Plan";
+void OpProfileTree::prettyPrintPlanTitle(std::ostringstream& oss, std::string title) const {
+    const std::string plan = title;
     oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << '\n';
     oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << '\n';
-    auto numLeftSpaces = (opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
+    auto numLeftSpaces = (opProfileBoxWidth - plan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
     auto numRightSpaces =
-        opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
-    oss << "││" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
+        opProfileBoxWidth - plan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
+    oss << "││" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << plan
         << std::string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << '\n';
     oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << '\n';
     oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << '\n';
@@ -318,24 +384,40 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     return height + 2;
 }
 
-nlohmann::json PlanPrinter::printPlanToJson() {
+nlohmann::json PlanPrinter::printPlanToJson(const PhysicalPlan* physicalPlan, Profiler* profiler) {
     return toJson(physicalPlan->lastOperator.get(), *profiler);
 }
 
-std::ostringstream PlanPrinter::printPlanToOstream() {
+std::ostringstream PlanPrinter::printPlanToOstream(const PhysicalPlan* physicalPlan,
+    Profiler* profiler) {
     return OpProfileTree(physicalPlan->lastOperator.get(), *profiler).printPlanToOstream();
 }
 
-std::string PlanPrinter::getOperatorName(processor::PhysicalOperator* physicalOperator) {
-    return processor::PhysicalOperatorUtils::operatorTypeToString(
-        physicalOperator->getOperatorType());
+nlohmann::json PlanPrinter::printPlanToJson(const LogicalPlan* logicalPlan) {
+    return toJson(logicalPlan->getLastOperator().get());
 }
 
-std::string PlanPrinter::getOperatorParams(processor::PhysicalOperator* physicalOperator) {
+std::ostringstream PlanPrinter::printPlanToOstream(const LogicalPlan* logicalPlan) {
+    return OpProfileTree(logicalPlan->getLastOperator().get()).printLogicalPlanToOstream();
+}
+
+std::string PlanPrinter::getOperatorName(const PhysicalOperator* physicalOperator) {
+    return PhysicalOperatorUtils::operatorTypeToString(physicalOperator->getOperatorType());
+}
+
+std::string PlanPrinter::getOperatorParams(const PhysicalOperator* physicalOperator) {
     return physicalOperator->getPrintInfo()->toString();
 }
 
-nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler_) {
+std::string PlanPrinter::getOperatorName(const LogicalOperator* logicalOperator) {
+    return LogicalOperatorUtils::logicalOperatorTypeToString(logicalOperator->getOperatorType());
+}
+
+std::string PlanPrinter::getOperatorParams(const LogicalOperator* logicalOperator) {
+    return logicalOperator->getPrintInfo().toString();
+}
+
+nlohmann::json PlanPrinter::toJson(const PhysicalOperator* physicalOperator, Profiler& profiler_) {
     auto json = nlohmann::json();
     json["Name"] = getOperatorName(physicalOperator);
     if (profiler_.enabled) {
@@ -345,6 +427,15 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
     }
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
         json["Child" + std::to_string(i)] = toJson(physicalOperator->getChild(i), profiler_);
+    }
+    return json;
+}
+
+nlohmann::json PlanPrinter::toJson(const LogicalOperator* logicalOperator) {
+    auto json = nlohmann::json();
+    json["Name"] = getOperatorName(logicalOperator);
+    for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
+        json["Child" + std::to_string(i)] = toJson(logicalOperator->getChild(i).get());
     }
     return json;
 }

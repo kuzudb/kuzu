@@ -191,7 +191,7 @@ oC_AnyCypherOption
         | oC_Profile ;
 
 oC_Explain
-    : EXPLAIN ;
+    : EXPLAIN (SP LOGICAL)? ;
 
 oC_Profile
     : PROFILE ;
@@ -710,6 +710,7 @@ kU_NonReservedKeywords
         | INCREMENT
         | KEY
         | LOAD
+        | LOGICAL
         | MATCH
         | MAXVALUE
         | MERGE

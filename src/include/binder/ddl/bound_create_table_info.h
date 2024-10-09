@@ -45,6 +45,8 @@ struct BoundCreateTableInfo {
           extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateTableInfo);
 
+    std::string toString() const;
+
     void serialize(common::Serializer& serializer) const;
     static BoundCreateTableInfo deserialize(common::Deserializer& deserializer);
 
@@ -76,7 +78,7 @@ struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryI
 struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
     std::string primaryKeyName;
 
-    BoundExtraCreateNodeTableInfo(std::string primaryKeyName,
+    BoundExtraCreateNodeTableInfo(const std::string& primaryKeyName,
         std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateTableInfo{std::move(definitions)}, primaryKeyName{primaryKeyName} {}
     BoundExtraCreateNodeTableInfo(const BoundExtraCreateNodeTableInfo& other)

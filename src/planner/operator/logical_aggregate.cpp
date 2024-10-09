@@ -1,10 +1,20 @@
 #include "planner/operator/logical_aggregate.h"
 
 #include "binder/expression/aggregate_function_expression.h"
+#include "binder/expression/expression_util.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {
+
+std::string LogicalAggregatePrintInfo::toString() const {
+    std::string result = "";
+    result += "Group By: ";
+    result += binder::ExpressionUtil::toString(keys);
+    result += ", Aggregates: ";
+    result += binder::ExpressionUtil::toString(aggregates);
+    return result;
+}
 
 void LogicalAggregate::computeFactorizedSchema() {
     createEmptySchema();

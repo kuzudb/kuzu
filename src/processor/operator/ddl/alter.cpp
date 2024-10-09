@@ -10,36 +10,6 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace processor {
 
-std::string AlterPrintInfo::toString() const {
-    std::string result = "Operation: ";
-    switch (alterType) {
-    case common::AlterType::RENAME_TABLE: {
-        auto renameInfo = info->constPtrCast<BoundExtraRenameTableInfo>();
-        result += "Rename Table " + tableName + " to " + renameInfo->newName;
-    } break;
-    case common::AlterType::ADD_PROPERTY: {
-        auto addPropInfo = info->constPtrCast<BoundExtraAddPropertyInfo>();
-        result +=
-            "Add Property " + addPropInfo->propertyDefinition.getName() + " to Table " + tableName;
-    } break;
-    case common::AlterType::DROP_PROPERTY: {
-        auto dropPropInfo = info->constPtrCast<BoundExtraDropPropertyInfo>();
-        result += "Drop Property " + dropPropInfo->propertyName + " from Table " + tableName;
-    } break;
-    case common::AlterType::RENAME_PROPERTY: {
-        auto renamePropInfo = info->constPtrCast<BoundExtraRenamePropertyInfo>();
-        result += "Rename Property " + renamePropInfo->oldName + " to " + renamePropInfo->newName +
-                  " in Table " + tableName;
-    } break;
-    case common::AlterType::COMMENT: {
-        result += "Comment on Table " + tableName;
-    } break;
-    default:
-        break;
-    }
-    return result;
-}
-
 void Alter::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     auto transaction = context->clientContext->getTx();

@@ -15,7 +15,9 @@ void Planner::appendFilters(const binder::expression_vector& predicates,
 
 void Planner::appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan) {
     planSubqueryIfNecessary(predicate, plan);
-    auto filter = make_shared<LogicalFilter>(predicate, plan.getLastOperator());
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto filter =
+        make_shared<LogicalFilter>(predicate, plan.getLastOperator(), std::move(printInfo));
     appendFlattens(filter->getGroupsPosToFlatten(), plan);
     filter->setChild(0, plan.getLastOperator());
     filter->computeFactorizedSchema();
