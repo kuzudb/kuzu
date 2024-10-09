@@ -269,9 +269,9 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
 TEST_F(CompressChunkTest, TestFloatFilterStateful) {
     std::vector<float> src(10 * 1024, 5.6);
     src[4] = 0;
-    src[2] = -54387589.8341;
-    for (size_t i = 8; i < src.size(); i += 6) {
-        src[i] = src[i - 6] + -4385.2348;
+    src[2] = -543875.8341;
+    for (size_t i = 12; i < src.size(); i += 10) {
+        src[i] = src[i - 10] + -4385.2348;
     }
 
     testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
@@ -282,19 +282,15 @@ TEST_F(CompressChunkTest, TestFloatFilterStateful) {
         static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
         const size_t startPageIdx = startOffset / state.numValuesPerPage;
 
-        // the filter will pass if the value is:
-        // if it is an exception, the 1st exception read
-        // if it is not an exception if it is in the 1st page that is read from
-        struct MutableFilterFunc {
-            int j = 0;
-            bool operator()(offset_t, offset_t) {
-                ++j;
-                return (j == 1);
-            }
-        } filterFunc;
+        // the filter will pass:
+        // if the value is an exception, the 1st exception read
+        // if the value is not an exception if it is in the 1st page that is read from
         reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
             startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
-            filterFunc);
+            [j = 0](offset_t, offset_t) mutable {
+                ++j;
+                return (j == 1);
+            });
 
         const auto isException = [&src, &state](offset_t i) {
             const auto encodedValue = alp::AlpEncode<float>::encode_value(src[i + startOffset],
