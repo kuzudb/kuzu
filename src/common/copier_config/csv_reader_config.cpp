@@ -1,7 +1,5 @@
 #include "common/copier_config/csv_reader_config.h"
 
-#include <algorithm>
-
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 
@@ -58,7 +56,7 @@ static void bindIntParsingOption(CSVReaderConfig& config, const std::string& opt
 
 template<uint64_t size>
 static bool hasOption(const char* const (&arr)[size], const std::string& option) {
-    for (auto& item : arr) {
+    for (const auto& item : arr) {
         if (item == nullptr) {
             continue;
         }
