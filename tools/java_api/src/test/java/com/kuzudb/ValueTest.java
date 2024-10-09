@@ -4,7 +4,6 @@ package com.kuzudb;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigInteger;
 import java.math.BigDecimal;
@@ -1042,6 +1041,194 @@ public class ValueTest extends TestBase {
         fieldValue.destroy();
         value.destroy();
         flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetNumFields() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertEquals(ValueMapUtil.getNumFields(value), 2);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertEquals(ValueMapUtil.getNumFields(value), 0);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertEquals(ValueMapUtil.getNumFields(value), 1);
+        value.destroy();
+        flatTuple.destroy();
+
+        assertFalse(result.hasNext());
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetIndexByFieldName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        long index = ValueMapUtil.getIndexByFieldName(value, "audience1");
+        assertEquals(index, 0);
+        index = ValueMapUtil.getIndexByFieldName(value, "NOT_EXXIST");
+        assertEquals(index, -1);
+        index = ValueMapUtil.getIndexByFieldName(value, "audience53");
+        assertEquals(index, 1);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        index = ValueMapUtil.getIndexByFieldName(value, "NOT_EXXIST");
+        assertEquals(index, -1);
+        value.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        index = ValueMapUtil.getIndexByFieldName(value, "audience1");
+        assertEquals(index, 0);
+        value.destroy();
+        flatTuple.destroy();
+
+        assertFalse(result.hasNext());
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetValueByFieldName() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        Value fieldValue = ValueMapUtil.getValueByFieldName(value, "audience1");
+        assertEquals((long)fieldValue.getValue(), 52);
+        fieldValue.destroy();
+        fieldValue = ValueMapUtil.getValueByFieldName(value, "audience53");
+        assertEquals((long)fieldValue.getValue(), 42);
+        fieldValue.destroy();
+        fieldValue = ValueMapUtil.getValueByFieldName(value, "NOT_EXIST");
+        assertNull(fieldValue);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        fieldValue = ValueMapUtil.getValueByFieldName(value, "NOT_EXIST");
+        assertNull(fieldValue);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        fieldValue = ValueMapUtil.getValueByFieldName(value, "audience1");
+        assertEquals((long)fieldValue.getValue(), 33);
+        fieldValue.destroy();
+        value.destroy();
+        flatTuple.destroy();
+
+        assertFalse(result.hasNext());
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetFieldNameByIndex() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        String fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
+        assertEquals(fieldName, "audience1");
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, 1);
+        assertEquals(fieldName, "audience53");
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, -1);
+        assertNull(fieldName);
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, 1024);
+        assertNull(fieldName);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
+        assertNull(fieldName);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
+        assertEquals(fieldName, "audience1");
+        value.destroy();
+        flatTuple.destroy();
+
+        assertFalse(result.hasNext());
+        result.destroy();
+    }
+
+    @Test
+    void MapValGetValueByIndex() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        Value fieldValue = ValueMapUtil.getValueByIndex(value, 1024);
+        assertNull(fieldValue);
+        fieldValue = ValueMapUtil.getValueByIndex(value, -1);
+        assertNull(fieldValue);
+        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
+        assertEquals((long)fieldValue.getValue(), 52);
+        fieldValue.destroy();
+        fieldValue = ValueMapUtil.getValueByIndex(value, 1);
+        assertEquals((long)fieldValue.getValue(), 42);
+        value.destroy();
+        flatTuple.destroy();
+
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
+        assertNull(fieldValue);
+        value.destroy();
+        flatTuple.destroy();
+
+        flatTuple = result.getNext();
+        value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
+        assertEquals((long)fieldValue.getValue(), 33);
+        fieldValue.destroy();
+        value.destroy();
+        flatTuple.destroy();
+
+        assertFalse(result.hasNext());
         result.destroy();
     }
 
