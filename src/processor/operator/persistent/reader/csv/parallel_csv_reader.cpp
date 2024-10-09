@@ -220,6 +220,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
             Value((int64_t)0)); // only scan headers
     }
 
+    bool detectedHeader = false;
+
     DialectOption detectedDialect;
     auto csvOption = CSVReaderConfig::construct(scanInput->config.options).option;
     detectedDialect.doDialectDetection = csvOption.autoDetection;
@@ -227,7 +229,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
     SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes,
-        detectedDialect);
+        detectedDialect, detectedHeader);
 
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
@@ -241,6 +243,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
         scanInput->config.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
         scanInput->config.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
         scanInput->config.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
+    }
+
+    if (!csvOption.setHeader && csvOption.autoDetection && detectedHeader) {
+        scanInput->config.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(

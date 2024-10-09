@@ -239,5 +239,50 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
     return true;
 }
 
+SniffCSVHeaderDriver::SniffCSVHeaderDriver(SerialCSVReader* reader,
+    const function::ScanTableFuncBindInput* /*bindInput*/, const std::vector<std::pair<std::string, common::LogicalType>>& typeDetected)
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_HEADER) {
+    for (auto i = 0u; i < typeDetected.size(); i++) {
+        columns.push_back(
+            {typeDetected[i].first, typeDetected[i].second.copy()});
+    }
+}
+
+bool SniffCSVHeaderDriver::done(uint64_t rowNum) const {
+    // Only read the firt line.
+    return (0 < rowNum);
+}
+
+bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
+    std::string_view value) {
+    uint64_t length = value.length();
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
+    }
+    // If we already determined has a header, just skip
+    if (detectedHeader) {
+        return true;
+    }
+
+    // reading the header
+    LogicalType columnType(LogicalTypeID::ANY);
+
+    try {
+        columnType = function::inferMinimalTypeFromString(value);
+    } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
+                                    // This is how we check for a suitable
+                                    // datatype name.
+        // Didn't parse, just use the whole name.
+    }
+
+    // If any of the column in the first row cannot be casted to its expected type, we have a header.
+    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING && columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID()) {
+        detectedHeader = true;
+    }
+
+    return true;
+}
+
 } // namespace processor
 } // namespace kuzu

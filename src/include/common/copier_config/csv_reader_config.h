@@ -19,9 +19,11 @@ struct CSVOption {
     bool ignoreErrors;
 
     bool autoDetection;
+    // These fields aim to identify whether the options are set by user, or set by default.
     bool setEscape;
     bool setDelim;
     bool setQuote;
+    bool setHeader;
 
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
@@ -35,26 +37,39 @@ struct CSVOption {
           autoDetection{CopyConstants::DEFAULT_CSV_AUTO_DETECT},
           setEscape{CopyConstants::DEFAULT_CSV_SET_DIALECT},
           setDelim{CopyConstants::DEFAULT_CSV_SET_DIALECT},
-          setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
+          setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT},
+          setHeader{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
 
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
     std::string toCypher() const {
-        std::string header = hasHeader ? "true" : "false";
-        std::string result = "(header=" + header + ")";
-        // Add the escape parameter IFF setEscape is true
+        std::string result;
+
+        // Add the option IFF option is set by user.
+        if (setHeader) {
+            std::string header = hasHeader ? "true" : "false";
+            result += "header=" + header;
+        }
         if (setEscape) {
-            result += stringFormat(", escape='\\{}'", escapeChar);
+            if (!result.empty()) result += ", ";  // Add separator if not the first option
+            result += stringFormat("escape='\\{}'", escapeChar);
         }
         if (setDelim) {
-            result += stringFormat(", delim='{}'", delimiter);
+            if (!result.empty()) result += ", ";
+            result += stringFormat("delim='{}'", delimiter);
         }
         if (setQuote) {
-            result += stringFormat(", quote='\\{}'", quoteChar);
+            if (!result.empty()) result += ", ";
+            result += stringFormat("quote='\\{}'", quoteChar);
         }
 
-        return result;
+        // If no options, return empty string.
+        if (result.empty()) {
+            return "";
+        }
+
+        return "(" + result + ")";
     }
 
     // Explicit copy constructor
