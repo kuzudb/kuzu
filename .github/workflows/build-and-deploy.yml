@@ -257,6 +257,8 @@ jobs:
 
   deploy-python:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipPython != 'true' }}
+    permissions:
+      id-token: write
     needs:
       [
         build-wheel-mac,
@@ -310,14 +312,11 @@ jobs:
         if: ${{ github.event_name != 'schedule' && github.event.inputs.isDeploy != 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_TEST_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
 
       - name: Deploy to PyPI
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isDeploy == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
 
   deploy-rust:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipRust != 'true' }}
