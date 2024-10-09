@@ -1140,7 +1140,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JN
     if (cindex < 0 || cindex >= children_size) {
         return nullptr;
     }
-    
+
     auto child = NestedVal::getChildVal(mv, cindex);
     auto val = NestedVal::getChildVal(child, 1);
 
