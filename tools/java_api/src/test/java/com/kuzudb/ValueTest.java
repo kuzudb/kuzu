@@ -1096,8 +1096,6 @@ public class ValueTest extends TestBase {
         result.destroy();
     }
 
-
-    // TODO: Need fixing
     @Test
     void MapValGetValueByIndex() throws ObjectRefDestroyedException {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience");
@@ -1111,14 +1109,13 @@ public class ValueTest extends TestBase {
         fieldValue = ValueMapUtil.getValueByIndex(value, -1);
         assertNull(fieldValue);
         fieldValue = ValueMapUtil.getValueByIndex(value, 0);
-        assertEquals(fieldValue.getValue(), 33.0);
+        assertEquals(ValueMapUtil.extractKey(fieldValue), "audience1");
+        assertEquals(ValueMapUtil.extractValue(fieldValue), 33.0);
         fieldValue.destroy();
         value.destroy();
         flatTuple.destroy();
         result.destroy();
     }
-
-    // TODO: Add more testing
 
     @Test
     void RecursiveRelGetNodeAndRelList() throws ObjectRefDestroyedException {

@@ -1,4 +1,6 @@
 package com.kuzudb;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility functions for Value of map type.
@@ -67,6 +69,26 @@ public class ValueMapUtil {
         if (index < 0 || index >= getNumFields(value)) {
             return null;
         }
-        return Native.kuzu_value_get_list_element(value, index);
+        return Native.kuzu_value_get_map_value(value, index);
+    }
+
+    public static String extractKey(Value map_value) {
+        String map_string = map_value.toString();
+        Pattern keyPattern = Pattern.compile("KEY:\\s*(\\S+),\\s+VALUE:");
+        Matcher keyMatcher = keyPattern.matcher(map_string);
+
+        if (keyMatcher.find()) {
+            return keyMatcher.group(1);  // Return the captured key
+        }
+        return null;
+    }
+
+    public static int extractValue(Value map_value) {
+        String map_string = map_value.toString();
+        Pattern valuePattern = Pattern.compile("VALUE:\\s*(\\S+)");
+        Matcher valueMatcher = valuePattern.matcher(map_string);
+
+        int int_value = Integer.parseInt(valueMatcher.group(1));
+        return int_value;
     }
 }

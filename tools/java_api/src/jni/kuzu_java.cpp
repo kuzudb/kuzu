@@ -1152,6 +1152,22 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1index(JNIE
     return -1;
 }
 
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JNIEnv* env, jclass, jobject thisMV, jlong index) {
+    auto* mv = getValue(env, thisMV);
+    auto children_size = NestedVal::getChildrenSize(mv);
+    auto cindex = (long)index;
+    if (cindex < 0 || cindex >= children_size) {
+        return nullptr;
+    }
+
+    uint64_t idx = static_cast<uint64_t>(index);
+    auto val = NestedVal::getChildVal(mv, 0);
+
+    jobject element = createJavaObject(env, val, J_C_Value, J_C_Value_F_v_ref);
+    env->SetBooleanField(element, J_C_Value_F_isOwnedByCPP, static_cast<jboolean>(true));
+    return element;
+}
+
 // protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
 JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1data_1type(JNIEnv* env,
     jclass, jobject thisValue) {
