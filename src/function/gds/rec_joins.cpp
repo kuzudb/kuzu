@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
+#include "common/vector/value_vector.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
@@ -133,11 +134,14 @@ public:
         writer->beginWritingForDstNodesInTable(tableID);
     }
 
-    void vertexCompute(nodeID_t nodeID) override {
-        if (writer->skipWriting(nodeID)) {
-            return;
+    void vertexCompute(std::span<const nodeID_t> nodeIDs,
+        std::span<const std::unique_ptr<ValueVector>> /*properties*/) override {
+        for (auto nodeID : nodeIDs) {
+            if (writer->skipWriting(nodeID)) {
+                continue;
+            }
+            writer->write(*localFT, nodeID);
         }
-        writer->write(*localFT, nodeID);
     }
 
     void finalizeWorkerThread() override {

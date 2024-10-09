@@ -4,6 +4,7 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -330,6 +331,19 @@ LogicalType Catalog::getType(const Transaction* transaction, const std::string& 
 
 bool Catalog::containsType(const Transaction* transaction, const std::string& typeName) const {
     return types->containsEntry(transaction, typeName);
+}
+
+void Catalog::createIndex(Transaction* transaction, std::string name, common::table_id_t tableID) {
+    auto nodeTableEntry =
+        getTableCatalogEntry(transaction, tableID)->ptrCast<NodeTableCatalogEntry>();
+    nodeTableEntry->addIndex(name);
+}
+
+bool Catalog::containsIndex(const transaction::Transaction* transaction,
+    const std::string& indexName, common::table_id_t tableID) const {
+    auto nodeTableEntry =
+        getTableCatalogEntry(transaction, tableID)->ptrCast<NodeTableCatalogEntry>();
+    return nodeTableEntry->containsIndex(indexName);
 }
 
 void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,

@@ -69,7 +69,7 @@ public:
 
     bool shouldForceCheckpoint() const;
 
-    void commit(storage::WAL* wal) const;
+    KUZU_API void commit(storage::WAL* wal) const;
     void rollback(storage::WAL* wal) const;
 
     uint64_t getEstimatedMemUsage() const;

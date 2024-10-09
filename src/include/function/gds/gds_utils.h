@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/api.h"
 #include "common/enums/extend_direction.h"
 
 namespace kuzu {
@@ -15,8 +16,11 @@ namespace function {
 struct FrontierTaskSharedState;
 struct RJCompState;
 class VertexCompute;
-class GDSUtils {
+class FTSState;
+
+class KUZU_API GDSUtils {
 public:
+    GDSUtils();
     static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
         RJCompState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIters);

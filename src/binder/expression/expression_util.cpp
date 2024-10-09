@@ -219,6 +219,12 @@ void ExpressionUtil::validateDataType(const Expression& expr,
 }
 
 template<>
+uint64_t ExpressionUtil::getLiteralValue(const Expression& expr) {
+    validateExpressionType(expr, ExpressionType::LITERAL);
+    validateDataType(expr, LogicalType::UINT64());
+    return expr.constCast<LiteralExpression>().getValue().getValue<uint64_t>();
+}
+template<>
 int64_t ExpressionUtil::getLiteralValue(const Expression& expr) {
     validateExpressionType(expr, ExpressionType::LITERAL);
     validateDataType(expr, LogicalType::INT64());
@@ -235,6 +241,12 @@ std::string ExpressionUtil::getLiteralValue(const Expression& expr) {
     validateExpressionType(expr, ExpressionType::LITERAL);
     validateDataType(expr, LogicalType::STRING());
     return expr.constCast<LiteralExpression>().getValue().getValue<std::string>();
+}
+template<>
+double ExpressionUtil::getLiteralValue(const Expression& expr) {
+    validateExpressionType(expr, ExpressionType::LITERAL);
+    validateDataType(expr, LogicalType::DOUBLE());
+    return expr.constCast<LiteralExpression>().getValue().getValue<double>();
 }
 
 // For primitive types, two types are compatible if they have the same id.

@@ -11,7 +11,7 @@ enum class FStateType : uint8_t {
     UNFLAT = 1,
 };
 
-class DataChunkState {
+class KUZU_API DataChunkState {
 public:
     DataChunkState() : DataChunkState(DEFAULT_VECTOR_CAPACITY) {}
     explicit DataChunkState(sel_t capacity) : fStateType{FStateType::UNFLAT} {

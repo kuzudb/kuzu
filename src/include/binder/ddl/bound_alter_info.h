@@ -46,7 +46,7 @@ struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
     explicit BoundExtraRenameTableInfo(std::string newName) : newName{std::move(newName)} {}
     BoundExtraRenameTableInfo(const BoundExtraRenameTableInfo& other) : newName{other.newName} {}
 
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+     std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraRenameTableInfo>(*this);
     }
 };
@@ -96,8 +96,19 @@ struct BoundExtraCommentInfo : public BoundExtraAlterInfo {
 
     explicit BoundExtraCommentInfo(std::string comment) : comment{std::move(comment)} {}
     BoundExtraCommentInfo(const BoundExtraCommentInfo& other) : comment{other.comment} {}
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraCommentInfo>(*this);
+    }
+};
+
+struct BoundExtraIndexInfo : public BoundExtraAlterInfo {
+    std::string indexName;
+
+    explicit BoundExtraIndexInfo(std::string indexName) : indexName{std::move(indexName)} {}
+    BoundExtraIndexInfo(const BoundExtraIndexInfo& other) : indexName{other.indexName} {}
+
+    std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+        return std::make_unique<BoundExtraIndexInfo>(*this);
     }
 };
 

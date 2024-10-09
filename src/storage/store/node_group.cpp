@@ -172,6 +172,41 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     return NodeGroupScanResult{startRow, numRowsToScan};
 }
 
+NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state,
+    offset_t startOffset, offset_t numRows) const {
+    // TODO(Guodong): Move the locked part of figuring out the chunked group to initScan.
+    const auto lock = chunkedGroups.lock();
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    KU_ASSERT(nodeGroupScanState.chunkedGroupIdx < chunkedGroups.getNumGroups(lock));
+    auto groupIndex = 0u;
+    auto numGroups = chunkedGroups.getNumGroups(lock);
+    ChunkedNodeGroup* currentChunkedGroup = chunkedGroups.getGroup(lock, 0);
+    while (groupIndex < numGroups - 1 &&
+           chunkedGroups.getGroup(lock, groupIndex + 1)->getStartRowIdx() < startOffset) {
+        groupIndex++;
+        currentChunkedGroup = chunkedGroups.getGroup(lock, groupIndex);
+    }
+    if (groupIndex >= numGroups) {
+        return NODE_GROUP_SCAN_EMMPTY_RESULT;
+    }
+    initializeScanStateForChunkedGroup(state, currentChunkedGroup);
+
+    const auto rowIdxInChunkToScan = startOffset - currentChunkedGroup->getStartRowIdx();
+    KU_ASSERT(numRows <= DEFAULT_VECTOR_CAPACITY);
+    KU_ASSERT(currentChunkedGroup->getNumRows() - rowIdxInChunkToScan >= numRows);
+    if (state.source == TableScanSource::COMMITTED && state.semiMask &&
+        state.semiMask->isEnabled()) {
+        if (!state.semiMask->isAnyMasked(startOffset, startOffset + numRows - 1)) {
+            state.outState->getSelVectorUnsafe().setSelSize(0);
+            // nodeGroupScanState.numScannedRows += startOffset;
+            return NodeGroupScanResult{nodeGroupScanState.numScannedRows, 0};
+        }
+    }
+    currentChunkedGroup->scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan, numRows);
+    nodeGroupScanState.numScannedRows += numRows;
+    return NodeGroupScanResult{startOffset, numRows};
+}
+
 bool NodeGroup::lookup(const UniqLock& lock, Transaction* transaction,
     const TableScanState& state) {
     idx_t numTuplesFound = 0;

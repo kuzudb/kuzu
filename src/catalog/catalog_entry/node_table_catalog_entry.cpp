@@ -9,10 +9,36 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace catalog {
 
+std::unique_ptr<TableCatalogEntry> NodeTableCatalogEntry::alter(
+    const binder::BoundAlterInfo& alterInfo) const {
+    KU_ASSERT(!deleted);
+    switch (alterInfo.alterType) {
+    case common::AlterType::ADD_INDEX: {
+        auto& indexInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraIndexInfo>();
+        auto newEntry = copy();
+        newEntry->ptrCast<NodeTableCatalogEntry>()->addIndex(indexInfo.indexName);
+        return newEntry;
+    }
+    case common::AlterType::DROP_INDEX: {
+        auto& indexInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraIndexInfo>();
+        auto newEntry = copy();
+        newEntry->ptrCast<NodeTableCatalogEntry>()->dropIndex(indexInfo.indexName);
+        return newEntry;
+    }
+    default: {
+        return TableCatalogEntry::alter(alterInfo);
+    }
+    }
+}
+
 void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("primaryKeyName");
     serializer.write(primaryKeyName);
+    serializer.serializeValue(indexes.size());
+    for (auto& [name, index] : indexes) {
+        index->serialize(serializer);
+    }
 }
 
 std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
@@ -23,6 +49,12 @@ std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
     deserializer.deserializeValue(primaryKeyName);
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>();
     nodeTableEntry->primaryKeyName = primaryKeyName;
+    auto numIndexes = 0u;
+    deserializer.deserializeValue(numIndexes);
+    for (auto i = 0u; i < numIndexes; i++) {
+        auto indexEntry = IndexCatalogEntry::deserialize(deserializer);
+        nodeTableEntry->indexes.emplace(indexEntry->getName(), std::move(indexEntry));
+    }
     return nodeTableEntry;
 }
 

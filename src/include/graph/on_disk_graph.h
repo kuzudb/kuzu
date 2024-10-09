@@ -82,7 +82,8 @@ class OnDiskGraphScanStates : public GraphScanState {
 public:
     GraphScanState::Chunk getChunk() override {
         auto& iter = getInnerIterator();
-        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe()};
+        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe(),
+            propertyVector.get()};
     }
     bool next() override;
 
@@ -110,14 +111,41 @@ private:
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
+    std::unique_ptr<common::ValueVector> propertyVector;
     size_t iteratorIndex;
     common::RelDataDirection direction;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
 
     explicit OnDiskGraphScanStates(main::ClientContext* context,
-        std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry);
+        std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
+};
+
+class OnDiskGraphVertexScanState : public VertexScanState {
+public:
+    OnDiskGraphVertexScanState(main::ClientContext& context, common::table_id_t tableID,
+        const std::vector<std::string>& propertyNames);
+
+    void startScan(common::offset_t beginOffset, common::offset_t endOffsetExclusive);
+
+    bool next() override;
+    Chunk getChunk() override {
+        return Chunk{std::span(&nodeIDVector->getValue<common::nodeID_t>(0), numNodesScanned),
+            std::span(propertyVectors)};
+    }
+
+private:
+    std::vector<std::unique_ptr<common::ValueVector>> propertyVectors;
+    std::unique_ptr<common::ValueVector> nodeIDVector;
+    std::unique_ptr<storage::NodeTableScanState> tableScanState;
+    const main::ClientContext& context;
+    const storage::NodeTable& nodeTable;
+    common::offset_t numNodesScanned;
+    common::table_id_t tableID;
+    common::offset_t currentOffset;
+    common::offset_t endOffsetExclusive;
 };
 
 class OnDiskGraph final : public Graph {
@@ -134,14 +162,20 @@ public:
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
-    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) override;
+    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(
         std::span<common::table_id_t> nodeTableIDs) override;
+    std::unique_ptr<VertexScanState> prepareVertexScan(common::table_id_t tableID,
+        const std::vector<std::string>& propertiesToScan) override;
 
-    Graph::Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
-    Graph::Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    Graph::EdgeIterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    Graph::EdgeIterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
+
+    VertexIterator scanVertices(common::offset_t beginOffset, common::offset_t endOffsetExclusive,
+        VertexScanState& state) override;
 
 private:
     main::ClientContext* context;

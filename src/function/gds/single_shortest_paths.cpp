@@ -1,4 +1,5 @@
 #include "common/data_chunk/sel_vector.h"
+#include "common/vector/value_vector.h"
 #include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -63,7 +64,7 @@ public:
         : frontierPair{frontierPair} {};
 
     void edgeCompute(common::nodeID_t, std::span<const common::nodeID_t> nbrIDs,
-        std::span<const relID_t>, SelectionVector& mask, bool) override {
+        std::span<const relID_t>, SelectionVector& mask, bool, const ValueVector*) override {
         size_t activeCount = 0;
         mask.forEach([&](auto i) {
             if (frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
@@ -90,7 +91,8 @@ public:
     }
 
     void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
-        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
+        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd,
+        const ValueVector*) override {
         size_t activeCount = 0;
         mask.forEach([&](auto i) {
             auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(

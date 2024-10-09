@@ -102,6 +102,8 @@ private:
     std::unique_ptr<PhysicalOperator> mapScanSource(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanNodeTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapPropertyCollector(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);

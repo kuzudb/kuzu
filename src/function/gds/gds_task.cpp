@@ -8,20 +8,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static uint64_t computeScanResult(nodeID_t sourceNodeID, std::span<const nodeID_t> nbrNodeIDs,
-    std::span<const relID_t> edgeIDs, SelectionVector& mask, EdgeCompute& ec,
-    FrontierPair& frontierPair, bool isFwd) {
-    KU_ASSERT(nbrNodeIDs.size() == edgeIDs.size());
-    ec.edgeCompute(sourceNodeID, nbrNodeIDs, edgeIDs, mask, isFwd);
-    frontierPair.getNextFrontierUnsafe().setActive(mask, nbrNodeIDs);
-    return mask.getSelSize();
+static uint64_t computeScanResult(nodeID_t sourceNodeID, graph::GraphScanState::Chunk& chunk,
+    EdgeCompute& ec, FrontierPair& frontierPair, bool isFwd) {
+    KU_ASSERT(chunk.nbrNodes.size() == chunk.edges.size());
+    ec.edgeCompute(sourceNodeID, chunk.nbrNodes, chunk.edges, chunk.selVector, isFwd,
+        chunk.propertyVector);
+    frontierPair.getNextFrontierUnsafe().setActive(chunk.selVector, chunk.nbrNodes);
+    return chunk.selVector.getSelSize();
 }
 
 void FrontierTask::run() {
     FrontierMorsel frontierMorsel;
     auto numApproxActiveNodesForNextIter = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareScan(info.relTableIDToScan);
+    auto scanState = graph->prepareScan(info.relTableIDToScan, info.edgePropertyIndex);
     auto localEc = info.edgeCompute.copy();
     while (sharedState->frontierPair.getNextRangeMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextOffset()) {
@@ -29,15 +29,15 @@ void FrontierTask::run() {
             if (sharedState->frontierPair.curFrontier->isActive(nodeID)) {
                 switch (info.direction) {
                 case ExtendDirection::FWD: {
-                    for (auto [nodes, edges, mask] : graph->scanFwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
-                            mask, *localEc, sharedState->frontierPair, true);
+                    for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
+                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, chunk,
+                            *localEc, sharedState->frontierPair, true);
                     }
                 } break;
                 case ExtendDirection::BWD: {
-                    for (auto [nodes, edges, mask] : graph->scanBwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
-                            mask, *localEc, sharedState->frontierPair, false);
+                    for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
+                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, chunk,
+                            *localEc, sharedState->frontierPair, false);
                     }
                 } break;
                 default:
@@ -56,10 +56,11 @@ void VertexComputeTask::run() {
     while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextOffset()) {
             common::nodeID_t nodeID = frontierMorsel.getNextNodeID();
-            localVc->vertexCompute(nodeID);
+            localVc->vertexCompute(nodeID, sharedState->propertiesToScan);
         }
     }
     localVc->finalizeWorkerThread();
 }
+
 } // namespace function
 } // namespace kuzu

@@ -106,6 +106,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "USE_DATABASE";
     case LogicalOperatorType::CREATE_TYPE:
         return "CREATE_TYPE";
+    case LogicalOperatorType::PROPERTY_COLLECTOR:
+        return "PROPERTY_COLLECTOR";
     default:
         throw RuntimeException("Unknown logical operator type.");
     }

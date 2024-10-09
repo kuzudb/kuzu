@@ -191,6 +191,11 @@ void AlterTableEntryRecord::serialize(Serializer& serializer) const {
         auto renameTableInfo = extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         serializer.write(renameTableInfo->newName);
     } break;
+    case AlterType::ADD_INDEX:
+    case AlterType::DROP_INDEX: {
+        auto indexInfo = extraInfo->constPtrCast<BoundExtraIndexInfo>();
+        serializer.write(indexInfo->indexName);
+    } break;
     default: {
         KU_UNREACHABLE;
     }

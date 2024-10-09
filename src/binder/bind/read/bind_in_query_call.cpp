@@ -33,34 +33,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         functionName, catalogSet);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
-        expression_vector children;
-        std::vector<LogicalType> childrenTypes;
-        for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
-            auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
-            children.push_back(child);
-            childrenTypes.push_back(child->getDataType().copy());
-        }
-        auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
-        std::vector<Value> inputValues;
-        for (auto& param : children) {
-            ExpressionUtil::validateExpressionType(*param, ExpressionType::LITERAL);
-            auto literalExpr = param->constPtrCast<LiteralExpression>();
-            inputValues.push_back(literalExpr->getValue());
-        }
-        auto tableFunc = func->constPtrCast<TableFunction>();
-        for (auto i = 0u; i < children.size(); ++i) {
-            auto parameterTypeID = tableFunc->parameterTypeIDs[i];
-            ExpressionUtil::validateDataType(*children[i], parameterTypeID);
-        }
-        auto bindInput = function::ScanTableFuncBindInput();
-        bindInput.inputs = std::move(inputValues);
-        auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
-        for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-            columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
-        }
-        auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
-            std::string(InternalKeyword::ROW_OFFSET));
-        BoundTableFunction boundTableFunction{*tableFunc, std::move(bindData), std::move(offset)};
+        auto boundTableFunction = bindTableFunc(functionName, *functionExpr, columns);
         boundReadingClause = std::make_unique<BoundTableFunctionCall>(std::move(boundTableFunction),
             std::move(columns));
     } break;

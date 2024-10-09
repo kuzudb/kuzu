@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace common {
 
@@ -23,7 +25,7 @@ using lock_t = std::unique_lock<std::mutex>;
  * finalizeIfNecessary, users should save it somewhere that can be accessed in
  * finalizeIfNecessary(). See ProcessorTask for an example of this.
  */
-class Task {
+class KUZU_API Task {
     friend class TaskScheduler;
 
 public:
