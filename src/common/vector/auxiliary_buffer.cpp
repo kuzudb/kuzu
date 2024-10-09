@@ -1,5 +1,7 @@
 #include "common/vector/auxiliary_buffer.h"
 
+#include <numeric>
+
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

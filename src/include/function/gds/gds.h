@@ -70,6 +70,9 @@ public:
 
     virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
         graph::GraphEntry& graphEntry) = 0;
+    // When compiling recursive pattern (e.g. [e*1..2]) as GDS.
+    // We skip binding and directly set bind data.
+    void setBindData(std::unique_ptr<GDSBindData> bindData_) { bindData = std::move(bindData_); }
 
     GDSBindData* getBindData() const { return bindData.get(); }
 
@@ -94,7 +97,7 @@ protected:
 
 protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
-        graph::GraphEntry& graphEntry);
+        const graph::GraphEntry& graphEntry);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

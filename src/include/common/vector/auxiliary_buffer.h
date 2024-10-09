@@ -53,6 +53,10 @@ public:
     const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
         return childrenVectors;
     }
+    std::shared_ptr<ValueVector> getFieldVectorShared(idx_t idx) const {
+        return childrenVectors[idx];
+    }
+    ValueVector* getFieldVectorPtr(idx_t idx) const { return childrenVectors[idx].get(); }
 
 private:
     std::vector<std::shared_ptr<ValueVector>> childrenVectors;

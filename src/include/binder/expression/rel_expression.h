@@ -43,6 +43,10 @@ struct RecursiveInfo {
     // Projection list
     expression_vector nodeProjectionList;
     expression_vector relProjectionList;
+
+    std::shared_ptr<Expression> pathNodeIDsExpr;
+    std::shared_ptr<Expression> pathEdgeIDsExpr;
+    std::shared_ptr<Expression> pathEdgeDirectionsExpr;
 };
 
 struct RdfPredicateInfo {

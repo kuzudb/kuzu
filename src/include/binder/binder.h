@@ -257,6 +257,10 @@ public:
         const std::vector<catalog::TableCatalogEntry*>& entries,
         std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
         RelDirectionType directionType);
+    expression_vector bindRecursivePatternNodeProjectionList(
+        const parser::RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr);
+    expression_vector bindRecursivePatternRelProjectionList(
+        const parser::RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr);
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
     void bindQueryRelProperties(RelExpression& rel);
 

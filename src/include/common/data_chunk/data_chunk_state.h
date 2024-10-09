@@ -27,6 +27,7 @@ public:
     void setToUnflat() { fStateType = FStateType::UNFLAT; }
 
     const SelectionVector& getSelVector() const { return *selVector; }
+    sel_t getSelSize() const { return selVector->getSelSize(); }
     SelectionVector& getSelVectorUnsafe() { return *selVector; }
     std::shared_ptr<SelectionVector> getSelVectorShared() { return selVector; }
     void setSelVector(std::shared_ptr<SelectionVector> selVector_) {

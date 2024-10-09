@@ -1,5 +1,7 @@
 #include "common/vector/value_vector.h"
 
+#include <numeric>
+
 #include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
@@ -348,7 +350,9 @@ void ValueVector::initializeValueBuffer() {
     if (dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         // For struct valueVectors, each struct_entry_t stores its current position in the
         // valueVector.
-        StructVector::initializeEntries(this);
+        std::iota(reinterpret_cast<int64_t*>(getData()),
+            reinterpret_cast<int64_t*>(getData() + getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
+            0);
     }
 }
 

@@ -22,6 +22,7 @@ public:
     virtual ~GraphScanState() = default;
     virtual std::span<const common::nodeID_t> getNbrNodes() const = 0;
     virtual std::span<const common::relID_t> getEdges() const = 0;
+
     // Returns true if there are more values after the current batch
     virtual bool next() = 0;
 };

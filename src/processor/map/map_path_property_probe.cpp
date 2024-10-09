@@ -1,5 +1,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_utils.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "processor/operator/hash_join/hash_join_build.h"
@@ -99,10 +100,43 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     // Map child
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     // Map probe
-    auto pathPos = DataPos{logicalProbe.getSchema()->getExpressionPos(*rel)};
-    auto pathProbeInfo = std::make_unique<PathPropertyProbeDataInfo>(pathPos,
-        std::move(nodeFieldIndices), std::move(relFieldIndices), std::move(nodeTableColumnIndices),
-        std::move(relTableColumnIndices));
+    auto pathProbeInfo = PathPropertyProbeInfo();
+    auto schema = logicalProbe.getSchema();
+    pathProbeInfo.pathPos = getDataPos(*rel, *schema);
+    if (logicalProbe.getPathEdgeIDs() != nullptr) {
+        pathProbeInfo.srcNodeIDPos = getDataPos(*rel->getSrcNode()->getInternalID(), *schema);
+        pathProbeInfo.dstNodeIDPos = getDataPos(*rel->getDstNode()->getInternalID(), *schema);
+        pathProbeInfo.inputNodeIDsPos = getDataPos(*logicalProbe.getPathNodeIDs(), *schema);
+        pathProbeInfo.inputEdgeIDsPos = getDataPos(*logicalProbe.getPathEdgeIDs(), *schema);
+        if (logicalProbe.direction == common::ExtendDirection::BOTH) {
+            pathProbeInfo.directionPos =
+                getDataPos(*recursiveInfo->pathEdgeDirectionsExpr, *schema);
+            pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::RUNTIME_CHECK;
+        } else if (logicalProbe.direction == common::ExtendDirection::FWD) {
+            if (logicalProbe.extendFromSource_) {
+                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::ORDERED;
+            } else {
+                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::FLIP;
+            }
+        } else {
+            KU_ASSERT(logicalProbe.direction == ExtendDirection::BWD);
+            if (logicalProbe.extendFromSource_) {
+                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::FLIP;
+            } else {
+                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::ORDERED;
+            }
+        }
+        for (auto entry : recursiveInfo->node->getEntries()) {
+            pathProbeInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
+        }
+        for (auto& entry : recursiveInfo->rel->getEntries()) {
+            pathProbeInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
+        }
+    }
+    pathProbeInfo.nodeFieldIndices = nodeFieldIndices;
+    pathProbeInfo.relFieldIndices = relFieldIndices;
+    pathProbeInfo.nodeTableColumnIndices = nodeTableColumnIndices;
+    pathProbeInfo.relTableColumnIndices = relTableColumnIndices;
     auto pathProbeSharedState =
         std::make_shared<PathPropertyProbeSharedState>(nodeBuildSharedState, relBuildSharedState);
     std::vector<std::unique_ptr<PhysicalOperator>> children;

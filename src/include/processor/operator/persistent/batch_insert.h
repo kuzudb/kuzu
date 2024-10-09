@@ -1,5 +1,7 @@
 #pragma once
 
+#include <numeric>
+
 #include "processor/operator/sink.h"
 #include "storage/store/table.h"
 

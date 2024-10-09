@@ -97,3 +97,20 @@ Elizabeth|0.022734
 Farooq|0.018750
 Greg|0.018750
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
+
+-STATEMENT CALL enable_gds = true;
+---- ok
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID = 0 RETURN properties(nodes(p),'fName'), properties(rels(p), 'date'), properties(rels(e), '_src'), properties(rels(e), '_dst'), a.fName, b.fName
+---- 12
+[Alice,Bob,Alice]|[2021-06-30,2021-06-30]|[0:0,0:1]|[0:1,0:0]|Alice|Alice
+[Alice,Bob,Carol]|[2021-06-30,1950-05-14]|[0:0,0:1]|[0:1,0:2]|Alice|Carol
+[Alice,Bob,Dan]|[2021-06-30,1950-05-14]|[0:0,0:1]|[0:1,0:3]|Alice|Dan
+[Alice,Bob]|[2021-06-30]|[0:0]|[0:1]|Alice|Bob
+[Alice,Carol,Alice]|[2021-06-30,2021-06-30]|[0:0,0:2]|[0:2,0:0]|Alice|Alice
+[Alice,Carol,Bob]|[2021-06-30,1950-05-14]|[0:0,0:2]|[0:2,0:1]|Alice|Bob
+[Alice,Carol,Dan]|[2021-06-30,2000-01-01]|[0:0,0:2]|[0:2,0:3]|Alice|Dan
+[Alice,Carol]|[2021-06-30]|[0:0]|[0:2]|Alice|Carol
+[Alice,Dan,Alice]|[2021-06-30,2021-06-30]|[0:0,0:3]|[0:3,0:0]|Alice|Alice
+[Alice,Dan,Bob]|[2021-06-30,1950-05-14]|[0:0,0:3]|[0:3,0:1]|Alice|Bob
+[Alice,Dan,Carol]|[2021-06-30,2000-01-01]|[0:0,0:3]|[0:3,0:2]|Alice|Carol
+[Alice,Dan]|[2021-06-30]|[0:0]|[0:3]|Alice|Dan

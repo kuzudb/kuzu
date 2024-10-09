@@ -1,6 +1,5 @@
 #pragma once
 
-#include <numeric>
 #include <utility>
 
 #include "common/assert.h"
@@ -218,29 +217,28 @@ private:
 
 class StructVector {
 public:
-    static inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
+    static const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
         const ValueVector* vector) {
         return ku_dynamic_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getFieldVectors();
     }
 
-    static inline std::shared_ptr<ValueVector> getFieldVector(const ValueVector* vector,
+    static std::shared_ptr<ValueVector> getFieldVector(const ValueVector* vector,
         struct_field_idx_t idx) {
         return ku_dynamic_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->getFieldVectors()[idx];
+            ->getFieldVectorShared(idx);
     }
 
-    static inline void referenceVector(ValueVector* vector, struct_field_idx_t idx,
+    static ValueVector* getFieldVectorRaw(const ValueVector& vector, const std::string& fieldName) {
+        auto idx = StructType::getFieldIdx(vector.dataType, fieldName);
+        return ku_dynamic_cast<StructAuxiliaryBuffer*>(vector.auxiliaryBuffer.get())
+            ->getFieldVectorPtr(idx);
+    }
+
+    static void referenceVector(ValueVector* vector, struct_field_idx_t idx,
         std::shared_ptr<ValueVector> vectorToReference) {
         ku_dynamic_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->referenceChildVector(idx, std::move(vectorToReference));
-    }
-
-    static inline void initializeEntries(ValueVector* vector) {
-        std::iota(reinterpret_cast<int64_t*>(vector->getData()),
-            reinterpret_cast<int64_t*>(
-                vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
-            0);
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);

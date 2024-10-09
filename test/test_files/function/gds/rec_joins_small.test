@@ -11,6 +11,69 @@
 
 -CASE GDSSmall
 
+-STATEMENT CALL enable_gds = true;
+---- ok
+-STATEMENT MATCH p = (a:person1)-[e:knows11*1..4]->(b:person1)
+        WHERE a.ID = 0
+        HINT a JOIN (e JOIN b)
+        RETURN  a.ID, b.ID, properties(nodes(p),'ID'), properties(rels(e), '_id'), properties(rels(e), '_src'), properties(rels(e), '_dst')
+---- 6
+0|1|[0,1]|[2:0]|[0:0]|[0:1]
+0|2|[0,1,2]|[2:0,2:1]|[0:0,0:1]|[0:1,0:2]
+0|3|[0,1,2,3]|[2:0,2:1,2:2]|[0:0,0:1,0:2]|[0:1,0:2,0:3]
+0|4|[0,1,2,3,4]|[2:0,2:1,2:2,2:3]|[0:0,0:1,0:2,0:3]|[0:1,0:2,0:3,0:4]
+0|4|[0,1,2,4]|[2:0,2:1,2:4]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+0|4|[0,1,2,4]|[2:0,2:1,2:5]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+-STATEMENT MATCH p = (a:person1)-[e:knows11*1..4]->(b:person1)
+        WHERE a.ID = 0
+        HINT (a JOIN e) JOIN b
+        RETURN  a.ID, b.ID, properties(nodes(p),'ID'), properties(rels(e), '_id'), properties(rels(e), '_src'), properties(rels(e), '_dst')
+---- 6
+0|1|[0,1]|[2:0]|[0:0]|[0:1]
+0|2|[0,1,2]|[2:0,2:1]|[0:0,0:1]|[0:1,0:2]
+0|3|[0,1,2,3]|[2:0,2:1,2:2]|[0:0,0:1,0:2]|[0:1,0:2,0:3]
+0|4|[0,1,2,3,4]|[2:0,2:1,2:2,2:3]|[0:0,0:1,0:2,0:3]|[0:1,0:2,0:3,0:4]
+0|4|[0,1,2,4]|[2:0,2:1,2:4]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+0|4|[0,1,2,4]|[2:0,2:1,2:5]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+-STATEMENT MATCH p = (a:person1)<-[e:knows11*1..4]-(b:person1)
+        WHERE a.ID = 4
+        HINT (a JOIN e) JOIN b
+        RETURN a.ID, b.ID, properties(nodes(p),'ID'), properties(rels(e), '_id'), properties(rels(e), '_src'), properties(rels(e), '_dst')
+---- 10
+4|0|[4,1,2,0]|[2:0,2:1,2:4]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+4|0|[4,1,2,0]|[2:0,2:1,2:5]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+4|0|[4,1,2,3,0]|[2:0,2:1,2:2,2:3]|[0:0,0:1,0:2,0:3]|[0:1,0:2,0:3,0:4]
+4|1|[4,2,1]|[2:1,2:4]|[0:1,0:2]|[0:2,0:4]
+4|1|[4,2,1]|[2:1,2:5]|[0:1,0:2]|[0:2,0:4]
+4|1|[4,2,3,1]|[2:1,2:2,2:3]|[0:1,0:2,0:3]|[0:2,0:3,0:4]
+4|2|[4,2]|[2:4]|[0:2]|[0:4]
+4|2|[4,2]|[2:5]|[0:2]|[0:4]
+4|2|[4,3,2]|[2:2,2:3]|[0:2,0:3]|[0:3,0:4]
+4|3|[4,3]|[2:3]|[0:3]|[0:4]
+-STATEMENT MATCH p = (a:person1)<-[e:knows11*1..4]-(b:person1)
+        WHERE a.ID = 4
+        HINT a JOIN (e JOIN b)
+        RETURN a.ID, b.ID, properties(nodes(p),'ID'), properties(rels(e), '_id'), properties(rels(e), '_src'), properties(rels(e), '_dst')
+---- 10
+4|0|[4,1,2,0]|[2:0,2:1,2:4]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+4|0|[4,1,2,0]|[2:0,2:1,2:5]|[0:0,0:1,0:2]|[0:1,0:2,0:4]
+4|0|[4,1,2,3,0]|[2:0,2:1,2:2,2:3]|[0:0,0:1,0:2,0:3]|[0:1,0:2,0:3,0:4]
+4|1|[4,2,1]|[2:1,2:4]|[0:1,0:2]|[0:2,0:4]
+4|1|[4,2,1]|[2:1,2:5]|[0:1,0:2]|[0:2,0:4]
+4|1|[4,2,3,1]|[2:1,2:2,2:3]|[0:1,0:2,0:3]|[0:2,0:3,0:4]
+4|2|[4,2]|[2:4]|[0:2]|[0:4]
+4|2|[4,2]|[2:5]|[0:2]|[0:4]
+4|2|[4,3,2]|[2:2,2:3]|[0:2,0:3]|[0:3,0:4]
+4|3|[4,3]|[2:3]|[0:3]|[0:4]
+-STATEMENT MATCH p = (a:person1)-[e:knows11*1..2]-(b:person1)
+        WHERE a.ID = 0
+        HINT (a JOIN e) JOIN b
+        RETURN  a.ID, b.ID, properties(nodes(p),'ID'), properties(rels(e), '_id'), properties(rels(e), '_src'), properties(rels(e), '_dst')
+---- 3
+0|0|[0,1,0]|[2:0,2:0]|[0:0,0:0]|[0:1,0:1]
+0|1|[0,1]|[2:0]|[0:0]|[0:1]
+0|2|[0,1,2]|[2:0,2:1]|[0:0,0:1]|[0:1,0:2]
+
 -LOG VarLenJoinsUBLessThanLBError
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1)
@@ -63,6 +126,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[0:1,0:2]|[2:0,2:1,2:4]
 0|4|3|[0:1,0:2]|[2:0,2:1,2:5]
 0|4|4|[0:1,0:2,0:3]|[2:0,2:1,2:2,2:3]
+
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 4
            CALL var_len_joins(PK, a, 1, 30, "BWD")
@@ -120,24 +184,18 @@ Runtime exception: Shortest path operations only works for positive upper bound 
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 0, 2, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
----- 5
+---- 3
 0|0|0|[]|[]
 0|1|1|[]|[2:0]
 0|2|2|[0:1]|[2:0,2:1]
-0|3|0|[]|[]
-0|4|0|[]|[]
 
 -LOG VarLenJoinsLowerBoundZeroUpperBoundZero
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins(PK, a, 0, 0, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
----- 5
+---- 1
 0|0|0|[]|[]
-0|1|0|[]|[]
-0|2|0|[]|[]
-0|3|0|[]|[]
-0|4|0|[]|[]
 
 -LOG VarLenJoinsLowerBound1
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
