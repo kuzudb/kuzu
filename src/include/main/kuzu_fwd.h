@@ -43,6 +43,7 @@ enum class WALReplayMode : uint8_t;
 } // namespace storage
 
 namespace planner {
+class LogicalOperator;
 class LogicalPlan;
 } // namespace planner
 

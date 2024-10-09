@@ -32,6 +32,8 @@ struct BoundAlterInfo {
         : alterType{alterType}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundAlterInfo);
 
+    std::string toString() const;
+
 private:
     BoundAlterInfo(const BoundAlterInfo& other)
         : alterType{other.alterType}, tableName{other.tableName},

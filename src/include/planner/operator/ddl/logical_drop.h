@@ -10,14 +10,16 @@ namespace planner {
 class LogicalDrop : public LogicalDDL {
 public:
     LogicalDrop(const parser::DropInfo& dropInfo,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::DROP, dropInfo.name, std::move(outputExpression)},
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalDDL{LogicalOperatorType::DROP, dropInfo.name, std::move(outputExpression),
+              std::move(printInfo)},
           dropInfo{dropInfo} {}
 
     const parser::DropInfo& getDropInfo() const { return dropInfo; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalDrop>(dropInfo, outputExpression);
+        return make_unique<LogicalDrop>(dropInfo, outputExpression, printInfo->copy());
     }
 
 private:

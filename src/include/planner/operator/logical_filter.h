@@ -9,8 +9,8 @@ namespace planner {
 class LogicalFilter : public LogicalOperator {
 public:
     LogicalFilter(std::shared_ptr<binder::Expression> expression,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child), std::move(printInfo)},
           expression{std::move(expression)} {}
 
     inline void computeFactorizedSchema() override { copyChildSchema(0); }
@@ -25,7 +25,7 @@ public:
     f_group_pos getGroupPosToSelect() const;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFilter>(expression, children[0]->copy());
+        return make_unique<LogicalFilter>(expression, children[0]->copy(), printInfo->copy());
     }
 
 private:

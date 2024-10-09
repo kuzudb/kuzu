@@ -10,8 +10,9 @@ class LogicalTransaction : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::TRANSACTION;
 
 public:
-    explicit LogicalTransaction(transaction::TransactionAction transactionAction)
-        : LogicalOperator{type_}, transactionAction{transactionAction} {}
+    LogicalTransaction(transaction::TransactionAction transactionAction,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type_, std::move(printInfo)}, transactionAction{transactionAction} {}
 
     std::string getExpressionsForPrinting() const final { return std::string(); }
 
@@ -21,7 +22,7 @@ public:
     transaction::TransactionAction getTransactionAction() const { return transactionAction; }
 
     std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalTransaction>(transactionAction);
+        return std::make_unique<LogicalTransaction>(transactionAction, printInfo->copy());
     }
 
 private:

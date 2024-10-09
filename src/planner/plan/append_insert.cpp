@@ -40,8 +40,9 @@ void Planner::appendInsertNode(const std::vector<const binder::BoundInsertInfo*>
     for (auto& boundInfo : boundInsertInfos) {
         logicalInfos.push_back(createLogicalInsertInfo(boundInfo)->copy());
     }
-    auto insertNode =
-        std::make_shared<LogicalInsert>(std::move(logicalInfos), plan.getLastOperator());
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto insertNode = std::make_shared<LogicalInsert>(std::move(logicalInfos),
+        plan.getLastOperator(), std::move(printInfo));
     appendFlattens(insertNode->getGroupsPosToFlatten(), plan);
     insertNode->setChild(0, plan.getLastOperator());
     insertNode->computeFactorizedSchema();
@@ -55,8 +56,9 @@ void Planner::appendInsertRel(const std::vector<const binder::BoundInsertInfo*>&
     for (auto& boundInfo : boundInsertInfos) {
         logicalInfos.push_back(createLogicalInsertInfo(boundInfo)->copy());
     }
-    auto insertRel =
-        std::make_shared<LogicalInsert>(std::move(logicalInfos), plan.getLastOperator());
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto insertRel = std::make_shared<LogicalInsert>(std::move(logicalInfos),
+        plan.getLastOperator(), std::move(printInfo));
     appendFlattens(insertRel->getGroupsPosToFlatten(), plan);
     insertRel->setChild(0, plan.getLastOperator());
     insertRel->computeFactorizedSchema();

@@ -31,8 +31,9 @@ void Planner::appendAccumulate(const expression_vector& flatExprs, LogicalPlan& 
 
 void Planner::appendAccumulate(AccumulateType accumulateType, const expression_vector& flatExprs,
     std::shared_ptr<Expression> offset, std::shared_ptr<Expression> mark, LogicalPlan& plan) {
+    auto printInfo = std::make_unique<OPPrintInfo>();
     auto op = make_shared<LogicalAccumulate>(accumulateType, flatExprs, offset, mark,
-        plan.getLastOperator());
+        plan.getLastOperator(), std::move(printInfo));
     appendFlattens(op->getGroupPositionsToFlatten(), plan);
     op->setChild(0, plan.getLastOperator());
     op->computeFactorizedSchema();

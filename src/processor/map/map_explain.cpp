@@ -16,7 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
     auto& logicalExplain = logicalOperator->constCast<LogicalExplain>();
     auto outSchema = logicalExplain.getSchema();
     auto inSchema = logicalExplain.getChild(0)->getSchema();
-    auto lastPhysicalOP = mapOperator(logicalExplain.getChild(0).get());
+    auto lastLogicalOP = logicalExplain.getChild(0);
+    auto lastPhysicalOP = mapOperator(lastLogicalOP.get());
     lastPhysicalOP = createResultCollector(AccumulateType::REGULAR,
         logicalExplain.getOutputExpressionsToExplain(), inSchema, std::move(lastPhysicalOP));
     auto outputExpression = logicalExplain.getOutputExpression();
@@ -25,17 +26,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logica
         auto printInfo = std::make_unique<OPPrintInfo>();
         return std::make_unique<Profile>(outputPosition, ProfileInfo{}, ProfileLocalState{},
             getOperatorID(), std::move(lastPhysicalOP), std::move(printInfo));
-    } else {
+    }
+    if (logicalExplain.getExplainType() == ExplainType::PHYSICAL_PLAN) {
         auto physicalPlanToExplain = std::make_unique<PhysicalPlan>(std::move(lastPhysicalOP));
         auto profiler = std::make_unique<Profiler>();
-        auto planPrinter =
-            std::make_unique<main::PlanPrinter>(physicalPlanToExplain.get(), profiler.get());
-        auto explainStr = planPrinter->printPlanToOstream().str();
+        auto explainStr =
+            main::PlanPrinter::printPlanToOstream(physicalPlanToExplain.get(), profiler.get())
+                .str();
         auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
             clientContext->getMemoryManager());
         return createFTableScanAligned(expression_vector{outputExpression}, outSchema,
             factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
     }
+    auto logicalPlanToExplain = std::make_unique<LogicalPlan>();
+    logicalPlanToExplain->setLastOperator(lastLogicalOP);
+    auto explainStr = main::PlanPrinter::printPlanToOstream(logicalPlanToExplain.get()).str();
+    auto factorizedTable = FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr,
+        clientContext->getMemoryManager());
+    return createFTableScanAligned(expression_vector{outputExpression}, outSchema, factorizedTable,
+        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);
 }
 
 } // namespace processor

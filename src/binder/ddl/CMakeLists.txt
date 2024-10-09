@@ -1,6 +1,7 @@
 add_library(
         kuzu_binder_ddl
         OBJECT
+        bound_alter_info.cpp
         property_definition.cpp)
 
 set(ALL_OBJECT_FILES

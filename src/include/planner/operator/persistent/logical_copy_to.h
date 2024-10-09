@@ -6,11 +6,30 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalCopyToPrintInfo final : OPPrintInfo {
+    std::vector<std::string> columnNames;
+    std::string fileName;
+
+    LogicalCopyToPrintInfo(std::vector<std::string> columnNames, std::string fileName)
+        : columnNames(std::move(columnNames)), fileName(std::move(fileName)) {}
+
+    std::string toString() const override;
+
+    std::unique_ptr<OPPrintInfo> copy() const override {
+        return std::unique_ptr<LogicalCopyToPrintInfo>(new LogicalCopyToPrintInfo(*this));
+    }
+
+private:
+    LogicalCopyToPrintInfo(const LogicalCopyToPrintInfo& other)
+        : OPPrintInfo(other), columnNames(other.columnNames), fileName(other.fileName) {}
+};
+
 class LogicalCopyTo : public LogicalOperator {
 public:
     LogicalCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
-        function::ExportFunction exportFunc, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
+        function::ExportFunction exportFunc, std::shared_ptr<LogicalOperator> child,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child), std::move(printInfo)},
           bindData{std::move(bindData)}, exportFunc{std::move(exportFunc)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
@@ -24,7 +43,8 @@ public:
     function::ExportFunction getExportFunc() const { return exportFunc; };
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyTo>(bindData->copy(), exportFunc, children[0]->copy());
+        return make_unique<LogicalCopyTo>(bindData->copy(), exportFunc, children[0]->copy(),
+            printInfo->copy());
     }
 
 private:
