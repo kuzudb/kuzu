@@ -117,7 +117,7 @@ public:
         std::optional<uint64_t> queryID = std::nullopt);
     std::unique_ptr<QueryResult> query(std::string_view queryStatement,
         std::optional<uint64_t> queryID = std::nullopt);
-    void runQuery(std::string query);
+    std::unique_ptr<QueryResult> runQuery(std::string query);
 
     // only use for test framework
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
