@@ -255,6 +255,10 @@ typedef struct {
 } kuzu_interval_t;
 
 /**
+ * @brief kuzu internal decimal type which stores the decimal as a string.
+ */
+typedef const char* kuzu_decimal_t;
+/**
  * @brief kuzu_query_summary stores the execution time, plan, compiling time and query options of a
  * query.
  */
@@ -592,6 +596,15 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp(
  */
 KUZU_C_API kuzu_state kuzu_prepared_statement_bind_interval(
     kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_interval_t value);
+/**
+ * @brief Binds the given decimal value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The decimal value to bind.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_prepared_statement_bind_decimal(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_decimal_t value);
 /**
  * @brief Binds the given string value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -1225,6 +1238,13 @@ KUZU_C_API kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value,
  * @return The state indicating the success or failure of the operation.
  */
 KUZU_C_API kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_result);
+/**
+ * @brief Returns the decimal value of the given value as a string. The value must be of type DECIMAL.
+ * @param value The value to return.
+ * @param[out] out_result The output parameter that will hold the decimal value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_value_get_decimal(kuzu_value* value, kuzu_decimal_t out_result);
 /**
  * @brief Returns the string value of the given value. The value must be of type STRING.
  * @param value The value to return.

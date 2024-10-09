@@ -642,6 +642,26 @@ TEST_F(CApiValueTest, getMapValue) {
     kuzu_flat_tuple_destroy(&flatTuple);
 }
 
+TEST_F(CApiValueTest, getDecimal) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection, (char*)"UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES", &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    kuzu_decimal_t decimalValue;
+    ASSERT_EQ(kuzu_value_get_decimal(&value, decimalValue), KuzuSuccess);
+
+}
+
 TEST_F(CApiValueTest, GetDataType) {
     kuzu_query_result result;
     kuzu_flat_tuple flatTuple;

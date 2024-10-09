@@ -169,6 +169,12 @@ kuzu_value* kuzu_value_create_interval(kuzu_interval_t val_) {
     return c_value;
 }
 
+kuzu_value* kuzu_value_create_decimal(kuzu_decimal_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    c_value->_value = new Value(val_);
+    return c_value;
+}
+
 kuzu_value* kuzu_value_create_string(const char* val_) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(val_);
