@@ -54,7 +54,8 @@ expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
         if (rjBindData->directionExpr != nullptr) {
             columns.push_back(rjBindData->directionExpr);
         } else {
-            columns.push_back(binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL())));
+            columns.push_back(binder->createVariable(DIRECTION_COLUMN_NAME,
+                LogicalType::LIST(LogicalType::BOOL())));
         }
     }
     return columns;
