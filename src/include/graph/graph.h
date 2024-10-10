@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "common/copy_constructors.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include <span>
 
@@ -19,9 +20,15 @@ struct RelTableIDInfo {
 
 class GraphScanState {
 public:
+    struct Chunk {
+        std::span<const common::nodeID_t> nbrNodes;
+        std::span<const common::relID_t> edges;
+        // this reference can be modified, but the underlying data will be reset the next time next
+        // is called
+        common::SelectionVector& selVector;
+    };
     virtual ~GraphScanState() = default;
-    virtual std::span<const common::nodeID_t> getNbrNodes() const = 0;
-    virtual std::span<const common::relID_t> getEdges() const = 0;
+    virtual Chunk getChunk() = 0;
 
     // Returns true if there are more values after the current batch
     virtual bool next() = 0;
@@ -37,14 +44,6 @@ public:
  */
 class Graph {
 public:
-    // Virtual Implementation of iterator functions
-    // Iterators can't really be virtual, but we can create an iterator (GraphResult::iterator)
-    // which uses a polymorphic object for its implementation
-    class IteratorImpl {
-    public:
-        virtual ~IteratorImpl() = default;
-    };
-
     class Iterator {
     public:
         explicit constexpr Iterator(GraphScanState* scanState) : scanState{scanState} {}
@@ -53,12 +52,9 @@ public:
 
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
-        using value_type =
-            std::pair<std::span<const common::nodeID_t>, std::span<const common::relID_t>>;
+        using value_type = GraphScanState::Chunk;
 
-        value_type operator*() const {
-            return std::make_pair(scanState->getNbrNodes(), scanState->getEdges());
-        }
+        value_type operator*() const { return scanState->getChunk(); }
         Iterator& operator++() {
             if (!scanState->next()) {
                 scanState = nullptr;
@@ -75,15 +71,19 @@ public:
             // TODO(bmwinger): avoid scanning if all that's necessary is to count the results
             uint64_t result = 0;
             do {
-                result += scanState->getNbrNodes().size();
+                result += scanState->getChunk().selVector.getSelSize();
             } while (scanState->next());
             return result;
         }
 
         std::vector<common::nodeID_t> collectNbrNodes() {
             std::vector<common::nodeID_t> nbrNodes;
-            for (const auto [nbrs, edges] : *this) {
-                nbrNodes.insert(nbrNodes.end(), nbrs.begin(), nbrs.end());
+            // Old versions of apple clang have a bug which prevents capture bindings from being
+            // captured by the lambda.
+            // for (const auto [nbrNodes, edges, mask] : *this) // doesn't work here
+            for (const auto chunk : *this) {
+                nbrNodes.reserve(nbrNodes.size() + chunk.selVector.getSelSize());
+                chunk.selVector.forEach([&](auto i) { nbrNodes.push_back(chunk.nbrNodes[i]); });
             }
             return nbrNodes;
         }

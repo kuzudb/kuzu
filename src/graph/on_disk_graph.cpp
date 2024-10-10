@@ -244,7 +244,7 @@ std::vector<nodeID_t> OnDiskGraph::scanBwdRandom(nodeID_t, GraphScanState&) {
 
 bool OnDiskGraphScanState::InnerIterator::next() {
     return tableScanState->source != TableScanSource::NONE &&
-           relTable->scan(context->getTx(), *tableScanState) && dstSelVector().getSelSize() > 0;
+           relTable->scan(context->getTx(), *tableScanState) && getSelVector().getSelSize() > 0;
 }
 
 OnDiskGraphScanState::InnerIterator::InnerIterator(const main::ClientContext* context,
