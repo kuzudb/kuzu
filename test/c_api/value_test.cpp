@@ -642,6 +642,93 @@ TEST_F(CApiValueTest, getMapValue) {
     kuzu_flat_tuple_destroy(&flatTuple);
 }
 
+TEST_F(CApiValueTest, getDecimal) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection,
+        (char*)"UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * "
+               "CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES",
+        &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    kuzu_logical_type dataType;
+    kuzu_value_get_data_type(&value, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_LIST);
+    uint64_t list_size;
+    ASSERT_EQ(kuzu_value_get_list_size(&value, &list_size), KuzuSuccess);
+    ASSERT_EQ(list_size, 9);
+
+    kuzu_value decimal_entry;
+    std::string decimal_value;
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 0, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "57");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 1, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "83");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 2, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "29");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 3, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "114");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 4, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "166");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 5, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "58");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 6, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "171");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 7, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "249");
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 8, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
+    ASSERT_EQ(decimal_value, "87");
+
+    kuzu_flat_tuple_destroy(&flatTuple);
+    kuzu_query_result_destroy(&result);
+    kuzu_data_type_destroy(&dataType);
+    kuzu_value_destroy(&decimal_entry);
+}
+
 TEST_F(CApiValueTest, GetDataType) {
     kuzu_query_result result;
     kuzu_flat_tuple flatTuple;
