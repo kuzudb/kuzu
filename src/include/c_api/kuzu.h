@@ -256,10 +256,6 @@ typedef struct {
 } kuzu_interval_t;
 
 /**
- * @brief kuzu internal decimal type which stores the decimal as a string.
- */
-typedef const char* kuzu_decimal_t;
-/**
  * @brief kuzu_query_summary stores the execution time, plan, compiling time and query options of a
  * query.
  */
