@@ -99,21 +99,24 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
     }
     std::vector<TableCatalogEntry*> prunedEntries;
     if (rel.getDirectionType() == RelDirectionType::BOTH) {
-        table_id_set_t boundTableIDSet;
+        table_id_set_t srcBoundTableIDSet;
+        table_id_set_t dstBoundTableIDSet;
         for (auto entry : rel.getSrcNode()->getEntries()) {
-            boundTableIDSet.insert(entry->getTableID());
+            srcBoundTableIDSet.insert(entry->getTableID());
         }
         for (auto entry : rel.getDstNode()->getEntries()) {
-            boundTableIDSet.insert(entry->getTableID());
+            dstBoundTableIDSet.insert(entry->getTableID());
         }
         for (auto& entry : rel.getEntries()) {
             auto& relEntry = entry->constCast<RelTableCatalogEntry>();
             auto srcTableID = relEntry.getSrcTableID();
             auto dstTableID = relEntry.getDstTableID();
-            if (!boundTableIDSet.contains(srcTableID) || !boundTableIDSet.contains(dstTableID)) {
-                continue;
+            if ((srcBoundTableIDSet.contains(srcTableID) &&
+                    dstBoundTableIDSet.contains(dstTableID)) ||
+                (dstBoundTableIDSet.contains(srcTableID) &&
+                    srcBoundTableIDSet.contains(dstTableID))) {
+                prunedEntries.push_back(entry);
             }
-            prunedEntries.push_back(entry);
         }
     } else {
         auto srcTableIDSet = rel.getSrcNode()->getTableIDsSet();
