@@ -138,8 +138,8 @@ public:
 
 class SniffCSVHeaderDriver : public SerialParsingDriver {
 public:
-    SniffCSVHeaderDriver(SerialCSVReader* reader,
-        const function::ScanTableFuncBindInput* bindInput, const std::vector<std::pair<std::string, common::LogicalType>>& TypeDetected);
+    SniffCSVHeaderDriver(SerialCSVReader* reader, const function::ScanTableFuncBindInput* bindInput,
+        const std::vector<std::pair<std::string, common::LogicalType>>& TypeDetected);
 
     bool done(uint64_t rowNum) const;
     bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;

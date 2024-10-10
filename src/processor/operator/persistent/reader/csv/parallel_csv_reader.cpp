@@ -228,8 +228,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
 
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
-    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes,
-        detectedDialect, detectedHeader);
+    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes, detectedDialect,
+        detectedHeader);
 
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
