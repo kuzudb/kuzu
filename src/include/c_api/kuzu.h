@@ -1240,7 +1240,8 @@ KUZU_C_API kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value,
  */
 KUZU_C_API kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_result);
 /**
- * @brief Returns the decimal value of the given value as a string. The value must be of type DECIMAL.
+ * @brief Returns the decimal value of the given value as a string. The value must be of type
+ * DECIMAL.
  * @param value The value to return.
  * @param[out] out_result The output parameter that will hold the decimal value.
  * @return The state indicating the success or failure of the operation.
