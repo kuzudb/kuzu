@@ -82,7 +82,7 @@ struct CSVOption {
                                             // sampleSize is 0
           allowUnbracedList{other.allowUnbracedList}, ignoreErrors{other.ignoreErrors},
           autoDetection{other.autoDetection}, setEscape{other.setEscape}, setDelim{other.setDelim},
-          setQuote{other.setQuote} {}
+          setQuote{other.setQuote}, setHeader{other.setHeader} {}
 };
 
 struct CSVReaderConfig {
