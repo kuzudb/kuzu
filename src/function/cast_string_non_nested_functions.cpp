@@ -153,7 +153,7 @@ LogicalType inferMinimalTypeFromString(const std::string& str) {
 }
 
 static RE2& boolPattern() {
-    static RE2 retval("(?i)(TRUE|FALSE)");
+    static RE2 retval("(?i)(T|F|TRUE|FALSE)");
     return retval;
 }
 static RE2& intPattern() {

@@ -24,7 +24,7 @@ Copy exception: Unable to find primary key value 5.
 -CASE InvalidHeader
 -STATEMENT create node table tableOfTypes (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64[], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv"
+-STATEMENT COPY tableOfTypes FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (auto_detect = false)
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
 

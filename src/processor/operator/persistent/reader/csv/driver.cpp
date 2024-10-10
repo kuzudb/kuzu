@@ -256,6 +256,11 @@ bool SniffCSVHeaderDriver::done(uint64_t rowNum) const {
 bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
     std::string_view value) {
     uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
     if (columnIdx == reader->getNumColumns() && length == 0) {
         // skip a single trailing delimiter in last columnIdx
         return true;
@@ -277,7 +282,10 @@ bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t col
     }
 
     // If any of the column in the first row cannot be casted to its expected type, we have a header.
-    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING && columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID()) {
+    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING 
+     && columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID()
+     && LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID()
+     && LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
         detectedHeader = true;
     }
 

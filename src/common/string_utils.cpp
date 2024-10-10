@@ -46,9 +46,19 @@ std::vector<std::string_view> StringUtils::smartSplit(std::string_view input, ch
     std::vector<std::string_view> result;
     auto currentItem = 0u;
     std::vector<char> stk;
+    bool insideSingleQuote = false;
     for (auto i = 0u; i < input.size(); i++) {
         char c = input[i];
-        if (c == splitChar && stk.size() == 0u) {
+
+        if (c == '\'' && (stk.size() == 0u || stk.back() != '\'')) {
+            // Entering a single-quoted block
+            insideSingleQuote = !insideSingleQuote;
+        } else if (c == '\'' && !stk.size() == 0u && stk.back() == '\'') {
+            // Exiting a single-quoted block
+            insideSingleQuote = !insideSingleQuote;
+        }
+
+        if (c == splitChar && stk.size() == 0u && !insideSingleQuote) {
             if (result.size() + 1 == maxNumEle) {
                 result.push_back(input.substr(currentItem));
                 return result;
