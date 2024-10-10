@@ -62,13 +62,13 @@ public:
         const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
-        std::optional<filter_func_t> filterFunc = {}) = 0;
+        const std::optional<filter_func_t>& filterFunc = {}) = 0;
 
     virtual uint64_t readCompressedValuesToVector(transaction::Transaction* transaction,
         const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
-        std::optional<filter_func_t> filterFunc = {}) = 0;
+        const std::optional<filter_func_t>& filterFunc = {}) = 0;
 
     virtual void writeValueToPageFromVector(ChunkState& state, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,

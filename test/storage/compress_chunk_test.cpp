@@ -244,24 +244,53 @@ TEST_F(CompressChunkTest, TestFloatFilter) {
                                ChunkState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
 
-        static constexpr size_t startOffset = 5 * 1024 + 7;
-        static constexpr size_t numValuesToRead = 32;
+        static constexpr size_t startOffset = 2 * 1024 + 7;
+        static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
+        const size_t startPageIdx = startOffset / state.numValuesPerPage;
 
         reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
             startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
-            [](offset_t startIdx, offset_t endIdx) {
-                for (size_t i = startIdx; i < endIdx; ++i) {
-                    if (((i - 2) % 6) == 0)
-                        return true;
-                }
-                return false;
+            [&state, startPageIdx](offset_t startIdx, offset_t) {
+                const auto pageIdx = (startOffset + startIdx) / state.numValuesPerPage;
+                return (pageIdx == startPageIdx);
             });
 
         for (size_t i = 0; i < numValuesToRead; ++i) {
-            if (((i - 2) % 6) == 0) {
+            const size_t pageIdx = (startOffset + i) / state.numValuesPerPage;
+            if (startPageIdx == pageIdx) {
                 EXPECT_EQ(src[i + startOffset], out.getValue<float>(i));
+            } else {
+                EXPECT_EQ(0, out.getValue<float>(i));
             }
         }
+    });
+}
+
+TEST_F(CompressChunkTest, TestFloatFilterStateful) {
+    static constexpr size_t startOffset = 2 * 1024 + 7;
+    static constexpr size_t numValuesToRead = DEFAULT_VECTOR_CAPACITY;
+    std::vector<float> src(10 * 1024, 5.6);
+    src[4] = 0;
+    src[startOffset + 5] = 1234.5678 * 2345.6789 * 3456.7891;
+    src[startOffset + 10] = 1234.5678 * 2345.6789 / 3456.7891;
+
+    testCompressChunk(src, [](ColumnReadWriter* reader, transaction::Transaction* transaction,
+                               ChunkState& state, const LogicalType& dataType) {
+        common::ValueVector out{LogicalType::FLOAT()};
+
+        // the filter will pass:
+        // if the value is an exception, the 1st exception read
+        // if the value is not an exception if it is in the 1st page that is read from
+        auto filterFunc = [j = 0](offset_t, offset_t) mutable {
+            ++j;
+            return (j == 1);
+        };
+        reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
+            startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
+            filterFunc);
+
+        // the read call should not modify the functor
+        EXPECT_TRUE(filterFunc(0, 0));
     });
 }
 

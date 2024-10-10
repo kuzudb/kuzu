@@ -48,7 +48,7 @@ public:
     static constexpr size_t MAX_EXCEPTION_FACTOR = 4;
 
 public:
-    FloatCompression() = default;
+    FloatCompression();
 
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
@@ -80,8 +80,10 @@ public:
     static BitpackInfo<EncodedType> getBitpackInfo(const CompressionMetadata& metadata);
 
 private:
-    std::unique_ptr<CompressionAlg> getEncodedFloatBitpacker(
-        const CompressionMetadata& metadata) const;
+    const CompressionAlg& getEncodedFloatBitpacker(const CompressionMetadata& metadata) const;
+
+    ConstantCompression constantEncodedFloatBitpacker;
+    IntegerBitpacking<EncodedType> encodedFloatBitpacker;
 };
 
 } // namespace storage

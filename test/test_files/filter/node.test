@@ -2,6 +2,19 @@
 
 --
 
+-CASE PersonNodesEyeSightFilteredTest1WithALPExceptions
+-STATEMENT CREATE (a:person {fname: 'Ali', ID: 88, eyeSight: 5.1})
+---- ok
+-STATEMENT CREATE (a:person {fname: 'Alic', ID: 77, eyeSight: 123456789.123})
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID = 88 DELETE a;
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.eyeSight >= 6 RETURN a.ID, a.eyeSight
+---- 1
+77|123456789.123000
+
 -CASE FilterNode
 
 -LOG PersonNodesAgeFilteredTest1
