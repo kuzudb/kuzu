@@ -32,7 +32,7 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(
 
     // Do header detection IFF user didn't set header AND user didn't turn off auto detection
     if (!csvOption.setHeader && csvOption.autoDetection) {
-        //detectedHeader = detectHeader(driver.columns);
+        detectedHeader = detectHeader(driver.columns);
     }
 
     // finalize the columns; rename duplicate names
@@ -432,7 +432,7 @@ bool SerialCSVReader::detectHeader(std::vector<std::pair<std::string, common::Lo
     // Reset the file position and buffer to start reading from the beginning after detection.
     resetReaderState();
     SniffCSVHeaderDriver sniffHeaderDriver{this, bindInput, detectedTypes};
-    //parseCSV(sniffHeaderDriver);
+    parseCSV(sniffHeaderDriver);
     resetReaderState();
     return sniffHeaderDriver.detectedHeader;
 }
