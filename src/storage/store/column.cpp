@@ -35,12 +35,14 @@ struct ReadInternalIDValuesToVector {
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
-        auto buffer = std::make_unique<offset_t[]>(numValuesToRead);
-        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(buffer.get()), 0,
+        KU_ASSERT(numValuesToRead <= DEFAULT_VECTOR_CAPACITY);
+        offset_t offsetBuffer[DEFAULT_VECTOR_CAPACITY];
+
+        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(offsetBuffer), 0,
             numValuesToRead, metadata);
         auto resultData = reinterpret_cast<internalID_t*>(resultVector->getData());
         for (auto i = 0u; i < numValuesToRead; i++) {
-            resultData[posInVector + i].offset = buffer[i];
+            resultData[posInVector + i].offset = offsetBuffer[i];
         }
     }
 
@@ -252,12 +254,12 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
             explicit Filterer(const SelectionVector& selVector)
                 : selVector(selVector), posInSelVector(0) {}
             bool operator()(offset_t startIdx, offset_t endIdx) {
-                bool ret = isInRange(selVector[posInSelVector], startIdx, endIdx);
-                while (
-                    posInSelVector < selVector.getSelSize() && selVector[posInSelVector] < endIdx) {
+                while (posInSelVector < selVector.getSelSize() &&
+                       selVector[posInSelVector] < startIdx) {
                     posInSelVector++;
                 }
-                return ret;
+                return (posInSelVector < selVector.getSelSize() &&
+                        isInRange(selVector[posInSelVector], startIdx, endIdx));
             }
 
             const SelectionVector& selVector;
