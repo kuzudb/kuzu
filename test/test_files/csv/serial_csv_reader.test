@@ -3,7 +3,7 @@
 --
 
 -CASE ScanWithSerialCSVReader
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=TRUE, parallel=FALSE) RETURN count(*);
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (parallel=FALSE) RETURN count(*);
 ---- 1
 49999
 

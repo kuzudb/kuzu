@@ -21,7 +21,7 @@
 ---- ok
 -STATEMENT create rel table meets (FROM person TO person, MANY_ONE);
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
 ---- ok
 -STATEMENT MATCH (:person)-[:knows]->(:person) return count(*)
 ---- 1

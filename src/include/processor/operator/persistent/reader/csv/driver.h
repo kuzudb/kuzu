@@ -146,6 +146,7 @@ public:
 
 public:
     std::vector<std::pair<std::string, common::LogicalType>> columns;
+    std::vector<std::pair<std::string, common::LogicalType>> header;
     bool detectedHeader = false;
 };
 

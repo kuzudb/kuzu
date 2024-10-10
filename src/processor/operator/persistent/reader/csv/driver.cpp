@@ -226,7 +226,7 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         }
         columns[columnIdx].first = columnName;
         columns[columnIdx].second = std::move(columnType);
-    } else if (sniffType[columnIdx]) {
+    } else if (sniffType[columnIdx] && (rowNum != 0 || !csvOption.autoDetection || csvOption.setHeader)) {
         // reading the body
         LogicalType combinedType;
         columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
@@ -265,10 +265,6 @@ bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t col
         // skip a single trailing delimiter in last columnIdx
         return true;
     }
-    // If we already determined has a header, just skip
-    if (detectedHeader) {
-        return true;
-    }
 
     // reading the header
     LogicalType columnType(LogicalTypeID::ANY);
@@ -281,12 +277,21 @@ bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t col
         // Didn't parse, just use the whole name.
     }
 
+    // Store the value to Header vector for potential later use.
+    header.push_back({std::string(value), columnType.copy()});
+
+    // If we already determined has a header, just skip
+    if (detectedHeader) {
+        return true;
+    }
+    
     // If any of the column in the first row cannot be casted to its expected type, we have a header.
     if (columnType.getLogicalTypeID() == LogicalTypeID::STRING 
      && columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID()
      && LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID()
      && LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
         detectedHeader = true;
+        // We need to set the Name and Type based on this Header we detected.
     }
 
     return true;
