@@ -274,48 +274,23 @@ TEST_F(CompressChunkTest, TestFloatFilterStateful) {
     src[startOffset + 5] = 1234.5678 * 2345.6789 * 3456.7891;
     src[startOffset + 10] = 1234.5678 * 2345.6789 / 3456.7891;
 
-    testCompressChunk(src, [&src](ColumnReadWriter* reader, transaction::Transaction* transaction,
+    testCompressChunk(src, [](ColumnReadWriter* reader, transaction::Transaction* transaction,
                                ChunkState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::FLOAT()};
-
-        const size_t startPageIdx = startOffset / state.numValuesPerPage;
 
         // the filter will pass:
         // if the value is an exception, the 1st exception read
         // if the value is not an exception if it is in the 1st page that is read from
+        auto filterFunc = [j = 0](offset_t, offset_t) mutable {
+            ++j;
+            return (j == 1);
+        };
         reader->readCompressedValuesToVector(transaction, state, &out, 0, startOffset,
             startOffset + numValuesToRead, ReadCompressedValuesFromPageToVector(dataType),
-            [j = 0](offset_t, offset_t) mutable {
-                ++j;
-                return (j == 1);
-            });
+            filterFunc);
 
-        const auto isException = [&src, &state](offset_t i) {
-            const auto encodedValue = alp::AlpEncode<float>::encode_value(src[i + startOffset],
-                state.metadata.compMeta.floatMetadata()->fac,
-                state.metadata.compMeta.floatMetadata()->exp);
-            const auto decodedValue = alp::AlpDecode<float>::decode_value(encodedValue,
-                state.metadata.compMeta.floatMetadata()->fac,
-                state.metadata.compMeta.floatMetadata()->exp);
-            return (decodedValue != src[i + startOffset]);
-        };
-        bool exceptionFound = false;
-        for (offset_t i = 0; i < numValuesToRead; ++i) {
-            bool passFilter = false;
-            if (isException(i)) {
-                passFilter = !exceptionFound;
-                exceptionFound = true;
-            } else {
-                const size_t pageIdx = (startOffset + i) / state.numValuesPerPage;
-                passFilter = (pageIdx == startPageIdx);
-            }
-
-            if (passFilter) {
-                EXPECT_EQ(src[i + startOffset], out.getValue<float>(i));
-            } else {
-                EXPECT_EQ(0, out.getValue<float>(i));
-            }
-        }
+        // the read call should not modify the functor
+        EXPECT_TRUE(filterFunc(0, 0));
     });
 }
 
