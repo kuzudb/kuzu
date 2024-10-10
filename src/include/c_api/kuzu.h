@@ -2,8 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-
 #include <string>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -585,15 +585,6 @@ KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp_ms(
  */
 KUZU_C_API kuzu_state kuzu_prepared_statement_bind_timestamp(
     kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_t value);
-/**
- * @brief Binds the given decimal value to the given parameter name in the prepared statement.
- * @param prepared_statement The prepared statement instance to bind the value.
- * @param param_name The parameter name to bind the value.
- * @param value The decimal value to bind.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_prepared_statement_bind_decimal(
-    kuzu_prepared_statement* prepared_statement, const char* param_name, std::string value);
 /**
  * @brief Binds the given interval value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
