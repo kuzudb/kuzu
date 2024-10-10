@@ -616,6 +616,37 @@ kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* o
     return KuzuSuccess;
 }
 
+kuzu_state kuzu_value_get_decimal(kuzu_value* value, std::string* out_result) {
+    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
+    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
+    if (logical_type_id != LogicalTypeID::DECIMAL) {
+        return KuzuError;
+    }
+    switch (physical_type_id) {
+        case PhysicalTypeID::INT16:
+            *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int16_t>());
+            return KuzuSuccess;
+
+        case PhysicalTypeID::INT32:
+            *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int32_t>());
+            return KuzuSuccess;
+
+        case PhysicalTypeID::INT64:
+            *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int64_t>());
+            return KuzuSuccess;
+
+        case PhysicalTypeID::INT128: {
+            auto int_value_representation = static_cast<Value*>(value->_value)->getValue<int128_t>();
+            *out_result = std::to_string(int_value_representation.low) + std::to_string(int_value_representation.high);
+            return KuzuSuccess;
+        }
+
+        default:
+            return KuzuError;
+    }
+    return KuzuSuccess;
+}
+
 kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_result) {
     auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INTERVAL) {
