@@ -6,6 +6,20 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalExtendPrintInfo final : OPPrintInfo {
+    std::string boundNode;
+    std::string nbrNode;
+    std::string rel;
+    common::ExtendDirection direction;
+
+    LogicalExtendPrintInfo(std::string boundNode, std::string nbrNode, std::string rel,
+        common::ExtendDirection direction)
+        : boundNode{std::move(boundNode)}, nbrNode{std::move(nbrNode)}, rel{std::move(rel)},
+          direction{direction} {}
+
+    std::string toString() const override;
+};
+
 class LogicalExtend final : public BaseLogicalExtend {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::EXTEND;
 
@@ -13,10 +27,9 @@ public:
     LogicalExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         common::ExtendDirection direction, bool extendFromSource,
-        binder::expression_vector properties, std::shared_ptr<LogicalOperator> child,
-        std::unique_ptr<OPPrintInfo> printInfo)
+        binder::expression_vector properties, std::shared_ptr<LogicalOperator> child)
         : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
-              direction, extendFromSource, std::move(child), std::move(printInfo)},
+              direction, extendFromSource, std::move(child)},
           scanNbrID{true}, properties{std::move(properties)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override { return f_group_pos_set{}; }
@@ -32,6 +45,11 @@ public:
     }
     void setScanNbrID(bool scanNbrID_) { scanNbrID = scanNbrID_; }
     bool shouldScanNbrID() const { return scanNbrID; }
+
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalExtendPrintInfo>(boundNode->toString(), nbrNode->toString(),
+            rel->toString(), direction);
+    }
 
     std::unique_ptr<LogicalOperator> copy() override;
 

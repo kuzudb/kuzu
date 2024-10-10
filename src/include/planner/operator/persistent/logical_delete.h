@@ -6,13 +6,13 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalDelete : public LogicalOperator {
+class LogicalDelete final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::DELETE;
 
 public:
     LogicalDelete(std::vector<binder::BoundDeleteInfo> infos,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(child), std::move(printInfo)}, infos{std::move(infos)} {}
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)} {}
 
     common::TableType getTableType() const {
         KU_ASSERT(!infos.empty());
@@ -28,8 +28,7 @@ public:
     f_group_pos_set getGroupsPosToFlatten() const;
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalDelete>(copyVector(infos), children[0]->copy(),
-            printInfo->copy());
+        return std::make_unique<LogicalDelete>(copyVector(infos), children[0]->copy());
     }
 
 private:

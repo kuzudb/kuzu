@@ -7,17 +7,16 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalRecursiveExtend : public BaseLogicalExtend {
+class LogicalRecursiveExtend final : public BaseLogicalExtend {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::RECURSIVE_EXTEND;
 
 public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         common::ExtendDirection direction, bool extendFromSource, RecursiveJoinType joinType,
-        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild,
-        std::unique_ptr<OPPrintInfo> printInfo)
+        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild)
         : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
-              direction, extendFromSource, std::move(child), std::move(printInfo)},
+              direction, extendFromSource, std::move(child)},
           joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
@@ -31,8 +30,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-            extendFromSource_, joinType, children[0]->copy(), recursiveChild->copy(),
-            printInfo->copy());
+            extendFromSource_, joinType, children[0]->copy(), recursiveChild->copy());
     }
 
 private:
@@ -40,20 +38,18 @@ private:
     std::shared_ptr<LogicalOperator> recursiveChild;
 };
 
-class LogicalPathPropertyProbe : public LogicalOperator {
+class LogicalPathPropertyProbe final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::PATH_PROPERTY_PROBE;
 
 public:
     LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> rel,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
-        std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(probeChild), std::move(printInfo)},
-          recursiveRel{std::move(rel)}, nodeChild{std::move(nodeChild)},
-          relChild{std::move(relChild)}, joinType{joinType} {}
+        std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType)
+        : LogicalOperator{type_, std::move(probeChild)}, recursiveRel{std::move(rel)},
+          nodeChild{std::move(nodeChild)}, relChild{std::move(relChild)}, joinType{joinType} {}
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
 

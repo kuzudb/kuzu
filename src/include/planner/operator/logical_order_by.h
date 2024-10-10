@@ -5,36 +5,33 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalOrderBy : public LogicalOperator {
+class LogicalOrderBy final : public LogicalOperator {
 public:
     LogicalOrderBy(binder::expression_vector expressionsToOrderBy, std::vector<bool> sortOrders,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child), std::move(printInfo)},
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child)},
           expressionsToOrderBy{std::move(expressionsToOrderBy)},
           isAscOrders{std::move(sortOrders)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const final;
+    std::string getExpressionsForPrinting() const override;
 
-    inline binder::expression_vector getExpressionsToOrderBy() const {
-        return expressionsToOrderBy;
-    }
-    inline std::vector<bool> getIsAscOrders() const { return isAscOrders; }
+    binder::expression_vector getExpressionsToOrderBy() const { return expressionsToOrderBy; }
+    std::vector<bool> getIsAscOrders() const { return isAscOrders; }
 
-    inline bool isTopK() const { return hasLimitNum(); }
-    inline void setSkipNum(uint64_t num) { skipNum = num; }
-    inline uint64_t getSkipNum() const { return skipNum; }
-    inline void setLimitNum(uint64_t num) { limitNum = num; }
-    inline bool hasLimitNum() const { return limitNum != UINT64_MAX; }
-    inline uint64_t getLimitNum() const { return limitNum; }
+    bool isTopK() const { return hasLimitNum(); }
+    void setSkipNum(uint64_t num) { skipNum = num; }
+    uint64_t getSkipNum() const { return skipNum; }
+    void setLimitNum(uint64_t num) { limitNum = num; }
+    bool hasLimitNum() const { return limitNum != UINT64_MAX; }
+    uint64_t getLimitNum() const { return limitNum; }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy(),
-            printInfo->copy());
+    std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy());
     }
 
 private:

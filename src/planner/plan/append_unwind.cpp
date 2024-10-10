@@ -10,9 +10,8 @@ namespace planner {
 
 void Planner::appendUnwind(const BoundReadingClause& readingClause, LogicalPlan& plan) {
     auto& unwindClause = ku_dynamic_cast<const BoundUnwindClause&>(readingClause);
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto unwind = make_shared<LogicalUnwind>(unwindClause.getInExpr(), unwindClause.getOutExpr(),
-        unwindClause.getIDExpr(), plan.getLastOperator(), std::move(printInfo));
+        unwindClause.getIDExpr(), plan.getLastOperator());
     appendFlattens(unwind->getGroupsPosToFlatten(), plan);
     unwind->setChild(0, plan.getLastOperator());
     unwind->computeFactorizedSchema();

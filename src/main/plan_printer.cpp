@@ -414,7 +414,7 @@ std::string PlanPrinter::getOperatorName(const LogicalOperator* logicalOperator)
 }
 
 std::string PlanPrinter::getOperatorParams(const LogicalOperator* logicalOperator) {
-    return logicalOperator->getPrintInfo().toString();
+    return logicalOperator->getPrintInfo()->toString();
 }
 
 nlohmann::json PlanPrinter::toJson(const PhysicalOperator* physicalOperator, Profiler& profiler_) {

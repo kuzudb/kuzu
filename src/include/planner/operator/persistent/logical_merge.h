@@ -12,14 +12,14 @@ class LogicalMerge final : public LogicalOperator {
 
 public:
     LogicalMerge(std::shared_ptr<binder::Expression> existenceMark, binder::expression_vector keys,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(child), std::move(printInfo)},
-          existenceMark{std::move(existenceMark)}, keys{std::move(keys)} {}
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{type_, std::move(child)}, existenceMark{std::move(existenceMark)},
+          keys{std::move(keys)} {}
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const final { return {}; }
+    std::string getExpressionsForPrinting() const override { return {}; }
 
     f_group_pos_set getGroupsPosToFlatten();
 

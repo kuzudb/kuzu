@@ -6,23 +6,22 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalTransaction : public LogicalOperator {
+class LogicalTransaction final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::TRANSACTION;
 
 public:
-    LogicalTransaction(transaction::TransactionAction transactionAction,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(printInfo)}, transactionAction{transactionAction} {}
+    explicit LogicalTransaction(transaction::TransactionAction transactionAction)
+        : LogicalOperator{type_}, transactionAction{transactionAction} {}
 
-    std::string getExpressionsForPrinting() const final { return std::string(); }
+    std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    void computeFlatSchema() final { createEmptySchema(); }
-    void computeFactorizedSchema() final { createEmptySchema(); }
+    void computeFlatSchema() override { createEmptySchema(); }
+    void computeFactorizedSchema() override { createEmptySchema(); }
 
     transaction::TransactionAction getTransactionAction() const { return transactionAction; }
 
     std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalTransaction>(transactionAction, printInfo->copy());
+        return std::make_unique<LogicalTransaction>(transactionAction);
     }
 
 private:

@@ -3,6 +3,23 @@
 namespace kuzu {
 namespace planner {
 
+std::string LogicalExtendPrintInfo::toString() const {
+    switch (direction) {
+    case common::ExtendDirection::FWD: {
+        return boundNode + "-[" + rel + "]->" + nbrNode;
+    }
+    case common::ExtendDirection::BWD: {
+        return boundNode + "<-[" + rel + "]-" + nbrNode;
+    }
+    case common::ExtendDirection::BOTH: {
+        return boundNode + "-[" + rel + "]-" + nbrNode;
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 void LogicalExtend::computeFactorizedSchema() {
     copyChildSchema(0);
     const auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
@@ -33,7 +50,7 @@ void LogicalExtend::computeFlatSchema() {
 
 std::unique_ptr<LogicalOperator> LogicalExtend::copy() {
     auto extend = std::make_unique<LogicalExtend>(boundNode, nbrNode, rel, direction,
-        extendFromSource_, properties, children[0]->copy(), printInfo->copy());
+        extendFromSource_, properties, children[0]->copy());
     extend->setPropertyPredicates(copyVector(propertyPredicates));
     extend->scanNbrID = scanNbrID;
     return extend;

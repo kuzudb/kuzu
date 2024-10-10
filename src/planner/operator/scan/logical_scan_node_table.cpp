@@ -3,9 +3,23 @@
 namespace kuzu {
 namespace planner {
 
+std::string LogicalScanNodeTablePrintInfo::toString() const {
+    std::string result = "";
+    result += "ScanNodeTable: " + nodeID->toString();
+    result += ", Properties: ";
+    for (auto& property : properties) {
+        result += property->toString() + " ";
+    }
+    result += ", Predicates: ";
+    for (auto& predicate : propertyPredicates) {
+        result += predicate.toString() + " ";
+    }
+    return result;
+}
+
 LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
-    : LogicalOperator{type_, other.printInfo->copy()}, scanType{other.scanType},
-      nodeID{other.nodeID}, nodeTableIDs{other.nodeTableIDs}, properties{other.properties},
+    : LogicalOperator{type_}, scanType{other.scanType}, nodeID{other.nodeID},
+      nodeTableIDs{other.nodeTableIDs}, properties{other.properties},
       propertyPredicates{copyVector(other.propertyPredicates)} {
     if (other.extraInfo != nullptr) {
         setExtraInfo(other.extraInfo->copy());

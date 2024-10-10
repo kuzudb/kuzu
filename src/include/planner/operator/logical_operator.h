@@ -70,16 +70,12 @@ struct LogicalOperatorUtils {
 
 class LogicalOperator {
 public:
+    explicit LogicalOperator(LogicalOperatorType operatorType) : operatorType{operatorType} {}
     explicit LogicalOperator(LogicalOperatorType operatorType,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : operatorType{operatorType}, printInfo{std::move(printInfo)} {}
+        std::shared_ptr<LogicalOperator> child);
     explicit LogicalOperator(LogicalOperatorType operatorType,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo);
-    explicit LogicalOperator(LogicalOperatorType operatorType,
-        std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right,
-        std::unique_ptr<OPPrintInfo> printInfo);
-    explicit LogicalOperator(LogicalOperatorType operatorType, const logical_op_vector_t& children,
-        std::unique_ptr<OPPrintInfo> printInfo);
+        std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right);
+    explicit LogicalOperator(LogicalOperatorType operatorType, const logical_op_vector_t& children);
 
     virtual ~LogicalOperator() = default;
 
@@ -104,7 +100,9 @@ public:
     // Print the sub-plan rooted at this operator.
     virtual std::string toString(uint64_t depth = 0) const;
 
-    const OPPrintInfo& getPrintInfo() const { return *printInfo; }
+    virtual std::unique_ptr<OPPrintInfo> getPrintInfo() const {
+        return std::make_unique<OPPrintInfo>();
+    }
 
     // TODO: remove this function once planner do not share operator across plans
     virtual std::unique_ptr<LogicalOperator> copy() = 0;
@@ -135,7 +133,6 @@ protected:
     LogicalOperatorType operatorType;
     std::unique_ptr<Schema> schema;
     logical_op_vector_t children;
-    std::unique_ptr<OPPrintInfo> printInfo;
 };
 
 } // namespace planner

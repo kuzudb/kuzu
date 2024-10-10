@@ -7,9 +7,8 @@ namespace planner {
 
 class LogicalEmptyResult final : public LogicalOperator {
 public:
-    explicit LogicalEmptyResult(const Schema& schema, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::EMPTY_RESULT, std::move(printInfo)},
-          originalSchema{schema.copy()} {
+    explicit LogicalEmptyResult(const Schema& schema)
+        : LogicalOperator{LogicalOperatorType::EMPTY_RESULT}, originalSchema{schema.copy()} {
         this->schema = schema.copy();
     }
 
@@ -25,7 +24,7 @@ public:
     std::string getExpressionsForPrinting() const override { return std::string{}; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalEmptyResult>(*originalSchema, printInfo->copy());
+        return std::make_unique<LogicalEmptyResult>(*originalSchema);
     }
 
 private:

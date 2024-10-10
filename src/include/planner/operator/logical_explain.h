@@ -8,13 +8,12 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalExplain : public LogicalOperator {
+class LogicalExplain final : public LogicalOperator {
 public:
     LogicalExplain(std::shared_ptr<LogicalOperator> child,
         std::shared_ptr<binder::Expression> outputExpression, common::ExplainType explainType,
-        binder::expression_vector outputExpressionsToExplain,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::EXPLAIN, std::move(child), std::move(printInfo)},
+        binder::expression_vector outputExpressionsToExplain)
+        : LogicalOperator{LogicalOperatorType::EXPLAIN, std::move(child)},
           outputExpression{std::move(outputExpression)}, explainType{explainType},
           outputExpressionsToExplain{std::move(outputExpressionsToExplain)} {}
 
@@ -22,21 +21,19 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::shared_ptr<binder::Expression> getOutputExpression() const {
-        return outputExpression;
-    }
+    std::shared_ptr<binder::Expression> getOutputExpression() const { return outputExpression; }
 
-    inline std::string getExpressionsForPrinting() const override { return "Explain"; }
+    std::string getExpressionsForPrinting() const override { return "Explain"; }
 
-    inline common::ExplainType getExplainType() const { return explainType; }
+    common::ExplainType getExplainType() const { return explainType; }
 
-    inline binder::expression_vector getOutputExpressionsToExplain() const {
+    binder::expression_vector getOutputExpressionsToExplain() const {
         return outputExpressionsToExplain;
     }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         return std::make_unique<LogicalExplain>(children[0], outputExpression, explainType,
-            outputExpressionsToExplain, printInfo->copy());
+            outputExpressionsToExplain);
     }
 
 private:
