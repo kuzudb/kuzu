@@ -30,6 +30,10 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(
     SniffCSVNameAndTypeDriver driver{this, bindInput};
     parseCSV(driver);
 
+    for (auto& i : driver.columns) {
+        // purge null types
+        i.second = LogicalTypeUtils::purgeAny(i.second, LogicalType::STRING());
+    }
     // Do header detection IFF user didn't set header AND user didn't turn off auto detection
     if (!csvOption.setHeader && csvOption.autoDetection) {
         detectedHeader = detectHeader(driver.columns);
@@ -434,6 +438,12 @@ bool SerialCSVReader::detectHeader(std::vector<std::pair<std::string, common::Lo
     SniffCSVHeaderDriver sniffHeaderDriver{this, bindInput, detectedTypes};
     parseCSV(sniffHeaderDriver);
     resetReaderState();
+    // In this case, User didn't set Header, but we detected a Header, use the detected header to set the name and type.
+    if (sniffHeaderDriver.detectedHeader) {
+        for (auto i = 0u; i < detectedTypes.size(); i++) {
+            detectedTypes[i].first = sniffHeaderDriver.header[i].first;
+        }
+    }
     return sniffHeaderDriver.detectedHeader;
 }
 

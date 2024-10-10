@@ -10,7 +10,7 @@
                                 lastJobDuration interval, workedHours INT64[], usedNames STRING[],
                                 courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (Header=True) ;
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
 ---- ok
 -STATEMENT CREATE REL TABLE knows1 (FROM person TO person, nullDouble DOUBLE, date DATE, meetTime TIMESTAMP,
      validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[],
@@ -87,7 +87,7 @@ Binder exception: Table knows3 does not contain column dummy.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes2 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes2) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
@@ -104,7 +104,7 @@ Binder exception: Table knows3 does not contain column dummy.
         nullStringColumn STRING, listOfInt INT64[], nullListOfInt INT64[], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes3 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-      listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+      listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes3) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
@@ -123,7 +123,7 @@ Binder exception: Table knows3 does not contain column dummy.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes4 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes4) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
@@ -140,7 +140,7 @@ Binder exception: Table knows3 does not contain column dummy.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes6 (id, int64Column, doubleColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- error
 Binder exception: Number of columns mismatch. Expected 7 but got 8.
 
@@ -151,7 +151,7 @@ Binder exception: Number of columns mismatch. Expected 7 but got 8.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes7 (id, int64Column, doubleColumn, nonexistentColumn, dateColumn, timestampColumn,
-    stringColumn, listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    stringColumn, listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- error
 Binder exception: Table tableOfTypes7 does not contain column nonexistentColumn.
 
@@ -162,7 +162,7 @@ Binder exception: Table tableOfTypes7 does not contain column nonexistentColumn.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes8 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt, extraColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt, extraColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 1: expected 9 values per row, but got 8. Line/record containing the error: 'id,column1,column2,column3,column4,column5,column6,"[94,70,35,36,73]"'
 
@@ -173,7 +173,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes9 (id, int64Column, doubleColumn, booleanColumn, booleanColumn, dateColumn, timestampColumn,
-    stringColumn, listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    stringColumn, listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- error
 Binder exception: Detect duplicate column name booleanColumn during COPY.
 
@@ -184,7 +184,7 @@ Binder exception: Detect duplicate column name booleanColumn during COPY.
                                              PRIMARY KEY (serialPk));
 ---- ok
 -STATEMENT COPY tableOfTypes10 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes10) WHERE row.id >= 20 AND row.id <= 24 RETURN
     row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn, row.listOfInt;
@@ -205,7 +205,7 @@ Binder exception: Detect duplicate column name booleanColumn during COPY.
                                              PRIMARY KEY (nullPk));
 ---- ok
 -STATEMENT COPY tableOfTypes11 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- error
 Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
 
@@ -258,7 +258,7 @@ Conversion exception: Unsupported casting function from DATE to INT64.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes14 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes14) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
@@ -277,7 +277,7 @@ Conversion exception: Unsupported casting function from DATE to INT64.
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes15 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv";
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes15) RETURN sum(row.seqColumn);
 ---- 1
