@@ -260,13 +260,13 @@
 ---- ok
 -STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], length INT16, level INT8, code UINT64, temperature UINT32, ulength UINT16, ulevel UINT8, hugedata INT128, MANY_ONe);
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true);
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
 ---- ok
 -STATEMENT COPY organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv";
 ---- ok
--STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (header=true);
+-STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv";
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok

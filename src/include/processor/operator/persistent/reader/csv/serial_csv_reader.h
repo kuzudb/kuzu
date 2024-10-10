@@ -19,7 +19,7 @@ public:
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV(
-        DialectOption& detectedDialect);
+        DialectOption& detectedDialect, bool& detectedHeader);
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
 
 protected:
@@ -29,6 +29,7 @@ private:
     const function::ScanTableFuncBindInput* bindInput;
     void resetReaderState();
     DialectOption detectDialect();
+    bool detectHeader(std::vector<std::pair<std::string, common::LogicalType>>& detectedTypes);
 };
 
 struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
@@ -59,7 +60,7 @@ struct SerialCSVScan {
     static function::function_set getFunctionSet();
     static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
         std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes,
-        DialectOption& detectedDialect);
+        DialectOption& detectedDialect, bool& detectedHeader);
 };
 
 } // namespace processor

@@ -73,7 +73,7 @@ Binder exception: dateColumn has data type DATE but INT32 was expected.
 -STATEMENT LOAD WITH HEADERS (a INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True, AUTO_DETECT=false) RETURN `from`, `to`, YEAR, Places;
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 11.
--STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
             RETURN fName, gender, birthdate;
 ---- 5
 Alice|1|1900-01-01
@@ -81,7 +81,7 @@ Bob|2|1900-01-01
 Carol|1|1940-06-22
 Dan|2|1950-07-23
 Elizabeth|1|1980-10-26
--STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (HEADER=FALSE)
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" 
             RETURN fName, gender, birthdate;
 ---- 3
 Farooq|2|1980-10-26
@@ -92,32 +92,32 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|1990-11-27
             RETURN *, concat(fName, 'aa');
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "[Aida]" to INT64. Line/record containing the error: '0,Alice,1,true,false,35,5.0,1900-01-01,2011-08-20 11:25:30Z+00:00,3 years 2 days 13 hours 2 minutes,"[10,5]","[Aida]"...'
--STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (HEADER=FALSE)
+-STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" 
             WHERE ID = '10'
             RETURN *, concat(fName, 'aa');
 ---- 1
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|false|true|83|4.9|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13 hours 2 minutes|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323|a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18|Hubert Blaine Wolfeschlegelsteinhausenbergerdorffaa
--STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"  WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
 ---- 1
 0aa|Alice
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH *
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"  WITH *
             MATCH (a:person) WHERE a.ID <= 2
             RETURN COUNT(*);
 ---- 1
 10
 -STATEMENT MATCH (a:person) WHERE a.ID <= 2
-            LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH *
+            LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"  WITH *
             RETURN COUNT(*);
 ---- 1
 10
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" (HEADER=False) RETURN *
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv"  RETURN *
 ---- 3
 3|4|2015|[3.8,2.5]|8.2
 5|6|2010|[2.1,4.4]|7.6
 7|6|2015|[9.2,3.1]|9.2
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" (HEADER=False)
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" 
             WITH column0 AS a, column1 AS b
-            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
             WITH * WHERE id = a
             RETURN a, b, fname;
 ---- 3
@@ -125,15 +125,15 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 5|6|Dan
 7|6|Elizabeth
 -STATEMENT MATCH (a:person) WHERE a.ID < 2
-            LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
             WHERE fname = "Alice" or fname = "Bob" AND a.fName = fname
             RETURN id, fname;
 ---- 1
 0|Alice
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" (HEADER=False)
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" 
             WHERE column0 = "3"
             WITH column0 AS a, column1 AS b
-            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
             WHERE id = a
             RETURN a, b, fname;
 ---- 1
@@ -144,11 +144,11 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 1972-07-31 13:22:30.342312|1972-07-31 13:22:30.342|1972-07-31 13:22:30|1972-07-31 13:22:30.342312+00|1972-07-31 13:22:30.342312|1972-07-31 13:22:30.342|1972-07-31 13:22:30|1972-07-31 13:22:30.342312+00
 |||||||
 1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30+00|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30+00
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/escape-char/double_quote_escape_char.csv' (header=true) RETURN *
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/escape-char/double_quote_escape_char.csv'  RETURN *
 ---- 2
 1|Some sample text.
 2|Some more sample "text".
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/escape-char/double_quote_escape_char.csv' (header=true) RETURN id AS a, id AS b
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/escape-char/double_quote_escape_char.csv'  RETURN id AS a, id AS b
 ---- 2
 1|1
 2|2

@@ -226,7 +226,8 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         }
         columns[columnIdx].first = columnName;
         columns[columnIdx].second = std::move(columnType);
-    } else if (sniffType[columnIdx]) {
+    } else if (sniffType[columnIdx] &&
+               (rowNum != 0 || !csvOption.autoDetection || csvOption.setHeader)) {
         // reading the body
         LogicalType combinedType;
         columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
@@ -234,6 +235,65 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         if (columns[columnIdx].second.getLogicalTypeID() == LogicalTypeID::STRING) {
             sniffType[columnIdx] = false;
         }
+    }
+
+    return true;
+}
+
+SniffCSVHeaderDriver::SniffCSVHeaderDriver(SerialCSVReader* reader,
+    const function::ScanTableFuncBindInput* /*bindInput*/,
+    const std::vector<std::pair<std::string, common::LogicalType>>& typeDetected)
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_HEADER) {
+    for (auto i = 0u; i < typeDetected.size(); i++) {
+        columns.push_back({typeDetected[i].first, typeDetected[i].second.copy()});
+    }
+}
+
+bool SniffCSVHeaderDriver::done(uint64_t rowNum) const {
+    // Only read the firt line.
+    return (0 < rowNum);
+}
+
+bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
+    std::string_view value) {
+    uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
+    }
+
+    // reading the header
+    LogicalType columnType(LogicalTypeID::ANY);
+
+    try {
+        columnType = function::inferMinimalTypeFromString(value);
+    } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
+                                 // This is how we check for a suitable
+                                 // datatype name.
+        // Didn't parse, just use the whole name.
+    }
+
+    // Store the value to Header vector for potential later use.
+    header.push_back({std::string(value), columnType.copy()});
+
+    // If we already determined has a header, just skip
+    if (detectedHeader) {
+        return true;
+    }
+
+    // If any of the column in the first row cannot be casted to its expected type, we have a
+    // header.
+    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING &&
+        columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID() &&
+        LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID() &&
+        LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
+        detectedHeader = true;
+        // We need to set the Name and Type based on this Header we detected.
     }
 
     return true;
