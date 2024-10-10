@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
@@ -13,26 +14,32 @@ namespace graph {
 // Organize projected graph similar to CatalogEntry. When we want to share projected graph across
 // statements, we need to migrate this class to catalog (or client context).
 struct GraphEntry {
-    common::table_id_vector_t nodeTableIDs;
-    common::table_id_vector_t relTableIDs;
+    std::vector<catalog::TableCatalogEntry*> nodeEntries;
+    std::vector<catalog::TableCatalogEntry*> relEntries;
 
-    GraphEntry(std::vector<common::table_id_t> nodeTableIDs,
-        std::vector<common::table_id_t> relTableIDs)
-        : nodeTableIDs{std::move(nodeTableIDs)}, relTableIDs{std::move(relTableIDs)} {}
+    binder::expression_vector relProperties;
+    std::shared_ptr<binder::Expression> relPredicate;
+
+    GraphEntry(std::vector<catalog::TableCatalogEntry*> nodeEntries,
+        std::vector<catalog::TableCatalogEntry*> relEntries)
+        : nodeEntries{std::move(nodeEntries)}, relEntries{std::move(relEntries)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GraphEntry);
 
-    bool containsRelTableID(common::table_id_t id) const {
-        for (auto id_ : relTableIDs) {
-            if (id_ == id) {
-                return true;
+    bool hasRelEntry(common::table_id_t tableID) const { return getRelEntry(tableID) != nullptr; }
+
+    const catalog::TableCatalogEntry* getRelEntry(common::table_id_t tableID) const {
+        for (auto entry : relEntries) {
+            if (entry->getTableID() == tableID) {
+                return entry;
             }
         }
-        return false;
+        return nullptr;
     }
 
 private:
     GraphEntry(const GraphEntry& other)
-        : nodeTableIDs(other.nodeTableIDs), relTableIDs(other.relTableIDs) {}
+        : nodeEntries{other.nodeEntries}, relEntries{other.relEntries},
+          relProperties{other.relProperties}, relPredicate{other.relPredicate} {}
 };
 
 class GraphEntrySet {

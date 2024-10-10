@@ -135,7 +135,17 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     // GDS pipeline
     auto recursiveInfo = rel->getRecursiveInfo();
     auto graphEntry =
-        graph::GraphEntry(recursiveInfo->node->getTableIDs(), recursiveInfo->rel->getTableIDs());
+        graph::GraphEntry(recursiveInfo->node->getEntries(), recursiveInfo->rel->getEntries());
+    if (recursiveInfo->relPredicate != nullptr) {
+        auto relPredicate = recursiveInfo->relPredicate;
+        auto collector = PropertyExprCollector();
+        collector.visit(relPredicate);
+        auto relProperties = ExpressionUtil::removeDuplication(collector.getPropertyExprs());
+
+        graphEntry.relProperties = relProperties;
+        graphEntry.relPredicate = relPredicate;
+    }
+
     auto functionSet = VarLenJoinsFunction::getFunctionSet();
     KU_ASSERT(functionSet.size() == 1);
     auto gdsFunction = functionSet[0]->constPtrCast<GDSFunction>()->copy();

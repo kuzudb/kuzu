@@ -14,24 +14,23 @@ namespace binder {
 graph::GraphEntry Binder::bindProjectGraph(const ProjectGraph& projectGraph) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
-    std::vector<common::table_id_t> nodeTableIDs;
-    std::vector<common::table_id_t> relTableIDs;
+    std::vector<catalog::TableCatalogEntry*> nodeEntries;
+    std::vector<catalog::TableCatalogEntry*> relEntries;
     for (auto tableName : projectGraph.getTableNames()) {
-        auto tableID = catalog->getTableID(transaction, tableName);
-        auto entry = catalog->getTableCatalogEntry(transaction, tableID);
+        auto entry = catalog->getTableCatalogEntry(transaction, tableName);
         switch (entry->getTableType()) {
         case TableType::NODE: {
-            nodeTableIDs.push_back(tableID);
+            nodeEntries.push_back(entry);
         } break;
         case TableType::REL: {
-            relTableIDs.push_back(tableID);
+            relEntries.push_back(entry);
         } break;
         default:
             throw BinderException(stringFormat("Cannot create a subgraph with table type {}.",
                 TableTypeUtils::toString(entry->getTableType())));
         }
     }
-    return GraphEntry(std::move(nodeTableIDs), std::move(relTableIDs));
+    return GraphEntry(std::move(nodeEntries), std::move(relEntries));
 }
 
 } // namespace binder
