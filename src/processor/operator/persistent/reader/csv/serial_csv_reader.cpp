@@ -405,11 +405,11 @@ DialectOption SerialCSVReader::detectDialect() {
     }
 
     // If the Dialect we found doesn't need Quote, we use empty as QuoteChar.
-    if (!finalDialects.empty() && !finalDialects[0].everQuoted) {
+    if (!finalDialects.empty() && !finalDialects[0].everQuoted && !option.setQuote) {
         finalDialects[0].quoteChar = '\0';
     }
     // If the Dialect we found doesn't need Escape, we use empty as EscapeChar.
-    if (!finalDialects.empty() && !finalDialects[0].everEscaped) {
+    if (!finalDialects.empty() && !finalDialects[0].everEscaped && !option.setEscape) {
         finalDialects[0].escapeChar = '\0';
     }
 

@@ -51,14 +51,9 @@ std::vector<std::string_view> StringUtils::smartSplit(std::string_view input, ch
         char c = input[i];
 
         if (c == '\'' && (stk.size() == 0u || stk.back() != '\'')) {
-            // Entering a single-quoted block
+            // Entering/Exiting a single-quoted block.
             insideSingleQuote = !insideSingleQuote;
-        } else if (c == '\'' && !stk.size() == 0u && stk.back() == '\'') {
-            // Exiting a single-quoted block
-            insideSingleQuote = !insideSingleQuote;
-        }
-
-        if (c == splitChar && stk.size() == 0u && !insideSingleQuote) {
+        } else if (c == splitChar && stk.size() == 0u && !insideSingleQuote) {
             if (result.size() + 1 == maxNumEle) {
                 result.push_back(input.substr(currentItem));
                 return result;
