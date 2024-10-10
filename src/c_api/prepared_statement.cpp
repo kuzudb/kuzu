@@ -257,18 +257,6 @@ kuzu_state kuzu_prepared_statement_bind_interval(kuzu_prepared_statement* prepar
     }
 }
 
-kuzu_state kuzu_prepared_statement_bind_decimal(kuzu_prepared_statement* prepared_statement,
-    const char* param_name, kuzu_decimal_t value) {
-    try {
-        auto value_ptr = std::make_unique<Value>(value);
-        kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name,
-            std::move(value_ptr));
-        return KuzuSuccess;
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-}
-
 kuzu_state kuzu_prepared_statement_bind_string(kuzu_prepared_statement* prepared_statement,
     const char* param_name, const char* value) {
     try {
