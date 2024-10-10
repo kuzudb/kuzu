@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+
 #include <string>
 #ifdef _WIN32
 #include <windows.h>

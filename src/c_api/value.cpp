@@ -623,26 +623,27 @@ kuzu_state kuzu_value_get_decimal(kuzu_value* value, std::string* out_result) {
         return KuzuError;
     }
     switch (physical_type_id) {
-        case PhysicalTypeID::INT16:
-            *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int16_t>());
-            return KuzuSuccess;
+    case PhysicalTypeID::INT16:
+        *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int16_t>());
+        return KuzuSuccess;
 
-        case PhysicalTypeID::INT32:
-            *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int32_t>());
-            return KuzuSuccess;
+    case PhysicalTypeID::INT32:
+        *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int32_t>());
+        return KuzuSuccess;
 
-        case PhysicalTypeID::INT64:
-            *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int64_t>());
-            return KuzuSuccess;
+    case PhysicalTypeID::INT64:
+        *out_result = std::to_string(static_cast<Value*>(value->_value)->getValue<int64_t>());
+        return KuzuSuccess;
 
-        case PhysicalTypeID::INT128: {
-            auto int_value_representation = static_cast<Value*>(value->_value)->getValue<int128_t>();
-            *out_result = std::to_string(int_value_representation.low) + std::to_string(int_value_representation.high);
-            return KuzuSuccess;
-        }
+    case PhysicalTypeID::INT128: {
+        auto int_value_representation = static_cast<Value*>(value->_value)->getValue<int128_t>();
+        *out_result = std::to_string(int_value_representation.low) +
+                      std::to_string(int_value_representation.high);
+        return KuzuSuccess;
+    }
 
-        default:
-            return KuzuError;
+    default:
+        return KuzuError;
     }
     return KuzuSuccess;
 }

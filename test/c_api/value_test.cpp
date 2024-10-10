@@ -710,7 +710,7 @@ TEST_F(CApiValueTest, getDecimal) {
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
     ASSERT_EQ(kuzu_value_get_decimal(&decimal_entry, &decimal_value), KuzuSuccess);
     ASSERT_EQ(decimal_value, "171");
-    
+
     ASSERT_EQ(kuzu_value_get_list_element(&value, 7, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
