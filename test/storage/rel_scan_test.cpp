@@ -26,7 +26,8 @@ public:
         auto nodeTableIDs = catalog->getNodeTableIDs(transaction);
         auto relTableIDs = catalog->getRelTableIDs(transaction);
         entry = std::make_unique<kuzu::graph::GraphEntry>(
-            catalog->getTableEntries(transaction, nodeTableIDs), catalog->getTableEntries(transaction, relTableIDs));
+            catalog->getTableEntries(transaction, nodeTableIDs),
+            catalog->getTableEntries(transaction, relTableIDs));
         graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, *entry);
     }
 

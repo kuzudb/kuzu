@@ -142,7 +142,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         collector.visit(relPredicate);
         auto relProperties = ExpressionUtil::removeDuplication(collector.getPropertyExprs());
 
-        graphEntry.relProperties =relProperties;
+        graphEntry.relProperties = relProperties;
         graphEntry.relPredicate = relPredicate;
     }
 

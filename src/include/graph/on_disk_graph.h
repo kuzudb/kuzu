@@ -72,8 +72,10 @@ struct OnDiskGraphScanState {
     InnerIterator bwdIterator;
 
     OnDiskGraphScanState(main::ClientContext* context, storage::RelTable& table,
-        std::unique_ptr<storage::RelTableScanState> fwdState, std::unique_ptr<storage::RelTableScanState> bwdState)
-        : fwdIterator{context, &table, std::move(fwdState)}, bwdIterator{context, &table, std::move(bwdState)} {}
+        std::unique_ptr<storage::RelTableScanState> fwdState,
+        std::unique_ptr<storage::RelTableScanState> bwdState)
+        : fwdIterator{context, &table, std::move(fwdState)},
+          bwdIterator{context, &table, std::move(bwdState)} {}
 };
 
 class OnDiskGraphScanStates : public GraphScanState {

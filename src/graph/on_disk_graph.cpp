@@ -2,20 +2,20 @@
 
 #include <memory>
 
+#include "binder/expression/property_expression.h"
+#include "binder/visitor/property_collector.h"
 #include "common/assert.h"
 #include "common/enums/rel_direction.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "graph/graph.h"
 #include "main/client_context.h"
+#include "planner/operator/schema.h"
+#include "processor/expression_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table.h"
 #include "storage/store/table.h"
-#include "binder/visitor/property_collector.h"
-#include "binder/expression/property_expression.h"
-#include "processor/expression_mapper.h"
-#include "planner/operator/schema.h"
-#include "expression_evaluator/expression_evaluator.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
@@ -28,10 +28,10 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace graph {
 
-
-static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& mm, const TableCatalogEntry& relEntry,
-    const RelTable& table, RelDataDirection direction, ValueVector* srcVector, ValueVector* dstVector,
-    ValueVector* relIDVector, expression_vector properties, const Schema& schema, const ResultSet& resultSet) {
+static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& mm,
+    const TableCatalogEntry& relEntry, const RelTable& table, RelDataDirection direction,
+    ValueVector* srcVector, ValueVector* dstVector, ValueVector* relIDVector,
+    expression_vector properties, const Schema& schema, const ResultSet& resultSet) {
     auto columnIDs = std::vector<column_id_t>{NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     for (auto property : properties) {
         columnIDs.push_back(property->constCast<PropertyExpression>().getColumnID(relEntry));
@@ -47,7 +47,7 @@ static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& mm, con
     scanState->outputVectors.push_back(relIDVector);
     for (auto& property : properties) {
         auto pos = DataPos(schema.getExpressionPos(*property));
-        auto vector  = resultSet.getValueVector(pos).get();
+        auto vector = resultSet.getValueVector(pos).get();
         scanState->outputVectors.push_back(vector);
     }
     scanState->outState = dstVector->state.get();
@@ -89,11 +89,10 @@ OnDiskGraphScanStates::OnDiskGraphScanStates(ClientContext* context, std::span<R
         auto bwdState = getRelScanState(*context->getMemoryManager(), *relEntry, *table,
             RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get(), relIDVector.get(),
             graphEntry.relProperties, schema, resultSet);
-        scanStates.emplace_back(table->getTableID(), OnDiskGraphScanState{context, *table,
-                                                         std::move(fwdState), std::move(bwdState)});
+        scanStates.emplace_back(table->getTableID(),
+            OnDiskGraphScanState{context, *table, std::move(fwdState), std::move(bwdState)});
     }
 }
-
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
     : context{context}, graphEntry{entry.copy()} {
@@ -244,7 +243,8 @@ Graph::Iterator OnDiskGraph::scanBwd(nodeID_t nodeID, GraphScanState& state) {
 bool OnDiskGraphScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
     // TODO(Guodong/Ben): do we need to set selVector to unfiltered before scanning?
     // I don't think it's necessary because scan doesn't read SelVector.
-    if (tableScanState->source == TableScanSource::NONE || !relTable->scan(context->getTx(), *tableScanState)) {
+    if (tableScanState->source == TableScanSource::NONE ||
+        !relTable->scan(context->getTx(), *tableScanState)) {
         return false;
     }
     if (predicate != nullptr) {

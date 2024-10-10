@@ -3,10 +3,10 @@
 #include <string>
 #include <unordered_map>
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 
 namespace kuzu {
 namespace graph {
@@ -25,9 +25,7 @@ struct GraphEntry {
         : nodeEntries{std::move(nodeEntries)}, relEntries{std::move(relEntries)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(GraphEntry);
 
-    bool hasRelEntry(common::table_id_t tableID) const {
-        return getRelEntry(tableID) != nullptr;
-    }
+    bool hasRelEntry(common::table_id_t tableID) const { return getRelEntry(tableID) != nullptr; }
 
     const catalog::TableCatalogEntry* getRelEntry(common::table_id_t tableID) const {
         for (auto entry : relEntries) {
@@ -40,8 +38,8 @@ struct GraphEntry {
 
 private:
     GraphEntry(const GraphEntry& other)
-        : nodeEntries{other.nodeEntries}, relEntries{other.relEntries}, relProperties{other.relProperties},
-          relPredicate{other.relPredicate} {}
+        : nodeEntries{other.nodeEntries}, relEntries{other.relEntries},
+          relProperties{other.relProperties}, relPredicate{other.relPredicate} {}
 };
 
 class GraphEntrySet {
