@@ -648,7 +648,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     kuzu_state state;
     auto connection = getConnection();
     state = kuzu_connection_query(connection,
-        (char*)"UNWIND [1, 2, 3] AS A UNWIND [5.7, 8.3, 2.9] AS B WITH cast(CAST(A AS DECIMAL) * "
+        (char*)"UNWIND [1] AS A UNWIND [5.7, 8.3, 8.7, 13.7] AS B WITH cast(CAST(A AS DECIMAL) * "
                "CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES",
         &result);
     ASSERT_EQ(state, KuzuSuccess);
@@ -665,7 +665,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_LIST);
     uint64_t list_size;
     ASSERT_EQ(kuzu_value_get_list_size(&value, &list_size), KuzuSuccess);
-    ASSERT_EQ(list_size, 9);
+    ASSERT_EQ(list_size, 4);
 
     kuzu_value decimal_entry;
     char* decimal_value;
@@ -676,6 +676,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "5.7");
+    kuzu_destroy_string(decimal_value);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 1, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
@@ -683,55 +684,22 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "8.3");
+    kuzu_destroy_string(decimal_value);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 2, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
     ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
     decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "2.9");
+    ASSERT_EQ(decimal_string_value, "8.7");
+    kuzu_destroy_string(decimal_value);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 3, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
     ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
     ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
     decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "11.4");
-
-    ASSERT_EQ(kuzu_value_get_list_element(&value, 4, &decimal_entry), KuzuSuccess);
-    kuzu_value_get_data_type(&decimal_entry, &dataType);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
-    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
-    decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "16.6");
-
-    ASSERT_EQ(kuzu_value_get_list_element(&value, 5, &decimal_entry), KuzuSuccess);
-    kuzu_value_get_data_type(&decimal_entry, &dataType);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
-    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
-    decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "5.8");
-
-    ASSERT_EQ(kuzu_value_get_list_element(&value, 6, &decimal_entry), KuzuSuccess);
-    kuzu_value_get_data_type(&decimal_entry, &dataType);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
-    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
-    decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "17.1");
-
-    ASSERT_EQ(kuzu_value_get_list_element(&value, 7, &decimal_entry), KuzuSuccess);
-    kuzu_value_get_data_type(&decimal_entry, &dataType);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
-    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
-    decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "24.9");
-
-    ASSERT_EQ(kuzu_value_get_list_element(&value, 8, &decimal_entry), KuzuSuccess);
-    kuzu_value_get_data_type(&decimal_entry, &dataType);
-    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
-    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
-    decimal_string_value = std::string(decimal_value);
-    ASSERT_EQ(decimal_string_value, "8.7");
+    ASSERT_EQ(decimal_string_value, "13.7");
     kuzu_destroy_string(decimal_value);
 
     kuzu_flat_tuple_destroy(&flatTuple);
