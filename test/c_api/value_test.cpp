@@ -666,6 +666,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     uint64_t list_size;
     ASSERT_EQ(kuzu_value_get_list_size(&value, &list_size), KuzuSuccess);
     ASSERT_EQ(list_size, 4);
+    kuzu_data_type_destroy(&dataType);
 
     kuzu_value decimal_entry;
     char* decimal_value;
@@ -677,6 +678,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "5.7");
     kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 1, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
@@ -685,6 +687,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "8.3");
     kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 2, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
@@ -693,6 +696,7 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "8.7");
     kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
 
     ASSERT_EQ(kuzu_value_get_list_element(&value, 3, &decimal_entry), KuzuSuccess);
     kuzu_value_get_data_type(&decimal_entry, &dataType);
@@ -701,10 +705,11 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "13.7");
     kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
 
+    kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
-    kuzu_data_type_destroy(&dataType);
     kuzu_value_destroy(&decimal_entry);
 }
 
