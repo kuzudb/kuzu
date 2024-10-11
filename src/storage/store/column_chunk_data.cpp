@@ -78,19 +78,19 @@ static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataTyp
 }
 
 ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, uint64_t capacity,
-    bool enableCompression, ResidencyState residencyState, bool hasNullData)
+    bool enableCompression, ResidencyState residencyState, bool hasNullData, bool initializeToZero)
     : residencyState{residencyState}, dataType{std::move(dataType)},
       enableCompression{enableCompression},
       numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, capacity{capacity}, numValues{0} {
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(mm, capacity, enableCompression, residencyState);
     }
-    initializeBuffer(this->dataType.getPhysicalType(), mm);
+    initializeBuffer(this->dataType.getPhysicalType(), mm, initializeToZero);
     initializeFunction(enableCompression);
 }
 
 ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, bool enableCompression,
-    const ColumnChunkMetadata& metadata, bool hasNullData)
+    const ColumnChunkMetadata& metadata, bool hasNullData, bool initializeToZero)
     : residencyState(ResidencyState::ON_DISK), dataType{std::move(dataType)},
       enableCompression{enableCompression},
       numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, capacity{0},
@@ -98,20 +98,22 @@ ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, bool e
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(mm, enableCompression, metadata);
     }
-    initializeBuffer(this->dataType.getPhysicalType(), mm);
+    initializeBuffer(this->dataType.getPhysicalType(), mm, initializeToZero);
     initializeFunction(enableCompression);
 }
 
 ColumnChunkData::ColumnChunkData(MemoryManager& mm, PhysicalTypeID dataType, bool enableCompression,
-    const ColumnChunkMetadata& metadata, bool hasNullData)
-    : ColumnChunkData(mm, LogicalType::ANY(dataType), enableCompression, metadata, hasNullData) {}
+    const ColumnChunkMetadata& metadata, bool hasNullData, bool initializeToZero)
+    : ColumnChunkData(mm, LogicalType::ANY(dataType), enableCompression, metadata, hasNullData,
+          initializeToZero) {}
 
-void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm) {
+void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm,
+    bool initializeToZero) {
     numBytesPerValue = getDataTypeSizeInChunk(physicalType);
 
     // Some columnChunks are much smaller than the 256KB minimum size used by allocateBuffer
     // Which would lead to excessive memory use, particularly in the partitioner
-    buffer = mm.mallocBuffer(true, getBufferSize(capacity));
+    buffer = mm.mallocBuffer(initializeToZero, getBufferSize(capacity));
 }
 
 void ColumnChunkData::initializeFunction(bool enableCompression) {
@@ -388,14 +390,17 @@ void ColumnChunkData::setToInMemory() {
     }
 }
 
-void ColumnChunkData::resize(uint64_t newCapacity) {
+void ColumnChunkData::resize(uint64_t newCapacity, bool reserveDataAndInitializeToZero) {
     if (newCapacity > capacity) {
         capacity = newCapacity;
     }
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
-        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(true, numBytesAfterResize);
-        memcpy(resizedBuffer->getBuffer().data(), buffer->getBuffer().data(), getBufferSize());
+        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(
+            reserveDataAndInitializeToZero, numBytesAfterResize);
+        if (reserveDataAndInitializeToZero) {
+            memcpy(resizedBuffer->getBuffer().data(), buffer->getBuffer().data(), getBufferSize());
+        }
         buffer = std::move(resizedBuffer);
     }
     if (nullData) {
@@ -496,6 +501,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(MemoryManager& mem
     ColumnChunkMetadata metadata;
     bool enableCompression = false;
     bool hasNull = false;
+    bool initializeToZero = true;
     deSer.validateDebuggingInfo(key, "data_type");
     const auto dataType = LogicalType::deserialize(deSer);
     deSer.validateDebuggingInfo(key, "metadata");
@@ -505,7 +511,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(MemoryManager& mem
     deSer.validateDebuggingInfo(key, "has_null");
     deSer.deserializeValue<bool>(hasNull);
     auto chunkData = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
-        enableCompression, metadata, hasNull);
+        enableCompression, metadata, hasNull, initializeToZero);
     if (hasNull) {
         deSer.validateDebuggingInfo(key, "null_data");
         chunkData->nullData = NullChunkData::deserialize(memoryManager, deSer);
@@ -769,7 +775,7 @@ std::optional<NullMask> ColumnChunkData::getNullMask() const {
 
 std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(MemoryManager& mm,
     LogicalType dataType, bool enableCompression, uint64_t capacity, ResidencyState residencyState,
-    bool hasNullData) {
+    bool hasNullData, bool initializeToZero) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         return std::make_unique<BoolChunkData>(mm, capacity, enableCompression, residencyState,
@@ -788,7 +794,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Memor
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
         return std::make_unique<ColumnChunkData>(mm, std::move(dataType), capacity,
-            enableCompression, residencyState, hasNullData);
+            enableCompression, residencyState, hasNullData, initializeToZero);
     }
     case PhysicalTypeID::INTERNAL_ID: {
         return std::make_unique<InternalIDChunkData>(mm, capacity, enableCompression,
@@ -813,7 +819,8 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Memor
 }
 
 std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(MemoryManager& mm,
-    LogicalType dataType, bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData) {
+    LogicalType dataType, bool enableCompression, ColumnChunkMetadata& metadata, bool hasNullData,
+    bool initializeToZero) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         return std::make_unique<BoolChunkData>(mm, enableCompression, metadata, hasNullData);
@@ -831,7 +838,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Memor
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
         return std::make_unique<ColumnChunkData>(mm, std::move(dataType), enableCompression,
-            metadata, hasNullData);
+            metadata, hasNullData, initializeToZero);
     }
         // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     case PhysicalTypeID::INTERNAL_ID: {

@@ -152,11 +152,11 @@ void StructChunkData::setToInMemory() {
     }
 }
 
-void StructChunkData::resize(uint64_t newCapacity) {
-    ColumnChunkData::resize(newCapacity);
+void StructChunkData::resize(uint64_t newCapacity, bool reserveDataAndInitializeToZero) {
+    ColumnChunkData::resize(newCapacity, reserveDataAndInitializeToZero);
     capacity = newCapacity;
     for (const auto& child : childChunks) {
-        child->resize(newCapacity);
+        child->resize(newCapacity, reserveDataAndInitializeToZero);
     }
 }
 

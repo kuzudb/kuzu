@@ -99,11 +99,12 @@ public:
     friend class Spiller;
 
     ColumnChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
-        bool enableCompression, ResidencyState residencyState, bool hasNullData);
+        bool enableCompression, ResidencyState residencyState, bool hasNullData,
+        bool initializeToZero = true);
     ColumnChunkData(MemoryManager& mm, common::LogicalType dataType, bool enableCompression,
-        const ColumnChunkMetadata& metadata, bool hasNullData);
+        const ColumnChunkMetadata& metadata, bool hasNullData, bool initializeToZero = true);
     ColumnChunkData(MemoryManager& mm, common::PhysicalTypeID physicalType, bool enableCompression,
-        const ColumnChunkMetadata& metadata, bool hasNullData);
+        const ColumnChunkMetadata& metadata, bool hasNullData, bool initializeToZero = true);
     virtual ~ColumnChunkData();
 
     template<typename T>
@@ -196,7 +197,7 @@ public:
     virtual void setToInMemory();
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
-    virtual void resize(uint64_t newCapacity);
+    virtual void resize(uint64_t newCapacity, bool reserveDataAndInitializeToZero = true);
 
     void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
         uint64_t& numValues_);
@@ -237,7 +238,8 @@ public:
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.
-    void initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm);
+    void initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm,
+        bool initializeToZero);
     void initializeFunction(bool enableCompression);
 
     // Note: This function is not setting child/null chunk data recursively.
@@ -293,11 +295,11 @@ public:
         bool hasNullChunk)
         : ColumnChunkData(mm, common::LogicalType::BOOL(), capacity,
               // Booleans are always bitpacked, but this can also enable constant compression
-              enableCompression, type, hasNullChunk) {}
+              enableCompression, type, hasNullChunk, true) {}
     BoolChunkData(MemoryManager& mm, bool enableCompression, const ColumnChunkMetadata& metadata,
         bool hasNullData)
-        : ColumnChunkData{mm, common::LogicalType::BOOL(), enableCompression, metadata,
-              hasNullData} {}
+        : ColumnChunkData{mm, common::LogicalType::BOOL(), enableCompression, metadata, hasNullData,
+              true} {}
 
     void append(common::ValueVector* vector, const common::SelectionVector& sel) final;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
@@ -426,10 +428,10 @@ private:
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(MemoryManager& mm,
         common::LogicalType dataType, bool enableCompression, uint64_t capacity,
-        ResidencyState residencyState, bool hasNullData = true);
+        ResidencyState residencyState, bool hasNullData = true, bool initializeToZero = true);
     static std::unique_ptr<ColumnChunkData> createColumnChunkData(MemoryManager& mm,
         common::LogicalType dataType, bool enableCompression, ColumnChunkMetadata& metadata,
-        bool hasNullData);
+        bool hasNullData, bool initializeToZero);
 
     static std::unique_ptr<ColumnChunkData> createNullChunkData(MemoryManager& mm,
         bool enableCompression, uint64_t capacity, ResidencyState type) {
