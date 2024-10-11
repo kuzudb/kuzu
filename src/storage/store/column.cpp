@@ -453,7 +453,8 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
             } else {
                 KU_UNREACHABLE;
             }
-            checkpointState.persistentData.getMetadata() = chunkState.metadata;
+            checkpointState.persistentData.getMetadata().compMeta.floatMetadata()->exceptionCount =
+                chunkState.metadata.compMeta.floatMetadata()->exceptionCount;
         }
     } else {
         checkpointColumnChunkOutOfPlace(chunkState, checkpointState);

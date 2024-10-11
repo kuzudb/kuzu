@@ -555,7 +555,6 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask) {
     if (!inMemMode) {
-        // numValues not not fit in uint16
         std::vector<double> src(4 * 1024, 5.6);
         src[1] = 123456789012.56;
         src[3] = 1;
