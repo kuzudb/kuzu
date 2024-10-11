@@ -1,5 +1,5 @@
 COPY `bom-and-data` FROM "dataset/csv-edge-case-tests/bom-and-data.csv";
-COPY `bom-and-header` FROM "dataset/csv-edge-case-tests/bom-and-header.csv" (HEADER=TRUE);
+COPY `bom-and-header` FROM "dataset/csv-edge-case-tests/bom-and-header.csv" (header = true);
 COPY `bom` FROM "dataset/csv-edge-case-tests/bom.csv";
 COPY `carriage-return-then-eof` FROM "dataset/csv-edge-case-tests/carriage-return-then-eof.csv";
 COPY `delimiter-then-eof` FROM "dataset/csv-edge-case-tests/delimiter-then-eof.csv";
@@ -7,7 +7,7 @@ COPY `empty-first-line` FROM "dataset/csv-edge-case-tests/empty-first-line.csv";
 COPY `empty-lines-multiple-columns` FROM "dataset/csv-edge-case-tests/empty-lines-multiple-columns.csv";
 COPY `empty-lines-single-column` FROM "dataset/csv-edge-case-tests/empty-lines-single-column.csv";
 COPY `empty` FROM "dataset/csv-edge-case-tests/empty.csv";
-COPY `empty-with-header` FROM "dataset/csv-edge-case-tests/empty.csv" (HEADER=TRUE);
+COPY `empty-with-header` FROM "dataset/csv-edge-case-tests/empty.csv";
 COPY `eof-after-unquote` FROM "dataset/csv-edge-case-tests/eof-after-unquote.csv";
 COPY `escapes-in-quote` FROM "dataset/csv-edge-case-tests/escapes-in-quote.csv";
 COPY `escapes-out-of-quote` FROM "dataset/csv-edge-case-tests/escapes-out-of-quote.csv" (sample_size=1);
