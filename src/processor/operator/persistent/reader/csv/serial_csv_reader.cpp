@@ -173,7 +173,8 @@ void SerialCSVScan::bindColumns(const ScanTableFuncBindInput* bindInput,
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
-        bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes, detectedDialect, detectedHeader);
+        bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes, detectedDialect,
+            detectedHeader);
         ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
     }
 }
@@ -193,8 +194,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
 
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
-    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes,
-        detectedDialect, detectedHeader);
+    SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes, detectedDialect,
+        detectedHeader);
 
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
@@ -432,14 +433,16 @@ DialectOption SerialCSVReader::detectDialect() {
     return ret;
 }
 
-bool SerialCSVReader::detectHeader(std::vector<std::pair<std::string, common::LogicalType>>& detectedTypes) {
+bool SerialCSVReader::detectHeader(
+    std::vector<std::pair<std::string, common::LogicalType>>& detectedTypes) {
     // Reset the file position and buffer to start reading from the beginning after detection.
     resetReaderState();
     SniffCSVHeaderDriver sniffHeaderDriver{this, bindInput, detectedTypes};
     readBOM();
     parseCSV(sniffHeaderDriver);
     resetReaderState();
-    // In this case, User didn't set Header, but we detected a Header, use the detected header to set the name and type.
+    // In this case, User didn't set Header, but we detected a Header, use the detected header to
+    // set the name and type.
     if (sniffHeaderDriver.detectedHeader) {
         for (auto i = 0u; i < detectedTypes.size(); i++) {
             detectedTypes[i].first = sniffHeaderDriver.header[i].first;

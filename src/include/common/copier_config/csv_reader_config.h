@@ -52,15 +52,18 @@ struct CSVOption {
             result += "header=" + header;
         }
         if (setEscape) {
-            if (!result.empty()) result += ", ";  // Add separator if not the first option
+            if (!result.empty())
+                result += ", "; // Add separator if not the first option
             result += stringFormat("escape='\\{}'", escapeChar);
         }
         if (setDelim) {
-            if (!result.empty()) result += ", ";
+            if (!result.empty())
+                result += ", ";
             result += stringFormat("delim='{}'", delimiter);
         }
         if (setQuote) {
-            if (!result.empty()) result += ", ";
+            if (!result.empty())
+                result += ", ";
             result += stringFormat("quote='\\{}'", quoteChar);
         }
 

@@ -226,7 +226,8 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         }
         columns[columnIdx].first = columnName;
         columns[columnIdx].second = std::move(columnType);
-    } else if (sniffType[columnIdx] && (rowNum != 0 || !csvOption.autoDetection || csvOption.setHeader)) {
+    } else if (sniffType[columnIdx] &&
+               (rowNum != 0 || !csvOption.autoDetection || csvOption.setHeader)) {
         // reading the body
         LogicalType combinedType;
         columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
@@ -240,11 +241,11 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
 }
 
 SniffCSVHeaderDriver::SniffCSVHeaderDriver(SerialCSVReader* reader,
-    const function::ScanTableFuncBindInput* /*bindInput*/, const std::vector<std::pair<std::string, common::LogicalType>>& typeDetected)
+    const function::ScanTableFuncBindInput* /*bindInput*/,
+    const std::vector<std::pair<std::string, common::LogicalType>>& typeDetected)
     : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_HEADER) {
     for (auto i = 0u; i < typeDetected.size(); i++) {
-        columns.push_back(
-            {typeDetected[i].first, typeDetected[i].second.copy()});
+        columns.push_back({typeDetected[i].first, typeDetected[i].second.copy()});
     }
 }
 
@@ -273,12 +274,13 @@ bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t col
     if (detectedHeader) {
         return true;
     }
-    
-    // If any of the column in the first row cannot be casted to its expected type, we have a header.
-    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING 
-     && columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID()
-     && LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID()
-     && LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
+
+    // If any of the column in the first row cannot be casted to its expected type, we have a
+    // header.
+    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING &&
+        columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID() &&
+        LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID() &&
+        LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
         detectedHeader = true;
     }
 
