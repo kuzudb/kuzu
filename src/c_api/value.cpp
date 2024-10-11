@@ -614,7 +614,6 @@ kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* o
 kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result) {
     auto v = static_cast<Value*>(value->_value);
     auto logical_type_id = v->getDataType().getLogicalTypeID();
-    auto physical_type_id = v->getDataType().getPhysicalType();
     if (logical_type_id != LogicalTypeID::DECIMAL) {
         return KuzuError;
     }
