@@ -248,11 +248,6 @@ SniffCSVHeaderDriver::SniffCSVHeaderDriver(SerialCSVReader* reader,
     }
 }
 
-bool SniffCSVHeaderDriver::done(uint64_t rowNum) const {
-    // Only read the firt line.
-    return (0 < rowNum);
-}
-
 bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
     std::string_view value) {
     uint64_t length = value.length();
@@ -269,13 +264,7 @@ bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t col
     // reading the header
     LogicalType columnType(LogicalTypeID::ANY);
 
-    try {
-        columnType = function::inferMinimalTypeFromString(value);
-    } catch (const Exception&) { // NOLINT(bugprone-empty-catch):
-                                    // This is how we check for a suitable
-                                    // datatype name.
-        // Didn't parse, just use the whole name.
-    }
+    columnType = function::inferMinimalTypeFromString(value);
 
     // Store the value to Header vector for potential later use.
     header.push_back({std::string(value), columnType.copy()});
@@ -291,7 +280,6 @@ bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t col
      && LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID()
      && LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
         detectedHeader = true;
-        // We need to set the Name and Type based on this Header we detected.
     }
 
     return true;

@@ -141,7 +141,11 @@ public:
     SniffCSVHeaderDriver(SerialCSVReader* reader,
         const function::ScanTableFuncBindInput* bindInput, const std::vector<std::pair<std::string, common::LogicalType>>& TypeDetected);
 
-    bool done(uint64_t rowNum) const;
+    bool done(uint64_t rowNum) const {
+        // Only read the first line.
+        return (0 < rowNum);
+    };
+    
     bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;
 
 public:
