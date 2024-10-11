@@ -642,7 +642,7 @@ TEST_F(CApiValueTest, getMapValue) {
     kuzu_flat_tuple_destroy(&flatTuple);
 }
 
-TEST_F(CApiValueTest, getDecimal) {
+TEST_F(CApiValueTest, getDecimalAsString) {
     kuzu_query_result result;
     kuzu_flat_tuple flatTuple;
     kuzu_state state;
@@ -732,6 +732,7 @@ TEST_F(CApiValueTest, getDecimal) {
     ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
     decimal_string_value = std::string(decimal_value);
     ASSERT_EQ(decimal_string_value, "8.7");
+    kuzu_destroy_string(decimal_value);
 
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);

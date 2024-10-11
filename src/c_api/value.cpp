@@ -9,6 +9,7 @@
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include <cstring>
 
 using namespace kuzu::common;
 
@@ -611,32 +612,19 @@ kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* o
 }
 
 kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result) {
-    auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
-    auto physical_type_id = static_cast<Value*>(value->_value)->getDataType().getPhysicalType();
+    auto v = static_cast<Value*>(value->_value);
+    auto logical_type_id = v->getDataType().getLogicalTypeID();
+    auto physical_type_id = v->getDataType().getPhysicalType();
     if (logical_type_id != LogicalTypeID::DECIMAL) {
         return KuzuError;
     }
-    switch (physical_type_id) {
-    case PhysicalTypeID::INT16:
-        *out_result = kuzu_value_to_string(value);
-        return KuzuSuccess;
-
-    case PhysicalTypeID::INT32:
-        *out_result = kuzu_value_to_string(value);
-        return KuzuSuccess;
-
-    case PhysicalTypeID::INT64:
-        *out_result = kuzu_value_to_string(value);
-        return KuzuSuccess;
-
-    case PhysicalTypeID::INT128: {
-        *out_result = kuzu_value_to_string(value);
-        return KuzuSuccess;
-    }
-
-    default:
+    if (physical_type_id != PhysicalTypeID::INT16 && physical_type_id != PhysicalTypeID::INT32 && physical_type_id != PhysicalTypeID::INT64 && physical_type_id != PhysicalTypeID::INT128) {
         return KuzuError;
     }
+
+    std::string v_string = v->toString();
+    *out_result = new char[v_string.length() + 1];
+    strcpy(*out_result, v_string.c_str());
     return KuzuSuccess;
 }
 
