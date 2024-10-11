@@ -234,14 +234,14 @@ public:
     void loadFromDisk();
     uint64_t spillToDisk();
 
-    // Note: This function is not setting child/null chunk data recursively.
-    void setToOnDisk(const ColumnChunkMetadata& metadata);
-
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.
     void initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm);
     void initializeFunction(bool enableCompression);
+
+    // Note: This function is not setting child/null chunk data recursively.
+    void setToOnDisk(const ColumnChunkMetadata& metadata);
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector);

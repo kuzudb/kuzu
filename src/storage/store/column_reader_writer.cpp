@@ -369,7 +369,6 @@ private:
                     curExceptionPosInChunk =
                         exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk;
                 } else {
-
                     curExceptionPosInChunk = maxWrittenPosInChunk;
                 }
             }
