@@ -224,8 +224,7 @@ enum class PhysicalTypeID : uint8_t {
     INTERNAL_ID = 14,
     ALP_EXCEPTION_FLOAT = 15,
     ALP_EXCEPTION_DOUBLE = 16,
-    DECIMAL = 17,
-
+    
     // Variable size types.
     STRING = 20,
     LIST = 22,

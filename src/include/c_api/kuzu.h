@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-#include <string>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -1234,7 +1233,7 @@ KUZU_C_API kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t
  * @param[out] out_result The output parameter that will hold the decimal value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_get_decimal(kuzu_value* value, std::string* out_result);
+KUZU_C_API kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result);
 /**
  * @brief Returns the string value of the given value. The value must be of type STRING.
  * @param value The value to return.
