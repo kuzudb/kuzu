@@ -619,9 +619,7 @@ kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result
         return KuzuError;
     }
 
-    std::string v_string = v->toString();
-    *out_result = new char[v_string.length() + 1];
-    strcpy(*out_result, v_string.c_str());
+    *out_result = convertToOwnedCString(v->toString());
     return KuzuSuccess;
 }
 
