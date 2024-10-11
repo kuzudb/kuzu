@@ -126,7 +126,7 @@ jobs:
           path: ./scripts/generate-cpp-docs/c/docs/html
 
   update-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [generate-python-docs, generate-nodejs-docs, generate-java-docs, generate-cpp-docs]
     steps:
       - uses: actions/checkout@v4

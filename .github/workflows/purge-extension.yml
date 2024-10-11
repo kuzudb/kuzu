@@ -9,7 +9,7 @@ jobs:
     
   purge-extensions:
     needs: get-dockerhub-extensions
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Free disk space on Ubuntu runner
         uses: kfir4444/free-disk-space@main
