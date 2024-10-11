@@ -821,7 +821,7 @@ jobs:
       - name: Test
         working-directory: tools/shell/test
         run: |
-          pip3 install pytest pexpect
+          pip3 install --break-system-package pytest pexpect
           python3 -m pytest -v .
 
   linux-extension-test:
