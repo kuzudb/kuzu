@@ -618,9 +618,6 @@ kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result
     if (logical_type_id != LogicalTypeID::DECIMAL) {
         return KuzuError;
     }
-    if (physical_type_id != PhysicalTypeID::INT16 && physical_type_id != PhysicalTypeID::INT32 && physical_type_id != PhysicalTypeID::INT64 && physical_type_id != PhysicalTypeID::INT128) {
-        return KuzuError;
-    }
 
     std::string v_string = v->toString();
     *out_result = new char[v_string.length() + 1];
