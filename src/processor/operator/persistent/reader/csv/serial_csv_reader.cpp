@@ -436,6 +436,7 @@ bool SerialCSVReader::detectHeader(std::vector<std::pair<std::string, common::Lo
     // Reset the file position and buffer to start reading from the beginning after detection.
     resetReaderState();
     SniffCSVHeaderDriver sniffHeaderDriver{this, bindInput, detectedTypes};
+    readBOM();
     parseCSV(sniffHeaderDriver);
     resetReaderState();
     // In this case, User didn't set Header, but we detected a Header, use the detected header to set the name and type.
