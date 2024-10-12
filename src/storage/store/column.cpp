@@ -220,7 +220,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     KU_ASSERT(endOffset >= startOffset);
     const auto numValuesToScan = endOffset - startOffset;
     if (numValuesToScan > columnChunk->getCapacity()) {
-        columnChunk->resize(std::bit_ceil(numValuesToScan), false);
+        columnChunk->resizeWithoutPreserve(std::bit_ceil(numValuesToScan));
     }
     if (getDataTypeSizeInChunk(dataType) == 0) {
         columnChunk->setNumValues(numValuesToScan);

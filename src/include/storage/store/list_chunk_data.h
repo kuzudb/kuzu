@@ -81,10 +81,16 @@ public:
         dataColumnChunk->setToInMemory();
         KU_ASSERT(offsetColumnChunk->getNumValues() == numValues);
     }
-    void resize(uint64_t newCapacity, bool reserveDataAndInitializeToZero = true) override {
-        ColumnChunkData::resize(newCapacity, reserveDataAndInitializeToZero);
-        sizeColumnChunk->resize(newCapacity, reserveDataAndInitializeToZero);
-        offsetColumnChunk->resize(newCapacity, reserveDataAndInitializeToZero);
+    void resize(uint64_t newCapacity) override {
+        ColumnChunkData::resize(newCapacity);
+        sizeColumnChunk->resize(newCapacity);
+        offsetColumnChunk->resize(newCapacity);
+    }
+
+    void resizeWithoutPreserve(uint64_t newCapacity) override {
+        ColumnChunkData::resizeWithoutPreserve(newCapacity);
+        sizeColumnChunk->resizeWithoutPreserve(newCapacity);
+        offsetColumnChunk->resizeWithoutPreserve(newCapacity);
     }
 
     common::offset_t getListStartOffset(common::offset_t offset) const;

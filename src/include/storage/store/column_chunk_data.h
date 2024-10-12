@@ -197,7 +197,10 @@ public:
     virtual void setToInMemory();
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
-    virtual void resize(uint64_t newCapacity, bool reserveDataAndInitializeToZero = true);
+    //reverse data and zero the part exceeding the original size
+    virtual void resize(uint64_t newCapacity);
+    //the opposite of the resize method, just simple resize
+    virtual void resizeWithoutPreserve(uint64_t newCapacity);
 
     void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
         uint64_t& numValues_);

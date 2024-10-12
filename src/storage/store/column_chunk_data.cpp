@@ -390,17 +390,31 @@ void ColumnChunkData::setToInMemory() {
     }
 }
 
-void ColumnChunkData::resize(uint64_t newCapacity, bool reserveDataAndInitializeToZero) {
+void ColumnChunkData::resize(uint64_t newCapacity) {
     if (newCapacity > capacity) {
         capacity = newCapacity;
     }
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
-        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(
-            reserveDataAndInitializeToZero, numBytesAfterResize);
-        if (reserveDataAndInitializeToZero) {
-            memcpy(resizedBuffer->getBuffer().data(), buffer->getBuffer().data(), getBufferSize());
-        }
+        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(false, numBytesAfterResize);
+        auto bufferSize = getBufferSize();
+        auto resizedBufferData = resizedBuffer->getBuffer().data();
+        memcpy(resizedBufferData, buffer->getBuffer().data(), bufferSize);
+        memset(resizedBufferData + bufferSize, 0, numBytesAfterResize - bufferSize);
+        buffer = std::move(resizedBuffer);
+    }
+    if (nullData) {
+        nullData->resize(newCapacity);
+    }
+}
+
+void ColumnChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
+    if (newCapacity > capacity) {
+        capacity = newCapacity;
+    }
+    const auto numBytesAfterResize = getBufferSize(newCapacity);
+    if (numBytesAfterResize > getBufferSize()) {
+        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(false, numBytesAfterResize);
         buffer = std::move(resizedBuffer);
     }
     if (nullData) {
