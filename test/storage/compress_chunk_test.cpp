@@ -553,6 +553,51 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPage) {
     });
 }
 
+TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask) {
+    if (!inMemMode) {
+        std::vector<double> src(4 * 1024, 5.6);
+        src[1] = 123456789012.56;
+        src[3] = 1;
+        for (size_t i = 11; i < src.size(); i += 10) {
+            src[i] = src[i - 10] + 7890123.567;
+        }
+
+        testCompressChunk(src, [&src, this](ColumnReadWriter* reader,
+                                   transaction::Transaction* transaction, ChunkState& state,
+                                   const LogicalType& dataType) {
+            auto* mm = getMemoryManager(*database);
+            auto* storageManager = getStorageManager(*database);
+            auto* dataFH = storageManager->getDataFH();
+
+            static constexpr size_t numValuesToSet = 50;
+            const size_t cpyOffset = 2100;
+            src[cpyOffset] = 10101010;
+            for (size_t i = 1; i < numValuesToSet; i++) {
+                src[cpyOffset + i] = src[cpyOffset + i - 1] + 1;
+            }
+
+            std::optional<NullMask> nullMask(src.size());
+            nullMask->setNullFromRange(0, cpyOffset, true);
+            InPlaceUpdateLocalState localUpdateState{};
+            ASSERT_TRUE(state.metadata.compMeta.canUpdateInPlace((uint8_t*)src.data(), 0,
+                cpyOffset + numValuesToSet, dataType.getPhysicalType(), localUpdateState,
+                nullMask));
+            reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), &nullMask.value(),
+                0, cpyOffset + numValuesToSet, WriteCompressedValuesToPage(dataType));
+
+            commitUpdate<double>(transaction, state, dataFH, mm, &storageManager->getShadowFile());
+
+            // our compression algorithms don't actually respect the null mask but we can check if
+            // the non-null values match
+            std::vector<double> out(numValuesToSet);
+            reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0,
+                cpyOffset, cpyOffset + numValuesToSet, ReadCompressedValuesFromPage(dataType));
+            EXPECT_THAT(out, ::testing::ContainerEq(std::vector<double>(src.begin() + cpyOffset,
+                                 src.begin() + cpyOffset + numValuesToSet)));
+        });
+    }
+}
+
 TEST_F(CompressChunkTest, TestInPlaceUpdateConstant) {
     std::vector<double> src(256, 0.54);
     testCompressChunk(src, [](ColumnReadWriter*, transaction::Transaction*, ChunkState& state,

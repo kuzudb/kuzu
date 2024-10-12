@@ -1,0 +1,45 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE DeleteALPException
+-STATEMENT CREATE NODE TABLE person (id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE knows (FROM person TO person, val DOUBLE);
+---- ok
+-STATEMENT CREATE (a:person {ID: 88})
+---- ok
+-STATEMENT CREATE (a:person {ID: 77})
+---- ok
+-STATEMENT CREATE (a:person {ID: 66})
+---- ok
+-STATEMENT CREATE (a:person {ID: 55})
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 77 AND b.ID = 88 CREATE (a)-[e:knows {val:5.1}]->(b) RETURN COUNT(*);
+---- 1
+1
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 77 AND b.ID = 66 CREATE (a)-[e:knows {val:123456789.123}]->(b) RETURN COUNT(*);
+---- 1
+1
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 77 AND b.ID = 55 CREATE (a)-[e:knows {val:1.2}]->(b) RETURN COUNT(*);
+---- 1
+1
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 66 AND b.ID = 55 CREATE (a)-[e:knows {val:2.3}]->(b) RETURN COUNT(*);
+---- 1
+1
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN a.ID, b.ID, e.val;
+---- 4
+77|88|5.100000
+77|66|123456789.123000
+77|55|1.200000
+66|55|2.300000
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE b.ID = 66 DETACH DELETE b;
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN a.ID, b.ID, e.val;
+---- 2
+77|88|5.100000
+77|55|1.200000

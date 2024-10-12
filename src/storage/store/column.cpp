@@ -227,11 +227,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
         return;
     }
 
-    const uint64_t numValuesPerPage = state.metadata.compMeta.numValues(PAGE_SIZE, dataType);
-    auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
-    cursor.pageIdx += state.metadata.pageIdx;
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
-
     const uint64_t numValuesScanned = columnReadWriter->readCompressedValuesToPage(transaction,
         state, columnChunk->getData(), 0, startOffset, endOffset, readToPageFunc);
 
@@ -454,7 +450,11 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
                 chunkState.getExceptionChunk<double>()->finalizeAndFlushToDisk(chunkState);
             } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
                 chunkState.getExceptionChunk<float>()->finalizeAndFlushToDisk(chunkState);
+            } else {
+                KU_UNREACHABLE;
             }
+            checkpointState.persistentData.getMetadata().compMeta.floatMetadata()->exceptionCount =
+                chunkState.metadata.compMeta.floatMetadata()->exceptionCount;
         }
     } else {
         checkpointColumnChunkOutOfPlace(chunkState, checkpointState);
