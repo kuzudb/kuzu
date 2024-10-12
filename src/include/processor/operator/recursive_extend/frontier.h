@@ -48,6 +48,9 @@ struct RelIDMasker {
     static void markFlip(common::internalID_t& relID) { relID.offset |= FLIP_SRC_DST_MASK; }
     static bool needFlip(common::internalID_t& relID) { return relID.offset & FLIP_SRC_DST_MASK; }
     static void clearMark(common::internalID_t& relID) { relID.offset &= CLEAR_FLIP_SRC_DST_MASK; }
+    static common::internalID_t getWithoutMark(common::internalID_t& relID) {
+        return common::internalID_t(relID.offset & CLEAR_FLIP_SRC_DST_MASK, relID.tableID);
+    }
 };
 
 } // namespace processor
