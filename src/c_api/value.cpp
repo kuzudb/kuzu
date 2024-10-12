@@ -610,6 +610,17 @@ kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value, kuzu_timestamp_tz_t* o
     return KuzuSuccess;
 }
 
+kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result) {
+    auto decimal_val = static_cast<Value*>(value->_value);
+    auto logical_type_id = decimal_val->getDataType().getLogicalTypeID();
+    if (logical_type_id != LogicalTypeID::DECIMAL) {
+        return KuzuError;
+    }
+
+    *out_result = convertToOwnedCString(decimal_val->toString());
+    return KuzuSuccess;
+}
+
 kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_result) {
     auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::INTERVAL) {
