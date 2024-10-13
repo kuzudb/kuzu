@@ -1,8 +1,8 @@
 #include "graph/graph_entry.h"
 
-#include "planner/operator/schema.h"
-#include "binder/expression_visitor.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression_visitor.h"
+#include "planner/operator/schema.h"
 
 using namespace kuzu::planner;
 using namespace kuzu::binder;
@@ -35,5 +35,5 @@ Schema GraphEntry::getRelPropertiesSchema() const {
     return schema;
 }
 
-}
-}
+} // namespace graph
+} // namespace kuzu

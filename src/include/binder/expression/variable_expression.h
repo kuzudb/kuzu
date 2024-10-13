@@ -11,8 +11,8 @@ class VariableExpression : public Expression {
 public:
     VariableExpression(common::LogicalType dataType, const std::string& uniqueName,
         const std::string& variableName)
-        : Expression{expressionType_, std::move(dataType), uniqueName},
-          variableName{variableName} {}
+        : Expression{expressionType_, std::move(dataType), uniqueName}, variableName{variableName} {
+    }
 
     std::string getVariableName() const { return variableName; }
 
