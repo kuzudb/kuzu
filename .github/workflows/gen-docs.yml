@@ -24,7 +24,7 @@ jobs:
           path: scripts/pip-package/wheelhouse/*.manylinux_2_28_x86_64.whl
 
   generate-python-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: build-python-package
     container:
       image: python:3.10-bullseye
@@ -80,7 +80,7 @@ jobs:
           path: ./docs
 
   generate-java-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: openjdk:20
     steps:
@@ -126,7 +126,7 @@ jobs:
           path: ./scripts/generate-cpp-docs/c/docs/html
 
   update-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [generate-python-docs, generate-nodejs-docs, generate-java-docs, generate-cpp-docs]
     steps:
       - uses: actions/checkout@v4

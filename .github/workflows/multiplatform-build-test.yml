@@ -389,7 +389,7 @@ jobs:
       fail-fast: false
     name: ${{ matrix.image }}
     needs: [generate-binary-demo]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ${{ matrix.image }}
     env:
@@ -513,7 +513,7 @@ jobs:
       fail-fast: false
     name: ${{ matrix.image }}
     needs: [generate-binary-demo]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ${{ matrix.image }}
     env:
@@ -655,7 +655,7 @@ jobs:
 
   archlinux-build-test:
     name: archlinux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [generate-binary-demo]
     container:
       image: archlinux:latest
@@ -767,7 +767,7 @@ jobs:
           path: archlinux.csv
 
   collect-results:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}

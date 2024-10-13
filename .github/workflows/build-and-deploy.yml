@@ -69,7 +69,7 @@ jobs:
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       SKIP_CMAKE_BUILD: true
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -140,7 +140,7 @@ jobs:
   deploy-nodejs:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipNodejs != 'true' }}
     needs: [build-nodejs-mac, build-nodejs-linux, build-nodejs-windows]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
     steps:
@@ -236,7 +236,7 @@ jobs:
 
   package-python-sdist:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipPython != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -266,7 +266,7 @@ jobs:
         build-wheel-windows,
         package-python-sdist,
       ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/download-artifact@v4
         with:

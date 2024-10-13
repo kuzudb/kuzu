@@ -199,7 +199,7 @@ jobs:
   gcc-build-test-x86:
     name: gcc build & test 32-bit
     needs: [clang-format, sanity-checks, generate-binary-demo]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -784,7 +784,7 @@ jobs:
 
   shell-test:
     name: shell test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [clang-format, sanity-checks]
     env:
       WERROR: 0
