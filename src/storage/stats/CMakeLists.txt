@@ -1,5 +1,6 @@
 add_library(kuzu_storage_stats
         OBJECT
+        hyperloglog.cpp
         table_stats.cpp)
 
 set(ALL_OBJECT_FILES
