@@ -159,7 +159,7 @@ if(${ENABLE_LTO})
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
-option(AUTO_UPDATE_GRAMMAR "Automatically regenerate C++ grammar files on change." TRUE)
+option(AUTO_UPDATE_GRAMMAR "Automatically regenerate C++ grammar files on change." FALSE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
 option(BUILD_EXTENSIONS "Semicolon-separated list of extensions to build." "")
 option(BUILD_EXAMPLES "Build examples." FALSE)
