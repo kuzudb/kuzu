@@ -80,7 +80,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 function_set StatsInfoFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+        initSharedState, initLocalState, std::vector{LogicalTypeID::STRING}));
     return functionSet;
 }
 
