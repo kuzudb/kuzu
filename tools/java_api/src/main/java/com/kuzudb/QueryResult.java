@@ -128,6 +128,26 @@ public class QueryResult {
     }
 
     /**
+     * Return if the query result has next query result or not.
+     * @return Whether there are more query results to read.
+     * @throws ObjectRefDestroyedException If the query result has been destroyed.
+     */
+    public boolean hasNextQueryResult() throws ObjectRefDestroyedException {
+        checkNotDestroyed();
+        return Native.kuzu_query_result_has_next_query_result(this);
+    }
+
+    /**
+     * Get the next query result.
+     * @return The next query result.
+     * @throws ObjectRefDestroyedException If the query result has been destroyed.
+     */
+    public QueryResult getNextQueryResult() throws ObjectRefDestroyedException {
+        checkNotDestroyed();
+        return Native.kuzu_query_result_get_next_query_result(this);
+    }
+
+    /**
      * Convert the query result to string.
      * @return The string representation of the query result.
      */

@@ -132,4 +132,18 @@ public class QueryResultTest extends TestBase {
 
         result.destroy();
     }
+
+    // @Test
+    // void getMultipleQueryResult() throws ObjectRefDestroyedException {
+    //     QueryResult result = conn.query("return 1; return 2; return 3;");
+    //     assertTrue(result.isSuccess());
+    //     String str = result.toString();
+    //     assertEquals(str, "1\n1\n");
+
+    //     // assertTrue(result_one.hasNextQueryResult());
+    //     // QueryResult result_two = result_one.getNextQueryResult();
+        
+    //     result.destroy();
+    //     // result_two.destroy();
+    // }
 }

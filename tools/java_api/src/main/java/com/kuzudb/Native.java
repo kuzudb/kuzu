@@ -129,6 +129,10 @@ public class Native {
 
     protected static native FlatTuple kuzu_query_result_get_next(QueryResult query_result);
 
+    protected static native boolean kuzu_query_result_has_next_query_result(QueryResult query_result);
+
+    protected static native QueryResult kuzu_query_result_get_next_query_result(QueryResult query_result);
+
     protected static native String kuzu_query_result_to_string(QueryResult query_result);
 
     protected static native void kuzu_query_result_reset_iterator(QueryResult query_result);

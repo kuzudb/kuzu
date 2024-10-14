@@ -504,6 +504,21 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next(
     return newFTObject;
 }
 
+JNIEXPORT jboolean JNICALL Java_com_kuzu_db_Native_kuzu_1has_1next_1query_1result(JNIEnv* env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return qr->hasNextQueryResult();
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzu_db_Native_kuzu_1get_1next_1query_1result(JNIEnv* env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto query_result = qr->getNextQueryResult();
+    if (query_result == nullptr) {
+        return nullptr;
+    }
+    jobject ret = createJavaObject(env, query_result, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
+    return ret;
+}
+
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1to_1string(JNIEnv* env,
     jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
