@@ -66,7 +66,10 @@ def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path,
         stdout = sys.stdout if create_match or not benchmark_copy_log_dir else subprocess.PIPE
         process = subprocess.Popen([kuzu_exec_path, serialized_graph_path],
             stdin=subprocess.PIPE, stdout=stdout, encoding="utf-8")
-        process.stdin.write(s + ";\n")
+        if s.endswith(';'):
+            process.stdin.write(s + "\n")
+        else:
+            process.stdin.write(s + ";\n")
         process.stdin.close()
         if create_match:
             table_types[create_match.group(2)] = create_match.group(1).lower()
