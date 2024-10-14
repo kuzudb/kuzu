@@ -52,7 +52,7 @@ private:
     bool mayContainNulls;
 };
 
-class FactorizedTableSchema {
+class KUZU_API FactorizedTableSchema {
 public:
     FactorizedTableSchema() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(FactorizedTableSchema);

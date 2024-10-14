@@ -29,7 +29,7 @@ struct FrontierTaskSharedState {
     DELETE_COPY_AND_MOVE(FrontierTaskSharedState);
 };
 
-class FrontierTask : public common::Task {
+class KUZU_API FrontierTask : public common::Task {
 public:
     FrontierTask(uint64_t maxNumThreads, const FrontierTaskInfo& info,
         std::shared_ptr<FrontierTaskSharedState> sharedState)
@@ -42,7 +42,7 @@ private:
     std::shared_ptr<FrontierTaskSharedState> sharedState;
 };
 
-class VertexComputeTaskSharedState {
+class KUZU_API VertexComputeTaskSharedState {
 public:
     VertexComputeTaskSharedState(graph::Graph* graph, VertexCompute& vc,
         uint64_t maxThreadsForExecution);
@@ -53,7 +53,7 @@ public:
     std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
 };
 
-class VertexComputeTask : public common::Task {
+class KUZU_API VertexComputeTask : public common::Task {
 public:
     VertexComputeTask(uint64_t maxNumThreads,
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
