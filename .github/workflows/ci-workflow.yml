@@ -83,6 +83,20 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
 
+      - name: Generate and upload tinysnb
+        run: |
+          bash scripts/generate_binary_tinysnb.sh
+          s3cmd get s3://kuzu-test/tinysnb/version.txt || echo "0" > version.txt
+          if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ]; then
+            echo "TinySNB dataset is up to date, skipping upload"
+            rm -rf tinysnb version.txt
+            exit 0
+          fi
+          echo "TinySNB dataset is outdated, uploading..."
+          s3cmd del -r s3://kuzu-test/tinysnb/
+          s3cmd sync ./tinysnb s3://kuzu-test/
+          rm -rf tinysnb version.txt
+          
   gcc-build-test:
     name: gcc build & test
     needs: [clang-format, sanity-checks, python-lint-check, generate-binary-demo]
