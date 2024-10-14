@@ -40,7 +40,7 @@ Detached database successfully.
 -STATEMENT ATTACH 's3://kuzu-test/tinysnb/' as ldbc (dbtype kuzu)
 ---- 1
 Attached database successfully.
--STATEMENT match (p0:person) return p0.id
+-STATEMENT match (p0:person) return p0.ID
 ---- 8
 0
 2
