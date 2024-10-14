@@ -1,9 +1,38 @@
 import os
 
 import pytest
+import shutil
 
 from conftest import ShellTest
-from test_helper import KUZU_VERSION, deleteIfExists
+from test_helper import KUZU_VERSION, deleteIfExists, KUZU_ROOT
+
+
+@pytest.fixture()
+def temp_db(tmp_path):
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    return str(tmp_path)
+
+
+@pytest.fixture()
+def get_tmp_path(tmp_path):
+    return str(tmp_path)
+
+
+@pytest.fixture()
+def history_path():
+    path = os.path.join(KUZU_ROOT, "tools", "shell", "test", "files")
+    deleteIfExists(os.path.join(path, "history.txt"))
+    return path
+
+
+@pytest.fixture()
+def csv_path():
+    return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "vPerson.csv")
+
+
+@pytest.fixture()
+def init_path():
+    return os.path.join(KUZU_ROOT, "tools", "shell", "test", "files", "start.cypher")
 
 
 def test_database_path(temp_db) -> None:
@@ -455,7 +484,7 @@ def test_mode(temp_db, flag) -> None:
     )
     result = test.run()
     result.check_stderr("Cannot parse 'invalid' as output mode.")
-    
+
 
 @pytest.mark.parametrize(
     "flag",
@@ -489,7 +518,7 @@ def test_no_stats(temp_db, flag) -> None:
     result.check_stdout("(1 column)")
     result.check_stdout("Time: ")
 
-#TODO: re-enable when progress bar performance issues are fixed
+# TODO: re-enable when progress bar performance issues are fixed
 # @pytest.mark.parametrize(
 #     "flag",
 #     [
@@ -507,7 +536,7 @@ def test_no_stats(temp_db, flag) -> None:
 #     )
 #     result = test.run()
 #     result.check_stdout("True")
-# 
+#
 #     # progress bar off
 #     test = (
 #         ShellTest()
