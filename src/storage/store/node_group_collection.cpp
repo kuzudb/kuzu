@@ -1,7 +1,6 @@
 #include "storage/store/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
@@ -16,7 +15,7 @@ NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
     Deserializer* deSer)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH} {
+      dataFH{dataFH}, stats{types.size()} {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -56,7 +55,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         numRowsAppended += numToAppendInNodeGroup;
     }
     numTotalRows += numRowsAppended;
-    stats.incrementCardinality(numRowsAppended);
+    stats.update(vectors);
 }
 
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
@@ -64,6 +63,7 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollec
     for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
         appned(transaction, *nodeGroup);
     }
+    mergeStats(other.getStats(otherLock));
 }
 
 void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& nodeGroup) {
@@ -99,7 +99,6 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
         numChunkedGroupsAppended++;
     }
     numTotalRows += numRowsToAppend;
-    stats.incrementCardinality(numRowsToAppend);
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
@@ -141,7 +140,6 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
-    stats.incrementCardinality(numToAppend);
     return {startOffset, numToAppend};
 }
 

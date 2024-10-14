@@ -164,6 +164,7 @@ public:
     }
 
     TableStats getStats(const transaction::Transaction* transaction) const;
+    void mergeStats(const TableStats& stats) { nodeGroups->mergeStats(stats); }
 
 private:
     void insertPK(const transaction::Transaction* transaction,

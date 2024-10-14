@@ -182,6 +182,7 @@ static void computeStructVecHash(const ValueVector& operand, const SelectionVect
             *StructVector::getFieldVector(&operand, 3), operandSelVec, result, resultSelVec);
     } break;
     case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
         VectorHashFunction::computeHash(*StructVector::getFieldVector(&operand, 0 /* idx */),
             operandSelVec, result, resultSelVec);
