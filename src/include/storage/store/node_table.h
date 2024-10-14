@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "common/types/types.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/node_group_collection.h"
 #include "storage/store/table.h"
@@ -97,7 +96,7 @@ public:
         const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    common::row_idx_t getNumRows() override { return nodeGroups->getNumRows(); }
+    common::row_idx_t getNumRows() override { return nodeGroups->getNumTotalRows(); }
 
     void initScanState(transaction::Transaction* transaction, TableScanState& scanState) override;
 
@@ -163,6 +162,8 @@ public:
     NodeGroup* getNodeGroupNoLock(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
     }
+
+    TableStats getStats(const transaction::Transaction* transaction) const;
 
 private:
     void insertPK(const transaction::Transaction* transaction,

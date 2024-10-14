@@ -31,7 +31,7 @@ public:
 
     void clear() override;
 
-    common::row_idx_t getNumRows() { return nodeGroups.getNumRows(); }
+    common::row_idx_t getNumRows() { return nodeGroups.getNumTotalRows(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
 
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) {
@@ -41,6 +41,8 @@ public:
 
     bool lookupPK(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         common::offset_t& result);
+
+    TableStats getStats() const { return nodeGroups.getStats(); }
 
 private:
     void initLocalHashIndex();

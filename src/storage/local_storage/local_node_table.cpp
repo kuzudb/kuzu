@@ -48,7 +48,7 @@ offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transac
 
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
-    const auto numRowsInLocalTable = nodeGroups.getNumRows();
+    const auto numRowsInLocalTable = nodeGroups.getNumTotalRows();
     const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
     KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
     if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset,

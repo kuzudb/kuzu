@@ -15,17 +15,14 @@ namespace storage {
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
     Deserializer* deSer)
-    : enableCompression{enableCompression}, numRows{0}, types{LogicalType::copy(types)},
+    : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
       dataFH{dataFH} {
     if (deSer) {
-        std::string key;
-        deSer->validateDebuggingInfo(key, "node_groups");
-        KU_ASSERT(dataFH);
-        nodeGroups.loadGroups(memoryManager, *deSer);
+        deserialize(*deSer, memoryManager);
     }
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        numRows += nodeGroup->getNumRows();
+        numTotalRows += nodeGroup->getNumRows();
     }
 }
 
@@ -58,7 +55,8 @@ void NodeGroupCollection::append(const Transaction* transaction,
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
     }
-    numRows += numRowsAppended;
+    numTotalRows += numRowsAppended;
+    stats.incrementCardinality(numRowsAppended);
 }
 
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
@@ -100,7 +98,8 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
         }
         numChunkedGroupsAppended++;
     }
-    numRows += numRowsToAppend;
+    numTotalRows += numRowsToAppend;
+    stats.incrementCardinality(numRowsToAppend);
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
@@ -111,7 +110,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
     bool directFlushWhenAppend = false;
     {
         const auto lock = nodeGroups.lock();
-        startOffset = numRows;
+        startOffset = numTotalRows;
         if (nodeGroups.isEmpty(lock)) {
             nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
                                              enableCompression, LogicalType::copy(types)));
@@ -134,7 +133,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
             // start appending into the node group and pass in as param.
             lastNodeGroup->append(transaction, chunkedGroup, 0, numToAppend);
         }
-        numRows += numToAppend;
+        numTotalRows += numToAppend;
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
@@ -142,12 +141,13 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
+    stats.incrementCardinality(numToAppend);
     return {startOffset, numToAppend};
 }
 
-row_idx_t NodeGroupCollection::getNumRows() {
+row_idx_t NodeGroupCollection::getNumTotalRows() {
     const auto lock = nodeGroups.lock();
-    return numRows;
+    return numTotalRows;
 }
 
 NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(node_group_idx_t groupIdx,
@@ -198,6 +198,17 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
 void NodeGroupCollection::serialize(Serializer& ser) {
     ser.writeDebuggingInfo("node_groups");
     nodeGroups.serializeGroups(ser);
+    ser.writeDebuggingInfo("stats");
+    stats.serialize(ser);
+}
+
+void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memoryManager) {
+    std::string key;
+    deSer.validateDebuggingInfo(key, "node_groups");
+    KU_ASSERT(dataFH);
+    nodeGroups.deserializeGroups(memoryManager, deSer);
+    deSer.validateDebuggingInfo(key, "stats");
+    stats.deserialize(deSer);
 }
 
 } // namespace storage

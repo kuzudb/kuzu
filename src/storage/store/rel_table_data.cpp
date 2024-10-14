@@ -6,7 +6,6 @@
 #include "common/exception/runtime.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
