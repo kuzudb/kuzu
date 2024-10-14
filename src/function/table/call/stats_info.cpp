@@ -1,5 +1,4 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/data_chunk/data_chunk_collection.h"
 #include "common/exception/binder.h"
 #include "function/table/call_functions.h"
 #include "storage/storage_manager.h"
