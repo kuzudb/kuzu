@@ -15,7 +15,6 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct QueryFTSBindData final : public CallTableFuncBindData {
-
     std::string tableName;
     std::string query;
 
@@ -28,6 +27,11 @@ struct QueryFTSBindData final : public CallTableFuncBindData {
         return std::make_unique<QueryFTSBindData>(tableName, query, LogicalType::copy(columnTypes),
             columnNames, maxOffset);
     }
+};
+
+struct QueryFTSLocalState : public TableFuncLocalState {
+    std::unique_ptr<QueryResult> result = nullptr;
+    uint64_t numRowsOutput = 0;
 };
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
@@ -43,32 +47,53 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnNames.push_back("node");
     columnTypes.push_back(LogicalType::DOUBLE());
     columnNames.push_back("score");
-    auto query = input->inputs[1].toString();
+    auto query = input->inputs[2].toString();
     return std::make_unique<QueryFTSBindData>(tableName, query, std::move(columnTypes),
-        std::move(columnNames), result->getNumTuples());
+        std::move(columnNames), result->getNumTuples() - 1);
 }
 
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
-    auto bindData = data.bindData->constPtrCast<QueryFTSBindData>();
-    auto& dataChunk = output.dataChunk;
-    auto sharedState = data.sharedState->ptrCast<CallFuncSharedState>();
-    auto& outputVector = dataChunk.getValueVector(0);
-    if (!sharedState->getMorsel().hasMoreToOutput()) {
+    auto localState = data.localState->ptrCast<QueryFTSLocalState>();
+    if (localState->result == nullptr) {
+        auto bindData = data.bindData->constPtrCast<QueryFTSBindData>();
+        auto sharedState = data.sharedState->ptrCast<CallFuncSharedState>();
+        if (!sharedState->getMorsel().hasMoreToOutput()) {
+            return 0;
+        }
+        auto tableName = bindData->tableName;
+        auto query = common::stringFormat("PROJECT GRAPH PK ({}_dict, {}_docs, {}_terms) "
+                                          "UNWIND tokenize('{}') AS tk "
+                                          "WITH collect(stem(tk, 'porter')) AS tokens "
+                                          "MATCH (a:{}_dict) "
+                                          "WHERE list_contains(tokens, a.term) "
+                                          "CALL FTS(PK, a) "
+                                          "MATCH (p:person) "
+                                          "WHERE _node.offset = offset(id(p)) "
+                                          "RETURN p, score",
+            tableName, tableName, tableName, bindData->query, tableName);
+        localState->result = data.context->runQuery(query);
+    }
+    if (localState->numRowsOutput >=
+        data.bindData->constPtrCast<CallTableFuncBindData>()->maxOffset) {
         return 0;
     }
-    auto tableName = bindData->tableName;
-    auto context = data.context;
-    auto table = context->getCatalog()
-                     ->getTableCatalogEntry(context->getTx(), tableName)
-                     ->constPtrCast<catalog::NodeTableCatalogEntry>();
-    auto& pk = table->getPrimaryKeyDefinition();
+    auto resultTable = localState->result->getTable();
+    resultTable->scan(output.vectors, localState->numRowsOutput, 1);
+    localState->numRowsOutput++;
+    return 1;
+}
+
+std::unique_ptr<TableFuncLocalState> initLocalState(kuzu::function::TableFunctionInitInput& input,
+    kuzu::function::TableFuncSharedState*, storage::MemoryManager*) {
+    return std::make_unique<QueryFTSLocalState>();
 }
 
 function_set QueryFTSFunction::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
-        initEmptyLocalState,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING});
+    auto func =
+        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
+            std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+                LogicalTypeID::STRING});
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;

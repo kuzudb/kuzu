@@ -120,18 +120,34 @@ TEST_F(CApiDatabaseTest, CreationHomeDir1) {
         conn->query("create (p:person {id: 20, content: 'beats hero', author: 'monster beats'})")
             ->toString()
             .c_str());
+    printf("%s", conn->query("create (p:person {id: 25, content: 'beats hero', author: 'beats'})")
+                     ->toString()
+                     .c_str());
     printf("%s",
         conn->query("CALL create_fts_index('person', 'test', ['content', 'author']) RETURN *")
             ->toString()
             .c_str());
-    printf("%s", conn->query("match (a:person_dict)-[e:person_terms]->(b:person_docs) RETURN a.term, b.offset")
-                     ->toString()
-                     .c_str());
-    printf("%s", conn->query("match (p:person_dict) RETURN p.*")->toString().c_str());
+//    printf("%s", conn->query("explain PROJECT GRAPH PK (person_dict, person_docs, person_terms) "
+//                             "MATCH (a:person_dict) "
+//                             "WHERE list_contains(['monster'], a.term) "
+//                             "CALL FTS(PK, a) "
+//                             "RETURN _node,score")
+//                     ->toString()
+//                     .c_str());
     printf("%s", conn->query(" PROJECT GRAPH PK (person_dict, person_docs, person_terms) "
-                             "MATCH (a:person_dict) where list_contains(['monster'], a.term) "
-                             "CALL FTS(PK, a, 'monster', true) "
-                             "RETURN _node, score;")
+                             "UNWIND tokenize('monster') AS tk "
+                             "WITH collect(stem(tk, 'porter')) AS tokens "
+                             "MATCH (a:person_dict) "
+                             "WHERE list_contains(tokens, a.term) "
+                             "CALL FTS(PK, a) "
+                             "MATCH (p:person) "
+                             "WHERE _node.offset = offset(id(p)) "
+                             "RETURN p, score")
                      ->toString()
                      .c_str());
+    //
+    //    printf("%s", conn->query("CALL query_fts_index('person', 'test', 'monster') "
+    //                             "return *;")
+    //                     ->toString()
+    //                     .c_str());
 }

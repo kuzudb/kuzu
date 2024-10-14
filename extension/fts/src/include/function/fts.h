@@ -11,12 +11,10 @@ namespace fts_extension {
 
 struct FTSBindData final : public function::GDSBindData {
     std::shared_ptr<binder::Expression> nodeInput;
-    std::string queryString;
 
-    FTSBindData(std::shared_ptr<binder::Expression> nodeInput, std::string queryString,
-        std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
-        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
-          queryString{std::move(queryString)} {}
+    FTSBindData(std::shared_ptr<binder::Expression> nodeInput,
+        std::shared_ptr<binder::Expression> nodeOutput)
+        : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)} {}
     FTSBindData(const FTSBindData& other) : GDSBindData{other}, nodeInput{other.nodeInput} {}
 
     bool hasNodeInput() const override { return true; }
@@ -52,8 +50,7 @@ public:
      * queryString: STRING
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-            common::LogicalTypeID::STRING, common::LogicalTypeID::BOOL};
+        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE};
     }
 
     void exec(processor::ExecutionContext* executionContext) override;

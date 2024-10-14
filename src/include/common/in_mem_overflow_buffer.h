@@ -3,6 +3,7 @@
 #include <iterator>
 #include <memory>
 #include <vector>
+#include "common/api.h"
 
 namespace kuzu {
 namespace storage {
@@ -12,7 +13,7 @@ class MemoryManager;
 
 namespace common {
 
-struct BufferBlock {
+struct KUZU_API BufferBlock {
 public:
     explicit BufferBlock(std::unique_ptr<storage::MemoryBuffer> block);
     ~BufferBlock();
