@@ -113,7 +113,7 @@ uint64_t CardinalityEstimator::getNumNodes(const std::vector<table_id_t>& tableI
     auto numNodes = 1u;
     for (auto& tableID : tableIDs) {
         auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
-        numNodes += table.getStats(transaction).getCardinality();
+        numNodes += table.getStats(transaction).getTableCard();
     }
     return numNodes;
 }

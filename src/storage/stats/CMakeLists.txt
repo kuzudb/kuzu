@@ -1,5 +1,6 @@
 add_library(kuzu_storage_stats
         OBJECT
+        column_stats.cpp
         hyperloglog.cpp
         table_stats.cpp)
 
