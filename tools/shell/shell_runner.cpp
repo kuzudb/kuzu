@@ -64,8 +64,6 @@ int main(int argc, char* argv[]) {
     // TODO: re-enable when progress bar performance issues are fixed
     /*args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
         {'b', "no_progress_bar", "noprogressbar"});*/
-    args::ValueFlag<std::string> init(parser, "", "Path to file with script to run on startup",
-        {'i', "init"});
 
     std::vector<std::string> lCaseArgsStrings;
     for (auto i = 0; i < argc; ++i) {
