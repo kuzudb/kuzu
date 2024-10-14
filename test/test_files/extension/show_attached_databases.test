@@ -2,8 +2,7 @@
 
 --
 -CASE ShowDatabasesTest
--SKIP_MUSL
--SKIP_32BIT
+-SKIP
 -LOG InstallExtension
 -STATEMENT INSTALL duckdb;
 ---- ok
