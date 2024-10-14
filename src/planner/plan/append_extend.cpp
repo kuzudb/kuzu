@@ -11,6 +11,7 @@
 #include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "graph/graph_entry.h"
+#include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -108,7 +109,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
     plan.setCost(CostModel::computeExtendCost(plan));
-    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode);
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);
     plan.setLastOperator(std::move(extend));
@@ -121,7 +123,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         auto rdfInfo = rel->getRdfPredicateInfo();
         // Append hash join for remaining properties
         auto tmpPlan = std::make_unique<LogicalPlan>();
-        cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs);
+        cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs,
+            clientContext->getTx());
         appendScanNodeTable(rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri},
             *tmpPlan);
         appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan,
@@ -249,7 +252,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     }
     plan.setLastOperator(std::move(pathPropertyProbe));
     // Update cost
-    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode);
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
     // Update cardinality
     auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());

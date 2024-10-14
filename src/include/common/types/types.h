@@ -78,6 +78,8 @@ struct internalID_t;
 using nodeID_t = internalID_t;
 using relID_t = internalID_t;
 
+using cardinality_t = uint64_t;
+
 // System representation for internalID.
 struct KUZU_API internalID_t {
     offset_t offset;

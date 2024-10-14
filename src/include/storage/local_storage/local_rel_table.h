@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
-#include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/store/csr_node_group.h"
 
