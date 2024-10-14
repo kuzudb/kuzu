@@ -16,6 +16,7 @@ class Transaction;
 namespace storage {
 class MemoryManager;
 
+class ColumnStats;
 struct TableAddColumnState;
 class NodeGroup;
 
@@ -147,7 +148,7 @@ public:
 
     bool hasDeletions(const transaction::Transaction* transaction);
     virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState, FileHandle* dataFH);
+        TableAddColumnState& addColumnState, FileHandle* dataFH, ColumnStats* newColumnStats);
 
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 

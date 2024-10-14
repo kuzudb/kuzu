@@ -5,9 +5,9 @@
 -STATEMENT MATCH (p:person) RETURN COUNT(p)
 ---- 1
 8
--STATEMENT CALL stats_info('person') RETURN *
+-STATEMENT CALL stats_info('person') RETURN cardinality, gender_distinct_count
 ---- 1
-8
+8|2
 -STATEMENT CALL stats_info('not_exist') RETURN *
 ---- error
 Binder exception: Table not_exist does not exist!
@@ -17,23 +17,47 @@ Binder exception: Stats from a non-node table knows is not supported yet!
 -RELOADDB
 -STATEMENT CREATE (p:person {id: 10000});
 ---- ok
--STATEMENT CALL stats_info('person') RETURN *
+-STATEMENT CALL stats_info('person') RETURN cardinality, gender_distinct_count
+---- 1
+9|3
+
+# distinct count is not stored for nested types
+-STATEMENT CALL stats_info('person') RETURN cardinality, workedHours_distinct_count
+---- 1
+9|0
+
+-CASE StatsInfoWithTransaction
+-STATEMENT CALL stats_info('person') RETURN cardinality, gender_distinct_count
+---- 1
+8|2
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {id: 10000, fName: "Alice"});
+---- ok
+-STATEMENT CALL stats_info('person') RETURN cardinality, gender_distinct_count
+---- 1
+9|3
+
+# Distinct count isn't exact so we give a range here
+-STATEMENT CALL stats_info('person') WHERE fName_distinct_count > 5 AND fName_distinct_count <= 9 RETURN cardinality
 ---- 1
 9
 
--CASE StatsInfoWithTransaction
--STATEMENT CALL stats_info('person') RETURN *
----- 1
-8
--STATEMENT BEGIN TRANSACTION;
----- ok
--STATEMENT CREATE (p:person {id: 10000});
----- ok
--STATEMENT CALL stats_info('person') RETURN *
----- 1
-9
 -STATEMENT ROLLBACK;
 ---- ok
--STATEMENT CALL stats_info('person') RETURN *
+-STATEMENT CALL stats_info('person') RETURN cardinality, gender_distinct_count
 ---- 1
-8
+8|2
+
+-CASE AddNodeProperty
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true);
+---- ok
+-STATEMENT alter table Comment add propx int64;
+---- ok
+-STATEMENT alter table Comment add propy int64 default 1;
+---- ok
+-STATEMENT CALL stats_info('Comment') RETURN cardinality, propx_distinct_count, propy_distinct_count
+---- 1
+215488|1|1

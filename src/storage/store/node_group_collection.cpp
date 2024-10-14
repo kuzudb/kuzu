@@ -1,7 +1,6 @@
 #include "storage/store/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/csr_node_group.h"
 #include "storage/store/table.h"
 #include "transaction/transaction.h"
@@ -16,7 +15,7 @@ NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
     Deserializer* deSer, const VersionRecordHandler* versionRecordHandler)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH}, versionRecordHandler(versionRecordHandler) {
+      dataFH{dataFH}, stats{std::span{types}}, versionRecordHandler(versionRecordHandler) {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -57,7 +56,8 @@ void NodeGroupCollection::append(const Transaction* transaction,
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
     }
-    stats.incrementCardinality(numRowsAppended);
+    numTotalRows += numRowsAppended;
+    stats.update(vectors);
 }
 
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
@@ -65,6 +65,7 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollec
     for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
         append(transaction, *nodeGroup);
     }
+    mergeStats(other.getStats(otherLock));
 }
 
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& nodeGroup) {
@@ -101,7 +102,7 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
         }
         numChunkedGroupsAppended++;
     }
-    stats.incrementCardinality(numRowsToAppend);
+    numTotalRows += numRowsToAppend;
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
@@ -144,7 +145,6 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
-    stats.incrementCardinality(numToAppend);
     return {startOffset, numToAppend};
 }
 
@@ -173,8 +173,9 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* t
 
 void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     const auto lock = nodeGroups.lock();
+    auto& newColumnStats = stats.addNewColumn(addColumnState.propertyDefinition.getType());
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        nodeGroup->addColumn(transaction, addColumnState, dataFH);
+        nodeGroup->addColumn(transaction, addColumnState, dataFH, &newColumnStats);
     }
     types.push_back(addColumnState.propertyDefinition.getType().copy());
 }

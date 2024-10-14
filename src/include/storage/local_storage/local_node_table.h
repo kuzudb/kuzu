@@ -41,7 +41,7 @@ public:
     bool lookupPK(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         common::offset_t& result);
 
-    TableStats getStats() const { return nodeGroups.getStats(); }
+    TableStats getStats() { return nodeGroups.getStats(); }
 
 private:
     void initLocalHashIndex();

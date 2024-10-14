@@ -55,6 +55,8 @@ public:
     bool hasProperty(common::table_id_t tableID) const;
 
     common::column_id_t getColumnID(const catalog::TableCatalogEntry& entry) const;
+    bool isSingleLabel() const { return infos.size() == 1; }
+    common::table_id_t getSingleTableID() const { return infos.begin()->first; }
 
     bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
 

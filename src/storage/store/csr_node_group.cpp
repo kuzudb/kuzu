@@ -418,11 +418,12 @@ bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSourc
 }
 
 void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    FileHandle* dataFH) {
+    FileHandle* dataFH, ColumnStats* newColumnStats) {
     if (persistentChunkGroup) {
-        persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
+        persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression, dataFH,
+            newColumnStats);
     }
-    NodeGroup::addColumn(transaction, addColumnState, dataFH);
+    NodeGroup::addColumn(transaction, addColumnState, dataFH, newColumnStats);
 }
 
 void CSRNodeGroup::serialize(Serializer& serializer) {

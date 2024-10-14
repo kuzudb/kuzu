@@ -133,7 +133,7 @@ bool LogicalOperatorUtils::isAccHashJoin(const LogicalOperator& op) {
 
 LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
     std::shared_ptr<LogicalOperator> child)
-    : operatorType{operatorType}, cardinality{0} {
+    : operatorType{operatorType}, cardinality{child->getCardinality()} {
     children.push_back(std::move(child));
 }
 

@@ -1,8 +1,5 @@
 #include "graph_test/graph_test.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
-#include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_plan_util.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
 #include "test_runner/test_runner.h"
 
 namespace kuzu {
@@ -107,7 +104,13 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
 TEST_F(OptimizerTest, PkScanTest) {
     auto q1 = "MATCH (a:person {ID:24189255811663})-[f]->(b) RETURN b;";
     auto ans = getEncodedPlan(q1);
-    ASSERT_STREQ(ans.c_str(), "HJ(b._ID){S(b)}{E(b)IndexScan(a)}");
+    ASSERT_STREQ(ans.c_str(), "HJ(b._ID){E(b)IndexScan(a)}{S(b)}");
+}
+
+TEST_F(OptimizerTest, FilterDifferentPropertiesTest) {
+    auto q1 = "MATCH (a:person {gender:1})-[f]->(b:person {age: 30}) RETURN b;";
+    auto ans = getEncodedPlan(q1);
+    ASSERT_STREQ(ans.c_str(), "HJ(a._ID){E(a)Filter()S(b)}{Filter()S(a)}");
 }
 
 } // namespace testing

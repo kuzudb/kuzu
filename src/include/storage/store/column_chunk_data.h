@@ -29,6 +29,7 @@ namespace storage {
 
 class Column;
 class NullChunkData;
+class ColumnStats;
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
@@ -193,7 +194,7 @@ public:
     virtual void resizeWithoutPreserve(uint64_t newCapacity);
 
     void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
-        uint64_t& numValues_);
+        uint64_t& numValues_, ColumnStats* newColumnStats);
     virtual void finalize() {
         KU_ASSERT(residencyState != ResidencyState::ON_DISK);
         // DO NOTHING.

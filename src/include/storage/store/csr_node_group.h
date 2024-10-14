@@ -199,7 +199,7 @@ public:
         common::row_idx_t rowIdxInGroup);
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        FileHandle* dataFH) override;
+        FileHandle* dataFH, ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
 

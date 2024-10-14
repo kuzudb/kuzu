@@ -88,6 +88,7 @@ public:
     void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
         children[idx] = std::move(child);
     }
+    void setCardinality(common::cardinality_t cardinality_) { this->cardinality = cardinality_; }
 
     // Operator type.
     LogicalOperatorType getOperatorType() const { return operatorType; }

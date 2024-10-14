@@ -47,10 +47,12 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    const auto numColumns = nodeInfo->columnEvaluators.size();
 
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
-    localState = std::make_unique<NodeBatchInsertLocalState>();
+    localState = std::make_unique<NodeBatchInsertLocalState>(
+        std::span{nodeInfo->columnTypes.begin(), nodeInfo->outputDataColumns.size()});
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     KU_ASSERT(nodeSharedState->globalIndexBuilder);
     nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder->clone();
@@ -61,7 +63,6 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
             context->clientContext->getWarningContext().getIgnoreErrorsOption(),
             sharedState->numErroredRows, &sharedState->erroredRowMutex};
 
-    const auto numColumns = nodeInfo->columnEvaluators.size();
     nodeLocalState->columnVectors.resize(numColumns);
 
     for (auto i = 0u; i < numColumns; ++i) {
@@ -79,15 +80,15 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     std::optional<ProducerToken> token;
     auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
-    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
     if (nodeLocalState->localIndexBuilder) {
         token = nodeLocalState->localIndexBuilder->getProducerToken();
     }
 
     while (children[0]->getNextTuple(context)) {
-        auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
+        const auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
         // Evaluate expressions if needed.
-        auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
+        const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
         for (auto i = 0u; i < nodeInfo->evaluateTypes.size(); ++i) {
             switch (nodeInfo->evaluateTypes[i]) {
             case ColumnEvaluateType::DEFAULT: {
@@ -119,6 +120,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         nodeLocalState->localIndexBuilder->finishedProducing(nodeLocalState->errorHandler.value());
         nodeLocalState->errorHandler->flushStoredErrors();
     }
+    sharedState->table->cast<NodeTable>().mergeStats(nodeLocalState->stats);
 }
 
 void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
@@ -136,6 +138,8 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
                 nodeLocalState->localIndexBuilder, mm);
         }
     }
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    nodeLocalState->stats.update(nodeLocalState->columnVectors, nodeInfo->outputDataColumns.size());
     sharedState->incrementNumRows(numAppendedTuples);
 }
 

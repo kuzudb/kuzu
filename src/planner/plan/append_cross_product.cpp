@@ -30,12 +30,12 @@ void Planner::appendAccOptionalCrossProduct(std::shared_ptr<Expression> mark,
 void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<Expression> mark,
     const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     auto crossProduct = make_shared<LogicalCrossProduct>(accumulateType, mark,
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
+        probePlan.getLastOperator(), buildPlan.getLastOperator(),
+        cardinalityEstimator.estimateCrossProduct(probePlan, buildPlan));
     crossProduct->computeFactorizedSchema();
     // update cost
     resultPlan.setCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    // update cardinality
-    resultPlan.setCardinality(cardinalityEstimator.estimateCrossProduct(probePlan, buildPlan));
+    resultPlan.setCardinality(crossProduct->getCardinality());
     resultPlan.setLastOperator(std::move(crossProduct));
 }
 

@@ -19,28 +19,43 @@ void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
     const QueryGraph& queryGraph) {
     for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
         auto node = queryGraph.getQueryNode(i).get();
-        addNodeIDDom(transaction, *node->getInternalID(), node->getTableIDs());
+        addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
     }
     for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
         auto rel = queryGraph.getQueryRel(i);
         if (QueryRelTypeUtils::isRecursive(rel->getRelType())) {
             auto node = rel->getRecursiveInfo()->node.get();
-            addNodeIDDom(transaction, *node->getInternalID(), node->getTableIDs());
+            addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
         }
     }
 }
 
-void CardinalityEstimator::addNodeIDDom(const Transaction* transaction, const Expression& nodeID,
-    const std::vector<table_id_t>& tableIDs) {
+void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
+    const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs) {
     auto key = nodeID.getUniqueName();
+    auto numNodes = 0u;
+    for (auto tableID : tableIDs) {
+        auto stats =
+            context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>().getStats(
+                transaction);
+        numNodes += stats.getTableCard();
+        if (!nodeTableStats.contains(tableID)) {
+            nodeTableStats.insert({tableID, std::move(stats)});
+        }
+    }
     if (!nodeIDName2dom.contains(key)) {
-        nodeIDName2dom.insert({key, getNumNodes(transaction, tableIDs)});
+        nodeIDName2dom.insert({key, numNodes});
     }
 }
 
 uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
     auto& scan = op->constCast<LogicalScanNodeTable>();
     return atLeastOne(getNodeIDDom(scan.getNodeID()->getUniqueName()));
+}
+
+cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
+    const LogicalPlan& childPlan) {
+    return atLeastOne(extensionRate * childPlan.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
@@ -53,7 +68,8 @@ uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKey
         }
     }
     return atLeastOne(probePlan.estCardinality *
-                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan) / denominator);
+                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan) /
+                      atLeastOne(denominator));
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalPlan& probePlan,
@@ -75,7 +91,7 @@ uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNo
     for (auto& buildPlan : buildPlans) {
         numerator *= buildPlan->estCardinality;
     }
-    auto estCardinality2 = numerator / denominator;
+    auto estCardinality2 = numerator / atLeastOne(denominator);
     // Pick minimum between the two formulas.
     return atLeastOne(std::min<uint64_t>(estCardinality1, estCardinality2));
 }
@@ -93,12 +109,33 @@ static bool isPrimaryKey(const Expression& expression) {
     return ((PropertyExpression&)expression).isPrimaryKey();
 }
 
+static bool isSingleLabelledProperty(const Expression& expression) {
+    if (expression.expressionType != ExpressionType::PROPERTY) {
+        return false;
+    }
+    return expression.constCast<PropertyExpression>().isSingleLabel();
+}
+
 uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
     const Expression& predicate) {
     if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
             return 1;
         } else {
+            KU_ASSERT(predicate.getNumChildren() >= 1);
+            if (isSingleLabelledProperty(*predicate.getChild(0))) {
+                auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
+                auto tableID = propertyExpr.getSingleTableID();
+                if (nodeTableStats.contains(tableID)) {
+                    auto columnID = propertyExpr.getColumnID(
+                        *context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID));
+                    if (columnID != INVALID_COLUMN_ID && columnID != ROW_IDX_COLUMN_ID) {
+                        auto& stats = nodeTableStats.at(tableID);
+                        auto numDistinctValues = atLeastOne(stats.getNumDistinctValues(columnID));
+                        return atLeastOne(childPlan.estCardinality / numDistinctValues);
+                    }
+                }
+            }
             return atLeastOne(
                 childPlan.estCardinality * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         }
@@ -108,19 +145,19 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
     }
 }
 
-uint64_t CardinalityEstimator::getNumNodes(const Transaction* transaction,
+uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
     const std::vector<table_id_t>& tableIDs) {
-    auto numNodes = 1u;
+    auto numNodes = 0u;
     for (auto& tableID : tableIDs) {
-        auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
-        numNodes += table.getStats(transaction).getCardinality();
+        KU_ASSERT(nodeTableStats.contains(tableID));
+        numNodes += nodeTableStats.at(tableID).getTableCard();
     }
-    return numNodes;
+    return atLeastOne(numNodes);
 }
 
 uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
     const std::vector<table_id_t>& tableIDs) {
-    auto numRels = 1u;
+    auto numRels = 0u;
     for (auto tableID : tableIDs) {
         numRels += context->getStorageManager()->getTable(tableID)->getNumTotalRows(transaction);
     }
@@ -131,7 +168,8 @@ double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     const NodeExpression& boundNode, const Transaction* transaction) {
     auto numBoundNodes = static_cast<double>(getNumNodes(transaction, boundNode.getTableIDs()));
     auto numRels = static_cast<double>(getNumRels(transaction, rel.getTableIDs()));
-    auto oneHopExtensionRate = numRels / numBoundNodes;
+    KU_ASSERT(numBoundNodes > 0);
+    auto oneHopExtensionRate = numRels / atLeastOne(numBoundNodes);
     switch (rel.getRelType()) {
     case QueryRelType::NON_RECURSIVE: {
         return oneHopExtensionRate;

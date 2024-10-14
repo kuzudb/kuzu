@@ -6,12 +6,21 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalFilterPrintInfo final : OPPrintInfo {
+    std::shared_ptr<binder::Expression> expression;
+    explicit LogicalFilterPrintInfo(std::shared_ptr<binder::Expression> expression)
+        : expression{std::move(expression)} {}
+    std::string toString() const override { return expression->toString(); }
+};
+
 class LogicalFilter final : public LogicalOperator {
 public:
     LogicalFilter(std::shared_ptr<binder::Expression> expression,
-        std::shared_ptr<LogicalOperator> child)
+        std::shared_ptr<LogicalOperator> child, common::cardinality_t cardinality = 0)
         : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
-          expression{std::move(expression)} {}
+          expression{std::move(expression)} {
+        this->cardinality = cardinality;
+    }
 
     inline void computeFactorizedSchema() override { copyChildSchema(0); }
     inline void computeFlatSchema() override { copyChildSchema(0); }
@@ -24,8 +33,13 @@ public:
 
     f_group_pos getGroupPosToSelect() const;
 
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalFilterPrintInfo>(expression);
+    }
+
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFilter>(expression, children[0]->copy());
+        auto op = make_unique<LogicalFilter>(expression, children[0]->copy(), cardinality);
+        return op;
     }
 
 private:

@@ -26,7 +26,8 @@ public:
     std::unordered_set<uint32_t> getDiscardedGroupsPos() const;
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalProjection>(expressions, children[0]->copy());
+        auto op = make_unique<LogicalProjection>(expressions, children[0]->copy());
+        return op;
     }
 
 private:
