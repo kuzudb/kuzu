@@ -8,6 +8,9 @@
 -STATEMENT CALL stats_info('person') RETURN *
 ---- 1
 8
+-STATEMENT CALL stats_info('not_exist') RETURN *
+---- error
+Binder exception: Table not_exist does not exist!
 -STATEMENT CALL stats_info('knows') RETURN *
 ---- error
 Binder exception: Stats from a non-node table knows is not supported yet!
