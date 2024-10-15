@@ -10,5 +10,5 @@ enum class ZoneMapCheckResult : uint8_t {
     SKIP_SCAN = 1,
 };
 
-}
+} // namespace common
 } // namespace kuzu

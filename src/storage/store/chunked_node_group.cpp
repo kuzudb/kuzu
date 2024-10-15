@@ -132,6 +132,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         }
         selVector.setToFiltered(numRowsToAppendInChunk);
         chunk->getData().append(columnVector, selVector);
+        chunk->updateStats(columnVector, selVector);
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -161,8 +162,10 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
     KU_ASSERT(other.size() == chunks.size());
     const auto numToAppendInChunkedGroup = std::min(numRowsToAppend, capacity - numRows);
     for (auto i = 0u; i < chunks.size(); i++) {
-        chunks[i]->getData().append(&other[i]->getData(), offsetInOtherNodeGroup,
+        auto* columnChunkData = &other[i]->getData();
+        chunks[i]->getData().append(columnChunkData, offsetInOtherNodeGroup,
             numToAppendInChunkedGroup);
+        chunks[i]->updateStats(columnChunkData);
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -195,6 +198,27 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
     }
 }
 
+static ZoneMapCheckResult getZoneMapResult(const TableScanState& scanState,
+    const NodeGroupScanState& nodeGroupScanState,
+    const std::vector<std::unique_ptr<ColumnChunk>>& chunks) {
+    if (!scanState.columnPredicateSets.empty()) {
+        for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
+            const auto columnID = scanState.columnIDs[i];
+            if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
+                continue;
+            }
+            auto& chunkState = nodeGroupScanState.chunkStates[i];
+            KU_ASSERT(i < scanState.columnPredicateSets.size());
+            const auto columnZoneMapResult = scanState.columnPredicateSets[i].checkZoneMap(
+                chunks[columnID]->getMergedUpdateStats(chunkState.metadata.compMeta));
+            if (columnZoneMapResult == common::ZoneMapCheckResult::SKIP_SCAN) {
+                return common::ZoneMapCheckResult::SKIP_SCAN;
+            }
+        }
+    }
+    return common::ZoneMapCheckResult::ALWAYS_SCAN;
+}
+
 void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState& scanState,
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup,
     length_t numRowsToScan) const {
@@ -206,6 +230,12 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     } else {
         anchorSelVector.setToUnfiltered(numRowsToScan);
     }
+
+    if (getZoneMapResult(scanState, nodeGroupScanState, chunks) ==
+        common::ZoneMapCheckResult::SKIP_SCAN) {
+        return;
+    }
+
     if (anchorSelVector.getSelSize() > 0) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
@@ -315,6 +345,15 @@ void ChunkedNodeGroup::addColumn(Transaction* transaction,
             dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
+    if (chunkData.getNumValues() > 0) {
+        TypeUtils::visit(
+            chunkData.getDataType().getPhysicalType(),
+            [this, &chunkData]<StorageValueType T>(T) {
+                auto defaultVal = chunkData.getValue<T>(0);
+                chunks.back()->updateStats(StorageValue{defaultVal}, StorageValue{defaultVal});
+            },
+            [](auto) {});
+    }
     if (residencyState == ResidencyState::ON_DISK) {
         KU_ASSERT(dataFH);
         chunkData.flush(*dataFH);

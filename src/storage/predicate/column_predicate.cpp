@@ -2,6 +2,7 @@
 
 #include "binder/expression/literal_expression.h"
 #include "storage/predicate/constant_predicate.h"
+#include "storage/store/column_chunk.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -9,7 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const CompressionMetadata& metadata) {
+ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(
+    const InMemoryColumnChunkStats& metadata) const {
     for (auto& predicate : predicates) {
         if (predicate->checkZoneMap(metadata) == ZoneMapCheckResult::SKIP_SCAN) {
             return ZoneMapCheckResult::SKIP_SCAN;

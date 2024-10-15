@@ -35,7 +35,6 @@ struct TableScanState {
     std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
-    common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
         : TableScanState{tableID, std::move(columnIDs), {}} {}
@@ -68,7 +67,6 @@ struct TableScanState {
         nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
         nodeGroup = nullptr;
         nodeGroupScanState->resetState();
-        zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
     }
 
     template<class TARGET>

@@ -106,13 +106,10 @@ void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& st
     initializeScanState(transaction, lock, state);
 }
 
-void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableScanState& state) {
-    auto& nodeGroupScanState = *state.nodeGroupScanState;
-    nodeGroupScanState.chunkedGroupIdx = 0;
-    nodeGroupScanState.numScannedRows = 0;
-    ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
-    if (firstChunkedGroup != nullptr &&
-        firstChunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
+static void initializeScanStateForChunkedGroup(const TableScanState& state,
+    ChunkedNodeGroup* chunkedGroup) {
+    if (chunkedGroup != nullptr && chunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
+        auto& nodeGroupScanState = *state.nodeGroupScanState;
         for (auto i = 0u; i < state.columnIDs.size(); i++) {
             KU_ASSERT(i < state.columnIDs.size());
             KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
@@ -120,10 +117,19 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableSca
             if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
                 continue;
             }
-            auto& chunk = firstChunkedGroup->getColumnChunk(columnID);
-            chunk.initializeScanState(nodeGroupScanState.chunkStates[i], state.columns[i]);
+            auto& chunk = chunkedGroup->getColumnChunk(columnID);
+            auto& chunkState = nodeGroupScanState.chunkStates[i];
+            chunk.initializeScanState(chunkState, state.columns[i]);
         }
     }
+}
+
+void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableScanState& state) {
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    nodeGroupScanState.chunkedGroupIdx = 0;
+    nodeGroupScanState.numScannedRows = 0;
+    ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
+    initializeScanStateForChunkedGroup(state, firstChunkedGroup);
 }
 
 NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) {
@@ -135,6 +141,9 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     if (chunkedGroup && nodeGroupScanState.numScannedRows >=
                             chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
         nodeGroupScanState.chunkedGroupIdx++;
+        ChunkedNodeGroup* currentChunkedGroup =
+            chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
+        initializeScanStateForChunkedGroup(state, currentChunkedGroup);
     }
     if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
         return NODE_GROUP_SCAN_EMMPTY_RESULT;

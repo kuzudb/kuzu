@@ -14,7 +14,8 @@ public:
         : ColumnPredicate{std::move(columnName)}, expressionType{expressionType},
           value{std::move(value)} {}
 
-    common::ZoneMapCheckResult checkZoneMap(const CompressionMetadata& metadata) const override;
+    common::ZoneMapCheckResult checkZoneMap(
+        const InMemoryColumnChunkStats& metadata) const override;
 
     std::string toString() override;
 
