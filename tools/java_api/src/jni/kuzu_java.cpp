@@ -41,6 +41,7 @@ static jclass J_C_Exception;
 // QueryResult
 static jclass J_C_QueryResult;
 static jfieldID J_C_QueryResult_F_qr_ref;
+static jfieldID J_C_QueryResult_F_isOwnedByCPP;
 // PreparedStatement
 static jclass J_C_PreparedStatement;
 static jfieldID J_C_PreparedStatement_F_ps_ref;
@@ -502,6 +503,25 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next(
     jobject newFTObject = env->AllocObject(J_C_FlatTuple);
     env->SetLongField(newFTObject, J_C_FlatTuple_F_ft_ref, ft_ref);
     return newFTObject;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1has_1next_1query_1result(
+    JNIEnv* env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return qr->hasNextQueryResult();
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next_1query_1result(
+    JNIEnv* env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto query_result = qr->getNextQueryResult();
+    if (query_result == nullptr) {
+        return nullptr;
+    }
+
+    jobject ret = createJavaObject(env, query_result, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
+    env->SetBooleanField(ret, J_C_QueryResult_F_isOwnedByCPP, static_cast<jboolean>(true));
+    return ret;
 }
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1to_1string(JNIEnv* env,
@@ -1402,6 +1422,7 @@ void initGlobalMethodRef(JNIEnv* env) {
 
 void initGlobalFieldRef(JNIEnv* env) {
     J_C_QueryResult_F_qr_ref = env->GetFieldID(J_C_QueryResult, "qr_ref", "J");
+    J_C_QueryResult_F_isOwnedByCPP = env->GetFieldID(J_C_QueryResult, "isOwnedByCPP", "Z");
 
     J_C_PreparedStatement_F_ps_ref = env->GetFieldID(J_C_PreparedStatement, "ps_ref", "J");
 
