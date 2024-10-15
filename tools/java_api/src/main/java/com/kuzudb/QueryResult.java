@@ -6,6 +6,7 @@ package com.kuzudb;
 public class QueryResult {
     long qr_ref;
     boolean destroyed = false;
+    boolean isOwnedByCPP = false;
 
     /**
      * Check if the query result has been destroyed.
@@ -25,14 +26,20 @@ public class QueryResult {
         destroy();
     }
 
+    public boolean isOwnedByCPP() {
+        return isOwnedByCPP;
+    }
+
     /**
      * Destroy the query result.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     public void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
-        Native.kuzu_query_result_destroy(this);
-        destroyed = true;
+        if (!isOwnedByCPP) {
+            Native.kuzu_query_result_destroy(this);
+            destroyed = true;
+        }
     }
 
     /**
@@ -144,7 +151,9 @@ public class QueryResult {
      */
     public QueryResult getNextQueryResult() throws ObjectRefDestroyedException {
         checkNotDestroyed();
-        return Native.kuzu_query_result_get_next_query_result(this);
+        QueryResult ret = Native.kuzu_query_result_get_next_query_result(this);
+        ret.isOwnedByCPP = true;
+        return ret;
     }
 
     /**
