@@ -21,32 +21,39 @@ namespace fts_extension {
 
 using namespace function;
 
-struct NodeScore {
-    nodeID_t srcNode;
-    double score;
-    bool output = false;
+struct EdgeProp {
+    uint64_t df;
+    uint64_t tf;
 
-    NodeScore(nodeID_t srcNode, double score) : srcNode{std::move(srcNode)}, score{score} {}
+    EdgeProp(uint64_t df, uint64_t tf) : df{df}, tf{tf} {}
+};
+
+struct EdgeInfo {
+    nodeID_t srcNode;
+    std::vector<EdgeProp> edgeProps;
+
+    explicit EdgeInfo(nodeID_t srcNode) : srcNode{std::move(srcNode)} {}
+
+    void addEdge(uint64_t df, uint64_t tf) { edgeProps.push_back(EdgeProp{df, tf}); }
 };
 
 struct FTSEdgeCompute : public EdgeCompute {
     DoublePathLengthsFrontierPair* frontierPair;
-    common::node_id_map_t<NodeScore>* score;
+    common::node_id_map_t<EdgeInfo>* score;
     common::node_id_map_t<uint64_t>* len;
     common::node_id_map_t<uint64_t>* nodeProp;
     FTSEdgeCompute(DoublePathLengthsFrontierPair* frontierPair,
-        common::node_id_map_t<NodeScore>* score, common::node_id_map_t<uint64_t>* nodeProp)
+        common::node_id_map_t<EdgeInfo>* score, common::node_id_map_t<uint64_t>* nodeProp)
         : frontierPair{frontierPair}, score{score}, nodeProp{nodeProp} {}
 
     bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t /*edgeID*/, bool) override {
         KU_ASSERT(nodeProp->contains(boundNodeID));
-        double df = nodeProp->at(boundNodeID);
+        uint64_t df = nodeProp->at(boundNodeID);
         if (!score->contains(nbrNodeID)) {
-            score->emplace(nbrNodeID, NodeScore{boundNodeID, df});
-            return true;
+            score->emplace(nbrNodeID, EdgeInfo{boundNodeID});
         }
 
-        score->at(nbrNodeID).score += df;
+        score->at(nbrNodeID).addEdge(df, df);
         return true;
     }
 
@@ -60,7 +67,7 @@ public:
     explicit FTSOutput() = default;
     virtual ~FTSOutput() = default;
 
-    common::node_id_map_t<NodeScore> score;
+    common::node_id_map_t<EdgeInfo> score;
 };
 
 void runFrontiersOnce(processor::ExecutionContext* executionContext, FTSState& ftsState,
@@ -112,14 +119,14 @@ public:
         dstNodeIDVector.setNull(pos, !hasScore);
         scoreVector.setNull(pos, !hasScore);
         if (hasScore) {
-            auto nodeScore = ftsOutput->score.at(dstNodeID);
-            if (nodeScore.output) {
-                return;
+            auto edgeInfo = ftsOutput->score.at(dstNodeID);
+            double score = 0;
+            for (auto& edgeProp : edgeInfo.edgeProps) {
+                score += edgeProp.df;
             }
-            srcNodeIDVector.setValue(pos, nodeScore.srcNode);
+            srcNodeIDVector.setValue(pos, edgeInfo.srcNode);
             dstNodeIDVector.setValue(pos, dstNodeID);
-            scoreVector.setValue(pos, nodeScore.score);
-            nodeScore.output = true;
+            scoreVector.setValue(pos, score);
         }
         fTable.append(vectors);
     }
