@@ -135,25 +135,23 @@ public class QueryResultTest extends TestBase {
 
     @Test
     void getMultipleQueryResult() throws ObjectRefDestroyedException {
-        QueryResult result_one = conn.query("return 1; return 2; return 3;");
-        assertTrue(result_one.isSuccess());
-        String str = result_one.toString();
+        QueryResult result = conn.query("return 1; return 2; return 3;");
+        assertTrue(result.isSuccess());
+        String str = result.toString();
         assertEquals(str, "1\n1\n");
 
-        assertTrue(result_one.hasNextQueryResult());
-        QueryResult result_two = result_one.getNextQueryResult();
-        str = result_two.toString();
+        assertTrue(result.hasNextQueryResult());
+        result = result.getNextQueryResult();
+        str = result.toString();
         assertEquals(str, "2\n2\n");
 
-        assertTrue(result_two.hasNextQueryResult());
-        QueryResult result_three = result_two.getNextQueryResult();
-        str = result_three.toString();
+        assertTrue(result.hasNextQueryResult());
+        result = result.getNextQueryResult();
+        str = result.toString();
         assertEquals(str, "3\n3\n");
 
-        assertFalse(result_three.hasNextQueryResult());
+        assertFalse(result.hasNextQueryResult());
         
-        result_one.destroy();
-        result_two.destroy();
-        result_three.destroy();
+        result.destroy();
     }
 }
