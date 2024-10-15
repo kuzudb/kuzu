@@ -140,18 +140,18 @@ public class QueryResultTest extends TestBase {
         String str = result.toString();
         assertEquals(str, "1\n1\n");
 
-        QueryResult next_result;
+        QueryResult nextResult;
         assertTrue(result.hasNextQueryResult());
-        next_result = result.getNextQueryResult();
-        str = next_result.toString();
+        nextResult = result.getNextQueryResult();
+        str = nextResult.toString();
         assertEquals(str, "2\n2\n");
-        next_result.destroy();
+        nextResult.destroy();
 
         assertTrue(result.hasNextQueryResult());
-        next_result = result.getNextQueryResult();
-        str = next_result.toString();
+        nextResult = result.getNextQueryResult();
+        str = nextResult.toString();
         assertEquals(str, "3\n3\n");
-        next_result.destroy();
+        nextResult.destroy();
 
         assertFalse(result.hasNextQueryResult());
         

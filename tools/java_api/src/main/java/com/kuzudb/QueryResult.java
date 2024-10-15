@@ -151,9 +151,7 @@ public class QueryResult {
      */
     public QueryResult getNextQueryResult() throws ObjectRefDestroyedException {
         checkNotDestroyed();
-        QueryResult ret = Native.kuzu_query_result_get_next_query_result(this);
-        ret.isOwnedByCPP = true;
-        return ret;
+        return Native.kuzu_query_result_get_next_query_result(this);
     }
 
     /**
