@@ -16,7 +16,7 @@ struct ScanNodeTableProgressSharedState {
 
 class ScanNodeTableSharedState {
 public:
-    explicit ScanNodeTableSharedState(std::shared_ptr<common::RoaringBitMapSemiMask> semiMask)
+    explicit ScanNodeTableSharedState(std::shared_ptr<common::RoaringBitmapSemiMask> semiMask)
         : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
           currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
           numUnCommittedNodeGroups{0}, semiMask{std::move(semiMask)} {};
@@ -27,7 +27,7 @@ public:
     void nextMorsel(storage::NodeTableScanState& scanState,
         ScanNodeTableProgressSharedState& progressSharedState);
 
-    std::shared_ptr<common::RoaringBitMapSemiMask> getSemiMask() const { return semiMask; }
+    std::shared_ptr<common::RoaringBitmapSemiMask> getSemiMask() const { return semiMask; }
 
 private:
     std::mutex mtx;
@@ -36,7 +36,7 @@ private:
     common::node_group_idx_t currentUnCommittedGroupIdx;
     common::node_group_idx_t numCommittedNodeGroups;
     common::node_group_idx_t numUnCommittedNodeGroups;
-    std::shared_ptr<common::RoaringBitMapSemiMask> semiMask;
+    std::shared_ptr<common::RoaringBitmapSemiMask> semiMask;
 };
 
 struct ScanNodeTableInfo {
@@ -52,7 +52,7 @@ struct ScanNodeTableInfo {
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
 
-    void initScanState(std::shared_ptr<common::RoaringBitMapSemiMask> semiMask);
+    void initScanState(std::shared_ptr<common::RoaringBitmapSemiMask> semiMask);
 
 private:
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
@@ -93,7 +93,7 @@ public:
         KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }
 
-    std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> getSemiMasks() const;
+    std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>> getSemiMasks() const;
 
     bool isSource() const override { return true; }
 

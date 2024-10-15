@@ -11,8 +11,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> RecursiveJoin::getSemiMask() const {
-    std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> maskVector;
+std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>> RecursiveJoin::getSemiMask() const {
+    std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>> maskVector;
     for (auto& mask : sharedState->semiMasks) {
         maskVector.push_back(mask);
     }

@@ -58,7 +58,7 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
     scanState.source = TableScanSource::NONE;
 }
 
-void ScanNodeTableInfo::initScanState(std::shared_ptr<common::RoaringBitMapSemiMask> semiMask) {
+void ScanNodeTableInfo::initScanState(std::shared_ptr<common::RoaringBitmapSemiMask> semiMask) {
     std::vector<Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
@@ -73,8 +73,8 @@ void ScanNodeTableInfo::initScanState(std::shared_ptr<common::RoaringBitMapSemiM
     localScanState->semiMask = semiMask;
 }
 
-std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> ScanNodeTable::getSemiMasks() const {
-    std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> maskVector;
+std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>> ScanNodeTable::getSemiMasks() const {
+    std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>> maskVector;
     for (auto& sharedState : sharedStates) {
         maskVector.push_back(sharedState->getSemiMask());
     }

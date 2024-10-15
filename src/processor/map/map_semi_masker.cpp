@@ -27,7 +27,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     common::table_id_map_t<mask_vector> masksPerTable;
     for (auto tableID : tableIDs) {
         masksPerTable.insert(
-            {tableID, std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>>{}});
+            {tableID, std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>>{}});
     }
     std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getOperators()) {

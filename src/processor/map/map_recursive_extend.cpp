@@ -13,7 +13,7 @@ namespace processor {
 
 static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExpression& nbrNode,
     const main::ClientContext& context) {
-    std::vector<std::shared_ptr<RoaringBitMapSemiMask>> semiMasks;
+    std::vector<std::shared_ptr<RoaringBitmapSemiMask>> semiMasks;
     for (auto entry : nbrNode.getEntries()) {
         auto tableID = entry->getTableID();
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();

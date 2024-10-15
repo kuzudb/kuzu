@@ -12,12 +12,12 @@ namespace kuzu {
 namespace common {
 
 // unsafe
-class RoaringBitMapSemiMask {
+class RoaringBitmapSemiMask {
 public:
-    explicit RoaringBitMapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+    explicit RoaringBitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
         : tableID{tableID}, maxOffset{maxOffset}, enabled{false} {}
 
-    virtual ~RoaringBitMapSemiMask() = default;
+    virtual ~RoaringBitmapSemiMask() = default;
 
     virtual void mask(common::offset_t nodeOffset) = 0;
 
@@ -37,10 +37,10 @@ private:
     common::offset_t maxOffset;
     bool enabled;
 };
-class Roaring32BitMapSemiMask : public RoaringBitMapSemiMask {
+class Roaring32BitmapSemiMask : public RoaringBitmapSemiMask {
 public:
-    explicit Roaring32BitMapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : RoaringBitMapSemiMask(tableID, maxOffset), roaring(std::make_shared<roaring::Roaring>()) {
+    explicit Roaring32BitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : RoaringBitmapSemiMask(tableID, maxOffset), roaring(std::make_shared<roaring::Roaring>()) {
     }
 
     void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
@@ -68,10 +68,10 @@ public:
     std::shared_ptr<roaring::Roaring> roaring;
 };
 
-class Roaring64BitMapSemiMask : public RoaringBitMapSemiMask {
+class Roaring64BitmapSemiMask : public RoaringBitmapSemiMask {
 public:
-    explicit Roaring64BitMapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : RoaringBitMapSemiMask(tableID, maxOffset),
+    explicit Roaring64BitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : RoaringBitmapSemiMask(tableID, maxOffset),
           roaring(std::make_shared<roaring::Roaring64Map>()) {}
 
     void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
@@ -99,12 +99,12 @@ public:
 };
 
 struct RoaringBitMapSemiMaskUtil {
-    static std::shared_ptr<RoaringBitMapSemiMask> createRoaringBitMapSemiMask(
+    static std::shared_ptr<RoaringBitmapSemiMask> createRoaringBitMapSemiMask(
         common::table_id_t tableID, common::offset_t maxOffset) {
-        if (maxOffset > std::numeric_limits<u_int32_t>::max()) {
-            return std::make_shared<Roaring64BitMapSemiMask>(tableID, maxOffset);
+        if (maxOffset > std::numeric_limits<uint32_t>::max()) {
+            return std::make_shared<Roaring64BitmapSemiMask>(tableID, maxOffset);
         } else {
-            return std::make_shared<Roaring32BitMapSemiMask>(tableID, maxOffset);
+            return std::make_shared<Roaring32BitmapSemiMask>(tableID, maxOffset);
         }
     }
 };

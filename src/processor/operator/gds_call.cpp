@@ -10,7 +10,7 @@ std::string GDSCallPrintInfo::toString() const {
     return "Algorithm: " + funcName;
 }
 mask_vector GDSCall::getSemiMasks() const {
-    std::vector<std::shared_ptr<common::RoaringBitMapSemiMask>> masks;
+    std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>> masks;
     for (auto& [_, mask] : sharedState->inputNodeOffsetMasks) {
         masks.push_back(mask);
     }
