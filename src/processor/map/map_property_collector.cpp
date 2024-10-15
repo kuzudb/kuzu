@@ -15,7 +15,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPropertyCollector(
     LogicalOperator* logicalOperator) {
     const auto& propertyCollector = logicalOperator->cast<LogicalPropertyCollector>();
     const auto inSchema = propertyCollector.getChild(0)->getSchema();
-    auto phy = logicalOpToPhysicalOpMap.at(propertyCollector.getOperator());
+    //auto phy = logicalOpToPhysicalOpMap.at(propertyCollector.getOperator());
     PhysicalOperator* physicalOp = nullptr;
     // todo: fix here
     for (auto& [lop, pop] : logicalOpToPhysicalOpMap) {
@@ -27,7 +27,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPropertyCollector(
     KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
     auto sharedState = std::make_shared<PropertyCollectorSharedState>();
-    auto gds = physicalOp->getChild(0)->ptrCast<GDSCall>();
+    auto gds = physicalOp->getChild(0)->ptrCast<
+        GDSCall>();
     gds->setNodeProperty(&sharedState->nodeProperty);
     auto nodeIDPos = DataPos(inSchema->getExpressionPos(*propertyCollector.getNodeID()));
     auto propPos = DataPos(inSchema->getExpressionPos(*propertyCollector.getProperty()));
