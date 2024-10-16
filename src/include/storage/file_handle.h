@@ -107,7 +107,7 @@ public:
     common::FileInfo* getFileInfo() const { return fileInfo.get(); }
 
     uint64_t getPageSize() const {
-        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::PAGE_SIZE;
+        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::KUZU_PAGE_SIZE;
     }
 
 private:
