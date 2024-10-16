@@ -12,7 +12,7 @@ void kuzu_flat_tuple_destroy(kuzu_flat_tuple* flat_tuple) {
         return;
     }
     if (flat_tuple->_flat_tuple != nullptr && !flat_tuple->_is_owned_by_cpp) {
-        delete static_cast<FlatTuple*>(flat_tuple->_flat_tuple);
+        delete                  static_cast<FlatTuple*>(flat_tuple->_flat_tuple);
     }
 }
 
