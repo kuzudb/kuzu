@@ -25,7 +25,7 @@ namespace optimizer {
 class ProjectionPushDownOptimizer : public LogicalOperatorVisitor {
 public:
     void rewrite(planner::LogicalPlan* plan);
-    explicit ProjectionPushDownOptimizer(common::PathSemantic semantic) : semantic(semantic) {};
+    explicit ProjectionPushDownOptimizer(common::PathSemantic semantic) : semantic(semantic){};
 
 private:
     void visitOperator(planner::LogicalOperator* op);
