@@ -224,7 +224,7 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
     if (getZoneMapResult(scanState, nodeGroupScanState, chunks) ==
         common::ZoneMapCheckResult::SKIP_SCAN) {
-        anchorSelVector.setToUnfiltered(0);
+        anchorSelVector.setToFiltered(0);
         return;
     }
 
