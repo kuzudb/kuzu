@@ -69,3 +69,15 @@
 
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.validInterval > cast('200 year', 'interval') RETURN e1
 ---- 0
+
+-LOG ZonemapWithUpdates
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.ID = 0 AND b.ID = 2 SET e1.meetTime = timestamp('2025-02-01 11:22:33.53')
+---- ok
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime > timestamp('2025-01-01 11:22:33.53') RETURN a.ID, b.ID, e1.meetTime
+---- 1
+0|2|2025-02-01 11:22:33.53
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 2 AND b.ID = 7 CREATE (a)-[e:knows {meetTime:timestamp('2026-02-01 11:22:33.53')}]->(b);
+---- ok
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime > timestamp('2026-01-01 11:22:33.53') RETURN a.ID, b.ID, e1.meetTime
+---- 1
+2|7|2026-02-01 11:22:33.53

@@ -181,7 +181,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithCache(const Transac
                 DEFAULT_VECTOR_CAPACITY);
         persistentChunkGroup->scan(transaction, tableState, nodeGroupScanState,
             nodeGroupScanState.numScannedRows, numToScan);
-        nodeGroupScanState.numCachedRows = numToScan;
+        nodeGroupScanState.numCachedRows = tableState.outState->getSelSize();
         nodeGroupScanState.numScannedRows += numToScan;
         if (tableState.outState->getSelVector().isUnfiltered()) {
             nodeGroupScanState.cachedScannedVectorsSelBitset.set();
