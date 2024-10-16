@@ -48,7 +48,7 @@ env:
   CHECKPOINT_THRESHOLD: ${{ github.event.inputs.checkpoint_threshold }}
   WERROR: 1
   RUSTFLAGS: --deny warnings
-
+  PIP_BREAK_SYSTEM_PACKAGES: 1
 
 # Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
 # We use the workflow name and then add the pull request number, or (if it's a push to master), we use the name of the branch.
@@ -145,8 +145,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -220,8 +220,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -348,8 +348,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -395,8 +395,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -456,8 +456,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -745,8 +745,8 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          pip3 install torch~=2.2.0 --break-system-package --extra-index-url https://download.pytorch.org/whl/cpu
-          pip3 install --break-system-package --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip3 install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
@@ -821,7 +821,7 @@ jobs:
       - name: Test
         working-directory: tools/shell/test
         run: |
-          pip3 install --break-system-package pytest pexpect
+          pip3 install pytest pexpect
           python3 -m pytest -v .
 
   linux-extension-test:
@@ -859,7 +859,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip install --break-system-package rangehttpserver
+        run: pip install rangehttpserver
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
@@ -913,7 +913,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip3 install --break-system-package rangehttpserver
+        run: pip3 install rangehttpserver
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build

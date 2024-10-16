@@ -2,6 +2,7 @@ name: Multiplatform Build and Test
 
 env:
   USE_EXISTING_BINARY_DATASET: 1
+  PIP_BREAK_SYSTEM_PACKAGES: 1
 
 on:
   workflow_dispatch:
@@ -337,8 +338,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu ${{ matrix.image != 'ubuntu:22.04' && '--break-system-packages' || '' }}
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html ${{ matrix.image != 'ubuntu:22.04' && '--break-system-packages' || '' }}
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         working-directory: tools/nodejs_api
@@ -627,8 +628,8 @@ jobs:
       - name: Ensure Python dependencies
         continue-on-error: true
         run: |
-          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html --break-system-packages
+          pip install torch~=2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
 
       - name: Ensure Node.js dependencies
         continue-on-error: true

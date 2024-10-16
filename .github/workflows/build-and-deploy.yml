@@ -45,7 +45,9 @@ on:
         type: boolean
         required: true
         default: false
-
+env:
+  PIP_BREAK_SYSTEM_PACKAGES: 1
+  
 jobs:
   build-extension:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipExtensions != 'true' }}
@@ -86,6 +88,7 @@ jobs:
       GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       SKIP_CMAKE_BUILD: true
+      PIP_
 
     runs-on: ubuntu-latest
     steps:
@@ -94,7 +97,7 @@ jobs:
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
         run: |
-          python3 -m pip install --break-system-package packaging
+          python3 -m pip install packaging
           python3 update-nightly-build-version.py
         working-directory: scripts
 
@@ -173,7 +176,7 @@ jobs:
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
         run: |
-          pip3 install --break-system-package packaging
+          pip3 install packaging
           python3 update-nightly-build-version.py
         working-directory: scripts
 
@@ -269,7 +272,7 @@ jobs:
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
         run: |
-          pip3 install --break-system-package packaging
+          pip3 install packaging
           python3 update-nightly-build-version.py
         working-directory: scripts
 
@@ -357,7 +360,7 @@ jobs:
       - name: Update nightly version
         if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
         run: |
-          pip3 install packaging --break-system-package
+          pip3 install packaging
           python3 update-nightly-build-version.py
         working-directory: scripts
 
