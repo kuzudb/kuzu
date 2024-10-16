@@ -127,13 +127,15 @@ TEST_F(CApiDatabaseTest, CreationHomeDir1) {
         conn->query("CALL create_fts_index('person', 'test', ['content', 'author']) RETURN *")
             ->toString()
             .c_str());
-//    printf("%s", conn->query("explain PROJECT GRAPH PK (person_dict, person_docs, person_terms) "
-//                             "MATCH (a:person_dict) "
-//                             "WHERE list_contains(['monster'], a.term) "
-//                             "CALL FTS(PK, a) "
-//                             "RETURN _node,score")
-//                     ->toString()
-//                     .c_str());
+    printf("%s", conn->query("MATCH (p:person_terms) RETURN *")->toString().c_str());
+    //    printf("%s", conn->query("explain PROJECT GRAPH PK (person_dict, person_docs,
+    //    person_terms) "
+    //                             "MATCH (a:person_dict) "
+    //                             "WHERE list_contains(['monster'], a.term) "
+    //                             "CALL FTS(PK, a) "
+    //                             "RETURN _node,score")
+    //                     ->toString()
+    //                     .c_str());
     printf("%s", conn->query(" PROJECT GRAPH PK (person_dict, person_docs, person_terms) "
                              "UNWIND tokenize('monster') AS tk "
                              "WITH collect(stem(tk, 'porter')) AS tokens "
