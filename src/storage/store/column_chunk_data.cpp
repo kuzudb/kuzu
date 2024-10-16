@@ -174,45 +174,18 @@ void ColumnChunkData::resetToEmpty() {
     resetInMemoryStats();
 }
 
-static void updateStatsFromData(uint8_t* data, uint64_t offset, uint64_t numValues,
-    common::PhysicalTypeID physicalType, ColumnChunkStats& stats) {
-    if (TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; })) {
-        auto [minVal, maxVal] =
-            getMinMaxStorageValue(data, offset, numValues, physicalType, nullptr);
-        stats.update(minVal, maxVal, physicalType);
-    }
-}
-
-static void updateStatsInternal(ColumnChunkStats& stats, const ValueVector& values,
+static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& values,
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
-    updateStatsFromData(values.getData(), offset, numValuesToCheck, physicalType, stats);
+    stats.update(values.getData(), offset, numValuesToCheck, physicalType);
 }
 
-static void updateStatsInternal(ColumnChunkStats& stats, const ColumnChunkData* values,
+static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
-    updateStatsFromData(values->getData(), offset, numValuesToCheck, physicalType, stats);
-}
-
-void ColumnChunkStats::update(std::optional<StorageValue> newMin,
-    std::optional<StorageValue> newMax, common::PhysicalTypeID dataType) {
-    if (!min.has_value() || (newMin.has_value() && min->gt(*newMin, dataType))) {
-        min = newMin;
-    }
-    if (!max.has_value() || (newMax.has_value() && newMax->gt(*max, dataType))) {
-        max = newMax;
-    }
-}
-
-void ColumnChunkStats::update(StorageValue val, common::PhysicalTypeID dataType) {
-    update(val, val, dataType);
-}
-
-void ColumnChunkStats::reset() {
-    *this = {};
+    stats.update(values->getData(), offset, numValuesToCheck, physicalType);
 }
 
 ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats(
@@ -225,7 +198,7 @@ ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats(
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
     const common::SelectionVector& selVector) {
     if (selVector.isUnfiltered()) {
-        updateStatsInternal(inMemoryUpdateStats, *vector);
+        updateInMemoryStats(inMemoryUpdateStats, *vector);
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
@@ -281,7 +254,7 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
         other->getData<uint8_t>() + startPosInOtherChunk * numBytesPerValue,
         numValuesToAppend * numBytesPerValue);
     numValues += numValuesToAppend;
-    updateStatsInternal(inMemoryUpdateStats, other, startPosInOtherChunk, numValuesToAppend);
+    updateInMemoryStats(inMemoryUpdateStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
 void ColumnChunkData::flush(FileHandle& dataFH) {
@@ -387,7 +360,7 @@ void ColumnChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
             }
         }
     }
-    updateStatsInternal(inMemoryUpdateStats, chunk);
+    updateInMemoryStats(inMemoryUpdateStats, chunk);
 }
 
 // NOTE: This function is only called in LocalTable right now when
@@ -411,7 +384,7 @@ void ColumnChunkData::write(const ValueVector* vector, offset_t offsetInVector,
             vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
     }
     static constexpr uint64_t numValuesToWrite = 1;
-    updateStatsInternal(inMemoryUpdateStats, *vector, offsetInVector, numValuesToWrite);
+    updateInMemoryStats(inMemoryUpdateStats, *vector, offsetInVector, numValuesToWrite);
 }
 
 void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -428,7 +401,7 @@ void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
         nullData->write(srcChunk->getNullData(), srcOffsetInChunk, dstOffsetInChunk,
             numValuesToCopy);
     }
-    updateStatsInternal(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -447,7 +420,7 @@ void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
         }
     }
     append(srcChunk, srcOffsetInChunk, numValuesToCopy);
-    updateStatsInternal(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void ColumnChunkData::resetNumValuesFromMetadata() {
@@ -634,7 +607,7 @@ void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
         nullData->append(other->getNullData(), startPosInOtherChunk, numValuesToAppend);
     }
     numValues += numValuesToAppend;
-    updateStatsInternal(inMemoryUpdateStats, other, startPosInOtherChunk, numValuesToAppend);
+    updateInMemoryStats(inMemoryUpdateStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
 void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length,
@@ -672,7 +645,7 @@ void BoolChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, R
         }
         numValues = dstOffset >= numValues ? dstOffset + 1 : numValues;
     }
-    updateStatsInternal(inMemoryUpdateStats, chunk);
+    updateInMemoryStats(inMemoryUpdateStats, chunk);
 }
 
 void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
@@ -685,7 +658,7 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     }
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
     static constexpr uint64_t numValuesToWrite = 1;
-    updateStatsInternal(inMemoryUpdateStats, *vector, offsetInChunk, numValuesToWrite);
+    updateInMemoryStats(inMemoryUpdateStats, *vector, offsetInChunk, numValuesToWrite);
 }
 
 void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -699,7 +672,7 @@ void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
     NullMask::copyNullMask(srcChunk->getData<uint64_t>(), srcOffsetInChunk, getData<uint64_t>(),
         dstOffsetInChunk, numValuesToCopy);
-    updateStatsInternal(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::setNull(offset_t pos, bool isNull) {
@@ -731,7 +704,7 @@ void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
     copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
         numValuesToCopy);
-    updateStatsInternal(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
@@ -739,7 +712,7 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
     copyFromBuffer(other->getData<uint64_t>(), startOffsetInOtherChunk, numValues,
         numValuesToAppend);
     numValues += numValuesToAppend;
-    updateStatsInternal(inMemoryUpdateStats, other, startOffsetInOtherChunk, numValuesToAppend);
+    updateInMemoryStats(inMemoryUpdateStats, other, startOffsetInOtherChunk, numValuesToAppend);
 }
 
 void NullChunkData::serialize(Serializer& serializer) const {
