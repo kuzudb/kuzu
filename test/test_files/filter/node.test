@@ -17,6 +17,20 @@
 
 -CASE FilterNode
 
+-LOG ZoneMapUpdateThenQueryWithoutCheckpoint
+-STATEMENT CALL enable_zone_map=true;
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age=40 + 50
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.age > 85 RETURN a.ID, a.age
+---- 1
+0|90
+-STATEMENT CREATE (a:person {id: 100, age: 100})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.age > 95 RETURN a.ID, a.age
+---- 1
+100|100
+
 -LOG PersonNodesAgeFilteredTest1
 -STATEMENT MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
 ---- 1
