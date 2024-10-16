@@ -37,6 +37,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::FILTER: {
         visitFilter(op);
     } break;
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        visitNodeLabelFilter(op);
+    } break;
     case LogicalOperatorType::FLATTEN: {
         visitFlatten(op);
     } break;
@@ -122,6 +125,9 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::FILTER: {
         return visitFilterReplace(op);
+    }
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        return visitNodeLabelFilterReplace(op);
     }
     case LogicalOperatorType::FLATTEN: {
         return visitFlattenReplace(op);

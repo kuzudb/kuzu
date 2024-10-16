@@ -32,6 +32,7 @@ private:
     void visitExtend(planner::LogicalOperator* op) override;
     void visitAccumulate(planner::LogicalOperator* op) override;
     void visitFilter(planner::LogicalOperator* op) override;
+    void visitNodeLabelFilter(planner::LogicalOperator* op) override;
     void visitHashJoin(planner::LogicalOperator* op) override;
     void visitIntersect(planner::LogicalOperator* op) override;
     void visitProjection(planner::LogicalOperator* op) override;
