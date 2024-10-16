@@ -652,13 +652,13 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     KU_ASSERT(offsetInChunk < capacity);
-    setValue(vector->getValue<bool>(offsetInVector), offsetInChunk);
+    const auto valueToSet = vector->getValue<bool>(offsetInVector);
+    setValue(valueToSet, offsetInChunk);
     if (nullData) {
         nullData->write(vector, offsetInVector, offsetInChunk);
     }
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
-    static constexpr uint64_t numValuesToWrite = 1;
-    updateInMemoryStats(inMemoryUpdateStats, *vector, offsetInChunk, numValuesToWrite);
+    inMemoryUpdateStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
 }
 
 void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,

@@ -7,7 +7,9 @@ namespace storage {
 
 void ColumnChunkStats::update(uint8_t* data, uint64_t offset, uint64_t numValues,
     common::PhysicalTypeID physicalType) {
-    if (common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; })) {
+    const bool isStorageValueType =
+        common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
+    if (isStorageValueType) {
         auto [minVal, maxVal] =
             getMinMaxStorageValue(data, offset, numValues, physicalType, nullptr);
         update(minVal, maxVal, physicalType);

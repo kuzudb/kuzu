@@ -2,7 +2,6 @@
 
 #include "binder/expression/literal_expression.h"
 #include "storage/predicate/constant_predicate.h"
-#include "storage/store/column_chunk.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
