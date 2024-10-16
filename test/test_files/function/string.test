@@ -605,9 +605,9 @@ he---
 th*?? *?? a team
 
 -LOG RegexpReplaceSpace
--STATEMENT Return REGEXP_REPLACE('65 landy street waterloo ontario', '\\s', '', 'g');
+-STATEMENT Return REGEXP_REPLACE('65 landy street waterloo ontario canada', '\\s', '', 'g');
 ---- 1
-65landystreetwaterlooontario
+65landystreetwaterlooontariocanada
 
 -LOG RegexpExtractWithoutGroup
 -STATEMENT Return regexp_extract('hello_world', '([a-z ]+)_?');
