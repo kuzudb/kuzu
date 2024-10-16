@@ -23,6 +23,7 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
     auto cost = 0ul;
     cost += probe.getCost();
     cost += build.getCost();
+    // TODO(Guodong): This shouldn't be probe card now. We should figure out num flat keys.
     cost += probe.getCardinality();
     cost +=
         PlannerKnobs::BUILD_PENALTY * JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, build);

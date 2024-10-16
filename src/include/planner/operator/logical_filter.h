@@ -6,6 +6,15 @@
 namespace kuzu {
 namespace planner {
 
+struct LogicalFilterPrintInfo final : OPPrintInfo {
+    std::shared_ptr<binder::Expression> expression;
+
+    explicit LogicalFilterPrintInfo(std::shared_ptr<binder::Expression> expression)
+        : expression{std::move(expression)} {}
+
+    std::string toString() const override { return expression->toString(); }
+};
+
 class LogicalFilter final : public LogicalOperator {
 public:
     LogicalFilter(std::shared_ptr<binder::Expression> expression,
@@ -23,6 +32,10 @@ public:
     inline std::shared_ptr<binder::Expression> getPredicate() const { return expression; }
 
     f_group_pos getGroupPosToSelect() const;
+
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalFilterPrintInfo>(expression);
+    }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         auto op = make_unique<LogicalFilter>(expression, children[0]->copy());

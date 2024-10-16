@@ -263,8 +263,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilters(
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilter(
     std::shared_ptr<Expression> predicate, std::shared_ptr<LogicalOperator> child) {
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto filter = std::make_shared<LogicalFilter>(std::move(predicate), std::move(child));
+    filter->setCardinality(filter->getChild(0)->getCardinality());
     filter->computeFlatSchema();
     return filter;
 }
