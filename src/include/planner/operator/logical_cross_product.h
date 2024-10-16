@@ -33,6 +33,7 @@ public:
         auto op = make_unique<LogicalCrossProduct>(accumulateType, mark, children[0]->copy(),
             children[1]->copy());
         op->sipInfo = sipInfo;
+        op->cardinality = cardinality;
         return op;
     }
 

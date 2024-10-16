@@ -35,7 +35,8 @@ void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<
     // update cost
     resultPlan.setCost(probePlan.getCardinality() + buildPlan.getCardinality());
     // update cardinality
-    resultPlan.setCardinality(cardinalityEstimator.estimateCrossProduct(probePlan, buildPlan));
+    crossProduct->setCardinality(cardinalityEstimator.estimateCrossProduct(probePlan, buildPlan));
+    resultPlan.setCardinality(crossProduct->getCardinality());
     resultPlan.setLastOperator(std::move(crossProduct));
 }
 

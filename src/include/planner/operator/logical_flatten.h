@@ -18,7 +18,10 @@ public:
     inline f_group_pos getGroupPos() const { return groupPos; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFlatten>(groupPos, children[0]->copy());
+        auto op = make_unique<LogicalFlatten>(groupPos, children[0]->copy());
+        // TODO(Guodong): Temp hack here.
+        op->cardinality = cardinality;
+        return op;
     }
 
 private:

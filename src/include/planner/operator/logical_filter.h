@@ -25,7 +25,10 @@ public:
     f_group_pos getGroupPosToSelect() const;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFilter>(expression, children[0]->copy());
+        auto op = make_unique<LogicalFilter>(expression, children[0]->copy());
+        // TODO(Guodong): temp hack here.
+        op->cardinality = cardinality;
+        return op;
     }
 
 private:

@@ -48,7 +48,10 @@ void LogicalScanNodeTable::computeFlatSchema() {
 }
 
 std::unique_ptr<LogicalOperator> LogicalScanNodeTable::copy() {
-    return std::make_unique<LogicalScanNodeTable>(*this);
+    auto op = std::make_unique<LogicalScanNodeTable>(*this);
+    // TODO(Guodong): temp hack here.
+    op->cardinality = cardinality;
+    return op;
 }
 
 } // namespace planner
