@@ -44,7 +44,7 @@ TEST_F(SystemConfigTest, testMaxDBSize) {
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given max db size should be at least " +
-                std::to_string(PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
+                std::to_string(KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
     }
     systemConfig->maxDBSize = 268435457;
     try {
@@ -69,7 +69,7 @@ TEST_F(SystemConfigTest, testBufferPoolSize) {
     } catch (const BufferManagerException& e) {
         ASSERT_EQ(std::string(e.what()),
             "Buffer manager exception: The given buffer pool size should be at least " +
-                std::to_string(PAGE_SIZE) + " bytes.");
+                std::to_string(KUZU_PAGE_SIZE) + " bytes.");
     }
     systemConfig->bufferPoolSize = BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
     EXPECT_NO_THROW(auto db = std::make_unique<Database>(databasePath, *systemConfig));
