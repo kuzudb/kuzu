@@ -274,7 +274,7 @@ jobs:
   webassembly-build-test:
     name: webassembly build & test
     needs: [clang-format, sanity-checks, generate-binary-datasets]
-    runs-on: ubuntu-latest
+    runs-on: kuzu-self-hosted-testing
     env:
       WERROR: 0
       TEST_JOBS: 12
