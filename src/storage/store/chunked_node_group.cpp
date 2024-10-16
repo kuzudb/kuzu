@@ -345,12 +345,14 @@ void ChunkedNodeGroup::addColumn(Transaction* transaction,
             dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
-    if (chunkData.getNumValues() > 0) {
+    if (numRows > 0) {
         TypeUtils::visit(
             chunkData.getDataType().getPhysicalType(),
             [this, &chunkData]<StorageValueType T>(T) {
                 auto defaultVal = chunkData.getValue<T>(0);
-                chunks.back()->updateStats(StorageValue{defaultVal}, StorageValue{defaultVal});
+                if (!chunkData.hasNullData() || !chunkData.isNull(0)) {
+                    chunks.back()->updateStats(StorageValue{defaultVal}, StorageValue{defaultVal});
+                }
             },
             [](auto) {});
     }
