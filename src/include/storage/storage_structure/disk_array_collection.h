@@ -16,7 +16,7 @@ class DiskArrayCollection {
         explicit HeaderPage(uint32_t numHeaders = 0)
             : nextHeaderPage{common::INVALID_PAGE_IDX}, numHeaders{numHeaders} {}
         static constexpr size_t NUM_HEADERS_PER_PAGE =
-            (common::PAGE_SIZE - sizeof(common::page_idx_t) - sizeof(uint32_t)) /
+            (common::KUZU_PAGE_SIZE - sizeof(common::page_idx_t) - sizeof(uint32_t)) /
             sizeof(DiskArrayHeader);
 
         bool operator==(const HeaderPage&) const = default;

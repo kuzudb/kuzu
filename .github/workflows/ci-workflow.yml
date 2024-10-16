@@ -306,6 +306,33 @@ jobs:
       - name: Stop Docker container
         run: docker stop kuzu-x86
 
+  webassembly-build-test:
+    name: webassembly build & test
+    needs: [clang-format, sanity-checks, generate-binary-datasets]
+    runs-on: kuzu-self-hosted-testing
+    # Disable WebAssembly test for now due to failed tests. 
+    # It will be enabled once the failed tests are fixed or disabled.
+    if: false
+    env:
+      WERROR: 0
+      TEST_JOBS: 12
+      NUM_THREADS: 32
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary-demo
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-demo
+          path: dataset/binary-demo
+        
+      - name: Build & Test
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          source /home/runner/emsdk/emsdk_env.sh
+          make wasmtest
+
   rust-build-test:
     name: rust build & test
     needs: [rustfmt-check]

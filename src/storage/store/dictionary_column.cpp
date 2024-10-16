@@ -154,7 +154,7 @@ bool DictionaryColumn::canDataCommitInPlace(const ChunkState& dataState,
     uint64_t totalStringLengthToAdd) {
     // Make sure there is sufficient space in the data chunk (not currently compressed)
     auto totalStringDataAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
-    if (totalStringDataAfterUpdate > dataState.metadata.numPages * PAGE_SIZE) {
+    if (totalStringDataAfterUpdate > dataState.metadata.numPages * KUZU_PAGE_SIZE) {
         // Data cannot be updated in place
         return false;
     }
@@ -165,7 +165,7 @@ bool DictionaryColumn::canOffsetCommitInPlace(const ChunkState& offsetState,
     const ChunkState& dataState, uint64_t numNewStrings, uint64_t totalStringLengthToAdd) {
     auto totalStringOffsetsAfterUpdate = dataState.metadata.numValues + totalStringLengthToAdd;
     auto offsetCapacity =
-        offsetState.metadata.compMeta.numValues(PAGE_SIZE, dataColumn->getDataType()) *
+        offsetState.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataColumn->getDataType()) *
         offsetState.metadata.numPages;
     auto numStringsAfterUpdate = offsetState.metadata.numValues + numNewStrings;
     if (numStringsAfterUpdate > offsetCapacity) {

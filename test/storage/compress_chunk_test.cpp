@@ -148,7 +148,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
 
     ChunkState state;
     state.metadata = chunkMetadata;
-    state.numValuesPerPage = state.metadata.compMeta.numValues(PAGE_SIZE, dataType);
+    state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
         state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(
             clientContext->getTx(), state, dataFH, mm, &storageManager->getShadowFile());

@@ -64,15 +64,15 @@ enum PageSizeClass : uint8_t {
 // PAGE_SIZE and TEMP_PAGE_SIZE. PAGE_SIZE is the default size of the page which is the
 // unit of read/write to the database files.
 #ifdef KUZU_PAGE_SIZE_LOG2
-constexpr uint64_t PAGE_SIZE_LOG2 = KUZU_PAGE_SIZE_LOG2;
+static constexpr uint64_t PAGE_SIZE_LOG2 = KUZU_PAGE_SIZE_LOG2;
 #else
-constexpr uint64_t PAGE_SIZE_LOG2 = 12; // Default to 4KB.
+static constexpr uint64_t PAGE_SIZE_LOG2 = 12; // Default to 4KB.
 #endif
-constexpr uint64_t PAGE_SIZE = static_cast<uint64_t>(1) << PAGE_SIZE_LOG2;
+static constexpr uint64_t KUZU_PAGE_SIZE = static_cast<uint64_t>(1) << PAGE_SIZE_LOG2;
 // Page size for files with large pages, e.g., temporary files that are used by operators that
 // may require large amounts of memory.
-constexpr uint64_t TEMP_PAGE_SIZE_LOG2 = 18;
-constexpr uint64_t TEMP_PAGE_SIZE = static_cast<uint64_t>(1) << TEMP_PAGE_SIZE_LOG2;
+static constexpr uint64_t TEMP_PAGE_SIZE_LOG2 = 18;
+static const uint64_t TEMP_PAGE_SIZE = static_cast<uint64_t>(1) << TEMP_PAGE_SIZE_LOG2;
 
 struct BufferPoolConstants {
     // If a user does not specify a max size for BM, we by default set the max size of BM to

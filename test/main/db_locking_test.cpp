@@ -99,6 +99,7 @@ TEST_F(DBLockingTest, testWriteLock) {
     }
 }
 
+#ifndef __WASM__
 TEST_F(DBLockingTest, testReadOnly) {
     if (databasePath == "" || databasePath == ":memory:") {
         return;
@@ -138,3 +139,4 @@ TEST_F(DBLockingTest, testReadOnly) {
     ASSERT_FALSE(conn->query("MATCH (p:Person) WHERE p.name='Alice' SET p.age=26;")->isSuccess());
     ASSERT_FALSE(conn->query("MATCH (p:Person) WHERE name='Alice' DELETE p;")->isSuccess());
 }
+#endif

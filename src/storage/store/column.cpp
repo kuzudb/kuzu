@@ -294,7 +294,7 @@ void Column::lookupInternal(Transaction* transaction, const ChunkState& state, o
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.numPages == 0;
     }
-    const auto numValuesPerPage = metadata.compMeta.numValues(PAGE_SIZE, dataType);
+    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (numValuesPerPage == UINT64_MAX) {
         return metadata.numPages == 0;
     }
@@ -365,7 +365,8 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
 bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
     offset_t maxOffset) const {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
-        (metadata.compMeta.numValues(PAGE_SIZE, dataType) * metadata.numPages) <= (maxOffset + 1)) {
+        (metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType) * metadata.numPages) <=
+            (maxOffset + 1)) {
         // Note that for constant compression, `metadata.numPages` will be equal to 0.
         // Thus, this function will always return true.
         return true;

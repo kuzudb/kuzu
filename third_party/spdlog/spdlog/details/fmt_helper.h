@@ -88,7 +88,7 @@ inline void pad2(int n, memory_buf_t &dest) {
         dest.push_back(static_cast<char>('0' + n % 10));
     } else  // unlikely, but just in case, let fmt deal with it
     {
-        fmt_lib::format_to(std::back_inserter(dest), SPDLOG_FMT_STRING("{:02}"), n);
+        fmt_lib::format_to(std::back_inserter(dest), "{:02}", n);
     }
 }
 

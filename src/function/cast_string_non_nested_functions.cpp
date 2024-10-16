@@ -57,7 +57,7 @@ bool tryCastToBool(const char* input, uint64_t len, bool& result) {
 void castStringToBool(const char* input, uint64_t len, bool& result) {
     if (!tryCastToBool(input, len, result)) {
         throw ConversionException{
-            stringFormat("Value {} is not a valid boolean", std::string{input, len})};
+            stringFormat("Value {} is not a valid boolean", std::string{input, (size_t)len})};
     }
 }
 

@@ -20,13 +20,13 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
     const ColumnChunkMetadata& metadata) const {
     auto valuesRemaining = metadata.numValues;
     const uint8_t* bufferStart = buffer.data();
-    const auto compressedBuffer = std::make_unique<uint8_t[]>(PAGE_SIZE);
+    const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     auto numPages = 0u;
-    const auto numValuesPerPage = metadata.compMeta.numValues(PAGE_SIZE, dataType);
+    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
     while (valuesRemaining > 0) {
         const auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
-            compressedBuffer.get(), PAGE_SIZE, metadata.compMeta);
+            compressedBuffer.get(), KUZU_PAGE_SIZE, metadata.compMeta);
         // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
         // UINT64_MAX)
         if (numValuesPerPage > valuesRemaining) {
@@ -34,8 +34,8 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
         } else {
             valuesRemaining -= numValuesPerPage;
         }
-        if (compressedSize < PAGE_SIZE) {
-            memset(compressedBuffer.get() + compressedSize, 0, PAGE_SIZE - compressedSize);
+        if (compressedSize < KUZU_PAGE_SIZE) {
+            memset(compressedBuffer.get() + compressedSize, 0, KUZU_PAGE_SIZE - compressedSize);
         }
         KU_ASSERT(numPages < metadata.numPages);
         KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
@@ -44,7 +44,7 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
     }
     // Make sure that the on-disk file is the right length
     if (!dataFH->isInMemoryMode() && numPages < metadata.numPages) {
-        memset(compressedBuffer.get(), 0, PAGE_SIZE);
+        memset(compressedBuffer.get(), 0, KUZU_PAGE_SIZE);
         dataFH->writePageToFile(compressedBuffer.get(), startPageIdx + metadata.numPages - 1);
     }
     return ColumnChunkMetadata(startPageIdx, metadata.numPages, metadata.numValues,
@@ -65,14 +65,15 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
     KU_ASSERT(valuesRemaining <= buffer.size_bytes() / sizeof(T));
 
     const size_t exceptionBufferSize =
-        EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity) * PAGE_SIZE;
+        EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity) *
+        KUZU_PAGE_SIZE;
     auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
     std::byte* exceptionBufferCursor = reinterpret_cast<std::byte*>(exceptionBuffer.get());
 
-    const auto numValuesPerPage = metadata.compMeta.numValues(PAGE_SIZE, dataType);
+    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
 
-    const auto compressedBuffer = std::make_unique<uint8_t[]>(PAGE_SIZE);
+    const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     const uint8_t* bufferCursor = buffer.data();
     auto numPages = 0u;
     size_t remainingExceptionBufferSize = exceptionBufferSize;
@@ -82,8 +83,8 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
         uint64_t pageExceptionCount = 0;
         (void)castedAlg.compressNextPageWithExceptions(bufferCursor,
             metadata.numValues - valuesRemaining, valuesRemaining, compressedBuffer.get(),
-            PAGE_SIZE, EncodeExceptionView<T>{exceptionBufferCursor}, remainingExceptionBufferSize,
-            pageExceptionCount, metadata.compMeta);
+            KUZU_PAGE_SIZE, EncodeExceptionView<T>{exceptionBufferCursor},
+            remainingExceptionBufferSize, pageExceptionCount, metadata.compMeta);
 
         exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeInBytes();
         remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeInBytes();

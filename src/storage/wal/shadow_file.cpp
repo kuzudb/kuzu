@@ -76,7 +76,7 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
 
 void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
     std::unordered_map<DBFileID, std::unique_ptr<FileInfo>> fileCache;
-    const auto pageBuffer = std::make_unique<uint8_t[]>(PAGE_SIZE);
+    const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
     for (const auto& record : shadowPageRecords) {
         const auto& dbFileID = record.dbFileID;
@@ -85,8 +85,8 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) const {
         }
         const auto& fileInfoOfDBFile = fileCache.at(dbFileID);
         shadowingFH->readPageFromDisk(pageBuffer.get(), shadowPageIdx++);
-        fileInfoOfDBFile->writeFile(pageBuffer.get(), PAGE_SIZE,
-            record.originalPageIdx * PAGE_SIZE);
+        fileInfoOfDBFile->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
+            record.originalPageIdx * KUZU_PAGE_SIZE);
         // NOTE: We're not taking lock here, as we assume this is only called with single thread.
         context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
             record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
@@ -97,7 +97,7 @@ void ShadowFile::flushAll() const {
     // Write header page to file.
     ShadowFileHeader header;
     header.numShadowPages = shadowPageRecords.size();
-    const auto headerBuffer = std::make_unique<uint8_t[]>(PAGE_SIZE);
+    const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
     KU_ASSERT(!shadowingFH->isInMemoryMode());
     shadowingFH->writePageToFile(headerBuffer.get(), 0);
@@ -105,7 +105,7 @@ void ShadowFile::flushAll() const {
     shadowingFH->flushAllDirtyPagesInFrames();
     // Append shadow page records to end of file.
     const auto writer = std::make_shared<BufferedFileWriter>(*shadowingFH->getFileInfo());
-    writer->setFileOffset(shadowingFH->getNumPages() * PAGE_SIZE);
+    writer->setFileOffset(shadowingFH->getNumPages() * KUZU_PAGE_SIZE);
     Serializer ser(writer);
     KU_ASSERT(shadowPageRecords.size() + 1 == shadowingFH->getNumPages());
     ser.serializeVector(shadowPageRecords);

@@ -29,7 +29,7 @@ if(NOT WIN32)
 endif()
 # Seems to be needed for clang on linux only
 # for compiling std::atomic<T>::compare_exchange_weak
-if (NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if ((NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND NOT __WASM__)
         set(KUZU_LIBRARIES atomic ${KUZU_LIBRARIES})
 endif()
 if (ENABLE_BACKTRACES)
