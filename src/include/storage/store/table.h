@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/enums/zone_map_check_result.h"
 #include "common/mask.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/column.h"

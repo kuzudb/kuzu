@@ -29,6 +29,16 @@ namespace storage {
 class Column;
 class NullChunkData;
 
+struct ColumnChunkStats {
+    std::optional<StorageValue> max;
+    std::optional<StorageValue> min;
+
+    void update(std::optional<StorageValue> min, std::optional<StorageValue> max,
+        common::PhysicalTypeID dataType);
+    void update(StorageValue val, common::PhysicalTypeID dataType);
+    void reset();
+};
+
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
     Column* column;
@@ -234,6 +244,11 @@ public:
     void loadFromDisk();
     uint64_t spillToDisk();
 
+    ColumnChunkStats getMergedColumnChunkStats(const CompressionMetadata& onDiskMetadata) const;
+
+    void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
+    void resetInMemoryStats();
+
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.
@@ -272,6 +287,7 @@ protected:
 
     // On-disk metadata for column chunk.
     ColumnChunkMetadata metadata;
+    ColumnChunkStats inMemoryUpdateStats;
 };
 
 template<>

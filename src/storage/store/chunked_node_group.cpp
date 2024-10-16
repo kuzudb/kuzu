@@ -132,7 +132,6 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         }
         selVector.setToFiltered(numRowsToAppendInChunk);
         chunk->getData().append(columnVector, selVector);
-        chunk->updateStats(columnVector, selVector);
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -162,10 +161,8 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
     KU_ASSERT(other.size() == chunks.size());
     const auto numToAppendInChunkedGroup = std::min(numRowsToAppend, capacity - numRows);
     for (auto i = 0u; i < chunks.size(); i++) {
-        auto* columnChunkData = &other[i]->getData();
-        chunks[i]->getData().append(columnChunkData, offsetInOtherNodeGroup,
+        chunks[i]->getData().append(&other[i]->getData(), offsetInOtherNodeGroup,
             numToAppendInChunkedGroup);
-        chunks[i]->updateStats(columnChunkData);
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -210,7 +207,8 @@ static ZoneMapCheckResult getZoneMapResult(const TableScanState& scanState,
             auto& chunkState = nodeGroupScanState.chunkStates[i];
             KU_ASSERT(i < scanState.columnPredicateSets.size());
             const auto columnZoneMapResult = scanState.columnPredicateSets[i].checkZoneMap(
-                chunks[columnID]->getMergedColumnChunkStats(chunkState.metadata.compMeta));
+                chunks[columnID]->getData().getMergedColumnChunkStats(
+                    chunkState.metadata.compMeta));
             if (columnZoneMapResult == common::ZoneMapCheckResult::SKIP_SCAN) {
                 return common::ZoneMapCheckResult::SKIP_SCAN;
             }
@@ -337,19 +335,6 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     return versionInfo->delete_(transaction, this, rowIdxInChunk);
 }
 
-static void updateDefaultPopulatedColumnStats(ColumnChunk* chunk) {
-    const auto& chunkData = chunk->getData();
-    TypeUtils::visit(
-        chunkData.getDataType().getPhysicalType(),
-        [chunk, &chunkData]<StorageValueType T>(T) {
-            auto defaultVal = chunkData.getValue<T>(0);
-            if (!chunkData.hasNullData() || !chunkData.isNull(0)) {
-                chunk->updateStats(StorageValue{defaultVal}, StorageValue{defaultVal});
-            }
-        },
-        [](auto) {});
-}
-
 void ChunkedNodeGroup::addColumn(Transaction* transaction,
     const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH) {
     auto numRows = getNumRows();
@@ -359,9 +344,6 @@ void ChunkedNodeGroup::addColumn(Transaction* transaction,
             dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
-    if (numRows > 0) {
-        updateDefaultPopulatedColumnStats(chunks.back().get());
-    }
     if (residencyState == ResidencyState::ON_DISK) {
         KU_ASSERT(dataFH);
         chunkData.flush(*dataFH);

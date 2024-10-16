@@ -35,16 +35,6 @@ struct ColumnCheckpointState {
     }
 };
 
-struct ColumnChunkStats {
-    std::optional<StorageValue> max;
-    std::optional<StorageValue> min;
-
-    void update(std::optional<StorageValue> min, std::optional<StorageValue> max,
-        common::PhysicalTypeID dataType);
-    void update(StorageValue val, common::PhysicalTypeID dataType);
-    void reset();
-};
-
 class ColumnChunk {
 public:
     // TODO(bmwinger): the dataType reference is copied when passing it to the ColumnChunkData
@@ -99,30 +89,17 @@ public:
     bool hasUpdates(const transaction::Transaction* transaction, common::row_idx_t startRow,
         common::length_t numRows) const;
     // These functions should only work on in-memory and temporary column chunks.
-    void resetToEmpty() {
-        data->resetToEmpty();
-        inMemoryUpdateStats.reset();
-    }
-    void resetToAllNull() {
-        data->resetToAllNull();
-        inMemoryUpdateStats.reset();
-    }
+    void resetToEmpty() const { data->resetToEmpty(); }
+    void resetToAllNull() const { data->resetToAllNull(); }
     void resize(uint64_t newSize) const { data->resize(newSize); }
     void resetUpdateInfo() {
         if (updateInfo) {
             updateInfo.reset();
         }
-        inMemoryUpdateStats.reset();
     }
 
     void loadFromDisk() { data->loadFromDisk(); }
     uint64_t spillToDisk() { return data->spillToDisk(); }
-
-    ColumnChunkStats getMergedColumnChunkStats(const CompressionMetadata& onDiskMetadata) const;
-
-    void updateStats(std::optional<StorageValue> min, std::optional<StorageValue> max);
-    void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
-    void updateStats(const ColumnChunkData* data);
 
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
@@ -136,7 +113,6 @@ private:
     std::unique_ptr<ColumnChunkData> data;
     // Update versions.
     std::unique_ptr<UpdateInfo> updateInfo;
-    ColumnChunkStats inMemoryUpdateStats;
 };
 
 } // namespace storage

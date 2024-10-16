@@ -129,10 +129,8 @@ public:
     virtual void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
         const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) {
         KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-        auto* columnChunkData = &data[vectorIdx]->getData();
-        chunks[chunkIdx]->getData().write(columnChunkData, &offsetChunk.getData(),
+        chunks[chunkIdx]->getData().write(&data[vectorIdx]->getData(), &offsetChunk.getData(),
             common::RelMultiplicity::ONE);
-        chunks[chunkIdx]->updateStats(columnChunkData);
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(

@@ -184,82 +184,13 @@ void ColumnChunk::lookup(Transaction* transaction, const ChunkState& state, offs
     }
 }
 
-static void updateStatsFromData(uint8_t* data, uint64_t numValues,
-    common::PhysicalTypeID physicalType, ColumnChunkStats& stats) {
-    if (TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; })) {
-        auto [minVal, maxVal] = getMinMaxStorageValue(data, 0, numValues, physicalType, nullptr);
-        stats.update(minVal, maxVal, physicalType);
-    }
-}
-
-static void updateStatsInternal(const ValueVector& values, ColumnChunkStats& stats) {
-    const auto physicalType = values.dataType.getPhysicalType();
-    updateStatsFromData(values.getData(), values.state->getSelSize(), physicalType, stats);
-}
-
-static void updateStatsInternal(const ColumnChunkData* values, ColumnChunkStats& stats) {
-    const auto physicalType = values->getDataType().getPhysicalType();
-    updateStatsFromData(values->getData(), values->getNumValues(), physicalType, stats);
-}
-
-void ColumnChunkStats::update(std::optional<StorageValue> newMin,
-    std::optional<StorageValue> newMax, common::PhysicalTypeID dataType) {
-    if (!min.has_value() || (newMin.has_value() && min->gt(*newMin, dataType))) {
-        min = newMin;
-    }
-    if (!max.has_value() || (newMax.has_value() && newMax->gt(*max, dataType))) {
-        max = newMax;
-    }
-}
-
-void ColumnChunkStats::update(StorageValue val, common::PhysicalTypeID dataType) {
-    update(val, val, dataType);
-}
-
-void ColumnChunkStats::reset() {
-    *this = {};
-}
-
-ColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
-    const CompressionMetadata& onDiskMetadata) const {
-    auto ret = inMemoryUpdateStats;
-    ret.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
-    return ret;
-}
-
-void ColumnChunk::updateStats(std::optional<StorageValue> min, std::optional<StorageValue> max) {
-    inMemoryUpdateStats.update(min, max, getDataType().getPhysicalType());
-}
-
-void ColumnChunk::updateStats(const common::ValueVector* vector,
-    const common::SelectionVector& selVector) {
-    if (selVector.isUnfiltered()) {
-        updateStatsInternal(*vector, inMemoryUpdateStats);
-    } else {
-        TypeUtils::visit(
-            getDataType().getPhysicalType(),
-            [this, vector, &selVector]<StorageValueType T>(T) {
-                for (idx_t i = 0; i < selVector.getSelSize(); ++i) {
-                    auto pos = selVector.getSelectedPositions()[i];
-                    auto val = vector->getValue<T>(pos);
-                    inMemoryUpdateStats.update(StorageValue{val}, getDataType().getPhysicalType());
-                }
-            },
-            []<typename T>(T) { static_assert(!StorageValueType<T>); });
-    }
-}
-
-void ColumnChunk::updateStats(const ColumnChunkData* data) {
-    updateStatsInternal(data, inMemoryUpdateStats);
-}
-
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
-    updateStats(&values, values.state->getSelVector());
     if (transaction->getID() == Transaction::DUMMY_TRANSACTION_ID) {
         data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
         return;
     }
+    data->updateStats(&values, values.state->getSelVector());
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }
