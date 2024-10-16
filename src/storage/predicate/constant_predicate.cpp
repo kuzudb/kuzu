@@ -19,7 +19,7 @@ bool inRange(T min, T max, T val) {
 }
 
 template<typename T>
-ZoneMapCheckResult checkZoneMapSwitch(const InMemoryColumnChunkStats& metadata,
+ZoneMapCheckResult checkZoneMapSwitch(const ColumnChunkStats& metadata,
     ExpressionType expressionType, const Value& value) {
     KU_ASSERT(metadata.min.has_value() && metadata.max.has_value());
     auto max = metadata.max->get<T>();
@@ -62,8 +62,7 @@ ZoneMapCheckResult checkZoneMapSwitch(const InMemoryColumnChunkStats& metadata,
     return ZoneMapCheckResult::ALWAYS_SCAN;
 }
 
-ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
-    const InMemoryColumnChunkStats& metadata) const {
+ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(const ColumnChunkStats& metadata) const {
     auto physicalType = value.getDataType().getPhysicalType();
     return TypeUtils::visit(
         physicalType,

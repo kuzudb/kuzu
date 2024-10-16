@@ -184,25 +184,25 @@ void ColumnChunk::lookup(Transaction* transaction, const ChunkState& state, offs
     }
 }
 
-static void updateStatsInternal(uint8_t* data, uint64_t numValues,
-    common::PhysicalTypeID physicalType, InMemoryColumnChunkStats& stats) {
+static void updateStatsFromData(uint8_t* data, uint64_t numValues,
+    common::PhysicalTypeID physicalType, ColumnChunkStats& stats) {
     if (TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; })) {
         auto [minVal, maxVal] = getMinMaxStorageValue(data, 0, numValues, physicalType, nullptr);
         stats.update(minVal, maxVal, physicalType);
     }
 }
 
-static void updateStatsInternal(const ValueVector& values, InMemoryColumnChunkStats& stats) {
+static void updateStatsInternal(const ValueVector& values, ColumnChunkStats& stats) {
     const auto physicalType = values.dataType.getPhysicalType();
-    updateStatsInternal(values.getData(), values.state->getSelSize(), physicalType, stats);
+    updateStatsFromData(values.getData(), values.state->getSelSize(), physicalType, stats);
 }
 
-static void updateStatsInternal(const ColumnChunkData* values, InMemoryColumnChunkStats& stats) {
+static void updateStatsInternal(const ColumnChunkData* values, ColumnChunkStats& stats) {
     const auto physicalType = values->getDataType().getPhysicalType();
-    updateStatsInternal(values->getData(), values->getNumValues(), physicalType, stats);
+    updateStatsFromData(values->getData(), values->getNumValues(), physicalType, stats);
 }
 
-void InMemoryColumnChunkStats::update(std::optional<StorageValue> newMin,
+void ColumnChunkStats::update(std::optional<StorageValue> newMin,
     std::optional<StorageValue> newMax, common::PhysicalTypeID dataType) {
     if (!min.has_value() || (newMin.has_value() && min->gt(*newMin, dataType))) {
         min = newMin;
@@ -212,28 +212,29 @@ void InMemoryColumnChunkStats::update(std::optional<StorageValue> newMin,
     }
 }
 
-void InMemoryColumnChunkStats::update(StorageValue val, common::PhysicalTypeID dataType) {
+void ColumnChunkStats::update(StorageValue val, common::PhysicalTypeID dataType) {
     update(val, val, dataType);
 }
 
-void InMemoryColumnChunkStats::reset() {
+void ColumnChunkStats::reset() {
     *this = {};
 }
 
-InMemoryColumnChunkStats ColumnChunk::getMergedUpdateStats(const CompressionMetadata& o) const {
-    auto ret = inMemoryUpdatedStats;
-    ret.update(o.min, o.max, getDataType().getPhysicalType());
+ColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
+    const CompressionMetadata& onDiskMetadata) const {
+    auto ret = inMemoryUpdateStats;
+    ret.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
     return ret;
 }
 
 void ColumnChunk::updateStats(std::optional<StorageValue> min, std::optional<StorageValue> max) {
-    inMemoryUpdatedStats.update(min, max, getDataType().getPhysicalType());
+    inMemoryUpdateStats.update(min, max, getDataType().getPhysicalType());
 }
 
 void ColumnChunk::updateStats(const common::ValueVector* vector,
     const common::SelectionVector& selVector) {
     if (selVector.isUnfiltered()) {
-        updateStatsInternal(*vector, inMemoryUpdatedStats);
+        updateStatsInternal(*vector, inMemoryUpdateStats);
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
@@ -241,7 +242,7 @@ void ColumnChunk::updateStats(const common::ValueVector* vector,
                 for (idx_t i = 0; i < selVector.getSelSize(); ++i) {
                     auto pos = selVector.getSelectedPositions()[i];
                     auto val = vector->getValue<T>(pos);
-                    inMemoryUpdatedStats.update(StorageValue{val}, getDataType().getPhysicalType());
+                    inMemoryUpdateStats.update(StorageValue{val}, getDataType().getPhysicalType());
                 }
             },
             []<typename T>(T) { static_assert(!StorageValueType<T>); });
@@ -249,7 +250,7 @@ void ColumnChunk::updateStats(const common::ValueVector* vector,
 }
 
 void ColumnChunk::updateStats(const ColumnChunkData* data) {
-    updateStatsInternal(data, inMemoryUpdatedStats);
+    updateStatsInternal(data, inMemoryUpdateStats);
 }
 
 void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,

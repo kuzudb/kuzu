@@ -35,7 +35,7 @@ struct ColumnCheckpointState {
     }
 };
 
-struct InMemoryColumnChunkStats {
+struct ColumnChunkStats {
     std::optional<StorageValue> max;
     std::optional<StorageValue> min;
 
@@ -101,24 +101,24 @@ public:
     // These functions should only work on in-memory and temporary column chunks.
     void resetToEmpty() {
         data->resetToEmpty();
-        inMemoryUpdatedStats.reset();
+        inMemoryUpdateStats.reset();
     }
     void resetToAllNull() {
         data->resetToAllNull();
-        inMemoryUpdatedStats.reset();
+        inMemoryUpdateStats.reset();
     }
     void resize(uint64_t newSize) const { data->resize(newSize); }
     void resetUpdateInfo() {
         if (updateInfo) {
             updateInfo.reset();
         }
-        inMemoryUpdatedStats.reset();
+        inMemoryUpdateStats.reset();
     }
 
     void loadFromDisk() { data->loadFromDisk(); }
     uint64_t spillToDisk() { return data->spillToDisk(); }
 
-    InMemoryColumnChunkStats getMergedUpdateStats(const CompressionMetadata& o) const;
+    ColumnChunkStats getMergedColumnChunkStats(const CompressionMetadata& onDiskMetadata) const;
 
     void updateStats(std::optional<StorageValue> min, std::optional<StorageValue> max);
     void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
@@ -136,7 +136,7 @@ private:
     std::unique_ptr<ColumnChunkData> data;
     // Update versions.
     std::unique_ptr<UpdateInfo> updateInfo;
-    InMemoryColumnChunkStats inMemoryUpdatedStats;
+    ColumnChunkStats inMemoryUpdateStats;
 };
 
 } // namespace storage

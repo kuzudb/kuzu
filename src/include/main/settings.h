@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
 #include "common/types/value/value.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
