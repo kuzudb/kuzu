@@ -1013,6 +1013,35 @@ KUZU_C_API kuzu_state kuzu_value_get_struct_field_name(kuzu_value* value, uint64
  */
 KUZU_C_API kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
     kuzu_value* out_value);
+
+/**
+ * @brief Returns the number of fields of the given map value. The value must be of type MAP.
+ * @param value The MAP value to get number of fields.
+ * @param[out] out_result The output parameter that will hold the number of fields.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result);
+/**
+ * @brief Returns the field name at index of the given map value. The value must be of physical
+ * type MAP.
+ * @param value The MAP value to get field name.
+ * @param index The index of the field name to return.
+ * @param[out] out_result The output parameter that will hold the field name at index.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index,
+    char** out_result);
+/**
+ * @brief Returns the field value at index of the given map value. The value must be of physical
+ * type MAP.
+ * @param value The MAP value to get field value.
+ * @param index The index of the field value to return.
+ * @param[out] out_value The output parameter that will hold the field value at index.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index,
+    kuzu_value* out_value);
+
 /**
  * @brief Returns the list of nodes for recursive rel value. The value must be of type
  * RECURSIVE_REL.
@@ -1196,6 +1225,14 @@ KUZU_C_API kuzu_state kuzu_value_get_timestamp_tz(kuzu_value* value,
  * @return The state indicating the success or failure of the operation.
  */
 KUZU_C_API kuzu_state kuzu_value_get_interval(kuzu_value* value, kuzu_interval_t* out_result);
+/**
+ * @brief Returns the decimal value of the given value as a string. The value must be of type
+ * DECIMAL.
+ * @param value The value to return.
+ * @param[out] out_result The output parameter that will hold the decimal value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_value_get_decimal_as_string(kuzu_value* value, char** out_result);
 /**
  * @brief Returns the string value of the given value. The value must be of type STRING.
  * @param value The value to return.

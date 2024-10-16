@@ -15,6 +15,7 @@ namespace kuzu::storage {
 
 using namespace common;
 using namespace transaction;
+
 namespace {
 [[maybe_unused]] bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
     return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
@@ -98,7 +99,7 @@ public:
         const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
-        std::optional<filter_func_t> filterFunc) override {
+        const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -107,7 +108,7 @@ public:
         const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
-        std::optional<filter_func_t> filterFunc) override {
+        const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -185,10 +186,12 @@ public:
             KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
             if (!filterFunc.has_value() ||
                 filterFunc.value()(numValuesScanned, numValuesScanned + numValuesToScanInPage)) {
-                readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+
+                const auto readFromPageFunc = [&](uint8_t* frame) -> void {
                     readFunc(frame, pageCursor, result, numValuesScanned + startOffsetInResult,
                         numValuesToScanInPage, chunkMeta.compMeta);
-                });
+                };
+                readFromPage(transaction, pageCursor.pageIdx, std::cref(readFromPageFunc));
             }
             numValuesScanned += numValuesToScanInPage;
             pageCursor.nextPage();
@@ -227,7 +230,7 @@ public:
         const ChunkState& state, uint8_t* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<uint8_t*>& readFunc,
-        std::optional<filter_func_t> filterFunc) override {
+        const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -236,7 +239,7 @@ public:
         const ChunkState& state, common::ValueVector* result, uint32_t startOffsetInResult,
         uint64_t startNodeOffset, uint64_t endNodeOffset,
         const read_values_from_page_func_t<common::ValueVector*>& readFunc,
-        std::optional<filter_func_t> filterFunc) override {
+        const std::optional<filter_func_t>& filterFunc) override {
         return readCompressedValues(transaction, state, result, startOffsetInResult,
             startNodeOffset, endNodeOffset, readFunc, filterFunc);
     }
@@ -268,7 +271,7 @@ private:
     template<typename OutputType>
     void patchFloatExceptions(const ChunkState& state, offset_t startOffsetInChunk,
         size_t numValuesToScan, OutputType result, offset_t startOffsetInResult,
-        std::optional<filter_func_t> filterFunc) {
+        const std::optional<filter_func_t>& filterFunc) {
         auto* exceptionChunk = state.getExceptionChunkConst<T>();
         offset_t curExceptionIdx =
             exceptionChunk->findFirstExceptionAtOrPastOffset(startOffsetInChunk);
@@ -318,12 +321,15 @@ private:
                   metadata.compMeta.compression == CompressionType::UNCOMPRESSED);
 
         const uint64_t numValuesToScan = endNodeOffset - startNodeOffset;
-        const uint64_t numValuesScanned = defaultReader->readCompressedValues(transaction, state,
-            result, startOffsetInResult, startNodeOffset, endNodeOffset, readFunc, filterFunc);
+        const uint64_t numValuesScanned =
+            defaultReader->readCompressedValues(transaction, state, result, startOffsetInResult,
+                startNodeOffset, endNodeOffset, readFunc, std::optional<filter_func_t>{filterFunc});
 
         if (metadata.compMeta.compression == CompressionType::ALP && numValuesScanned > 0) {
+            // we pass in copies of the filter func as it can hold state which may need resetting
+            // between scanning passes
             patchFloatExceptions(state, startNodeOffset, numValuesToScan, result,
-                startOffsetInResult, filterFunc);
+                startOffsetInResult, std::optional<filter_func_t>{filterFunc});
         }
 
         return numValuesScanned;
@@ -342,12 +348,29 @@ private:
 
         const auto bitpackHeader = FloatCompression<T>::getBitpackInfo(state.metadata.compMeta);
         offset_t curExceptionIdx = exceptionChunk->findFirstExceptionAtOrPastOffset(offsetInChunk);
+
+        const auto maxWrittenPosInChunk = offsetInChunk + numValues;
+        uint32_t curExceptionPosInChunk =
+            (curExceptionIdx < exceptionChunk->getExceptionCount()) ?
+                exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk :
+                maxWrittenPosInChunk;
+
         for (size_t i = 0; i < numValues; ++i) {
             const size_t writeOffset = offsetInChunk + i;
             const size_t readOffset = srcOffset + i;
 
             if (nullMask && nullMask->isNull(readOffset)) {
                 continue;
+            }
+
+            while (curExceptionPosInChunk < writeOffset) {
+                ++curExceptionIdx;
+                if (curExceptionIdx < exceptionChunk->getExceptionCount()) {
+                    curExceptionPosInChunk =
+                        exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk;
+                } else {
+                    curExceptionPosInChunk = maxWrittenPosInChunk;
+                }
             }
 
             const T newValue = writeToPageBufferHelper.getValue(readOffset);
@@ -363,8 +386,7 @@ private:
 
             // if the previous value was an exception
             // either overwrite it (if the new value is also an exception) or remove it
-            if (curExceptionIdx < exceptionChunk->getExceptionCount() &&
-                exceptionChunk->getExceptionAt(curExceptionIdx).posInChunk == writeOffset) {
+            if (curExceptionPosInChunk == writeOffset) {
                 if (newValueIsException) {
                     exceptionChunk->writeException(
                         EncodeException<T>{newValue, safeIntegerConversion<uint32_t>(writeOffset)},
@@ -372,7 +394,6 @@ private:
                 } else {
                     exceptionChunk->removeExceptionAt(curExceptionIdx);
                 }
-                ++curExceptionIdx;
             } else if (newValueIsException) {
                 exceptionChunk->addException(
                     EncodeException<T>{newValue, safeIntegerConversion<uint32_t>(writeOffset)});

@@ -137,7 +137,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         joinConditions.push_back(node.getInternalID());
         for (auto& plan : plans) {
             auto probePlan = LogicalPlan();
-            auto gdsCall = getGDSCall(readingClause);
+            auto gdsCall = getGDSCall(call.getInfo());
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
             if (!predicatesToPush.empty()) {
@@ -147,14 +147,18 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         }
     } else {
         for (auto& plan : plans) {
-            planReadOp(getGDSCall(readingClause), predicatesToPush, *plan);
+            planReadOp(getGDSCall(call.getInfo()), predicatesToPush, *plan);
         }
     }
-    if (bindData->hasNodeOutput()) {
+
+    auto nodeOutput = bindData->getNodeOutput();
+    KU_ASSERT(nodeOutput != nullptr);
+    auto properties = getProperties(*nodeOutput);
+    if (!properties.empty()) {
         auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
         auto scanPlan = LogicalPlan();
-        cardinalityEstimator.addNodeIDDom(*node.getInternalID(), node.getTableIDs());
-        auto properties = node.getPropertyExprs();
+        cardinalityEstimator.addNodeIDDom(*node.getInternalID(), node.getTableIDs(),
+            clientContext->getTx());
         appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
         expression_vector joinConditions;
         joinConditions.push_back(node.getInternalID());

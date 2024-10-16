@@ -30,11 +30,6 @@ void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* /*context*/) {
 
 void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
     keyVector = resultSet->getValueVector(info->keyPos).get();
-    for (auto& [tableID, masks] : info->masksPerTable) {
-        for (auto& [mask, _] : masks) {
-            mask->init();
-        }
-    }
 }
 
 bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {

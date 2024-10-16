@@ -44,7 +44,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
         auto numSelectedValues = 0u;
         for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); ++i) {
             auto pos = resultVector->state->getSelVector()[i];
-            auto selectedPosBuffer = selVector.getMultableBuffer();
+            auto selectedPosBuffer = selVector.getMutableBuffer();
             selectedPosBuffer[numSelectedValues] = pos;
             numSelectedValues += resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
         }

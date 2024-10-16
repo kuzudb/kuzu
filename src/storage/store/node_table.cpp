@@ -114,6 +114,7 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
 }
 
 bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
+    scanState.resetOutVectors();
     return scanState.scanNext(transaction);
 }
 
@@ -286,7 +287,7 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
 }
 
 void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
-    auto startNodeOffset = nodeGroups->getNumRows();
+    auto startNodeOffset = nodeGroups->getNumTotalRows();
     transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
     // 1. Append all tuples from local storage to nodeGroups regardless deleted or not.
@@ -386,9 +387,20 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         pkIndex->checkpoint();
         hasChanges = false;
         columns = std::move(state.columns);
-        tableEntry->vacuumColumnIDs(0);
+        tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
     serialize(ser);
+}
+
+TableStats NodeTable::getStats(const Transaction* transaction) const {
+    auto stats = nodeGroups->getStats();
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::RETURN_NULL);
+    if (localTable) {
+        const auto localStats = localTable->cast<LocalNodeTable>().getStats();
+        stats.merge(localStats);
+    }
+    return stats;
 }
 
 void NodeTable::serialize(Serializer& serializer) const {

@@ -51,7 +51,7 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
     evaluate();
     KU_ASSERT(resultVector->state->getSelVector().getSelSize() == selVector.getSelSize());
     auto numSelectedValues = 0u;
-    auto selectedPosBuffer = selVector.getMultableBuffer();
+    auto selectedPosBuffer = selVector.getMutableBuffer();
     for (auto i = 0u; i < selVector.getSelSize(); ++i) {
         auto selVectorPos = selVector[i];
         auto resultVectorPos = resultVector->state->getSelVector()[i];

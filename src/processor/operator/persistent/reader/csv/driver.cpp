@@ -10,7 +10,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-ParsingDriver::ParsingDriver(common::DataChunk& chunk) : chunk(chunk), rowEmpty(false) {}
+ParsingDriver::ParsingDriver(common::DataChunk& chunk, DriverType type /* = DriverType::PARSING */)
+    : driverType(type), chunk(chunk), rowEmpty(false) {}
 
 bool ParsingDriver::done(uint64_t rowNum) {
     return rowNum >= DEFAULT_VECTOR_CAPACITY || doneEarly();
@@ -85,7 +86,7 @@ bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount,
 }
 
 ParallelParsingDriver::ParallelParsingDriver(common::DataChunk& chunk, ParallelCSVReader* reader)
-    : ParsingDriver(chunk), reader(reader) {}
+    : ParsingDriver(chunk, DriverType::PARALLEL), reader(reader) {}
 
 bool ParallelParsingDriver::doneEarly() {
     return reader->finishedBlock();
@@ -95,8 +96,9 @@ BaseCSVReader* ParallelParsingDriver::getReader() {
     return reader;
 }
 
-SerialParsingDriver::SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader)
-    : ParsingDriver(chunk), reader(reader) {}
+SerialParsingDriver::SerialParsingDriver(common::DataChunk& chunk, SerialCSVReader* reader,
+    DriverType type /*= DriverType::SERIAL*/)
+    : ParsingDriver(chunk, type), reader(reader) {}
 
 bool SerialParsingDriver::doneEarly() {
     return false;
@@ -111,9 +113,65 @@ common::DataChunk& getDummyDataChunk() {
     return dummyChunk;
 }
 
+SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
+    const function::ScanTableFuncBindInput* /*bindInput*/)
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_DIALECT) {
+    auto& csvOption = reader->getCSVOption();
+    columnCounts = std::vector<idx_t>(csvOption.sampleSize, 0);
+}
+
+bool SniffCSVDialectDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
+    std::string_view value) {
+    uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
+    }
+    currentColumnCount++;
+    return true;
+}
+
+bool SniffCSVDialectDriver::addRow(uint64_t /*rowNum*/, common::column_id_t /*columnCount*/,
+    std::optional<WarningDataWithColumnInfo> /*warningData*/) {
+    auto& csvOption = reader->getCSVOption();
+    if (rowEmpty) {
+        rowEmpty = false;
+        if (reader->getNumColumns() != 1) {
+            currentColumnCount = 0;
+            return false;
+        }
+        // Otherwise, treat it as null.
+    }
+    if (resultPosition < csvOption.sampleSize) {
+        columnCounts[resultPosition] = currentColumnCount;
+        currentColumnCount = 0;
+        resultPosition++;
+    }
+    return true;
+}
+
+bool SniffCSVDialectDriver::done(uint64_t rowNum) const {
+    auto& csvOption = reader->getCSVOption();
+    return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+}
+
+void SniffCSVDialectDriver::reset() {
+    columnCounts = std::vector<idx_t>(columnCounts.size(), 0);
+    currentColumnCount = 0;
+    error = false;
+    resultPosition = 0;
+    everQuoted = false;
+    everEscaped = false;
+}
+
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     const function::ScanTableFuncBindInput* bindInput)
-    : SerialParsingDriver(getDummyDataChunk(), reader) {
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_NAME_AND_TYPE) {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
             columns.push_back(
@@ -136,9 +194,14 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
     } else {
         rowEmpty = false;
     }
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
+    }
     auto& csvOption = reader->getCSVOption();
     if (columns.size() < columnIdx + 1 && csvOption.hasHeader && rowNum > 0) {
-        reader->handleCopyException("expected {} values per row, but got more.");
+        reader->handleCopyException(
+            stringFormat("expected {} values per row, but got more.", reader->getNumColumns()));
     }
     while (columns.size() < columnIdx + 1) {
         columns.emplace_back(stringFormat("column{}", columns.size()), LogicalType::ANY());

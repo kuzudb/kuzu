@@ -108,9 +108,9 @@
 ---- ok
 -STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_ONE);
 ---- ok
--STATEMENT COPY N1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv" (HEADER=true, DELIM='|');
+-STATEMENT COPY N1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv" (HEADER=true);
 ---- ok
--STATEMENT COPY N2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Post.csv" (HEADER=true, DELIM='|');
+-STATEMENT COPY N2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Post.csv" (HEADER=true);
 ---- ok
 -STATEMENT MATCH (n1:N1), (n2:N2) WHERE n1.ID=1099512015344 AND n2.ID=3 CREATE (n1)-[r:Rel1]->(n2)
 ---- ok
@@ -260,11 +260,11 @@
 ---- ok
 -STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], length INT16, level INT8, code UINT64, temperature UINT32, ulength UINT16, ulevel UINT8, hugedata INT128, MANY_ONe);
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',');
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true);
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (deLim=',');
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
 ---- ok
--STATEMENT COPY organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv" (escape='\\');
+-STATEMENT COPY organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv";
 ---- ok
 -STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (header=true);
 ---- ok

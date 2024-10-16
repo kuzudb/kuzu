@@ -1,8 +1,9 @@
 -DATASET CSV copy-test/node/csv
+-BUFFER_POOL_SIZE 134217728
 
 --
 
--CASE CopyNodeTest 
+-CASE CopyNodeTest
 
 -LOG SubsetTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;

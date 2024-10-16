@@ -4,6 +4,8 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/spiller.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
@@ -78,10 +80,10 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
     BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
-    auto& partitioningBuffer =
+    auto partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
+    for (auto& chunkedGroup : partitioningBuffer->getChunkedGroups()) {
         setOffsetToWithinNodeGroup(
             chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID).getData(),
             startNodeOffset);
@@ -94,11 +96,11 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = isNewNodeGroup;
-    populateCSRHeaderAndRowIdx(partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
+    populateCSRHeaderAndRowIdx(*partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
         leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
-    for (auto& chunkedGroup : partitioningBuffer.getChunkedGroups()) {
+    for (auto& chunkedGroup : partitioningBuffer->getChunkedGroups()) {
         sharedState.incrementNumRows(chunkedGroup->getNumRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }

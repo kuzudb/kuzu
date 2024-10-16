@@ -17,6 +17,8 @@
 #include "planner/planner.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
 
@@ -496,11 +498,14 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         progressBar->endProgress(executionContext->queryID);
         return queryResultWithError(e.what());
     }
+    getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+        [](auto& spiller) { spiller.clearFile(); });
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
     auto sResult = preparedStatement->statementResult.get();
     queryResult->setColumnHeader(sResult->getColumnNames(), sResult->getColumnTypes());
     queryResult->initResultTableAndIterator(std::move(resultFT));
+
     return queryResult;
 }
 

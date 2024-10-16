@@ -1,7 +1,6 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
-#include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_accumulate.h"
@@ -40,12 +39,6 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     }
     visitOperatorSwitch(op);
     op->computeFactorizedSchema();
-}
-
-void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
-    auto& extend = op->cast<LogicalExtend>();
-    auto groupsPosToFlatten = extend.getGroupsPosToFlatten();
-    extend.setChild(0, appendFlattens(extend.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {
@@ -196,7 +189,8 @@ std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattenIf
     if (op->getSchema()->getGroup(groupPos)->isFlat()) {
         return op;
     }
-    auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op));
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op), std::move(printInfo));
     flatten->computeFactorizedSchema();
     return flatten;
 }

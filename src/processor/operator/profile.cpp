@@ -17,13 +17,13 @@ bool Profile::getNextTuplesInternal(ExecutionContext* context) {
     }
     localState.hasExecuted = true;
     ku_string_t profileStr;
-    auto planPrinter = std::make_unique<main::PlanPrinter>(info.physicalPlan, context->profiler);
-    auto planInString = planPrinter->printPlanToOstream().str();
+    const auto planInString =
+        main::PlanPrinter::printPlanToOstream(info.physicalPlan, context->profiler).str();
     StringVector::addString(outputVector, profileStr, planInString.c_str(), planInString.length());
     auto& selVector = outputVector->state->getSelVectorUnsafe();
     selVector.setSelSize(1);
     outputVector->setValue<ku_string_t>(selVector[0], profileStr);
-    metrics->numOutputTuple.increase(1);
+    metrics->numOutputTuple.incrementByOne();
     return true;
 }
 

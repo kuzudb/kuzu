@@ -1,13 +1,20 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
 #include <atomic>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 
 #include "common/assert.h"
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
+#include "common/file_system/local_file_system.h"
+#include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
+#include "main/db_config.h"
+#include "storage/buffer_manager/spiller.h"
 #include "storage/file_handle.h"
+#include "storage/store/column_chunk_data.h"
 
 #if defined(_WIN32)
 #include <exception>
@@ -72,23 +79,35 @@ void EvictionQueue::clear(std::atomic<EvictionCandidate>& candidate) {
     KU_UNREACHABLE;
 }
 
-BufferManager::BufferManager(uint64_t bufferPoolSize, uint64_t maxDBSize)
-    : bufferPoolSize{bufferPoolSize}, evictionQueue{bufferPoolSize / KUZU_PAGE_SIZE},
-      usedMemory{evictionQueue.getCapacity() * sizeof(EvictionCandidate)} {
+BufferManager::BufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
+    uint64_t bufferPoolSize, uint64_t maxDBSize, VirtualFileSystem* vfs, bool readOnly)
+    : bufferPoolSize{bufferPoolSize}, evictionQueue{bufferPoolSize / PAGE_SIZE},
+      usedMemory{evictionQueue.getCapacity() * sizeof(EvictionCandidate)}, vfs{vfs} {
     verifySizeParams(bufferPoolSize, maxDBSize);
     vmRegions.resize(2);
     vmRegions[0] = std::make_unique<VMRegion>(REGULAR_PAGE, maxDBSize);
     vmRegions[1] = std::make_unique<VMRegion>(TEMP_PAGE, bufferPoolSize);
+
+    // TODO(bmwinger): It may be better to spill to disk in a different location for remote file
+    // systems, or even in general.
+    // Ideally we want to spill to disk in some temporary location such
+    // as /var/tmp (not /tmp since that may be backed by memory). However we also need to be able to
+    // support multiple databases spilling at once (can't be the same file), and handle different
+    // platforms.
+    if (!readOnly && !main::DBConfig::isDBPathInMemory(databasePath) &&
+        dynamic_cast<LocalFileSystem*>(vfs->findFileSystem(spillToDiskPath))) {
+        spiller = std::make_unique<Spiller>(spillToDiskPath, *this, vfs);
+    }
 }
 
 void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
-    if (bufferPoolSize < KUZU_PAGE_SIZE) {
+    if (bufferPoolSize < PAGE_SIZE) {
         throw BufferManagerException(
-            stringFormat("The given buffer pool size should be at least {} bytes.", KUZU_PAGE_SIZE));
+            stringFormat("The given buffer pool size should be at least {} bytes.", PAGE_SIZE));
     }
-    if (maxDBSize < KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
+    if (maxDBSize < PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
         throw BufferManagerException("The given max db size should be at least " +
-                                     std::to_string(KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
+                                     std::to_string(PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
                                      " bytes.");
     }
     if ((maxDBSize & (maxDBSize - 1)) != 0) {
@@ -310,6 +329,7 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
     // Reserve the memory for the page.
     usedMemory += sizeToReserve;
     uint64_t totalClaimedMemory = 0;
+    uint64_t nonEvictableClaimedMemory = 0;
     const auto needMoreMemory = [&]() {
         // The only time we should exceed the buffer pool size should be when threads are currently
         // attempting to reserve space and have pre-allocated space. So if we've claimed enough
@@ -320,16 +340,32 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
     };
     // Evict pages if necessary until we have enough memory.
     while (needMoreMemory()) {
-        auto memoryClaimed = evictPages();
+        uint64_t memoryClaimed = 0;
+        // Avoid reducing the evictable memory below 1/2 at first to reduce thrashing if most of the
+        // memory is non-evictable
+        if (usedMemory - nonEvictableMemory > bufferPoolSize / 2) {
+            memoryClaimed = evictPages();
+        } else {
+            memoryClaimed = spiller->claimNextGroup();
+            nonEvictableClaimedMemory += memoryClaimed;
+            // If we're unable to claim anything from the spiller, fall back to evicting pages
+            if (memoryClaimed == 0) {
+                memoryClaimed = evictPages();
+            }
+        }
         if (memoryClaimed == 0 && needMoreMemory()) {
             // Cannot find more pages to be evicted. Free the memory we reserved and return false.
             freeUsedMemory(sizeToReserve + totalClaimedMemory);
+            nonEvictableMemory -= nonEvictableClaimedMemory;
             return false;
         }
         totalClaimedMemory += memoryClaimed;
     }
     // Have enough memory available now
-    freeUsedMemory(totalClaimedMemory);
+    if (totalClaimedMemory > 0) {
+        freeUsedMemory(totalClaimedMemory);
+        nonEvictableMemory -= nonEvictableClaimedMemory;
+    }
     return true;
 }
 
@@ -390,7 +426,7 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutLock(file_idx_t fileIdx,
     auto& fileHandle = *fileHandles[fileIdx];
     auto state = fileHandle.getPageState(pageIdx);
     if (state && state->getState() != PageState::EVICTED) {
-        memcpy(getFrame(fileHandle, pageIdx), newPage, KUZU_PAGE_SIZE);
+        memcpy(getFrame(fileHandle, pageIdx), newPage, PAGE_SIZE);
     }
 }
 
@@ -416,6 +452,13 @@ void BufferManager::removePageFromFrame(FileHandle& fileHandle, page_idx_t pageI
     freeUsedMemory(fileHandle.getPageSize());
     pageState->resetToEvicted();
 }
+
+uint64_t BufferManager::freeUsedMemory(uint64_t size) {
+    KU_ASSERT(usedMemory.load() >= size);
+    return usedMemory.fetch_sub(size);
+}
+
+BufferManager::~BufferManager() = default;
 
 } // namespace storage
 } // namespace kuzu

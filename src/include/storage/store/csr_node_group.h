@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <bitset>
 
 #include "common/data_chunk/data_chunk.h"
 #include "storage/store/csr_chunked_node_group.h"
@@ -112,33 +113,47 @@ struct PackedCSRInfo {
 };
 
 class CSRNodeGroup;
+struct RelTableScanState;
 struct CSRNodeGroupScanState final : NodeGroupScanState {
-    // States at the node group level. Cached during scan over all csr lists within the same node
-    // group. State for reading from checkpointed node group.
-    std::unique_ptr<ChunkedCSRHeader> csrHeader;
-    csr_list_t persistentCSRList;
-    NodeCSRIndex inMemCSRList;
+    // Cached offsets and lengths for a sequence of CSR lists within the current vector of
+    // boundNodes.
+    std::unique_ptr<ChunkedCSRHeader> header;
+
+    std::bitset<common::DEFAULT_VECTOR_CAPACITY> cachedScannedVectorsSelBitset;
+    // The total number of rows (i.e., rels) in the current node group.
+    common::row_idx_t numTotalRows;
+    // The number of rows (i.e., rels) that have been scanned so far in current node group.
+    common::row_idx_t numCachedRows;
+    common::row_idx_t nextCachedRowToScan;
 
     // States at the csr list level. Cached during scan over a single csr list.
-    CSRNodeGroupScanSource source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
+    common::row_idx_t nextRowToScan;
+    NodeCSRIndex inMemCSRList;
+
+    CSRNodeGroupScanSource source;
 
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
-        : NodeGroupScanState{numChunks}, csrHeader{nullptr} {}
-
-    void initCSRHeader(MemoryManager& mm) {
-        if (!csrHeader) {
-            csrHeader = std::make_unique<ChunkedCSRHeader>(mm, false /*enableCompression*/,
-                common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
-        }
+        : NodeGroupScanState{numChunks}, header{nullptr}, numTotalRows{0}, numCachedRows{0},
+          nextCachedRowToScan{0}, nextRowToScan{0},
+          source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
+    CSRNodeGroupScanState(MemoryManager& mm, common::idx_t numChunks)
+        : NodeGroupScanState{numChunks}, numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
+          nextRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
+        header = std::make_unique<ChunkedCSRHeader>(mm, false,
+            common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        cachedScannedVectorsSelBitset.set();
     }
+
+    bool tryScanCachedTuples(RelTableScanState& tableScanState);
 
     void resetState() override {
         NodeGroupScanState::resetState();
-        source = CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
-        persistentCSRList = csr_list_t();
-        if (csrHeader) {
-            csrHeader->resetToEmpty();
-        }
+        numTotalRows = 0;
+        numCachedRows = 0;
+        nextCachedRowToScan = 0;
+        nextRowToScan = 0;
+        inMemCSRList = NodeCSRIndex{};
+        source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
     }
 };
 
@@ -216,14 +231,25 @@ public:
     void serialize(common::Serializer& serializer) override;
 
 private:
-    void initializePersistentCSRHeader(transaction::Transaction* transaction,
+    void initScanForCommittedPersistent(transaction::Transaction* transaction,
         RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
+    void initScanForCommittedInMem(RelTableScanState& relScanState,
+        CSRNodeGroupScanState& nodeGroupScanState) const;
 
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
 
     NodeGroupScanResult scanCommittedPersistent(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+        RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+    NodeGroupScanResult scanCommittedPersistentWithCache(
+        const transaction::Transaction* transaction, RelTableScanState& tableState,
+        CSRNodeGroupScanState& nodeGroupScanState) const;
+    NodeGroupScanResult scanCommittedPersistentWtihoutCache(
+        const transaction::Transaction* transaction, RelTableScanState& tableState,
+        CSRNodeGroupScanState& nodeGroupScanState) const;
+
+    NodeGroupScanResult scanCommittedInMem(transaction::Transaction* transaction,
+        RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,

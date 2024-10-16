@@ -1,0 +1,22 @@
+-DATASET CSV tinysnb
+--
+
+-CASE CallStorageInfo
+-STATEMENT MATCH (p:person) RETURN COUNT(p)
+---- 1
+8
+-STATEMENT CALL storage_info('person') RETURN COUNT(*)
+---- 1
+56
+# TODO(Guodong/Sam): FIX-ME
+#-STATEMENT CALL storage_info('knows') RETURN COUNT(*)
+#---- 1
+#252
+-STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
+---- 1
+28
+
+-CASE ConstantNullInfo
+-STATEMENT CALL storage_info('person') WHERE column_name='person_null' AND compression<>'CONSTANT' RETURN COUNT(*)
+---- 1
+0

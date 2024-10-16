@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -20,11 +21,12 @@ public:
 
     // Does any work that is needed while extending the (boundNodeID, nbrNodeID, edgeID) edge.
     // boundNodeID is the nodeID that is in the current frontier and currently executing.
-    // Returns true if the neighbor should be put in the next frontier.
+    // Updates the mask to indicate the neighbors which should be put in the next frontier.
     // So if the implementing class has access to the next frontier as a field,
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
-    virtual bool edgeCompute(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
-        common::relID_t edgeID) = 0;
+    virtual void edgeCompute(common::nodeID_t boundNodeID,
+        std::span<const common::nodeID_t> nbrNodeID, std::span<const common::relID_t> edgeID,
+        common::SelectionVector& mask, bool fwdEdge) = 0;
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };
@@ -114,6 +116,8 @@ class GDSFrontier {
 public:
     virtual ~GDSFrontier() = default;
     virtual bool isActive(common::nodeID_t nodeID) = 0;
+    virtual void setActive(const common::SelectionVector& mask,
+        std::span<const common::nodeID_t> nodeIDs) = 0;
     virtual void setActive(common::nodeID_t nodeID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
@@ -161,6 +165,15 @@ public:
     bool isActive(common::nodeID_t nodeID) override {
         return getCurFrontierFixedMask()[nodeID.offset] ==
                curIter.load(std::memory_order_relaxed) - 1;
+    }
+
+    void setActive(const common::SelectionVector& mask,
+        std::span<const common::nodeID_t> nodeIDs) override {
+        auto frontierMask = getNextFrontierFixedMask();
+        mask.forEach([&](auto i) {
+            frontierMask[nodeIDs[i].offset].store(curIter.load(std::memory_order_relaxed),
+                std::memory_order_relaxed);
+        });
     }
 
     void setActive(common::nodeID_t nodeID) override {
@@ -221,7 +234,7 @@ class FrontierPair {
     friend class FrontierTask;
 
 public:
-    explicit FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
+    FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
         uint64_t maxThreadsForExec);
 
@@ -241,6 +254,8 @@ public:
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
     uint16_t getNextIter() { return curIter.load() + 1u; }
+
+    GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
     bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
 

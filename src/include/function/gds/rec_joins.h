@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/extend_direction.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "output_writer.h"
@@ -7,7 +8,7 @@
 namespace kuzu {
 namespace function {
 
-struct RJBindData final : public function::GDSBindData {
+struct RJBindData final : public GDSBindData {
     static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = (uint16_t)255;
 
     std::shared_ptr<binder::Expression> nodeInput;
@@ -23,16 +24,27 @@ struct RJBindData final : public function::GDSBindData {
     uint16_t lowerBound;
     uint16_t upperBound;
 
+    common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
+
+    bool extendFromSource = true;
+    std::shared_ptr<binder::Expression> directionExpr = nullptr;
+    std::shared_ptr<binder::Expression> lengthExpr = nullptr;
+    std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
+    std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
+
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode, uint16_t lowerBound,
-        uint16_t upperBound)
-        : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput{std::move(nodeInput)},
-          lowerBound{lowerBound}, upperBound{upperBound} {
+        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
+        common::ExtendDirection extendDirection)
+        : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
+          lowerBound{lowerBound}, upperBound{upperBound}, extendDirection{extendDirection} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
     }
     RJBindData(const RJBindData& other)
         : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
-          upperBound{other.upperBound} {}
+          upperBound{other.upperBound}, extendDirection{other.extendDirection},
+          extendFromSource{other.extendFromSource}, directionExpr{other.directionExpr},
+          lengthExpr{other.lengthExpr}, pathNodeIDsExpr{other.pathNodeIDsExpr},
+          pathEdgeIDsExpr{other.pathEdgeIDsExpr} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
@@ -50,11 +62,11 @@ struct RJCompState {
     std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<RJOutputWriter> outputWriter;
 
-    explicit RJCompState(std::unique_ptr<function::FrontierPair> frontierPair3,
+    RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter);
 
-    void initRJFromSource(common::nodeID_t sourceNodeID) const {
+    void initSource(common::nodeID_t sourceNodeID) const {
         frontierPair->initRJFromSource(sourceNodeID);
         outputs->initRJFromSource(sourceNodeID);
     }
@@ -76,7 +88,7 @@ struct RJCompState {
 };
 
 class RJAlgorithm : public GDSAlgorithm {
-protected:
+    static constexpr char DIRECTION_COLUMN_NAME[] = "direction";
     static constexpr char LENGTH_COLUMN_NAME[] = "length";
     static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
     static constexpr char PATH_EDGE_IDS_COLUMN_NAME[] = "pathEdgeIDs";
@@ -92,7 +104,7 @@ public:
 protected:
     void validateLowerUpperBound(int64_t lowerBound, int64_t upperBound);
 
-    binder::expression_vector getNodeIDResultColumns() const;
+    binder::expression_vector getBaseResultColumns(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getLengthColumn(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getPathNodeIDsColumn(binder::Binder* binder) const;
     std::shared_ptr<binder::Expression> getPathEdgeIDsColumn(binder::Binder* binder) const;
@@ -109,11 +121,11 @@ public:
      * graph::ANY
      * srcNode::NODE
      * upperBound::INT64
-     * outputProperty::BOOL
+     * direction::STRING
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-            common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
+            common::LogicalTypeID::INT64, common::LogicalTypeID::STRING};
     }
 
     void bind(const binder::expression_vector& params, binder::Binder* binder,

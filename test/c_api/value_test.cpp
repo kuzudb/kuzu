@@ -414,7 +414,6 @@ TEST_F(CApiValueTest, GetStructFieldName) {
         (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description", &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
-    ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_TRUE(kuzu_query_result_has_next(&result));
     state = kuzu_query_result_get_next(&result, &flatTuple);
     ASSERT_EQ(state, KuzuSuccess);
@@ -554,6 +553,164 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
     kuzu_query_result_destroy(&result);
+}
+
+TEST_F(CApiValueTest, getMapNumFields) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_FALSE(kuzu_query_result_has_next(&result));
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    uint64_t mapFields;
+    ASSERT_EQ(kuzu_value_get_map_num_fields(&value, &mapFields), KuzuSuccess);
+    ASSERT_EQ(mapFields, 1);
+
+    kuzu_query_result_destroy(&result);
+    kuzu_value_destroy(&value);
+    kuzu_flat_tuple_destroy(&flatTuple);
+}
+
+TEST_F(CApiValueTest, getMapName) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_FALSE(kuzu_query_result_has_next(&result));
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    char* mapName;
+    ASSERT_EQ(kuzu_value_get_map_field_name(&value, 0, &mapName), KuzuSuccess);
+    ASSERT_STREQ(mapName, "audience1");
+    kuzu_destroy_string(mapName);
+
+    ASSERT_EQ(kuzu_value_get_map_field_name(&value, 1, &mapName), KuzuError);
+
+    kuzu_query_result_destroy(&result);
+    kuzu_value_destroy(&value);
+    kuzu_flat_tuple_destroy(&flatTuple);
+}
+
+TEST_F(CApiValueTest, getMapValue) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection,
+        (char*)"MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience", &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_FALSE(kuzu_query_result_has_next(&result));
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    kuzu_value mapValue;
+    ASSERT_EQ(kuzu_value_get_map_field_value(&value, 0, &mapValue), KuzuSuccess);
+    kuzu_logical_type mapType;
+    kuzu_value_get_data_type(&mapValue, &mapType);
+    ASSERT_EQ(kuzu_data_type_get_id(&mapType), KUZU_INT64);
+    int64_t mapIntValue;
+    ASSERT_EQ(kuzu_value_get_int64(&mapValue, &mapIntValue), KuzuSuccess);
+    ASSERT_EQ(mapIntValue, 33);
+
+    ASSERT_EQ(kuzu_value_get_map_field_value(&value, 1, &mapValue), KuzuError);
+
+    kuzu_data_type_destroy(&mapType);
+    kuzu_query_result_destroy(&result);
+    kuzu_value_destroy(&mapValue);
+    kuzu_value_destroy(&value);
+    kuzu_flat_tuple_destroy(&flatTuple);
+}
+
+TEST_F(CApiValueTest, getDecimalAsString) {
+    kuzu_query_result result;
+    kuzu_flat_tuple flatTuple;
+    kuzu_state state;
+    auto connection = getConnection();
+    state = kuzu_connection_query(connection,
+        (char*)"UNWIND [1] AS A UNWIND [5.7, 8.3, 8.7, 13.7] AS B WITH cast(CAST(A AS DECIMAL) * "
+               "CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES",
+        &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+
+    kuzu_value value;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
+
+    kuzu_logical_type dataType;
+    kuzu_value_get_data_type(&value, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_LIST);
+    uint64_t list_size;
+    ASSERT_EQ(kuzu_value_get_list_size(&value, &list_size), KuzuSuccess);
+    ASSERT_EQ(list_size, 4);
+    kuzu_data_type_destroy(&dataType);
+
+    kuzu_value decimal_entry;
+    char* decimal_value;
+    std::string decimal_string_value;
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 0, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
+    decimal_string_value = std::string(decimal_value);
+    ASSERT_EQ(decimal_string_value, "5.7");
+    kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 1, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
+    decimal_string_value = std::string(decimal_value);
+    ASSERT_EQ(decimal_string_value, "8.3");
+    kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 2, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
+    decimal_string_value = std::string(decimal_value);
+    ASSERT_EQ(decimal_string_value, "8.7");
+    kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
+
+    ASSERT_EQ(kuzu_value_get_list_element(&value, 3, &decimal_entry), KuzuSuccess);
+    kuzu_value_get_data_type(&decimal_entry, &dataType);
+    ASSERT_EQ(kuzu_data_type_get_id(&dataType), KUZU_DECIMAL);
+    ASSERT_EQ(kuzu_value_get_decimal_as_string(&decimal_entry, &decimal_value), KuzuSuccess);
+    decimal_string_value = std::string(decimal_value);
+    ASSERT_EQ(decimal_string_value, "13.7");
+    kuzu_destroy_string(decimal_value);
+    kuzu_data_type_destroy(&dataType);
+
+    kuzu_value_destroy(&value);
+    kuzu_flat_tuple_destroy(&flatTuple);
+    kuzu_query_result_destroy(&result);
+    kuzu_value_destroy(&decimal_entry);
 }
 
 TEST_F(CApiValueTest, GetDataType) {

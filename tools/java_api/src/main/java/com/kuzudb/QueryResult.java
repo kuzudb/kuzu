@@ -6,6 +6,7 @@ package com.kuzudb;
 public class QueryResult {
     long qr_ref;
     boolean destroyed = false;
+    boolean isOwnedByCPP = false;
 
     /**
      * Check if the query result has been destroyed.
@@ -25,14 +26,20 @@ public class QueryResult {
         destroy();
     }
 
+    public boolean isOwnedByCPP() {
+        return isOwnedByCPP;
+    }
+
     /**
      * Destroy the query result.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     public void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
-        Native.kuzu_query_result_destroy(this);
-        destroyed = true;
+        if (!isOwnedByCPP) {
+            Native.kuzu_query_result_destroy(this);
+            destroyed = true;
+        }
     }
 
     /**
@@ -125,6 +132,26 @@ public class QueryResult {
     public FlatTuple getNext() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         return Native.kuzu_query_result_get_next(this);
+    }
+
+    /**
+     * Return if the query result has next query result or not.
+     * @return Whether there are more query results to read.
+     * @throws ObjectRefDestroyedException If the query result has been destroyed.
+     */
+    public boolean hasNextQueryResult() throws ObjectRefDestroyedException {
+        checkNotDestroyed();
+        return Native.kuzu_query_result_has_next_query_result(this);
+    }
+
+    /**
+     * Get the next query result.
+     * @return The next query result.
+     * @throws ObjectRefDestroyedException If the query result has been destroyed.
+     */
+    public QueryResult getNextQueryResult() throws ObjectRefDestroyedException {
+        checkNotDestroyed();
+        return Native.kuzu_query_result_get_next_query_result(this);
     }
 
     /**

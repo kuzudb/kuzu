@@ -66,6 +66,8 @@ public:
         return numRows;
     }
 
+    TableStats getStats() const { return nodeGroups->getStats(); }
+
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);
 
     void serialize(common::Serializer& serializer) const;

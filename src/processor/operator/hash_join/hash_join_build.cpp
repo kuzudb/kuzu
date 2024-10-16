@@ -60,9 +60,11 @@ void HashJoinBuild::finalize(ExecutionContext* /*context*/) {
 void HashJoinBuild::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples
     while (children[0]->getNextTuple(context)) {
+        uint64_t numAppended = 0u;
         for (auto i = 0u; i < resultSet->multiplicity; ++i) {
-            appendVectors();
+            numAppended += appendVectors();
         }
+        metrics->numOutputTuple.increase(numAppended);
     }
     // Merge with global hash table once local tuples are all appended.
     sharedState->mergeLocalHashTable(*hashTable);

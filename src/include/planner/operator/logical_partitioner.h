@@ -46,8 +46,8 @@ struct LogicalPartitionerInfo {
 class LogicalPartitioner final : public LogicalOperator {
 public:
     LogicalPartitioner(LogicalPartitionerInfo info, binder::BoundCopyFromInfo copyFromInfo,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::PARTITIONER, std::move(child)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{LogicalOperatorType::PARTITIONER, std::move(child), std::move(printInfo)},
           info{std::move(info)}, copyFromInfo{std::move(copyFromInfo)} {}
 
     void computeFactorizedSchema() override;
@@ -60,7 +60,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalPartitioner>(info.copy(), copyFromInfo.copy(),
-            children[0]->copy());
+            children[0]->copy(), printInfo->copy());
     }
 
 private:

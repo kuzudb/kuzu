@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace binder {
@@ -47,6 +48,13 @@ bool PropertyExpression::hasProperty(common::table_id_t tableID) const {
         return false;
     }
     return infos.at(tableID).exists;
+}
+
+column_id_t PropertyExpression::getColumnID(const TableCatalogEntry& entry) const {
+    if (!hasProperty(entry.getTableID())) {
+        return INVALID_COLUMN_ID;
+    }
+    return entry.getColumnID(propertyName);
 }
 
 } // namespace binder

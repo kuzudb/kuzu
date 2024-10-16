@@ -1,7 +1,11 @@
 #pragma once
 
+#include <cstdint>
+#include <iterator>
 #include <memory>
 
+#include "common/copy_constructors.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include <span>
 
@@ -16,23 +20,18 @@ struct RelTableIDInfo {
 
 class GraphScanState {
 public:
+    struct Chunk {
+        std::span<const common::nodeID_t> nbrNodes;
+        std::span<const common::relID_t> edges;
+        // this reference can be modified, but the underlying data will be reset the next time next
+        // is called
+        common::SelectionVector& selVector;
+    };
     virtual ~GraphScanState() = default;
-};
+    virtual Chunk getChunk() = 0;
 
-// TODO(Ben): feel free to remove this class.
-struct GraphScanResult {
-    std::vector<common::nodeID_t> nbrNodeIDs;
-    std::vector<common::relID_t> edgeIDs;
-
-    common::idx_t size() const {
-        KU_ASSERT(nbrNodeIDs.size() == edgeIDs.size());
-        return nbrNodeIDs.size();
-    }
-
-    void clear() {
-        nbrNodeIDs.clear();
-        edgeIDs.clear();
-    }
+    // Returns true if there are more values after the current batch
+    virtual bool next() = 0;
 };
 
 /**
@@ -45,10 +44,61 @@ struct GraphScanResult {
  */
 class Graph {
 public:
+    class Iterator {
+    public:
+        explicit constexpr Iterator(GraphScanState* scanState) : scanState{scanState} {}
+        DEFAULT_BOTH_MOVE(Iterator);
+        Iterator(const Iterator& other) = default;
+        Iterator() : scanState{nullptr} {}
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using value_type = GraphScanState::Chunk;
+
+        value_type operator*() const { return scanState->getChunk(); }
+        Iterator& operator++() {
+            if (!scanState->next()) {
+                scanState = nullptr;
+            }
+            return *this;
+        }
+        void operator++(int) { ++*this; }
+        bool operator==(const Iterator& other) const {
+            // Only needed for comparing to the end, so they are equal if and only if both are null
+            return scanState == nullptr && other.scanState == nullptr;
+        }
+        // Counts and consumes the iterator
+        uint64_t count() {
+            // TODO(bmwinger): avoid scanning if all that's necessary is to count the results
+            uint64_t result = 0;
+            do {
+                result += scanState->getChunk().selVector.getSelSize();
+            } while (scanState->next());
+            return result;
+        }
+
+        std::vector<common::nodeID_t> collectNbrNodes() {
+            std::vector<common::nodeID_t> nbrNodes;
+            // Old versions of apple clang have a bug which prevents capture bindings from being
+            // captured by the lambda.
+            // for (const auto [nbrNodes, edges, mask] : *this) // doesn't work here
+            for (const auto chunk : *this) {
+                nbrNodes.reserve(nbrNodes.size() + chunk.selVector.getSelSize());
+                chunk.selVector.forEach([&](auto i) { nbrNodes.push_back(chunk.nbrNodes[i]); });
+            }
+            return nbrNodes;
+        }
+
+        Iterator& begin() noexcept { return *this; }
+        static constexpr Iterator end() noexcept { return Iterator(nullptr); }
+
+    private:
+        GraphScanState* scanState;
+    };
+    static_assert(std::input_iterator<Iterator>);
+
     Graph() = default;
     virtual ~Graph() = default;
 
-    virtual std::unique_ptr<Graph> copy() = 0;
     // Get id for all node tables.
     virtual std::vector<common::table_id_t> getNodeTableIDs() = 0;
     // Get id for all relationship tables.
@@ -74,13 +124,7 @@ public:
     // group will be scanned at once.
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
-    virtual void scanFwd(common::nodeID_t nodeID, GraphScanState& state,
-        GraphScanResult& result) = 0;
-
-    // Scans multiple nodeIDs in random mode, which is optimized for small lookups and does minimal
-    // caching of CSR headers.
-    virtual std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
-        GraphScanState& state) = 0;
+    virtual Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
 
     // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
     // Also, algorithm may only need adjList index in single direction so we should make double
@@ -91,10 +135,7 @@ public:
         std::span<common::table_id_t> nodeTableIDs) = 0;
 
     // Get dst nodeIDs for given src nodeID tables using backward adjList.
-    virtual void scanBwd(common::nodeID_t nodeID, GraphScanState& state,
-        GraphScanResult& result) = 0;
-    virtual std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
-        GraphScanState& state) = 0;
+    virtual Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
 };
 
 } // namespace graph

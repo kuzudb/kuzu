@@ -101,7 +101,7 @@ private:
             common::StructVector::getFieldVector(listDataVector, fieldIdx).get();
         std::unordered_set<common::nodeID_t, InternalIDHasher> internalIDSet;
         auto numSelectedValues = 0u;
-        auto buffer = selectionVector.getMultableBuffer();
+        auto buffer = selectionVector.getMutableBuffer();
         if (inputSelVector.isUnfiltered()) {
             for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
                 auto& listEntry = listVector.getValue<common::list_entry_t>(i);

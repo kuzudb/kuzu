@@ -29,15 +29,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
     std::vector<ScanNodeTableInfo> tableInfos;
     std::vector<std::string> tableNames;
     for (const auto& tableID : tableIDs) {
+        auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
         std::vector<column_id_t> columnIDs;
-        for (auto& expression : scan.getProperties()) {
-            auto& property = expression->constCast<PropertyExpression>();
-            if (!property.hasProperty(tableID)) {
-                columnIDs.push_back(UINT32_MAX);
-            } else {
-                auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
-                columnIDs.push_back(tableEntry->getColumnID(property.getPropertyName()));
-            }
+        for (auto& expr : scan.getProperties()) {
+            columnIDs.push_back(expr->constCast<PropertyExpression>().getColumnID(*tableEntry));
         }
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
         tableInfos.emplace_back(table, std::move(columnIDs),

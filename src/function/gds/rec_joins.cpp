@@ -43,25 +43,43 @@ void RJAlgorithm::validateLowerUpperBound(int64_t lowerBound, int64_t upperBound
     }
 }
 
-expression_vector RJAlgorithm::getNodeIDResultColumns() const {
+expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
     expression_vector columns;
     auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
     columns.push_back(inputNode.getInternalID());
     auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(outputNode.getInternalID());
+    auto rjBindData = bindData->ptrCast<RJBindData>();
+    if (rjBindData->extendDirection == ExtendDirection::BOTH) {
+        if (rjBindData->directionExpr != nullptr) {
+            columns.push_back(rjBindData->directionExpr);
+        } else {
+            columns.push_back(binder->createVariable(DIRECTION_COLUMN_NAME,
+                LogicalType::LIST(LogicalType::BOOL())));
+        }
+    }
     return columns;
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getLengthColumn(Binder* binder) const {
+    if (bindData->ptrCast<RJBindData>()->lengthExpr != nullptr) {
+        return bindData->ptrCast<RJBindData>()->lengthExpr;
+    }
     return binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
+    if (bindData->ptrCast<RJBindData>()->pathNodeIDsExpr != nullptr) {
+        return bindData->ptrCast<RJBindData>()->pathNodeIDsExpr;
+    }
     return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
 std::shared_ptr<Expression> RJAlgorithm::getPathEdgeIDsColumn(Binder* binder) const {
+    if (bindData->ptrCast<RJBindData>()->pathEdgeIDsExpr != nullptr) {
+        return bindData->ptrCast<RJBindData>()->pathEdgeIDsExpr;
+    }
     return binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
@@ -83,9 +101,10 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
-    auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[3]);
-    bindData =
-        std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound, upperBound);
+    auto extendDirection =
+        ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+        extendDirection);
 }
 
 class RJOutputWriterVCSharedState {
@@ -141,14 +160,15 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         }
         auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
-            if (!mask->isMasked(offset, offset)) {
+            if (!mask->isMasked(offset)) {
                 continue;
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
             RJCompState rjCompState = getRJCompState(executionContext, sourceNodeID);
-            rjCompState.initRJFromSource(sourceNodeID);
+            rjCompState.initSource(sourceNodeID);
+            auto rjBindData = bindData->ptrCast<RJBindData>();
             GDSUtils::runFrontiersUntilConvergence(executionContext, rjCompState,
-                sharedState->graph.get(), bindData->ptrCast<RJBindData>()->upperBound);
+                sharedState->graph.get(), rjBindData->extendDirection, rjBindData->upperBound);
             auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
                 executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
                 rjCompState.outputWriter.get());

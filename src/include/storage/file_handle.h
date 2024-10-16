@@ -106,14 +106,15 @@ public:
     common::page_idx_t getNumPages() const { return numPages; }
     common::FileInfo* getFileInfo() const { return fileInfo.get(); }
 
+    uint64_t getPageSize() const {
+        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::PAGE_SIZE;
+    }
+
 private:
     bool isLargePaged() const { return flags & isLargePagedMask; }
     bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
     bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
     bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
-    uint64_t getPageSize() const {
-        return isLargePaged() ? common::TEMP_PAGE_SIZE : common::KUZU_PAGE_SIZE;
-    }
 
     common::page_idx_t addNewPageWithoutLock();
     void constructExistingFileHandle(const std::string& path, common::VirtualFileSystem* vfs,

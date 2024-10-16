@@ -25,6 +25,7 @@ class Deserializer;
 struct FileInfo;
 
 using sel_t = uint64_t;
+constexpr sel_t INVALID_SEL = UINT64_MAX;
 using hash_t = uint64_t;
 using page_idx_t = uint32_t;
 using frame_idx_t = page_idx_t;
@@ -76,6 +77,8 @@ constexpr offset_t INVALID_OFFSET = UINT64_MAX;
 struct internalID_t;
 using nodeID_t = internalID_t;
 using relID_t = internalID_t;
+
+using cardinality_t = uint64_t;
 
 // System representation for internalID.
 struct KUZU_API internalID_t {

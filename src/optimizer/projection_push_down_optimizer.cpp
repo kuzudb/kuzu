@@ -43,13 +43,16 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto& pathPropertyProbe = op->cast<LogicalPathPropertyProbe>();
-    KU_ASSERT(
-        pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
+    if (pathPropertyProbe.getChild(0)->getOperatorType() !=
+        planner::LogicalOperatorType::RECURSIVE_EXTEND) {
+        return;
+    }
     auto& recursiveExtend = pathPropertyProbe.getChild(0)->cast<LogicalRecursiveExtend>();
     auto boundNodeID = recursiveExtend.getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend.getRel();
-    if (!nodeOrRelInUse.contains(rel)) {
+    // set TRACK_NONE only when PathSemantic=walk
+    if (!nodeOrRelInUse.contains(rel) && semantic == common::PathSemantic::WALK) {
         pathPropertyProbe.setJoinType(RecursiveJoinType::TRACK_NONE);
         recursiveExtend.setJoinType(RecursiveJoinType::TRACK_NONE);
     }
@@ -135,7 +138,7 @@ void ProjectionPushDownOptimizer::visitIntersect(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitProjection(LogicalOperator* op) {
     // Projection operator defines the start of a projection push down until the next projection
     // operator is seen.
-    ProjectionPushDownOptimizer optimizer;
+    ProjectionPushDownOptimizer optimizer(this->semantic);
     auto& projection = op->constCast<LogicalProjection>();
     for (auto& expression : projection.getExpressionsToProject()) {
         optimizer.collectExpressionsInUse(expression);
@@ -340,8 +343,9 @@ void ProjectionPushDownOptimizer::preAppendProjection(LogicalOperator* op, idx_t
         // We don't have a way to handle
         return;
     }
-    auto projection =
-        std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto projection = std::make_shared<LogicalProjection>(std::move(expressions),
+        op->getChild(childIdx), std::move(printInfo));
     projection->computeFlatSchema();
     op->setChild(childIdx, std::move(projection));
 }

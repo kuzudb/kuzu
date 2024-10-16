@@ -129,6 +129,10 @@ public class Native {
 
     protected static native FlatTuple kuzu_query_result_get_next(QueryResult query_result);
 
+    protected static native boolean kuzu_query_result_has_next_query_result(QueryResult query_result);
+
+    protected static native QueryResult kuzu_query_result_get_next_query_result(QueryResult query_result);
+
     protected static native String kuzu_query_result_to_string(QueryResult query_result);
 
     protected static native void kuzu_query_result_reset_iterator(QueryResult query_result);
@@ -214,6 +218,10 @@ public class Native {
     protected static native String kuzu_value_get_struct_field_name(Value struct_val, long index);
 
     protected static native long kuzu_value_get_struct_index(Value struct_val, String field_name);
+
+    protected static native String kuzu_value_get_map_field_name(Value struct_val, long index);
+
+    protected static native Value kuzu_value_get_map_value(Value struct_val, long index);
 
     protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
 

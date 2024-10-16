@@ -51,10 +51,14 @@ bool PathScanner::trailSemanticCheck(const std::vector<nodeID_t>&,
     const std::vector<relID_t>& edgeIDs) {
     common::rel_id_set_t set;
     for (auto i = 0u; i < edgeIDs.size() - 1; ++i) {
-        if (set.contains(edgeIDs[i])) {
+        internalID_t edgeID = edgeIDs[i];
+        if (RelIDMasker::needFlip(edgeID)) {
+            edgeID = RelIDMasker::getWithoutMark(edgeID);
+        }
+        if (set.contains(edgeID)) {
             return false;
         }
-        set.insert(edgeIDs[i]);
+        set.insert(edgeID);
     }
     return true;
 }

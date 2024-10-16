@@ -9,16 +9,15 @@ namespace function {
 // TODO(Xiyang): optimize if edgeID is not needed.
 class ParentList {
 public:
-    ParentList(uint16_t iter_, common::nodeID_t nodeID, common::relID_t edgeID) {
-        store(iter_, nodeID, edgeID);
-    }
+    ParentList() = default;
 
-    void store(uint16_t iter_, common::nodeID_t nodeID, common::relID_t edgeID) {
+    void store(uint16_t iter_, common::nodeID_t nodeID, common::relID_t edgeID, bool isFwd) {
         iter.store(iter_, std::memory_order_relaxed);
         nodeOffset.store(nodeID.offset, std::memory_order_relaxed);
         nodeTableID.store(nodeID.tableID, std::memory_order_relaxed);
         edgeOffset.store(edgeID.offset, std::memory_order_relaxed);
         edgeTableID.store(edgeID.tableID, std::memory_order_relaxed);
+        fwd_.store(isFwd, std::memory_order_relaxed);
     }
 
     void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
@@ -35,6 +34,7 @@ public:
         return {edgeOffset.load(std::memory_order_relaxed),
             edgeTableID.load(std::memory_order_relaxed)};
     }
+    bool isFwdEdge() { return fwd_.load(std::memory_order_relaxed); }
 
 private:
     // Iteration level
@@ -45,6 +45,8 @@ private:
     // Edge information
     std::atomic<common::offset_t> edgeOffset;
     std::atomic<common::table_id_t> edgeTableID;
+    // Edge direction
+    std::atomic<bool> fwd_;
     // Next pointer
     std::atomic<ParentList*> next;
 };
@@ -87,9 +89,10 @@ public:
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
     // function.
     void addParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock,
-        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID) {
+        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID,
+        bool isFwd) {
         auto parentEdgePtr = parentListBlock->reserveNext();
-        parentEdgePtr->store(iter, parentNodeID, edgeID);
+        parentEdgePtr->store(iter, parentNodeID, edgeID, isFwd);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
         KU_ASSERT(curPtr != nullptr);
         // Since by default the parentPtr of each node is nullptr, that's what we start with.
@@ -101,9 +104,10 @@ public:
 
     // For single shortest path, we do NOT add parent if a parent has already existed.
     void tryAddSingleParent(uint16_t iter, ObjectBlock<ParentList>* parentListBlock,
-        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID) {
+        common::nodeID_t childNodeID, common::nodeID_t parentNodeID, common::relID_t edgeID,
+        bool isFwd) {
         auto parentEdgePtr = parentListBlock->reserveNext();
-        parentEdgePtr->store(iter, parentNodeID, edgeID);
+        parentEdgePtr->store(iter, parentNodeID, edgeID, isFwd);
         auto curPtr = currParentPtrs.load(std::memory_order_relaxed);
         ParentList* expected = nullptr;
         if (curPtr[childNodeID.offset].compare_exchange_strong(expected, parentEdgePtr)) {

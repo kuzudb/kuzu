@@ -85,6 +85,7 @@ bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
 }
 
 struct SkipRowDriver {
+    DriverType driverType = DriverType::SKIP_ROW;
     explicit SkipRowDriver(uint64_t skipNum) : skipNum{skipNum} {}
     bool done(uint64_t rowNum) const { return rowNum >= skipNum; }
     bool addRow(uint64_t, column_id_t, std::optional<WarningDataWithColumnInfo>) { return true; }
@@ -117,6 +118,7 @@ void BaseCSVReader::readBOM() {
 
 // Dummy driver that just skips a row.
 struct HeaderDriver {
+    DriverType driverType = DriverType::HEADER;
     bool done(uint64_t) { return true; }
     bool addRow(uint64_t, column_id_t, std::optional<WarningDataWithColumnInfo>) { return true; }
     bool addValue(uint64_t, column_id_t, std::string_view) { return true; }
@@ -311,7 +313,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         goto final_state;
     add_value:
         // We get here after we have a delimiter.
-        KU_ASSERT(buffer[position] == option.delimiter);
+        KU_ASSERT(buffer[position] == option.delimiter ||
+                  buffer[position] == CopyConstants::DEFAULT_CSV_LIST_END_CHAR);
         // Trim one character if we have quotes.
         if (!addValue(driver, curRowIdx, column,
                 std::string_view(buffer.get() + start, position - start - hasQuotes),
@@ -369,6 +372,10 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         position++;
         do {
             for (; position < bufferSize; position++) {
+                if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+                    auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                    sniffDriver.setEverQuoted();
+                }
                 if (buffer[position] == option.quoteChar) {
                     // quote: move to unquoted state
                     goto unquote;
@@ -384,7 +391,12 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         [[unlikely]]
         // still in quoted state at the end of the file, error:
         lineContext.setEndOfLine(getFileOffset());
-        handleCopyException("unterminated quotes.");
+        if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+            auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+            sniffDriver.setError();
+        } else {
+            handleCopyException("unterminated quotes.");
+        }
         // we are ignoring this error, skip current row and restart state machine
         goto ignore_error;
     unquote:
@@ -400,6 +412,11 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         }
         if (buffer[position] == option.quoteChar &&
             (!option.escapeChar || option.escapeChar == option.quoteChar)) {
+            // the escapeChar is used correctly, record this for DialectSniff
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.setEverEscaped();
+            }
             // escaped quote, return to quoted state and store escape position
             escapePositions.push_back(position - start);
             goto in_quotes;
@@ -410,9 +427,14 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         } else if (isNewLine(buffer[position])) {
             goto add_row;
         } else {
-            [[unlikely]] handleCopyException("quote should be followed by "
-                                             "end of file, end of value, end of "
-                                             "row or another quote.");
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.setError();
+            } else {
+                [[unlikely]] handleCopyException("quote should be followed by "
+                                                 "end of file, end of value, end of "
+                                                 "row or another quote.");
+            }
             goto ignore_error;
         }
     handle_escape:
@@ -421,13 +443,29 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
         position++;
         if (!maybeReadBuffer(&start)) {
             [[unlikely]] lineContext.setEndOfLine(getFileOffset());
-            handleCopyException("escape at end of file.");
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.setError();
+            } else {
+                handleCopyException("escape at end of file.");
+            }
             goto ignore_error;
         }
         if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
             ++position; // consume the invalid char
-            [[unlikely]] handleCopyException("neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+            if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+                auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+                sniffDriver.setError();
+            } else {
+                [[unlikely]] handleCopyException(
+                    "neither QUOTE nor ESCAPE is proceeded by ESCAPE.");
+            }
             goto ignore_error;
+        }
+        // the escapeChar is used correctly, record this for DialectSniff
+        if (driver.driverType == DriverType::SNIFF_CSV_DIALECT) {
+            auto& sniffDriver = reinterpret_cast<SniffCSVDialectDriver&>(driver);
+            sniffDriver.setEverEscaped();
         }
         // escape was followed by quote or escape, go back to quoted state
         goto in_quotes;
@@ -514,6 +552,7 @@ common::idx_t BaseCSVReader::getFileIdxFunc(const CopyFromFileError& error) {
 template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
 template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
 template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
+template uint64_t BaseCSVReader::parseCSV<SniffCSVDialectDriver>(SniffCSVDialectDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     KU_ASSERT(osFileOffset >= bufferSize);

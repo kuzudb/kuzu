@@ -1,3 +1,4 @@
+#include "common/data_chunk/sel_vector.h"
 #include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -61,9 +62,16 @@ public:
     explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
         : frontierPair{frontierPair} {};
 
-    bool edgeCompute(common::nodeID_t, common::nodeID_t nbrID, relID_t) override {
-        return frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset) ==
-               PathLengths::UNVISITED;
+    void edgeCompute(common::nodeID_t, std::span<const common::nodeID_t> nbrIDs,
+        std::span<const relID_t>, SelectionVector& mask, bool) override {
+        size_t activeCount = 0;
+        mask.forEach([&](auto i) {
+            if (frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                    nbrIDs[i].offset) == PathLengths::UNVISITED) {
+                mask.getMutableBuffer()[activeCount++] = i;
+            }
+        });
+        mask.setToFiltered(activeCount);
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -81,17 +89,23 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
-        auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
-                                nbrNodeID.offset) == PathLengths::UNVISITED;
-        if (shouldUpdate) {
-            if (!parentListBlock->hasSpace()) {
-                parentListBlock = bfsGraph->addNewBlock();
+    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
+        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
+        size_t activeCount = 0;
+        mask.forEach([&](auto i) {
+            auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                                    nbrNodeIDs[i].offset) == PathLengths::UNVISITED;
+            if (shouldUpdate) {
+                if (!parentListBlock->hasSpace()) {
+                    parentListBlock = bfsGraph->addNewBlock();
+                }
+                bfsGraph->tryAddSingleParent(frontierPair->curIter.load(std::memory_order_relaxed),
+                    parentListBlock, nbrNodeIDs[i] /* child */, boundNodeID /* parent */,
+                    edgeIDs[i], isFwd);
+                mask.getMutableBuffer()[activeCount++] = i;
             }
-            bfsGraph->tryAddSingleParent(frontierPair->curIter.load(std::memory_order_relaxed),
-                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
-        }
-        return shouldUpdate;
+        });
+        mask.setToFiltered(activeCount);
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -116,7 +130,9 @@ public:
     SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
         : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
+    expression_vector getResultColumns(Binder* binder) const override {
+        return getBaseResultColumns(binder);
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<SingleSPDestinationsAlgorithm>(*this);
@@ -143,7 +159,7 @@ public:
     SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         return columns;
     }
@@ -174,7 +190,7 @@ public:
     SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
         columns.push_back(getPathEdgeIDsColumn(binder));
@@ -192,8 +208,9 @@ private:
             std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->upperBound);
+            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -205,22 +222,25 @@ private:
 
 function_set SingleSPDestinationsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<SingleSPDestinationsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<SingleSPDestinationsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set SingleSPLengthsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<SingleSPLengthsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<SingleSPLengthsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<SingleSPPathsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<SingleSPPathsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 

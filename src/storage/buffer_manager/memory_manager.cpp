@@ -2,10 +2,14 @@
 
 #include <cstdint>
 #include <cstring>
+#include <mutex>
 
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
+#include "common/file_system/virtual_file_system.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/file_handle.h"
+#include "storage/store/chunked_node_group.h"
 
 using namespace kuzu::common;
 
@@ -13,37 +17,54 @@ namespace kuzu {
 namespace storage {
 
 MemoryBuffer::MemoryBuffer(MemoryManager* mm, page_idx_t pageIdx, uint8_t* buffer, uint64_t size)
-    : buffer{buffer, (size_t)size}, pageIdx{pageIdx}, mm{mm} {}
+    : buffer{buffer, size}, mm{mm}, pageIdx{pageIdx}, evicted{false} {}
 
 MemoryBuffer::~MemoryBuffer() {
-    if (buffer.data() != nullptr) {
+    if (buffer.data() != nullptr && !evicted) {
         mm->freeBlock(pageIdx, buffer);
         buffer = std::span<uint8_t>();
     }
 }
 
-MemoryManager::MemoryManager(BufferManager* bm, VirtualFileSystem* vfs,
-    main::ClientContext* context)
-    : bm{bm} {
-    pageSize = TEMP_PAGE_SIZE;
-    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, context, TEMP_PAGE);
+void MemoryBuffer::setSpilledToDisk(uint64_t filePosition) {
+    std::free(buffer.data());
+    // reinterpret_cast isn't allowed here, but we shouldn't leave the invalid pointer and
+    // still want to store the size
+    buffer = std::span<uint8_t>((uint8_t*)nullptr, buffer.size());
+    evicted = true;
+    this->filePosition = filePosition;
 }
 
-MemoryManager::~MemoryManager() = default;
+void MemoryBuffer::prepareLoadFromDisk() {
+    KU_ASSERT(buffer.data() == nullptr && evicted);
+    buffer = mm->mallocBufferInternal(false, buffer.size());
+    evicted = false;
+}
 
-std::unique_ptr<MemoryBuffer> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t size) {
+MemoryManager::MemoryManager(BufferManager* bm, VirtualFileSystem* vfs) : bm{bm} {
+    pageSize = TEMP_PAGE_SIZE;
+    fh = bm->getFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE, vfs, nullptr,
+        PageSizeClass::TEMP_PAGE);
+}
+
+std::span<uint8_t> MemoryManager::mallocBufferInternal(bool initializeToZero, uint64_t size) {
     if (!bm->reserve(size)) {
         throw BufferManagerException(
             "Unable to allocate memory! The buffer pool is full and no memory could be freed!");
     }
     void* buffer = nullptr;
+    bm->nonEvictableMemory += size;
     if (initializeToZero) {
         buffer = calloc(size, 1);
     } else {
         buffer = malloc(size);
     }
-    return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX, static_cast<uint8_t*>(buffer),
-        size);
+    return std::span<uint8_t>(static_cast<uint8_t*>(buffer), size);
+}
+
+std::unique_ptr<MemoryBuffer> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t size) {
+    auto buffer = mallocBufferInternal(initializeToZero, size);
+    return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX, buffer.data(), size);
 }
 
 std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZero, uint64_t size) {
@@ -63,15 +84,16 @@ std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZer
     auto buffer = bm->pin(*fh, pageIdx, PageReadPolicy::DONT_READ_PAGE);
     auto memoryBuffer = std::make_unique<MemoryBuffer>(this, pageIdx, buffer);
     if (initializeToZero) {
-        memset(memoryBuffer->buffer.data(), 0, pageSize);
+        memset(memoryBuffer->getBuffer().data(), 0, pageSize);
     }
     return memoryBuffer;
 }
 
 void MemoryManager::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
     if (pageIdx == INVALID_PAGE_IDX) {
-        bm->freeUsedMemory(buffer.size());
         std::free(buffer.data());
+        bm->freeUsedMemory(buffer.size());
+        bm->nonEvictableMemory -= buffer.size();
     } else {
         bm->unpin(*fh, pageIdx);
         std::unique_lock<std::mutex> lock(allocatorLock);

@@ -13,7 +13,7 @@ public:
     CompressedFlushBuffer(std::shared_ptr<CompressionAlg> alg, common::PhysicalTypeID dataType)
         : alg{std::move(alg)}, dataType{dataType} {}
     CompressedFlushBuffer(std::shared_ptr<CompressionAlg> alg, const common::LogicalType& dataType)
-        : CompressedFlushBuffer(alg, dataType.getPhysicalType()) {}
+        : CompressedFlushBuffer(std::move(alg), dataType.getPhysicalType()) {}
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 

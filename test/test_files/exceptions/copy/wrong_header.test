@@ -5,7 +5,7 @@
 -CASE CSVHeaderMismatch
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, PRIMARY KEY (ID))
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true, AUTO_DETECT=false)
 ---- ok
 -STATEMENT CREATE NODE TABLE person1 (ID STRING, fName STRING, PRIMARY KEY (ID))
 ---- ok
@@ -13,30 +13,30 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE person3 (ID STRING, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true, AUTO_DETECT=false)
 ---- ok
 -STATEMENT MATCH (a:person1) RETURN a.ID STARTS WITH '1';
 ---- 3
 False
 False
 True
--STATEMENT COPY person2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true, AUTO_DETECT=false)
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Guodong" to INT64. Line/record containing the error: '10,Guodong'
--STATEMENT COPY person3 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person3 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true, AUTO_DETECT=false)
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 2.
 -STATEMENT COPY person FROM
        ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv",
-        "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv"] (HEADER=true)
+        "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv"] (HEADER=true, AUTO_DETECT=false)
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv on line 1: expected 2 values per row, but got 1. Line/record containing the error: 'id'
 -STATEMENT CREATE REL TABLE knows (FROM person TO person, prop1 INTERVAL);
 ---- ok
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true, AUTO_DETECT=false)
 ---- error
 Binder exception: Number of columns mismatch. Expected 3 but got 4.
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true, AUTO_DETECT=false)
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv on line 2: Conversion exception: Error occurred during parsing interval. Field name is missing. Line/record containing the error: '10,24,1'
 
@@ -82,7 +82,7 @@ Binder exception: Number of columns mismatch. Expected 3 but got 2.
                                      grades INT64[4], height float, u UUID,
                                      PRIMARY KEY (fName))
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true, AUTO_DETECT=false)
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "Alice" to INT64. Line/record containing the error: '0,Alice...'
 
@@ -91,9 +91,9 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- ok
 -STATEMENT create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true, AUTO_DETECT=false)
 ---- ok
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true, AUTO_DETECT=false)
 ---- ok
 
 -CASE MissingColumnErrors
@@ -101,9 +101,9 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- ok
 -STATEMENT create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY)
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true, AUTO_DETECT=false)
 ---- ok
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true, AUTO_DETECT=false)
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv on line 1: expected 4 values per row, but got 3. Line/record containing the error: 'from,to,prop1'
 

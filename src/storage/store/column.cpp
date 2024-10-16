@@ -35,12 +35,14 @@ struct ReadInternalIDValuesToVector {
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
-        auto buffer = std::make_unique<offset_t[]>(numValuesToRead);
-        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(buffer.get()), 0,
+        KU_ASSERT(numValuesToRead <= DEFAULT_VECTOR_CAPACITY);
+        offset_t offsetBuffer[DEFAULT_VECTOR_CAPACITY];
+
+        compressedReader(frame, pageCursor, reinterpret_cast<uint8_t*>(offsetBuffer), 0,
             numValuesToRead, metadata);
         auto resultData = reinterpret_cast<internalID_t*>(resultVector->getData());
         for (auto i = 0u; i < numValuesToRead; i++) {
-            resultData[posInVector + i].offset = buffer[i];
+            resultData[posInVector + i].offset = offsetBuffer[i];
         }
     }
 
@@ -225,11 +227,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
         return;
     }
 
-    const uint64_t numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    auto cursor = PageUtils::getPageCursorForPos(startOffset, numValuesPerPage);
-    cursor.pageIdx += state.metadata.pageIdx;
     KU_ASSERT((numValuesToScan + startOffset) <= state.metadata.numValues);
-
     const uint64_t numValuesScanned = columnReadWriter->readCompressedValuesToPage(transaction,
         state, columnChunk->getData(), 0, startOffset, endOffset, readToPageFunc);
 
@@ -252,12 +250,12 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
             explicit Filterer(const SelectionVector& selVector)
                 : selVector(selVector), posInSelVector(0) {}
             bool operator()(offset_t startIdx, offset_t endIdx) {
-                bool ret = isInRange(selVector[posInSelVector], startIdx, endIdx);
-                while (
-                    posInSelVector < selVector.getSelSize() && selVector[posInSelVector] < endIdx) {
+                while (posInSelVector < selVector.getSelSize() &&
+                       selVector[posInSelVector] < startIdx) {
                     posInSelVector++;
                 }
-                return ret;
+                return (posInSelVector < selVector.getSelSize() &&
+                        isInRange(selVector[posInSelVector], startIdx, endIdx));
             }
 
             const SelectionVector& selVector;
@@ -296,7 +294,7 @@ void Column::lookupInternal(Transaction* transaction, const ChunkState& state, o
     if (metadata.compMeta.compression == CompressionType::CONSTANT) {
         return metadata.numPages == 0;
     }
-    const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
+    const auto numValuesPerPage = metadata.compMeta.numValues(PAGE_SIZE, dataType);
     if (numValuesPerPage == UINT64_MAX) {
         return metadata.numPages == 0;
     }
@@ -367,7 +365,7 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
 bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
     offset_t maxOffset) const {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
-        (metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType) * metadata.numPages) <= (maxOffset + 1)) {
+        (metadata.compMeta.numValues(PAGE_SIZE, dataType) * metadata.numPages) <= (maxOffset + 1)) {
         // Note that for constant compression, `metadata.numPages` will be equal to 0.
         // Thus, this function will always return true.
         return true;
@@ -452,7 +450,11 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
                 chunkState.getExceptionChunk<double>()->finalizeAndFlushToDisk(chunkState);
             } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
                 chunkState.getExceptionChunk<float>()->finalizeAndFlushToDisk(chunkState);
+            } else {
+                KU_UNREACHABLE;
             }
+            checkpointState.persistentData.getMetadata().compMeta.floatMetadata()->exceptionCount =
+                chunkState.metadata.compMeta.floatMetadata()->exceptionCount;
         }
     } else {
         checkpointColumnChunkOutOfPlace(chunkState, checkpointState);

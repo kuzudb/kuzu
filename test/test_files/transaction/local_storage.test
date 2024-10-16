@@ -20,19 +20,19 @@
 -STATEMENT create rel table marries (FROM person TO person, usedAddress STRING[], address INT16[2], note STRING, ONE_ONE);
 ---- ok
 -STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true, deLim=',') 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true) 
            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
 ---- ok
 -STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (deLim=',') 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"
            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
 ---- ok
 -STATEMENT LOAD WITH HEADERS (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING))
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv" (escape='\\') 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv"
            CREATE (:organisation{ID:ID, name:name, orgCode:orgCode, mark:mark, score:score, history:history, licenseValidInterval:licenseValidInterval, rating:rating, state:state, info:info});
 ---- ok
 -STATEMENT LOAD WITH HEADERS (name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128), content BYTEA, audience MAP(STRING, INT64), grade union(credit boolean, grade1 double, grade2 int64))
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv"(escape='\\') 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vMovies.csv"
            CREATE (:movies{name:name, length:length, note:note, description:description, content:content, audience:audience, grade:grade});
 ---- ok
 -STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING))
@@ -56,7 +56,7 @@
            CREATE (p1)-[:workAt{year:year, grading:grading, rating:rating}]->(o2);
 ---- ok
 -STATEMENT LOAD WITH HEADERS (p1ID INT64, p2ID INT64, location FLOAT[2], times INT, data BYTEA)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eMeets.csv"(escape='\\') 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eMeets.csv"
            MATCH (p1:person), (p2:person) WHERE p1.ID = p1ID AND p2.ID = p2ID
            CREATE (p1)-[:meets{location:location, times:times, data:data}]->(p2);
 ---- ok

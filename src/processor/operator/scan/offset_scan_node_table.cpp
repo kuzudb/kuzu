@@ -49,6 +49,7 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
             TypeUtils::toString(nodeID)));
         // LCOV_EXCL_STOP
     }
+    metrics->numOutputTuple.incrementByOne();
     return true;
 }
 

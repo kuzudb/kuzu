@@ -7,9 +7,9 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::shared_ptr<LogicalOperator> Planner::getGDSCall(const BoundReadingClause& readingClause) {
-    auto& call = readingClause.constCast<BoundGDSCall>();
-    return std::make_shared<LogicalGDSCall>(call.getInfo().copy());
+std::shared_ptr<LogicalOperator> Planner::getGDSCall(const BoundGDSCallInfo& info) {
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    return std::make_shared<LogicalGDSCall>(info.copy(), std::move(printInfo));
 }
 
 } // namespace planner

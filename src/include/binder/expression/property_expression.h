@@ -5,6 +5,9 @@
 #include "expression.h"
 
 namespace kuzu {
+namespace catalog {
+class TableCatalogEntry;
+}
 namespace binder {
 
 struct SingleLabelPropertyInfo {
@@ -51,6 +54,8 @@ public:
 
     // If this property exists for given table.
     bool hasProperty(common::table_id_t tableID) const;
+
+    common::column_id_t getColumnID(const catalog::TableCatalogEntry& entry) const;
 
     bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
     bool isIRI() const { return getPropertyName() == common::rdf::IRI; }

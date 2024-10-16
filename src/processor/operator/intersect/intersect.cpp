@@ -64,8 +64,8 @@ void Intersect::probeHTs() {
 void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVector,
     nodeID_t* rightNodeIDs, SelectionVector& rSelVector) {
     KU_ASSERT(lSelVector.getSelSize() <= rSelVector.getSelSize());
-    auto leftPositionBuffer = lSelVector.getMultableBuffer();
-    auto rightPositionBuffer = rSelVector.getMultableBuffer();
+    auto leftPositionBuffer = lSelVector.getMutableBuffer();
+    auto rightPositionBuffer = rSelVector.getMutableBuffer();
     sel_t leftPosition = 0, rightPosition = 0;
     uint64_t outputValuePosition = 0;
     while (leftPosition < lSelVector.getSelSize() && rightPosition < rSelVector.getSelSize()) {
@@ -121,7 +121,7 @@ static void sliceSelVectors(const std::vector<SelectionVector*>& selVectorsToSli
     for (auto selVec : selVectorsToSlice) {
         for (auto i = 0u; i < slicer.getSelSize(); i++) {
             auto pos = slicer[i];
-            auto buffer = selVec->getMultableBuffer();
+            auto buffer = selVec->getMutableBuffer();
             buffer[i] = selVec->operator[](pos);
         }
         selVec->setToFiltered(slicer.getSelSize());
@@ -219,6 +219,7 @@ bool Intersect::getNextTuplesInternal(ExecutionContext* context) {
             carryBuildSideIdx = -1u;
         }
     } while (outKeyVector->state->getSelVector().getSelSize() == 0);
+    metrics->numOutputTuple.increase(outKeyVector->state->getSelVector().getSelSize());
     return true;
 }
 

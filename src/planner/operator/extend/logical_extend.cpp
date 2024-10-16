@@ -3,22 +3,12 @@
 namespace kuzu {
 namespace planner {
 
-f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
-    f_group_pos_set result;
-    auto inSchema = children[0]->getSchema();
-    auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalID());
-    if (!inSchema->getGroup(boundNodeGroupPos)->isFlat()) {
-        result.insert(boundNodeGroupPos);
-    }
-    return result;
-}
-
 void LogicalExtend::computeFactorizedSchema() {
     copyChildSchema(0);
-    RUNTIME_CHECK({
-        auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
-        KU_ASSERT(schema->getGroup(boundGroupPos)->isFlat());
-    });
+    const auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
+    if (!schema->getGroup(boundGroupPos)->isFlat()) {
+        schema->flattenGroup(boundGroupPos);
+    }
     uint32_t nbrGroupPos = 0u;
     nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);
@@ -43,7 +33,7 @@ void LogicalExtend::computeFlatSchema() {
 
 std::unique_ptr<LogicalOperator> LogicalExtend::copy() {
     auto extend = std::make_unique<LogicalExtend>(boundNode, nbrNode, rel, direction,
-        extendFromSource_, properties, children[0]->copy());
+        extendFromSource_, properties, children[0]->copy(), printInfo->copy());
     extend->setPropertyPredicates(copyVector(propertyPredicates));
     extend->scanNbrID = scanNbrID;
     return extend;

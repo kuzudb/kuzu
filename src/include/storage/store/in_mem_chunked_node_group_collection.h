@@ -40,6 +40,12 @@ public:
     uint64_t getNumChunkedGroups() const { return chunkedGroups.size(); }
     void clear() { chunkedGroups.clear(); }
 
+    void loadFromDisk(MemoryManager& memoryManager) {
+        for (auto& group : chunkedGroups) {
+            group->loadFromDisk(memoryManager);
+        }
+    }
+
 private:
     std::vector<common::LogicalType> types;
     std::vector<std::unique_ptr<ChunkedNodeGroup>> chunkedGroups;

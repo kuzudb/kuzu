@@ -18,6 +18,11 @@ struct CSVOption {
     bool allowUnbracedList;
     bool ignoreErrors;
 
+    bool autoDetection;
+    bool setEscape;
+    bool setDelim;
+    bool setQuote;
+
     CSVOption()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
@@ -26,17 +31,43 @@ struct CSVOption {
           skipNum{CopyConstants::DEFAULT_CSV_SKIP_NUM},
           sampleSize{CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE},
           allowUnbracedList{CopyConstants::DEFAULT_CSV_ALLOW_UNBRACED_LIST},
-          ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS) {}
+          ignoreErrors(CopyConstants::DEFAULT_IGNORE_ERRORS),
+          autoDetection{CopyConstants::DEFAULT_CSV_AUTO_DETECT},
+          setEscape{CopyConstants::DEFAULT_CSV_SET_DIALECT},
+          setDelim{CopyConstants::DEFAULT_CSV_SET_DIALECT},
+          setQuote{CopyConstants::DEFAULT_CSV_SET_DIALECT} {}
+
     EXPLICIT_COPY_DEFAULT_MOVE(CSVOption);
 
     // TODO: COPY FROM and COPY TO should support transform special options, like '\'.
     std::string toCypher() const {
         std::string header = hasHeader ? "true" : "false";
-        return stringFormat("(escape ='\\{}', delim ='{}', quote='\\{}', header={})", escapeChar,
-            delimiter, quoteChar, header);
+        std::string result = "(header=" + header + ")";
+        // Add the escape parameter IFF setEscape is true
+        if (setEscape) {
+            result += stringFormat(", escape='\\{}'", escapeChar);
+        }
+        if (setDelim) {
+            result += stringFormat(", delim='{}'", delimiter);
+        }
+        if (setQuote) {
+            result += stringFormat(", quote='\\{}'", quoteChar);
+        }
+
+        return result;
     }
 
-    CSVOption(const CSVOption& other) = default;
+    // Explicit copy constructor
+    CSVOption(const CSVOption& other)
+        : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
+          hasHeader{other.hasHeader}, skipNum{other.skipNum},
+          sampleSize{other.sampleSize == 0 ?
+                         CopyConstants::DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE :
+                         other.sampleSize}, // Set to DEFAULT_CSV_TYPE_DEDUCTION_SAMPLE_SIZE if
+                                            // sampleSize is 0
+          allowUnbracedList{other.allowUnbracedList}, ignoreErrors{other.ignoreErrors},
+          autoDetection{other.autoDetection}, setEscape{other.setEscape}, setDelim{other.setDelim},
+          setQuote{other.setQuote} {}
 };
 
 struct CSVReaderConfig {

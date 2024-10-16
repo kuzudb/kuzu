@@ -18,7 +18,7 @@ class NodeGroup;
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
     common::idx_t chunkedGroupIdx = 0;
-    common::row_idx_t nextRowToScan = 0;
+    common::row_idx_t numScannedRows = 0;
     // State of each chunk in the checkpointed chunked group.
     std::vector<ChunkState> chunkStates;
 
@@ -28,7 +28,7 @@ struct NodeGroupScanState {
 
     virtual void resetState() {
         chunkedGroupIdx = 0;
-        nextRowToScan = 0;
+        numScannedRows = 0;
         for (auto& chunkState : chunkStates) {
             chunkState.resetState();
         }

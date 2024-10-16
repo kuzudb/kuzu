@@ -16,6 +16,7 @@ CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 NUM_THREADS ?= 1
 PREFIX ?= install
 TEST_JOBS ?= 10
+EXTENSION_TEST_EXCLUDE_FILTER ?= ""
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
@@ -192,7 +193,7 @@ extension-json-test-build:
 	)
 
 extension-test: extension-test-build
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-json-test: extension-json-test-build

@@ -7,7 +7,6 @@
 
 -LOG AccAspMultiLabelParquet
 -STATEMENT MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
--ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
 ---- 4
 Alice|
 Bob|

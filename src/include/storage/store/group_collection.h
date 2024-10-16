@@ -18,7 +18,7 @@ public:
 
     common::UniqLock lock() { return common::UniqLock{mtx}; }
 
-    void loadGroups(MemoryManager& memoryManager, common::Deserializer& deSer) {
+    void deserializeGroups(MemoryManager& memoryManager, common::Deserializer& deSer) {
         lock();
         deSer.deserializeVectorOfPtrs<T>(groups,
             [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });

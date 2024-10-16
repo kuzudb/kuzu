@@ -1,4 +1,5 @@
 #include "binder/expression/expression_util.h"
+#include "common/data_chunk/sel_vector.h"
 #include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -173,8 +174,9 @@ private:
 class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
     VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
-        uint16_t upperBound)
-        : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound) {}
+        uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection)
+        : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound, extendFromSource,
+              writeEdgeDirection) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
@@ -194,8 +196,8 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound,
-            upperBound);
+        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound, upperBound,
+            extendFromSource, writeEdgeDirection);
     }
 };
 
@@ -205,22 +207,29 @@ public:
         PathMultiplicities* multiplicities)
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrID, relID_t) override {
-        auto nbrVal =
-            frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrID.offset);
-        // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
-        // the first time, i.e., when its value in the pathLengths frontier is
-        // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
-        // so it's value is curIter + 1.
-        auto shouldUpdate =
-            nbrVal == PathLengths::UNVISITED || nbrVal == frontierPair->pathLengths->getCurIter();
-        if (shouldUpdate) {
-            // Note: This is safe because curNodeID is in the current frontier, so its
-            // shortest paths multiplicity is guaranteed to not change in the current iteration.
-            multiplicities->incrementTargetMultiplicity(nbrID.offset,
-                multiplicities->getBoundMultiplicity(boundNodeID.offset));
-        }
-        return nbrVal == PathLengths::UNVISITED;
+    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrIDs,
+        std::span<const relID_t>, SelectionVector& mask, bool) override {
+        size_t activeCount = 0;
+        mask.forEach([&](auto i) {
+            auto nbrVal =
+                frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrIDs[i].offset);
+            // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
+            // for the first time, i.e., when its value in the pathLengths frontier is
+            // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
+            // iteration, so it's value is curIter + 1.
+            auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
+                                nbrVal == frontierPair->pathLengths->getCurIter();
+            if (shouldUpdate) {
+                // Note: This is safe because curNodeID is in the current frontier, so its
+                // shortest paths multiplicity is guaranteed to not change in the current iteration.
+                multiplicities->incrementTargetMultiplicity(nbrIDs[i].offset,
+                    multiplicities->getBoundMultiplicity(boundNodeID.offset));
+            }
+            if (nbrVal == PathLengths::UNVISITED) {
+                mask.getMutableBuffer()[activeCount++] = i;
+            }
+        });
+        mask.setToFiltered(activeCount);
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -239,23 +248,31 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
-        auto nbrLen =
-            frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
-        // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited for
-        // the first time, i.e., when its value in the pathLengths frontier is
-        // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this iteration,
-        // so it's value is curIter + 1.
-        auto shouldUpdate =
-            nbrLen == PathLengths::UNVISITED || nbrLen == frontiersPair->pathLengths->getCurIter();
-        if (shouldUpdate) {
-            if (!parentListBlock->hasSpace()) {
-                parentListBlock = bfsGraph->addNewBlock();
+    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
+        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool fwdEdge) override {
+        size_t activeCount = 0;
+        mask.forEach([&](auto i) {
+            auto nbrLen = frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
+                nbrNodeIDs[i].offset);
+            // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
+            // for the first time, i.e., when its value in the pathLengths frontier is
+            // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
+            // iteration, so it's value is curIter + 1.
+            auto shouldUpdate = nbrLen == PathLengths::UNVISITED ||
+                                nbrLen == frontiersPair->pathLengths->getCurIter();
+            if (shouldUpdate) {
+                if (!parentListBlock->hasSpace()) {
+                    parentListBlock = bfsGraph->addNewBlock();
+                }
+                bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
+                    parentListBlock, nbrNodeIDs[i] /* child */, boundNodeID /* parent */,
+                    edgeIDs[i], fwdEdge);
             }
-            bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
-                parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID);
-        }
-        return nbrLen == PathLengths::UNVISITED;
+            if (nbrLen == PathLengths::UNVISITED) {
+                mask.getMutableBuffer()[activeCount++] = i;
+            }
+        });
+        mask.setToFiltered(activeCount);
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -270,8 +287,8 @@ private:
 
 /**
  * Algorithm for parallel all shortest paths computation, so all shortest paths from a source to
- * is returned for each destination. If paths are not returned, multiplicities indicate the number
- * of paths to each destination.
+ * is returned for each destination. If paths are not returned, multiplicities indicate the
+ * number of paths to each destination.
  */
 
 class AllSPDestinationsAlgorithm final : public SPAlgorithm {
@@ -279,7 +296,9 @@ public:
     AllSPDestinationsAlgorithm() = default;
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override { return getNodeIDResultColumns(); }
+    expression_vector getResultColumns(Binder* binder) const override {
+        return getBaseResultColumns(binder);
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
@@ -308,7 +327,7 @@ public:
     AllSPLengthsAlgorithm(const AllSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         return columns;
     }
@@ -339,7 +358,7 @@ public:
     AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
     expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
         columns.push_back(getPathEdgeIDsColumn(binder));
@@ -356,8 +375,10 @@ private:
         auto output =
             std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            bindData->ptrCast<RJBindData>()->upperBound);
+            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -377,14 +398,17 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t edgeID) override {
-        // We should always update the nbrID in variable length joins
-        if (!parentPtrsBlock->hasSpace()) {
-            parentPtrsBlock = bfsGraph->addNewBlock();
-        }
-        bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock, nbrNodeID /* child */,
-            boundNodeID /* parent */, edgeID);
-        return true;
+    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
+        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
+        mask.forEach([&](auto i) {
+            // We should always update the nbrID in variable length joins
+            if (!parentPtrsBlock->hasSpace()) {
+                parentPtrsBlock = bfsGraph->addNewBlock();
+            }
+            bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock,
+                nbrNodeIDs[i] /* child */, boundNodeID /* parent */, edgeIDs[i], isFwd);
+            // all nodes visited are active, so the mask is left unmodified
+        });
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -394,8 +418,8 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
 
 /**
  * Algorithm for parallel all shortest paths computation, so all shortest paths from a source to
- * is returned for each destination. If paths are not returned, multiplicities indicate the number
- * of paths to each destination.
+ * is returned for each destination. If paths are not returned, multiplicities indicate the
+ * number of paths to each destination.
  */
 class VarLenJoinsAlgorithm final : public RJAlgorithm {
 public:
@@ -409,11 +433,11 @@ public:
      * srcNode::NODE
      * lowerBound::INT64
      * upperBound::INT64
-     * outputProperty::BOOL
+     * direction::STRING
      */
     std::vector<LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
-            LogicalTypeID::BOOL};
+            LogicalTypeID::STRING};
     }
 
     void bind(const expression_vector& params, Binder* binder,
@@ -423,13 +447,14 @@ public:
         auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
         validateLowerUpperBound(lowerBound, upperBound);
-        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[4]);
-        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, outputProperty, lowerBound,
-            upperBound);
+        auto extendDirection = ExtendDirectionUtil::fromString(
+            ExpressionUtil::getLiteralValue<std::string>(*params[4]));
+        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+            extendDirection);
     }
 
-    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
-        auto columns = getNodeIDResultColumns();
+    binder::expression_vector getResultColumns(Binder* binder) const override {
+        auto columns = getBaseResultColumns(binder);
         columns.push_back(getLengthColumn(binder));
         columns.push_back(getPathNodeIDsColumn(binder));
         columns.push_back(getPathEdgeIDsColumn(binder));
@@ -447,8 +472,10 @@ private:
         auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
         auto output = std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->lowerBound, rjBindData->upperBound);
+            rjBindData->lowerBound, rjBindData->upperBound, rjBindData->extendFromSource,
+            writeDirection);
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
             clientContext->getMaxNumThreadForExec(), mm);
         auto edgeCompute =
@@ -460,27 +487,33 @@ private:
 
 function_set VarLenJoinsFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<GDSFunction>(name, std::make_unique<VarLenJoinsAlgorithm>()));
+    auto algo = std::make_unique<VarLenJoinsAlgorithm>();
+    result.push_back(
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set AllSPDestinationsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<AllSPDestinationsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<AllSPDestinationsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set AllSPLengthsFunction::getFunctionSet() {
     function_set result;
+    auto algo = std::make_unique<AllSPLengthsAlgorithm>();
     result.push_back(
-        std::make_unique<GDSFunction>(name, std::make_unique<AllSPLengthsAlgorithm>()));
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 
 function_set AllSPPathsFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<GDSFunction>(name, std::make_unique<AllSPPathsAlgorithm>()));
+    auto algo = std::make_unique<AllSPPathsAlgorithm>();
+    result.push_back(
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 

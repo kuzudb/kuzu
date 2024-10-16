@@ -1,4 +1,5 @@
 -DATASET CSV snap/amazon0601/parquet
+-BUFFER_POOL_SIZE 268435456
 -SKIP_IN_MEM
 --
 
@@ -6,6 +7,9 @@
 -STATEMENT MATCH (a:account) RETURN COUNT(*)
 ---- 1
 403394
--STATEMENT MATCH (a:account)-[:follows]->(b:account) RETURN COUNT(*)
+-STATEMENT MATCH (a:account)-[e:follows]->(b:account) HINT a JOIN (e JOIN b) RETURN COUNT(*)
+---- 1
+3387388
+-STATEMENT MATCH (a:account)-[e:follows]->(b:account) HINT b JOIN (e JOIN a) RETURN COUNT(*)
 ---- 1
 3387388

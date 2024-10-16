@@ -21,14 +21,10 @@ namespace function {
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
     std::shared_ptr<binder::Expression> nodeOutput;
-    // If outputAsNode is true, we will scan all properties of the node.
-    // Otherwise, we return node ID only.
-    bool outputAsNode;
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
-        : nodeOutput{std::move(nodeOutput)}, outputAsNode{outputAsNode} {}
 
-    GDSBindData(const GDSBindData& other)
-        : nodeOutput{other.nodeOutput}, outputAsNode{other.outputAsNode} {}
+    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput)
+        : nodeOutput{std::move(nodeOutput)} {}
+    GDSBindData(const GDSBindData& other) : nodeOutput{other.nodeOutput} {}
 
     virtual ~GDSBindData() = default;
 
@@ -36,9 +32,10 @@ struct GDSBindData {
 
     virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
 
-    virtual bool hasNodeOutput() const { return outputAsNode; }
-
-    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nodeOutput; }
+    virtual std::shared_ptr<binder::Expression> getNodeOutput() const {
+        KU_ASSERT(nodeOutput != nullptr);
+        return nodeOutput;
+    }
 
     virtual std::unique_ptr<GDSBindData> copy() const {
         return std::make_unique<GDSBindData>(*this);
@@ -73,6 +70,9 @@ public:
 
     virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
         graph::GraphEntry& graphEntry) = 0;
+    // When compiling recursive pattern (e.g. [e*1..2]) as GDS.
+    // We skip binding and directly set bind data.
+    void setBindData(std::unique_ptr<GDSBindData> bindData_) { bindData = std::move(bindData_); }
 
     GDSBindData* getBindData() const { return bindData.get(); }
 
@@ -97,7 +97,7 @@ protected:
 
 protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
-        graph::GraphEntry& graphEntry);
+        const graph::GraphEntry& graphEntry);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

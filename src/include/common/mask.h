@@ -52,8 +52,9 @@ public:
         maskData = std::make_unique<MaskData>(maxOffset + 1);
     }
 
+    bool isMasked(common::offset_t offset) const { return maskData->isMasked(offset, numMasks); }
     // Return true if any offset between [startOffset, endOffset] is masked. Otherwise return false.
-    bool isMasked(common::offset_t startOffset, common::offset_t endOffset) const {
+    bool isAnyMasked(common::offset_t startOffset, common::offset_t endOffset) const {
         auto offset = startOffset;
         auto numMasked = 0u;
         while (offset <= endOffset) {
@@ -92,10 +93,9 @@ public:
     common::table_id_t getTableID() const { return tableID; }
     common::offset_t getMaxOffset() const { return maxOffset; }
 
-    virtual void init() = 0;
-
     virtual void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) = 0;
-    virtual bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
+    virtual bool isMasked(common::offset_t offset) = 0;
+    virtual bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
 
     bool isEnabled() const { return getNumMasks() > 0; }
     uint8_t getNumMasks() const { return maskCollection.getNumMasks(); }
@@ -110,42 +110,41 @@ protected:
 class NodeOffsetLevelSemiMask final : public NodeSemiMask {
 public:
     explicit NodeOffsetLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : NodeSemiMask{tableID, maxOffset} {}
+        : NodeSemiMask{tableID, maxOffset} {
 
-    void init() override {
-        if (maxOffset == common::INVALID_OFFSET) {
-            return;
+        if (maxOffset != common::INVALID_OFFSET) {
+            maskCollection.init(maxOffset + 1);
         }
-        maskCollection.init(maxOffset + 1);
     }
 
     void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
         maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
-    bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
-        return maskCollection.isMasked(startNodeOffset, endNodeOffset);
+    bool isMasked(common::offset_t offset) override { return maskCollection.isMasked(offset); }
+    bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        return maskCollection.isAnyMasked(startNodeOffset, endNodeOffset);
     }
 };
 
 class NodeVectorLevelSemiMask final : public NodeSemiMask {
 public:
     explicit NodeVectorLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : NodeSemiMask{tableID, maxOffset} {}
-
-    void init() override {
-        if (maxOffset == common::INVALID_OFFSET) {
-            return;
+        : NodeSemiMask{tableID, maxOffset} {
+        if (maxOffset != common::INVALID_OFFSET) {
+            maskCollection.init(MaskUtil::getVectorIdx(maxOffset) + 1);
         }
-        maskCollection.init(MaskUtil::getVectorIdx(maxOffset) + 1);
     }
 
     void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
         maskCollection.incrementMaskValue(MaskUtil::getVectorIdx(nodeOffset), currentMaskValue);
     }
 
-    bool isMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
-        return maskCollection.isMasked(MaskUtil::getVectorIdx(startNodeOffset),
+    bool isMasked(common::offset_t offset) override {
+        return maskCollection.isMasked(MaskUtil::getVectorIdx(offset));
+    }
+    bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        return maskCollection.isAnyMasked(MaskUtil::getVectorIdx(startNodeOffset),
             MaskUtil::getVectorIdx(endNodeOffset));
     }
 };

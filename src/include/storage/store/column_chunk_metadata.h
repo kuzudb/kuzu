@@ -2,6 +2,7 @@
 
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
+
 namespace kuzu::storage {
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
@@ -19,6 +20,20 @@ struct ColumnChunkMetadata {
     ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages, uint64_t numValues,
         const CompressionMetadata& compMeta)
         : pageIdx(pageIdx), numPages(numPages), numValues(numValues), compMeta(compMeta) {}
+};
+
+class GetCompressionMetadata {
+    std::shared_ptr<CompressionAlg> alg;
+    const common::LogicalType& dataType;
+
+public:
+    GetCompressionMetadata(std::shared_ptr<CompressionAlg> alg, const common::LogicalType& dataType)
+        : alg{std::move(alg)}, dataType{dataType} {}
+
+    GetCompressionMetadata(const GetCompressionMetadata& other) = default;
+
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t capacity,
+        uint64_t numValues, StorageValue min, StorageValue max) const;
 };
 
 class GetBitpackingMetadata {

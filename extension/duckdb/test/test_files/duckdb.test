@@ -122,10 +122,15 @@ Attached database successfully.
 4|tableOfTypes1|ATTACHED|tinysnb(DUCKDB)|
 -STATEMENT LOAD FROM other1.person RETURN *;
 ---- 4
-1
-2
-3
-5
+1|15.00000
+2|2.58611
+3|1.45810
+5|5.79820
+-STATEMENT CALL TABLE_INFO('other1.person') RETURN *;
+---- 2
+0|id|INT32|NULL
+1|wealth|DECIMAL(10, 5)|NULL
+
 -STATEMENT LOAD FROM tinysnb.person RETURN count(*);
 ---- 1
 8
@@ -135,10 +140,10 @@ Attached database successfully.
 Used database successfully.
 -STATEMENT LOAD FROM person RETURN *;
 ---- 4
-1
-2
-3
-5
+1|15.00000
+2|2.58611
+3|1.45810
+5|5.79820
 -STATEMENT USE tinysnb;
 ---- 1
 Used database successfully.
@@ -154,8 +159,9 @@ Used database successfully.
 ---- 1
 4
 -STATEMENT CALL TABLE_INFO('other1.person') RETURN *;
----- 1
+---- 2
 0|id|INT32|NULL
+1|wealth|DECIMAL(10, 5)|NULL
 -STATEMENT CALL TABLE_INFO('tinysnb.person') RETURN *;
 ---- 16
 0|ID|INT64|NULL

@@ -16,6 +16,32 @@
 ---- 1
 10
 
+-STATEMENT CREATE NODE TABLE personAlt(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice');
+---- ok
+-STATEMENT CALL TABLE_INFO('personAlt') RETURN *;
+---- 2
+0|id|INT64|NULL|True
+1|prop|STRING|'Alice'|False
+
+-STATEMENT CREATE NODE TABLE personAlt2(id INT64, prop STRING DEFAULT 'Alice' PRIMARY KEY);
+---- ok
+-STATEMENT CALL TABLE_INFO('personAlt2') RETURN *;
+---- 2
+0|id|INT64|NULL|False
+1|prop|STRING|'Alice'|True
+
+-STATEMENT CREATE NODE TABLE personAlt3(id INT64, prop STRING DEFAULT 'Alice');
+---- error
+Parser exception: Can not find primary key.
+-STATEMENT CREATE NODE TABLE personALt4(id INT64 PRIMARY KEY, prop STRING DEFAULT 'Alice' PRIMARY KEY);
+---- error
+Parser exception: Found multiple primary keys.
+-STATEMENT CREATE NODE TABLE personAlt5(id INT64 PRIMARY KEY, prop STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CALL TABLE_INFO('personAlt5') RETURN *;
+0|id|INT64|NULL|True
+1|prop|STRING|NULL|False
+
 -STATEMENT CREATE NODE TABLE personOne(id INT64, prop STRING DEFAULT 'Alice', PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE personTwo(id INT64, prop STRING DEFAULT gen_random_uuid(), PRIMARY KEY(id));
@@ -194,21 +220,6 @@ height
 2:2|TIMESTAMP
 2:2|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))
 2:2|UNION(firstmet DATE, type INT16, comment STRING)
-
--LOG StorageInfo
--STATEMENT MATCH (p:person) RETURN COUNT(p)
----- 1
-8
--STATEMENT CALL storage_info('person') RETURN COUNT(*)
----- 1
-56
-# TODO(Guodong/Sam): FIX-ME
-#-STATEMENT CALL storage_info('knows') RETURN COUNT(*)
-#---- 1
-#252
--STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
----- 1
-28
 
 -CASE CallNodeTableWith300ColumnsInfo
 -DEFINE COLS REPEAT 2400 "col${count} INT64,"

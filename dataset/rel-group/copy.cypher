@@ -1,6 +1,6 @@
-COPY personA FROM "dataset/rel-group/node.csv" (HeaDER=true, deLim=',');
-COPY personB FROM "dataset/rel-group/node.csv" (HeaDER=true, deLim=',');
-COPY personC FROM "dataset/rel-group/node.csv" (HeaDER=true, deLim=',');
+COPY personA FROM "dataset/rel-group/node.csv" (HeaDER=true);
+COPY personB FROM "dataset/rel-group/node.csv" (HeaDER=true);
+COPY personC FROM "dataset/rel-group/node.csv" (HeaDER=true);
 COPY knows_personA_personB FROM "dataset/rel-group/edge.csv";
 COPY knows_personA_personC FROM "dataset/rel-group/edge.csv";
 COPY knows_personB_personC FROM "dataset/rel-group/edge.csv";

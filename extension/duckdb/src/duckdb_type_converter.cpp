@@ -81,6 +81,21 @@ common::LogicalType DuckDBTypeConverter::convertDuckDBType(std::string typeStr) 
             nullptr, 0);
         auto innerType = convertDuckDBType(typeStr.substr(0, leftBracketPos));
         return LogicalType::ARRAY(innerType.copy(), numValuesInList);
+    } else if (typeStr.starts_with("DECIMAL")) {
+        auto decimalInfoLeftBracket = typeStr.find('(');
+        auto decimalInfoSeparator = typeStr.find(',');
+        auto decimalInfoRightBracket = typeStr.find(')');
+        auto width = std::strtoll(typeStr
+                                      .substr(decimalInfoLeftBracket + 1,
+                                          decimalInfoSeparator - decimalInfoLeftBracket - 1)
+                                      .c_str(),
+            nullptr /* endPtr */, 0);
+        auto scale = std::strtoll(typeStr
+                                      .substr(decimalInfoSeparator + 1,
+                                          decimalInfoRightBracket - decimalInfoSeparator - 1)
+                                      .c_str(),
+            nullptr /* endPtr */, 0);
+        return LogicalType::DECIMAL(width, scale);
     }
     throw BinderException{stringFormat("Unsupported duckdb type: {}.", typeStr)};
 }

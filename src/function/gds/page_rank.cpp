@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
@@ -23,8 +22,8 @@ struct PageRankBindData final : public GDSBindData {
     int64_t maxIteration = 10;
     double delta = 0.0001; // detect convergence
 
-    PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput, bool outputAsNode)
-        : GDSBindData{std::move(nodeOutput), outputAsNode} {};
+    explicit PageRankBindData(std::shared_ptr<binder::Expression> nodeOutput)
+        : GDSBindData{std::move(nodeOutput)} {};
     PageRankBindData(const PageRankBindData& other)
         : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
           delta{other.delta} {}
@@ -75,10 +74,9 @@ public:
      * Inputs are
      *
      * graph::ANY
-     * outputProperty::BOOL
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::BOOL};
+        return {LogicalTypeID::ANY};
     }
 
     /*
@@ -95,10 +93,9 @@ public:
         return columns;
     }
 
-    void bind(const expression_vector& params, Binder* binder, GraphEntry& graphEntry) override {
+    void bind(const expression_vector&, Binder* binder, GraphEntry& graphEntry) override {
         auto nodeOutput = bindNodeOutput(binder, graphEntry);
-        auto outputProperty = ExpressionUtil::getLiteralValue<bool>(*params[1]);
-        bindData = std::make_unique<PageRankBindData>(nodeOutput, outputProperty);
+        bindData = std::make_unique<PageRankBindData>(nodeOutput);
     }
 
     void initLocalState(main::ClientContext* context) override {
@@ -122,23 +119,27 @@ public:
         // Compute page rank.
         auto nodeTableIDs = graph->getNodeTableIDs();
         auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
-        auto scanResult = GraphScanResult();
-        auto otherScanResult = GraphScanResult();
+        // We're using multiple overlapping iterators, both of which need access to a scan state, so
+        // we need multiple scan states
+        auto innerScanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
+        auto numNodesInGraph = graph->getNumNodes();
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
             for (auto tableID : nodeTableIDs) {
                 for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
-                    graph->scanFwd(nodeID, *scanState, scanResult);
-                    for (auto j = 0u; j < scanResult.size(); ++j) {
-                        auto nbr = scanResult.nbrNodeIDs[j];
-                        graph->scanFwd(nbr, *scanState, otherScanResult);
-                        auto numNbrOfNbr = otherScanResult.size();
-                        if (numNbrOfNbr == 0) {
-                            numNbrOfNbr = graph->getNumNodes();
-                        }
-                        rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
+                    auto iter = graph->scanFwd(nodeID, *scanState);
+                    for (const auto chunk : iter) {
+                        chunk.selVector.forEach([&](auto i) {
+                            auto numNbrOfNbr =
+                                graph->scanFwd(chunk.nbrNodes[i], *innerScanState).count();
+                            if (numNbrOfNbr == 0) {
+                                numNbrOfNbr = numNodesInGraph;
+                            }
+                            rank +=
+                                extraData->dampingFactor * (ranks[chunk.nbrNodes[i]] / numNbrOfNbr);
+                        });
                     }
                     rank += dampingValue;
                     double diff = ranks[nodeID] - rank;
@@ -164,7 +165,9 @@ private:
 
 function_set PageRankFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<GDSFunction>(name, std::make_unique<PageRank>());
+    auto algo = std::make_unique<PageRank>();
+    auto function =
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
     result.push_back(std::move(function));
     return result;
 }

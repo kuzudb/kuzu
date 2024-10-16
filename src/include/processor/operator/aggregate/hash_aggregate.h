@@ -54,7 +54,8 @@ struct HashAggregateLocalState {
     void init(ResultSet& resultSet, main::ClientContext* context, HashAggregateInfo& info,
         std::vector<function::AggregateFunction>& aggregateFunctions,
         std::vector<common::LogicalType> types);
-    void append(const std::vector<AggregateInput>& aggregateInputs, uint64_t multiplicity) const;
+    uint64_t append(const std::vector<AggregateInput>& aggregateInputs,
+        uint64_t multiplicity) const;
 };
 
 struct HashAggregatePrintInfo final : OPPrintInfo {

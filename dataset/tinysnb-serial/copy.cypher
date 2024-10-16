@@ -1,4 +1,4 @@
-COPY person FROM "dataset/tinysnb-serial/vPerson.csv" (HeaDER=true, deLim=',');
+COPY person FROM "dataset/tinysnb-serial/vPerson.csv" (HeaDER=true);
 COPY organisation FROM "dataset/tinysnb-serial/vOrganisation.csv";
 COPY movies FROM "dataset/tinysnb-serial/vMovies.csv";
 COPY knows FROM "dataset/tinysnb-serial/eKnows.csv";

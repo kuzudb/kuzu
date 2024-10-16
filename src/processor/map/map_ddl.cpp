@@ -25,8 +25,8 @@ static DataPos getOutputPos(const LogicalDDL& logicalDDL) {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* logicalOperator) {
     auto& createTable = logicalOperator->constCast<LogicalCreateTable>();
-    auto printInfo = std::make_unique<CreateTablePrintInfo>(createTable.getInfo()->type,
-        createTable.getInfo()->tableName, createTable.getInfo()->extraInfo.get());
+    auto printInfo = std::make_unique<LogicalCreateTablePrintInfo>(createTable.getInfo()->type,
+        createTable.getInfo()->tableName, createTable.getInfo()->copy());
     return std::make_unique<CreateTable>(createTable.getInfo()->copy(), getOutputPos(createTable),
         getOperatorID(), std::move(printInfo));
 }
@@ -62,8 +62,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalO
         auto& addPropInfo = alter.getInfo()->extraInfo->constCast<BoundExtraAddPropertyInfo>();
         defaultValueEvaluator = exprMapper.getEvaluator(addPropInfo.boundDefault);
     }
-    auto printInfo = std::make_unique<AlterPrintInfo>(alter.getInfo()->alterType,
-        alter.getInfo()->tableName, alter.getInfo()->extraInfo.get());
+    auto printInfo = std::make_unique<LogicalAlterPrintInfo>(alter.getInfo()->alterType,
+        alter.getInfo()->tableName, alter.getInfo()->copy());
     return std::make_unique<Alter>(alter.getInfo()->copy(), std::move(defaultValueEvaluator),
         getOutputPos(alter), getOperatorID(), std::move(printInfo));
 }

@@ -5,10 +5,11 @@
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/memory_manager.h"
+#include "main/client_context.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -122,17 +123,15 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
-    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+    const auto scanState = std::make_unique<RelTableScanState>(
+        *transaction->getClientContext()->getMemoryManager(), tableID, columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->nodeIDVector = &boundNodeIDVector;
     scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
     const auto scannedIDVector = scanState->outputVectors[0];
     scanState->outState = scannedIDVector->state.get();
     scanState->rowIdxVector->state = scannedIDVector->state;
-    scanState->source = TableScanSource::COMMITTED;
-    scanState->boundNodeOffset = boundNodeOffset;
-    scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
-    scanState->nodeGroup->initializeScanState(transaction, *scanState);
+    scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
     auto source = CSRNodeGroupScanSource::NONE;
     while (true) {
@@ -170,15 +169,13 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
     std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
     std::vector<Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    const auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs, columns,
+    const auto scanState = std::make_unique<RelTableScanState>(
+        *transaction->getClientContext()->getMemoryManager(), tableID, columnIDs, columns,
         csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
     scanState->nodeIDVector = srcNodeIDVector;
     scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
     scanState->outState = scanState->outputVectors[0]->state.get();
-    scanState->source = TableScanSource::COMMITTED;
-    scanState->boundNodeOffset = nodeOffset;
-    scanState->nodeGroup = getNodeGroup(nodeGroupIdx);
-    scanState->nodeGroup->initializeScanState(transaction, *scanState);
+    scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {

@@ -41,6 +41,7 @@ static jclass J_C_Exception;
 // QueryResult
 static jclass J_C_QueryResult;
 static jfieldID J_C_QueryResult_F_qr_ref;
+static jfieldID J_C_QueryResult_F_isOwnedByCPP;
 // PreparedStatement
 static jclass J_C_PreparedStatement;
 static jfieldID J_C_PreparedStatement_F_ps_ref;
@@ -253,8 +254,8 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1database_1init(JNIEnv* env,
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
-    SystemConfig systemConfig;
-    systemConfig.bufferPoolSize = buffer == 0 ? -1u : buffer;
+    SystemConfig systemConfig{};
+    systemConfig.bufferPoolSize = buffer == 0 ? systemConfig.bufferPoolSize : buffer;
     systemConfig.enableCompression = enable_compression;
     systemConfig.readOnly = read_only;
     systemConfig.maxDBSize = max_db_size == 0 ? systemConfig.maxDBSize : max_db_size;
@@ -502,6 +503,25 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next(
     jobject newFTObject = env->AllocObject(J_C_FlatTuple);
     env->SetLongField(newFTObject, J_C_FlatTuple_F_ft_ref, ft_ref);
     return newFTObject;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1has_1next_1query_1result(
+    JNIEnv* env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return qr->hasNextQueryResult();
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1get_1next_1query_1result(
+    JNIEnv* env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto query_result = qr->getNextQueryResult();
+    if (query_result == nullptr) {
+        return nullptr;
+    }
+
+    jobject ret = createJavaObject(env, query_result, J_C_QueryResult, J_C_QueryResult_F_qr_ref);
+    env->SetBooleanField(ret, J_C_QueryResult_F_isOwnedByCPP, static_cast<jboolean>(true));
+    return ret;
 }
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1query_1result_1to_1string(JNIEnv* env,
@@ -1119,6 +1139,36 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1index(J
     }
 }
 
+JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1field_1name(JNIEnv* env,
+    jclass, jobject thisMV, jlong index) {
+    auto* mv = getValue(env, thisMV);
+    auto children_size = NestedVal::getChildrenSize(mv);
+    auto cindex = (long)index;
+    if (cindex < 0 || cindex >= children_size) {
+        return nullptr;
+    }
+    auto child = NestedVal::getChildVal(mv, cindex);
+    auto child_field_name = *NestedVal::getChildVal(child, 0);
+    return env->NewStringUTF(child_field_name.toString().c_str());
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1map_1value(JNIEnv* env, jclass,
+    jobject thisMV, jlong index) {
+    auto* mv = getValue(env, thisMV);
+    auto children_size = NestedVal::getChildrenSize(mv);
+    auto cindex = (long)index;
+    if (cindex < 0 || cindex >= children_size) {
+        return nullptr;
+    }
+
+    auto child = NestedVal::getChildVal(mv, cindex);
+    auto val = NestedVal::getChildVal(child, 1);
+
+    jobject element = createJavaObject(env, val, J_C_Value, J_C_Value_F_v_ref);
+    env->SetBooleanField(element, J_C_Value_F_isOwnedByCPP, static_cast<jboolean>(true));
+    return element;
+}
+
 // protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
 JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rdf_1variant_1get_1data_1type(JNIEnv* env,
     jclass, jobject thisValue) {
@@ -1372,6 +1422,7 @@ void initGlobalMethodRef(JNIEnv* env) {
 
 void initGlobalFieldRef(JNIEnv* env) {
     J_C_QueryResult_F_qr_ref = env->GetFieldID(J_C_QueryResult, "qr_ref", "J");
+    J_C_QueryResult_F_isOwnedByCPP = env->GetFieldID(J_C_QueryResult, "isOwnedByCPP", "Z");
 
     J_C_PreparedStatement_F_ps_ref = env->GetFieldID(J_C_PreparedStatement, "ps_ref", "J");
 

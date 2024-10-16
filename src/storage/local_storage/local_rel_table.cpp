@@ -150,16 +150,13 @@ void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
-    auto& relScanState = state.cast<LocalRelTableScanState>();
+    auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
-    relScanState.nodeGroup = localNodeGroup.get();
-    auto& index = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
-    if (index.contains(relScanState.boundNodeOffset)) {
-        relScanState.rowIndices = index[relScanState.boundNodeOffset];
-        KU_ASSERT(std::is_sorted(relScanState.rowIndices.begin(), relScanState.rowIndices.end()));
-    } else {
-        relScanState.rowIndices.clear();
-    }
+    KU_ASSERT(relScanState.localTableScanState);
+    auto& localScanState = *relScanState.localTableScanState;
+    localScanState.rowIdxVector->setState(relScanState.rowIdxVector->state);
+    localScanState.rowIndices.clear();
+    localScanState.nextRowToScan = 0;
 }
 
 std::vector<column_id_t> LocalRelTable::rewriteLocalColumnIDs(RelDataDirection direction,
@@ -181,23 +178,44 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
 }
 
 bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
-    const auto& relScanState = state.cast<RelTableScanState>();
+    auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
-    KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
-    const auto numToScan = std::min(localScanState.rowIndices.size() - localScanState.nextRowToScan,
-        DEFAULT_VECTOR_CAPACITY);
-    if (numToScan == 0) {
-        return false;
+    while (true) {
+        if (relScanState.currBoundNodeIdx >= relScanState.cachedBoundNodeSelVector.getSelSize()) {
+            return false;
+        }
+        const auto boundNodePos =
+            relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx];
+        const auto boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(boundNodePos);
+        auto& localCSRIndex = relScanState.direction == RelDataDirection::FWD ? fwdIndex : bwdIndex;
+        if (localScanState.rowIndices.empty() && localCSRIndex.contains(boundNodeOffset)) {
+            localScanState.rowIndices = localCSRIndex.at(boundNodeOffset);
+            localScanState.nextRowToScan = 0;
+            KU_ASSERT(
+                std::is_sorted(localScanState.rowIndices.begin(), localScanState.rowIndices.end()));
+        }
+        KU_ASSERT(localScanState.rowIndices.size() >= localScanState.nextRowToScan);
+        const auto numToScan =
+            std::min(localScanState.rowIndices.size() - localScanState.nextRowToScan,
+                DEFAULT_VECTOR_CAPACITY);
+        if (numToScan == 0) {
+            relScanState.currBoundNodeIdx++;
+            localScanState.nextRowToScan = 0;
+            localScanState.rowIndices.clear();
+            continue;
+        }
+        for (auto i = 0u; i < numToScan; i++) {
+            localScanState.rowIdxVector->setValue<row_idx_t>(i,
+                localScanState.rowIndices[localScanState.nextRowToScan + i]);
+        }
+        localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
+        localNodeGroup->lookup(transaction, localScanState);
+        localScanState.nextRowToScan += numToScan;
+        relScanState.setNodeIDVectorToFlat(
+            relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx]);
+        return true;
     }
-    for (auto i = 0u; i < numToScan; i++) {
-        localScanState.rowIdxVector->setValue<row_idx_t>(i,
-            localScanState.rowIndices[localScanState.nextRowToScan + i]);
-    }
-    localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
-    localNodeGroup->lookup(transaction, localScanState);
-    localScanState.nextRowToScan += numToScan;
-    return true;
 }
 
 row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNodeOffset,

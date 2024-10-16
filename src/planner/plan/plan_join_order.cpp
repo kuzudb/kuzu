@@ -311,11 +311,16 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
         auto extendFromSource = *boundNode == *rel->getSrcNode();
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource, properties,
             plan);
+
     } break;
     case QueryRelType::VARIABLE_LENGTH:
     case QueryRelType::SHORTEST:
     case QueryRelType::ALL_SHORTEST: {
-        appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
+        if (clientContext->getClientConfig()->enableGDS) {
+            appendRecursiveExtendAsGDS(boundNode, nbrNode, rel, direction, plan);
+        } else {
+            appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
+        }
     } break;
     default:
         KU_UNREACHABLE;

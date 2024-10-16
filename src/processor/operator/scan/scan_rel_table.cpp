@@ -50,7 +50,7 @@ std::string ScanRelTablePrintInfo::toString() const {
     return result;
 }
 
-void ScanRelTableInfo::initScanState() {
+void ScanRelTableInfo::initScanState(const ExecutionContext* context) {
     std::vector<Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
@@ -61,13 +61,13 @@ void ScanRelTableInfo::initScanState() {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
-        table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
-        copyVector(columnPredicates));
+    scanState = std::make_unique<RelTableScanState>(*context->clientContext->getMemoryManager(),
+        table->getTableID(), columnIDs, columns, table->getCSROffsetColumn(direction),
+        table->getCSRLengthColumn(direction), direction, copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    relInfo.initScanState();
+    relInfo.initScanState(context);
     initVectors(*relInfo.scanState, *resultSet);
     if (const auto localRelTable =
             context->clientContext->getTx()->getLocalStorage()->getLocalTable(
@@ -91,7 +91,9 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     auto& scanState = *relInfo.scanState;
     while (true) {
         while (relInfo.table->scan(transaction, scanState)) {
-            if (scanState.outState->getSelVector().getSelSize() > 0) {
+            if (relInfo.scanState->outState->getSelVector().getSelSize() > 0) {
+                metrics->numOutputTuple.increase(
+                    relInfo.scanState->outState->getSelVector().getSelSize());
                 return true;
             }
         }

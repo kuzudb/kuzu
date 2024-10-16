@@ -4,6 +4,9 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/spiller.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
@@ -16,7 +19,7 @@ namespace storage {
 
 ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
     row_idx_t startRowIdx, NodeGroupDataFormat format)
-    : format{format}, startRowIdx{startRowIdx}, chunks{std::move(chunks)} {
+    : format{format}, startRowIdx{startRowIdx}, chunks{std::move(chunks)}, dataInUse{true} {
     KU_ASSERT(!this->chunks.empty());
     residencyState = this->chunks[0]->getResidencyState();
     numRows = this->chunks[0]->getNumValues();
@@ -30,7 +33,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chu
 ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
     const std::vector<column_id_t>& selectedColumns)
     : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
-      capacity{base.capacity}, numRows{base.numRows.load()} {
+      capacity{base.capacity}, numRows{base.numRows.load()}, dataInUse{true} {
     chunks.reserve(selectedColumns.size());
     for (const auto columnID : selectedColumns) {
         KU_ASSERT(columnID < base.getNumColumns());
@@ -42,7 +45,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& memoryManager,
     const std::vector<LogicalType>& columnTypes, bool enableCompression, uint64_t capacity,
     row_idx_t startRowIdx, ResidencyState residencyState, NodeGroupDataFormat format)
     : format{format}, residencyState{residencyState}, startRowIdx{startRowIdx}, capacity{capacity},
-      numRows{0} {
+      numRows{0}, dataInUse{true} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(std::make_unique<ColumnChunk>(memoryManager, type.copy(), capacity,
@@ -124,7 +127,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         // TODO(Guodong): Should add `slice` interface to SelVector.
         SelectionVector selVector(numRowsToAppendInChunk);
         for (auto row = 0u; row < numRowsToAppendInChunk; row++) {
-            selVector.getMultableBuffer()[row] =
+            selVector.getMutableBuffer()[row] =
                 columnVector->state->getSelVector()[startRowInVectors + row];
         }
         selVector.setToFiltered(numRowsToAppendInChunk);
@@ -450,6 +453,40 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::deserialize(MemoryManager& m
         chunkedGroup->versionInfo = VersionInfo::deserialize(deSer);
     }
     return chunkedGroup;
+}
+
+void ChunkedNodeGroup::setUnused(MemoryManager& mm) {
+    dataInUse = false;
+    mm.getBufferManager()->getSpillerOrSkip([&](auto& spiller) { spiller.addUnusedChunk(this); });
+}
+
+void ChunkedNodeGroup::loadFromDisk(MemoryManager& mm) {
+    mm.getBufferManager()->getSpillerOrSkip([&](auto& spiller) {
+        std::unique_lock lock{spillToDiskMutex};
+        // Prevent buffer manager from being able to spill this chunk to disk
+        spiller.clearUnusedChunk(this);
+        for (auto& chunk : chunks) {
+            chunk->loadFromDisk();
+        }
+        dataInUse = true;
+    });
+}
+
+uint64_t ChunkedNodeGroup::spillToDisk() {
+    uint64_t reclaimedSpace = 0;
+    std::unique_lock lock{spillToDiskMutex};
+    // Its possible that the chunk may be loaded and marked as in-use between when it is selected to
+    // be spilled to disk and actually spilled
+    if (!dataInUse) {
+        // These are groups from the partitioner which specifically are internalID columns and thus
+        // don't have a null column or any other sort of child column. That being said, it may be a
+        // good idea to make the interface more generic, which would open up the possibility of
+        // spilling to disk during node table copies too.
+        for (size_t i = 0; i < getNumColumns(); i++) {
+            reclaimedSpace += getColumnChunk(i).spillToDisk();
+        }
+    }
+    return reclaimedSpace;
 }
 
 } // namespace storage

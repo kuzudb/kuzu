@@ -101,8 +101,8 @@ public:
     }
 
 protected:
-    virtual inline void appendVectors() {
-        hashTable->appendVectors(keyVectors, payloadVectors, keyState);
+    virtual inline uint64_t appendVectors() {
+        return hashTable->appendVectors(keyVectors, payloadVectors, keyState);
     }
 
 private:

@@ -8,6 +8,7 @@ add_library(kuzu_common_enums
         table_type.cpp
         transaction_action.cpp
         drop_type.cpp
+        extend_direction.cpp
         conflict_action.cpp)
         
 set(ALL_OBJECT_FILES

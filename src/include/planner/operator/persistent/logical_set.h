@@ -11,8 +11,8 @@ class LogicalSetProperty final : public LogicalOperator {
 
 public:
     LogicalSetProperty(std::vector<binder::BoundSetPropertyInfo> infos,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)}, infos{std::move(infos)} {}
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type_, std::move(child), std::move(printInfo)}, infos{std::move(infos)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -26,7 +26,8 @@ public:
     const binder::BoundSetPropertyInfo& getInfo(uint32_t idx) const { return infos[idx]; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalSetProperty>(copyVector(infos), children[0]->copy());
+        return std::make_unique<LogicalSetProperty>(copyVector(infos), children[0]->copy(),
+            printInfo->copy());
     }
 
 private:
