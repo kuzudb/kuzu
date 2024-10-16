@@ -46,15 +46,20 @@ struct FTSEdgeCompute : public EdgeCompute {
         common::node_id_map_t<EdgeInfo>* score, common::node_id_map_t<uint64_t>* nodeProp)
         : frontierPair{frontierPair}, score{score}, nodeProp{nodeProp} {}
 
-    bool edgeCompute(nodeID_t boundNodeID, nodeID_t nbrNodeID, relID_t /*edgeID*/, bool) override {
+    void edgeCompute(nodeID_t boundNodeID, std::span<const common::nodeID_t> nbrIDs,
+        std::span<const relID_t>, SelectionVector& mask, bool) override {
         KU_ASSERT(nodeProp->contains(boundNodeID));
-        uint64_t df = nodeProp->at(boundNodeID);
-        if (!score->contains(nbrNodeID)) {
-            score->emplace(nbrNodeID, EdgeInfo{boundNodeID});
-        }
-
-        score->at(nbrNodeID).addEdge(df, df);
-        return true;
+        size_t activeCount = 0;
+        mask.forEach([&](auto i) {
+            auto nbrNodeID = nbrIDs[i];
+            uint64_t df = nodeProp->at(boundNodeID);
+            if (!score->contains(nbrNodeID)) {
+                score->emplace(nbrNodeID, EdgeInfo{boundNodeID});
+            }
+            score->at(nbrNodeID).addEdge(df, df);
+            mask.getMutableBuffer()[activeCount++] = i;
+        });
+        mask.setToFiltered(activeCount);
     }
 
     std::unique_ptr<EdgeCompute> copy() override {

@@ -12,8 +12,8 @@ class LogicalPropertyCollector : public LogicalOperator {
 public:
     LogicalPropertyCollector(std::shared_ptr<binder::Expression> nodeID,
         std::shared_ptr<binder::Expression> property, LogicalOperator* op,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)}, nodeID{std::move(nodeID)},
+        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
+        : LogicalOperator{type_, std::move(child), std::move(printInfo)}, nodeID{std::move(nodeID)},
           property{std::move(property)}, op{op} {}
 
     void computeFactorizedSchema() override { copyChildSchema(0); }
@@ -25,8 +25,8 @@ public:
     std::shared_ptr<binder::Expression> getProperty() const { return property; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalPropertyCollector>(nodeID, property, op,
-            children[0]->copy());
+        return std::make_unique<LogicalPropertyCollector>(nodeID, property, op, children[0]->copy(),
+            printInfo->copy());
     }
 
 private:

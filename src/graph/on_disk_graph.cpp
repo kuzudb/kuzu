@@ -269,7 +269,7 @@ bool OnDiskGraphScanStates::next() {
         iteratorIndex++;
     }
     return false;
-};
+}
 
 } // namespace graph
 } // namespace kuzu
