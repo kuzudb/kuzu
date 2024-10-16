@@ -312,7 +312,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     # Disable WebAssembly test for now due to failed tests. 
     # It will be enabled once the failed tests are fixed or disabled.
-    if: false
+    if: true
     env:
       WERROR: 0
       TEST_JOBS: 12

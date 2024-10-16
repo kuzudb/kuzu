@@ -75,6 +75,7 @@ TEST_F(CApiDatabaseTest, CreationInMemory) {
     kuzu_database_destroy(&database);
 }
 
+#ifndef __WASM__ // home directory is not available in WASM
 TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database database;
     kuzu_connection connection;
@@ -90,3 +91,4 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database_destroy(&database);
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
+#endif
