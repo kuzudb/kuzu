@@ -39,6 +39,10 @@ struct RecursiveInfo {
     // During recursive computation, we set 'Flag' to True to avoid executing 'P'.
     std::shared_ptr<Expression> nodePredicateExecFlag;
     std::shared_ptr<Expression> nodePredicate;
+    // The node predicate we use for recursive join & gds is different. Until we migrate recursive
+    // extend to GDS, we need to keep this field.
+    std::shared_ptr<Expression> originalNodePredicate;
+
     std::shared_ptr<Expression> relPredicate;
     // Projection list
     expression_vector nodeProjectionList;

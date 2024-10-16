@@ -174,9 +174,10 @@ private:
 class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
     VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
-        uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection)
+        uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection,
+        processor::NodeOffsetMaskMap* mask)
         : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound, extendFromSource,
-              writeEdgeDirection) {}
+              writeEdgeDirection, mask) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
@@ -197,7 +198,7 @@ public:
 
     std::unique_ptr<RJOutputWriter> copy() override {
         return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound, upperBound,
-            extendFromSource, writeEdgeDirection);
+            extendFromSource, writeEdgeDirection, pathNodeMask);
     }
 };
 
@@ -378,7 +379,8 @@ private:
         auto rjBindData = bindData->ptrCast<RJBindData>();
         bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection);
+            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection,
+            sharedState->getPathNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -475,7 +477,7 @@ private:
         bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
             rjBindData->lowerBound, rjBindData->upperBound, rjBindData->extendFromSource,
-            writeDirection);
+            writeDirection, sharedState->getPathNodeMaskMap());
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
             clientContext->getMaxNumThreadForExec(), mm);
         auto edgeCompute =

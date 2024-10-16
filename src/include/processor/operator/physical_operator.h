@@ -25,6 +25,7 @@ enum class PhysicalOperatorType : uint8_t {
     DETACH_DATABASE,
     DELETE_,
     DROP,
+    DUMMY_SINK,
     EMPTY_RESULT,
     EXPORT_DATABASE,
     FILTER,

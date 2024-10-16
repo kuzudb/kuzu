@@ -40,6 +40,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "DELETE";
     case PhysicalOperatorType::DROP:
         return "DROP";
+    case PhysicalOperatorType::DUMMY_SINK:
+        return "DUMMY_SINK";
     case PhysicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
     case PhysicalOperatorType::EXPORT_DATABASE:

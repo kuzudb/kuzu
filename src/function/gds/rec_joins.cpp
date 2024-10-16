@@ -154,11 +154,12 @@ private:
 };
 
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
+    auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
     for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
-        if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
+        if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
         }
-        auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
+        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
             if (!mask->isMasked(offset)) {
                 continue;

@@ -35,8 +35,7 @@ public:
         : Sink{std::move(descriptor), operatorType_, id, std::move(printInfo)},
           gds{std::move(_gds)}, sharedState{std::move(sharedState)} {}
 
-    bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
-    std::vector<common::NodeSemiMask*> getSemiMasks() const;
+    std::shared_ptr<GDSCallSharedState> getSharedState() const { return sharedState; }
 
     bool isSource() const override { return true; }
 

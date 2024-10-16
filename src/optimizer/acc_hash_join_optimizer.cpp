@@ -99,25 +99,15 @@ bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops) {
     return true;
 }
 
-static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskConstructionType type,
-    std::shared_ptr<Expression> key, std::vector<LogicalOperator*> candidates,
-    std::shared_ptr<LogicalOperator> child) {
+static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskKeyType keyType,
+    SemiMaskTargetType targetType, std::shared_ptr<Expression> key,
+    std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
     auto tableIDs = getTableIDs(candidates[0]);
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(type, key, tableIDs, candidates, child);
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(keyType, targetType, key, tableIDs,
+        candidates, child);
     semiMasker->computeFlatSchema();
     return semiMasker;
 }
-
-static std::shared_ptr<LogicalOperator> appendNodeSemiMasker(std::shared_ptr<Expression> nodeID,
-    std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
-    return appendSemiMasker(SemiMaskConstructionType::NODE, nodeID, candidates, child);
-}
-
-static std::shared_ptr<LogicalOperator> appendPathSemiMasker(std::shared_ptr<Expression> path,
-    std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
-    return appendSemiMasker(SemiMaskConstructionType::PATH, path, candidates, child);
-}
-
 void HashJoinSIPOptimizer::rewrite(LogicalPlan* plan) {
     visitOperator(plan->getLastOperator().get());
 }
@@ -247,7 +237,8 @@ void HashJoinSIPOptimizer::visitIntersect(LogicalOperator* op) {
             }
         }
         if (!ops.empty()) {
-            probeRoot = appendNodeSemiMasker(nodeID, ops, probeRoot);
+            probeRoot = appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::SCAN_NODE,
+                nodeID, ops, probeRoot);
             hasSemiMaskApplied = true;
         }
     }
@@ -291,8 +282,8 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     if (opsToApplySemiMask.empty()) {
         return;
     }
-    auto semiMask =
-        appendPathSemiMasker(recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
+    auto semiMask = appendSemiMasker(SemiMaskKeyType::PATH, SemiMaskTargetType::SCAN_NODE,
+        recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
     auto& sipInfo = pathPropertyProbe.getSIPInfoUnsafe();
     sipInfo.position = SemiMaskPosition::ON_PROBE;
     sipInfo.dependency = SIPDependency::PROBE_DEPENDS_ON_BUILD;
@@ -310,16 +301,20 @@ std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(
     auto gdsCandidates = getGDSCallCandidates(*nodeID, toRoot);
     if (!gdsCandidates.empty()) {
         KU_ASSERT(sanityCheckCandidates(gdsCandidates));
-        return appendNodeSemiMasker(nodeID, gdsCandidates, fromRoot);
+        return appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::GDS_INPUT_NODE, nodeID,
+            gdsCandidates, fromRoot);
     }
     auto scanNodeCandidates = getScanNodeCandidates(*nodeID, toRoot);
     if (!scanNodeCandidates.empty()) {
-        return appendNodeSemiMasker(nodeID, scanNodeCandidates, fromRoot);
+        return appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::SCAN_NODE, nodeID,
+            scanNodeCandidates, fromRoot);
     }
-    auto recursiveExtendCadidates = getRecursiveJoinCandidates(*nodeID, toRoot);
-    if (!recursiveExtendCadidates.empty()) {
-        KU_ASSERT(sanityCheckCandidates(recursiveExtendCadidates));
-        return appendNodeSemiMasker(nodeID, recursiveExtendCadidates, fromRoot);
+    auto recursiveExtendCandidates = getRecursiveJoinCandidates(*nodeID, toRoot);
+    if (!recursiveExtendCandidates.empty()) {
+        KU_ASSERT(sanityCheckCandidates(recursiveExtendCandidates));
+        return appendSemiMasker(SemiMaskKeyType::NODE,
+            SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE, nodeID, recursiveExtendCandidates,
+            fromRoot);
     }
     return nullptr;
 }
