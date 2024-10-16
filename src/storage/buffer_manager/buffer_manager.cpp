@@ -102,13 +102,13 @@ BufferManager::BufferManager(const std::string& databasePath, const std::string&
 
 void BufferManager::verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize) {
     if (bufferPoolSize < KUZU_PAGE_SIZE) {
-        throw BufferManagerException(
-            stringFormat("The given buffer pool size should be at least {} bytes.", KUZU_PAGE_SIZE));
+        throw BufferManagerException(stringFormat(
+            "The given buffer pool size should be at least {} bytes.", KUZU_PAGE_SIZE));
     }
     if (maxDBSize < KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) {
-        throw BufferManagerException("The given max db size should be at least " +
-                                     std::to_string(KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) +
-                                     " bytes.");
+        throw BufferManagerException(
+            "The given max db size should be at least " +
+            std::to_string(KUZU_PAGE_SIZE * StorageConstants::PAGE_GROUP_SIZE) + " bytes.");
     }
     if ((maxDBSize & (maxDBSize - 1)) != 0) {
         throw BufferManagerException("The given max db size should be a power of 2.");
