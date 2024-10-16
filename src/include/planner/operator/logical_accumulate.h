@@ -10,8 +10,8 @@ class LogicalAccumulate final : public LogicalOperator {
 public:
     LogicalAccumulate(common::AccumulateType accumulateType, binder::expression_vector flatExprs,
         std::shared_ptr<binder::Expression> offset, std::shared_ptr<binder::Expression> mark,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child), std::move(printInfo)},
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)},
           accumulateType{accumulateType}, flatExprs{std::move(flatExprs)},
           offset{std::move(offset)}, mark{std::move(mark)} {}
 
@@ -32,7 +32,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalAccumulate>(accumulateType, flatExprs, offset, mark,
-            children[0]->copy(), printInfo->copy());
+            children[0]->copy());
     }
 
 private:

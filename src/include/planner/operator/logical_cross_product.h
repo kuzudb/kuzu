@@ -7,14 +7,14 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalCrossProduct : public LogicalOperator {
+class LogicalCrossProduct final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CROSS_PRODUCT;
 
 public:
     LogicalCrossProduct(common::AccumulateType accumulateType,
         std::shared_ptr<binder::Expression> mark, std::shared_ptr<LogicalOperator> probeChild,
-        std::shared_ptr<LogicalOperator> buildChild, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild), printInfo->copy()},
+        std::shared_ptr<LogicalOperator> buildChild)
+        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
           accumulateType{accumulateType}, mark{std::move(mark)} {}
 
     void computeFactorizedSchema() override;
@@ -31,7 +31,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         auto op = make_unique<LogicalCrossProduct>(accumulateType, mark, children[0]->copy(),
-            children[1]->copy(), printInfo->copy());
+            children[1]->copy());
         op->sipInfo = sipInfo;
         return op;
     }

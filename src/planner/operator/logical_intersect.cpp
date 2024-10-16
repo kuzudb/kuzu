@@ -61,7 +61,7 @@ std::unique_ptr<LogicalOperator> LogicalIntersect::copy() {
         buildChildren.push_back(children[i]->copy());
     }
     auto op = make_unique<LogicalIntersect>(intersectNodeID, keyNodeIDs, children[0]->copy(),
-        std::move(buildChildren), printInfo->copy());
+        std::move(buildChildren));
     op->sipInfo = sipInfo;
     return op;
 }
