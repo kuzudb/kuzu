@@ -28,7 +28,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     auto filterPushDownOptimizer = FilterPushDownOptimizer(context);
     filterPushDownOptimizer.rewrite(plan);
 
-    auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
+    auto projectionPushDownOptimizer = ProjectionPushDownOptimizer(context->getClientConfig()->recursivePatternSemantic);
     projectionPushDownOptimizer.rewrite(plan);
 
     if (context->getClientConfig()->enableSemiMask) {

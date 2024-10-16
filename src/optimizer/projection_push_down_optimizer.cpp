@@ -51,7 +51,8 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto boundNodeID = recursiveExtend.getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend.getRel();
-    if (!nodeOrRelInUse.contains(rel)) {
+    // set TRACK_NONE only when PathSemantic=walk
+    if (!nodeOrRelInUse.contains(rel) && semantic == common::PathSemantic::WALK) {
         pathPropertyProbe.setJoinType(RecursiveJoinType::TRACK_NONE);
         recursiveExtend.setJoinType(RecursiveJoinType::TRACK_NONE);
     }
@@ -137,7 +138,7 @@ void ProjectionPushDownOptimizer::visitIntersect(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitProjection(LogicalOperator* op) {
     // Projection operator defines the start of a projection push down until the next projection
     // operator is seen.
-    ProjectionPushDownOptimizer optimizer;
+    ProjectionPushDownOptimizer optimizer(this->semantic);
     auto& projection = op->constCast<LogicalProjection>();
     for (auto& expression : projection.getExpressionsToProject()) {
         optimizer.collectExpressionsInUse(expression);
