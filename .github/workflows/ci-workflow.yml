@@ -292,6 +292,7 @@ jobs:
       - name: Build & Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          source /home/runner/emsdk/emsdk_env.sh
           make wasmtest
 
   rust-build-test:
