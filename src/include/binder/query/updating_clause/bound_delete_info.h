@@ -17,6 +17,8 @@ struct BoundDeleteInfo {
         : deleteType{deleteType}, tableType{tableType}, pattern{std::move(pattern)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundDeleteInfo);
 
+    std::string toString() const { return "Delete " + pattern->toString(); }
+
 private:
     BoundDeleteInfo(const BoundDeleteInfo& other)
         : deleteType{other.deleteType}, tableType{other.tableType}, pattern{other.pattern} {}
