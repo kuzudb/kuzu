@@ -49,7 +49,7 @@ public:
         explicit constexpr Iterator(GraphScanState* scanState) : scanState{scanState} {}
         DEFAULT_BOTH_MOVE(Iterator);
         Iterator(const Iterator& other) = default;
-
+        Iterator() : scanState{nullptr} {}
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
         using value_type = GraphScanState::Chunk;
