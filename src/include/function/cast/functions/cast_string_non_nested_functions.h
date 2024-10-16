@@ -178,8 +178,8 @@ inline bool trySimpleInt128Cast(const char* input, uint64_t len, int128_t& resul
 
 inline void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
     if (!trySimpleInt128Cast(input, len, result)) {
-        throw ConversionException(
-            stringFormat("Cast failed. {} is not within INT128 range.", std::string{input, (size_t)len}));
+        throw ConversionException(stringFormat("Cast failed. {} is not within INT128 range.",
+            std::string{input, (size_t)len}));
     }
 }
 

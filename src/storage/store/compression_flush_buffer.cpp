@@ -65,7 +65,8 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
     KU_ASSERT(valuesRemaining <= buffer.size_bytes() / sizeof(T));
 
     const size_t exceptionBufferSize =
-        EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity) * KUZU_PAGE_SIZE;
+        EncodeException<T>::numPagesFromExceptions(floatMetadata->exceptionCapacity) *
+        KUZU_PAGE_SIZE;
     auto exceptionBuffer = std::make_unique<uint8_t[]>(exceptionBufferSize);
     std::byte* exceptionBufferCursor = reinterpret_cast<std::byte*>(exceptionBuffer.get());
 
@@ -82,8 +83,8 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
         uint64_t pageExceptionCount = 0;
         (void)castedAlg.compressNextPageWithExceptions(bufferCursor,
             metadata.numValues - valuesRemaining, valuesRemaining, compressedBuffer.get(),
-            KUZU_PAGE_SIZE, EncodeExceptionView<T>{exceptionBufferCursor}, remainingExceptionBufferSize,
-            pageExceptionCount, metadata.compMeta);
+            KUZU_PAGE_SIZE, EncodeExceptionView<T>{exceptionBufferCursor},
+            remainingExceptionBufferSize, pageExceptionCount, metadata.compMeta);
 
         exceptionBufferCursor += pageExceptionCount * EncodeException<T>::sizeInBytes();
         remainingExceptionBufferSize -= pageExceptionCount * EncodeException<T>::sizeInBytes();
