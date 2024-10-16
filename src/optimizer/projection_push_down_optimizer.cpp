@@ -138,7 +138,7 @@ void ProjectionPushDownOptimizer::visitIntersect(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitProjection(LogicalOperator* op) {
     // Projection operator defines the start of a projection push down until the next projection
     // operator is seen.
-    ProjectionPushDownOptimizer optimizer;
+    ProjectionPushDownOptimizer optimizer(this->semantic);
     auto& projection = op->constCast<LogicalProjection>();
     for (auto& expression : projection.getExpressionsToProject()) {
         optimizer.collectExpressionsInUse(expression);
