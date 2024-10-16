@@ -69,7 +69,7 @@ uint32_t getDataTypeSizeInChunk(const common::PhysicalTypeID& dataType) {
     }
     default: {
         auto size = PhysicalTypeUtils::getFixedTypeSize(dataType);
-        KU_ASSERT(size <= PAGE_SIZE);
+        KU_ASSERT(size <= KUZU_PAGE_SIZE);
         return size;
     }
     }
