@@ -47,7 +47,7 @@ on:
         default: false
 env:
   PIP_BREAK_SYSTEM_PACKAGES: 1
-  
+
 jobs:
   build-extension:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipExtensions != 'true' }}
@@ -88,7 +88,6 @@ jobs:
       GPG_SIGNING_KEY: ${{ secrets.PGP_PRIVATE_KEY }}
       GPG_SIGNING_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
       SKIP_CMAKE_BUILD: true
-      PIP_
 
     runs-on: ubuntu-latest
     steps:
