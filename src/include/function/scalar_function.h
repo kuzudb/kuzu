@@ -81,6 +81,14 @@ struct ScalarFunction final : public ScalarOrAggregateFunction {
             *params[0], *params[1], *params[2], result);
     }
 
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void TernaryRegexExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* dataPtr) {
+        TernaryFunctionExecutor::executeRegex<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(*params[0],
+            *params[1], *params[2], result, dataPtr);
+    }
+
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {

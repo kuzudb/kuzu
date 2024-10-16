@@ -594,6 +594,21 @@ True
 ---- 1
 he-lo
 
+-LOG RegexpReplaceAll1
+-STATEMENT Return REGEXP_REPLACE('hello', '[lo]', '-', 'g');
+---- 1
+he---
+
+-LOG RegexpReplaceAll2
+-STATEMENT Return REGEXP_REPLACE('this is a team', 'is', '*??', 'g');
+---- 1
+th*?? *?? a team
+
+-LOG RegexpReplaceSpace
+-STATEMENT Return REGEXP_REPLACE('65 landy street waterloo ontario', '\\s', '', 'g');
+---- 1
+65landystreetwaterlooontario
+
 -LOG RegexpExtractWithoutGroup
 -STATEMENT Return regexp_extract('hello_world', '([a-z ]+)_?');
 ---- 1

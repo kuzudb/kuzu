@@ -1,5 +1,8 @@
 #include "function/string/vector_string_functions.h"
 
+#include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
+#include "common/exception/binder.h"
 #include "function/string/functions/array_extract_function.h"
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
@@ -107,7 +110,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& p
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto pos = result.state->getSelVector()[selectedPos];
         auto strLen = 0u;
         for (auto i = 0u; i < parameters.size(); i++) {
@@ -252,16 +255,47 @@ function_set RegexpMatchesFunction::getFunctionSet() {
     return functionSet;
 }
 
+std::unique_ptr<FunctionBindData> regexReplaceBindFunc(ScalarBindFuncInput input) {
+    RegexpReplaceFunction::RegexReplaceOption replaceOption =
+        RegexpReplaceFunction::RegexReplaceOption::FIRST_OCCUR;
+    if (input.arguments.size() == 4) {
+        auto option = input.arguments[3];
+        if (option->expressionType != ExpressionType::LITERAL ||
+            option->getDataType() != LogicalType::STRING()) {
+            throw common::BinderException{"option of regex_replace must be a constant string."};
+        }
+        auto optionVal = option->constCast<binder::LiteralExpression>().getValue().strVal;
+        if (optionVal == RegexpReplaceFunction::GLOBAL_REPLACE_OPTION) {
+            replaceOption = RegexpReplaceFunction::RegexReplaceOption::GLOBAL;
+        } else {
+            throw common::BinderException{
+                "regex_replace can only support global replace option: g."};
+        }
+    }
+    KU_ASSERT(input.arguments.size() == 3 || input.arguments.size() == 4);
+    return std::make_unique<RegexReplaceBindData>(
+        binder::ExpressionUtil::getDataTypes(input.arguments), LogicalType::STRING(),
+        replaceOption);
+}
+
 function_set RegexpReplaceFunction::getFunctionSet() {
     function_set functionSet;
     // Todo: Implement a function with modifiers
     //  regexp_replace(string, regex, replacement, modifiers)
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::STRING,
+        ScalarFunction::TernaryRegexExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
+            RegexpReplace>,
+        regexReplaceBindFunc));
+    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
         LogicalTypeID::STRING,
-        ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t,
-            ku_string_t, RegexpReplace>));
+        ScalarFunction::TernaryRegexExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
+            RegexpReplace>,
+        regexReplaceBindFunc));
     return functionSet;
 }
 
