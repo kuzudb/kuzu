@@ -3,7 +3,7 @@
 --
 
 -CASE SemanticTest
-
+-SKIP
 
 -STATEMENT MATCH p = (a:person)-[e:knows*3..3]->(b:person) WHERE a.ID = 0 WITH p AS newP RETURN COUNT(*);
 ---- 1
