@@ -52,9 +52,8 @@ bool PathScanner::trailSemanticCheck(const std::vector<nodeID_t>&,
     common::rel_id_set_t set;
     for (auto i = 0u; i < edgeIDs.size() - 1; ++i) {
         internalID_t edgeID = edgeIDs[i];
-        if (RelIDMasker::needFlip(const_cast<internalID_t&>(edgeIDs[i]))) {
-            edgeID = RelIDMasker::getWithoutMark(const_cast<internalID_t&>(edgeIDs[i]));
-        } else {
+        if (RelIDMasker::needFlip(edgeID)) {
+            edgeID = RelIDMasker::getWithoutMark(edgeID);
         }
         if (set.contains(edgeID)) {
             return false;
