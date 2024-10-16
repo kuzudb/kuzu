@@ -26,7 +26,10 @@ public:
     std::unordered_set<uint32_t> getDiscardedGroupsPos() const;
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalProjection>(expressions, children[0]->copy());
+        auto op = make_unique<LogicalProjection>(expressions, children[0]->copy());
+        // TODO(Guodong): temp hack here.
+        op->cardinality = cardinality;
+        return op;
     }
 
 private:

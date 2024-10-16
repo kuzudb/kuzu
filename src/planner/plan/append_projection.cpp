@@ -31,6 +31,7 @@ void Planner::appendProjection(const expression_vector& expressionsToProject, Lo
     }
     auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
     projection->computeFactorizedSchema();
+    projection->setCardinality(projection->getChild(0)->getCardinality());
     plan.setLastOperator(std::move(projection));
 }
 

@@ -138,6 +138,7 @@ std::unique_ptr<LogicalOperator> LogicalHashJoin::copy() {
     auto op = std::make_unique<LogicalHashJoin>(joinConditions, joinType, mark, children[0]->copy(),
         children[1]->copy());
     op->sipInfo = sipInfo;
+    op->cardinality = cardinality;
     return op;
 }
 

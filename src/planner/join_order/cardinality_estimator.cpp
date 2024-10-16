@@ -110,16 +110,16 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
 
 uint64_t CardinalityEstimator::getNumNodes(const std::vector<table_id_t>& tableIDs,
     const Transaction* transaction) {
-    auto numNodes = 1u;
+    auto numNodes = 0u;
     for (auto& tableID : tableIDs) {
         auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
         numNodes += table.getStats(transaction).getCardinality();
     }
-    return numNodes;
+    return atLeastOne(numNodes);
 }
 
 uint64_t CardinalityEstimator::getNumRels(const std::vector<table_id_t>& tableIDs) {
-    auto numRels = 1u;
+    auto numRels = 0u;
     for (auto tableID : tableIDs) {
         numRels += context->getStorageManager()->getTable(tableID)->getNumRows();
     }
