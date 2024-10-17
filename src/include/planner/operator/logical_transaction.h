@@ -10,7 +10,7 @@ class LogicalTransaction : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::TRANSACTION;
 
 public:
-    LogicalTransaction(transaction::TransactionAction transactionAction)
+    explicit LogicalTransaction(transaction::TransactionAction transactionAction)
         : LogicalOperator{type_}, transactionAction{transactionAction} {}
 
     std::string getExpressionsForPrinting() const final { return std::string(); }

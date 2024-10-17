@@ -10,7 +10,6 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/overflow_file.h"
-#include <bit>
 
 using namespace kuzu::common;
 
