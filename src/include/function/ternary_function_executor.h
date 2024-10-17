@@ -21,6 +21,14 @@ struct TernaryStringFunctionWrapper {
     }
 };
 
+struct TernaryRegexFunctionWrapper {
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+        void* /*aValueVector*/, void* resultValueVector, void* dataPtr) {
+        OP::operation(a, b, c, result, *(common::ValueVector*)resultValueVector, dataPtr);
+    }
+};
+
 struct TernaryListFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
@@ -416,6 +424,13 @@ struct TernaryFunctionExecutor {
         common::ValueVector& c, common::ValueVector& result) {
         executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, TernaryStringFunctionWrapper>(a, b,
             c, result, nullptr /* dataPtr */);
+    }
+
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeRegex(common::ValueVector& a, common::ValueVector& b, common::ValueVector& c,
+        common::ValueVector& result, void* dataPtr) {
+        executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, TernaryRegexFunctionWrapper>(a, b,
+            c, result, dataPtr);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
