@@ -9,7 +9,7 @@ class KUZU_API CatalogExtension : public catalog::Catalog {
 public:
     CatalogExtension() : Catalog() {}
 
-    virtual void init() = 0;
+    virtual void init(main::ClientContext* clientContext) = 0;
 
     void invalidateCache();
 };
