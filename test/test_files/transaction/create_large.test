@@ -3,147 +3,147 @@
 --
 
 -DEFINE_STATEMENT_BLOCK COPY_LDBC_NODES [
--STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" (HEADER=true);
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" ;
 ---- ok
--STATEMENT COPY Forum FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv" (HEADER=true);
+-STATEMENT COPY Forum FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv" ;
 ---- ok
--STATEMENT COPY Organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation.csv" (HEADER=true);
+-STATEMENT COPY Organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation.csv" ;
 ---- ok
--STATEMENT COPY Person FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv" (HEADER=true);
+-STATEMENT COPY Person FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv" ;
 ---- ok
--STATEMENT COPY Place FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place.csv" (HEADER=true);
+-STATEMENT COPY Place FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place.csv" ;
 ---- ok
--STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv" (HEADER=true);
+-STATEMENT COPY Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv" ;
 ---- ok
--STATEMENT COPY Tag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag.csv" (HEADER=true);
+-STATEMENT COPY Tag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag.csv" ;
 ---- ok
--STATEMENT COPY TagClass FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass.csv" (HEADER=true);
+-STATEMENT COPY TagClass FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass.csv" ;
 ---- ok
 ]
 -DEFINE_STATEMENT_BLOCK COPY_LDBC_RELS [
--STATEMENT COPY Comment_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person.csv" (HEADER=true);
+-STATEMENT COPY Comment_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person.csv" ;
 ---- ok
--STATEMENT COPY Comment_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person_1.csv" (HEADER=false);
+-STATEMENT COPY Comment_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person_1.csv" ;
 ---- ok
--STATEMENT COPY Comment_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag.csv" (HEADER=true);
+-STATEMENT COPY Comment_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag.csv" ;
 ---- ok
--STATEMENT COPY Comment_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag_1.csv" (HEADER=false);
+-STATEMENT COPY Comment_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag_1.csv" ;
 ---- ok
--STATEMENT COPY Comment_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place.csv" (HEADER=true);
+-STATEMENT COPY Comment_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place.csv" ;
 ---- ok
--STATEMENT COPY Comment_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place_1.csv" (HEADER=false);
+-STATEMENT COPY Comment_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place_1.csv" ;
 ---- ok
--STATEMENT COPY replyOf_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Comment.csv" (HEADER=true);
+-STATEMENT COPY replyOf_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Comment.csv" ;
 ---- ok
--STATEMENT COPY replyOf_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Post.csv" (HEADER=true);
+-STATEMENT COPY replyOf_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Post.csv" ;
 ---- ok
--STATEMENT COPY containerOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_containerOf_Post.csv" (HEADER=true);
+-STATEMENT COPY containerOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_containerOf_Post.csv" ;
 ---- ok
--STATEMENT COPY hasMember FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasMember_Person.csv" (HEADER=true);
+-STATEMENT COPY hasMember FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasMember_Person.csv" ;
 ---- ok
--STATEMENT COPY hasModerator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasModerator_Person.csv" (HEADER=true);
+-STATEMENT COPY hasModerator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasModerator_Person.csv" ;
 ---- ok
--STATEMENT COPY Forum_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasTag_Tag.csv" (HEADER=true);
+-STATEMENT COPY Forum_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasTag_Tag.csv" ;
 ---- ok
--STATEMENT COPY Organisation_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation_isLocatedIn_Place.csv" (HEADER=true);
+-STATEMENT COPY Organisation_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation_isLocatedIn_Place.csv" ;
 ---- ok
--STATEMENT COPY hasInterest FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_hasInterest_Tag.csv" (HEADER=true);
+-STATEMENT COPY hasInterest FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_hasInterest_Tag.csv" ;
 ---- ok
--STATEMENT COPY Person_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" (HEADER=true);
+-STATEMENT COPY Person_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" ;
 ---- ok
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv" (HEADER=true);
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv" ;
 ---- ok
--STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv" (HEADER=true);
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv" ;
 ---- ok
--STATEMENT COPY likes_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment.csv" (HEADER=true);
+-STATEMENT COPY likes_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment.csv" ;
 ---- ok
--STATEMENT COPY likes_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment_1.csv" (HEADER=true);
+-STATEMENT COPY likes_Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment_1.csv" ;
 ---- ok
--STATEMENT COPY likes_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post.csv" (HEADER=true);
+-STATEMENT COPY likes_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post.csv" ;
 ---- ok
--STATEMENT COPY likes_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post_1.csv" (HEADER=false);
+-STATEMENT COPY likes_Post FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post_1.csv" ;
 ---- ok
--STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_studyAt_Organisation.csv" (HEADER=true);
+-STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_studyAt_Organisation.csv" ;
 ---- ok
--STATEMENT COPY workAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_workAt_Organisation.csv" (HEADER=true);
+-STATEMENT COPY workAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_workAt_Organisation.csv" ;
 ---- ok
--STATEMENT COPY isPartOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place_isPartOf_Place.csv" (HEADER=true);
+-STATEMENT COPY isPartOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place_isPartOf_Place.csv" ;
 ---- ok
--STATEMENT COPY Post_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasCreator_Person.csv" (HEADER=true);
+-STATEMENT COPY Post_hasCreator FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasCreator_Person.csv" ;
 ---- ok
--STATEMENT COPY Post_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasTag_Tag.csv" (HEADER=true);
+-STATEMENT COPY Post_hasTag FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasTag_Tag.csv" ;
 ---- ok
--STATEMENT COPY Post_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_isLocatedIn_Place.csv" (HEADER=true);
+-STATEMENT COPY Post_isLocatedIn FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_isLocatedIn_Place.csv" ;
 ---- ok
--STATEMENT COPY hasType FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag_hasType_TagClass.csv" (HEADER=true);
+-STATEMENT COPY hasType FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag_hasType_TagClass.csv" ;
 ---- ok
--STATEMENT COPY isSubclassOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass_isSubclassOf_TagClass.csv" (HEADER=true);
+-STATEMENT COPY isSubclassOf FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass_isSubclassOf_TagClass.csv" ;
 ---- ok
 ]
 
 -DEFINE_STATEMENT_BLOCK LOAD_LDBC_NODES [
 -STATEMENT LOAD WITH HEADERS (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" 
            CREATE (:Comment {id:id, creationDate:creationDate, locationIP:locationIP, browserUsed:browserUsed, content:content, length:length})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, title STRING, creationDate INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum.csv" 
            CREATE (:Forum {id:id, title:title, creationDate:creationDate})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, label STRING, name STRING, url STRING)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation.csv" 
            CREATE (:Organisation {id:id, label:label, name:name, url:url})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, firstName STRING, lastName STRING, gender STRING, birthday INT64, creationDate INT64, locationIP STRING, browserUsed STRING)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person.csv" 
            CREATE (:Person {id:id, firstName:firstName, lastName:lastName, gender:gender, birthday:birthday, creationDate:creationDate, locationIP:locationIP, browserUsed:browserUsed})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, name STRING, url STRING, label STRING)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place.csv" 
            CREATE (:Place {id:id, name:name, url:url, label:label})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, imageFile STRING, creationDate INT64, locationIP STRING, browserUsed STRING, language STRING, content STRING, length INT32)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post.csv" 
            CREATE (:Post {id:id, imageFile:imageFile, creationDate:creationDate, locationIP:locationIP, browserUsed:browserUsed, language:language, content:content, length:length})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, name STRING, url STRING)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag.csv" 
            CREATE (:Tag {id:id, name:name, url:url})
 ---- ok
 -STATEMENT LOAD WITH HEADERS (id INT64, name STRING, url STRING)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass.csv" 
            CREATE (:TagClass {id:id, name:name, url:url})
 ---- ok
 ]
 
 -DEFINE_STATEMENT_BLOCK LOAD_LDBC_RELS_1 [
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person.csv" 
            MATCH (a:Comment), (b:Person) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Comment_hasCreator {}]->(b)
 ---- ok
 #-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag.csv" (HEADER=true)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag.csv" 
 #           MATCH (a:Comment), (b:Tag) WHERE a.id = aid AND b.id = bid
 #           CREATE (a)-[:Comment_hasTag {}]->(b)
 #---- ok
 #-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place.csv" (HEADER=true)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place.csv" 
 #           MATCH (a:Comment), (b:Place) WHERE a.id = aid AND b.id = bid
 #           CREATE (a)-[:Comment_isLocatedIn {}]->(b)
 #---- ok
 #-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
-#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv" (HEADER=true)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person.csv" 
 #           MATCH (a:Person), (b:Person) WHERE a.id = aid AND b.id = bid
 #           CREATE (a)-[:knows {creationDate:creationDate}]->(b)
 #---- ok
 #-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
-#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment.csv" (HEADER=true)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment.csv" 
 #           MATCH (a:Person), (b:Comment) WHERE a.id = aid AND b.id = bid
 #           CREATE (a)-[:likes_Comment {creationDate:creationDate}]->(b)
 #---- ok
 #-STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
-#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post.csv" (HEADER=true)
+#           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post.csv" 
 #           MATCH (a:Person), (b:Post) WHERE a.id = aid AND b.id = bid
 #           CREATE (a)-[:likes_Post {creationDate:creationDate}]->(b)
 #---- ok
@@ -151,32 +151,32 @@
 
 -DEFINE_STATEMENT_BLOCK LOAD_LDBC_RELS_2 [
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person_1.csv" (HEADER=false)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasCreator_Person_1.csv" 
            MATCH (a:Comment), (b:Person) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Comment_hasCreator {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag_1.csv" (HEADER=false)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_hasTag_Tag_1.csv" 
            MATCH (a:Comment), (b:Tag) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Comment_hasTag {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place_1.csv" (HEADER=false)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_isLocatedIn_Place_1.csv" 
            MATCH (a:Comment), (b:Place) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Comment_isLocatedIn {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_knows_Person_1.csv" 
            MATCH (a:Person), (b:Person) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:knows {creationDate:creationDate}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment_1.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Comment_1.csv" 
            MATCH (a:Person), (b:Comment) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:likes_Comment {creationDate:creationDate}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, creationDate INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post_1.csv" (HEADER=false)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_likes_Post_1.csv" 
            MATCH (a:Person), (b:Post) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:likes_Post {creationDate:creationDate}]->(b)
 ---- ok
@@ -184,87 +184,87 @@
 
 -DEFINE_STATEMENT_BLOCK LOAD_LDBC_RELS_3 [
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Comment.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Comment.csv" 
            MATCH (a:Comment), (b:Comment) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:replyOf_Comment {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Post.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment_replyOf_Post.csv" 
            MATCH (a:Comment), (b:Post) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:replyOf_Post {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_containerOf_Post.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_containerOf_Post.csv" 
            MATCH (a:Forum), (b:Post) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:containerOf {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, joinDate INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasMember_Person.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasMember_Person.csv" 
            MATCH (a:Forum), (b:Person) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:hasMember {joinDate:joinDate}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasModerator_Person.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasModerator_Person.csv" 
            MATCH (a:Forum), (b:Person) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:hasModerator {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasTag_Tag.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Forum_hasTag_Tag.csv" 
            MATCH (a:Forum), (b:Tag) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Forum_hasTag {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation_isLocatedIn_Place.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Organisation_isLocatedIn_Place.csv" 
            MATCH (a:Organisation), (b:Place) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Organisation_isLocatedIn {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_hasInterest_Tag.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_hasInterest_Tag.csv" 
            MATCH (a:Person), (b:Tag) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:hasInterest {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_isLocatedIn_Place.csv" 
            MATCH (a:Person), (b:Place) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Person_isLocatedIn {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, classYear INT32)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_studyAt_Organisation.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_studyAt_Organisation.csv" 
            MATCH (a:Person), (b:Organisation) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:studyAt {classYear:classYear}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64, workFrom INT32)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_workAt_Organisation.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Person_workAt_Organisation.csv" 
            MATCH (a:Person), (b:Organisation) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:workAt {workFrom:workFrom}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place_isPartOf_Place.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Place_isPartOf_Place.csv" 
            MATCH (a:Place), (b:Place) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:isPartOf {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasCreator_Person.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasCreator_Person.csv" 
            MATCH (a:Post), (b:Person) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Post_hasCreator {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasTag_Tag.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_hasTag_Tag.csv" 
            MATCH (a:Post), (b:Tag) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Post_hasTag {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_isLocatedIn_Place.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Post_isLocatedIn_Place.csv" 
            MATCH (a:Post), (b:Place) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:Post_isLocatedIn {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag_hasType_TagClass.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Tag_hasType_TagClass.csv" 
            MATCH (a:Tag), (b:TagClass) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:hasType {}]->(b)
 ---- ok
 -STATEMENT LOAD WITH HEADERS (aid INT64, bid INT64)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass_isSubclassOf_TagClass.csv" (HEADER=true)
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/TagClass_isSubclassOf_TagClass.csv" 
            MATCH (a:TagClass), (b:TagClass) WHERE a.id = aid AND b.id = bid
            CREATE (a)-[:isSubclassOf {}]->(b)
 ---- ok

@@ -24,6 +24,7 @@ static void bindBoolParsingOption(CSVReaderConfig& config, const std::string& op
     bool optionValue) {
     if (optionName == "HEADER") {
         config.option.hasHeader = optionValue;
+        config.option.setHeader = true;
     } else if (optionName == "PARALLEL") {
         config.parallel = optionValue;
     } else if (optionName == "LIST_UNBRACED") {

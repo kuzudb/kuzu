@@ -6,7 +6,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- error
 Connection exception: COPY FROM is only supported in auto transaction mode.
 
@@ -16,7 +16,7 @@ Connection exception: COPY FROM is only supported in auto transaction mode.
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- ok
 -STATEMENT COMMIT;
 ---- ok
@@ -37,7 +37,7 @@ Connection exception: COPY FROM is only supported in auto transaction mode.
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- ok
 -STATEMENT COMMIT;
 ---- ok
@@ -56,7 +56,7 @@ Connection exception: COPY FROM is only supported in auto transaction mode.
 -CASE CopyNodeRollbackDueToError
 -STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" 
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 -STATEMENT MATCH (p:person) return count(*);
@@ -66,7 +66,7 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 -CASE CopyNodeRollbackAndManualCheckpoint
 -STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" 
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 -STATEMENT MATCH (p:person) return count(*);
@@ -81,7 +81,7 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 -CASE CopyNodeRollbackAndManualCheckpointAndReloadDB
 -STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/copy-error/person.csv" 
 ---- error
 Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 -STATEMENT MATCH (p:person) return count(*);
@@ -100,9 +100,9 @@ Copy exception: Found duplicated primary key value 10, which violates the unique
 -CASE CopyNodeRollbackAndManualCheckpoint2
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- error
 Copy exception: Found duplicated primary key value 0, which violates the uniqueness constraint of the primary key column.
 -STATEMENT MATCH (p:person) return count(*);
@@ -124,7 +124,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 ---- ok
 -STATEMENT MATCH (p:person) return *
 ---- 0
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" ;
 ---- ok
 -STATEMENT MATCH (p:person) return p.age
 ---- 5
@@ -142,7 +142,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 45
 30
 35
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" (HEADER=false);
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
 ---- ok
 -STATEMENT MATCH (p:person) return p.age
 ---- 8
@@ -181,7 +181,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 -CASE CopyNodeAndDeleteAndManualCheckpoint
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
@@ -200,7 +200,7 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 -CASE CopyNodeAndDeleteAndManualCheckpointAndReloadDB
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
 ---- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
 ---- ok
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1

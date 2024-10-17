@@ -20,7 +20,7 @@
 -STATEMENT create rel table marries (FROM person TO person, usedAddress STRING[], address INT16[2], note STRING, ONE_ONE);
 ---- ok
 -STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HeaDER=true) 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
            CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
 ---- ok
 -STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
@@ -46,7 +46,7 @@
            CREATE (p1)-[:knows{date:date, meetTime:meetTime, validInterval:validInterval, comments:comments, summary:summary, notes:notes, someMap:someMap}]->(p2);
 ---- ok
 -STATEMENT LOAD WITH HEADERS (p1ID INT64, o2ID INT64, year INT64, places STRING[], length INT16, level INT8, code UINT64, temperature UINT32, ulength UINT16, ulevel UINT8, hugedata INT128)
-           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HeaDER=true) 
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv"
            MATCH (p1:person), (o2:organisation) WHERE p1.ID = p1ID AND o2.ID = o2ID
            CREATE (p1)-[:studyAt{year:year, places:places, length:length, level:level, code:code, temperature:temperature, ulength:ulength, ulevel:ulevel, hugedata:hugedata}]->(o2);
 ---- ok
