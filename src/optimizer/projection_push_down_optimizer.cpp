@@ -7,6 +7,7 @@
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -82,6 +83,11 @@ void ProjectionPushDownOptimizer::visitAccumulate(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitFilter(LogicalOperator* op) {
     auto& filter = op->constCast<LogicalFilter>();
     collectExpressionsInUse(filter.getPredicate());
+}
+
+void ProjectionPushDownOptimizer::visitNodeLabelFilter(LogicalOperator* op) {
+    auto& filter = op->constCast<LogicalNodeLabelFilter>();
+    collectExpressionsInUse(filter.getNodeID());
 }
 
 void ProjectionPushDownOptimizer::visitHashJoin(LogicalOperator* op) {
