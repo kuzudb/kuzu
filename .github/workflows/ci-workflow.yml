@@ -277,7 +277,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       WERROR: 0
-      TEST_JOBS: 12
+      TEST_JOBS: 8
       NUM_THREADS: 32
       CCACHE_DISABLE: 1
 
