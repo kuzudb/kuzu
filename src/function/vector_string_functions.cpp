@@ -110,7 +110,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& p
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto pos = result.state->getSelVector()[selectedPos];
         auto strLen = 0u;
         for (auto i = 0u; i < parameters.size(); i++) {
@@ -260,11 +260,9 @@ std::unique_ptr<FunctionBindData> regexReplaceBindFunc(ScalarBindFuncInput input
         RegexpReplaceFunction::RegexReplaceOption::FIRST_OCCUR;
     if (input.arguments.size() == 4) {
         auto option = input.arguments[3];
-        if (option->expressionType != ExpressionType::LITERAL ||
-            option->getDataType() != LogicalType::STRING()) {
-            throw common::BinderException{"option of regex_replace must be a constant string."};
-        }
-        auto optionVal = option->constCast<binder::LiteralExpression>().getValue().strVal;
+        binder::ExpressionUtil::validateExpressionType(*option, ExpressionType::LITERAL);
+        binder::ExpressionUtil::validateDataType(*option, LogicalType::STRING());
+        auto optionVal = binder::ExpressionUtil::getLiteralValue<std::string>(*option);
         if (optionVal == RegexpReplaceFunction::GLOBAL_REPLACE_OPTION) {
             replaceOption = RegexpReplaceFunction::RegexReplaceOption::GLOBAL;
         } else {

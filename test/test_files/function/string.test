@@ -604,6 +604,21 @@ he---
 ---- 1
 th*?? *?? a team
 
+-LOG RegexpReplaceNonConstantOption
+-STATEMENT MATCH (p:person) Return REGEXP_REPLACE('this is a team', 'is', '*??', p.fName);
+---- error
+Binder exception: p.fName has type PROPERTY but LITERAL was expected.
+
+-LOG RegexpReplaceInvalidOptionType
+-STATEMENT MATCH (p:person) Return REGEXP_REPLACE('this is a team', 'is', '*??', 5);
+---- error
+Binder exception: 5 has data type INT64 but STRING was expected.
+
+-LOG RegexpReplaceNonConstantOption
+-STATEMENT MATCH (p:person) Return REGEXP_REPLACE('this is a team', 'is', '*??', 'l');
+---- error
+Binder exception: regex_replace can only support global replace option: g.
+
 -LOG RegexpReplaceSpace
 -STATEMENT Return REGEXP_REPLACE('65 landy street waterloo ontario canada', '\\s', '', 'g');
 ---- 1
