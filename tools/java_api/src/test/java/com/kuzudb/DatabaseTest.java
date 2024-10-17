@@ -15,35 +15,35 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithArgs() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            Database database = new Database(
+            try (Database database = new Database(
                     dbPath,
                     1 << 28 /* 256 MB */,
                     true /* compression */,
                     false /* readOnly */,
-                    1 << 30 /* 1 GB */
-            );
-            database.destroy();
+                    1 << 30 /* 1 GB */)) {
+                // Database will be automatically destroyed after this block
+            }
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithArgs failed");
-        }
+        }        
     }
 
     @Test
     void DBCreationAndDestroyWithPathOnly() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            Database database = new Database(dbPath);
-            database.destroy();
+            try (Database database = new Database(dbPath)) {
+            }
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithPathOnly failed");
-        }
+        }        
     }
 
     @Test
     void DBCreationAndDestroyWithNoParam(){
         try {
-            Database database = new Database();
-            database.destroy();
+            try (Database database = new Database()) {
+            }
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithNoParam failed");
         }

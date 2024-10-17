@@ -18,9 +18,7 @@ public class ConnectionTest extends TestBase {
 
     @Test
     void ConnCreationAndDestroy() {
-        try {
-            Connection conn = new Connection(db);
-            conn.destroy();
+        try ( Connection conn = new Connection(db);) {
         } catch (AssertionError e) {
             fail("ConnCreationAndDestroy failed");
         } catch (ObjectRefDestroyedException e) {
@@ -40,15 +38,15 @@ public class ConnectionTest extends TestBase {
     @Test
     void ConnQuery() throws ObjectRefDestroyedException {
         String query = "MATCH (a:person) RETURN a.fName;";
-        QueryResult result = conn.query(query);
-        assertNotNull(result);
-        assertTrue(result.isSuccess());
-        assertTrue(result.hasNext());
-        assertTrue(result.getErrorMessage().equals(""));
-        assertEquals(result.getNumTuples(), 8);
-        assertEquals(result.getNumColumns(), 1);
-        assertTrue(result.getColumnName(0).equals("a.fName"));
-        result.destroy();
+        try (QueryResult result = conn.query(query)) {
+            assertNotNull(result);
+            assertTrue(result.isSuccess());
+            assertTrue(result.hasNext());
+            assertTrue(result.getErrorMessage().equals(""));
+            assertEquals(result.getNumTuples(), 8);
+            assertEquals(result.getNumColumns(), 1);
+            assertTrue(result.getColumnName(0).equals("a.fName"));
+        }        
     }
 
     @Test
@@ -74,8 +72,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 3);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -95,8 +91,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 4);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -114,8 +108,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 2);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -133,8 +125,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 2);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -152,8 +142,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 7);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -171,8 +159,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -190,8 +176,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -209,8 +193,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 4);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -228,8 +210,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 7);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -247,8 +227,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 3);
-        statement.destroy();
-        result.destroy();
     }
 
     @Test
@@ -269,23 +247,16 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
-        statement.destroy();
-        result.destroy();
-
-        // Not strictly necessary, but this makes sure if we freed v1 or v2 in
-        // the execute() call, we segfault here.
-        v1.destroy();
-        v2.destroy();
     }
 
     @Test
     void ConnQueryTimeout() throws ObjectRefDestroyedException {
         conn.setQueryTimeout(1);
-        QueryResult result = conn.query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
-        assertNotNull(result);
-        assertFalse(result.isSuccess());
-        assertTrue(result.getErrorMessage().equals("Interrupted."));
-        result.destroy();
+        try (QueryResult result = conn.query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);")) {
+            assertNotNull(result);
+            assertFalse(result.isSuccess());
+            assertTrue(result.getErrorMessage().equals("Interrupted."));
+        }        
     }
 
 }

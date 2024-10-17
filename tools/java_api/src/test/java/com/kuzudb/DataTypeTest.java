@@ -31,13 +31,6 @@ public class DataTypeTest extends TestBase {
         assertEquals(dataTypeClone3.getFixedNumElementsInList(), 100);
 
         assertFalse(dataTypeClone2.equals(dataTypeClone3));
-
-        dataType.destroy();
-        dataType2.destroy();
-        dataType3.destroy();
-        dataTypeClone.destroy();
-        dataTypeClone2.destroy();
-        dataTypeClone3.destroy();
     }
 
     @Test
@@ -65,12 +58,6 @@ public class DataTypeTest extends TestBase {
         assertFalse(dataType2.equals(dataType3));
         assertFalse(dataTypeClone.equals(dataTypeClone3));
 
-        dataType.destroy();
-        dataType2.destroy();
-        dataType3.destroy();
-        dataTypeClone.destroy();
-        dataTypeClone2.destroy();
-        dataTypeClone3.destroy();
     }
 
     @Test
@@ -87,9 +74,6 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType3);
         assertEquals(dataType3.getID(), DataTypeID.ARRAY);
 
-        dataType.destroy();
-        dataType2.destroy();
-        dataType3.destroy();
     }
 
     @Test
@@ -105,9 +89,6 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType3);
         assertEquals(dataType3.getChildType().getID(), DataTypeID.INT64);
 
-        dataType.destroy();
-        dataType2.destroy();
-        dataType3.destroy();
     }
 
     @Test
@@ -123,9 +104,23 @@ public class DataTypeTest extends TestBase {
         DataType dataType3 = new DataType(DataTypeID.ARRAY, dataType, 100);
         assertNotNull(dataType3);
         assertEquals(dataType3.getFixedNumElementsInList(), 100);
+    }
 
-        dataType.destroy();
-        dataType2.destroy();
-        dataType3.destroy();
+    @Test
+    void DataTypeTestDestroy() throws ObjectRefDestroyedException {
+        try (DataType dataType = new DataType(DataTypeID.INT64, null, 0)) {
+            assertNotNull(dataType);
+            assertEquals(dataType.getFixedNumElementsInList(), 0);
+        
+            try (DataType dataType2 = new DataType(DataTypeID.LIST, dataType, 0)) {
+                assertNotNull(dataType2);
+                assertEquals(dataType2.getFixedNumElementsInList(), 0);
+            }
+        
+            try (DataType dataType3 = new DataType(DataTypeID.ARRAY, dataType, 100)) {
+                assertNotNull(dataType3);
+                assertEquals(dataType3.getFixedNumElementsInList(), 100);
+            }
+        }          
     }
 }

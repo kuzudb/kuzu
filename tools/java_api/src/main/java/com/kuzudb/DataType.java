@@ -3,7 +3,7 @@ package com.kuzudb;
 /**
 * DataType is the kuzu internal representation of data types.
 */
-public class DataType {
+public class DataType implements AutoCloseable {
     long dt_ref;
     boolean destroyed = false;
 
@@ -30,11 +30,11 @@ public class DataType {
     }
 
     /**
-    * Finalize.
+    * Close.
     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
     */
     @Override
-    protected void finalize() throws ObjectRefDestroyedException {
+    public void close() throws ObjectRefDestroyedException {
         destroy();
     }
 
@@ -42,7 +42,7 @@ public class DataType {
     * Destroy the data type instance.
     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
     */
-    public void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         Native.kuzu_data_type_destroy(this);
         destroyed = true;

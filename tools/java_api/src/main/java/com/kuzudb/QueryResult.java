@@ -3,7 +3,7 @@ package com.kuzudb;
 /**
  * QueryResult stores the result of a query execution.
  */
-public class QueryResult {
+public class QueryResult implements AutoCloseable {
     long qr_ref;
     boolean destroyed = false;
     boolean isOwnedByCPP = false;
@@ -18,11 +18,11 @@ public class QueryResult {
     }
 
     /**
-     * Finalize.
+     * Close.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     @Override
-    protected void finalize() throws ObjectRefDestroyedException {
+    public void close() throws ObjectRefDestroyedException {
         destroy();
     }
 
@@ -34,7 +34,7 @@ public class QueryResult {
      * Destroy the query result.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
-    public void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
             Native.kuzu_query_result_destroy(this);

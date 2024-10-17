@@ -3,7 +3,7 @@ package com.kuzudb;
 /**
  * Value can hold data of different types.
  */
-public class Value {
+public class Value implements AutoCloseable {
     public long v_ref;
     boolean destroyed = false;
     boolean isOwnedByCPP = false;
@@ -52,11 +52,11 @@ public class Value {
     }
 
     /**
-     * Finalize.
+     * Close.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
     @Override
-    protected void finalize() throws ObjectRefDestroyedException {
+    public void close() throws ObjectRefDestroyedException {
         destroy();
     }
 
@@ -68,7 +68,7 @@ public class Value {
      * Destroy the Value.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
-    public void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         if (!isOwnedByCPP) {
             Native.kuzu_value_destroy(this);
