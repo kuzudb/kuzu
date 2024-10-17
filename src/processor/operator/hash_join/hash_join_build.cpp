@@ -51,7 +51,7 @@ void HashJoinBuild::setKeyState(common::DataChunkState* state) {
     }
 }
 
-void HashJoinBuild::finalize(ExecutionContext* /*context*/) {
+void HashJoinBuild::finalizeInternal(ExecutionContext* /*context*/) {
     auto numTuples = sharedState->getHashTable()->getNumTuples();
     sharedState->getHashTable()->allocateHashSlots(numTuples);
     sharedState->getHashTable()->buildHashSlots();

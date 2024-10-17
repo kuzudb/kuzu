@@ -11,11 +11,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void initMaskIdx(common::table_id_map_t<std::vector<mask_with_idx>>& masksPerTable,
-    std::vector<NodeSemiMask*> masks) {
+static void initMask(common::table_id_map_t<mask_vector>& masksPerTable, mask_vector masks) {
     for (auto& mask : masks) {
         auto tableID = mask->getTableID();
-        masksPerTable.at(tableID).emplace_back(mask, 0 /* initial mask idx */);
+        mask->enable();
+        masksPerTable.at(tableID).emplace_back(mask);
     }
 }
 
@@ -24,9 +24,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     const auto inSchema = semiMasker.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     const auto tableIDs = semiMasker.getNodeTableIDs();
-    common::table_id_map_t<std::vector<mask_with_idx>> masksPerTable;
+    common::table_id_map_t<mask_vector> masksPerTable;
     for (auto tableID : tableIDs) {
-        masksPerTable.insert({tableID, std::vector<mask_with_idx>{}});
+        masksPerTable.insert(
+            {tableID, std::vector<std::shared_ptr<common::RoaringBitmapSemiMask>>{}});
     }
     std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getOperators()) {
@@ -36,17 +37,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
             auto scan = physicalOp->ptrCast<ScanNodeTable>();
-            initMaskIdx(masksPerTable, scan->getSemiMasks());
+            initMask(masksPerTable, scan->getSemiMasks());
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
             auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
-            initMaskIdx(masksPerTable, recursiveJoin.getSemiMask());
+            initMask(masksPerTable, recursiveJoin.getSemiMask());
         } break;
         case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
             KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
             auto gds = physicalOp->getChild(0)->ptrCast<GDSCall>();
             KU_ASSERT(gds->hasSemiMask());
-            initMaskIdx(masksPerTable, gds->getSemiMasks());
+            initMask(masksPerTable, gds->getSemiMasks());
         } break;
         default:
             KU_UNREACHABLE;
