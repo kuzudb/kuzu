@@ -168,7 +168,7 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
     auto chunkMeta = flushData(chunkData, dataFH);
     auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getMemoryManager(),
         chunkData.getDataType().copy(), chunkData.isCompressionEnabled(), chunkMeta,
-        chunkData.hasNullData());
+        chunkData.hasNullData(), true);
     if (chunkData.hasNullData()) {
         auto nullChunkMeta = flushData(chunkData.getNullData(), dataFH);
         auto nullData = std::make_unique<NullChunkData>(chunkData.getMemoryManager(),
@@ -220,7 +220,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     KU_ASSERT(endOffset >= startOffset);
     const auto numValuesToScan = endOffset - startOffset;
     if (numValuesToScan > columnChunk->getCapacity()) {
-        columnChunk->resize(std::bit_ceil(numValuesToScan));
+        columnChunk->resizeWithoutPreserve(std::bit_ceil(numValuesToScan));
     }
     if (getDataTypeSizeInChunk(dataType) == 0) {
         columnChunk->setNumValues(numValuesToScan);
