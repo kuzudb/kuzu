@@ -180,7 +180,8 @@ uint32_t OpProfileTree::fillOpProfileBoxes(const PhysicalOperator* op, uint32_t 
 uint32_t OpProfileTree::fillOpProfileBoxes(const LogicalOperator* op, uint32_t rowIdx,
     uint32_t colIdx, uint32_t& maxFieldWidth) {
     auto opProfileBox = std::make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
-        PlanPrinter::getOperatorParams(op), std::vector<std::string>());
+        PlanPrinter::getOperatorParams(op),
+        std::vector<std::string>{"Cardinality: " + std::to_string(op->getCardinality())});
     maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
     insertOpProfileBox(rowIdx, colIdx, std::move(opProfileBox));
     if (!op->getNumChildren()) {
@@ -414,7 +415,7 @@ std::string PlanPrinter::getOperatorName(const LogicalOperator* logicalOperator)
 }
 
 std::string PlanPrinter::getOperatorParams(const LogicalOperator* logicalOperator) {
-    return logicalOperator->getPrintInfo().toString();
+    return logicalOperator->getPrintInfo()->toString();
 }
 
 nlohmann::json PlanPrinter::toJson(const PhysicalOperator* physicalOperator, Profiler& profiler_) {

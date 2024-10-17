@@ -24,12 +24,11 @@ private:
         : OPPrintInfo(other), columnNames(other.columnNames), fileName(other.fileName) {}
 };
 
-class LogicalCopyTo : public LogicalOperator {
+class LogicalCopyTo final : public LogicalOperator {
 public:
     LogicalCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
-        function::ExportFunction exportFunc, std::shared_ptr<LogicalOperator> child,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child), std::move(printInfo)},
+        function::ExportFunction exportFunc, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
           bindData{std::move(bindData)}, exportFunc{std::move(exportFunc)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
@@ -42,9 +41,12 @@ public:
     std::unique_ptr<function::ExportFuncBindData> getBindData() const { return bindData->copy(); }
     function::ExportFunction getExportFunc() const { return exportFunc; };
 
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalCopyToPrintInfo>(bindData->columnNames, bindData->fileName);
+    }
+
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyTo>(bindData->copy(), exportFunc, children[0]->copy(),
-            printInfo->copy());
+        return make_unique<LogicalCopyTo>(bindData->copy(), exportFunc, children[0]->copy());
     }
 
 private:

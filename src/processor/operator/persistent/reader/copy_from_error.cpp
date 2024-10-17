@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/reader/copy_from_error.h"
 
-#include "common/constants.h"
-#include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/column_chunk_data.h"
 
