@@ -114,3 +114,13 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
 [Alice,Dan,Bob]|[2021-06-30,1950-05-14]|[0:0,0:3]|[0:3,0:1]|Alice|Bob
 [Alice,Dan,Carol]|[2021-06-30,2000-01-01]|[0:0,0:3]|[0:3,0:2]|Alice|Carol
 [Alice,Dan]|[2021-06-30]|[0:0]|[0:3]|Alice|Dan
+-STATEMENT MATCH p = (a:person)-[e:knows* 3..3]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+27
+-STATEMENT MATCH p = (a:person)-[e:knows* TRAIL 3..3]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+24
+# 3 * 3 * 2
+-STATEMENT MATCH p = (a:person)-[e:knows* ACYCLIC 4..4]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+54
