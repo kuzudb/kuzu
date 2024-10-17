@@ -119,12 +119,10 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         "CREATE REL TABLE {}_terms (FROM {}_dict TO {}_docs, tf UINT64, MANY_MANY);", tableName,
         tableName, tableName);
     context->runQuery(query);
-    query = common::stringFormat(
-        "COPY {}_terms FROM ("
-        "MATCH (b:{}_terms_list) "
-        "WITH COUNT {MATCH (:{}_terms_list {term: b.term, offset: b.offset})} as tf, b as b "
-        "RETURN b.term, b.offset, CAST(tf AS UINT64));",
-        tableName, tableName, tableName);
+    query = common::stringFormat("COPY {}_terms FROM ("
+                                 "MATCH (b:{}_terms_list) "
+                                 "RETURN b.term, b.offset, CAST(count(*) as UINT64));",
+        tableName, tableName);
     context->runQuery(query);
     query = common::stringFormat(
         "CREATE NODE TABLE {}_stats (ID SERIAL, num_docs UINT64, avg_dl DOUBLE, PRIMARY KEY(ID))",

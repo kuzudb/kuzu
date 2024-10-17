@@ -27,7 +27,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
-    auto graph = std::make_unique<OnDiskGraph>(clientContext, call.getInfo().graphEntry, std::vector<column_id_t>);
+    auto graph = std::make_unique<OnDiskGraph>(clientContext, call.getInfo().graphEntry);
     common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
