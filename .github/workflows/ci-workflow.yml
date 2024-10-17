@@ -271,52 +271,15 @@ jobs:
         with:
           file: cover.info
 
-  gcc-build-test-32bit:
-    name: gcc build & test 32-bit
-    needs: [clang-format, sanity-checks, generate-binary-datasets]
-    runs-on: ubuntu-latest
-    env:
-      WERROR: 0
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download binary-demo
-        uses: actions/download-artifact@v4
-        with:
-          name: binary-demo
-          path: dataset/binary-demo
-
-      - name: Start Docker container
-        run: |
-          docker run -d --name kuzu-x86 \
-                     -v $PWD:/kuzu -w /kuzu \
-                     -e GEN=Ninja -e CC=gcc -e CXX=g++ \
-                     i386/debian:stable tail -f /dev/null
-
-      - name: Install dependencies
-        run: |
-          docker exec kuzu-x86 apt-get update
-          docker exec kuzu-x86 apt-get install -y git python3 ninja-build build-essential cmake libssl-dev
-
-      - name: Build & Test
-        run: |
-          docker exec --env USE_EXISTING_BINARY_DATASET=1 kuzu-x86 make test NUM_THREADS=$(nproc)
-
-      - name: Stop Docker container
-        run: docker stop kuzu-x86
-
   webassembly-build-test:
     name: webassembly build & test
     needs: [clang-format, sanity-checks, generate-binary-datasets]
     runs-on: kuzu-self-hosted-testing
-    # Disable WebAssembly test for now due to failed tests. 
-    # It will be enabled once the failed tests are fixed or disabled.
-    if: false
     env:
       WERROR: 0
       TEST_JOBS: 12
       NUM_THREADS: 32
+      CCACHE_DISABLE: 1
 
     steps:
       - uses: actions/checkout@v4

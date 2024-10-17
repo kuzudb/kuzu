@@ -117,6 +117,12 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
+        case TokenType::SKIP_WASM: {
+#ifdef __WASM__
+            testGroup->group = "DISABLED_" + testGroup->group;
+#endif
+            break;
+        }
         case TokenType::SKIP_IN_MEM: {
             auto env = TestHelper::getSystemEnv("IN_MEM_MODE");
             if (!env.empty()) {
@@ -452,6 +458,12 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_32BIT: {
 #ifdef __32BIT__
+            testCaseName = "DISABLED_" + testCaseName;
+#endif
+            break;
+        }
+        case TokenType::SKIP_WASM: {
+#ifdef __WASM__
             testCaseName = "DISABLED_" + testCaseName;
 #endif
             break;

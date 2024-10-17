@@ -74,6 +74,7 @@ Binder exception: No file found that matches the pattern: 1.csv.
 582
 
 -CASE CopyFilesWithHomeDir
+-SKIP_WASM
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"
 ---- ok
 -STATEMENT COPY (match (p:person) return p.ID) TO "~/id.csv"

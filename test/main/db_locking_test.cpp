@@ -99,7 +99,7 @@ TEST_F(DBLockingTest, testWriteLock) {
     }
 }
 
-#ifndef __WASM__
+#ifndef __WASM__ // subprocesses are not supported in WASM
 TEST_F(DBLockingTest, testReadOnly) {
     if (databasePath == "" || databasePath == ":memory:") {
         return;
