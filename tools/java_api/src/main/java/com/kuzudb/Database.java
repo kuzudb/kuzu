@@ -60,7 +60,7 @@ public class Database implements AutoCloseable{
     }
 
     /**
-    * Close.
+    * Used to destroy all allocated memory of the data. Automatically called by AutoCloseable within try-with-resouce clauses.
     * @throws ObjectRefDestroyedException If the database instance has been destroyed.
     */
     @Override

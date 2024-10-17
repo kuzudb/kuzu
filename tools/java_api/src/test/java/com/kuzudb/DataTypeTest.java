@@ -31,6 +31,12 @@ public class DataTypeTest extends TestBase {
         assertEquals(dataTypeClone3.getFixedNumElementsInList(), 100);
 
         assertFalse(dataTypeClone2.equals(dataTypeClone3));
+        dataType.close();
+        dataType2.close();
+        dataType3.close();
+        dataTypeClone.close();
+        dataTypeClone2.close();
+        dataTypeClone3.close();
     }
 
     @Test
@@ -58,6 +64,12 @@ public class DataTypeTest extends TestBase {
         assertFalse(dataType2.equals(dataType3));
         assertFalse(dataTypeClone.equals(dataTypeClone3));
 
+        dataType.close();
+        dataType2.close();
+        dataType3.close();
+        dataTypeClone.close();
+        dataTypeClone2.close();
+        dataTypeClone3.close();
     }
 
     @Test
@@ -74,6 +86,9 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType3);
         assertEquals(dataType3.getID(), DataTypeID.ARRAY);
 
+        dataType.close();
+        dataType2.close();
+        dataType3.close();
     }
 
     @Test
@@ -89,6 +104,9 @@ public class DataTypeTest extends TestBase {
         assertNotNull(dataType3);
         assertEquals(dataType3.getChildType().getID(), DataTypeID.INT64);
 
+        dataType.close();
+        dataType2.close();
+        dataType3.close();
     }
 
     @Test

@@ -19,6 +19,7 @@ public class ValueTest extends TestBase {
         Value value = Value.createNull();
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.ANY);
+        value.close();
     }
 
     @Test
@@ -26,8 +27,9 @@ public class ValueTest extends TestBase {
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         Value value = Value.createNullWithDataType(type);
         assertFalse(value.isOwnedByCPP());
-
+        type.close();
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
+        value.close();
     }
 
     @Test
@@ -35,13 +37,17 @@ public class ValueTest extends TestBase {
         Value value = new Value(123L);
         assertFalse(value.isOwnedByCPP());
         assertFalse(value.isNull());
+        value.close();
 
         value = Value.createNull();
         assertTrue(value.isNull());
+        value.close();
 
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         value = Value.createNullWithDataType(type);
         assertTrue(value.isNull());
+        type.close();
+        value.close();
     }
 
     @Test
@@ -55,6 +61,7 @@ public class ValueTest extends TestBase {
 
         value.setNull(false);
         assertFalse(value.isNull());
+        value.close();
     }
 
     @Test
@@ -62,18 +69,22 @@ public class ValueTest extends TestBase {
         DataType type = new DataType(DataTypeID.INT64, null, 0);
         Value value = Value.createDefault(type);
         assertFalse(value.isOwnedByCPP());
+        type.close();
 
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(0L));
+        value.close();
 
         type = new DataType(DataTypeID.STRING, null, 0);
         value = Value.createDefault(type);
         assertFalse(value.isOwnedByCPP());
+        type.close();
 
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         assertTrue(value.getValue().equals(""));
+        value.close();
     }
 
     @Test
@@ -104,11 +115,13 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(true));
+        value.close();
 
         value = new Value(false);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.BOOL);
         assertTrue(value.getValue().equals(false));
+        value.close();
     }
 
     @Test
@@ -118,6 +131,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT16);
         assertTrue(value.getValue().equals((short) 123));
+        value.close();
     }
 
     @Test
@@ -127,6 +141,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT32);
         assertTrue(value.getValue().equals(123));
+        value.close();
     }
 
     @Test
@@ -136,6 +151,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.INT64);
         assertTrue(value.getValue().equals(123L));
+        value.close();
     }
 
     @Test
@@ -145,6 +161,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        value.close();
     }
 
     @Test
@@ -154,6 +171,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.FLOAT);
         assertTrue(value.getValue().equals((float) 123.456));
+        value.close();
     }
 
     @Test
@@ -164,6 +182,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
         BigDecimal val = (BigDecimal)value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
+        value.close();
     }
 
     @Test
@@ -175,6 +194,7 @@ public class ValueTest extends TestBase {
         InternalID id = value.getValue();
         assertEquals(id.tableId, 1);
         assertEquals(id.offset, 123);
+        value.close();
     }
 
     @Test
@@ -185,6 +205,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.DATE);
         LocalDate date = value.getValue();
         assertEquals(date.toEpochDay(), 123);
+        value.close();
     }
 
     @Test
@@ -196,6 +217,7 @@ public class ValueTest extends TestBase {
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 0);
         assertEquals(stamp.getNano(), 123000);
+        value.close();
 
         value = new Value(Instant.ofEpochSecond(123123123L / 1000000L, 123123123L % 1000000 * 1000));
         assertFalse(value.isOwnedByCPP());
@@ -203,6 +225,7 @@ public class ValueTest extends TestBase {
         stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 123);
         assertEquals(stamp.getNano(), 123123000);
+        value.close();
     }
 
     @Test
@@ -214,6 +237,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.INTERVAL);
         Duration interval = value.getValue();
         assertEquals(interval.toMillis(), inputDuration.toMillis());
+        value.close();
     }
 
     @Test
@@ -224,6 +248,7 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
+        value.close();
     }
 
     @Test
@@ -235,11 +260,13 @@ public class ValueTest extends TestBase {
         assertTrue(str.equals("abcdefg"));
 
         Value clone = value.clone();
+        value.close();
 
         assertFalse(clone.isOwnedByCPP());
         assertEquals(clone.getDataType().getID(), DataTypeID.STRING);
         str = clone.getValue();
         assertTrue(str.equals("abcdefg"));
+        clone.close();
     }
 
     @Test
@@ -248,11 +275,13 @@ public class ValueTest extends TestBase {
         Value value2 = new Value("abcdefg");
 
         value.copy(value2);
+        value2.close();
 
         assertFalse(value.isNull());
         assertEquals(value.getDataType().getID(), DataTypeID.STRING);
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
+        value.close();
     }
 
     @Test
@@ -267,6 +296,10 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
         assertEquals(ValueListUtil.getListSize(value), 2);
+
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -284,13 +317,19 @@ public class ValueTest extends TestBase {
         Value listElement = ValueListUtil.getListElement(value, 0);
         assertTrue(listElement.isOwnedByCPP());
         assertTrue(listElement.getValue().equals(10L));
+        listElement.close();
 
         listElement = ValueListUtil.getListElement(value, 1);
         assertTrue(listElement.isOwnedByCPP());
         assertTrue(listElement.getValue().equals(5L));
+        listElement.close();
 
         listElement = ValueListUtil.getListElement(value, 222);
         assertNull(listElement);
+
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -333,6 +372,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(true));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -347,6 +389,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((byte) 5));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -361,6 +406,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((short) 5));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -375,6 +423,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(298));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -389,6 +440,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(0L));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -403,6 +457,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((short) 250));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -417,6 +474,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(33768));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -431,6 +491,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(32800L));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -445,6 +508,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertEquals(value.getValue(), new BigInteger("1000043524"));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -460,6 +526,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertEquals(value.getValue(), new BigInteger("1844674407370955161811111111"));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -474,6 +543,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(2L));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
 
@@ -489,6 +561,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((float) 1.731));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -503,6 +578,9 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((double) 5.0));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -518,6 +596,9 @@ public class ValueTest extends TestBase {
 
         LocalDate date = value.getValue();
         assertEquals((long) date.toEpochDay(), -25567L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -533,6 +614,9 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530000L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -548,6 +632,9 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -563,6 +650,9 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.getNano(), 123456000L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -578,6 +668,9 @@ public class ValueTest extends TestBase {
 
         Instant stamp = value.getValue();
         assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -594,6 +687,9 @@ public class ValueTest extends TestBase {
         Instant stamp = value.getValue();
         assertEquals(stamp.getEpochSecond(), 1313839530L);
         assertEquals(stamp.getNano(), 0L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -614,6 +710,9 @@ public class ValueTest extends TestBase {
         assertEquals(month, 36);
         assertEquals(day, 2);
         assertEquals(micros, 46920000000L);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -629,6 +728,9 @@ public class ValueTest extends TestBase {
 
         String str = value.getValue();
         assertTrue(str.equals("Alice"));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -661,6 +763,9 @@ public class ValueTest extends TestBase {
 
         UUID uid = value.getValue();
         assertTrue(uid.equals(UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")));
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -701,6 +806,9 @@ public class ValueTest extends TestBase {
         InternalID id = ValueNodeUtil.getID(value);
         assertEquals(id.tableId, 0);
         assertEquals(id.offset, 0);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -715,6 +823,9 @@ public class ValueTest extends TestBase {
 
         String label = ValueNodeUtil.getLabelName(value);
         assertEquals(label, "person");
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -737,15 +848,23 @@ public class ValueTest extends TestBase {
         Value propertyValue = ValueNodeUtil.getPropertyValueAt(value, 0);
         long propertyValueID = propertyValue.getValue();
         assertEquals(propertyValueID, 0);
+        propertyValue.close();
         propertyValue = ValueNodeUtil.getPropertyValueAt(value, 1);
         String propertyValuefName = propertyValue.getValue();
         assertTrue(propertyValuefName.equals("Alice"));
+        propertyValue.close();
         propertyValue = ValueNodeUtil.getPropertyValueAt(value, 2);
         long propertyValueGender = propertyValue.getValue();
         assertEquals(propertyValueGender, 1);
+        propertyValue.close();
         propertyValue = ValueNodeUtil.getPropertyValueAt(value, 3);
         boolean propertyValueIsStudent = propertyValue.getValue();
         assertEquals(propertyValueIsStudent, true);
+        propertyValue.close();
+
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -761,6 +880,9 @@ public class ValueTest extends TestBase {
                 "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years " +
                 "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], " +
                 "stock: {price: [96,56], volume: 1000}}, info: 3.120000}");
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
 
@@ -787,6 +909,10 @@ public class ValueTest extends TestBase {
 
         long size = ValueRelUtil.getPropertySize(value);
         assertEquals(size, 7);
+
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -810,6 +936,11 @@ public class ValueTest extends TestBase {
         Value propertyValue = ValueRelUtil.getPropertyValueAt(value, 0);
         long propertyValueYear = propertyValue.getValue();
         assertEquals(propertyValueYear, 2015);
+
+        propertyValue.close();
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -823,6 +954,9 @@ public class ValueTest extends TestBase {
         String str = ValueRelUtil.toString(value);
         assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], " +
                 "rating: 8.200000}->(1:1)");
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -834,6 +968,9 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertEquals(ValueStructUtil.getNumFields(value), 14);
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -854,6 +991,10 @@ public class ValueTest extends TestBase {
         assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_sec"), 6);
         assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_tz"), 7);
         assertEquals(ValueStructUtil.getIndexByFieldName(value, "film"), 8);
+    
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -874,6 +1015,10 @@ public class ValueTest extends TestBase {
         assertEquals(ValueStructUtil.getFieldNameByIndex(value, 6), "release_sec");
         assertEquals(ValueStructUtil.getFieldNameByIndex(value, 7), "release_tz");
         assertEquals(ValueStructUtil.getFieldNameByIndex(value, 8), "film");
+    
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -888,6 +1033,11 @@ public class ValueTest extends TestBase {
         assertNull(fieldValue);
         fieldValue = ValueStructUtil.getValueByFieldName(value, "rating");
         assertEquals(fieldValue.getValue(), 1223.0);
+
+        fieldValue.close();
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -904,6 +1054,11 @@ public class ValueTest extends TestBase {
         assertNull(fieldValue);
         fieldValue = ValueStructUtil.getValueByIndex(value, 0);
         assertEquals(fieldValue.getValue(), 1223.0);
+
+        fieldValue.close();
+        value.close();
+        flatTuple.close();
+        result.close();
     }
 
     @Test
@@ -915,18 +1070,25 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertEquals(ValueMapUtil.getNumFields(value), 2);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertEquals(ValueMapUtil.getNumFields(value), 0);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertEquals(ValueMapUtil.getNumFields(value), 1);
+        value.close();
+        flatTuple.close();
 
         assertFalse(result.hasNext());
+        result.close();
     }
 
     @Test
@@ -943,20 +1105,26 @@ public class ValueTest extends TestBase {
         assertEquals(index, -1);
         index = ValueMapUtil.getIndexByFieldName(value, "audience53");
         assertEquals(index, 1);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         index = ValueMapUtil.getIndexByFieldName(value, "NOT_EXXIST");
         assertEquals(index, -1);
+        value.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         index = ValueMapUtil.getIndexByFieldName(value, "audience1");
         assertEquals(index, 0);
+        value.close();
+        flatTuple.close();
 
         assertFalse(result.hasNext());
+        result.close();
     }
 
     @Test
@@ -969,24 +1137,34 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         Value fieldValue = ValueMapUtil.getValueByFieldName(value, "audience1");
         assertEquals((long)fieldValue.getValue(), 52);
+        fieldValue.close();
         fieldValue = ValueMapUtil.getValueByFieldName(value, "audience53");
         assertEquals((long)fieldValue.getValue(), 42);
+        fieldValue.close();
         fieldValue = ValueMapUtil.getValueByFieldName(value, "NOT_EXIST");
         assertNull(fieldValue);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         fieldValue = ValueMapUtil.getValueByFieldName(value, "NOT_EXIST");
         assertNull(fieldValue);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         fieldValue = ValueMapUtil.getValueByFieldName(value, "audience1");
         assertEquals((long)fieldValue.getValue(), 33);
+        fieldValue.close();
+        value.close();
+        flatTuple.close();
 
         assertFalse(result.hasNext());
+        result.close();
     }
 
     @Test
@@ -1005,20 +1183,27 @@ public class ValueTest extends TestBase {
         assertNull(fieldName);
         fieldName = ValueMapUtil.getFieldNameByIndex(value, 1024);
         assertNull(fieldName);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
         assertNull(fieldName);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
         assertEquals(fieldName, "audience1");
+        value.close();
+        flatTuple.close();
 
         assertFalse(result.hasNext());
+        result.close();
     }
 
     @Test
@@ -1036,23 +1221,31 @@ public class ValueTest extends TestBase {
         assertNull(fieldValue);
         fieldValue = ValueMapUtil.getValueByIndex(value, 0);
         assertEquals((long)fieldValue.getValue(), 52);
+        fieldValue.close();
         fieldValue = ValueMapUtil.getValueByIndex(value, 1);
         assertEquals((long)fieldValue.getValue(), 42);
-
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         fieldValue = ValueMapUtil.getValueByIndex(value, 0);
         assertNull(fieldValue);
+        value.close();
+        flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         fieldValue = ValueMapUtil.getValueByIndex(value, 0);
         assertEquals((long)fieldValue.getValue(), 33);
+        fieldValue.close();
+        value.close();
+        flatTuple.close();
 
         assertFalse(result.hasNext());
+        result.close();
     }
 
     @Test
@@ -1193,8 +1386,12 @@ public class ValueTest extends TestBase {
                     break;
                 }
             }
+            value.close();
+            dataType.close();
+            flatTuple.close();
             i++;
         }
         assertEquals(i, 16);
+        result.close();
     }
 }

@@ -17,7 +17,7 @@ public class PreparedStatement implements AutoCloseable {
     }
 
     /**
-    * Close.
+    * Used to destroy all allocated memory of the data. Automatically called by AutoCloseable within try-with-resouce clauses.
     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
     */
     @Override

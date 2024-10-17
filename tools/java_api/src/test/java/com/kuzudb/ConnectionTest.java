@@ -72,6 +72,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 3);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -91,6 +93,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 4);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -108,6 +112,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 2);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -125,6 +131,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 2);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -142,6 +150,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 7);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -159,6 +169,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -176,6 +188,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -193,6 +207,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 4);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -210,6 +226,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 7);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -227,6 +245,8 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 3);
+        statement.close();
+        result.close();
     }
 
     @Test
@@ -247,6 +267,13 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         FlatTuple tuple = result.getNext();
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
+        statement.close();
+        result.close();
+
+        // Not strictly necessary, but this makes sure if we freed v1 or v2 in
+        // the execute() call, we segfault here.
+        v1.close();
+        v2.close();        
     }
 
     @Test
