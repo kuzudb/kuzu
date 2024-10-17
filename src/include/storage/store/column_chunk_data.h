@@ -235,10 +235,9 @@ public:
     void loadFromDisk();
     uint64_t spillToDisk();
 
-    ColumnChunkStats getMergedColumnChunkStats(const CompressionMetadata& onDiskMetadata) const;
+    ColumnChunkStats getMergedColumnChunkStats() const;
 
     void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
-    void resetInMemoryStats();
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
@@ -251,6 +250,8 @@ protected:
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector);
+
+    void resetInMemoryStats();
 
 private:
     using flush_buffer_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
@@ -278,6 +279,9 @@ protected:
 
     // On-disk metadata for column chunk.
     ColumnChunkMetadata metadata;
+
+    // Stats for any in-memory updates applied to the column chunk
+    // This will be merged with the on-disk metadata to get the overall stats
     ColumnChunkStats inMemoryStats;
 };
 

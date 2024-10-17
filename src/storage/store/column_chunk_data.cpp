@@ -188,8 +188,8 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* 
     stats.update(values->getData(), offset, numValuesToCheck, physicalType);
 }
 
-ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats(
-    const CompressionMetadata& onDiskMetadata) const {
+ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
+    const CompressionMetadata& onDiskMetadata = metadata.compMeta;
     auto ret = inMemoryStats;
     ret.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
     return ret;
