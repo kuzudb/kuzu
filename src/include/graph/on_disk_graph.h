@@ -82,7 +82,8 @@ class OnDiskGraphScanStates : public GraphScanState {
 public:
     GraphScanState::Chunk getChunk() override {
         auto& iter = getInnerIterator();
-        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe()};
+        return Chunk{iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe(),
+            propertyVector.get()};
     }
     bool next() override;
 
@@ -110,13 +111,15 @@ private:
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
+    std::unique_ptr<common::ValueVector> propertyVector;
     size_t iteratorIndex;
     common::RelDataDirection direction;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
 
     explicit OnDiskGraphScanStates(main::ClientContext* context,
-        std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry);
+        std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
 
@@ -134,7 +137,8 @@ public:
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
-    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) override;
+    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(

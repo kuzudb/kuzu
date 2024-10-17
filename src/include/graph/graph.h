@@ -3,10 +3,12 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 
 #include "common/copy_constructors.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include <span>
 
 namespace kuzu {
@@ -26,6 +28,7 @@ public:
         // this reference can be modified, but the underlying data will be reset the next time next
         // is called
         common::SelectionVector& selVector;
+        const common::ValueVector* propertyVector;
     };
     virtual ~GraphScanState() = default;
     virtual Chunk getChunk() = 0;
@@ -115,7 +118,8 @@ public:
     virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) = 0;
+    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
     // Prepares scan on all connected relationship tables using forward adjList.
     virtual std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) = 0;
