@@ -96,14 +96,19 @@ RelPattern Transformer::transformRelationshipPattern(
     auto relType = QueryRelType::NON_RECURSIVE;
     auto recursiveInfo = RecursiveRelPatternInfo();
     if (relDetail && relDetail->oC_RangeLiteral()) {
-        if (relDetail->oC_RangeLiteral()->ALL()) {
-            relType = QueryRelType::ALL_SHORTEST;
-        } else if (relDetail->oC_RangeLiteral()->SHORTEST()) {
-            relType = QueryRelType::SHORTEST;
-        } else {
-            relType = QueryRelType::VARIABLE_LENGTH;
-        }
         auto range = relDetail->oC_RangeLiteral();
+        if (range->ALL()) {
+            relType = QueryRelType::ALL_SHORTEST;
+        } else if (range->SHORTEST()) {
+            relType = QueryRelType::SHORTEST;
+        } else if (range->TRAIL()) {
+            relType = QueryRelType::VARIABLE_LENGTH_TRAIL;
+        } else if (range->ACYCLIC()) {
+            relType = QueryRelType::VARIABLE_LENGTH_ACYCLIC;
+        } else {
+            relType = QueryRelType::VARIABLE_LENGTH_WALK;
+        }
+
         auto lowerBound = std::string("1");
         auto upperBound = std::string("");
 

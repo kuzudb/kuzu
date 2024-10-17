@@ -313,7 +313,9 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
             plan);
 
     } break;
-    case QueryRelType::VARIABLE_LENGTH:
+    case QueryRelType::VARIABLE_LENGTH_WALK:
+    case QueryRelType::VARIABLE_LENGTH_TRAIL:
+    case QueryRelType::VARIABLE_LENGTH_ACYCLIC:
     case QueryRelType::SHORTEST:
     case QueryRelType::ALL_SHORTEST: {
         if (clientContext->getClientConfig()->enableGDS) {

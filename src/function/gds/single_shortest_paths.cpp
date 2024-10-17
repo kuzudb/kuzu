@@ -208,10 +208,10 @@ private:
             std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
+        auto writerInfo = rjBindData->getPathWriterInfo();
+        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection,
-            sharedState->getPathNodeMaskMap());
+            std::move(writerInfo));
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =

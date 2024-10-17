@@ -33,7 +33,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context
     auto lowerBound = info.lowerBound;
     auto upperBound = info.upperBound;
     switch (info.queryRelType) {
-    case QueryRelType::VARIABLE_LENGTH: {
+    case QueryRelType::VARIABLE_LENGTH_WALK: {
         switch (info.joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             switch (semantic) {
