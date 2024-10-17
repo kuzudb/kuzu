@@ -1,7 +1,6 @@
 #include "function/string/vector_string_functions.h"
 
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "function/string/functions/array_extract_function.h"
 #include "function/string/functions/contains_function.h"
@@ -110,7 +109,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& p
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto pos = result.state->getSelVector()[selectedPos];
         auto strLen = 0u;
         for (auto i = 0u; i < parameters.size(); i++) {
