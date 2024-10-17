@@ -35,6 +35,9 @@ struct BaseLogicalExtendPrintInfo : OPPrintInfo {
             return "(" + boundNode->toString() + ")-[" + rel->toString() + "]-(" +
                    nbrNode->toString() + ")";
         }
+        default: {
+            KU_UNREACHABLE;
+        }
         }
     }
 };
