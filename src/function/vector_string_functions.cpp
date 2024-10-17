@@ -110,7 +110,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& p
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-        ++selectedPos) {
+         ++selectedPos) {
         auto pos = result.state->getSelVector()[selectedPos];
         auto strLen = 0u;
         for (auto i = 0u; i < parameters.size(); i++) {
