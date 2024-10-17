@@ -181,8 +181,18 @@ SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     }
 }
 
-bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
+bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) {
     auto& csvOption = reader->getCSVOption();
+    bool finished = (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+    // if the csv only has one row
+    if (finished && rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader) {
+        for (auto columnIdx = 0u; columnIdx < firstRow.size(); ++columnIdx) {
+            std::string columnName = std::string(firstRow[columnIdx]);
+            LogicalType columnType = function::inferMinimalTypeFromString(firstRow[columnIdx]);
+            columns[columnIdx].first = columnName;
+            columns[columnIdx].second = std::move(columnType);
+        }
+    }
     return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
 }
 
@@ -235,6 +245,10 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         if (columns[columnIdx].second.getLogicalTypeID() == LogicalTypeID::STRING) {
             sniffType[columnIdx] = false;
         }
+    } else if (sniffType[columnIdx] &&
+               (rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader)) {
+        // store the first line for later use
+        firstRow.push_back(value);
     }
 
     return true;
