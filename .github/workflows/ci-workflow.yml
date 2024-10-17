@@ -317,6 +317,7 @@ jobs:
       WERROR: 0
       TEST_JOBS: 12
       NUM_THREADS: 32
+      CCACHE_DISABLE: 1
 
     steps:
       - uses: actions/checkout@v4
