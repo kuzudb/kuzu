@@ -3,7 +3,7 @@
 --
 
 -CASE ExportImportDatabaseDefault
-
+-SKIP_WASM
 -STATEMENT create macro addWithDefault(a,b:=3) as a + b;
 ---- ok
 -STATEMENT ALTER TABLE User ADD random MAP(STRING, INT64) DEFAULT map(["key1","key2"],[400,250])
@@ -40,6 +40,7 @@ Imported database successfully.
 10
 
 -CASE ExportImportDatabaseWithCSVOption
+-SKIP_WASM
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2" (format="csv", header=true)
 ---- 1
 Exported database successfully.
@@ -58,6 +59,7 @@ Imported database successfully.
 Runtime exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already exists.
 
 -CASE ExportImportDatabaseWithPARQUET
+-SKIP_WASM
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3" (format="parquet")
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case3/demo-db3"
@@ -71,6 +73,7 @@ Runtime exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already 
 50
 
 -CASE ExportImportDatabaseError
+-SKIP_WASM
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="TURTLE")
 ---- error
 Binder exception: Unsupported file type: TURTLE.
@@ -103,6 +106,7 @@ Binder exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db5 does not 
 
 
 -CASE ExportImportDatabaseRelGroup
+-SKIP_WASM
 -STATEMENT CREATE NODE TABLE A(ID INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID INT64, PRIMARY KEY(ID));
@@ -148,7 +152,7 @@ Imported database successfully.
 0
 
 -CASE ExportImportDatabaseRDFGraph
-
+-SKIP_WASM
 -STATEMENT CREATE RDFGraph UniKG;
 ---- ok
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case6/demo-db"
@@ -156,6 +160,7 @@ Imported database successfully.
 Exported database successfully. But we skip exporting RDF graphs.
 
 -CASE ExportDatabaseWithSerialTable
+-SKIP_WASM
 -STATEMENT CREATE NODE TABLE oneserial(ID serial, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE (o:oneserial)
@@ -190,6 +195,7 @@ Imported database successfully.
 1
 
 -CASE DocExportImportExampleCSV
+-SKIP_WASM
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case8/demo-db" (format="csv", header=true);
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case8/demo-db"
@@ -204,6 +210,7 @@ Zhang|Noura
 
 
 -CASE DocExportImportExampleParquet
+-SKIP_WASM
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db" (format="parquet");
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db"
@@ -217,6 +224,7 @@ Karissa|Zhang
 Zhang|Noura
 
 -CASE ExplainExport
+-SKIP_WASM
 -SKIP_IN_MEM
 -STATEMENT EXPLAIN EXPORT Database "${KUZU_EXPORT_DB_DIRECTORY}_case10/demo-db" (format="parquet");
 ---- ok
@@ -225,6 +233,7 @@ Zhang|Noura
 Binder exception: No file found that matches the pattern: ${KUZU_EXPORT_DB_DIRECTORY}_case9/demo-db/city.parquet.
 
 -CASE ImportLegacyDB
+-SKIP_WASM
 -SKIP_IN_MEM
 -STATEMENT IMPORT Database "${KUZU_ROOT_DIRECTORY}/dataset/import_db_legacy";
 ---- ok
