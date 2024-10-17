@@ -41,8 +41,6 @@ public:
         common::RelMultiplicity multiplicity) override;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
-    void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {

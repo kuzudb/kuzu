@@ -190,7 +190,7 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* 
 
 ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats(
     const CompressionMetadata& onDiskMetadata) const {
-    auto ret = inMemoryUpdateStats;
+    auto ret = inMemoryStats;
     ret.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
     return ret;
 }
@@ -198,7 +198,7 @@ ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats(
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
     const common::SelectionVector& selVector) {
     if (selVector.isUnfiltered()) {
-        updateInMemoryStats(inMemoryUpdateStats, *vector);
+        updateInMemoryStats(inMemoryStats, *vector);
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
@@ -206,7 +206,7 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
                 for (idx_t i = 0; i < selVector.getSelSize(); ++i) {
                     auto pos = selVector.getSelectedPositions()[i];
                     auto val = vector->getValue<T>(pos);
-                    inMemoryUpdateStats.update(StorageValue{val}, getDataType().getPhysicalType());
+                    inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
                 }
             },
             []<typename T>(T) { static_assert(!StorageValueType<T>); });
@@ -214,7 +214,7 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
 }
 
 void ColumnChunkData::resetInMemoryStats() {
-    inMemoryUpdateStats.reset();
+    inMemoryStats.reset();
 }
 
 ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
@@ -254,7 +254,7 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
         other->getData<uint8_t>() + startPosInOtherChunk * numBytesPerValue,
         numValuesToAppend * numBytesPerValue);
     numValues += numValuesToAppend;
-    updateInMemoryStats(inMemoryUpdateStats, other, startPosInOtherChunk, numValuesToAppend);
+    updateInMemoryStats(inMemoryStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
 void ColumnChunkData::flush(FileHandle& dataFH) {
@@ -360,7 +360,7 @@ void ColumnChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
             }
         }
     }
-    updateInMemoryStats(inMemoryUpdateStats, chunk);
+    updateInMemoryStats(inMemoryStats, chunk);
 }
 
 // NOTE: This function is only called in LocalTable right now when
@@ -384,7 +384,7 @@ void ColumnChunkData::write(const ValueVector* vector, offset_t offsetInVector,
             vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
     }
     static constexpr uint64_t numValuesToWrite = 1;
-    updateInMemoryStats(inMemoryUpdateStats, *vector, offsetInVector, numValuesToWrite);
+    updateInMemoryStats(inMemoryStats, *vector, offsetInVector, numValuesToWrite);
 }
 
 void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -401,26 +401,7 @@ void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
         nullData->write(srcChunk->getNullData(), srcOffsetInChunk, dstOffsetInChunk,
             numValuesToCopy);
     }
-    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
-}
-
-void ColumnChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
-    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->dataType.getPhysicalType() == dataType.getPhysicalType());
-    KU_ASSERT(dstOffsetInChunk >= numValues);
-    KU_ASSERT(dstOffsetInChunk < capacity);
-    if (nullData) {
-        while (numValues < dstOffsetInChunk) {
-            nullData->setNull(numValues, true);
-            numValues++;
-        }
-    } else {
-        if (numValues < dstOffsetInChunk) {
-            numValues = dstOffsetInChunk;
-        }
-    }
-    append(srcChunk, srcOffsetInChunk, numValuesToCopy);
-    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void ColumnChunkData::resetNumValuesFromMetadata() {
@@ -607,7 +588,7 @@ void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk
         nullData->append(other->getNullData(), startPosInOtherChunk, numValuesToAppend);
     }
     numValues += numValuesToAppend;
-    updateInMemoryStats(inMemoryUpdateStats, other, startPosInOtherChunk, numValuesToAppend);
+    updateInMemoryStats(inMemoryStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
 void BoolChunkData::scan(ValueVector& output, offset_t offset, length_t length,
@@ -645,7 +626,7 @@ void BoolChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, R
         }
         numValues = dstOffset >= numValues ? dstOffset + 1 : numValues;
     }
-    updateInMemoryStats(inMemoryUpdateStats, chunk);
+    updateInMemoryStats(inMemoryStats, chunk);
 }
 
 void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
@@ -658,7 +639,7 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
         nullData->write(vector, offsetInVector, offsetInChunk);
     }
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
-    inMemoryUpdateStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
+    inMemoryStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
 }
 
 void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -672,7 +653,7 @@ void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
     NullMask::copyNullMask(srcChunk->getData<uint64_t>(), srcOffsetInChunk, getData<uint64_t>(),
         dstOffsetInChunk, numValuesToCopy);
-    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::setNull(offset_t pos, bool isNull) {
@@ -686,14 +667,14 @@ void NullChunkData::setNull(offset_t pos, bool isNull) {
         numValues = pos + 1;
         KU_ASSERT(numValues <= capacity);
     }
-    inMemoryUpdateStats.update(StorageValue{isNull}, dataType.getPhysicalType());
+    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
 }
 
 void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     const bool isNull = vector->isNull(offsetInVector);
     setNull(offsetInChunk, isNull);
-    inMemoryUpdateStats.update(StorageValue{isNull}, dataType.getPhysicalType());
+    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
 }
 
@@ -704,7 +685,7 @@ void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
     copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
         numValuesToCopy);
-    updateInMemoryStats(inMemoryUpdateStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
+    updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
@@ -712,7 +693,7 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
     copyFromBuffer(other->getData<uint64_t>(), startOffsetInOtherChunk, numValues,
         numValuesToAppend);
     numValues += numValuesToAppend;
-    updateInMemoryStats(inMemoryUpdateStats, other, startOffsetInOtherChunk, numValuesToAppend);
+    updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
 }
 
 void NullChunkData::serialize(Serializer& serializer) const {

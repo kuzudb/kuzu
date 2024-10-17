@@ -211,22 +211,6 @@ void StructChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
     }
 }
 
-void StructChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
-    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    while (numValues < dstOffsetInChunk) {
-        nullData->setNull(numValues, true);
-        numValues++;
-    }
-    nullData->append(srcChunk->getNullData(), srcOffsetInChunk, numValuesToCopy);
-    auto& srcStructChunk = srcChunk->cast<StructChunkData>();
-    for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->copy(srcStructChunk.childChunks[i].get(), srcOffsetInChunk,
-            dstOffsetInChunk, numValuesToCopy);
-    }
-    numValues += numValuesToCopy;
-    KU_ASSERT(nullData->getNumValues() == numValues);
-}
-
 bool StructChunkData::numValuesSanityCheck() const {
     for (auto& child : childChunks) {
         if (child->getNumValues() != numValues) {

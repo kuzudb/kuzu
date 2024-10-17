@@ -121,6 +121,9 @@ public:
         if (pos >= numValues) {
             numValues = pos + 1;
         }
+        if constexpr (StorageValueType<T>) {
+            inMemoryStats.update(StorageValue{val}, dataType.getPhysicalType());
+        }
     }
 
     bool isNull(common::offset_t pos) const;
@@ -189,9 +192,6 @@ public:
     virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
         common::RelMultiplicity multiplicity);
     virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
-    // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
-    virtual void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
     virtual void setToInMemory();
@@ -278,7 +278,7 @@ protected:
 
     // On-disk metadata for column chunk.
     ColumnChunkMetadata metadata;
-    ColumnChunkStats inMemoryUpdateStats;
+    ColumnChunkStats inMemoryStats;
 };
 
 template<>
