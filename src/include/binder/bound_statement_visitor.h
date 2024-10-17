@@ -58,6 +58,7 @@ protected:
     virtual void visitAttachDatabase(const BoundStatement&) {}
     virtual void visitDetachDatabase(const BoundStatement&) {}
     virtual void visitUseDatabase(const BoundStatement&) {}
+    virtual void visitStandaloneCallFunction(const BoundStatement&) {}
 };
 
 } // namespace binder

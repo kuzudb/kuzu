@@ -559,6 +559,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_SymbolicNameContext *oC_SymbolicName();
     OC_ExpressionContext *oC_Expression();
+    OC_FunctionInvocationContext *oC_FunctionInvocation();
 
    
   };

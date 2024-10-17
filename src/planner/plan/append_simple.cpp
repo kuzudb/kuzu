@@ -4,6 +4,7 @@
 #include "binder/bound_explain.h"
 #include "binder/bound_extension_statement.h"
 #include "binder/bound_standalone_call.h"
+#include "binder/bound_standalone_call_function.h"
 #include "binder/bound_transaction_statement.h"
 #include "binder/bound_use_database.h"
 #include "binder/ddl/bound_alter.h"
@@ -19,6 +20,7 @@
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/logical_transaction.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
@@ -83,6 +85,16 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto op = make_shared<LogicalStandaloneCall>(standaloneCallClause.getOption(),
         standaloneCallClause.getOptionValue(), std::move(printInfo));
+    plan.setLastOperator(std::move(op));
+}
+
+void Planner::appendStandaloneCallFunction(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& standaloneCallFunctionClause = statement.constCast<BoundStandaloneCallFunction>();
+    auto printInfo = std::make_unique<OPPrintInfo>();
+    auto op =
+        std::make_shared<LogicalTableFunctionCall>(standaloneCallFunctionClause.getTableFunction(),
+            standaloneCallFunctionClause.getBindData()->copy(), binder::expression_vector{},
+            standaloneCallFunctionClause.getOffset(), std::move(printInfo));
     plan.setLastOperator(std::move(op));
 }
 
