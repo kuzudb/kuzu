@@ -193,7 +193,7 @@ bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) {
             columns[columnIdx].second = std::move(columnType);
         }
     }
-    return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+    return finished;
 }
 
 bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
