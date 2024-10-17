@@ -4,6 +4,7 @@
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "output_writer.h"
+#include "common/enums/path_semantic.h"
 
 namespace kuzu {
 namespace function {
@@ -23,6 +24,7 @@ struct RJBindData final : public GDSBindData {
     // paths. So the semantics is that of optional match.
     uint16_t lowerBound;
     uint16_t upperBound;
+    common::PathSemantic semantic;
 
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
@@ -33,21 +35,23 @@ struct RJBindData final : public GDSBindData {
     std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
 
     RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
+        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound, common::PathSemantic semantic,
         common::ExtendDirection extendDirection)
         : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
-          lowerBound{lowerBound}, upperBound{upperBound}, extendDirection{extendDirection} {
+          lowerBound{lowerBound}, upperBound{upperBound}, semantic{semantic}, extendDirection{extendDirection} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
     }
     RJBindData(const RJBindData& other)
         : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
-          upperBound{other.upperBound}, extendDirection{other.extendDirection},
+          upperBound{other.upperBound}, semantic{other.semantic}, extendDirection{other.extendDirection},
           extendFromSource{other.extendFromSource}, directionExpr{other.directionExpr},
           lengthExpr{other.lengthExpr}, pathNodeIDsExpr{other.pathNodeIDsExpr},
           pathEdgeIDsExpr{other.pathEdgeIDsExpr} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
+
+    PathsOutputWriterInfo getPathWriterInfo() const;
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<RJBindData>(*this);

@@ -146,8 +146,9 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     auto functionSet = VarLenJoinsFunction::getFunctionSet();
     KU_ASSERT(functionSet.size() == 1);
     auto gdsFunction = functionSet[0]->constPtrCast<GDSFunction>()->copy();
+    auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
     auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, recursiveInfo->lowerBound,
-        recursiveInfo->upperBound, direction);
+        recursiveInfo->upperBound, semantic, direction);
     bindData->extendFromSource = *boundNode == *rel->getSrcNode();
     if (direction == common::ExtendDirection::BOTH) {
         bindData->directionExpr = recursiveInfo->pathEdgeDirectionsExpr;
