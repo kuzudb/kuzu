@@ -3,7 +3,7 @@ package com.kuzudb;
 /**
 * The Database class is the main class of KuzuDB. It manages all database components.
 */
-public class Database {
+public class Database implements AutoCloseable{
     long db_ref;
     String db_path;
     long buffer_size;
@@ -60,11 +60,11 @@ public class Database {
     }
 
     /**
-    * Finalize.
+    * Used to destroy all allocated memory of the data. Automatically called by AutoCloseable within try-with-resouce clauses.
     * @throws ObjectRefDestroyedException If the database instance has been destroyed.
     */
     @Override
-    protected void finalize() throws ObjectRefDestroyedException {
+    public void close() throws ObjectRefDestroyedException {
         destroy();
     }
 
@@ -72,7 +72,7 @@ public class Database {
     * Destroy the database instance.
     * @throws ObjectRefDestroyedException If the database instance has been destroyed.
     */
-    public void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         Native.kuzu_database_destroy(this);
         destroyed = true;
