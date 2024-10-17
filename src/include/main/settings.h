@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
 #include "common/types/value/value.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -109,11 +108,9 @@ struct DisableMapKeyCheck {
 struct EnableZoneMapSetting {
     static constexpr auto name = "enable_zone_map";
     static constexpr auto inputType = common::LogicalTypeID::BOOL;
-    static void setContext(ClientContext* /*context*/, const common::Value& parameter) {
+    static void setContext(ClientContext* context, const common::Value& parameter) {
         parameter.validateType(inputType);
-        // TODO(Guodong/Xiyang/Ben): Turn me on when zone map is ready.
-        throw common::NotImplementedException("Zone map is not yet ready to be turned on.");
-        // context->getClientConfigUnsafe()->enableZoneMap = parameter.getValue<bool>();
+        context->getClientConfigUnsafe()->enableZoneMap = parameter.getValue<bool>();
     }
     static common::Value getSetting(const ClientContext* context) {
         return common::Value(context->getClientConfig()->enableZoneMap);

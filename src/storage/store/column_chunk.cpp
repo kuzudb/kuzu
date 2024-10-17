@@ -190,6 +190,7 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
         data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
         return;
     }
+    data->updateStats(&values, values.state->getSelVector());
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }

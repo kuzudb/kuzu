@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const CompressionMetadata& metadata) {
+ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const ColumnChunkStats& metadata) const {
     for (auto& predicate : predicates) {
         if (predicate->checkZoneMap(metadata) == ZoneMapCheckResult::SKIP_SCAN) {
             return ZoneMapCheckResult::SKIP_SCAN;

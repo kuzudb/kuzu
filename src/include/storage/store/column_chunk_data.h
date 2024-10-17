@@ -12,6 +12,7 @@
 #include "storage/compression/compression.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/column_chunk_metadata.h"
+#include "storage/store/column_chunk_stats.h"
 #include "storage/store/column_reader_writer.h"
 #include "storage/store/in_memory_exception_chunk.h"
 
@@ -120,6 +121,9 @@ public:
         if (pos >= numValues) {
             numValues = pos + 1;
         }
+        if constexpr (StorageValueType<T>) {
+            inMemoryStats.update(StorageValue{val}, dataType.getPhysicalType());
+        }
     }
 
     bool isNull(common::offset_t pos) const;
@@ -189,9 +193,6 @@ public:
         common::RelMultiplicity multiplicity);
     virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
-    // TODO(Guodong): Used in `applyDeletionsToChunk`. Should unify with `write`.
-    virtual void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
     virtual void setToInMemory();
     // numValues must be at least the number of values the ColumnChunk was first initialized
@@ -234,6 +235,10 @@ public:
     void loadFromDisk();
     uint64_t spillToDisk();
 
+    ColumnChunkStats getMergedColumnChunkStats() const;
+
+    void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
+
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.
@@ -245,6 +250,8 @@ protected:
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
         const common::SelectionVector& selVector);
+
+    void resetInMemoryStats();
 
 private:
     using flush_buffer_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
@@ -272,6 +279,10 @@ protected:
 
     // On-disk metadata for column chunk.
     ColumnChunkMetadata metadata;
+
+    // Stats for any in-memory updates applied to the column chunk
+    // This will be merged with the on-disk metadata to get the overall stats
+    ColumnChunkStats inMemoryStats;
 };
 
 template<>

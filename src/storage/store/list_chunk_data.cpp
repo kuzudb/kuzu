@@ -314,17 +314,6 @@ void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     KU_ASSERT(sanityCheck());
 }
 
-void ListChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
-    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
-              srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::ARRAY);
-    KU_ASSERT(dstOffsetInChunk >= numValues);
-    while (numValues < dstOffsetInChunk) {
-        appendNullList();
-    }
-    append(srcChunk, srcOffsetInChunk, numValuesToCopy);
-}
-
 void ListChunkData::copyListValues(const list_entry_t& entry, ValueVector* dataVector) {
     auto numListValuesToCopy = entry.size;
     auto numListValuesCopied = 0u;

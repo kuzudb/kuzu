@@ -32,10 +32,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
     case LogicalOperatorType::CROSS_PRODUCT: {
         return visitCrossProductReplace(op);
     }
-        // TODO(Xiyang/Ben): enable filter push down to EXTEND after fixing zonemap of rel table.
-        //    case LogicalOperatorType::EXTEND: {
-        //        return visitExtendReplace(op);
-        //    }
+    case LogicalOperatorType::EXTEND: {
+        return visitExtendReplace(op);
+    }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return visitScanNodeTableReplace(op);
     }

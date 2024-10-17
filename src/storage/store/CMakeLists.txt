@@ -4,6 +4,7 @@ add_library(kuzu_storage_store
         column.cpp
         column_chunk.cpp
         column_chunk_data.cpp
+        column_chunk_stats.cpp
         csr_chunked_node_group.cpp
         csr_node_group.cpp
         column_reader_writer.cpp

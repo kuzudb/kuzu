@@ -26,3 +26,19 @@
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b) WHERE e.year < 1 RETURN COUNT(*)
 ---- 1
 0
+
+-CASE ZonemapWithUpdates
+-STATEMENT MATCH (a:person)-[e:knows|:meets]->(b:person) WHERE e.meetTime > timestamp('2025-01-01 11:22:33.53') RETURN a.ID, b.ID
+---- 0
+-STATEMENT MATCH (a:person)-[e:knows|:meets]->(b:person) WHERE a.ID = 7 AND b.ID = 8 SET e.meetTime = timestamp('2025-02-01 11:22:33.53')
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows|:meets]->(b:person) WHERE e.meetTime > timestamp('2025-01-01 11:22:33.53') RETURN a.ID, b.ID
+---- 1
+7|8
+-STATEMENT MATCH (a:person)-[e:knows|:meets]->(b:person) WHERE e.meetTime > timestamp('2026-01-01 11:22:33.53') RETURN a.ID, b.ID
+---- 0
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 3 AND b.ID = 9 CREATE (a)-[e:knows{meetTime:timestamp('2026-02-01 11:22:33.53')}]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows|:meets]->(b:person) WHERE e.meetTime > timestamp('2026-01-01 11:22:33.53') RETURN a.ID, b.ID
+---- 1
+3|9

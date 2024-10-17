@@ -3,6 +3,7 @@
 #include "common/type_utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "storage/compression/compression.h"
+#include "storage/store/column_chunk_stats.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -18,10 +19,11 @@ bool inRange(T min, T max, T val) {
 }
 
 template<typename T>
-ZoneMapCheckResult checkZoneMapSwitch(const CompressionMetadata& metadata,
+ZoneMapCheckResult checkZoneMapSwitch(const ColumnChunkStats& metadata,
     ExpressionType expressionType, const Value& value) {
-    auto max = metadata.max.get<T>();
-    auto min = metadata.min.get<T>();
+    KU_ASSERT(metadata.min.has_value() && metadata.max.has_value());
+    auto max = metadata.max->get<T>();
+    auto min = metadata.min->get<T>();
     auto constant = value.getValue<T>();
     switch (expressionType) {
     case ExpressionType::EQUALS: {
@@ -60,8 +62,7 @@ ZoneMapCheckResult checkZoneMapSwitch(const CompressionMetadata& metadata,
     return ZoneMapCheckResult::ALWAYS_SCAN;
 }
 
-ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(
-    const CompressionMetadata& metadata) const {
+ZoneMapCheckResult ColumnConstantPredicate::checkZoneMap(const ColumnChunkStats& metadata) const {
     auto physicalType = value.getDataType().getPhysicalType();
     return TypeUtils::visit(
         physicalType,

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/enums/zone_map_check_result.h"
 #include "common/mask.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/column.h"
@@ -35,7 +34,6 @@ struct TableScanState {
     std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
-    common::ZoneMapCheckResult zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
 
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
         : TableScanState{tableID, std::move(columnIDs), {}} {}
@@ -68,7 +66,6 @@ struct TableScanState {
         nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
         nodeGroup = nullptr;
         nodeGroupScanState->resetState();
-        zoneMapResult = common::ZoneMapCheckResult::ALWAYS_SCAN;
     }
 
     template<class TARGET>
