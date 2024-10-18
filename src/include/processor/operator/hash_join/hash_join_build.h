@@ -93,7 +93,8 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
-    void finalize(ExecutionContext* context) override;
+
+    void finalizeInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), operatorType, sharedState,
