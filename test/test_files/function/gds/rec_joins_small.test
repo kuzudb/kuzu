@@ -6,7 +6,6 @@
 # Multilabel1 graph: contains knows12 and knows21.
 # Multilabel2 graph: contains knows11, knows12, knows21, knows22.
 -DATASET CSV gds-rec-joins-small
--SKIP_WASM
 
 --
 
