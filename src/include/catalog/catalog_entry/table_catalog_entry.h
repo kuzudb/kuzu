@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/property_definition_collection.h"
 #include "common/enums/table_type.h"
+#include "common/types/types.h"
 #include "function/table_functions.h"
 
 namespace kuzu {
@@ -58,6 +59,7 @@ public:
     const binder::PropertyDefinition& getProperty(const std::string& propertyName) const;
     const binder::PropertyDefinition& getProperty(common::idx_t idx) const;
     virtual common::column_id_t getColumnID(const std::string& propertyName) const;
+    common::column_id_t getColumnID(common::idx_t idx) const;
     void addProperty(const binder::PropertyDefinition& propertyDefinition);
     void dropProperty(const std::string& propertyName);
     void renameProperty(const std::string& propertyName, const std::string& newName);
