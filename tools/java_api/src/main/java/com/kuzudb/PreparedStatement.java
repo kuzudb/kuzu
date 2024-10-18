@@ -17,7 +17,7 @@ public class PreparedStatement implements AutoCloseable {
     }
 
     /**
-    * Close the connection and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+    * Close the perparedStatement and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
     */
     @Override
