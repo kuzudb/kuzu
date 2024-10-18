@@ -8,6 +8,7 @@
 #include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/enums/expression_type.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 
@@ -95,6 +96,9 @@ using options_t = std::unordered_map<std::string, std::unique_ptr<parser::Parsed
 
 struct ParsedExpressionUtils {
     static std::unique_ptr<ParsedExpression> getSerialDefaultExpr(const std::string& sequenceName);
+    static void validateType(const ParsedExpression& expr, common::ExpressionType type);
+    static void validateDataType(const ParsedExpression& expr, const common::LogicalType& type);
+    static std::string getStringLiteralValue(const kuzu::parser::ParsedExpression& expr);
 };
 
 } // namespace parser
