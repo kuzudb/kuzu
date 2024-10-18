@@ -92,9 +92,3 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
 #endif
-
-TEST_F(CApiDatabaseTest, CreationInMemory1) {
-    createDBAndConn();
-    printf("%s", conn->query("CALL clear_warnings();")->toString().c_str());
-    printf("%s", conn->query("CALL show_tables();")->toString().c_str());
-}

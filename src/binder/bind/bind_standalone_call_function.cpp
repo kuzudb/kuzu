@@ -33,8 +33,8 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
-    return std::make_unique<BoundStandaloneCallFunction>(*tableFunc, std::move(bindData),
-        std::move(offset));
+    BoundTableFunction boundTableFunction{*tableFunc, std::move(bindData), std::move(offset)};
+    return std::make_unique<BoundStandaloneCallFunction>(std::move(boundTableFunction));
 }
 
 } // namespace binder
