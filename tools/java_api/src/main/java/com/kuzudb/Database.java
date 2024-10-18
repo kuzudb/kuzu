@@ -51,7 +51,7 @@ public class Database implements AutoCloseable{
     }
 
     /**
-    * Checks if the Database instance has been destroyed.
+    * Checks if the database instance has been destroyed.
     * @throws ObjectRefDestroyedException If the database instance is destroyed.
     */
     private void checkNotDestroyed() throws ObjectRefDestroyedException {

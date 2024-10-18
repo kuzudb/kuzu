@@ -31,7 +31,7 @@ public class Connection implements AutoCloseable {
     }
 
     /**
-    * Close the Connection and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.    
+    * Close the connection and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.    
     * @throws ObjectRefDestroyedException If the connection has been destroyed.
     */
     @Override
