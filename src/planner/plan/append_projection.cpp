@@ -29,9 +29,7 @@ void Planner::appendProjection(const expression_vector& expressionsToProject, Lo
             appendFlattens(groupsPosToFlatten, plan);
         }
     }
-    auto printInfo = std::make_unique<OPPrintInfo>();
-    auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator(),
-        std::move(printInfo));
+    auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
     projection->computeFactorizedSchema();
     plan.setLastOperator(std::move(projection));
 }

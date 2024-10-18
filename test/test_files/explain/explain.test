@@ -1,4 +1,4 @@
--DATASET CSV empty
+-DATASET CSV tinysnb
 
 --
 
@@ -31,6 +31,16 @@
 -STATEMENT create node table npytable1 (id INT64,i64 INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT EXPLAIN LOGICAL copy npytable1 from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy") BY COLUMN;
+---- ok
+
+-LOG ExplainLogicalMatch
+-STATEMENT EXPLAIN LOGICAL MATCH (p:person) RETURN p;
+---- ok
+-STATEMENT EXPLAIN LOGICAL MATCH (p1:person)-[e:knows]->(p2:person) RETURN *;
+---- ok
+
+-LOG ExplainLogicalFilter
+-STATEMENT EXPLAIN LOGICAL MATCH (p:person) WHERE p.gender='F' RETURN p;
 ---- ok
 
 -LOG ExplainLogicalCall
