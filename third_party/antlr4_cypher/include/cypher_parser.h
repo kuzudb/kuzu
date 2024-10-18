@@ -704,7 +704,8 @@ public:
     antlr4::tree::TerminalNode *REL();
     antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
-    KU_RelTableConnectionContext *kU_RelTableConnection();
+    std::vector<KU_RelTableConnectionContext *> kU_RelTableConnection();
+    KU_RelTableConnectionContext* kU_RelTableConnection(size_t i);
     KU_IfNotExistsContext *kU_IfNotExists();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     OC_SymbolicNameContext *oC_SymbolicName();

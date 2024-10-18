@@ -75,17 +75,37 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     if (ctx.oC_SymbolicName()) {
         relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
     }
-    auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
-    auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
-    auto createTableInfo = CreateTableInfo(TableType::REL, tableName,
+    // Collect all the source-destination table pairs
+    std::vector<std::pair<std::string, std::string>> srcDstTablePairs;
+    for (auto& connection : ctx.kU_RelTableConnection()) {
+        auto srcTableName = transformSchemaName(*connection->oC_SchemaName(0));
+        auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
+        srcDstTablePairs.emplace_back(srcTableName, dstTableName);
+    }
+    
+    // Determine the table type based on the number of connections
+    TableType tableType = srcDstTablePairs.size() > 1 ? TableType::REL_GROUP : TableType::REL;
+
+    auto createTableInfo = CreateTableInfo(tableType, tableName,
         ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                common::ConflictAction::ON_CONFLICT_THROW);
+    
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
-        std::move(srcTableName), std::move(dstTableName));
+    
+    // Set the appropriate extraInfo based on whether it's a table group or a single table
+    if (srcDstTablePairs.size() > 1) {
+        // Multiple connections: treat as a "relational table group"
+        createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
+            std::move(srcDstTablePairs));
+    } else {
+        // Single connection: treat as a simple relational table
+        createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
+            std::move(srcDstTablePairs[0].first), std::move(srcDstTablePairs[0].second));
+    }
+
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
