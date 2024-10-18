@@ -18,7 +18,7 @@ public class ConnectionTest extends TestBase {
 
     @Test
     void ConnCreationAndDestroy() {
-        try ( Connection conn = new Connection(db);) {
+        try ( Connection conn = new Connection(db)) {
         } catch (AssertionError e) {
             fail("ConnCreationAndDestroy failed");
         } catch (ObjectRefDestroyedException e) {

@@ -30,7 +30,7 @@ public class DataType implements AutoCloseable {
     }
 
     /**
-    * Used to destroy all allocated memory of the data. Automatically called by AutoCloseable within try-with-resouce clauses.
+    * Close the connection and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
     */
     @Override
