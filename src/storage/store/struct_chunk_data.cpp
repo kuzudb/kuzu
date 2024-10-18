@@ -160,6 +160,14 @@ void StructChunkData::resize(uint64_t newCapacity) {
     }
 }
 
+void StructChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
+    ColumnChunkData::resizeWithoutPreserve(newCapacity);
+    capacity = newCapacity;
+    for (const auto& child : childChunks) {
+        child->resizeWithoutPreserve(newCapacity);
+    }
+}
+
 void StructChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     for (const auto& child : childChunks) {
