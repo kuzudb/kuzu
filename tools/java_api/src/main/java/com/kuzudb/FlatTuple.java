@@ -17,7 +17,7 @@ public class FlatTuple implements AutoCloseable {
     }
 
     /**
-    * Close the FlatTuple and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+    * Close the flat tuple and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      * @throws ObjectRefDestroyedException If the flat tuple has been destroyed.
      */
     @Override

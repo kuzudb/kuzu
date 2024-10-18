@@ -18,7 +18,7 @@ public class QueryResult implements AutoCloseable {
     }
 
     /**
-    * Close the QueryResult and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+    * Close the query result and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     @Override

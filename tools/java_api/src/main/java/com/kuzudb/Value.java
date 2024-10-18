@@ -52,7 +52,7 @@ public class Value implements AutoCloseable {
     }
 
     /**
-    * Close the Value and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+    * Close the value and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
     @Override
