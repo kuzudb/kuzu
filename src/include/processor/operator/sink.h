@@ -44,5 +44,24 @@ protected:
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
 };
 
+class DummySink : public Sink {
+public:
+    DummySink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::DUMMY_SINK, std::move(child),
+              id, std::move(printInfo)} {}
+
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<DummySink>(resultSetDescriptor->copy(), children[0]->clone(), id,
+            printInfo->copy());
+    }
+
+protected:
+    void executeInternal(kuzu::processor::ExecutionContext* context) override {
+        while (children[0]->getNextTuple(context)) {}
+    }
+};
+
 } // namespace processor
 } // namespace kuzu
