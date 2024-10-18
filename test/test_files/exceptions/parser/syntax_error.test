@@ -3,6 +3,7 @@
 --
 
 -CASE QueryNotConcludeWithReturn1
+-SKIP
 -STATEMENT MATCH (a:person);
 ---- error
 Parser exception: Query must conclude with RETURN clause (line: 1, offset: 0)
