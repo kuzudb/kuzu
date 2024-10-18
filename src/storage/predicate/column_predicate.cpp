@@ -1,6 +1,7 @@
 #include "storage/predicate/column_predicate.h"
 
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "storage/predicate/constant_predicate.h"
 
 using namespace kuzu::binder;
@@ -9,9 +10,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const ColumnChunkStats& metadata) const {
+ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const ColumnChunkStats& stats) const {
     for (auto& predicate : predicates) {
-        if (predicate->checkZoneMap(metadata) == ZoneMapCheckResult::SKIP_SCAN) {
+        if (predicate->checkZoneMap(stats) == ZoneMapCheckResult::SKIP_SCAN) {
             return ZoneMapCheckResult::SKIP_SCAN;
         }
     }
@@ -33,8 +34,19 @@ static bool isColumnRef(ExpressionType type) {
     return type == ExpressionType::PROPERTY || type == ExpressionType::VARIABLE;
 }
 
+static bool isCastedColumnRef(const Expression& expr) {
+    if (expr.expressionType == ExpressionType::FUNCTION) {
+        const auto& funcExpr = expr.constCast<ScalarFunctionExpression>();
+        if (funcExpr.getFunction().name.starts_with("CAST") && funcExpr.getNumChildren() > 0) {
+            return isColumnRef(funcExpr.getChild(0)->expressionType);
+        }
+    }
+    return false;
+}
+
 static bool isColumnRefConstantPair(const Expression& left, const Expression& right) {
-    return isColumnRef(left.expressionType) && right.expressionType == ExpressionType::LITERAL;
+    return (isColumnRef(left.expressionType) || isCastedColumnRef(left)) &&
+           right.expressionType == ExpressionType::LITERAL;
 }
 
 static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const Expression& column,
