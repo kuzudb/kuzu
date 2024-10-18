@@ -1,11 +1,13 @@
 #include "function/create_fts_index.h"
 
+#include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
 #include "fts_extension.h"
 #include "function/table/bind_input.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -53,6 +55,60 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         std::move(columnTypes), std::move(columnNames), 1 /* one row result */);
 }
 
+std::string createFTSIndexQuery(ClientContext& context,
+    std::vector<parser::ParsedExpression*> parameters) {
+    for (auto& parameter : parameters) {
+        parser::ParsedExpressionUtils::validateType(*parameter, ExpressionType::LITERAL);
+        parser::ParsedExpressionUtils::validateDataType(*parameter, LogicalType::STRING());
+    }
+    auto tableName = parser::ParsedExpressionUtils::getStringLiteralValue(*parameters[0]);
+    auto indexName = parser::ParsedExpressionUtils::getStringLiteralValue(*parameters[1]);
+    auto properties = parameters[2]->constCast<parser::ParsedLiteralExpression>().getValue();
+
+    // Create tokenize macro.
+    std::string query = "CREATE MACRO tokenize(query) AS "
+                        "string_split(regexp_replace(CAST(query as STRING), "
+                        "'[0-9!@#$%^&*()_+={}\[\]:;<>,.?~\/\|\\'\"-]+', ' '), ' ');";
+
+    // Create stop words table.
+    query += common::stringFormat("CREATE NODE TABLE {}_{}_stopwords (sw STRING, PRIMARY KEY(sw));",
+        tableName);
+    for (auto i = 0u; i < FTSExtension::NUM_STOP_WORDS; i++) {
+        query += common::stringFormat("CREATE (s:{}_{}_stopwords {sw: \"{}\"});", tableName,
+            indexName, FTSExtension::STOP_WORDS[i]);
+    }
+
+    // Create terms_in_doc table which servers as a temporary table to store the relationship
+    // between terms and docs.
+    query += "CREATE NODE TABLE {}_{}_terms_in_doc (ID SERIAL, term string, docID INT64, primary "
+             "key(ID))";
+    for (auto i = 0u; i < properties.getChildrenSize(); i++) {
+        auto propertyValue = NestedVal::getChildVal(&properties, i);
+        KU_ASSERT(propertyValue->getDataType() == LogicalType::STRING());
+        auto property = propertyValue->getValue<std::string>();
+        query += common::stringFormat("COPY {}_{}_terms_in_doc FROM "
+                                      "(MATCH (b:{}) "
+                                      "WITH tokenize(b.{}) AS tk, OFFSET(ID(b)) AS id "
+                                      "UNWIND tk AS t "
+                                      "WITH t AS t1, id AS id1 "
+                                      "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND NOT EXISTS {MATCH "
+                                      "(s:{}_stopwords {sw: t1})} "
+                                      "RETURN STEM(t1, 'porter'), id1);",
+            tableName, indexName, tableName, property, tableName);
+    }
+    query += common::stringFormat(
+        "CREATE NODE TABLE {}_{}_docs (docID INT64, len UINT64, primary key(offset))", tableName,
+        indexName);
+    query += common::stringFormat("COPY {}_{}_docs FROM "
+                                  "(MATCH (n:{}), (t:{}_{}_terms_in_doc) "
+                                  "WHERE OFFSET(ID(n)) = t.offset "
+                                  "RETURN OFFSET(ID(n)), CAST(count(t) AS UINT64) "
+                                  "ORDER BY OFFSET(ID(n)));",
+        tableName, indexName, tableName, tableName, indexName);
+
+    return query;
+}
+
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
     auto bindData = data.bindData->constPtrCast<CreateFTSBindData>();
     auto& dataChunk = output.dataChunk;
@@ -64,8 +120,6 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
     auto context = data.context;
     auto catalog = context->getCatalog();
     auto tableName = bindData->tableName;
-    auto table = catalog->getTableCatalogEntry(context->getTx(), tableName)
-                     ->constPtrCast<catalog::NodeTableCatalogEntry>();
     std::string query = "CREATE MACRO tokenize(query) AS "
                         "string_split(regexp_replace(CAST(query as STRING), "
                         "'[0-9!@#$%^&*()_+={}\[\]:;<>,.?~\/\|\\'\"-]+', ' '), ' ');";
@@ -77,8 +131,6 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         context->runQuery(common::stringFormat("CREATE (s:{}_stopwords {sw: \"{}\"})", tableName,
             FTSExtension::STOP_WORDS[i]));
     }
-
-    auto& pk = table->getPrimaryKeyDefinition();
 
     query = common::stringFormat(
         "CREATE NODE TABLE {}_terms_list (ID SERIAL, term string, offset INT64, primary key(ID))",
