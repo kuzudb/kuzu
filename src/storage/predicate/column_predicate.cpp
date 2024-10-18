@@ -49,17 +49,23 @@ static bool isColumnRefConstantPair(const Expression& left, const Expression& ri
            right.expressionType == ExpressionType::LITERAL;
 }
 
+static bool columnMatchesLHSChild(const Expression& column, const Expression& castFunction) {
+    return (castFunction.getNumChildren() > 0 && column == *castFunction.getChild(0));
+}
+
 static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const Expression& column,
     const Expression& predicate) {
     if (isColumnRefConstantPair(*predicate.getChild(0), *predicate.getChild(1))) {
-        if (column != *predicate.getChild(0)) {
+        if (column != *predicate.getChild(0) &&
+            !columnMatchesLHSChild(column, *predicate.getChild(0))) {
             return nullptr;
         }
         auto value = predicate.getChild(1)->constCast<LiteralExpression>().getValue();
         return std::make_unique<ColumnConstantPredicate>(column.toString(),
             predicate.expressionType, value);
     } else if (isColumnRefConstantPair(*predicate.getChild(1), *predicate.getChild(0))) {
-        if (column != *predicate.getChild(1)) {
+        if (column != *predicate.getChild(1) &&
+            !columnMatchesLHSChild(column, *predicate.getChild(1))) {
             return nullptr;
         }
         auto value = predicate.getChild(0)->constCast<LiteralExpression>().getValue();
