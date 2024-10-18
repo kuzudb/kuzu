@@ -15,11 +15,11 @@ public:
         main::Connection& conn);
 
 private:
-    static bool testStatement(TestStatement* statement, main::Connection& conn,
+    static void testStatement(TestStatement* statement, main::Connection& conn,
         std::string& databasePath);
-    static bool checkLogicalPlans(std::unique_ptr<main::PreparedStatement>& preparedStatement,
+    static void checkLogicalPlans(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, size_t resultIdx, main::Connection& conn);
-    static bool checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
+    static void checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, size_t resultIdx, main::Connection& conn, uint32_t planIdx);
     static bool checkResultNumeric(main::QueryResult& resultTuples, TestStatement* statement,
         size_t resultIdx);
@@ -28,7 +28,7 @@ private:
     static std::string convertResultToMD5Hash(main::QueryResult& queryResult, bool checkOutputOrder,
         bool checkColumnNames); // returns hash and number of values hashed
     static std::string convertResultColumnsToString(main::QueryResult& queryResult);
-    static bool checkPlanResult(std::unique_ptr<main::QueryResult>& result,
+    static void checkPlanResult(std::unique_ptr<main::QueryResult>& result,
         TestStatement* statement, size_t resultIdx, const std::string& planStr, uint32_t planIdx);
 };
 
