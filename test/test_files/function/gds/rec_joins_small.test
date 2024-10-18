@@ -10,7 +10,7 @@
 --
 
 -CASE GDSSmall
-
+-SKIP_WASM
 -STATEMENT CALL enable_gds = true;
 ---- ok
 -STATEMENT MATCH p = (a:person1)-[e:knows11*1..4 (r, n | WHERE r.score  < 1)]->(b:person1)
