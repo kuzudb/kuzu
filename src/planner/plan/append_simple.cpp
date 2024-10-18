@@ -81,11 +81,10 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
 
 void Planner::appendStandaloneCallFunction(const BoundStatement& statement, LogicalPlan& plan) {
     auto& standaloneCallFunctionClause = statement.constCast<BoundStandaloneCallFunction>();
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto op =
         std::make_shared<LogicalTableFunctionCall>(standaloneCallFunctionClause.getTableFunction(),
             standaloneCallFunctionClause.getBindData()->copy(), binder::expression_vector{},
-            standaloneCallFunctionClause.getOffset(), std::move(printInfo));
+            standaloneCallFunctionClause.getOffset());
     plan.setLastOperator(std::move(op));
 }
 
