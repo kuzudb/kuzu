@@ -30,7 +30,7 @@ public class DataType implements AutoCloseable {
     }
 
     /**
-    * Close the dataType and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+    * Close the DataType and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
     * @throws ObjectRefDestroyedException If the data type instance has been destroyed.
     */
     @Override
