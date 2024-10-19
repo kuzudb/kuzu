@@ -163,7 +163,8 @@ bool isInsideCommentOrQuote(const std::string& buffer) {
            insideSingleQuote;
 }
 
-void findTableVariableNames(const std::string buf, std::regex tableRegex, std::vector<std::string> &tempTableNames, std::vector<std::string> &foundTableNames) {
+void findTableVariableNames(const std::string buf, std::regex tableRegex,
+    std::vector<std::string>& tempTableNames, std::vector<std::string>& foundTableNames) {
     auto matches_begin = std::sregex_iterator(buf.begin(), buf.end(), tableRegex);
     auto matches_end = std::sregex_iterator();
 
