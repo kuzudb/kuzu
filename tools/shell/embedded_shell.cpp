@@ -73,6 +73,7 @@ const std::regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 
 std::vector<std::string> nodeTableNames;
 std::vector<std::string> relTableNames;
+std::unordered_map<std::string, std::vector<std::string>> tableColumnNames;
 
 bool continueLine = false;
 std::string currLine;
@@ -90,13 +91,19 @@ DWORD oldOutputCP;
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& nodeTableEntry :
-        database->catalog->getNodeTableEntries(&transaction::DUMMY_TRANSACTION)) {
-        nodeTableNames.push_back(nodeTableEntry->getName());
-    }
-    for (auto& relTableEntry :
-        database->catalog->getRelTableEntries(&transaction::DUMMY_TRANSACTION)) {
-        relTableNames.push_back(relTableEntry->getName());
+    for (auto& tableEntry : database->catalog->getTableEntries(&transaction::DUMMY_TRANSACTION)) {
+        if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
+            nodeTableNames.push_back(tableEntry->getName());
+        } else if (tableEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY) {
+            relTableNames.push_back(tableEntry->getName());
+        } else {
+            continue;
+        }
+        std::vector<std::string> columnNames;
+        for (auto& column : tableEntry->getProperties()) {
+            columnNames.push_back(column.getName());
+        }
+        tableColumnNames[tableEntry->getName()] = columnNames;
     }
 }
 
@@ -156,6 +163,18 @@ bool isInsideCommentOrQuote(const std::string& buffer) {
            insideSingleQuote;
 }
 
+void findTableVariableNames(const std::string buf, std::regex tableRegex,
+    std::vector<std::string>& tempTableNames, std::vector<std::string>& foundTableNames) {
+    auto matches_begin = std::sregex_iterator(buf.begin(), buf.end(), tableRegex);
+    auto matches_end = std::sregex_iterator();
+
+    for (std::sregex_iterator i = matches_begin; i != matches_end; ++i) {
+        std::smatch match = *i;
+        tempTableNames.push_back(match[1].str());
+        foundTableNames.push_back(match[2].str());
+    }
+}
+
 void completion(const char* buffer, linenoiseCompletions* lc) {
     std::string buf = std::string(buffer);
 
@@ -193,6 +212,17 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         return;
     }
 
+    std::vector<std::string> tempTableNames;
+    std::vector<std::string> foundTableNames;
+    for (auto& node : nodeTableNames) {
+        std::regex nodeTableRegex("\\(([^:]+):(" + node + ")\\)");
+        findTableVariableNames(buf, nodeTableRegex, tempTableNames, foundTableNames);
+    }
+    for (auto& rel : relTableNames) {
+        std::regex relTableRegex("\\[([^:]+):(" + rel + ")\\]");
+        findTableVariableNames(buf, relTableRegex, tempTableNames, foundTableNames);
+    }
+
     // Keyword completion.
     std::string prefix;
     auto lastKeywordPos = buf.rfind(' ') + 1;
@@ -203,6 +233,24 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     if (buf.empty()) {
         return;
     }
+
+    for (size_t i = 0; i < tempTableNames.size(); ++i) {
+        if (regex_search(buf, std::regex("^" + tempTableNames[i] + R"(\.[^.]*)"))) {
+            auto it = tableColumnNames.find(foundTableNames[i]);
+            if (it != tableColumnNames.end()) {
+                auto columnNames = it->second;
+                for (auto& columnName : columnNames) {
+                    if (regex_search(columnName,
+                            std::regex("^" + buf.substr(tempTableNames[i].size() + 1)))) {
+                        linenoiseAddCompletion(lc,
+                            (prefix + tempTableNames[i] + "." + columnName).c_str());
+                    }
+                }
+            }
+            return;
+        }
+    }
+
     for (std::string keyword : keywordList) {
         std::string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
         if (regex_search(keyword, std::regex("^" + bufEscaped, std::regex_constants::icase))) {
