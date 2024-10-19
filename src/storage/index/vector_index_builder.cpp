@@ -55,24 +55,26 @@ void VectorIndexGraph::populatePartitionBuffer(processor::PartitioningBuffer& pa
     }
 }
 
-VectorIndexBuilder::VectorIndexBuilder(VectorIndexHeader* header, VectorIndexGraph* graphStorage,
+VectorIndexBuilder::VectorIndexBuilder(VectorIndexHeader* header, int partitionId, VectorIndexGraph* graphStorage,
     VectorTempStorage* vectorTempStorage)
     : header(header), graphStorage(graphStorage), vectorTempStorage(vectorTempStorage),
-      locks(std::vector<std::mutex>(vectorTempStorage->numVectors)) {}
+      locks(std::vector<std::mutex>(vectorTempStorage->numVectors)) {
+    partitionHeader = header->getPartitionHeader(partitionId);
+}
 
 void VectorIndexBuilder::searchNNOnUpperLevel(DistanceComputer* dc, vector_id_t& nearest,
     double& nearestDist) {
     while (true) {
         vector_id_t prev_nearest = nearest;
         size_t begin, end;
-        auto neighbors = header->getNeighbors(nearest, begin, end);
+        auto neighbors = partitionHeader->getNeighbors(nearest, begin, end);
         for (size_t i = begin; i < end; i++) {
             vector_id_t neighbor = neighbors[i];
             if (neighbor == INVALID_VECTOR_ID) {
                 break;
             }
             double dist;
-            dc->computeDistance(header->getActualId(neighbor), &dist);
+            dc->computeDistance(partitionHeader->getActualId(neighbor), &dist);
             if (dist < nearestDist) {
                 nearest = neighbor;
                 nearestDist = dist;
@@ -246,11 +248,11 @@ void VectorIndexBuilder::findEntrypointUsingUpperLayer(DistanceComputer* dc,
     vector_id_t& entrypoint, double* entrypointDist) {
     // TODO: This should be behind some lock
     uint8_t entrypointLevel;
-    header->getEntrypoint(entrypoint, entrypointLevel);
+    partitionHeader->getEntrypoint(entrypoint, entrypointLevel);
     if (entrypointLevel == 1) {
-        dc->computeDistance(header->getActualId(entrypoint), entrypointDist);
+        dc->computeDistance(partitionHeader->getActualId(entrypoint), entrypointDist);
         searchNNOnUpperLevel(dc, entrypoint, *entrypointDist);
-        entrypoint = header->getActualId(entrypoint);
+        entrypoint = partitionHeader->getActualId(entrypoint);
     } else {
         dc->computeDistance(entrypoint, entrypointDist);
     }
@@ -260,15 +262,15 @@ void VectorIndexBuilder::insertNodeInUpperLayer(vector_id_t id, VisitedTable* vi
     DistanceComputer* dc) {
     std::vector<NodeDistCloser> backNbrs;
     {
-        auto actualId = header->getActualId(id);
+        auto actualId = partitionHeader->getActualId(id);
         std::lock_guard<std::mutex> lock(locks[actualId]);
         dc->setQuery(vectorTempStorage->getVector(actualId));
         vector_id_t entrypoint;
         uint8_t entrypointLevel;
-        header->getEntrypoint(entrypoint, entrypointLevel);
+        partitionHeader->getEntrypoint(entrypoint, entrypointLevel);
         double entrypointDist;
         if (entrypointLevel == 1) {
-            dc->computeDistance(header->getActualId(entrypoint), &entrypointDist);
+            dc->computeDistance(partitionHeader->getActualId(entrypoint), &entrypointDist);
         } else {
             entrypoint = id;
             entrypointDist = 0;
@@ -277,20 +279,20 @@ void VectorIndexBuilder::insertNodeInUpperLayer(vector_id_t id, VisitedTable* vi
             dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrsAtUpperLevel,
             header->getConfig().efConstruction, visited, backNbrs,
             [&](vector_id_t _id, size_t& begin, size_t& end) {
-                return header->getNeighbors(_id, begin, end);
+                return partitionHeader->getNeighbors(_id, begin, end);
             },
-            [&](vector_id_t _id) { return header->getActualId(_id); });
+            [&](vector_id_t _id) { return partitionHeader->getActualId(_id); });
     }
     // Now update the neighbors of the back neighbors
     for (auto& backNbr : backNbrs) {
         {
-            std::lock_guard<std::mutex> lock(locks[header->getActualId(backNbr.id)]);
+            std::lock_guard<std::mutex> lock(locks[partitionHeader->getActualId(backNbr.id)]);
             makeConnection(
                 dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrsAtUpperLevel,
                 [&](vector_id_t _id, size_t& begin, size_t& end) {
-                    return header->getNeighbors(_id, begin, end);
+                    return partitionHeader->getNeighbors(_id, begin, end);
                 },
-                [&](vector_id_t _id) { return header->getActualId(_id); });
+                [&](vector_id_t _id) { return partitionHeader->getActualId(_id); });
         }
     }
 }
@@ -331,21 +333,21 @@ void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* ve
     std::vector<vector_id_t> upperLayerVectorIds;
     // first copy the vectors to the temporary storage
     vectorTempStorage->copyVectors(vectors, vectorIds, numVectors);
-    header->update(vectorIds, numVectors, upperLayerVectorIds);
+    partitionHeader->update(vectorIds, numVectors, upperLayerVectorIds);
 
     std::unordered_map<vector_id_t, vector_id_t> vectorsInUpperLayer;
     for (auto id : upperLayerVectorIds) {
-        vectorsInUpperLayer[header->getActualId(id)] = id;
+        vectorsInUpperLayer[partitionHeader->getActualId(id)] = id;
     }
 
     // Now insert the vectors in the lower layer
     for (uint64_t i = 0; i < numVectors; i++) {
         auto id = vectorIds[i];
-        header->updateEntrypoint(id, 0);
+        partitionHeader->updateEntrypoint(id, 0);
         insertNodeInLowerLayer(id, visited, dc);
         if (vectorsInUpperLayer.contains(id)) {
             insertNodeInUpperLayer(vectorsInUpperLayer[id], visited, dc);
-            header->updateEntrypoint(vectorsInUpperLayer[id], 1);
+            partitionHeader->updateEntrypoint(vectorsInUpperLayer[id], 1);
         }
     }
 }

@@ -16,6 +16,7 @@ struct VectorIndexConfig {
     constexpr static const char* EF_CONSTRUCTION = "EFCONSTRUCTION";
     constexpr static const char* EF_SEARCH = "EFSEARCH";
     constexpr static const char* ALPHA = "ALPHA";
+    constexpr static const char* NUM_VECTORS_PER_PARTITION = "NUMVECTORSPERPARTITION";
 
     // The maximum number of neighbors to keep for each node at the upper level
     int maxNbrsAtUpperLevel = 64;
@@ -34,6 +35,9 @@ struct VectorIndexConfig {
 
     // The alpha parameter for the RNG heuristic
     float alpha = 1.0;
+
+    // The number of node groups per partition
+    int numberVectorsPerPartition = 1000000;
 
     VectorIndexConfig() = default;
 
@@ -56,6 +60,8 @@ struct VectorIndexConfig {
                 config.efSearch = value.getValue<int64_t>();
             } else if (key == ALPHA) {
                 config.alpha = value.getValue<double>();
+            } else if (key == NUM_VECTORS_PER_PARTITION) {
+                config.numberVectorsPerPartition = value.getValue<int64_t>();
             } else {
                 KU_ASSERT(false);
             }
@@ -70,6 +76,7 @@ struct VectorIndexConfig {
         serializer.serializeValue(efConstruction);
         serializer.serializeValue(efSearch);
         serializer.serializeValue(alpha);
+        serializer.serializeValue(numberVectorsPerPartition);
     }
 
     static VectorIndexConfig deserialize(Deserializer& deserializer) {
@@ -80,6 +87,7 @@ struct VectorIndexConfig {
         deserializer.deserializeValue(config.efConstruction);
         deserializer.deserializeValue(config.efSearch);
         deserializer.deserializeValue(config.alpha);
+        deserializer.deserializeValue(config.numberVectorsPerPartition);
         return config;
     }
 };

@@ -56,7 +56,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
         auto semiMask = std::make_unique<NodeVectorLevelSemiMask>(tableID,
             table->getMaxNodeOffset(clientContext->getTx()));
-        sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>(std::move(semiMask)));
+        sharedStates.push_back(
+                std::make_shared<ScanNodeTableSharedState>(std::move(semiMask), scan.getStartNodeGroupId(),
+                                                           scan.getEndNodeGroupId()));
     }
 
     auto printInfo = std::make_unique<OPPrintInfo>(scan.getExpressionsForPrinting());

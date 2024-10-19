@@ -220,7 +220,7 @@ std::optional<offset_t> RelBatchInsert::checkRelMultiplicityConstraint(
 
 void RelBatchInsert::finalize(ExecutionContext* context) {
     auto relInfo = ku_dynamic_cast<BatchInsertInfo*, RelBatchInsertInfo*>(info.get());
-    if (relInfo->direction == RelDataDirection::FWD) {
+    if (relInfo->direction == callFinalizeDirection) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
         sharedState->updateNumTuplesForTable();

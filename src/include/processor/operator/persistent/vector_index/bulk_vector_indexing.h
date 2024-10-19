@@ -14,24 +14,26 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+    struct BulkVectorIndexingSharedState {
+        VectorIndexHeader *header;
+        int partitionId;
+        VectorIndexHeaderPerPartition *headerPerPartition;
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState;
 
-struct BulkVectorIndexingSharedState {
-    offset_t maxOffsetNodeTable;
-    VectorIndexHeader* header;
-    std::shared_ptr<PartitionerSharedState> partitionerSharedState;
+        std::unique_ptr<VectorIndexBuilder> builder;
+        std::unique_ptr<VectorIndexGraph> graph;
+        std::unique_ptr<VectorTempStorage> tempStorage;
+        std::unique_ptr<CompressedVectorStorage> compressedStorage;
+        Column *compressedPropertyColumn;
+        std::latch compressionLatch;
+        offset_t startOffsetNodeTable;
 
-    std::unique_ptr<VectorIndexBuilder> builder;
-    std::unique_ptr<VectorIndexGraph> graph;
-    std::unique_ptr<VectorTempStorage> tempStorage;
-    std::unique_ptr<CompressedVectorStorage> compressedStorage;
-    Column* compressedPropertyColumn;
-    std::latch compressionLatch;
-
-    explicit BulkVectorIndexingSharedState(offset_t maxOffsetNodeTable, VectorIndexHeader* header,
-        std::shared_ptr<PartitionerSharedState> partitionerSharedState, int numThreads)
-        : maxOffsetNodeTable{maxOffsetNodeTable}, header{header},
-          partitionerSharedState{partitionerSharedState}, compressionLatch(numThreads) {}
-};
+        explicit BulkVectorIndexingSharedState(VectorIndexHeader *header, int partitionId,
+                                               std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+                                               int numThreads)
+                : header{header}, partitionId{partitionId},
+                  partitionerSharedState{partitionerSharedState}, compressionLatch(numThreads) {}
+    };
 
 struct BulkVectorIndexingLocalState {
     DataPos offsetPos;
@@ -65,13 +67,11 @@ public:
 
     void finalize(ExecutionContext* context) override;
 
-    void testGraph();
-
     std::unique_ptr<PhysicalOperator> clone() final;
 
 private:
     //    void printGraph();
-
+    void testGraph();
 private:
     std::unique_ptr<BulkVectorIndexingLocalState> localState;
     std::shared_ptr<BulkVectorIndexingSharedState> sharedState;

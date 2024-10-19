@@ -5,6 +5,7 @@
 #include "planner/operator/logical_update_vector_index.h"
 #include "planner/planner.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 
@@ -45,14 +46,37 @@ void Planner::appendUpdateVectorIndex(const binder::BoundStatement& statement, L
         embeddingProperty->getName(), embeddingProperty->getName(), embeddingProperty->getName(),
         std::move(embeddingInfo));
 
-    // Append the scan node properties
-    appendScanNodeTable(offset, {tableEntry->getTableID()}, {embedding}, plan);
+    auto header = clientContext->getStorageManager()->getVectorIndexHeaderReadOnlyVersion(tableEntry->getTableID(),
+        embeddingProperty->getPropertyID());
+    KU_ASSERT_MSG(header != nullptr, "Vector index header not found");
+    auto partitionCount = header->getNumPartitions();
+    KU_ASSERT_MSG(partitionCount > 0, "Partition count is 0");
 
-    // Append the create vector index node
-    auto op = make_shared<LogicalUpdateVectorIndex>(tableEntry->getName(),
-        embeddingProperty->getName(), tableEntry->getTableID(), embeddingProperty->getPropertyID(),
-        offset, embedding, outExprs, plan.getLastOperator());
-    plan.setLastOperator(std::move(op));
+    // 0 is the default partition id
+    auto mainPartition = header->getPartitionHeader(0);
+    KU_ASSERT_MSG(mainPartition != nullptr, "First partition header not found");
+    appendScanNodeTable(offset, {tableEntry->getTableID()}, {embedding}, plan, mainPartition->getStartNodeGroupId(),
+                        mainPartition->getEndNodeGroupId());
+    auto children = logical_op_vector_t();
+    children.push_back(plan.getLastOperator());
+    auto mainOp = make_shared<LogicalUpdateVectorIndex>(tableEntry->getName(),
+                                                    embeddingProperty->getName(), tableEntry->getTableID(),
+                                                    embeddingProperty->getPropertyID(),
+                                                    offset, embedding, outExprs, 0, children);
+    for (auto i = 1; i < partitionCount; i++) {
+        auto partition = header->getPartitionHeader(i);
+        KU_ASSERT_MSG(partition != nullptr, "Partition header not found");
+        appendScanNodeTable(offset, {tableEntry->getTableID()}, {embedding}, plan, partition->getStartNodeGroupId(),
+            partition->getEndNodeGroupId());
+        auto children = logical_op_vector_t();
+        children.push_back(plan.getLastOperator());
+        auto op = make_shared<LogicalUpdateVectorIndex>(tableEntry->getName(),
+                                                        embeddingProperty->getName(), tableEntry->getTableID(),
+                                                        embeddingProperty->getPropertyID(),
+                                                        offset, embedding, outExprs, i, children);
+        mainOp->setChild(i, std::move(op));
+    }
+    plan.setLastOperator(std::move(mainOp));
 }
 
 } // namespace planner

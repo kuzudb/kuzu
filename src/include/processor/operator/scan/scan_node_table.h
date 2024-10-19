@@ -9,10 +9,12 @@ namespace processor {
 
 class ScanNodeTableSharedState {
 public:
-    explicit ScanNodeTableSharedState(std::unique_ptr<NodeVectorLevelSemiMask> semiMask)
-        : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
-          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
-          semiMask{std::move(semiMask)} {};
+    explicit ScanNodeTableSharedState(std::unique_ptr<NodeVectorLevelSemiMask> semiMask,
+                                      common::node_group_idx_t startNodeGroupIdx = 0,
+                                      common::node_group_idx_t endNodeGroupIdx = common::INVALID_NODE_GROUP_IDX)
+            : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
+              currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
+              semiMask{std::move(semiMask)}, startNodeGroupIdx(startNodeGroupIdx), endNodeGroupIdx(endNodeGroupIdx) {};
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
@@ -32,6 +34,8 @@ private:
     common::node_group_idx_t numCommittedNodeGroups;
     std::vector<storage::LocalNodeGroup*> localNodeGroups;
     std::unique_ptr<NodeVectorLevelSemiMask> semiMask;
+    common::node_group_idx_t startNodeGroupIdx;
+    common::node_group_idx_t endNodeGroupIdx;
 };
 
 struct ScanNodeTableInfo {

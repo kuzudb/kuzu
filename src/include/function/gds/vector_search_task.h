@@ -105,14 +105,19 @@ namespace kuzu {
             void run() override;
 
         private:
-            inline int findFilteredNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
+            inline int findFilteredNextKNeighbours(common::nodeID_t nodeID,
+                                                   GraphScanState &state,
                                                    std::vector<common::nodeID_t> &nbrs,
                                                    NodeOffsetLevelSemiMask *filterMask,
-                                                   BitVectorVisitedTable *visited, int maxK, int maxNeighboursCheck,
+                                                   BitVectorVisitedTable *visited,
+                                                   int minK,
+                                                   int maxNeighboursCheck,
                                                    Graph *graph);
 
-            inline void findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
-                                            std::vector<common::nodeID_t> &nbrs, BitVectorVisitedTable *visited,
+            inline void findNextKNeighbours(common::nodeID_t nodeID,
+                                            GraphScanState &state,
+                                            std::vector<common::nodeID_t> &nbrs,
+                                            BitVectorVisitedTable *visited,
                                             Graph *graph);
 
             inline bool isMasked(common::offset_t offset, NodeOffsetLevelSemiMask *filterMask);

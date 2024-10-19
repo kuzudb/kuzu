@@ -54,16 +54,23 @@ class LogicalScanNodeTable final : public LogicalOperator {
 
 public:
     LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
-        : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
-          nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
+                         std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties,
+                         common::node_group_idx_t startNodeGroupId = 0,
+                         common::node_group_idx_t endNodeGroupId = common::INVALID_NODE_GROUP_IDX)
+            : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
+              nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)},
+              startNodeGroupId(startNodeGroupId), endNodeGroupId(endNodeGroupId) {}
     LogicalScanNodeTable(const LogicalScanNodeTable& other);
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
     std::string getExpressionsForPrinting() const override {
-        return nodeID->toString() + " " + binder::ExpressionUtil::toString(properties);
+        std::string result = nodeID->toString() + " " + binder::ExpressionUtil::toString(properties);
+        if (startNodeGroupId != 0 || endNodeGroupId != common::INVALID_NODE_GROUP_IDX) {
+            result += " startNodeGroupId: " + std::to_string(startNodeGroupId) + " endNodeGroupId: " + std::to_string(endNodeGroupId);
+        }
+        return result;
     }
 
     LogicalScanNodeTableType getScanType() const { return scanType; }
@@ -84,6 +91,10 @@ public:
 
     ExtraScanNodeTableInfo* getExtraInfo() const { return extraInfo.get(); }
 
+    common::node_group_idx_t getStartNodeGroupId() const { return startNodeGroupId; }
+
+    common::node_group_idx_t getEndNodeGroupId() const { return endNodeGroupId; }
+
     std::unique_ptr<LogicalOperator> copy() override;
 
 private:
@@ -93,6 +104,8 @@ private:
     binder::expression_vector properties;
     std::vector<storage::ColumnPredicateSet> propertyPredicates;
     std::unique_ptr<ExtraScanNodeTableInfo> extraInfo;
+    common::node_group_idx_t startNodeGroupId;
+    common::node_group_idx_t endNodeGroupId;
 };
 
 } // namespace planner

@@ -41,10 +41,11 @@ public:
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
+        std::unique_ptr<OPPrintInfo> printInfo,
+        common::RelDataDirection callFinalizeDirection = common::RelDataDirection::BWD)
         : BatchInsert{std::move(info), std::move(sharedState), std::move(resultSetDescriptor), id,
               std::move(printInfo)},
-          partitionerSharedState{std::move(partitionerSharedState)} {}
+          partitionerSharedState{std::move(partitionerSharedState)}, callFinalizeDirection(callFinalizeDirection) {}
 
     inline bool isSource() const override { return true; }
 
@@ -87,6 +88,7 @@ private:
 
 private:
     std::shared_ptr<PartitionerSharedState> partitionerSharedState;
+    common::RelDataDirection callFinalizeDirection;
 };
 
 } // namespace processor

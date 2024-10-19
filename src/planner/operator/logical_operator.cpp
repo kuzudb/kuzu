@@ -108,6 +108,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNION_ALL";
     case LogicalOperatorType::UNWIND:
         return "UNWIND";
+    case LogicalOperatorType::UPDATE_VECTOR_INDEX:
+        return "UPDATE_VECTOR_INDEX";
     case LogicalOperatorType::USE_DATABASE:
         return "USE_DATABASE";
     case LogicalOperatorType::CREATE_TYPE:

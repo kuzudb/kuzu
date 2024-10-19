@@ -12,7 +12,9 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
     this->table = table;
     this->currentCommittedGroupIdx = 0;
     this->currentUnCommittedGroupIdx = 0;
-    this->numCommittedNodeGroups = table->getNumCommittedNodeGroups();
+    this->numCommittedNodeGroups = std::min(endNodeGroupIdx - startNodeGroupIdx, table->getNumCommittedNodeGroups() - 1);
+    this->numCommittedNodeGroups += 1;
+    // TODO: Fix this code!!
     if (transaction->isWriteTransaction()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                 this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
@@ -30,9 +32,9 @@ void ScanNodeTableSharedState::updateVectorIdx(storage::NodeTableScanState& scan
     auto& dataScanState =
         ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
     if (scanState.source == TableScanSource::COMMITTED) {
-        dataScanState.vectorIdx = committedNodeGroupVectorIdx[scanState.nodeGroupIdx]++;
+        dataScanState.vectorIdx = committedNodeGroupVectorIdx[scanState.nodeGroupIdx - startNodeGroupIdx]++;
         if (!dataScanState.updateNumRowsToScan()) {
-            committedNodeGroupFinished[scanState.nodeGroupIdx] = true;
+            committedNodeGroupFinished[scanState.nodeGroupIdx - startNodeGroupIdx] = true;
         }
     } else {
         dataScanState.vectorIdx++;
@@ -43,11 +45,12 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
     std::unique_lock lck{mtx};
     // First try to give separate node groups to different threads.
     if (currentCommittedGroupIdx < numCommittedNodeGroups) {
-        scanState.nodeGroupIdx = currentCommittedGroupIdx++;
+        scanState.nodeGroupIdx = (currentCommittedGroupIdx++ + startNodeGroupIdx);
         scanState.source = TableScanSource::COMMITTED;
         return;
     }
     // Then try to give local node groups to different threads.
+    // TODO: Fix this code!!
     if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
         scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
             localNodeGroups[currentUnCommittedGroupIdx++]);
@@ -62,7 +65,7 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
         for (auto i = 0u; i < committedNodeGroupVectorIdx.size(); i++) {
             if (committedNodeGroupVectorIdx[i] < minVectorIdx && !committedNodeGroupFinished[i]) {
                 minVectorIdx = committedNodeGroupVectorIdx[i];
-                nodeGroupIdx = i;
+                nodeGroupIdx = i + startNodeGroupIdx;
             }
         }
         if (minVectorIdx != common::INVALID_IDX) {

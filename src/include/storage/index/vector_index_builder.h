@@ -65,7 +65,7 @@ private:
     std::vector<vector_id_t*> partitionedNbrs;
     std::vector<size_t> partitionSizes;
     uint64_t partitionSize;
-    int maxNbrs;
+    size_t maxNbrs;
 
     std::mutex mtx;
     int workingPartitionIdx = 0;
@@ -124,39 +124,35 @@ struct CompressedVectorStorage {
         std::unique_ptr<ColumnChunkData> columnChunk;
     };
 
-    explicit CompressedVectorStorage(Transaction* transaction,
-        DiskArray<ColumnChunkMetadata>* metadataDA, size_t dim) {
+    explicit CompressedVectorStorage(Transaction *transaction,
+                                     DiskArray<ColumnChunkMetadata> *metadataDA, size_t dim,
+                                     node_group_idx_t startNodeGroupIdx, node_group_idx_t endNodeGroupIdx) {
         KU_ASSERT(metadataDA != nullptr);
         // TODO: Make it generic, currently only supports scalar quantization
-        auto dataType = LogicalType::ARRAY(LogicalType::INT8(), dim);
-        auto numNodeGroups = metadataDA->getNumElements(transaction->getType());
-
-        uint64_t startOffset = 0;
-        for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+        auto dataType = LogicalType::ARRAY(LogicalType::INT8(), dim + 4);
+        uint64_t startOffset = startNodeGroupIdx * StorageConstants::NODE_GROUP_SIZE * dim;
+        for (auto nodeGroupIdx = startNodeGroupIdx; nodeGroupIdx <= endNodeGroupIdx; nodeGroupIdx++) {
             auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
             auto capacity = StorageConstants::NODE_GROUP_SIZE;
-            // TODO: Maybe this is not needed for node group
-            while (capacity < chunkMeta.numValues) {
-                capacity *= CHUNK_RESIZE_RATIO;
-            }
+            auto numValues = chunkMeta.numValues;
             auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(), true, capacity);
-            auto& listChunk = columnChunk->cast<ListChunkData>();
-            listChunk.getDataColumnChunk()->resize(chunkMeta.numValues * (dim + 4));
+            auto &listChunk = columnChunk->cast<ListChunkData>();
+            listChunk.getDataColumnChunk()->resize(numValues * (dim + 4));
             // Set offset and size column
             auto offsetColumn = listChunk.getOffsetColumnChunk();
             auto sizeColumn = listChunk.getSizeColumnChunk();
 
             // Initialize offset and size column
             uint64_t offset = 0;
-            for (auto i = 0u; i < chunkMeta.numValues; i++) {
+            for (auto i = 0u; i < numValues; i++) {
                 offset += (dim + 4);
                 offsetColumn->setValue(offset, i);
-                sizeColumn->setValue((uint32_t)(dim + 4), i);
+                sizeColumn->setValue((uint32_t) (dim + 4), i);
             }
-            listChunk.setNumValues(chunkMeta.numValues);
-            listChunk.getDataColumnChunk()->setNumValues(chunkMeta.numValues * (dim + 4));
+            listChunk.setNumValues(numValues);
+            listChunk.getDataColumnChunk()->setNumValues(numValues * (dim + 4));
             queue.push({nodeGroupIdx, startOffset, std::move(columnChunk)});
-            startOffset += chunkMeta.numValues * dim;
+            startOffset += capacity * dim;
         }
     }
 
@@ -194,7 +190,7 @@ private:
 // Currently, it implements the HNSW algorithm.
 class VectorIndexBuilder {
 public:
-    explicit VectorIndexBuilder(VectorIndexHeader* header, VectorIndexGraph* graphStorage,
+    explicit VectorIndexBuilder(VectorIndexHeader* header, int partitionId, VectorIndexGraph* graphStorage,
         VectorTempStorage* vectorTempStorage);
 
     // This function is used to insert batch of vectors into the index.
@@ -235,6 +231,7 @@ private:
 
 private:
     VectorIndexHeader* header;
+    VectorIndexHeaderPerPartition* partitionHeader;
     VectorIndexGraph* graphStorage;
     VectorTempStorage* vectorTempStorage;
     std::vector<std::mutex> locks;

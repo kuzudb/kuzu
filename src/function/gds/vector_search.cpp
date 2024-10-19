@@ -206,7 +206,7 @@ namespace kuzu {
                                                                       bind->embeddingPropertyID);
             }
 
-            void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeader *header,
+            void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
                                       const float *query, CosineDistanceComputer *dc, vector_id_t &nearest,
                                       double &nearestDist) {
                 while (true) {
@@ -232,7 +232,7 @@ namespace kuzu {
                 }
             }
 
-            void searchANNOnUpperLayer(ExecutionContext *context, VectorIndexHeader *header,
+            void searchANNOnUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
                                        const float *query, CosineDistanceComputer *dc, vector_id_t &entrypoint,
                                        double &entrypointDist, std::priority_queue<NodeDistCloser> &results,
                                        BitVectorVisitedTable *visited, int efSearch) {
@@ -315,7 +315,7 @@ namespace kuzu {
                 return reinterpret_cast<float *>(ListVector::getDataVector(resultVector)->getData());
             }
 
-            void findEntrypointUsingUpperLayer(ExecutionContext *context, VectorIndexHeader *header,
+            void findEntrypointUsingUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
                                                const float *query, CosineDistanceComputer *dc, vector_id_t &entrypoint,
                                                double *entrypointDist) {
                 uint8_t entrypointLevel;
@@ -579,19 +579,20 @@ namespace kuzu {
             void exec(ExecutionContext *context) override {
                 auto searchLocalState = ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
                 auto bindState = ku_dynamic_cast<GDSBindData *, VectorSearchBindData *>(bindData.get());
-                auto header = searchLocalState->indexHeader;
+                auto indexHeader = searchLocalState->indexHeader;
+                auto header = indexHeader->getPartitionHeader(0);
                 auto graph = sharedState->graph.get();
-                auto nodeTableId = header->getNodeTableId();
+                auto nodeTableId = indexHeader->getNodeTableId();
                 auto efSearch = bindState->efSearch;
                 auto maxK = bindState->maxK;
                 auto k = bindState->k;
-                KU_ASSERT(bindState->queryVector.size() == header->getDim());
+                KU_ASSERT(bindState->queryVector.size() == indexHeader->getDim());
                 auto query = bindState->queryVector.data();
                 auto state = graph->prepareScan(header->getCSRRelTableId());
                 auto visited = std::make_unique<BitVectorVisitedTable>(header->getNumVectors());
-                auto dc = std::make_unique<CosineDistanceComputer>(query, header->getDim(), header->getNumVectors());
+                auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
                 dc->setQuery(query);
-                auto filterMask = sharedState->inputNodeOffsetMasks.at(header->getNodeTableId()).get();
+                auto filterMask = sharedState->inputNodeOffsetMasks.at(indexHeader->getNodeTableId()).get();
                 auto maxNumThreads = context->clientContext->getMaxNumThreadForExec();
                 std::unique_ptr<ParallelMultiQueue<NodeDistFarther>> parallelResults = std::make_unique<ParallelMultiQueue<NodeDistFarther>>(
                         maxNumThreads * 2, efSearch);
@@ -643,7 +644,7 @@ namespace kuzu {
                     }
                 }
                 auto taskSharedState = std::make_shared<VectorSearchTaskSharedState>(maxNumThreads, efSearch, maxK, context,
-                                                                               graph, dc.get(), filterMask, header, visited.get(),
+                                                                               graph, dc.get(), filterMask, indexHeader, visited.get(),
                                                                                parallelResults.get(),
                                                                                std::move(entrypointsPerThread));
                 auto taskLocalState = std::make_unique<NodeTableLookupLocalState>(context,

@@ -14,8 +14,9 @@ namespace kuzu {
             auto efSearch = ((float) sharedState->efSearch / sharedState->maxNumThreads) * 1.2;
             auto visited = sharedState->visited;
             auto dc = sharedState->distanceComputer;
-            auto header = sharedState->indexHeader;
-            auto nodeTableId = header->getNodeTableId();
+            auto indexHeader = sharedState->indexHeader;
+            auto header = indexHeader->getPartitionHeader(0);
+            auto nodeTableId = indexHeader->getNodeTableId();
             auto graph = sharedState->graph;
             auto state = graph->prepareScan(header->getCSRRelTableId());
             auto filterMask = sharedState->filterMask;
@@ -105,11 +106,14 @@ namespace kuzu {
             }
         }
 
-        int VectorSearchTask::findFilteredNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
+        int VectorSearchTask::findFilteredNextKNeighbours(common::nodeID_t nodeID,
+                                                          GraphScanState &state,
                                                           std::vector<common::nodeID_t> &nbrs,
                                                           NodeOffsetLevelSemiMask *filterMask,
-                                                          BitVectorVisitedTable *visited, int maxK,
-                                                          int maxNeighboursCheck, Graph *graph) {
+                                                          BitVectorVisitedTable *visited,
+                                                          int maxK,
+                                                          int maxNeighboursCheck,
+                                                          Graph *graph) {
             std::queue<std::pair<common::nodeID_t, int>> candidates;
             candidates.push({nodeID, 0});
             std::unordered_set<offset_t> visitedSet;
@@ -145,7 +149,8 @@ namespace kuzu {
             return neighboursChecked;
         }
 
-        void VectorSearchTask::findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
+        void VectorSearchTask::findNextKNeighbours(common::nodeID_t nodeID,
+                                                   GraphScanState &state,
                                                    std::vector<common::nodeID_t> &nbrs,
                                                    BitVectorVisitedTable *visited,
                                                    Graph *graph) {
