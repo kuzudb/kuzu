@@ -36,8 +36,8 @@ struct VectorIndexConfig {
     // The alpha parameter for the RNG heuristic
     float alpha = 1.0;
 
-    // The number of node groups per partition
-    int numberVectorsPerPartition = 1000000;
+    // The number of node groups per partition (default to 5M)
+    int numberVectorsPerPartition = 5000000;
 
     VectorIndexConfig() = default;
 
