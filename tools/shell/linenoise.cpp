@@ -1002,6 +1002,10 @@ void linenoiseSetHighlighting(int enabled) {
 
 /* ============================== Completion ================================ */
 
+void linenoiseSetCompletion(int enabled) {
+    completionEnabled = enabled;
+}
+
 /* Free a list of completion option populated by linenoiseAddCompletion(). */
 static void freeCompletions(linenoiseCompletions* lc) {
     size_t i;
