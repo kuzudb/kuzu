@@ -12,6 +12,9 @@
 
 -CASE VarLengthExtendN1Tests
 
+-STATEMENT CALL enable_gds = true;
+---- ok
+
 -LOG meetsOneToTwoHopTest
 -STATEMENT MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
 ---- 1
