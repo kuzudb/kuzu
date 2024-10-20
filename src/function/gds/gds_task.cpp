@@ -40,16 +40,6 @@ void FrontierTask::run() {
                             mask, *localEc, sharedState->frontierPair, false);
                     }
                 } break;
-                case ExtendDirection::BOTH: {
-                    for (auto [nodes, edges, mask] : graph->scanFwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
-                            mask, *localEc, sharedState->frontierPair, true);
-                    }
-                    for (auto [nodes, edges, mask] : graph->scanBwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, nodes, edges,
-                            mask, *localEc, sharedState->frontierPair, false);
-                    }
-                } break;
                 default:
                     KU_UNREACHABLE;
                 }
@@ -60,16 +50,10 @@ void FrontierTask::run() {
         numApproxActiveNodesForNextIter);
 }
 
-VertexComputeTaskSharedState::VertexComputeTaskSharedState(graph::Graph* graph, VertexCompute& vc,
-    uint64_t maxThreadsForExecution)
-    : graph{graph}, vc{vc} {
-    morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExecution);
-}
-
 void VertexComputeTask::run() {
     FrontierMorsel frontierMorsel;
-    auto localVc = sharedState->vc.copy();
-    while (sharedState->morselDispatcher->getNextRangeMorsel(frontierMorsel)) {
+    auto localVc = info.vc.copy();
+    while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextOffset()) {
             common::nodeID_t nodeID = frontierMorsel.getNextNodeID();
             localVc->vertexCompute(nodeID);

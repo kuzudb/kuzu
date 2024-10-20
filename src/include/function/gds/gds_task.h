@@ -42,26 +42,30 @@ private:
     std::shared_ptr<FrontierTaskSharedState> sharedState;
 };
 
-class VertexComputeTaskSharedState {
-public:
-    VertexComputeTaskSharedState(graph::Graph* graph, VertexCompute& vc,
-        uint64_t maxThreadsForExecution);
+struct VertexComputeTaskSharedState {
+    FrontierMorselDispatcher morselDispatcher;
 
-public:
-    graph::Graph* graph;
+    explicit VertexComputeTaskSharedState(uint64_t maxThreadsForExecution)
+        : morselDispatcher{maxThreadsForExecution} {}
+};
+
+struct VertexComputeTaskInfo {
     VertexCompute& vc;
-    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
+
+    explicit VertexComputeTaskInfo(VertexCompute& vc) : vc{vc} {}
+    VertexComputeTaskInfo(const VertexComputeTaskInfo& other) : vc{other.vc} {}
 };
 
 class VertexComputeTask : public common::Task {
 public:
-    VertexComputeTask(uint64_t maxNumThreads,
+    VertexComputeTask(uint64_t maxNumThreads, const VertexComputeTaskInfo& info,
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
-        : common::Task{maxNumThreads}, sharedState{std::move(sharedState)} {};
+        : common::Task{maxNumThreads}, info{info}, sharedState{std::move(sharedState)} {};
 
     void run() override;
 
 private:
+    VertexComputeTaskInfo info;
     std::shared_ptr<VertexComputeTaskSharedState> sharedState;
 };
 } // namespace function

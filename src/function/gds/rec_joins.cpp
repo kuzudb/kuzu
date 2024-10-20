@@ -9,6 +9,8 @@
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/local_storage/local_node_table.h"
+#include "storage/local_storage/local_storage.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -116,57 +118,55 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
         PathSemantic::WALK, extendDirection);
 }
 
-class RJOutputWriterVCSharedState {
+// All recursive join computation have the same vertex compute. This vertex compute writes
+// result (could be dst, length or path) from a dst node ID to given source node ID.
+class RJVertexCompute : public VertexCompute {
 public:
-    RJOutputWriterVCSharedState(storage::MemoryManager* mm, processor::FactorizedTable* globalFT,
-        RJOutputWriter* rjOutputWriter)
-        : mm{mm}, globalFT{globalFT}, rjOutputWriter{rjOutputWriter} {}
-
-    std::mutex mtx;
-    storage::MemoryManager* mm;
-    processor::FactorizedTable* globalFT;
-    RJOutputWriter* rjOutputWriter;
-};
-
-class RJOutputWriterVC : public VertexCompute {
-public:
-    explicit RJOutputWriterVC(RJOutputWriterVCSharedState* sharedState) : sharedState{sharedState} {
-        localFT = std::make_unique<processor::FactorizedTable>(sharedState->mm,
-            sharedState->globalFT->getTableSchema()->copy());
-        localRJOutputWriter = sharedState->rjOutputWriter->copy();
+    explicit RJVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        std::unique_ptr<RJOutputWriter> writer)
+        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
+        localFT = sharedState->claimLocalTable(mm);
     }
+    ~RJVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
     void beginOnTable(table_id_t tableID) override {
-        localRJOutputWriter->beginWritingForDstNodesInTable(tableID);
+        writer->beginWritingForDstNodesInTable(tableID);
     }
 
     void vertexCompute(nodeID_t nodeID) override {
-        if (localRJOutputWriter->skipWriting(nodeID)) {
+        if (writer->skipWriting(nodeID)) {
             return;
         }
-        localRJOutputWriter->write(*localFT, nodeID);
+        writer->write(*localFT, nodeID);
     }
 
     void finalizeWorkerThread() override {
-        std::unique_lock lck(sharedState->mtx);
-        sharedState->globalFT->merge(*localFT);
+        // Do nothing.
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<RJOutputWriterVC>(sharedState);
+        return std::make_unique<RJVertexCompute>(mm, sharedState, writer->copy());
     }
 
 private:
-    RJOutputWriterVCSharedState* sharedState;
-    std::unique_ptr<processor::FactorizedTable> localFT;
-    std::unique_ptr<RJOutputWriter> localRJOutputWriter;
+    storage::MemoryManager* mm;
+    // Shared state storing ftables to materialize output.
+    processor::GDSCallSharedState* sharedState;
+    processor::FactorizedTable* localFT;
+    std::unique_ptr<RJOutputWriter> writer;
 };
 
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
+    auto clientContext = executionContext->clientContext;
     auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
     for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
         if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
+        }
+        auto localTable = clientContext->getTx()->getLocalStorage()->getLocalTable(tableID);
+        if (localTable && localTable->cast<storage::LocalNodeTable>().getNumRows()) {
+            throw RuntimeException("Current recursive algorithm does not work with uncommited "
+                                   "data. Execute COMMIT or ROLLBACK first.");
         }
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
@@ -179,14 +179,14 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             auto rjBindData = bindData->ptrCast<RJBindData>();
             GDSUtils::runFrontiersUntilConvergence(executionContext, rjCompState,
                 sharedState->graph.get(), rjBindData->extendDirection, rjBindData->upperBound);
-            auto writerVCSharedState = std::make_unique<RJOutputWriterVCSharedState>(
-                executionContext->clientContext->getMemoryManager(), sharedState->fTable.get(),
-                rjCompState.outputWriter.get());
-            auto writerVC = std::make_unique<RJOutputWriterVC>(writerVCSharedState.get());
+            auto vertexCompute =
+                std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
+                    sharedState.get(), rjCompState.outputWriter->copy());
             GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
-                *writerVC);
+                *vertexCompute);
         }
     }
+    sharedState->mergeLocalTables();
 }
 
 } // namespace function

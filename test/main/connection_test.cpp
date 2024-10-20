@@ -54,16 +54,16 @@ TEST_F(ApiTest, ParallelConnect) {
     }
 }
 
-TEST_F(ApiTest, Interrupt) {
-    std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
-#ifdef _WIN32
-    Sleep(1000);
-#else
-    sleep(1 /* sleep 1 second before interrupt the query */);
-#endif
-    conn->interrupt();
-    longRunningQueryThread.join();
-}
+ TEST_F(ApiTest, Interrupt) {
+     std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
+ #ifdef _WIN32
+     Sleep(1000);
+ #else
+     sleep(1 /* sleep 1 second before interrupt the query */);
+ #endif
+     conn->interrupt();
+     longRunningQueryThread.join();
+ }
 #endif
 
 TEST_F(ApiTest, CommitRollbackRemoveActiveTransaction) {
@@ -95,12 +95,12 @@ TEST_F(ApiTest, Profile) {
     ASSERT_TRUE(result->isSuccess());
 }
 
-TEST_F(ApiTest, TimeOut) {
-    conn->setQueryTimeOut(1000 /* timeoutInMS */);
-    auto result = conn->query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
-    ASSERT_FALSE(result->isSuccess());
-    ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
-}
+ TEST_F(ApiTest, TimeOut) {
+     conn->setQueryTimeOut(1000 /* timeoutInMS */);
+     auto result = conn->query("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);");
+     ASSERT_FALSE(result->isSuccess());
+     ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
+ }
 
 TEST_F(ApiTest, MultipleQueryExplain) {
     auto result = conn->query("EXPLAIN MATCH (a:person)-[:knows]->(b:person), "

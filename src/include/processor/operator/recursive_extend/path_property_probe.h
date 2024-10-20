@@ -62,6 +62,8 @@ struct PathPropertyProbeInfo {
     std::vector<ft_col_idx_t> nodeTableColumnIndices;
     std::vector<ft_col_idx_t> relTableColumnIndices;
 
+    bool extendFromSource = false;
+
     PathPropertyProbeInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(PathPropertyProbeInfo);
 
@@ -79,6 +81,7 @@ private:
         relFieldIndices = other.relFieldIndices;
         nodeTableColumnIndices = other.nodeTableColumnIndices;
         relTableColumnIndices = other.relTableColumnIndices;
+        extendFromSource = other.extendFromSource;
     }
 };
 

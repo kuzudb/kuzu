@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stack>
+
 #include "common/mask.h"
 #include "graph/graph.h"
 #include "processor/result/factorized_table.h"
@@ -15,13 +17,7 @@ public:
         maskMap.insert({tableID, std::move(mask)});
     }
 
-    std::vector<common::NodeSemiMask*> getMasks() const {
-        std::vector<common::NodeSemiMask*> masks;
-        for (auto& [_, mask] : maskMap) {
-            masks.push_back(mask.get());
-        }
-        return masks;
-    }
+    std::vector<common::NodeSemiMask*> getMasks() const;
 
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
     common::NodeOffsetLevelSemiMask* getOffsetMask(common::table_id_t tableID) const {
@@ -44,7 +40,7 @@ struct GDSCallSharedState {
     std::unique_ptr<graph::Graph> graph;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph)
-        : fTable{std::move(fTable)}, graph{std::move(graph)} {}
+        : fTable{fTable}, graph{std::move(graph)} {}
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 
     void setInputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
@@ -62,9 +58,18 @@ struct GDSCallSharedState {
     std::vector<common::NodeSemiMask*> getPathNodeMasks() const { return pathNodeMask->getMasks(); }
     NodeOffsetMaskMap* getPathNodeMaskMap() const { return pathNodeMask.get(); }
 
+    FactorizedTable* claimLocalTable(storage::MemoryManager* mm);
+    void returnLocalTable(FactorizedTable* table);
+    void mergeLocalTables();
+
 private:
     std::unique_ptr<NodeOffsetMaskMap> inputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> pathNodeMask = nullptr;
+    // We implement a local ftable pool to avoid generate many small ftables when running GDS.
+    // Alternative solutions are directly writing to global ftable with partition so conflict is
+    // minimized. Or we optimize ftable to be more memory efficient when number of tuples is small.
+    std::stack<FactorizedTable*> availableLocalTables;
+    std::vector<std::shared_ptr<FactorizedTable>> localTables;
 };
 
 } // namespace processor

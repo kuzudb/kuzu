@@ -11,8 +11,6 @@
 
 -CASE GDSSmall
 
--STATEMENT CALL enable_gds = true;
----- ok
 -STATEMENT MATCH p = (a:person1)-[e:knows11*1..4 (r, n | WHERE n.age < 15)]->(b:person1)
         WHERE a.ID = 0
         HINT (a JOIN e) JOIN b

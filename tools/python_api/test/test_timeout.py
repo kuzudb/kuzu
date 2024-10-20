@@ -8,4 +8,4 @@ def test_timeout(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
     conn.set_query_timeout(1000)
     with pytest.raises(RuntimeError, match="Interrupted."):
-        conn.execute("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);")
+        conn.execute("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);")

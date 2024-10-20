@@ -279,7 +279,7 @@ public class ConnectionTest extends TestBase {
     @Test
     void ConnQueryTimeout() throws ObjectRefDestroyedException {
         conn.setQueryTimeout(1);
-        try (QueryResult result = conn.query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);")) {
+        try (QueryResult result = conn.query("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);")) {
             assertNotNull(result);
             assertFalse(result.isSuccess());
             assertTrue(result.getErrorMessage().equals("Interrupted."));

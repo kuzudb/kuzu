@@ -137,6 +137,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     pathProbeInfo.relFieldIndices = relFieldIndices;
     pathProbeInfo.nodeTableColumnIndices = nodeTableColumnIndices;
     pathProbeInfo.relTableColumnIndices = relTableColumnIndices;
+    pathProbeInfo.extendFromSource = logicalProbe.extendFromSource_;
     auto pathProbeSharedState =
         std::make_shared<PathPropertyProbeSharedState>(nodeBuildSharedState, relBuildSharedState);
     std::vector<std::unique_ptr<PhysicalOperator>> children;

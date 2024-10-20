@@ -12,7 +12,6 @@ Bob
 Carol
 Dan
 
--CASE SingleLowerBound
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2..]->(b:person) RETURN a.fName, b.fName;
 ---- 1
 Alice|Dan
@@ -23,7 +22,6 @@ Alice|Dan
 Alice|Bob
 Alice|Dan
 
--CASE SingleNodeBound
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2]->(b:person) RETURN b.fName;
 ---- 1
 Dan

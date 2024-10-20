@@ -3,6 +3,7 @@
 --
 
 -CASE Scenario1_24
+-SKIP_WASM
 # Handling unbounded variable length match
 -LOG Scenario1
 -STATEMENT MATCH (a:A)

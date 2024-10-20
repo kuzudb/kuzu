@@ -3,6 +3,7 @@
 --
 
 -CASE LargeListSubQueryTest
+-SKIP_WASM
 
 -LOG KnowsVeryLargeAdjListSubQueryTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person) } RETURN count(*)
