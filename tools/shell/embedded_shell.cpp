@@ -57,8 +57,9 @@ struct ShellCommand {
     const char* SINGLE = ":singleline";
     const char* HIGHLIGHT = ":highlight";
     const char* ERRORS = ":render_errors";
-    const std::array<const char*, 11> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
-        STATS, MULTI, SINGLE, HIGHLIGHT, ERRORS};
+    const char* COMPLETE = ":render_completion";
+    const std::array<const char*, 12> commandList = {HELP, CLEAR, QUIT, MAX_ROWS, MAX_WIDTH, MODE,
+        STATS, MULTI, SINGLE, HIGHLIGHT, ERRORS, COMPLETE};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -338,6 +339,8 @@ int EmbeddedShell::processShellCommands(std::string lineStr) {
         setHighlighting(arg);
     } else if (command == shellCommand.ERRORS) {
         setErrors(arg);
+    } else if (command == shellCommand.COMPLETE) {
+        setComplete(arg);
     } else {
         printf("Error: Unknown command: \"%s\". Enter \":help\" for help\n", lineStr.c_str());
         printf("Did you mean: \"%s\"?\n", findClosestCommand(lineStr).c_str());
@@ -650,6 +653,23 @@ void EmbeddedShell::setErrors(const std::string& errorsString) {
     }
 }
 
+void EmbeddedShell::setComplete(const std::string& completeString) {
+    std::string completeStringLower = completeString;
+    std::transform(completeStringLower.begin(), completeStringLower.end(), completeStringLower.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    if (completeStringLower == "on") {
+        linenoiseSetCompletion(1);
+        printf("enabled completion highlighting\n");
+    } else if (completeStringLower == "off") {
+        linenoiseSetCompletion(0);
+        printf("disabled completion highlighting\n");
+    } else {
+        printf("Cannot parse '%s' to toggle completion highlighting. Expect 'on' or 'off'.\n",
+            completeStringLower.c_str());
+        return;
+    }
+}
+
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
@@ -665,6 +685,8 @@ void EmbeddedShell::printHelp() {
     printf("%s%s [on|off] %stoggle syntax highlighting on or off\n", TAB, shellCommand.HIGHLIGHT,
         TAB);
     printf("%s%s [on|off] %stoggle error highlighting on or off\n", TAB, shellCommand.ERRORS, TAB);
+    printf("%s%s [on|off] %stoggle completion highlighting on or off\n", TAB, shellCommand.COMPLETE,
+        TAB);
     printf("\n");
     printf("%sNote: you can change and see several system configurations, such as num-threads, \n",
         TAB);

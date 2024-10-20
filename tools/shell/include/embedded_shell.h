@@ -67,6 +67,8 @@ private:
 
     void setErrors(const std::string& errorsString);
 
+    void setComplete(const std::string& completeString);
+
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> conn;
