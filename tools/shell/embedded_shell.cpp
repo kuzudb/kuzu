@@ -655,8 +655,8 @@ void EmbeddedShell::setErrors(const std::string& errorsString) {
 
 void EmbeddedShell::setComplete(const std::string& completeString) {
     std::string completeStringLower = completeString;
-    std::transform(completeStringLower.begin(), completeStringLower.end(), completeStringLower.begin(),
-        [](unsigned char c) { return std::tolower(c); });
+    std::transform(completeStringLower.begin(), completeStringLower.end(),
+        completeStringLower.begin(), [](unsigned char c) { return std::tolower(c); });
     if (completeStringLower == "on") {
         linenoiseSetCompletion(1);
         printf("enabled completion highlighting\n");
