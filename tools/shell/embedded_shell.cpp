@@ -76,6 +76,9 @@ std::vector<std::string> nodeTableNames;
 std::vector<std::string> relTableNames;
 std::unordered_map<std::string, std::vector<std::string>> tableColumnNames;
 
+std::vector<std::string> functionNames;
+std::vector<std::string> tableFunctionNames;
+
 bool continueLine = false;
 std::string currLine;
 std::string historyLine;
@@ -105,6 +108,18 @@ void EmbeddedShell::updateTableNames() {
             columnNames.push_back(column.getName());
         }
         tableColumnNames[tableEntry->getName()] = columnNames;
+    }
+}
+
+void EmbeddedShell::updateFunctionNames() {
+    functionNames.clear();
+    auto function = database->catalog->getFunctions(&transaction::DUMMY_TRANSACTION);
+    for (auto& [_, entry] : function->getEntries(&transaction::DUMMY_TRANSACTION)) {
+        if (entry->getType() == catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY) {
+            tableFunctionNames.push_back(entry->getName());
+        } else {
+            functionNames.push_back(entry->getName());
+        }
     }
 }
 
@@ -173,6 +188,27 @@ void findTableVariableNames(const std::string buf, std::regex tableRegex,
         std::smatch match = *i;
         tempTableNames.push_back(match[1].str());
         foundTableNames.push_back(match[2].str());
+    }
+}
+
+void keywordCompletion(std::string buf, std::string prefix, std::string keyword,
+    linenoiseCompletions* lc) {
+    std::string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
+    if (regex_search(keyword, std::regex("^" + bufEscaped, std::regex_constants::icase))) {
+        std::string transformedKeyword = keyword;
+        for (size_t i = 0; i < buf.size() && i < keyword.size(); ++i) {
+            if (islower(buf[i])) {
+                transformedKeyword[i] = tolower(keyword[i]);
+            } else if (isupper(buf[i])) {
+                transformedKeyword[i] = toupper(keyword[i]);
+            }
+        }
+        // make the rest of the keyword the same case as the last character of buf
+        auto caseTransform = islower(buf.back()) ? ::tolower : ::toupper;
+        std::transform(keyword.begin() + buf.size(), keyword.end(),
+            transformedKeyword.begin() + buf.size(), caseTransform);
+
+        linenoiseAddCompletion(lc, (prefix + transformedKeyword).c_str());
     }
 }
 
@@ -252,24 +288,19 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         }
     }
 
-    for (std::string keyword : keywordList) {
-        std::string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
-        if (regex_search(keyword, std::regex("^" + bufEscaped, std::regex_constants::icase))) {
-            std::string transformedKeyword = keyword;
-            for (size_t i = 0; i < buf.size() && i < keyword.size(); ++i) {
-                if (islower(buf[i])) {
-                    transformedKeyword[i] = tolower(keyword[i]);
-                } else if (isupper(buf[i])) {
-                    transformedKeyword[i] = toupper(keyword[i]);
-                }
-            }
-            // make the rest of the keyword the same case as the last character of buf
-            auto caseTransform = islower(buf.back()) ? ::tolower : ::toupper;
-            std::transform(keyword.begin() + buf.size(), keyword.end(),
-                transformedKeyword.begin() + buf.size(), caseTransform);
-
-            linenoiseAddCompletion(lc, (prefix + transformedKeyword).c_str());
+    if (regex_search(prefix, std::regex("^\\s*CALL\\s*$", std::regex_constants::icase))) {
+        for (auto& function : tableFunctionNames) {
+            keywordCompletion(buf, prefix, function, lc);
         }
+        return;
+    }
+
+    for (std::string keyword : keywordList) {
+        keywordCompletion(buf, prefix, keyword, lc);
+    }
+
+    for (std::string function : functionNames) {
+        keywordCompletion(buf, prefix, function, lc);
     }
 }
 
@@ -361,6 +392,7 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     drawingCharacters = std::move(shellConfig.drawingCharacters);
     stats = shellConfig.stats;
     updateTableNames();
+    updateFunctionNames();
     KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
 
