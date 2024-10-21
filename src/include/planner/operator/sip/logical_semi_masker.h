@@ -43,9 +43,8 @@ public:
     LogicalSemiMasker(SemiMaskKeyType keyType, SemiMaskTargetType targetType,
         std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
         std::vector<LogicalOperator*> ops, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type_, std::move(child)}, keyType{keyType},
-          targetType{targetType}, key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)},
-          targetOps{std::move(ops)} {}
+        : LogicalOperator{type_, std::move(child)}, keyType{keyType}, targetType{targetType},
+          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, targetOps{std::move(ops)} {}
 
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }

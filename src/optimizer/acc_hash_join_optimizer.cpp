@@ -103,8 +103,8 @@ static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskKeyType keyType
     SemiMaskTargetType targetType, std::shared_ptr<Expression> key,
     std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
     auto tableIDs = getTableIDs(candidates[0]);
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(keyType, targetType, key, tableIDs,
-        candidates, child);
+    auto semiMasker =
+        std::make_shared<LogicalSemiMasker>(keyType, targetType, key, tableIDs, candidates, child);
     semiMasker->computeFlatSchema();
     return semiMasker;
 }
