@@ -3,7 +3,7 @@
 #include "common/serializer/buffered_serializer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 #include "parquet_rle_bp_encoder.h"
 #include "processor/operator/persistent/writer/parquet/basic_column_writer.h"
 

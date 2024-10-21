@@ -5,7 +5,7 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 #include "parquet_dbp_decoder.h"
 #include "parquet_rle_bp_decoder.h"
 #include "resizable_buffer.h"
