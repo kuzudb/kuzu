@@ -54,12 +54,12 @@ public:
         processor::ExecutionContext* context, bool launchNewWorkerThread = false);
 
 private:
+    // Functions to launch worker threads and for the worker threads to use to grab task from queue.
+    void runWorkerThread();
+
     std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
 
     void removeErroringTask(uint64_t scheduledTaskID);
-
-// Functions to launch worker threads and for the worker threads to use to grab task from queue.
-    void runWorkerThread();
 
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
     static void runTask(Task* task);
@@ -79,11 +79,6 @@ public:
     explicit TaskScheduler(uint64_t numWorkerThreads);
     ~TaskScheduler();
 
-    // Schedules the dependencies of the given task and finally the task one after another (so
-    // not concurrently), and throws an exception if any of the tasks errors. Regardless of
-    // whether or not the given task or one of its dependencies errors, when this function
-    // returns, no task related to the given task will be in the task queue. Further no worker
-    // thread will be working on the given task.
     void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
         processor::ExecutionContext* context, bool launchNewWorkerThread = false);
 
@@ -98,7 +93,7 @@ private:
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
-    uint64_t nextScheduledTaskID;
+    std::mutex taskSchedulerMtx;
 };
 #endif
 } // namespace common

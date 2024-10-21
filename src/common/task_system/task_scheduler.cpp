@@ -4,49 +4,31 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace common {
 
-TaskScheduler::TaskScheduler(
 #ifndef __SINGLE_THREADED__
+TaskScheduler::TaskScheduler(
     uint64_t numWorkerThreads
-#else
-    uint64_t /*numWorkerThreads*/
-#endif
     )
     : stopWorkerThreads{false}, nextScheduledTaskID{0} {
-#ifndef __SINGLE_THREADED__
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
     }
-#endif
 }
 
 TaskScheduler::~TaskScheduler() {
-#ifndef __SINGLE_THREADED__
     lock_t lck{taskSchedulerMtx};
-#endif
     stopWorkerThreads = true;
-#ifndef __SINGLE_THREADED__
     lck.unlock();
     cv.notify_all();
     for (auto& thread : workerThreads) {
         thread.join();
     }
-#endif
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
-    processor::ExecutionContext* context,
-#ifndef __SINGLE_THREADED__
-    bool launchNewWorkerThread
-#else
-    bool /*launchNewWorkerThread*/
-#endif
-) {
-
+    processor::ExecutionContext* context, bool launchNewWorkerThread) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }
-#ifndef __SINGLE_THREADED__
-
     std::thread newWorkerThread;
     if (launchNewWorkerThread) {
         // Note that newWorkerThread is not executing yet. However, we still call
@@ -57,15 +39,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
         task->registerThread();
         newWorkerThread = std::thread(runTask, task.get());
     }
-#endif
     auto scheduledTask = pushTaskIntoQueue(task);
-
-#ifndef __SINGLE_THREADED__
     cv.notify_all();
     std::unique_lock<std::mutex> taskLck{task->taskMtx, std::defer_lock};
-#endif
-
-#ifndef __SINGLE_THREADED__
     while (true) {
         taskLck.lock();
         bool timedWait = false;
@@ -98,79 +74,12 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     if (launchNewWorkerThread) {
         newWorkerThread.join();
     }
-
-#else
-    while (true) {
-        if (task->isCompletedNoLock()) {
-            break;
-        }
-        if (task->hasExceptionNoLock()) {
-            // Interrupt tasks that errored
-            context->clientContext->interrupt();
-        }
-        // In single-threaded mode, we directly call runTask() on the main
-        // thread instead of waiting for a worker
-        auto scheduledTask = getTaskAndRegister();
-        if (scheduledTask == nullptr || stopWorkerThreads) {
-            break;
-        }
-        runTask(scheduledTask->task.get());
-    }
-#endif
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
     }
 }
 
-std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
-#ifndef __SINGLE_THREADED__
-    lock_t lck{taskSchedulerMtx};
-#endif
-    auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
-    taskQueue.push_back(scheduledTask);
-    return scheduledTask;
-}
-
-std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
-    if (taskQueue.empty()) {
-        return nullptr;
-    }
-    auto it = taskQueue.begin();
-    while (it != taskQueue.end()) {
-        auto task = (*it)->task;
-        if (!task->registerThread()) {
-            // If we cannot register for a thread it is because of three possibilities:
-            // (i) maximum number of threads have registered for task and the task is completed
-            // without an exception; or (ii) same as (i) but the task has not yet successfully
-            // completed; or (iii) task has an exception; Only in (i) we remove the task from the
-            // queue. For (ii) and (iii) we keep the task in queue. Recall erroring tasks need to be
-            // manually removed.
-            if (task->isCompletedSuccessfully()) { // option (i)
-                it = taskQueue.erase(it);
-            } else { // option (ii) or (iii): keep the task in the queue.
-                ++it;
-            }
-        } else {
-            return *it;
-        }
-    }
-    return nullptr;
-}
-
-void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
-#ifndef __SINGLE_THREADED__
-    lock_t lck{taskSchedulerMtx};
-#endif
-    for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
-        if (scheduledTaskID == (*it)->ID) {
-            taskQueue.erase(it);
-            return;
-        }
-    }
-}
-
-#ifndef __SINGLE_THREADED__
 void TaskScheduler::runWorkerThread() {
     std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};
     std::exception_ptr exceptionPtr = nullptr;
@@ -209,7 +118,90 @@ void TaskScheduler::runWorkerThread() {
         }
     }
 }
+#else
+// Single-threaded version of TaskScheduler
+TaskScheduler::TaskScheduler(
+    uint64_t
+    )
+    : stopWorkerThreads{false}, nextScheduledTaskID{0} {}
+
+TaskScheduler::~TaskScheduler() {
+    stopWorkerThreads = true;
+}
+
+void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+    processor::ExecutionContext* context, bool) {
+
+    for (auto& dependency : task->children) {
+        scheduleTaskAndWaitOrError(dependency, context);
+    }
+    auto scheduledTask = pushTaskIntoQueue(task);
+
+    while (true) {
+        if (task->isCompletedNoLock()) {
+            break;
+        }
+        if (task->hasExceptionNoLock()) {
+            // Interrupt tasks that errored
+            context->clientContext->interrupt();
+        }
+        // In single-threaded mode, we directly call runTask() on the main
+        // thread instead of waiting for a worker
+        auto scheduledTask = getTaskAndRegister();
+        if (scheduledTask == nullptr || stopWorkerThreads) {
+            break;
+        }
+        runTask(scheduledTask->task.get());
+    }
+    if (task->hasException()) {
+        removeErroringTask(scheduledTask->ID);
+        std::rethrow_exception(task->getExceptionPtr());
+    }
+}
 #endif
+
+std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
+    lock_t lck{taskSchedulerMtx};
+    auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
+    taskQueue.push_back(scheduledTask);
+    return scheduledTask;
+}
+
+std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
+    if (taskQueue.empty()) {
+        return nullptr;
+    }
+    auto it = taskQueue.begin();
+    while (it != taskQueue.end()) {
+        auto task = (*it)->task;
+        if (!task->registerThread()) {
+            // If we cannot register for a thread it is because of three possibilities:
+            // (i) maximum number of threads have registered for task and the task is completed
+            // without an exception; or (ii) same as (i) but the task has not yet successfully
+            // completed; or (iii) task has an exception; Only in (i) we remove the task from the
+            // queue. For (ii) and (iii) we keep the task in queue. Recall erroring tasks need to be
+            // manually removed.
+            if (task->isCompletedSuccessfully()) { // option (i)
+                it = taskQueue.erase(it);
+            } else { // option (ii) or (iii): keep the task in the queue.
+                ++it;
+            }
+        } else {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+
+void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
+    lock_t lck{taskSchedulerMtx};
+    for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
+        if (scheduledTaskID == (*it)->ID) {
+            taskQueue.erase(it);
+            return;
+        }
+    }
+}
 
 void TaskScheduler::runTask(Task* task) {
     try {
