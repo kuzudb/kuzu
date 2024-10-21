@@ -21,12 +21,14 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-bool NodeTableScanState::scanNext(Transaction* transaction) {
+bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset,
+    offset_t numNodes) {
     KU_ASSERT(columns.size() == outputVectors.size());
     if (source == TableScanSource::NONE) {
         return false;
     }
-    const auto scanResult = nodeGroup->scan(transaction, *this);
+    const NodeGroupScanResult scanResult =
+        nodeGroup->scan(transaction, *this, startOffset, numNodes);
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
     }
@@ -34,6 +36,30 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
     if (source == TableScanSource::UNCOMMITTED) {
         nodeGroupStartOffset += StorageConstants::MAX_NUM_ROWS_IN_TABLE;
     }
+    // FIXME(bmwinger): I guess this is being used as an output here. But for rel scans it's an
+    // input...
+    for (auto i = 0u; i < scanResult.numRows; i++) {
+        nodeIDVector->setValue(i,
+            nodeID_t{nodeGroupStartOffset + scanResult.startRow + i, tableID});
+    }
+    return true;
+}
+
+bool NodeTableScanState::scanNext(Transaction* transaction) {
+    KU_ASSERT(columns.size() == outputVectors.size());
+    if (source == TableScanSource::NONE) {
+        return false;
+    }
+    const NodeGroupScanResult scanResult = nodeGroup->scan(transaction, *this);
+    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        return false;
+    }
+    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    if (source == TableScanSource::UNCOMMITTED) {
+        nodeGroupStartOffset += StorageConstants::MAX_NUM_ROWS_IN_TABLE;
+    }
+    // FIXME(bmwinger): I guess this is being used as an output here. But for rel scans it's an
+    // input...
     for (auto i = 0u; i < scanResult.numRows; i++) {
         nodeIDVector->setValue(i,
             nodeID_t{nodeGroupStartOffset + scanResult.startRow + i, tableID});

@@ -49,7 +49,8 @@ public:
     // GDSUtils helper functions call isActive on nodes to check if any work should be done for
     // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
     // the function on each node in a graph.
-    virtual void vertexCompute(common::nodeID_t curNodeID) = 0;
+    virtual void vertexCompute(std::span<const common::nodeID_t> nodeIDs,
+        std::span<const std::unique_ptr<common::ValueVector>> properties) = 0;
 
     // This function is called by each worker thread T once at the end of
     // GDSUtils::runVertexComputeIteration().
@@ -67,6 +68,9 @@ public:
     bool hasNextOffset() const { return nextOffset < endOffsetExclusive; }
 
     common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
+
+    common::offset_t getBeginOffset() const { return beginOffset; }
+    common::offset_t getEndOffsetExclusive() const { return endOffsetExclusive; }
 
 protected:
     void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
@@ -97,6 +101,8 @@ public:
     void init(common::table_id_t _tableID, common::offset_t _numOffsets);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
+
+    common::table_id_t getTableID() const { return tableID; }
 
 private:
     std::atomic<uint64_t> maxThreadsForExec;

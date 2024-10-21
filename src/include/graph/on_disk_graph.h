@@ -123,6 +123,31 @@ private:
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
 
+class OnDiskGraphVertexScanState : public VertexScanState {
+public:
+    OnDiskGraphVertexScanState(main::ClientContext& context, common::table_id_t tableID,
+        const std::vector<std::string>& propertyNames);
+
+    void startScan(common::offset_t beginOffset, common::offset_t endOffsetExclusive);
+
+    bool next() override;
+    Chunk getChunk() override {
+        return Chunk{std::span(&nodeIDVector->getValue<common::nodeID_t>(0), numNodesScanned),
+            std::span(propertyVectors)};
+    }
+
+private:
+    std::vector<std::unique_ptr<common::ValueVector>> propertyVectors;
+    std::unique_ptr<common::ValueVector> nodeIDVector;
+    std::unique_ptr<storage::NodeTableScanState> tableScanState;
+    const main::ClientContext& context;
+    const storage::NodeTable& nodeTable;
+    common::offset_t numNodesScanned;
+    common::table_id_t tableID;
+    common::offset_t currentOffset;
+    common::offset_t endOffsetExclusive;
+};
+
 class OnDiskGraph final : public Graph {
 public:
     OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
@@ -143,9 +168,14 @@ public:
         std::span<common::table_id_t> nodeTableIDs) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(
         std::span<common::table_id_t> nodeTableIDs) override;
+    std::unique_ptr<VertexScanState> prepareVertexScan(common::table_id_t tableID,
+        const std::vector<std::string>& propertiesToScan) override;
 
-    Graph::Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
-    Graph::Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    Graph::EdgeIterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
+    Graph::EdgeIterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
+
+    VertexIterator scanVertices(common::offset_t beginOffset, common::offset_t endOffsetExclusive,
+        VertexScanState& state) override;
 
 private:
     main::ClientContext* context;

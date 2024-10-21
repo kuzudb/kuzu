@@ -40,6 +40,9 @@ struct NodeTableScanState final : TableScanState {
     }
 
     bool scanNext(transaction::Transaction* transaction) override;
+
+    bool scanNext(transaction::Transaction* transaction, common::offset_t startOffset,
+        common::offset_t numNodes);
 };
 
 struct NodeTableInsertState final : TableInsertState {
