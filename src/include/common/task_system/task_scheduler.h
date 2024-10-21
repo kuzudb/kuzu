@@ -57,11 +57,11 @@ private:
 
     void removeErroringTask(uint64_t scheduledTaskID);
 
-    // Functions to launch worker threads and for the worker threads to use to grab task from queue.
-    #ifndef __SINGLE_THREADED__
+// Functions to launch worker threads and for the worker threads to use to grab task from queue.
+#ifndef __SINGLE_THREADED__
     void runWorkerThread();
-    #endif
-    
+#endif
+
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
     static void runTask(Task* task);
 
