@@ -1,5 +1,4 @@
 #include "common/task_system/task_scheduler.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -102,21 +101,15 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 
 #else
     while (true) {
-        auto timeout = 0u;
         if (task->isCompletedNoLock()) {
             break;
         }
-        if (context->clientContext->hasTimeout()) {
-            timeout = context->clientContext->getTimeoutRemainingInMS();
-            if (timeout == 0) {
-                context->clientContext->interrupt();
-            }
-        }
         if (task->hasExceptionNoLock()) {
-            // Interrupt tasks that errored, so other threads can stop working on them early.
+            // Interrupt tasks that errored
             context->clientContext->interrupt();
         }
-        // In single-threaded mode, we run the task in the main thread.
+        // In single-threaded mode, we directly call runTask() on the main 
+        // thread instead of waiting for a worker
         auto scheduledTask = getTaskAndRegister();
         if (scheduledTask == nullptr || stopWorkerThreads) {
             break;
