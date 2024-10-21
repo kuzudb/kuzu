@@ -210,7 +210,8 @@ private:
         auto rjBindData = bindData->ptrCast<RJBindData>();
         bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection);
+            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection,
+            sharedState->getPathNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
