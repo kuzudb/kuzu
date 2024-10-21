@@ -6,26 +6,26 @@ namespace kuzu {
 namespace common {
 
 TaskScheduler::TaskScheduler(
-    #ifndef __SINGLE_THREADED__
+#ifndef __SINGLE_THREADED__
     uint64_t numWorkerThreads
-    #else
+#else
     uint64_t /*numWorkerThreads*/
-    #endif
+#endif
     )
     : stopWorkerThreads{false}, nextScheduledTaskID{0} {
-    #ifndef __SINGLE_THREADED__
+#ifndef __SINGLE_THREADED__
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
     }
-    #endif
+#endif
 }
 
 TaskScheduler::~TaskScheduler() {
-    #ifndef __SINGLE_THREADED__
+#ifndef __SINGLE_THREADED__
     lock_t lck{taskSchedulerMtx};
 #endif
     stopWorkerThreads = true;
-    #ifndef __SINGLE_THREADED__
+#ifndef __SINGLE_THREADED__
     lck.unlock();
     cv.notify_all();
     for (auto& thread : workerThreads) {
@@ -37,10 +37,10 @@ TaskScheduler::~TaskScheduler() {
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
 #ifndef __SINGLE_THREADED__
     processor::ExecutionContext* context, bool launchNewWorkerThread
-    #else
+#else
     processor::ExecutionContext* /*context*/, bool /*launchNewWorkerThread*/
 #endif
-    ) {
+) {
 #ifndef __SINGLE_THREADED__
 
     for (auto& dependency : task->children) {

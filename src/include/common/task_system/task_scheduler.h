@@ -2,8 +2,8 @@
 #include <deque>
 
 #ifndef __SINGLE_THREADED__
-#include <thread>
 #include <condition_variable>
+#include <thread>
 #endif
 
 #include "common/task_system/task.h"
