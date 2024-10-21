@@ -131,28 +131,12 @@ TaskScheduler::~TaskScheduler() {
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
     processor::ExecutionContext* context, bool) {
-
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }
-    auto scheduledTask = pushTaskIntoQueue(task);
-
-    while (true) {
-        if (task->isCompletedNoLock()) {
-            break;
-        }
-        if (task->hasExceptionNoLock()) {
-            // Interrupt tasks that errored
-            context->clientContext->interrupt();
-        }
-        // In single-threaded mode, we directly call runTask() on the main
-        // thread instead of waiting for a worker
-        auto scheduledTask = getTaskAndRegister();
-        if (scheduledTask == nullptr || stopWorkerThreads) {
-            break;
-        }
-        runTask(scheduledTask->task.get());
-    }
+    task->registerThread();
+    // runTask deregisters, so we don't need to deregister explicitly here
+    runTask(task.get());
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
