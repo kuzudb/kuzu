@@ -23,13 +23,23 @@
 9|7|3:15
 
 -CASE ViolateRelMultiplicityConstraintInTransaction
+-LOG Fwd
 -STATEMENT BEGIN TRANSACTION
 ---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 CREATE (a)-[:marries]->(b)
+---- ok
+-STATEMENT CREATE (p:person{ID:11})
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 11 AND b.ID = 10 CREATE (a)-[:marries]->(b)
+---- error
+Runtime exception: Node(nodeOffset: 7) has more than one neighbour in table marries in the bwd direction, which violates the rel multiplicity constraint.
 
+-LOG Bwd
+-STATEMENT BEGIN TRANSACTION
+---- ok
 # shouldn't have rel multiplicity error in fwd direction for MANY_ONE relationship
 -STATEMENT MATCH (a:person), (b:organisation) WHERE a.ID = 0 AND b.ID = 4 CREATE (a)-[:workAt]->(b)
 ---- ok
-
 # there should be an error in the bwd direction for MANY_ONE relationship
 -STATEMENT MATCH (a:person), (b:organisation) WHERE a.ID = 0 AND b.ID = 1 CREATE (a)-[:workAt]->(b)
 ---- error
