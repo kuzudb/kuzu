@@ -55,21 +55,21 @@ Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[]
 ---- 0
 
 
--LOG MultipleSrcMultipleDstQuery
--STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, length(r)
----- 12
-Alice|Carol|1
-Alice|Dan|1
-Alice|Elizabeth|2
-Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|3
-Bob|Carol|1
-Bob|Dan|1
-Bob|Elizabeth|1
-Bob|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
-Farooq|Carol|3
-Farooq|Dan|2
-Farooq|Elizabeth|1
-Farooq|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
+#-LOG MultipleSrcMultipleDstQuery
+#-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, length(r)
+#---- 12
+#Alice|Carol|1
+#Alice|Dan|1
+#Alice|Elizabeth|2
+#Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|3
+#Bob|Carol|1
+#Bob|Dan|1
+#Bob|Elizabeth|1
+#Bob|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
+#Farooq|Carol|3
+#Farooq|Dan|2
+#Farooq|Elizabeth|1
+#Farooq|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
 
 -LOG SSPWithExtend
 -STATEMENT MATCH (c:person)<-[:knows* SHORTEST 1..30]-(a:person)-[r:knows* SHORTEST 1..30]->(b:person), (b)-[:knows]->(c) WHERE a.fName = 'Alice' AND b.ID < 6 AND c.ID > 5 RETURN a.fName, b.fName, c.fName

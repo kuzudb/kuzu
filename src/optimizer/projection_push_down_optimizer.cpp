@@ -17,6 +17,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
+#include "planner/operator/logical_gds_call.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -44,6 +45,14 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto& pathPropertyProbe = op->cast<LogicalPathPropertyProbe>();
+
+    if (pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL) {
+        if (!nodeOrRelInUse.contains(pathPropertyProbe.getRel())) {
+            pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
+        }
+        return;
+    }
+
     if (pathPropertyProbe.getChild(0)->getOperatorType() !=
         planner::LogicalOperatorType::RECURSIVE_EXTEND) {
         return;

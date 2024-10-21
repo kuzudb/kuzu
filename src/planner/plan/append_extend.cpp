@@ -144,9 +144,24 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     if (recursiveInfo->relPredicate != nullptr) {
         graphEntry.setRelPredicate(recursiveInfo->relPredicate);
     }
-    auto functionSet = VarLenJoinsFunction::getFunctionSet();
-    KU_ASSERT(functionSet.size() == 1);
-    auto gdsFunction = functionSet[0]->constPtrCast<GDSFunction>()->copy();
+
+    GDSFunction gdsFunction;
+    switch (rel->getRelType()) { 
+    case common::QueryRelType::VARIABLE_LENGTH_WALK:
+    case common::QueryRelType::VARIABLE_LENGTH_TRAIL:
+    case common::QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
+        gdsFunction = VarLenJoinsFunction::getFunctionSet()[0]->constPtrCast<GDSFunction>()->copy();
+    } break;
+    case QueryRelType::SHORTEST: {
+        gdsFunction = SingleSPPathsFunction::getFunctionSet()[0]->constPtrCast<GDSFunction>()->copy();
+    } break;
+    case QueryRelType::ALL_SHORTEST: {
+        gdsFunction = AllSPPathsFunction::getFunctionSet()[0]->constPtrCast<GDSFunction>()->copy();
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+//    auto gdsFunction = f->constPtrCast<GDSFunction>()->copy();
     auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
     auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, recursiveInfo->lowerBound,
         recursiveInfo->upperBound, semantic, direction);
@@ -201,6 +216,13 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     pathPropertyProbe->computeFactorizedSchema();
     probePlan.setLastOperator(pathPropertyProbe);
+    // TODO(Xiyang): write me into GDS
+    appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), probePlan);
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    probePlan.setCost(plan.getCardinality());
+    probePlan.setCardinality(plan.getCardinality() * extensionRate);
+
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);

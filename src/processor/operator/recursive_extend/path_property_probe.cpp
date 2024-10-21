@@ -65,9 +65,18 @@ static void copyInternalID(ValueVector* srcVector, ValueVector* dstIDVector,
     }
 }
 
+
+
+static bool play(ValueVector* vector, sel_t pos, bool flag) {
+    if (flag) {
+        return vector->getValue<bool>(pos);
+    }
+    return !vector->getValue<bool>(pos);
+}
+
 static void writeSrcDstNodeIDs(nodeID_t fromID, nodeID_t toID, ValueVector* directionDataVector,
-    ValueVector* srcNodeIDsDataVector, ValueVector* dstNodeIDsDataVector, sel_t pos) {
-    if (directionDataVector->getValue<bool>(pos)) {
+    ValueVector* srcNodeIDsDataVector, ValueVector* dstNodeIDsDataVector, sel_t pos, bool flag) {
+    if (play(directionDataVector, pos, flag)) {
         srcNodeIDsDataVector->setValue(pos, fromID);
         dstNodeIDsDataVector->setValue(pos, toID);
     } else {
@@ -175,7 +184,8 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
             }
             if (nodeListEntry.size == 0) {
                 KU_ASSERT(relListEntry.size == 1);
-                if (directionDataVector->getValue<bool>(relListEntry.offset)) {
+//                directionDataVector->getValue<bool>(relListEntry.offset)
+                if (play(directionDataVector, relListEntry.offset, info.extendFromSource)) {
                     pathSrcNodeIDsDataVector->setValue(relListEntry.offset, srcNodeID);
                     pathDstNodeIDsDataVector->setValue(relListEntry.offset, dstNodeID);
                 } else {
@@ -188,16 +198,16 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
                 auto from = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
                 auto to = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j + 1);
                 writeSrcDstNodeIDs(from, to, directionDataVector, pathSrcNodeIDsDataVector,
-                    pathDstNodeIDsDataVector, relListEntry.offset + j + 1);
+                    pathDstNodeIDsDataVector, relListEntry.offset + j + 1, info.extendFromSource);
             }
             writeSrcDstNodeIDs(srcNodeID,
                 inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset),
                 directionDataVector, pathSrcNodeIDsDataVector, pathDstNodeIDsDataVector,
-                relListEntry.offset);
+                relListEntry.offset, info.extendFromSource);
             writeSrcDstNodeIDs(inputNodeIDsDataVector->getValue<nodeID_t>(
                                    nodeListEntry.offset + nodeListEntry.size - 1),
                 dstNodeID, directionDataVector, pathSrcNodeIDsDataVector, pathDstNodeIDsDataVector,
-                relListEntry.offset + relListEntry.size - 1);
+                relListEntry.offset + relListEntry.size - 1, info.extendFromSource);
         }
     } break;
     default:

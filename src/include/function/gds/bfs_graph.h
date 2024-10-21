@@ -52,7 +52,7 @@ private:
 };
 
 class BFSGraph {
-    static constexpr uint64_t ALL_PATHS_BLOCK_SIZE = (std::uint64_t)1 << 19;
+    static constexpr uint64_t ALL_PATHS_BLOCK_SIZE = (std::uint64_t)1 << 11;
     // Data type that is allocated to max num nodes per node table.
     using parent_entry_t = std::atomic<ParentList*>;
 
@@ -76,7 +76,8 @@ public:
     // of memory that Ti owns and writes to.
     ObjectBlock<ParentList>* addNewBlock() {
         std::unique_lock lck{mtx};
-        auto memBlock = mm->allocateBuffer(false /* don't init to 0 */, ALL_PATHS_BLOCK_SIZE);
+        count++;
+        auto memBlock = mm->mallocBuffer(false /* don't init to 0 */, ALL_PATHS_BLOCK_SIZE);
         blocks.push_back(
             std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), ALL_PATHS_BLOCK_SIZE));
         return blocks[blocks.size() - 1].get();
@@ -128,6 +129,7 @@ public:
     }
 
 private:
+    uint64_t  count = 0;
     std::mutex mtx;
     storage::MemoryManager* mm;
     ObjectArraysMap<parent_entry_t> parentArray;

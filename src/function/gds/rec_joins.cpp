@@ -169,6 +169,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             continue;
         }
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
+        // TODO(Guodong): how can I scan local nodes
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
             if (!mask->isMasked(offset)) {
                 continue;
