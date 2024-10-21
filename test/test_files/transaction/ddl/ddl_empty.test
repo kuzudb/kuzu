@@ -79,7 +79,7 @@
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT CREATE REL TABLE GROUP test(FROM base1 To base1, FROM base1 to base2);
+-STATEMENT CREATE REL TABLE test(FROM base1 To base1, FROM base1 to base2);
 ---- ok
 -STATEMENT COMMIT;
 ---- ok

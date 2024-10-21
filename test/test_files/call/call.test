@@ -242,7 +242,7 @@ person|person|ID|ID
 -STATEMENT CALL show_connection('workAt') RETURN *
 ---- 1
 person|organisation|ID|ID
--STATEMENT CREATE REL TABLE GROUP Knows1 (FROM person To person, FROM person to organisation, year INT64);
+-STATEMENT CREATE REL TABLE Knows1 (FROM person To person, FROM person to organisation, year INT64);
 ---- ok
 -STATEMENT CALL show_connection('Knows1') RETURN *
 ---- 2
