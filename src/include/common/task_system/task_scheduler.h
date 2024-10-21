@@ -1,7 +1,10 @@
 #pragma once
-#include <condition_variable>
 #include <deque>
+
+#ifndef __SINGLE_THREADED__
 #include <thread>
+#include <condition_variable>
+#endif
 
 #include "common/task_system/task.h"
 #include "processor/execution_context.h"
@@ -62,9 +65,11 @@ private:
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
+#ifndef __SINGLE_THREADED__
     std::vector<std::thread> workerThreads;
     std::mutex taskSchedulerMtx;
     std::condition_variable cv;
+#endif
     uint64_t nextScheduledTaskID;
 };
 

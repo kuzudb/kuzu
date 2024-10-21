@@ -24,7 +24,7 @@ add_library(kuzu STATIC ${ALL_OBJECT_FILES})
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
 
 set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 serd fastpfor miniparquet zstd miniz mbedtls lz4)
-if (not __SINGLE_THREADED__)
+if (NOT __SINGLE_THREADED__)
         set(KUZU_LIBRARIES ${KUZU_LIBRARIES} Threads::Threads)
 endif()
 if(NOT WIN32)

@@ -5,25 +5,44 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace common {
 
-TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
+TaskScheduler::TaskScheduler(
+    #ifndef __SINGLE_THREADED__
+    uint64_t numWorkerThreads
+    #else
+    uint64_t /*numWorkerThreads*/
+    #endif
+    )
     : stopWorkerThreads{false}, nextScheduledTaskID{0} {
+    #ifndef __SINGLE_THREADED__
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
     }
+    #endif
 }
 
 TaskScheduler::~TaskScheduler() {
+    #ifndef __SINGLE_THREADED__
     lock_t lck{taskSchedulerMtx};
+#endif
     stopWorkerThreads = true;
+    #ifndef __SINGLE_THREADED__
     lck.unlock();
     cv.notify_all();
     for (auto& thread : workerThreads) {
         thread.join();
     }
+#endif
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
-    processor::ExecutionContext* context, bool launchNewWorkerThread) {
+#ifndef __SINGLE_THREADED__
+    processor::ExecutionContext* context, bool launchNewWorkerThread
+    #else
+    processor::ExecutionContext* /*context*/, bool /*launchNewWorkerThread*/
+#endif
+    ) {
+#ifndef __SINGLE_THREADED__
+
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }
@@ -37,6 +56,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
         task->registerThread();
         newWorkerThread = std::thread(runTask, task.get());
     }
+
     auto scheduledTask = pushTaskIntoQueue(task);
     cv.notify_all();
     std::unique_lock<std::mutex> taskLck{task->taskMtx, std::defer_lock};
@@ -76,6 +96,13 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
     }
+#else
+    task->run();
+    if (task->hasException()) {
+        std::rethrow_exception(task->getExceptionPtr());
+    }
+
+#endif
 }
 
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
