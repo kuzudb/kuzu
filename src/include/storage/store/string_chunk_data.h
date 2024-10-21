@@ -71,6 +71,7 @@ public:
 
     void setToInMemory() override;
     void resize(uint64_t newCapacity) override;
+    void resizeWithoutPreserve(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 
     void serialize(common::Serializer& serializer) const override;

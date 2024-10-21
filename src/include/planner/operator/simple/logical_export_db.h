@@ -11,9 +11,8 @@ class LogicalExportDatabase : public LogicalSimple {
 public:
     explicit LogicalExportDatabase(common::ReaderConfig boundFileInfo,
         std::shared_ptr<binder::Expression> outputExpression,
-        std::vector<std::shared_ptr<LogicalOperator>> plans, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, std::move(plans), outputExpression,
-              std::move(printInfo)},
+        std::vector<std::shared_ptr<LogicalOperator>> plans)
+        : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, std::move(plans), outputExpression},
           boundFileInfo{std::move(boundFileInfo)} {}
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
@@ -27,7 +26,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExportDatabase>(std::move(boundFileInfo),
-            std::move(outputExpression), std::move(children), printInfo->copy());
+            std::move(outputExpression), std::move(children));
     }
 
 private:

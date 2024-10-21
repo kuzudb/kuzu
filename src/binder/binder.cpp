@@ -53,6 +53,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::STANDALONE_CALL: {
         boundStatement = bindStandaloneCall(statement);
     } break;
+    case StatementType::STANDALONE_CALL_FUNCTION: {
+        boundStatement = bindStandaloneCallFunction(statement);
+    } break;
     case StatementType::EXPLAIN: {
         boundStatement = bindExplain(statement);
     } break;

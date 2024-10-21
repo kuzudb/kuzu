@@ -47,17 +47,30 @@ struct PrimaryKeyScanInfo final : ExtraScanNodeTableInfo {
     }
 };
 
+struct LogicalScanNodeTablePrintInfo final : OPPrintInfo {
+    std::shared_ptr<binder::Expression> nodeID;
+    binder::expression_vector properties;
+
+    LogicalScanNodeTablePrintInfo(std::shared_ptr<binder::Expression> nodeID,
+        binder::expression_vector properties)
+        : nodeID{std::move(nodeID)}, properties{std::move(properties)} {}
+
+    std::string toString() const override {
+        auto result = "Tables: " + nodeID->toString() + ",Properties :";
+        result += binder::ExpressionUtil::toString(properties);
+        return result;
+    }
+};
+
 class LogicalScanNodeTable final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::SCAN_NODE_TABLE;
     static constexpr LogicalScanNodeTableType defaultScanType = LogicalScanNodeTableType::SCAN;
 
 public:
     LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(printInfo)}, scanType{defaultScanType},
-          nodeID{std::move(nodeID)}, nodeTableIDs{std::move(nodeTableIDs)},
-          properties{std::move(properties)} {}
+        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
+        : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
+          nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
     LogicalScanNodeTable(const LogicalScanNodeTable& other);
 
     void computeFactorizedSchema() override;
@@ -84,6 +97,10 @@ public:
     void setExtraInfo(std::unique_ptr<ExtraScanNodeTableInfo> info) { extraInfo = std::move(info); }
 
     ExtraScanNodeTableInfo* getExtraInfo() const { return extraInfo.get(); }
+
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalScanNodeTablePrintInfo>(nodeID, properties);
+    }
 
     std::unique_ptr<LogicalOperator> copy() override;
 

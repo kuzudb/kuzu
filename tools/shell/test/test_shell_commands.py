@@ -17,6 +17,7 @@ def test_help(temp_db) -> None:
             "    :singleline     set singleline mode",
             "    :highlight [on|off]     toggle syntax highlighting on or off",
             "    :render_errors [on|off]     toggle error highlighting on or off",
+            "    :render_completion [on|off]     toggle completion highlighting on or off",
             "",
             "    Note: you can change and see several system configurations, such as num-threads, ",
             "          timeout, and progress_bar using Cypher CALL statements.",
@@ -567,6 +568,14 @@ def test_highlight(temp_db) -> None:
     result = test.run()
     result.check_stdout("enabled syntax highlighting")
 
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":highlight o")
+    )
+    result = test.run()
+    result.check_stdout("Cannot parse 'o' to toggle highlighting. Expect 'on' or 'off'.")
+
 
 def test_render_errors(temp_db) -> None:
     test = (
@@ -584,6 +593,40 @@ def test_render_errors(temp_db) -> None:
     )
     result = test.run()
     result.check_stdout("enabled error highlighting")
+
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":render_errors o")
+    )
+    result = test.run()
+    result.check_stdout("Cannot parse 'o' to toggle error highlighting. Expect 'on' or 'off'.")
+
+
+def test_completion_highlighting(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":render_completion off")
+    )
+    result = test.run()
+    result.check_stdout("disabled completion highlighting")
+
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":render_completion on")
+    )
+    result = test.run()
+    result.check_stdout("enabled completion highlighting")
+
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement(":render_completion o")
+    )
+    result = test.run()
+    result.check_stdout("Cannot parse 'o' to toggle completion highlighting. Expect 'on' or 'off'.")
 
 
 def test_bad_command(temp_db) -> None:

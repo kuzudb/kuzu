@@ -54,6 +54,7 @@ private:
     virtual void visitAttachDatabase(const Statement& /*statement*/) {}
     virtual void visitDetachDatabase(const Statement& /*statement*/) {}
     virtual void visitUseDatabase(const Statement& /*statement*/) {}
+    virtual void visitStandaloneCallFunction(const Statement& /*statement*/) {}
     // LCOV_EXCL_STOP
 };
 

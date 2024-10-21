@@ -39,5 +39,6 @@ private:
     // Predicate in WHERE clause
     std::shared_ptr<Expression> predicate;
 };
+
 } // namespace binder
 } // namespace kuzu

@@ -65,6 +65,9 @@ void StatementVisitor::visit(const Statement& statement) {
     case StatementType::USE_DATABASE: {
         visitUseDatabase(statement);
     } break;
+    case StatementType::STANDALONE_CALL_FUNCTION: {
+        visitStandaloneCallFunction(statement);
+    } break;
     default:
         KU_UNREACHABLE;
     }

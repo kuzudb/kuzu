@@ -28,12 +28,12 @@ class LogicalCopyFrom final : public LogicalOperator {
 
 public:
     LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(child), std::move(printInfo)}, info{std::move(info)},
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{type_, std::move(child)}, info{std::move(info)},
           outExprs{std::move(outExprs)} {}
     LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
-        logical_op_vector_t children, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(children), std::move(printInfo)}, info{std::move(info)},
+        logical_op_vector_t children)
+        : LogicalOperator{type_, std::move(children)}, info{std::move(info)},
           outExprs{std::move(outExprs)} {}
 
     std::string getExpressionsForPrinting() const override { return info.tableEntry->getName(); }
@@ -44,9 +44,12 @@ public:
     const binder::BoundCopyFromInfo* getInfo() const { return &info; }
     binder::expression_vector getOutExprs() const { return outExprs; }
 
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalCopyFromPrintInfo>(info.tableEntry->getName());
+    }
+
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyFrom>(info.copy(), outExprs, LogicalOperator::copy(children),
-            printInfo->copy());
+        return make_unique<LogicalCopyFrom>(info.copy(), outExprs, LogicalOperator::copy(children));
     }
 
 private:

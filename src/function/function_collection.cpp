@@ -50,6 +50,8 @@ namespace function {
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::COPY_FUNCTION_ENTRY }
 #define TABLE_FUNCTION(_PARAM)                                                                     \
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
+#define STANDALONE_TABLE_FUNCTION(_PARAM)                                                          \
+    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY }
 #define ALGORITHM_FUNCTION(_PARAM)                                                                 \
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY }
 #define FINAL_FUNCTION                                                                             \
@@ -217,10 +219,13 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Table functions
         TABLE_FUNCTION(CurrentSettingFunction), TABLE_FUNCTION(DBVersionFunction),
         TABLE_FUNCTION(ShowTablesFunction), TABLE_FUNCTION(ShowWarningsFunction),
-        TABLE_FUNCTION(ClearWarningsFunction), TABLE_FUNCTION(TableInfoFunction),
-        TABLE_FUNCTION(ShowConnectionFunction), TABLE_FUNCTION(StatsInfoFunction),
-        TABLE_FUNCTION(StorageInfoFunction), TABLE_FUNCTION(ShowAttachedDatabasesFunction),
-        TABLE_FUNCTION(ShowSequencesFunction), TABLE_FUNCTION(ShowFunctionsFunction),
+        TABLE_FUNCTION(TableInfoFunction), TABLE_FUNCTION(ShowConnectionFunction),
+        TABLE_FUNCTION(StatsInfoFunction), TABLE_FUNCTION(StorageInfoFunction),
+        TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(ShowSequencesFunction),
+        TABLE_FUNCTION(ShowFunctionsFunction),
+
+        // Standalone Table functions
+        STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),

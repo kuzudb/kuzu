@@ -85,6 +85,12 @@ public:
         offsetColumnChunk->resize(newCapacity);
     }
 
+    void resizeWithoutPreserve(uint64_t newCapacity) override {
+        ColumnChunkData::resizeWithoutPreserve(newCapacity);
+        sizeColumnChunk->resizeWithoutPreserve(newCapacity);
+        offsetColumnChunk->resizeWithoutPreserve(newCapacity);
+    }
+
     common::offset_t getListStartOffset(common::offset_t offset) const;
 
     common::offset_t getListEndOffset(common::offset_t offset) const;

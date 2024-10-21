@@ -9,7 +9,7 @@ struct LogicalCreateTypePrintInfo final : OPPrintInfo {
     std::string typeName;
     std::string type;
 
-    explicit LogicalCreateTypePrintInfo(std::string typeName, std::string type)
+    LogicalCreateTypePrintInfo(std::string typeName, std::string type)
         : typeName(std::move(typeName)), type(std::move(type)) {}
 
     std::string toString() const override { return typeName + " As " + type; };
@@ -28,16 +28,17 @@ class LogicalCreateType : public LogicalDDL {
 
 public:
     LogicalCreateType(std::string name, common::LogicalType type,
-        std::shared_ptr<binder::Expression> outputExpression,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalDDL{type_, std::move(name), std::move(outputExpression), std::move(printInfo)},
-          type{std::move(type)} {}
+        std::shared_ptr<binder::Expression> outputExpression)
+        : LogicalDDL{type_, std::move(name), std::move(outputExpression)}, type{std::move(type)} {}
 
     const common::LogicalType& getType() const { return type; }
 
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalCreateTypePrintInfo>(tableName, type.toString());
+    }
+
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateType>(tableName, type.copy(), outputExpression,
-            printInfo->copy());
+        return std::make_unique<LogicalCreateType>(tableName, type.copy(), outputExpression);
     }
 
 private:

@@ -106,7 +106,7 @@ Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_RO
 ---- 2
 Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|2|2,2147483650
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
--STATEMENT CALL clear_warnings() RETURN status;
+-STATEMENT CALL clear_warnings();
 ---- ok
 -STATEMENT CALL show_warnings() RETURN *;
 ---- 0

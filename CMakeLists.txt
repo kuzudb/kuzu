@@ -143,8 +143,9 @@ if(BUILD_WASM)
     add_link_options(-pthread)
     add_link_options(-sPTHREAD_POOL_SIZE=8)
     add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0)
+    add_link_options(-sSTACK_SIZE=4MB)
     if(BUILD_TESTS)
-        add_link_options(-sINITIAL_MEMORY=3584MB) # 3.5GB
+        add_link_options(-sINITIAL_MEMORY=3892MB) # 3.8GB
         add_link_options(-sNODERAWFS=1)
         add_link_options(-sASSERTIONS=1)
     else()

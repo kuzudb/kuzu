@@ -11,15 +11,14 @@ namespace planner {
 using join_condition_t = binder::expression_pair;
 
 // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
-class LogicalHashJoin : public LogicalOperator {
+class LogicalHashJoin final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::HASH_JOIN;
 
 public:
     LogicalHashJoin(std::vector<join_condition_t> joinConditions, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, std::shared_ptr<LogicalOperator> probeChild,
-        std::shared_ptr<LogicalOperator> buildChild, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild),
-              std::move(printInfo)},
+        std::shared_ptr<LogicalOperator> buildChild)
+        : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
           joinConditions(std::move(joinConditions)), joinType{joinType}, mark{std::move(mark)} {}
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();

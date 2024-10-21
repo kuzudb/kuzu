@@ -610,3 +610,8 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 -STATEMENT CREATE REL TABLE R2 (FROM R TO R);
 ---- error
 Binder exception: Table type mismatch.
+
+-LOG InQueryCallWithoutReturn
+-STATEMENT CALL show_tables();
+---- error
+Binder exception: Only standalone table functions can be called without return statement.
