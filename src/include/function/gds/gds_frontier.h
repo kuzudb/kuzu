@@ -5,6 +5,7 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -26,7 +27,7 @@ public:
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
     virtual void edgeCompute(common::nodeID_t boundNodeID,
         std::span<const common::nodeID_t> nbrNodeID, std::span<const common::relID_t> edgeID,
-        common::SelectionVector& mask, bool fwdEdge) = 0;
+        common::SelectionVector& mask, bool fwdEdge, const common::ValueVector* edgeProperty) = 0;
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };

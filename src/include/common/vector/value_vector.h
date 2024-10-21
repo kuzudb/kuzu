@@ -4,6 +4,7 @@
 
 #include "common/assert.h"
 #include "common/cast.h"
+#include "common/copy_constructors.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
 #include "common/types/ku_string.h"
@@ -30,6 +31,7 @@ public:
         KU_ASSERT(dataTypeID != LogicalTypeID::LIST);
     }
 
+    DELETE_COPY_AND_MOVE(ValueVector);
     ~ValueVector() = default;
 
     void setState(const std::shared_ptr<DataChunkState>& state_);
