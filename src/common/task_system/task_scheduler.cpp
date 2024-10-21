@@ -35,17 +35,19 @@ TaskScheduler::~TaskScheduler() {
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
-#ifndef __SINGLE_THREADED__
-    processor::ExecutionContext* context, bool launchNewWorkerThread
-#else
-    processor::ExecutionContext* /*context*/, bool /*launchNewWorkerThread*/
-#endif
+    processor::ExecutionContext* context, 
+    #ifndef __SINGLE_THREADED__
+    bool launchNewWorkerThread
+    #else
+    bool /*launchNewWorkerThread*/
+    #endif
 ) {
-#ifndef __SINGLE_THREADED__
 
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }
+#ifndef __SINGLE_THREADED__
+
     std::thread newWorkerThread;
     if (launchNewWorkerThread) {
         // Note that newWorkerThread is not executing yet. However, we still call
@@ -56,10 +58,15 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
         task->registerThread();
         newWorkerThread = std::thread(runTask, task.get());
     }
-
+#endif
     auto scheduledTask = pushTaskIntoQueue(task);
+
+#ifndef __SINGLE_THREADED__
     cv.notify_all();
     std::unique_lock<std::mutex> taskLck{task->taskMtx, std::defer_lock};
+#endif
+
+#ifndef __SINGLE_THREADED__
     while (true) {
         taskLck.lock();
         bool timedWait = false;
@@ -92,17 +99,35 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     if (launchNewWorkerThread) {
         newWorkerThread.join();
     }
+
+#else
+    while (true) {
+        auto timeout = 0u;
+        if (task->isCompletedNoLock()) {
+            break;
+        }
+        if (context->clientContext->hasTimeout()) {
+            timeout = context->clientContext->getTimeoutRemainingInMS();
+            if (timeout == 0) {
+                context->clientContext->interrupt();
+            }
+        }
+        if (task->hasExceptionNoLock()) {
+            // Interrupt tasks that errored, so other threads can stop working on them early.
+            context->clientContext->interrupt();
+        }
+        // In single-threaded mode, we run the task in the main thread.
+        auto scheduledTask = getTaskAndRegister();
+        if (scheduledTask == nullptr || stopWorkerThreads) {
+            break;
+        }
+        runTask(scheduledTask->task.get());
+    }
+#endif
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
     }
-#else
-    task->run();
-    if (task->hasException()) {
-        std::rethrow_exception(task->getExceptionPtr());
-    }
-
-#endif
 }
 
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
