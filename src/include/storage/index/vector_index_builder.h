@@ -80,6 +80,7 @@ struct VectorTempStorage {
     }
 
     ~VectorTempStorage() {
+        printf("Deleting VectorTempStorage\n");
         free(vectors);
     }
 

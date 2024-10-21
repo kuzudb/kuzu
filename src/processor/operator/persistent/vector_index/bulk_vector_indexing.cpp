@@ -113,8 +113,16 @@ namespace kuzu {
             // TODO: IMP: Free the memory of the graph as partition is filled!!
             sharedState->graph->populatePartitionBuffer(
                     *sharedState->partitionerSharedState->partitioningBuffers[0]);
+
+            // Free the memory of the graph
+            sharedState->graph.reset();
+            sharedState->tempStorage.reset();
+            sharedState->builder.reset();
+            sharedState->compressedStorage.reset();
+
             context->clientContext->getStorageManager()->getWAL().addToUpdatedTables(
                     sharedState->header->getNodeTableId());
+
         }
 
 //void BulkVectorIndexing::printGraph() {

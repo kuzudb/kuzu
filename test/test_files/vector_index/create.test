@@ -7,9 +7,9 @@
 -STATEMENT MATCH (n:dataset) RETURN count(n);
 ---- 1
 10000
--STATEMENT CREATE VECTOR INDEX ON dataset.embedding (samplingProbability=0.05, alpha=1.0, numVectorsPerPartition=5000);
+-STATEMENT CREATE VECTOR INDEX ON dataset.embedding (samplingProbability=0.05, alpha=1.0, numVectorsPerPartition=200000);
 ---- ok
--STATEMENT UPDATE VECTOR INDEX ON dataset.embedding;
+-STATEMENT EXPLAIN UPDATE VECTOR INDEX ON dataset.embedding;
 ---- 1
 1
 #-STATEMENT MATCH (n1:embeddings)-[e]->(n2:embeddings) RETURN ID(n1), ID(e), ID(n2) LIMIT 10000;
