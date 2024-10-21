@@ -24,17 +24,17 @@ void NodeTableDeleteInfo::init(const ResultSet& resultSet) {
 
 void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,
     ValueVector* nodeIDVector) const {
-    const auto deleteFunc = [](const std::string& tableName, offset_t nodeOffset,
-                                RelDataDirection direction) {
+    const auto throwFunc = [](const std::string& tableName, offset_t nodeOffset,
+                               RelDataDirection direction) {
         throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
             tableName, std::to_string(nodeOffset),
             RelDataDirectionUtils::relDirectionToString(direction)));
     };
     for (auto& relTable : fwdRelTables) {
-        relTable->throwIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector, deleteFunc);
+        relTable->throwIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector, throwFunc);
     }
     for (auto& relTable : bwdRelTables) {
-        relTable->throwIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector, deleteFunc);
+        relTable->throwIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector, throwFunc);
     }
 }
 
