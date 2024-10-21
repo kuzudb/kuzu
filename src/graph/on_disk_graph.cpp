@@ -4,6 +4,8 @@
 
 #include "binder/expression/property_expression.h"
 #include "common/assert.h"
+#include "common/cast.h"
+#include "common/constants.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/enums/rel_direction.h"
 #include "common/types/types.h"
@@ -13,9 +15,13 @@
 #include "main/client_context.h"
 #include "planner/operator/schema.h"
 #include "processor/expression_mapper.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
+#include "storage/store/column.h"
+#include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "storage/store/table.h"
 
@@ -72,8 +78,9 @@ static std::unique_ptr<RelTableScanState> getRelScanState(
     return scanState;
 }
 
-OnDiskGraphScanStates::OnDiskGraphScanStates(ClientContext* context, std::span<RelTable*> tables,
-    const GraphEntry& graphEntry, std::optional<idx_t> edgePropertyIndex)
+OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(ClientContext* context,
+    std::span<RelTable*> tables, const GraphEntry& graphEntry,
+    std::optional<idx_t> edgePropertyIndex)
     : iteratorIndex{0}, direction{RelDataDirection::INVALID} {
     auto schema = graphEntry.getRelPropertiesSchema();
     auto descriptor = ResultSetDescriptor(&schema);
@@ -121,7 +128,7 @@ OnDiskGraphScanStates::OnDiskGraphScanStates(ClientContext* context, std::span<R
             relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
             schema, resultSet);
         scanStates.emplace_back(table->getTableID(),
-            OnDiskGraphScanState{context, *table, std::move(fwdState), std::move(bwdState)});
+            OnDiskGraphNbrScanState{context, *table, std::move(fwdState), std::move(bwdState)});
     }
 }
 
@@ -201,14 +208,14 @@ std::vector<RelTableIDInfo> OnDiskGraph::getRelTableIDInfos() {
     return result;
 }
 
-std::unique_ptr<GraphScanState> OnDiskGraph::prepareScan(table_id_t relTableID,
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareScan(table_id_t relTableID,
     std::optional<idx_t> edgePropertyIndex) {
     auto relTable = context->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
-    return std::unique_ptr<OnDiskGraphScanStates>(
-        new OnDiskGraphScanStates(context, std::span(&relTable, 1), graphEntry, edgePropertyIndex));
+    return std::unique_ptr<OnDiskGraphNbrScanStates>(new OnDiskGraphNbrScanStates(context,
+        std::span(&relTable, 1), graphEntry, edgePropertyIndex));
 }
 
-std::unique_ptr<GraphScanState> OnDiskGraph::prepareMultiTableScanFwd(
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareMultiTableScanFwd(
     std::span<table_id_t> nodeTableIDs) {
     std::unordered_set<table_id_t> relTableIDSet;
     std::vector<RelTable*> tables;
@@ -220,11 +227,11 @@ std::unique_ptr<GraphScanState> OnDiskGraph::prepareMultiTableScanFwd(
             }
         }
     }
-    return std::unique_ptr<OnDiskGraphScanStates>(
-        new OnDiskGraphScanStates(context, std::span(tables), graphEntry));
+    return std::unique_ptr<OnDiskGraphNbrScanStates>(
+        new OnDiskGraphNbrScanStates(context, std::span(tables), graphEntry));
 }
 
-std::unique_ptr<GraphScanState> OnDiskGraph::prepareMultiTableScanBwd(
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareMultiTableScanBwd(
     std::span<table_id_t> nodeTableIDs) {
     std::unordered_set<table_id_t> relTableIDSet;
     std::vector<RelTable*> tables;
@@ -236,12 +243,12 @@ std::unique_ptr<GraphScanState> OnDiskGraph::prepareMultiTableScanBwd(
             }
         }
     }
-    return std::unique_ptr<OnDiskGraphScanStates>(
-        new OnDiskGraphScanStates(context, std::span(tables), graphEntry));
+    return std::unique_ptr<OnDiskGraphNbrScanStates>(
+        new OnDiskGraphNbrScanStates(context, std::span(tables), graphEntry));
 }
 
-Graph::Iterator OnDiskGraph::scanFwd(nodeID_t nodeID, GraphScanState& state) {
-    auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphScanStates&>(state);
+Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {
+    auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphNbrScanStates&>(state);
     onDiskScanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);
     onDiskScanState.dstNodeIDVector->state->getSelVectorUnsafe().setSelSize(0);
     KU_ASSERT(nodeTableIDToFwdRelTables.contains(nodeID.tableID));
@@ -253,11 +260,11 @@ Graph::Iterator OnDiskGraph::scanFwd(nodeID_t nodeID, GraphScanState& state) {
         }
     }
     onDiskScanState.startScan(common::RelDataDirection::FWD);
-    return Graph::Iterator(&onDiskScanState);
+    return Graph::EdgeIterator(&onDiskScanState);
 }
 
-Graph::Iterator OnDiskGraph::scanBwd(nodeID_t nodeID, GraphScanState& state) {
-    auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphScanStates&>(state);
+Graph::EdgeIterator OnDiskGraph::scanBwd(nodeID_t nodeID, NbrScanState& state) {
+    auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphNbrScanStates&>(state);
     onDiskScanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);
     onDiskScanState.dstNodeIDVector->state->getSelVectorUnsafe().setSelSize(0);
     KU_ASSERT(nodeTableIDToBwdRelTables.contains(nodeID.tableID));
@@ -269,10 +276,10 @@ Graph::Iterator OnDiskGraph::scanBwd(nodeID_t nodeID, GraphScanState& state) {
         }
     }
     onDiskScanState.startScan(common::RelDataDirection::BWD);
-    return Graph::Iterator(&onDiskScanState);
+    return Graph::EdgeIterator(&onDiskScanState);
 }
 
-bool OnDiskGraphScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
+bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
     while (true) {
         if (!relTable->scan(context->getTx(), *tableScanState)) {
             return false;
@@ -287,15 +294,15 @@ bool OnDiskGraphScanState::InnerIterator::next(evaluator::ExpressionEvaluator* p
     }
 }
 
-OnDiskGraphScanState::InnerIterator::InnerIterator(const main::ClientContext* context,
+OnDiskGraphNbrScanState::InnerIterator::InnerIterator(const main::ClientContext* context,
     storage::RelTable* relTable, std::unique_ptr<storage::RelTableScanState> tableScanState)
     : context{context}, relTable{relTable}, tableScanState{std::move(tableScanState)} {}
 
-void OnDiskGraphScanState::InnerIterator::initScan() {
+void OnDiskGraphNbrScanState::InnerIterator::initScan() {
     relTable->initScanState(context->getTx(), *tableScanState);
 }
 
-bool OnDiskGraphScanStates::next() {
+bool OnDiskGraphNbrScanStates::next() {
     while (iteratorIndex < scanStates.size()) {
         if (getInnerIterator().next(relPredicateEvaluator.get())) {
             return true;
@@ -303,6 +310,66 @@ bool OnDiskGraphScanStates::next() {
         iteratorIndex++;
     }
     return false;
+}
+
+OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
+    common::table_id_t tableID, const std::vector<std::string>& propertyNames)
+    : context{context},
+      nodeTable{ku_dynamic_cast<const NodeTable&>(*context.getStorageManager()->getTable(tableID))},
+      numNodesScanned{0}, tableID{tableID}, currentOffset{0}, endOffsetExclusive{0} {
+    std::vector<column_id_t> propertyColumnIDs;
+    propertyColumnIDs.reserve(propertyNames.size());
+    auto tableCatalogEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(), tableID);
+    std::vector<const Column*> columns;
+    std::vector<LogicalType> types;
+    for (const auto& property : propertyNames) {
+        auto columnID = tableCatalogEntry->getColumnID(property);
+        propertyColumnIDs.push_back(columnID);
+        columns.push_back(&nodeTable.getColumn(columnID));
+        types.push_back(columns.back()->getDataType().copy());
+    }
+    propertyVectors = nodeTable.constructDataChunk(std::move(types));
+    nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(),
+        context.getMemoryManager(), propertyVectors.state);
+    tableScanState = std::make_unique<NodeTableScanState>(tableID, std::move(propertyColumnIDs),
+        std::move(columns), propertyVectors, nodeIDVector.get());
+}
+
+bool OnDiskGraphVertexScanState::next() {
+    if (currentOffset >= endOffsetExclusive) {
+        return false;
+    }
+    if (currentOffset < endOffsetExclusive &&
+        StorageUtils::getNodeGroupIdx(currentOffset) != tableScanState->nodeGroupIdx) {
+        startScan(currentOffset, endOffsetExclusive);
+    }
+
+    auto endOffset = std::min(endOffsetExclusive,
+        StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1));
+    numNodesScanned = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
+    auto result = tableScanState->scanNext(context.getTx(), currentOffset, numNodesScanned);
+    currentOffset += numNodesScanned;
+    return result;
+}
+
+Graph::VertexIterator OnDiskGraph::scanVertices(common::offset_t beginOffset,
+    common::offset_t endOffsetExclusive, VertexScanState& state) {
+    auto& onDiskVertexScanState = ku_dynamic_cast<OnDiskGraphVertexScanState&>(state);
+    onDiskVertexScanState.startScan(beginOffset, endOffsetExclusive);
+    return Graph::VertexIterator(&state);
+}
+
+std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(common::table_id_t tableID,
+    const std::vector<std::string>& propertiesToScan) {
+    return std::make_unique<OnDiskGraphVertexScanState>(*context, tableID, propertiesToScan);
+}
+
+void OnDiskGraphVertexScanState::startScan(common::offset_t beginOffset,
+    common::offset_t endOffsetExclusive) {
+    numNodesScanned = 0;
+    this->currentOffset = beginOffset;
+    this->endOffsetExclusive = endOffsetExclusive;
+    nodeTable.initScanState(context.getTx(), *tableScanState, tableID, beginOffset);
 }
 
 } // namespace graph

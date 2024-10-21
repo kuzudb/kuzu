@@ -26,20 +26,30 @@ namespace storage {
 struct NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
-    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
-        : NodeTableScanState{tableID, std::move(columnIDs), {}} {}
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns)
-        : NodeTableScanState{tableID, std::move(columnIDs), std::move(columns),
-              std::vector<ColumnPredicateSet>{}} {}
-    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
+        std::vector<const Column*> columns = {},
+        std::vector<ColumnPredicateSet> columnPredicateSets = {})
         : TableScanState{tableID, std::move(columnIDs), std::move(columns),
               std::move(columnPredicateSets)} {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 
+    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
+        std::vector<const Column*> columns, const common::DataChunk& dataChunk,
+        common::ValueVector* nodeIDVector)
+        : NodeTableScanState{tableID, std::move(columnIDs), std::move(columns)} {
+        for (auto& vector : dataChunk.valueVectors) {
+            outputVectors.push_back(vector.get());
+        }
+        outState = dataChunk.state.get();
+        this->nodeIDVector = nodeIDVector;
+        rowIdxVector->state = this->nodeIDVector->state;
+    }
+
     bool scanNext(transaction::Transaction* transaction) override;
+
+    bool scanNext(transaction::Transaction* transaction, common::offset_t startOffset,
+        common::offset_t numNodes);
 };
 
 struct NodeTableInsertState final : TableInsertState {
@@ -100,6 +110,8 @@ public:
 
     void initScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;
+    void initScanState(transaction::Transaction* transaction, TableScanState& scanState,
+        common::table_id_t tableID, common::offset_t startOffset) const;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
     bool lookup(transaction::Transaction* transaction, const TableScanState& scanState) const;

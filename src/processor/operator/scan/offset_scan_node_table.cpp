@@ -34,15 +34,8 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     auto nodeID = nodeIDVector->getValue<nodeID_t>(0);
     KU_ASSERT(tableIDToNodeInfo.contains(nodeID.tableID));
     auto& nodeInfo = tableIDToNodeInfo.at(nodeID.tableID);
-    if (transaction->isUnCommitted(nodeID.tableID, nodeID.offset)) {
-        nodeInfo.localScanState->source = TableScanSource::UNCOMMITTED;
-        nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(
-            transaction->getLocalRowIdx(nodeID.tableID, nodeID.offset));
-    } else {
-        nodeInfo.localScanState->source = TableScanSource::COMMITTED;
-        nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeID.offset);
-    }
-    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState);
+    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState, nodeID.tableID,
+        nodeID.offset);
     if (!nodeInfo.table->lookup(transaction, *nodeInfo.localScanState)) {
         // LCOV_EXCL_START
         throw RuntimeException(stringFormat("Cannot perform lookup on {}. This should not happen.",

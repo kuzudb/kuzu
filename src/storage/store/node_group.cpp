@@ -1,6 +1,9 @@
 #include "storage/store/node_group.h"
 
+#include "common/assert.h"
+#include "common/constants.h"
 #include "common/types/types.h"
+#include "common/uniq_lock.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
@@ -107,7 +110,7 @@ void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& st
 }
 
 static void initializeScanStateForChunkedGroup(const TableScanState& state,
-    ChunkedNodeGroup* chunkedGroup) {
+    const ChunkedNodeGroup* chunkedGroup) {
     KU_ASSERT(chunkedGroup);
     if (chunkedGroup->getResidencyState() != ResidencyState::ON_DISK) {
         return;
@@ -130,9 +133,38 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock,
     TableScanState& state) const {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.chunkedGroupIdx = 0;
-    nodeGroupScanState.numScannedRows = 0;
+    nodeGroupScanState.nextRowToScan = 0;
     ChunkedNodeGroup* firstChunkedGroup = chunkedGroups.getFirstGroup(lock);
     initializeScanStateForChunkedGroup(state, firstChunkedGroup);
+}
+
+void applySemiMaskFilter(const TableScanState& state, row_idx_t numRowsToScan,
+    SelectionVector& selVector) {
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    const auto startNodeOffset = nodeGroupScanState.nextRowToScan +
+                                 StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
+    const auto endNodeOffset = startNodeOffset + numRowsToScan;
+    const auto& arr = state.semiMask->range(startNodeOffset, endNodeOffset);
+    if (arr.empty()) {
+        selVector.setSelSize(0);
+    } else {
+        auto stat = selVector.getMutableBuffer();
+        uint64_t numSelectedValues = 0;
+        size_t i = 0, j = 0;
+        while (i < numRowsToScan && j < arr.size()) {
+            auto temp = arr[j] - startNodeOffset;
+            if (selVector[i] < temp) {
+                ++i;
+            } else if (selVector[i] > temp) {
+                ++j;
+            } else {
+                stat[numSelectedValues++] = temp;
+                ++i;
+                ++j;
+            }
+        }
+        selVector.setToFiltered(numSelectedValues);
+    }
 }
 
 NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
@@ -141,8 +173,8 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     KU_ASSERT(nodeGroupScanState.chunkedGroupIdx < chunkedGroups.getNumGroups(lock));
     const auto chunkedGroup = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
-    if (chunkedGroup && nodeGroupScanState.numScannedRows >=
-                            chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
+    if (nodeGroupScanState.nextRowToScan >=
+        chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
         nodeGroupScanState.chunkedGroupIdx++;
         if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
             return NODE_GROUP_SCAN_EMMPTY_RESULT;
@@ -154,48 +186,87 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     const auto& chunkedGroupToScan =
         *chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
     const auto rowIdxInChunkToScan =
-        nodeGroupScanState.numScannedRows - chunkedGroupToScan.getStartRowIdx();
+        nodeGroupScanState.nextRowToScan - chunkedGroupToScan.getStartRowIdx();
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
     bool enableSemiMask =
         state.source == TableScanSource::COMMITTED && state.semiMask && state.semiMask->isEnabled();
     if (enableSemiMask) {
-        const auto startNodeOffset = nodeGroupScanState.numScannedRows +
-                                     StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
-        const auto endNodeOffset = startNodeOffset + numRowsToScan;
-        const auto& arr = state.semiMask->range(startNodeOffset, endNodeOffset);
-        if (arr.empty()) {
-            state.outState->getSelVectorUnsafe().setSelSize(0);
-            nodeGroupScanState.numScannedRows += numRowsToScan;
-            return NodeGroupScanResult{nodeGroupScanState.numScannedRows, 0};
-        } else {
-            chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
-                numRowsToScan);
-            auto& selVector = state.outState->getSelVectorUnsafe();
-            auto stat = selVector.getMutableBuffer();
-            uint64_t numSelectedValues = 0;
-            size_t i = 0, j = 0;
-            while (i < selVector.getSelSize() && j < arr.size()) {
-                auto temp = arr[j] - startNodeOffset;
-                if (selVector[i] < temp) {
-                    ++i;
-                } else if (selVector[i] > temp) {
-                    ++j;
-                } else {
-                    stat[numSelectedValues++] = temp;
-                    ++i;
-                    ++j;
-                }
-            }
-            selVector.setToFiltered(numSelectedValues);
+        applySemiMaskFilter(state, numRowsToScan, state.outState->getSelVectorUnsafe());
+        if (state.outState->getSelVector().getSelSize() == 0) {
+            state.nodeGroupScanState->nextRowToScan += numRowsToScan;
+            return NodeGroupScanResult{nodeGroupScanState.nextRowToScan, 0};
         }
-    } else {
-        chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
-            numRowsToScan);
     }
-    const auto startRow = nodeGroupScanState.numScannedRows;
-    nodeGroupScanState.numScannedRows += numRowsToScan;
+    chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+        numRowsToScan);
+    const auto startRow = nodeGroupScanState.nextRowToScan;
+    nodeGroupScanState.nextRowToScan += numRowsToScan;
     return NodeGroupScanResult{startRow, numRowsToScan};
+}
+
+NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state,
+    offset_t startOffset, offset_t numRowsToScan) const {
+    bool enableSemiMask =
+        state.source == TableScanSource::COMMITTED && state.semiMask && state.semiMask->isEnabled();
+    if (enableSemiMask) {
+        applySemiMaskFilter(state, numRowsToScan, state.outState->getSelVectorUnsafe());
+        if (state.outState->getSelVector().getSelSize() == 0) {
+            state.nodeGroupScanState->nextRowToScan += numRowsToScan;
+            return NodeGroupScanResult{state.nodeGroupScanState->nextRowToScan, 0};
+        }
+    }
+    if (state.outputVectors.size() == 0) {
+        auto startOffsetInGroup =
+            startOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        KU_ASSERT(scanInternal(chunkedGroups.lock(), transaction, state, startOffset,
+                      numRowsToScan) == NodeGroupScanResult(startOffsetInGroup, numRowsToScan));
+        return NodeGroupScanResult{startOffsetInGroup, numRowsToScan};
+    }
+    return scanInternal(chunkedGroups.lock(), transaction, state, startOffset, numRowsToScan);
+}
+
+NodeGroupScanResult NodeGroup::scanInternal(const common::UniqLock& lock, Transaction* transaction,
+    TableScanState& state, offset_t startOffset, offset_t numRowsToScan) const {
+    // Only meant for scanning once
+    KU_ASSERT(numRowsToScan <= DEFAULT_VECTOR_CAPACITY);
+
+    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    KU_ASSERT(startOffset >= nodeGroupStartOffset);
+    auto startOffsetInGroup = startOffset - nodeGroupStartOffset;
+    KU_ASSERT(startOffsetInGroup + numRowsToScan <= numRows);
+
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    nodeGroupScanState.nextRowToScan = startOffsetInGroup;
+
+    auto newChunkedGroupIdx = findChunkedGroupIdxFromRowIdx(lock, startOffsetInGroup);
+
+    const auto* chunkedGroupToScan = chunkedGroups.getGroup(lock, newChunkedGroupIdx);
+    if (newChunkedGroupIdx != nodeGroupScanState.chunkedGroupIdx) {
+        // If the chunked group matches the scan state, don't re-initialize it.
+        // E.g. we may scan a group multiple times in parts
+        initializeScanStateForChunkedGroup(state, chunkedGroupToScan);
+        nodeGroupScanState.chunkedGroupIdx = newChunkedGroupIdx;
+    }
+
+    uint64_t numRowsScanned = 0;
+    do {
+        const auto rowIdxInChunkToScan =
+            (startOffsetInGroup + numRowsScanned) - chunkedGroupToScan->getStartRowIdx();
+
+        uint64_t numRowsToScanInChunk = std::min(numRowsToScan - numRowsScanned,
+            chunkedGroupToScan->getNumRows() - rowIdxInChunkToScan);
+        chunkedGroupToScan->scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+            numRowsToScanInChunk);
+        numRowsScanned += numRowsToScanInChunk;
+        nodeGroupScanState.nextRowToScan += numRowsToScanInChunk;
+        if (numRowsScanned < numRowsToScan) {
+            nodeGroupScanState.chunkedGroupIdx++;
+            chunkedGroupToScan = chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
+        }
+    } while (numRowsScanned < numRowsToScan);
+
+    return NodeGroupScanResult{startOffsetInGroup, numRowsScanned};
 }
 
 bool NodeGroup::lookup(const UniqLock& lock, Transaction* transaction,
@@ -455,21 +526,26 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     }
 }
 
-ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) {
+idx_t NodeGroup::findChunkedGroupIdxFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) const {
     KU_ASSERT(!chunkedGroups.isEmpty(lock));
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroup(lock)->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
-        return chunkedGroups.getFirstGroup(lock);
+        return 0;
     }
     rowIdx -= numRowsInFirstGroup;
-    const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    return rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+}
+
+ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock,
+    row_idx_t rowIdx) const {
+    auto chunkedGroupIdx = findChunkedGroupIdxFromRowIdx(lock, rowIdx);
     if (chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
         return nullptr;
     }
     return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
-ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) {
+ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) const {
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
         return chunkedGroups.getFirstGroupNoLock();

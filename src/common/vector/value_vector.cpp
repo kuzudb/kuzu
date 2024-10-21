@@ -14,7 +14,8 @@
 namespace kuzu {
 namespace common {
 
-ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager)
+ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager,
+    std::shared_ptr<DataChunkState> dataChunkState)
     : dataType{std::move(dataType)}, nullMask{DEFAULT_VECTOR_CAPACITY} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
         // LCOV_EXCL_START
@@ -26,6 +27,9 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
     numBytesPerValue = getDataTypeSize(this->dataType);
     initializeValueBuffer();
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
+    if (dataChunkState) {
+        setState(std::move(dataChunkState));
+    }
 }
 
 void ValueVector::setState(const std::shared_ptr<DataChunkState>& state_) {

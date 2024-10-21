@@ -35,7 +35,7 @@ public:
     explicit SingleSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
         : SPEdgeCompute{frontierPair} {};
 
-    std::vector<nodeID_t> edgeCompute(common::nodeID_t, GraphScanState::Chunk& resultChunk,
+    std::vector<nodeID_t> edgeCompute(common::nodeID_t, NbrScanState::Chunk& resultChunk,
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
@@ -59,7 +59,7 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, GraphScanState::Chunk& resultChunk,
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
         bool isFwd) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {

@@ -64,17 +64,6 @@ struct ChunkState {
         return childrenStates[childIdx];
     }
 
-    void resetState() {
-        numValuesPerPage = UINT64_MAX;
-        metadata = ColumnChunkMetadata{};
-        if (nullState) {
-            nullState->resetState();
-        }
-        for (auto& childState : childrenStates) {
-            childState.resetState();
-        }
-    }
-
     template<std::floating_point T>
     InMemoryExceptionChunk<T>* getExceptionChunk() {
         using GetType = std::unique_ptr<InMemoryExceptionChunk<T>>;

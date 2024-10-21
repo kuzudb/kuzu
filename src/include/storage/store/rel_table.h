@@ -50,11 +50,6 @@ struct RelTableScanState : TableScanState {
 
     bool scanNext(transaction::Transaction* transaction) override;
 
-    void resetState() override {
-        TableScanState::resetState();
-        currBoundNodeIdx = 0;
-    }
-
     void setNodeIDVectorToFlat(common::sel_t selPos) const;
 
 private:

@@ -25,7 +25,8 @@ class KUZU_API ValueVector {
     friend class ArrowColumnVector;
 
 public:
-    explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
+    explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr,
+        std::shared_ptr<DataChunkState> dataChunkState = nullptr);
     explicit ValueVector(LogicalTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
         : ValueVector(LogicalType(dataTypeID), memoryManager) {
         KU_ASSERT(dataTypeID != LogicalTypeID::LIST);

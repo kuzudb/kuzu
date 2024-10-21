@@ -60,11 +60,11 @@ void Table::serialize(Serializer& serializer) const {
     serializer.write<table_id_t>(tableID);
 }
 
-std::unique_ptr<DataChunk> Table::constructDataChunk(const std::vector<LogicalType>& types) {
-    auto dataChunk = std::make_unique<DataChunk>(types.size());
+DataChunk Table::constructDataChunk(std::vector<LogicalType> types) const {
+    DataChunk dataChunk(types.size());
     for (auto i = 0u; i < types.size(); i++) {
-        auto valueVector = std::make_unique<ValueVector>(types[i].copy(), memoryManager);
-        dataChunk->insert(i, std::move(valueVector));
+        auto valueVector = std::make_unique<ValueVector>(std::move(types[i]), memoryManager);
+        dataChunk.insert(i, std::move(valueVector));
     }
     return dataChunk;
 }

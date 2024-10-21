@@ -82,7 +82,7 @@ void GDSUtils::runVertexComputeIteration(processor::ExecutionContext* executionC
     auto maxThreads =
         clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
     auto info = VertexComputeTaskInfo(vc);
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
+    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
     for (auto& tableID : graph->getNodeTableIDs()) {
         if (!vc.beginOnTable(tableID)) {
             continue;

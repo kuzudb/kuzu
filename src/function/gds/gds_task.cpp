@@ -7,11 +7,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static uint64_t computeScanResult(nodeID_t sourceNodeID, graph::GraphScanState::Chunk& chunk,
+static uint64_t computeScanResult(nodeID_t sourceNodeID, graph::NbrScanState::Chunk& nbrChunk,
     EdgeCompute& ec, FrontierPair& frontierPair, bool isFwd) {
-    auto activeNodes = ec.edgeCompute(sourceNodeID, chunk, isFwd);
+    auto activeNodes = ec.edgeCompute(sourceNodeID, nbrChunk, isFwd);
     frontierPair.getNextFrontierUnsafe().setActive(activeNodes);
-    return chunk.size();
+    return nbrChunk.size();
 }
 
 void FrontierTask::run() {
@@ -49,11 +49,15 @@ void FrontierTask::run() {
 
 void VertexComputeTask::run() {
     FrontierMorsel frontierMorsel;
+    auto graph = sharedState->graph;
+    std::vector<std::string> propertiesToScan;
+    auto scanState =
+        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), propertiesToScan);
     auto localVc = info.vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
-        while (frontierMorsel.hasNextOffset()) {
-            common::nodeID_t nodeID = frontierMorsel.getNextNodeID();
-            localVc->vertexCompute(nodeID);
+        for (auto chunk : graph->scanVertices(frontierMorsel.getBeginOffset(),
+                 frontierMorsel.getEndOffsetExclusive(), *scanState)) {
+            localVc->vertexCompute(chunk);
         }
     }
 }

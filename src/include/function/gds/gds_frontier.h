@@ -26,7 +26,7 @@ public:
     // So if the implementing class has access to the next frontier as a field,
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
     virtual std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
-        graph::GraphScanState::Chunk& results, bool fwdEdge) = 0;
+        graph::NbrScanState::Chunk& results, bool fwdEdge) = 0;
 
     virtual void resetSingleThreadState() {}
 
@@ -52,7 +52,7 @@ public:
     // GDSUtils helper functions call isActive on nodes to check if any work should be done for
     // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
     // the function on each node in a graph.
-    virtual void vertexCompute(common::nodeID_t curNodeID) = 0;
+    virtual void vertexCompute(const graph::VertexScanState::Chunk& chunk) = 0;
 
     virtual std::unique_ptr<VertexCompute> copy() = 0;
 };
@@ -66,6 +66,9 @@ public:
     bool hasNextOffset() const { return nextOffset < endOffsetExclusive; }
 
     common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
+
+    common::offset_t getBeginOffset() const { return beginOffset; }
+    common::offset_t getEndOffsetExclusive() const { return endOffsetExclusive; }
 
 protected:
     void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
@@ -96,6 +99,8 @@ public:
     void init(common::table_id_t _tableID, common::offset_t _numOffsets);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
+
+    common::table_id_t getTableID() const { return tableID; }
 
 private:
     std::atomic<uint64_t> maxThreadsForExec;

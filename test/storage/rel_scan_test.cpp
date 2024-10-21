@@ -4,6 +4,7 @@
 
 #include "catalog/catalog.h"
 #include "common/types/date_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
@@ -129,6 +130,28 @@ TEST_F(RelScanTest, ScanFwd) {
     compare(0, {1, 2, 3}, {0, 1, 2}, {3, 6, 9});
     compare(1, {0, 2, 3}, {3, 4, 5}, {0, 7, 10});
     compare(2, {0, 1, 3}, {6, 7, 8}, {1, 4, 11});
+}
+
+TEST_F(RelScanTest, ScanVertexProperties) {
+    auto tableID = catalog->getTableID(context->getTx(), "person");
+    std::vector<std::string> properties = {"fname", "height"};
+    auto scanState = graph->prepareVertexScan(tableID, properties);
+
+    const auto compare = [&](offset_t startNodeOffset, offset_t endNodeOffset,
+                             std::vector<std::tuple<offset_t, std::string, float>> expectedNames) {
+        std::vector<std::tuple<offset_t, std::string, float>> results;
+        for (auto chunk : graph->scanVertices(startNodeOffset, endNodeOffset, *scanState)) {
+            for (size_t i = 0; i < chunk.size(); i++) {
+                results.push_back(std::make_tuple(chunk.getNodeIDs()[i].offset,
+                    chunk.getProperties<common::ku_string_t>(0)[i].getAsString(),
+                    chunk.getProperties<float>(1)[i]));
+            };
+        }
+        ASSERT_EQ(results, expectedNames);
+    };
+    compare(0, 3, {{0, "Alice", 1.731}, {1, "Bob", 0.99}, {2, "Carol", 1.0}});
+    compare(1, 3, {{1, "Bob", 0.99}, {2, "Carol", 1.0}});
+    compare(2, 4, {{2, "Carol", 1.0}, {3, "Dan", 1.3}});
 }
 
 } // namespace testing

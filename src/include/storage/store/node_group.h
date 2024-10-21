@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/uniq_lock.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group.h"
@@ -18,21 +20,13 @@ class NodeGroup;
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
     common::idx_t chunkedGroupIdx = 0;
-    common::row_idx_t numScannedRows = 0;
+    common::row_idx_t nextRowToScan = 0;
     // State of each chunk in the checkpointed chunked group.
     std::vector<ChunkState> chunkStates;
 
     explicit NodeGroupScanState(common::idx_t numChunks) { chunkStates.resize(numChunks); }
     virtual ~NodeGroupScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(NodeGroupScanState);
-
-    virtual void resetState() {
-        chunkedGroupIdx = 0;
-        numScannedRows = 0;
-        for (auto& chunkState : chunkStates) {
-            chunkState.resetState();
-        }
-    }
 
     template<class TARGET>
     TARGET& cast() {
@@ -138,6 +132,9 @@ public:
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction,
         TableScanState& state) const;
 
+    virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state,
+        common::offset_t startOffset, common::offset_t numNodes) const;
+
     bool lookup(const common::UniqLock& lock, transaction::Transaction* transaction,
         const TableScanState& state);
     bool lookup(transaction::Transaction* transaction, const TableScanState& state);
@@ -185,9 +182,11 @@ public:
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
 private:
+    common::idx_t findChunkedGroupIdxFromRowIdx(const common::UniqLock& lock,
+        common::row_idx_t rowIdx) const;
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
-        common::row_idx_t rowIdx);
-    ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx);
+        common::row_idx_t rowIdx) const;
+    ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx) const;
 
     std::unique_ptr<ChunkedNodeGroup> checkpointInMemOnly(MemoryManager& memoryManager,
         const common::UniqLock& lock, NodeGroupCheckpointState& state);
@@ -202,6 +201,10 @@ private:
     std::unique_ptr<ChunkedNodeGroup> scanAllInsertedAndVersions(MemoryManager& memoryManager,
         const common::UniqLock& lock, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<const Column*>& columns) const;
+
+    virtual NodeGroupScanResult scanInternal(const common::UniqLock& lock,
+        transaction::Transaction* transaction, TableScanState& state, common::offset_t startOffset,
+        common::offset_t numNodes) const;
 
 protected:
     common::node_group_idx_t nodeGroupIdx;
