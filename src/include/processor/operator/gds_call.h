@@ -4,6 +4,7 @@
 #include "function/gds/gds_utils.h"
 #include "gds_call_shared_state.h"
 #include "processor/operator/sink.h"
+#include "semi_masker.h"
 
 namespace kuzu {
 namespace processor {
@@ -36,7 +37,8 @@ public:
           gds{std::move(_gds)}, sharedState{std::move(sharedState)} {}
 
     bool hasSemiMask() const { return !sharedState->inputNodeOffsetMasks.empty(); }
-    std::vector<common::NodeSemiMask*> getSemiMasks() const;
+
+    mask_vector getSemiMasks() const;
 
     bool isSource() const override { return true; }
 
