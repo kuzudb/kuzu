@@ -133,7 +133,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     // runTask deregisters, so we don't need to deregister explicitly here
     runTask(task.get());
     if (task->hasException()) {
-        removeErroringTask(scheduledTask->ID);
+        removeErroringTask(task->ID);
         std::rethrow_exception(task->getExceptionPtr());
     }
 }
