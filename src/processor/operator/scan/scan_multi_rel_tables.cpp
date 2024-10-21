@@ -22,7 +22,7 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
 
 bool RelTableCollectionScanner::scan(Transaction* transaction) {
     while (true) {
-        const auto& relInfo = relInfos[currentTableIdx];
+        const auto& relInfo = *activationRelInfos[currentTableIdx];
         auto& scanState = *relInfo.scanState;
         if (relInfo.table->scan(transaction, scanState)) {
             if (directionVector != nullptr) {
@@ -36,12 +36,12 @@ bool RelTableCollectionScanner::scan(Transaction* transaction) {
         } else {
             currentTableIdx = nextTableIdx;
             if (currentTableIdx == 0) {
-                for (auto tableIdx = 0u; tableIdx < relInfos.size(); ++tableIdx) {
-                    relInfos[tableIdx].table->initScanState(transaction,
-                        *relInfos[tableIdx].scanState);
+                for (auto tableIdx = 0u; tableIdx < activationRelInfos.size(); ++tableIdx) {
+                    activationRelInfos[tableIdx]->table->initScanState(transaction,
+                        *activationRelInfos[tableIdx]->scanState);
                 }
             }
-            if (currentTableIdx == relInfos.size()) {
+            if (currentTableIdx == activationRelInfos.size()) {
                 return false;
             }
             nextTableIdx++;

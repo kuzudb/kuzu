@@ -24,7 +24,9 @@ class RelTableCollectionScanner {
 
 public:
     explicit RelTableCollectionScanner(std::vector<ScanRelTableInfo> relInfos)
-        : relInfos{std::move(relInfos)} {}
+        : relInfos{std::move(relInfos)} {
+        initActivationRelInfos();
+    }
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableCollectionScanner);
 
     bool empty() const { return relInfos.empty(); }
@@ -36,12 +38,29 @@ public:
 
     bool scan(transaction::Transaction* transaction);
 
+    void setActivationRelInfo(const std::vector<size_t>& activationRelInfoIndex) {
+        activationRelInfos.clear();
+        for (const auto& index : activationRelInfoIndex) {
+            activationRelInfos.push_back(&relInfos.at(index));
+        }
+    }
+    const std::vector<ScanRelTableInfo>& getRelInfos() const { return relInfos; }
+
 private:
     RelTableCollectionScanner(const RelTableCollectionScanner& other)
-        : relInfos{copyVector(other.relInfos)} {}
+        : relInfos{copyVector(other.relInfos)} {
+        initActivationRelInfos();
+    }
+
+    void initActivationRelInfos() {
+        for (auto& item : relInfos) {
+            activationRelInfos.push_back(&item);
+        }
+    }
 
 private:
     std::vector<ScanRelTableInfo> relInfos;
+    std::vector<ScanRelTableInfo*> activationRelInfos;
     std::vector<bool> directionValues;
     common::ValueVector* directionVector = nullptr;
     common::idx_t currentTableIdx = common::INVALID_IDX;
@@ -65,6 +84,17 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override;
+
+    void setRecursiveActivationRelInfo(
+        common::table_id_map_t<std::vector<size_t>> activationRelInfo) {
+        for (auto& [tableID, activation] : activationRelInfo) {
+            scanners.at(tableID).setActivationRelInfo(activation);
+        }
+    }
+
+    const common::table_id_map_t<RelTableCollectionScanner>& getScanners() const {
+        return scanners;
+    }
 
 private:
     void resetState();
