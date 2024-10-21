@@ -130,22 +130,21 @@ bool LogicalOperatorUtils::isAccHashJoin(const LogicalOperator& op) {
 }
 
 LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
-    std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-    : operatorType{operatorType}, printInfo{std::move(printInfo)} {
+    std::shared_ptr<LogicalOperator> child)
+    : operatorType{operatorType}, cardinality{0} {
     children.push_back(std::move(child));
 }
 
 LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
-    std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right,
-    std::unique_ptr<OPPrintInfo> printInfo)
-    : LogicalOperator{operatorType, std::move(printInfo)} {
+    std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right)
+    : LogicalOperator{operatorType} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));
 }
 
 LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
-    const logical_op_vector_t& children, std::unique_ptr<OPPrintInfo> printInfo)
-    : LogicalOperator{operatorType, std::move(printInfo)} {
+    const logical_op_vector_t& children)
+    : LogicalOperator{operatorType} {
     for (auto& child : children) {
         this->children.push_back(child);
     }

@@ -27,6 +27,8 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "REWRITE_FUNCTION_ENTRY";
     case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         return "TABLE_FUNCTION_ENTRY";
+    case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY:
+        return "STANDALONE_TABLE_FUNCTION_ENTRY";
     case CatalogEntryType::GDS_FUNCTION_ENTRY:
         return "GDS_FUNCTION_ENTRY";
     case CatalogEntryType::COPY_FUNCTION_ENTRY:
@@ -52,6 +54,8 @@ std::string FunctionEntryTypeUtils::toString(CatalogEntryType type) {
         return "REWRITE FUNCTION";
     case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         return "TABLE FUNCTION";
+    case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY:
+        return "STANDALONE TABLE FUNCTION";
     case CatalogEntryType::GDS_FUNCTION_ENTRY:
         return "GDS FUNCTION";
     case CatalogEntryType::COPY_FUNCTION_ENTRY:

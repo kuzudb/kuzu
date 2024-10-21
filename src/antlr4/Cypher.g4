@@ -68,7 +68,8 @@ kU_UseDatabase
     : USE SP oC_SchemaName;
 
 kU_StandaloneCall
-    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression;
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression
+        | CALL SP oC_FunctionInvocation;
 
 kU_CommentOn
     : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
@@ -240,7 +241,6 @@ oC_SingleQuery
 oC_SinglePartQuery
     : ( oC_ReadingClause SP? )* oC_Return
         | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
-        | ( oC_ReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
         ;
 
 oC_MultiPartQuery

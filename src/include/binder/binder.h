@@ -178,8 +178,11 @@ public:
 
     graph::GraphEntry bindProjectGraph(const parser::ProjectGraph& projectGraph);
 
-    /*** bind call ***/
+    /*** bind standalone call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
+
+    /*** bind standalone call function ***/
+    std::unique_ptr<BoundStatement> bindStandaloneCallFunction(const parser::Statement& statement);
 
     /*** bind create macro ***/
     std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement);

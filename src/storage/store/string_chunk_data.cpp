@@ -61,6 +61,11 @@ void StringChunkData::resize(uint64_t newCapacity) {
     indexColumnChunk->resize(newCapacity);
 }
 
+void StringChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
+    ColumnChunkData::resizeWithoutPreserve(newCapacity);
+    indexColumnChunk->resizeWithoutPreserve(newCapacity);
+}
+
 void StringChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     indexColumnChunk->resetToEmpty();

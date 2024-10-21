@@ -2,13 +2,6 @@
 
 --
 
--CASE QueryNotConcludeWithReturn1
--STATEMENT MATCH (a:person);
----- error
-Parser exception: Query must conclude with RETURN clause (line: 1, offset: 0)
-"MATCH (a:person);"
- ^^^^^
-
 -CASE InvalidNotEqualOperator)
 -STATEMENT MATCH (a) WHERE a.age != 1 RETURN *;
 ---- error

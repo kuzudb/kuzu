@@ -60,8 +60,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         }
         auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
             std::string(InternalKeyword::ROW_OFFSET));
-        boundReadingClause = std::make_unique<BoundTableFunctionCall>(*tableFunc,
-            std::move(bindData), std::move(offset), std::move(columns));
+        BoundTableFunction boundTableFunction{*tableFunc, std::move(bindData), std::move(offset)};
+        boundReadingClause = std::make_unique<BoundTableFunctionCall>(std::move(boundTableFunction),
+            std::move(columns));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         // The first argument of a GDS function must be a graph variable.

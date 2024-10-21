@@ -27,17 +27,19 @@ private:
 class LogicalCreateSequence : public LogicalDDL {
 public:
     LogicalCreateSequence(std::string sequenceName, binder::BoundCreateSequenceInfo info,
-        std::shared_ptr<binder::Expression> outputExpression,
-        std::unique_ptr<OPPrintInfo> printInfo)
+        std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{LogicalOperatorType::CREATE_SEQUENCE, std::move(sequenceName),
-              std::move(outputExpression), std::move(printInfo)},
+              std::move(outputExpression)},
           info{std::move(info)} {}
 
     binder::BoundCreateSequenceInfo getInfo() const { return info.copy(); }
 
+    std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
+        return std::make_unique<LogicalCreateSequencePrintInfo>(tableName);
+    }
+
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateSequence>(tableName, info.copy(), outputExpression,
-            printInfo->copy());
+        return std::make_unique<LogicalCreateSequence>(tableName, info.copy(), outputExpression);
     }
 
 private:

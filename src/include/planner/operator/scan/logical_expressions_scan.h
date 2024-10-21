@@ -7,17 +7,16 @@ namespace kuzu {
 namespace planner {
 
 // LogicalExpressionsScan scans from an outer factorize table
-class LogicalExpressionsScan : public LogicalOperator {
+class LogicalExpressionsScan final : public LogicalOperator {
 public:
-    LogicalExpressionsScan(binder::expression_vector expressions,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN, std::move(printInfo)},
+    explicit LogicalExpressionsScan(binder::expression_vector expressions)
+        : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN},
           expressions{std::move(expressions)}, outerAccumulate{nullptr} {}
 
-    inline void computeFactorizedSchema() final { computeSchema(); }
-    inline void computeFlatSchema() final { computeSchema(); }
+    inline void computeFactorizedSchema() override { computeSchema(); }
+    inline void computeFlatSchema() override { computeSchema(); }
 
-    inline std::string getExpressionsForPrinting() const final {
+    inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(expressions);
     }
 
@@ -25,8 +24,8 @@ public:
     inline void setOuterAccumulate(LogicalOperator* op) { outerAccumulate = op; }
     inline LogicalOperator* getOuterAccumulate() const { return outerAccumulate; }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalExpressionsScan>(expressions, printInfo->copy());
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalExpressionsScan>(expressions);
     }
 
 private:

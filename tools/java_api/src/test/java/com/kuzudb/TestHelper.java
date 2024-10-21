@@ -25,7 +25,6 @@ public class TestHelper {
         BufferedReader reader;
         db = new Database(dbPath);
         conn = new Connection(db);
-        QueryResult result;
 
         reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
         String line;
@@ -35,8 +34,8 @@ public class TestHelper {
                 break;
             }
             line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
-            result = conn.query(line);
-            result.destroy();
+            try (QueryResult result = conn.query(line)) {
+            }
         } while (line != null);
         reader.close();
 
@@ -48,8 +47,8 @@ public class TestHelper {
                 break;
             }
             line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
-            result = conn.query(line);
-            result.destroy();
+            try (QueryResult result = conn.query(line)) {
+            }
         } while (line != null);
         reader.close();
 
@@ -59,8 +58,8 @@ public class TestHelper {
             if (line == null) {
                 break;
             }
-            result = conn.query(line);
-            result.destroy();
+            try (QueryResult result = conn.query(line)) {
+            }
         } while (line != null);
         reader.close();
 
@@ -70,13 +69,14 @@ public class TestHelper {
             if (line == null) {
                 break;
             }
-            result = conn.query(line);
-            result.destroy();
+            try (QueryResult result = conn.query(line)) {
+            }
         } while (line != null);
 
-        result = conn.query("create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID));");
-        result.destroy();
-        result = conn.query("copy moviesSerial from \"../../dataset/tinysnb-serial/vMovies.csv\"");
-        result.destroy();
+        try (QueryResult result = conn.query("create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID));")) {
+        }
+        
+        try (QueryResult result = conn.query("copy moviesSerial from \"../../dataset/tinysnb-serial/vMovies.csv\"")) {
+        }
     }
 }
