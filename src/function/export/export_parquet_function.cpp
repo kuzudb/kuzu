@@ -2,7 +2,7 @@
 #include "common/string_utils.h"
 #include "function/export/export_function.h"
 #include "main/client_context.h"
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/result/factorized_table.h"
 

@@ -2,7 +2,7 @@
 
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 #include "utf8proc_wrapper.h"
 
 using kuzu_parquet::format::Type;
