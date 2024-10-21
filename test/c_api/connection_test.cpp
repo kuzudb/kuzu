@@ -158,7 +158,7 @@ TEST_F(CApiConnectionTest, QueryTimeout) {
 }
 
 #ifndef __SINGLE_THREADED__
-// The following test us disabled in single-threaded mode because it requires 
+// The following test us disabled in single-threaded mode because it requires
 // a separate thread to run.
 TEST_F(CApiConnectionTest, Interrupt) {
     kuzu_query_result result;

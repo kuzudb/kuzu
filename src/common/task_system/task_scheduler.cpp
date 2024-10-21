@@ -108,7 +108,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
             // Interrupt tasks that errored
             context->clientContext->interrupt();
         }
-        // In single-threaded mode, we directly call runTask() on the main 
+        // In single-threaded mode, we directly call runTask() on the main
         // thread instead of waiting for a worker
         auto scheduledTask = getTaskAndRegister();
         if (scheduledTask == nullptr || stopWorkerThreads) {

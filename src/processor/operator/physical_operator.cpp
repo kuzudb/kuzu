@@ -178,7 +178,7 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
     if (context->clientContext->interrupted()) {
         throw InterruptException{};
     }
-    #else
+#else
     // In single-threaded mode, the timeout cannot be checked in the main thread
     // because the main thread is blocked by the task execution. Instead, we
     // check the timeout in the processor. The timeout handling may still be
@@ -189,7 +189,7 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
             throw InterruptException{};
         }
     }
-    #endif
+#endif
     metrics->executionTime.start();
     auto result = getNextTuplesInternal(context);
     context->clientContext->getProgressBar()->updateProgress(context->queryID,
