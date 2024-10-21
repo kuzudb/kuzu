@@ -85,7 +85,7 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, FTSState& f
         auto sharedState = std::make_shared<FrontierTaskSharedState>(*frontierPair);
         auto clientContext = executionContext->clientContext;
         auto info = FrontierTaskInfo(relTableIDInfo.relTableID, graph, common::ExtendDirection::FWD,
-            *ftsState.edgeCompute);
+            *ftsState.edgeCompute, 0 /* only one rel property in fts */);
         auto maxThreads =
             clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
         auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);

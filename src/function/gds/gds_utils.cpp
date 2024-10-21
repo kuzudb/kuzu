@@ -24,7 +24,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                 relTableIDInfo.toNodeTableID);
             auto info = FrontierTaskInfo(relTableIDInfo.relTableID, graph, extendDirection,
-                *rjCompState.edgeCompute);
+                *rjCompState.edgeCompute, std::nullopt);
             auto sharedState = std::make_shared<FrontierTaskSharedState>(*frontierPair);
             auto maxThreads =
                 clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();

@@ -4,6 +4,7 @@
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -37,6 +38,7 @@ Catalog::Catalog() {
     sequences = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
     types = std::make_unique<CatalogSet>();
+    indexes = std::make_unique<CatalogSet>();
     registerBuiltInFunctions();
 }
 
@@ -50,6 +52,7 @@ Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
+        indexes = std::make_unique<CatalogSet>();
         if (!isInMemMode) {
             // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
             saveToFile(directory, vfs, FileVersionType::ORIGINAL);
@@ -332,6 +335,21 @@ bool Catalog::containsType(const Transaction* transaction, const std::string& ty
     return types->containsEntry(transaction, typeName);
 }
 
+void Catalog::createIndex(Transaction* transaction, std::string name, common::table_id_t tableID) {
+    KU_ASSERT(!indexes->containsEntry(transaction, name));
+    auto entry = std::make_unique<IndexCatalogEntry>(std::move(name), tableID);
+    indexes->createEntry(transaction, std::move(entry));
+}
+
+bool Catalog::containsType(const transaction::Transaction* transaction,
+    const std::string& indexName, common::table_id_t tableID) const {
+    if (!indexes->containsEntry(transaction, indexName)) {
+        return false;
+    }
+    auto& index = indexes->getEntry(transaction, indexName)->constCast<IndexCatalogEntry>();
+    return index.getTableID() == tableID;
+}
+
 void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,
     function::function_set functionSet) {
     if (functions->containsEntry(transaction, name)) {
@@ -453,6 +471,7 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     sequences->serialize(serializer);
     functions->serialize(serializer);
     types->serialize(serializer);
+    indexes->serialize(serializer);
 }
 
 void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
@@ -469,6 +488,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
     types = CatalogSet::deserialize(deserializer);
+    indexes = CatalogSet::deserialize(deserializer);
 }
 
 void Catalog::registerBuiltInFunctions() {

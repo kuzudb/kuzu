@@ -13,13 +13,16 @@ struct FrontierTaskInfo {
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
+    std::optional<common::column_id_t> columnID;
 
     FrontierTaskInfo(common::table_id_t tableID, graph::Graph* graph,
-        common::ExtendDirection direction, EdgeCompute& edgeCompute)
-        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute} {}
+        common::ExtendDirection direction, EdgeCompute& edgeCompute,
+        std::optional<common::column_id_t> columnID)
+        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute},
+          columnID{std::move(columnID)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
         : relTableIDToScan{other.relTableIDToScan}, graph{other.graph}, direction{other.direction},
-          edgeCompute{other.edgeCompute} {}
+          edgeCompute{other.edgeCompute}, columnID{other.columnID} {}
 };
 
 struct FrontierTaskSharedState {
