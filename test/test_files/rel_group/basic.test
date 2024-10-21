@@ -32,7 +32,7 @@ likes_personA_personB|personB|2|Bob
 likes_personB_personA|personA|2|Bob
 -STATEMENT COPY knows FROM "a.csv";
 ---- error
-Binder exception: Cannot copy into knows table with type REL_GROUP.
+Binder exception: Need to speicify the SRC and DEST nodes for copying to a REL GROUP.
 -STATEMENT DROP TABLE knows_personA_personB;
 ---- error
 Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.

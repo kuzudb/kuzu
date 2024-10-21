@@ -128,6 +128,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelGroupFrom(const parser::State
     // Generate the exact REL table Name.
     std::string fromTableName = config->getOption<std::string>("FROM", "");
     std::string toTableName = config->getOption<std::string>("TO", "");
+    if (fromTableName == "" || toTableName == "") {
+        throw BinderException(
+            stringFormat("Need to speicify the SRC and DEST nodes for copying to a REL GROUP."));
+    }
     auto relGroupName = copyStatement.getTableName();
     validateTableExist(fromTableName);
     validateTableExist(toTableName);
