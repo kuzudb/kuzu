@@ -5,9 +5,7 @@ namespace kuzu {
 namespace common {
 
 #ifndef __SINGLE_THREADED__
-TaskScheduler::TaskScheduler(
-    uint64_t numWorkerThreads
-    )
+TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
     : stopWorkerThreads{false}, nextScheduledTaskID{0} {
     for (auto n = 0u; n < numWorkerThreads; ++n) {
         workerThreads.emplace_back([&] { runWorkerThread(); });
@@ -120,10 +118,7 @@ void TaskScheduler::runWorkerThread() {
 }
 #else
 // Single-threaded version of TaskScheduler
-TaskScheduler::TaskScheduler(
-    uint64_t
-    )
-    : stopWorkerThreads{false}, nextScheduledTaskID{0} {}
+TaskScheduler::TaskScheduler(uint64_t) : stopWorkerThreads{false}, nextScheduledTaskID{0} {}
 
 TaskScheduler::~TaskScheduler() {
     stopWorkerThreads = true;

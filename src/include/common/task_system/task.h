@@ -1,9 +1,8 @@
 #pragma once
 
 #include <condition_variable>
-#include <mutex>
-
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
