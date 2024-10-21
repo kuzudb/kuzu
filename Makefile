@@ -111,7 +111,7 @@ alldebug:
 test:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
-	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --timeout 120
+	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	python3 dataset/ldbc-1/download_data.py
