@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/assert.h"
+#include "common/exception/message.h"
 #include "common/vector/value_vector.h"
 #include "storage/store/rel_table.h"
 
@@ -23,11 +24,17 @@ void NodeTableDeleteInfo::init(const ResultSet& resultSet) {
 
 void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,
     ValueVector* nodeIDVector) const {
+    const auto deleteFunc = [](const std::string& tableName, offset_t nodeOffset,
+                                RelDataDirection direction) {
+        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+            tableName, std::to_string(nodeOffset),
+            RelDataDirectionUtils::relDirectionToString(direction)));
+    };
     for (auto& relTable : fwdRelTables) {
-        relTable->checkIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector);
+        relTable->throwIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector, deleteFunc);
     }
     for (auto& relTable : bwdRelTables) {
-        relTable->checkIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector);
+        relTable->throwIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector, deleteFunc);
     }
 }
 

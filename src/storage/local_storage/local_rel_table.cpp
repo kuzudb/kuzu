@@ -133,20 +133,20 @@ uint64_t LocalRelTable::getEstimatedMemUsage() {
            bwdIndex.size() * sizeof(offset_t);
 }
 
-void LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector) const {
+bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,
+    RelDataDirection direction) const {
     KU_ASSERT(srcNodeIDVector->state->isFlat());
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    if (fwdIndex.contains(nodeOffset) && !fwdIndex.at(nodeOffset).empty()) {
-        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
-            table.getTableName(), std::to_string(nodeOffset),
-            RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD)));
+    if (direction == common::RelDataDirection::FWD && fwdIndex.contains(nodeOffset) &&
+        !fwdIndex.at(nodeOffset).empty()) {
+        return true;
     }
-    if (bwdIndex.contains(nodeOffset) && !bwdIndex.at(nodeOffset).empty()) {
-        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
-            table.getTableName(), std::to_string(nodeOffset),
-            RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD)));
+    if (direction == common::RelDataDirection::BWD && bwdIndex.contains(nodeOffset) &&
+        !bwdIndex.at(nodeOffset).empty()) {
+        return true;
     }
+    return false;
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
