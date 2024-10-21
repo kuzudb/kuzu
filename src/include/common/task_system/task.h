@@ -1,8 +1,11 @@
 #pragma once
 
-#include <condition_variable>
-#include <memory>
+#ifndef __SINGLE_THREADED__
 #include <mutex>
+#include <condition_variable>
+#endif
+
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -43,7 +46,9 @@ public:
     }
 
     inline bool isCompletedSuccessfully() {
+        #ifndef __SINGLE_THREADED__
         lock_t lck{taskMtx};
+        #endif
         return isCompletedNoLock() && !hasExceptionNoLock();
     }
 
@@ -58,17 +63,23 @@ public:
     void deRegisterThreadAndFinalizeTask();
 
     inline void setException(std::exception_ptr exceptionPtr) {
+        #ifndef __SINGLE_THREADED__
         lock_t lck{taskMtx};
+        #endif
         setExceptionNoLock(std::move(exceptionPtr));
     }
 
     inline bool hasException() {
+        #ifndef __SINGLE_THREADED__
         lock_t lck{taskMtx};
+        #endif
         return exceptionsPtr != nullptr;
     }
 
     std::exception_ptr getExceptionPtr() {
+        #ifndef __SINGLE_THREADED__
         lock_t lck{taskMtx};
+        #endif
         return exceptionsPtr;
     }
 
@@ -91,8 +102,10 @@ public:
         children; // Dependency tasks that needs to be executed first.
 
 protected:
+    #ifndef __SINGLE_THREADED__
     std::mutex taskMtx;
     std::condition_variable cv;
+    #endif
     uint64_t maxNumThreads, numThreadsFinished, numThreadsRegistered;
     std::exception_ptr exceptionsPtr;
     uint64_t ID;

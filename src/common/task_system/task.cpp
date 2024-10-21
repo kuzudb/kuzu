@@ -8,7 +8,9 @@ Task::Task(uint64_t maxNumThreads)
       exceptionsPtr{nullptr}, ID{UINT64_MAX} {}
 
 bool Task::registerThread() {
+    #ifndef __SINGLE_THREADED__
     lock_t lck{taskMtx};
+    #endif
     if (!hasExceptionNoLock() && canRegisterNoLock()) {
         numThreadsRegistered++;
         return true;
@@ -17,7 +19,9 @@ bool Task::registerThread() {
 }
 
 void Task::deRegisterThreadAndFinalizeTask() {
+    #ifndef __SINGLE_THREADED__
     lock_t lck{taskMtx};
+    #endif
     ++numThreadsFinished;
     if (!hasExceptionNoLock() && isCompletedNoLock()) {
         try {
@@ -27,8 +31,10 @@ void Task::deRegisterThreadAndFinalizeTask() {
         }
     }
     if (isCompletedNoLock()) {
+        #ifndef __SINGLE_THREADED__
         lck.unlock();
         cv.notify_all();
+        #endif
     }
 }
 
