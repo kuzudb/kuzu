@@ -2868,6 +2868,8 @@ public:
     antlr4::tree::TerminalNode *TYPE();
     antlr4::tree::TerminalNode *USE();
     antlr4::tree::TerminalNode *WRITE();
+    antlr4::tree::TerminalNode *FROM();
+    antlr4::tree::TerminalNode *TO();
 
    
   };
