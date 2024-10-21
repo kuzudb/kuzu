@@ -94,6 +94,7 @@ private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
     std::mutex taskSchedulerMtx;
+    uint64_t nextScheduledTaskID;
 };
 #endif
 } // namespace common
