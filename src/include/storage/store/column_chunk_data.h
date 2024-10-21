@@ -32,7 +32,7 @@ class NullChunkData;
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
-    Column* column;
+    const Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
     std::unique_ptr<ChunkState> nullState;
@@ -180,7 +180,7 @@ public:
     }
     uint64_t getBufferSize() const;
 
-    virtual void initializeScanState(ChunkState& state, Column* column) const;
+    virtual void initializeScanState(ChunkState& state, const Column* column) const;
     virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,

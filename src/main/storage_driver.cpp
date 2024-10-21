@@ -131,7 +131,7 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     auto columnIDs = std::vector<column_id_t>{columnID};
     auto nodeTable = table->ptrCast<NodeTable>();
     auto column = &nodeTable->getColumn(columnID);
-    std::vector<Column*> columns;
+    std::vector<const Column*> columns;
     columns.push_back(column);
     auto scanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns);
     // Create value vectors

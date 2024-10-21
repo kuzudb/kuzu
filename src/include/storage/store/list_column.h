@@ -58,10 +58,10 @@ public:
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0) const override;
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
-        common::offset_t endOffset = common::INVALID_OFFSET) override;
+        common::offset_t endOffset = common::INVALID_OFFSET) const override;
 
     Column* getOffsetColumn() const { return offsetColumn.get(); }
     Column* getSizeColumn() const { return sizeColumn.get(); }
@@ -72,11 +72,11 @@ public:
 protected:
     void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector) const override;
 
     void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,
-        uint32_t posInVector) override;
+        uint32_t posInVector) const override;
 
 private:
     void scanUnfiltered(transaction::Transaction* transaction, const ChunkState& state,

@@ -40,7 +40,7 @@ std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkD
 }
 
 void StructColumn::scan(Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     auto& structColumnChunk = columnChunk->cast<StructChunkData>();
@@ -52,7 +52,7 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
 
 void StructColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
+    uint64_t offsetInVector) const {
     nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
         resultVector, offsetInVector);
     for (auto i = 0u; i < childColumns.size(); i++) {
@@ -63,7 +63,7 @@ void StructColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void StructColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->scan(transaction, state.childrenStates[i], startOffsetInChunk,
@@ -72,7 +72,7 @@ void StructColumn::scanInternal(Transaction* transaction, const ChunkState& stat
 }
 
 void StructColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->lookupValue(transaction, state.childrenStates[i], nodeOffset, fieldVector,

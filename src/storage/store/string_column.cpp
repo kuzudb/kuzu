@@ -61,7 +61,7 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
 
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
+    uint64_t offsetInVector) const {
     nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
         resultVector, offsetInVector);
     scanUnfiltered(transaction, state, startOffsetInGroup, endOffsetInGroup - startOffsetInGroup,
@@ -69,7 +69,7 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void StringColumn::scan(Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     KU_ASSERT(state.nullState);
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
@@ -83,7 +83,7 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     string_index_t index = 0;
     indexColumn->scan(transaction, getChildState(state, ChildStateIndex::INDEX), offsetInChunk,
@@ -132,7 +132,7 @@ void StringColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState)
 }
 
 void StringColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     if (resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
@@ -143,7 +143,7 @@ void StringColumn::scanInternal(Transaction* transaction, const ChunkState& stat
 
 void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
-    sel_t startPosInVector) {
+    sel_t startPosInVector) const {
     // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from
     // uint8_t*.
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
@@ -167,7 +167,7 @@ void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& st
 }
 
 void StringColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, ValueVector* resultVector) {
+    offset_t startOffsetInChunk, ValueVector* resultVector) const {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         const auto pos = resultVector->state->getSelVector()[i];

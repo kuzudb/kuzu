@@ -53,7 +53,7 @@ void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,
 
 void DictionaryColumn::scan(Transaction* transaction, const ChunkState& offsetState,
     const ChunkState& dataState, std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
-    ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) {
+    ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const {
     string_index_t firstOffsetToScan = 0, lastOffsetToScan = 0;
     auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
     auto duplicationFactor = (double)offsetState.metadata.numValues / indexMeta.numValues;
@@ -110,7 +110,7 @@ string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkS
 
 void DictionaryColumn::scanOffsets(Transaction* transaction, const ChunkState& state,
     DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
-    uint64_t dataSize) {
+    uint64_t dataSize) const {
     // We either need to read the next value, or store the maximum string offset at the end.
     // Otherwise we won't know what the length of the last string is.
     if (index + numValues < state.metadata.numValues) {
@@ -122,7 +122,8 @@ void DictionaryColumn::scanOffsets(Transaction* transaction, const ChunkState& s
 }
 
 void DictionaryColumn::scanValueToVector(Transaction* transaction, const ChunkState& dataState,
-    uint64_t startOffset, uint64_t endOffset, ValueVector* resultVector, uint64_t offsetInVector) {
+    uint64_t startOffset, uint64_t endOffset, ValueVector* resultVector,
+    uint64_t offsetInVector) const {
     KU_ASSERT(endOffset >= startOffset);
     // Add string to vector first and read directly into the vector
     auto& kuString =

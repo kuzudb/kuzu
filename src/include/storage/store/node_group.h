@@ -131,10 +131,12 @@ public:
     void merge(transaction::Transaction* transaction,
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
-    virtual void initializeScanState(transaction::Transaction* transaction, TableScanState& state);
+    virtual void initializeScanState(transaction::Transaction* transaction,
+        TableScanState& state) const;
     void initializeScanState(transaction::Transaction* transaction, const common::UniqLock& lock,
-        TableScanState& state);
-    virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state);
+        TableScanState& state) const;
+    virtual NodeGroupScanResult scan(transaction::Transaction* transaction,
+        TableScanState& state) const;
 
     bool lookup(const common::UniqLock& lock, transaction::Transaction* transaction,
         const TableScanState& state);
@@ -194,11 +196,11 @@ private:
         const transaction::Transaction* transaction);
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    common::row_idx_t getNumResidentRows(const common::UniqLock& lock);
+    common::row_idx_t getNumResidentRows(const common::UniqLock& lock) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     std::unique_ptr<ChunkedNodeGroup> scanAllInsertedAndVersions(MemoryManager& memoryManager,
         const common::UniqLock& lock, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<Column*>& columns);
+        const std::vector<const Column*>& columns) const;
 
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);

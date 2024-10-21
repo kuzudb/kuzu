@@ -101,7 +101,7 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
-void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) {
+void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) const {
     const auto lock = chunkedGroups.lock();
     initializeScanState(transaction, lock, state);
 }
@@ -124,7 +124,8 @@ static void initializeScanStateForChunkedGroup(const TableScanState& state,
     }
 }
 
-void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableScanState& state) {
+void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock,
+    TableScanState& state) const {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.chunkedGroupIdx = 0;
     nodeGroupScanState.numScannedRows = 0;
@@ -132,7 +133,7 @@ void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock, TableSca
     initializeScanStateForChunkedGroup(state, firstChunkedGroup);
 }
 
-NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) {
+NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     // TODO(Guodong): Move the locked part of figuring out the chunked group to initScan.
     const auto lock = chunkedGroups.lock();
     auto& nodeGroupScanState = *state.nodeGroupScanState;
@@ -279,7 +280,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
     const UniqLock& lock, NodeGroupCheckpointState& state) {
     const auto firstGroup = chunkedGroups.getFirstGroup(lock);
     const auto numPersistentRows = firstGroup->getNumRows();
-    std::vector<Column*> columnPtrs;
+    std::vector<const Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
     for (auto& column : state.columns) {
         columnPtrs.push_back(column.get());
@@ -325,7 +326,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& memoryManager,
     const UniqLock& lock, NodeGroupCheckpointState& state) {
     // Flush insertChunkedGroup to persistent one.
-    std::vector<Column*> columnPtrs;
+    std::vector<const Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
     for (auto& column : state.columns) {
         columnPtrs.push_back(column.get());
@@ -466,7 +467,7 @@ ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) 
 }
 
 template<ResidencyState RESIDENCY_STATE>
-row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) {
+row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) const {
     row_idx_t numRows = 0u;
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         if (chunkedGroup->getResidencyState() == RESIDENCY_STATE) {
@@ -479,7 +480,7 @@ row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) {
 template<ResidencyState RESIDENCY_STATE>
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     MemoryManager& memoryManager, const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
-    const std::vector<Column*>& columns) {
+    const std::vector<const Column*>& columns) const {
     auto numRows = getNumResidentRows<RESIDENCY_STATE>(lock);
     std::vector<LogicalType> columnTypes;
     for (const auto* column : columns) {
@@ -506,11 +507,11 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
 template std::unique_ptr<ChunkedNodeGroup>
 NodeGroup::scanAllInsertedAndVersions<ResidencyState::ON_DISK>(MemoryManager& memoryManager,
     const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
-    const std::vector<Column*>& columns);
+    const std::vector<const Column*>& columns) const;
 template std::unique_ptr<ChunkedNodeGroup>
 NodeGroup::scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(MemoryManager& memoryManager,
     const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
-    const std::vector<Column*>& columns);
+    const std::vector<const Column*>& columns) const;
 
 bool NodeGroup::isVisible(const Transaction* transaction, row_idx_t rowIdxInGroup) {
     const auto* chunkedGroup = findChunkedGroupFromRowIdxNoLock(rowIdxInGroup);

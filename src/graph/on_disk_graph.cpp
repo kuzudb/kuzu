@@ -40,7 +40,7 @@ static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& mm,
     if (edgePropertyID) {
         columnIDs.push_back(*edgePropertyID);
     }
-    auto columns = std::vector<Column*>{};
+    auto columns = std::vector<const Column*>{};
     for (const auto columnID : columnIDs) {
         columns.push_back(table.getColumn(columnID, direction));
     }

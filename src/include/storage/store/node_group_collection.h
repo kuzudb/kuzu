@@ -38,7 +38,7 @@ public:
     NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) {
         return nodeGroups.getGroupNoLock(groupIdx);
     }
-    NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx) {
+    NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx) const {
         const auto lock = nodeGroups.lock();
         return nodeGroups.getGroup(lock, groupIdx);
     }
