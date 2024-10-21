@@ -39,6 +39,7 @@ struct ScheduledTask {
  * that is not accepting more registration can stay in the queue for an unlimited time until
  * completion.
  */
+#ifndef __SINGLE_THREADED__
 class TaskScheduler {
 public:
     explicit TaskScheduler(uint64_t numWorkerThreads);
@@ -58,9 +59,7 @@ private:
     void removeErroringTask(uint64_t scheduledTaskID);
 
 // Functions to launch worker threads and for the worker threads to use to grab task from queue.
-#ifndef __SINGLE_THREADED__
     void runWorkerThread();
-#endif
 
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
     static void runTask(Task* task);
@@ -68,13 +67,39 @@ private:
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
-#ifndef __SINGLE_THREADED__
     std::vector<std::thread> workerThreads;
     std::mutex taskSchedulerMtx;
     std::condition_variable cv;
-#endif
     uint64_t nextScheduledTaskID;
 };
+#else
+// Single-threaded version of TaskScheduler
+class TaskScheduler {
+public:
+    explicit TaskScheduler(uint64_t numWorkerThreads);
+    ~TaskScheduler();
 
+    // Schedules the dependencies of the given task and finally the task one after another (so
+    // not concurrently), and throws an exception if any of the tasks errors. Regardless of
+    // whether or not the given task or one of its dependencies errors, when this function
+    // returns, no task related to the given task will be in the task queue. Further no worker
+    // thread will be working on the given task.
+    void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+        processor::ExecutionContext* context, bool launchNewWorkerThread = false);
+
+private:
+    std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
+
+    void removeErroringTask(uint64_t scheduledTaskID);
+
+    std::shared_ptr<ScheduledTask> getTaskAndRegister();
+    static void runTask(Task* task);
+
+private:
+    std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
+    bool stopWorkerThreads;
+    uint64_t nextScheduledTaskID;
+};
+#endif
 } // namespace common
 } // namespace kuzu
