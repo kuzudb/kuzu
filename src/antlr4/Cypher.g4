@@ -733,6 +733,8 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | WRITE
+        | FROM
+        | TO
         ;
 
 UnescapedSymbolicName

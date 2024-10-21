@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -29,8 +30,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
     switch (tableEntry->getTableType()) {
     case TableType::REL_GROUP: {
-        throw BinderException(stringFormat("Cannot copy into {} table with type {}.", tableName,
-            TableTypeUtils::toString(tableEntry->getTableType())));
+        auto relGroupEntry = tableEntry->ptrCast<RelGroupCatalogEntry>();
+        return bindCopyRelGroupFrom(statement, relGroupEntry);
     }
     default:
         break;
@@ -111,6 +112,33 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
         std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCopyRelGroupFrom(const parser::Statement& statement,
+    RelGroupCatalogEntry* relGroupEntry) {
+    auto& copyStatement = statement.constCast<CopyFrom>();
+    if (copyStatement.byColumn()) {
+        throw BinderException(
+            stringFormat("Copy by column is not supported for relationship table."));
+    }
+    auto config = std::make_unique<ReaderConfig>();
+    config->options = bindParsingOptions(copyStatement.getParsingOptionsRef());
+    auto reltableIDs = relGroupEntry->getRelTableIDs();
+
+    // Generate the exact REL table Name.
+    std::string fromTableName = config->getOption<std::string>("FROM", "");
+    std::string toTableName = config->getOption<std::string>("TO", "");
+    auto relGroupName = copyStatement.getTableName();
+    validateTableExist(fromTableName);
+    validateTableExist(toTableName);
+    auto relTableName = relGroupName + "_" + fromTableName + "_" + toTableName;
+    // Bind to table schema.
+    auto catalog = clientContext->getCatalog();
+    auto relTableID = catalog->getTableID(clientContext->getTx(), relTableName);
+    auto tableEntry = (catalog->getTableCatalogEntry(clientContext->getTx(), relTableID));
+    auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
+    // Call bind on that specific rel table.
+    return bindCopyRelFrom(statement, relTableEntry);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
