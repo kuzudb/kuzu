@@ -174,11 +174,10 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
 }
 
 bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
-#ifndef __SINGLE_THREADED__
     if (context->clientContext->interrupted()) {
         throw InterruptException{};
     }
-#else
+#ifdef __SINGLE_THREADED__
     // In single-threaded mode, the timeout cannot be checked in the main thread
     // because the main thread is blocked by the task execution. Instead, we
     // check the timeout in the processor. The timeout handling may still be
