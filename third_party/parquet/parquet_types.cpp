@@ -113,6 +113,9 @@ std::ostream &operator<<(std::ostream &out, const ConvertedType::type &val) {
 	case ConvertedType::INTERVAL:
 		out << "INTERVAL";
 		return out;
+  case ConvertedType::SERIAL:
+    out << "SERIAL";
+    return out;
 	case ConvertedType::NULL_TYPE:
 		out << "NULL";
 		return out;
