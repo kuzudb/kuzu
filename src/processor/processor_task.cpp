@@ -13,19 +13,19 @@ ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
       sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
-    // We need the lock when cloning because multiple threads can be accessing to clone,
-    // which is not thread safe
-    #ifndef __SINGLE_THREADED__
+// We need the lock when cloning because multiple threads can be accessing to clone,
+// which is not thread safe
+#ifndef __SINGLE_THREADED__
     lock_t lck{taskMtx};
-    #endif
+#endif
     if (!sharedStateInitialized) {
         sink->initGlobalState(executionContext);
         sharedStateInitialized = true;
     }
     auto clonedPipelineRoot = sink->clone();
-    #ifndef __SINGLE_THREADED__
+#ifndef __SINGLE_THREADED__
     lck.unlock();
-    #endif
+#endif
     auto currentSink = (Sink*)clonedPipelineRoot.get();
     auto resultSet =
         populateResultSet(currentSink, executionContext->clientContext->getMemoryManager());

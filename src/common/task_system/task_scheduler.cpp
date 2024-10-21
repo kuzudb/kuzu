@@ -35,12 +35,12 @@ TaskScheduler::~TaskScheduler() {
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
-    processor::ExecutionContext* context, 
-    #ifndef __SINGLE_THREADED__
+    processor::ExecutionContext* context,
+#ifndef __SINGLE_THREADED__
     bool launchNewWorkerThread
-    #else
+#else
     bool /*launchNewWorkerThread*/
-    #endif
+#endif
 ) {
 
     for (auto& dependency : task->children) {
