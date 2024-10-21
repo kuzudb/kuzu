@@ -41,7 +41,7 @@ public:
         bool requireNullColumn = true);
     virtual ~Column();
 
-    void populateExtraChunkState(ChunkState& state);
+    void populateExtraChunkState(ChunkState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         FileHandle& dataFH);
@@ -51,18 +51,18 @@ public:
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector);
+        common::ValueVector* resultVector) const;
     virtual void lookupValue(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
+        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector) const;
 
     // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector);
+        common::ValueVector* resultVector, uint64_t offsetInVector) const;
     // Scan from [startOffsetInGroup, endOffsetInGroup).
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
-        common::offset_t endOffset = common::INVALID_OFFSET);
+        common::offset_t endOffset = common::INVALID_OFFSET) const;
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
@@ -97,10 +97,10 @@ public:
 protected:
     virtual void scanInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector);
+        common::ValueVector* resultVector) const;
 
     virtual void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
+        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector) const;
 
     void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
@@ -157,14 +157,14 @@ public:
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
-        common::ValueVector* resultVector) override {
+        common::ValueVector* resultVector) const override {
         Column::scan(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
         populateCommonTableID(resultVector);
     }
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector) override {
+        common::ValueVector* resultVector, uint64_t offsetInVector) const override {
         Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
             offsetInVector);
         populateCommonTableID(resultVector);
@@ -172,7 +172,7 @@ public:
 
     void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,
-        uint32_t posInVector) override {
+        uint32_t posInVector) const override {
         Column::lookupInternal(transaction, state, nodeOffset, resultVector, posInVector);
         populateCommonTableID(resultVector);
     }

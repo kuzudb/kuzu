@@ -20,7 +20,7 @@ public:
     void scan(transaction::Transaction* transaction, const ChunkState& offsetState,
         const ChunkState& dataState,
         std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
-        common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta);
+        common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const;
 
     DictionaryChunk::string_index_t append(const DictionaryChunk& dictChunk, ChunkState& state,
         std::string_view val);
@@ -34,10 +34,10 @@ public:
 private:
     void scanOffsets(transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
-        uint64_t dataSize);
+        uint64_t dataSize) const;
     void scanValueToVector(transaction::Transaction* transaction, const ChunkState& dataState,
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
-        uint64_t offsetInVector);
+        uint64_t offsetInVector) const;
 
     bool canDataCommitInPlace(const ChunkState& dataState, uint64_t totalStringLengthToAdd);
     bool canOffsetCommitInPlace(const ChunkState& offsetState, const ChunkState& dataState,

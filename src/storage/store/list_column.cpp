@@ -87,7 +87,7 @@ std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkDat
 
 void ListColumn::scan(Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
+    uint64_t offsetInVector) const {
     nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
         resultVector, offsetInVector);
     auto listOffsetInfoInStorage =
@@ -127,7 +127,7 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void ListColumn::scan(Transaction* transaction, const ChunkState& state,
-    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) {
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
         return;
@@ -179,7 +179,7 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
 }
 
 void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
     KU_ASSERT(resultVector->state);
     auto listOffsetSizeInfo = getListOffsetSizeInfo(transaction, state, startOffsetInChunk,
         startOffsetInChunk + numValuesToScan);
@@ -191,7 +191,7 @@ void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
 }
 
 void ListColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
-    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) {
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     const auto listEndOffset = readOffset(transaction, state, offsetInChunk);
     const auto size = readSize(transaction, state, offsetInChunk);

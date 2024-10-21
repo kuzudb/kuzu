@@ -200,8 +200,10 @@ public:
         }
     }
 
-    void initializeScanState(transaction::Transaction* transaction, TableScanState& state) override;
-    NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state) override;
+    void initializeScanState(transaction::Transaction* transaction,
+        TableScanState& state) const override;
+    NodeGroupScanResult scan(transaction::Transaction* transaction,
+        TableScanState& state) const override;
 
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
         ChunkedCSRNodeGroup& chunkedGroup);
@@ -249,11 +251,11 @@ private:
         CSRNodeGroupScanState& nodeGroupScanState) const;
 
     NodeGroupScanResult scanCommittedInMem(transaction::Transaction* transaction,
-        RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+        RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState);
+        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
     void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);
