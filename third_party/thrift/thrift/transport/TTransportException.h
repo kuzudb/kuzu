@@ -61,9 +61,6 @@ public:
   TTransportException(TTransportExceptionType type, const std::string& message)
     : kuzu_apache::thrift::TException(message), type_(type) {}
 
-  TTransportException(TTransportExceptionType type, const std::string& message, int errno_copy)
-    : kuzu_apache::thrift::TException(message), type_(type) {}
-
   ~TTransportException() noexcept override = default;
 
   /**
