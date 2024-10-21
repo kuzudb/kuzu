@@ -1,7 +1,10 @@
 #pragma once
-#include <condition_variable>
 #include <deque>
+
+#ifndef __SINGLE_THREADED__
+#include <condition_variable>
 #include <thread>
+#endif
 
 #include "common/task_system/task.h"
 #include "processor/execution_context.h"
@@ -54,17 +57,22 @@ private:
 
     void removeErroringTask(uint64_t scheduledTaskID);
 
-    // Functions to launch worker threads and for the worker threads to use to grab task from queue.
+// Functions to launch worker threads and for the worker threads to use to grab task from queue.
+#ifndef __SINGLE_THREADED__
     void runWorkerThread();
+#endif
+
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
     static void runTask(Task* task);
 
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopWorkerThreads;
+#ifndef __SINGLE_THREADED__
     std::vector<std::thread> workerThreads;
     std::mutex taskSchedulerMtx;
     std::condition_variable cv;
+#endif
     uint64_t nextScheduledTaskID;
 };
 

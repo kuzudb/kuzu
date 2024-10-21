@@ -65,6 +65,10 @@ ifdef VECTOR_CAPACITY_LOG2
 	CMAKE_FLAGS += -DVECTOR_CAPACITY_LOG2=$(VECTOR_CAPACITY_LOG2)
 endif
 
+ifdef SINGLE_THREADED
+	CMAKE_FLAGS += -DSINGLE_THREADED=$(SINGLE_THREADED)
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
@@ -107,7 +111,7 @@ alldebug:
 test:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
-	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --timeout 120
 
 lcov:
 	python3 dataset/ldbc-1/download_data.py
