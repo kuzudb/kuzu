@@ -77,6 +77,7 @@ std::vector<std::string> relTableNames;
 std::unordered_map<std::string, std::vector<std::string>> tableColumnNames;
 
 std::vector<std::string> functionNames;
+std::vector<std::string> tableFunctionNames;
 
 bool continueLine = false;
 std::string currLine;
@@ -114,7 +115,11 @@ void EmbeddedShell::updateFunctionNames() {
     functionNames.clear();
     auto function = database->catalog->getFunctions(&transaction::DUMMY_TRANSACTION);
     for (auto& [_, entry] : function->getEntries(&transaction::DUMMY_TRANSACTION)) {
-        functionNames.push_back(entry->getName());
+        if (entry->getType() == catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY) {
+            tableFunctionNames.push_back(entry->getName());
+        } else {
+            functionNames.push_back(entry->getName());
+        }
     }
 }
 
@@ -281,6 +286,13 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
             }
             return;
         }
+    }
+
+    if (regex_search(prefix, std::regex("^\\s*CALL\\s*$", std::regex_constants::icase))) {
+        for (auto& function : tableFunctionNames) {
+            keywordCompletion(buf, prefix, function, lc);
+        }
+        return;
     }
 
     for (std::string keyword : keywordList) {
