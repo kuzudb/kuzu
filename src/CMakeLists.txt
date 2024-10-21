@@ -23,13 +23,16 @@ add_subdirectory(extension)
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
 
-set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 serd Threads::Threads fastpfor miniparquet zstd miniz mbedtls lz4)
+set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 serd fastpfor miniparquet zstd miniz mbedtls lz4)
+if (not __SINGLE_THREADED__)
+        set(KUZU_LIBRARIES ${KUZU_LIBRARIES} Threads::Threads)
+endif()
 if(NOT WIN32)
         set(KUZU_LIBRARIES dl ${KUZU_LIBRARIES})
 endif()
 # Seems to be needed for clang on linux only
 # for compiling std::atomic<T>::compare_exchange_weak
-if ((NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND NOT __WASM__)
+if ((NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND NOT __WASM__ AND NOT __SINGLE_THREADED__)
         set(KUZU_LIBRARIES atomic ${KUZU_LIBRARIES})
 endif()
 if (ENABLE_BACKTRACES)
