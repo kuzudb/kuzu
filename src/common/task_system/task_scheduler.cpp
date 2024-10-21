@@ -106,7 +106,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
 }
 
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
+    #ifndef __SINGLE_THREADED__
     lock_t lck{taskSchedulerMtx};
+    #endif
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
     taskQueue.push_back(scheduledTask);
     return scheduledTask;
@@ -139,7 +141,9 @@ std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
 }
 
 void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
+    #ifndef __SINGLE_THREADED__
     lock_t lck{taskSchedulerMtx};
+    #endif
     for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
         if (scheduledTaskID == (*it)->ID) {
             taskQueue.erase(it);
@@ -148,6 +152,7 @@ void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
     }
 }
 
+#ifndef __SINGLE_THREADED__
 void TaskScheduler::runWorkerThread() {
     std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};
     std::exception_ptr exceptionPtr = nullptr;
@@ -186,6 +191,7 @@ void TaskScheduler::runWorkerThread() {
         }
     }
 }
+#endif
 
 void TaskScheduler::runTask(Task* task) {
     try {
