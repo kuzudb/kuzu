@@ -186,7 +186,8 @@ void findTableVariableNames(const std::string buf, std::regex tableRegex,
     }
 }
 
-void keywordCompletion(std::string buf, std::string prefix, std::string keyword, linenoiseCompletions* lc) {
+void keywordCompletion(std::string buf, std::string prefix, std::string keyword,
+    linenoiseCompletions* lc) {
     std::string bufEscaped = regex_replace(buf, specialChars, R"(\$&)");
     if (regex_search(keyword, std::regex("^" + bufEscaped, std::regex_constants::icase))) {
         std::string transformedKeyword = keyword;
