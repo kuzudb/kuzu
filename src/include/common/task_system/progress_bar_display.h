@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <atomic>
+
 namespace kuzu {
 namespace common {
 
@@ -16,6 +18,7 @@ public:
 
     // Update the progress of the pipeline and the number of finished pipelines. queryID is used to
     // identify the query when we track progress of multiple queries asynchronously
+    // This function should work even if called concurrently by multiple threads
     virtual void updateProgress(uint64_t queryID, double newPipelineProgress,
         uint32_t newNumPipelinesFinished) = 0;
 
@@ -26,9 +29,9 @@ public:
     void setNumPipelines(uint32_t newNumPipelines) { numPipelines = newNumPipelines; };
 
 protected:
-    double pipelineProgress;
+    std::atomic<double> pipelineProgress;
     uint32_t numPipelines;
-    uint32_t numPipelinesFinished;
+    std::atomic<uint32_t> numPipelinesFinished;
 };
 
 } // namespace common

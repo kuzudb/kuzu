@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
 #include "common/string_utils.h"
+#include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
 #include "main/attached_database.h"
 #include "main/database.h"

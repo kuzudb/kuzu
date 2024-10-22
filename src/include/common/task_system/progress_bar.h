@@ -17,7 +17,7 @@ typedef std::unique_ptr<ProgressBarDisplay> (*progress_bar_display_create_func_t
  */
 class ProgressBar {
 public:
-    ProgressBar();
+    explicit ProgressBar();
 
     static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
 

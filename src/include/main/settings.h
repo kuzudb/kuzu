@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/task_system/progress_bar.h"
 #include "common/types/value/value.h"
 #include "main/client_context.h"
 #include "main/db_config.h"

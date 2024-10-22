@@ -56,7 +56,6 @@ void ProgressBar::updateProgress(uint64_t queryID, double curPipelineProgress) {
     if (!trackProgress) {
         return;
     }
-    std::lock_guard<std::mutex> lock(progressBarLock);
     updateDisplay(queryID, curPipelineProgress);
 }
 
@@ -70,12 +69,7 @@ void ProgressBar::resetProgressBar(uint64_t queryID) {
 }
 
 bool ProgressBar::shouldUpdateProgress() const {
-    if (queryTimer->isStarted) {
-        queryTimer->stop();
-    }
-    bool shouldUpdate = queryTimer->getElapsedTimeMS() > showProgressAfter;
-    queryTimer->start();
-    return shouldUpdate;
+    return queryTimer->getElapsedTimeMS() > showProgressAfter;
 }
 
 void ProgressBar::updateDisplay(uint64_t queryID, double curPipelineProgress) {

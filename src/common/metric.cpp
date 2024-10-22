@@ -4,7 +4,6 @@ namespace kuzu {
 namespace common {
 
 TimeMetric::TimeMetric(bool enable) : Metric(enable) {
-    accumulatedTime = 0;
     isStarted = false;
     timer = Timer();
 }
@@ -25,12 +24,11 @@ void TimeMetric::stop() {
         throw Exception("Timer metric has not started.");
     }
     timer.stop();
-    accumulatedTime += timer.getDuration();
     isStarted = false;
 }
 
 double TimeMetric::getElapsedTimeMS() const {
-    return accumulatedTime / 1000;
+    return static_cast<double>(timer.getElapsedTimeInMS());
 }
 
 NumericMetric::NumericMetric(bool enable) : Metric(enable) {
