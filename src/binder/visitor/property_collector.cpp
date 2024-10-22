@@ -1,6 +1,7 @@
 #include "binder/visitor/property_collector.h"
 
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
@@ -51,8 +52,23 @@ void PropertyCollector::visitQueryPartSkipNodeRel(const NormalizedQueryPart& que
 
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = readingClause.constCast<BoundMatchClause>();
-    if (matchClause.hasPredicate()) {
-        collectProperties(matchClause.getPredicate());
+    if (recursivePatternSemantic == PathSemantic::WALK) {
+        if (matchClause.hasPredicate()) {
+            collectProperties(matchClause.getPredicate());
+        }
+    } else {
+        for (auto node : matchClause.getQueryGraphCollection()->getQueryNodes()) {
+            for (auto prop : node->getPropertyExprs()) {
+                auto name = prop->constCast<PropertyExpression>().getPropertyName();
+                collectProperties(node->getPropertyExpression(name));
+            }
+        }
+        for (auto rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
+            for (auto prop : rel->getPropertyExprs()) {
+                auto name = prop->constCast<PropertyExpression>().getPropertyName();
+                collectProperties(rel->getPropertyExpression(name));
+            }
+        }
     }
 }
 

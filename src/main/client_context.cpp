@@ -336,12 +336,12 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             }
         }
         // binding
-        auto binder = Binder(this);
+        binder = std::make_unique<binder::Binder>((this));
         if (inputParams) {
-            binder.setInputParameters(*inputParams);
+            binder->setInputParameters(*inputParams);
         }
-        auto boundStatement = binder.bind(*parsedStatement);
-        preparedStatement->parameterMap = binder.getParameterMap();
+        auto boundStatement = binder->bind(*parsedStatement);
+        preparedStatement->parameterMap = binder->getParameterMap();
         preparedStatement->statementResult =
             std::make_unique<BoundStatementResult>(boundStatement->getStatementResult()->copy());
         // planning
@@ -580,6 +580,9 @@ processor::WarningContext& ClientContext::getWarningContextUnsafe() {
 
 const processor::WarningContext& ClientContext::getWarningContext() const {
     return warningContext;
+}
+binder::Binder* ClientContext::getBinder() const {
+    return binder.get();
 }
 
 graph::GraphEntrySet& ClientContext::getGraphEntrySetUnsafe() {
