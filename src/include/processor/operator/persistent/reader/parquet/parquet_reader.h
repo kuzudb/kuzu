@@ -8,7 +8,7 @@
 #include "function/table/scan_functions.h"
 #include "parquet_types.h"
 #include "resizable_buffer.h"
-#include "thrift/protocol/TCompactProtocol.h"
+#include "protocol/TCompactProtocol.h"
 
 namespace kuzu {
 namespace processor {

@@ -6,7 +6,7 @@
 #include "parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/column_writer.h"
 #include "processor/result/factorized_table.h"
-#include "thrift/protocol/TProtocol.h"
+#include "protocol/TProtocol.h"
 
 namespace kuzu {
 namespace main {

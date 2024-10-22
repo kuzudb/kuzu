@@ -20,9 +20,9 @@
 #ifndef _KUZU_THRIFT_THRIFT_H_
 #define _KUZU_THRIFT_THRIFT_H_ 1
 
-#include "thrift/transport/PlatformSocket.h"
+#include "transport/PlatformSocket.h"
 
-#include "thrift/thrift-config.h"
+#include "thrift-config.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -43,7 +43,7 @@
 #include <typeinfo>
 #include <cstddef>
 
-#include "thrift/TLogging.h"
+#include "TLogging.h"
 //#include <thrift/TOutput.h>
 
 #define THRIFT_UNUSED_VARIABLE(x) ((void)(x))

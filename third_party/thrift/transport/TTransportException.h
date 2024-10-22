@@ -21,7 +21,7 @@
 #define _KUZU_THRIFT_TRANSPORT_TTRANSPORTEXCEPTION_H_ 1
 
 #include <string>
-#include "thrift/Thrift.h"
+#include "Thrift.h"
 
 namespace kuzu_apache {
 namespace thrift {

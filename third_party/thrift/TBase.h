@@ -20,8 +20,8 @@
 #ifndef _KUZU_THRIFT_TBASE_H_
 #define _KUZU_THRIFT_TBASE_H_ 1
 
-#include "thrift/Thrift.h"
-#include "thrift/protocol/TProtocol.h"
+#include "Thrift.h"
+#include "protocol/TProtocol.h"
 
 namespace kuzu_apache {
 namespace thrift {

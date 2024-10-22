@@ -20,7 +20,7 @@
 #ifndef _KUZU_THRIFT_TRANSPORT_TVIRTUALTRANSPORT_H_
 #define _KUZU_THRIFT_TRANSPORT_TVIRTUALTRANSPORT_H_ 1
 
-#include "thrift/transport/TTransport.h"
+#include "transport/TTransport.h"
 
 namespace kuzu_apache {
 namespace thrift {

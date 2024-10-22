@@ -20,8 +20,8 @@
 #ifndef _KUZU_THRIFT_TRANSPORT_TTRANSPORT_H_
 #define _KUZU_THRIFT_TRANSPORT_TTRANSPORT_H_ 1
 
-#include "thrift/Thrift.h"
-#include "thrift/transport/TTransportException.h"
+#include "Thrift.h"
+#include "transport/TTransportException.h"
 #include <memory>
 #include <string>
 

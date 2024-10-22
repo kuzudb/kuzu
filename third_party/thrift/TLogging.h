@@ -20,7 +20,7 @@
 #ifndef _KUZU_THRIFT_TLOGGING_H_
 #define _KUZU_THRIFT_TLOGGING_H_ 1
 
-#include "thrift/thrift-config.h"
+#include "thrift-config.h"
 
 /**
  * Contains utility macros for debugging and logging.

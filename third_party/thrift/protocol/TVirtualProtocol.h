@@ -20,7 +20,7 @@
 #ifndef _KUZU_THRIFT_PROTOCOL_TVIRTUALPROTOCOL_H_
 #define _KUZU_THRIFT_PROTOCOL_TVIRTUALPROTOCOL_H_ 1
 
-#include "thrift/protocol/TProtocol.h"
+#include "protocol/TProtocol.h"
 
 namespace kuzu_apache {
 namespace thrift {
