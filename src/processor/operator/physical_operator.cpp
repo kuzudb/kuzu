@@ -177,6 +177,18 @@ bool PhysicalOperator::getNextTuple(ExecutionContext* context) {
     if (context->clientContext->interrupted()) {
         throw InterruptException{};
     }
+#ifdef __SINGLE_THREADED__
+    // In single-threaded mode, the timeout cannot be checked in the main thread
+    // because the main thread is blocked by the task execution. Instead, we
+    // check the timeout in the processor. The timeout handling may still be
+    // delayed, but it is better than checking it at the end of each task.
+    // This is the best we can do now because SIGALRM is not cross-platform.
+    if (context->clientContext->hasTimeout()) {
+        if (context->clientContext->getTimeoutRemainingInMS() == 0) {
+            throw InterruptException{};
+        }
+    }
+#endif
     metrics->executionTime.start();
     auto result = getNextTuplesInternal(context);
     context->clientContext->getProgressBar()->updateProgress(context->queryID,

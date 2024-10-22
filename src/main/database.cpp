@@ -52,9 +52,15 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
                 BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM));
     }
     bufferPoolSize = bufferPoolSize_;
+#ifndef __SINGLE_THREADED__
     if (maxNumThreads == 0) {
         this->maxNumThreads = std::thread::hardware_concurrency();
     }
+#else
+    // In single-threaded mode, even if the user specifies a number of threads,
+    // it will be ignored and set to 0.
+    this->maxNumThreads = 0;
+#endif
     if (maxDBSize == -1u) {
         maxDBSize = BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE;
     }
