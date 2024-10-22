@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "common/types/date_t.h"
 #include "common/types/types.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
@@ -10,9 +11,12 @@
 #include "main/client_context.h"
 #include "main_test_helper/private_main_test_helper.h"
 
-using kuzu::common::nodeID_t;
-
 namespace kuzu {
+
+using common::Date;
+using common::date_t;
+using common::nodeID_t;
+using common::offset_t;
 namespace testing {
 
 class RelScanTest : public PrivateApiTest {
@@ -48,25 +52,83 @@ class RelScanTestAmazon : public RelScanTest {
 TEST_F(RelScanTest, ScanFwd) {
     auto tableID = catalog->getTableID(context->getTx(), "person");
     auto relTableID = catalog->getTableID(context->getTx(), "knows");
-    auto scanState = graph->prepareScan(relTableID);
+    auto datePropertyIndex =
+        catalog->getTableCatalogEntry(context->getTx(), relTableID)->getPropertyIdx("date");
+    auto scanState = graph->prepareScan(relTableID, datePropertyIndex);
 
-    const auto compare = [&](uint64_t node, std::vector<nodeID_t> expected) {
-        std::vector<nodeID_t> result;
-        for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
-            chunk.selVector.forEach([&](auto i) { result.push_back(chunk.nbrNodes[i]); });
-        }
-        EXPECT_EQ(result, expected);
-        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(), expected);
-        result.clear();
-        for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
-            chunk.selVector.forEach([&](auto i) { result.push_back(chunk.nbrNodes[i]); });
-        }
-        EXPECT_EQ(result, expected);
-        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(), expected);
+    std::unordered_map<offset_t, common::date_t> expectedDates = {
+        {0, Date::fromDate(2021, 6, 30)},
+        {1, Date::fromDate(2021, 6, 30)},
+        {2, Date::fromDate(2021, 6, 30)},
+        {3, Date::fromDate(2021, 6, 30)},
+        {4, Date::fromDate(1950, 5, 14)},
+        {5, Date::fromDate(1950, 5, 14)},
+        {6, Date::fromDate(2021, 6, 30)},
+        {7, Date::fromDate(1950, 5, 14)},
+        {8, Date::fromDate(2000, 1, 1)},
+        {9, Date::fromDate(2021, 6, 30)},
+        {10, Date::fromDate(1950, 05, 14)},
+        {11, Date::fromDate(2000, 1, 1)},
     };
-    compare(0, {nodeID_t{1, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}});
-    compare(1, {nodeID_t{0, tableID}, nodeID_t{2, tableID}, nodeID_t{3, tableID}});
-    compare(2, {nodeID_t{0, tableID}, nodeID_t{1, tableID}, nodeID_t{3, tableID}});
+
+    const auto compare = [&](uint64_t node, std::vector<offset_t> expectedNodeOffsets,
+                             std::vector<offset_t> expectedFwdRelOffsets,
+                             std::vector<offset_t> expectedBwdRelOffsets) {
+        std::vector<offset_t> resultNodeOffsets;
+        std::vector<common::nodeID_t> expectedNodes;
+        std::transform(expectedNodeOffsets.begin(), expectedNodeOffsets.end(),
+            std::back_inserter(expectedNodes),
+            [&](auto offset) { return nodeID_t{offset, tableID}; });
+
+        std::vector<offset_t> resultRelOffsets;
+        std::vector<common::date_t> resultDates;
+        for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
+            chunk.selVector.forEach([&](auto i) {
+                EXPECT_EQ(chunk.nbrNodes[i].tableID, tableID);
+                resultNodeOffsets.push_back(chunk.nbrNodes[i].offset);
+                EXPECT_EQ(chunk.edges[i].tableID, relTableID);
+                resultRelOffsets.push_back(chunk.edges[i].offset);
+                resultDates.push_back(chunk.propertyVector->getValue<common::date_t>(i));
+            });
+        }
+        EXPECT_EQ(resultNodeOffsets, expectedNodeOffsets);
+        EXPECT_EQ(resultRelOffsets, expectedFwdRelOffsets);
+        for (size_t i = 0; i < resultRelOffsets.size(); i++) {
+            EXPECT_EQ(expectedDates[resultRelOffsets[i]], resultDates[i])
+                << " Result " << i << " (rel offset " << resultRelOffsets[i] << ") was "
+                << Date::toString(resultDates[i]) << " but we expected "
+                << Date::toString(expectedDates[resultRelOffsets[i]]);
+        }
+        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
+            expectedNodes);
+
+        resultNodeOffsets.clear();
+        resultRelOffsets.clear();
+        resultDates.clear();
+
+        for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
+            chunk.selVector.forEach([&](auto i) {
+                EXPECT_EQ(chunk.nbrNodes[i].tableID, tableID);
+                resultNodeOffsets.push_back(chunk.nbrNodes[i].offset);
+                EXPECT_EQ(chunk.edges[i].tableID, relTableID);
+                resultRelOffsets.push_back(chunk.edges[i].offset);
+                resultDates.push_back(chunk.propertyVector->getValue<common::date_t>(i));
+            });
+        }
+        EXPECT_EQ(resultNodeOffsets, expectedNodeOffsets);
+        EXPECT_EQ(resultRelOffsets, expectedBwdRelOffsets);
+        for (size_t i = 0; i < resultRelOffsets.size(); i++) {
+            EXPECT_EQ(expectedDates[resultRelOffsets[i]], resultDates[i])
+                << " Result " << i << " (rel offset " << resultRelOffsets[i] << ") was "
+                << Date::toString(resultDates[i]) << " but we expected "
+                << Date::toString(expectedDates[resultRelOffsets[i]]);
+        }
+        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
+            expectedNodes);
+    };
+    compare(0, {1, 2, 3}, {0, 1, 2}, {3, 6, 9});
+    compare(1, {0, 2, 3}, {3, 4, 5}, {0, 7, 10});
+    compare(2, {0, 1, 3}, {6, 7, 8}, {1, 4, 11});
 }
 
 } // namespace testing
