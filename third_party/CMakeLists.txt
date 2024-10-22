@@ -10,6 +10,9 @@ add_subdirectory(fast_float)
 add_subdirectory(alp)
 add_subdirectory(fastpfor)
 add_subdirectory(glob)
+add_subdirectory(parquet)
+add_subdirectory(snappy)
+add_subdirectory(thrift/thrift)
 add_subdirectory(mbedtls)
 add_subdirectory(miniz)
 if(${BUILD_PYTHON})
@@ -21,20 +24,6 @@ add_subdirectory(utf8proc)
 add_subdirectory(zstd)
 add_subdirectory(lz4)
 
-include_directories(parquet
-    snappy
-    thrift)
-
-add_library(parquet STATIC
-    parquet/parquet_constants.cpp
-    parquet/parquet_types.cpp
-    thrift/thrift/protocol/TProtocol.cpp
-    thrift/thrift/transport/TTransportException.cpp
-    thrift/thrift/transport/TBufferTransports.cpp
-    snappy/snappy.cc
-    snappy/snappy-sinksource.cc)
-
 target_compile_definitions(parquet PUBLIC HAVE_STDINT_H)
-target_include_directories(
-    parquet
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_link_libraries(parquet PUBLIC snappy)
+target_link_libraries(parquet PUBLIC thrift)
