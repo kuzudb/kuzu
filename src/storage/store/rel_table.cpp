@@ -168,24 +168,25 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     return scanState.scanNext(transaction);
 }
 
+static void throwRelMultiplicityConstraintError(const std::string& tableName, offset_t nodeOffset,
+    RelDataDirection direction) {
+    throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
+        std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
+}
+
 void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
     const TableInsertState& state) const {
     const auto& insertState = state.constCast<RelTableInsertState>();
     KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
               insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
 
-    const auto throwFunc = [](const std::string& tableName, offset_t nodeOffset,
-                               RelDataDirection direction) {
-        throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
-            std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
-    };
     if (fwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
         throwIfNodeHasRels(transaction, common::RelDataDirection::FWD, &insertState.srcNodeIDVector,
-            throwFunc);
+            throwRelMultiplicityConstraintError);
     }
     if (bwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
         throwIfNodeHasRels(transaction, common::RelDataDirection::BWD, &insertState.dstNodeIDVector,
-            throwFunc);
+            throwRelMultiplicityConstraintError);
     }
 }
 
@@ -325,7 +326,7 @@ bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
 }
 
 void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
-    ValueVector* srcNodeIDVector, const rel_table_entry_exception_t& throwFunc) const {
+    ValueVector* srcNodeIDVector, const rel_multiplicity_constraint_throw_func_t& throwFunc) const {
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     if (checkIfNodeHasRels(transaction, direction, srcNodeIDVector)) {

@@ -121,7 +121,7 @@ struct RelTableDeleteState final : TableDeleteState {
 
 class RelTable final : public Table {
 public:
-    using rel_table_entry_exception_t =
+    using rel_multiplicity_constraint_throw_func_t =
         std::function<void(const std::string&, common::offset_t, common::RelDataDirection)>;
 
     RelTable(catalog::RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
@@ -148,7 +148,7 @@ public:
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
     void throwIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector,
-        const rel_table_entry_exception_t& throwFunc) const;
+        const rel_multiplicity_constraint_throw_func_t& throwFunc) const;
 
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;

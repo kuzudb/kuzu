@@ -22,19 +22,22 @@ void NodeTableDeleteInfo::init(const ResultSet& resultSet) {
     pkVector = resultSet.getValueVector(pkPos).get();
 }
 
+static void throwDeleteNodeWithConnectedEdgesError(const std::string& tableName,
+    offset_t nodeOffset, RelDataDirection direction) {
+    throw RuntimeException(
+        ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(tableName,
+            std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
+}
+
 void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,
     ValueVector* nodeIDVector) const {
-    const auto throwFunc = [](const std::string& tableName, offset_t nodeOffset,
-                               RelDataDirection direction) {
-        throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
-            tableName, std::to_string(nodeOffset),
-            RelDataDirectionUtils::relDirectionToString(direction)));
-    };
     for (auto& relTable : fwdRelTables) {
-        relTable->throwIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector, throwFunc);
+        relTable->throwIfNodeHasRels(transaction, RelDataDirection::FWD, nodeIDVector,
+            throwDeleteNodeWithConnectedEdgesError);
     }
     for (auto& relTable : bwdRelTables) {
-        relTable->throwIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector, throwFunc);
+        relTable->throwIfNodeHasRels(transaction, RelDataDirection::BWD, nodeIDVector,
+            throwDeleteNodeWithConnectedEdgesError);
     }
 }
 
