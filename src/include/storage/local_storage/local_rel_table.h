@@ -28,7 +28,8 @@ public:
         TableAddColumnState& addColumnState) override;
     uint64_t getEstimatedMemUsage() override;
 
-    void checkIfNodeHasRels(common::ValueVector* srcNodeIDVector) const;
+    bool checkIfNodeHasRels(common::ValueVector* srcNodeIDVector,
+        common::RelDataDirection direction) const;
 
     common::TableType getTableType() const override { return common::TableType::REL; }
 

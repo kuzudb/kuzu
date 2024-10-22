@@ -289,9 +289,17 @@ jobs:
           name: binary-demo
           path: dataset/binary-demo
         
-      - name: Build & Test
+      - name: Build & test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          source /home/runner/emsdk/emsdk_env.sh
+          make wasmtest
+      
+      - name: Build & test (single-thread mode)
+        env:
+          SINGLE_THREADED: true
+        run: |
+          make clean
           source /home/runner/emsdk/emsdk_env.sh
           make wasmtest
 

@@ -2,8 +2,6 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/rel_direction.h"
-#include "common/exception/message.h"
-#include "common/exception/runtime.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/storage_utils.h"
@@ -155,14 +153,14 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     return {source, matchingRowIdx};
 }
 
-void RelTableData::checkIfNodeHasRels(Transaction* transaction,
+bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     ValueVector* srcNodeIDVector) const {
     KU_ASSERT(srcNodeIDVector->state->isFlat());
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (nodeGroupIdx >= getNumNodeGroups()) {
-        return;
+        return false;
     }
     DataChunk scanChunk(1);
     // RelID output vector.
@@ -182,11 +180,10 @@ void RelTableData::checkIfNodeHasRels(Transaction* transaction,
             break;
         }
         if (scanState->outState->getSelVector().getSelSize() > 0) {
-            throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
-                tableName, std::to_string(nodeOffset),
-                RelDataDirectionUtils::relDirectionToString(direction)));
+            return true;
         }
     }
+    return false;
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {

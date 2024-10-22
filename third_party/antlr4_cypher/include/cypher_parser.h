@@ -19,31 +19,32 @@ public:
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, ANY = 46, ADD = 47, ALL = 48, ALTER = 49, AND = 50, AS = 51, 
-    ASC = 52, ASCENDING = 53, ATTACH = 54, BEGIN = 55, BY = 56, CALL = 57, 
-    CASE = 58, CAST = 59, CHECKPOINT = 60, COLUMN = 61, COMMENT = 62, COMMIT = 63, 
-    COMMIT_SKIP_CHECKPOINT = 64, CONTAINS = 65, COPY = 66, COUNT = 67, CREATE = 68, 
-    CYCLE = 69, DATABASE = 70, DBTYPE = 71, DEFAULT = 72, DELETE = 73, DESC = 74, 
-    DESCENDING = 75, DETACH = 76, DISTINCT = 77, DROP = 78, ELSE = 79, END = 80, 
-    ENDS = 81, EXISTS = 82, EXPLAIN = 83, EXPORT = 84, EXTENSION = 85, FALSE = 86, 
-    FROM = 87, GLOB = 88, GRAPH = 89, GROUP = 90, HEADERS = 91, HINT = 92, 
-    IMPORT = 93, IF = 94, IN = 95, INCREMENT = 96, INSTALL = 97, IS = 98, 
-    JOIN = 99, KEY = 100, LIMIT = 101, LOAD = 102, LOGICAL = 103, MACRO = 104, 
-    MATCH = 105, MAXVALUE = 106, MERGE = 107, MINVALUE = 108, MULTI_JOIN = 109, 
-    NO = 110, NODE = 111, NOT = 112, NONE = 113, NULL_ = 114, ON = 115, 
-    ONLY = 116, OPTIONAL = 117, OR = 118, ORDER = 119, PRIMARY = 120, PROFILE = 121, 
-    PROJECT = 122, RDFGRAPH = 123, READ = 124, REL = 125, RENAME = 126, 
-    RETURN = 127, ROLLBACK = 128, ROLLBACK_SKIP_CHECKPOINT = 129, SEQUENCE = 130, 
-    SET = 131, SHORTEST = 132, START = 133, STARTS = 134, TABLE = 135, THEN = 136, 
-    TO = 137, TRANSACTION = 138, TRUE = 139, TYPE = 140, UNION = 141, UNWIND = 142, 
-    USE = 143, WHEN = 144, WHERE = 145, WITH = 146, WRITE = 147, XOR = 148, 
-    SINGLE = 149, DECIMAL = 150, STAR = 151, L_SKIP = 152, INVALID_NOT_EQUAL = 153, 
-    MINUS = 154, FACTORIAL = 155, COLON = 156, StringLiteral = 157, EscapedChar = 158, 
-    DecimalInteger = 159, HexLetter = 160, HexDigit = 161, Digit = 162, 
-    NonZeroDigit = 163, NonZeroOctDigit = 164, ZeroDigit = 165, RegularDecimalReal = 166, 
-    UnescapedSymbolicName = 167, IdentifierStart = 168, IdentifierPart = 169, 
-    EscapedSymbolicName = 170, SP = 171, WHITESPACE = 172, CypherComment = 173, 
-    Unknown = 174
+    T__44 = 45, ACYCLIC = 46, ANY = 47, ADD = 48, ALL = 49, ALTER = 50, 
+    AND = 51, AS = 52, ASC = 53, ASCENDING = 54, ATTACH = 55, BEGIN = 56, 
+    BY = 57, CALL = 58, CASE = 59, CAST = 60, CHECKPOINT = 61, COLUMN = 62, 
+    COMMENT = 63, COMMIT = 64, COMMIT_SKIP_CHECKPOINT = 65, CONTAINS = 66, 
+    COPY = 67, COUNT = 68, CREATE = 69, CYCLE = 70, DATABASE = 71, DBTYPE = 72, 
+    DEFAULT = 73, DELETE = 74, DESC = 75, DESCENDING = 76, DETACH = 77, 
+    DISTINCT = 78, DROP = 79, ELSE = 80, END = 81, ENDS = 82, EXISTS = 83, 
+    EXPLAIN = 84, EXPORT = 85, EXTENSION = 86, FALSE = 87, FROM = 88, GLOB = 89, 
+    GRAPH = 90, GROUP = 91, HEADERS = 92, HINT = 93, IMPORT = 94, IF = 95, 
+    IN = 96, INCREMENT = 97, INSTALL = 98, IS = 99, JOIN = 100, KEY = 101, 
+    LIMIT = 102, LOAD = 103, LOGICAL = 104, MACRO = 105, MATCH = 106, MAXVALUE = 107, 
+    MERGE = 108, MINVALUE = 109, MULTI_JOIN = 110, NO = 111, NODE = 112, 
+    NOT = 113, NONE = 114, NULL_ = 115, ON = 116, ONLY = 117, OPTIONAL = 118, 
+    OR = 119, ORDER = 120, PRIMARY = 121, PROFILE = 122, PROJECT = 123, 
+    RDFGRAPH = 124, READ = 125, REL = 126, RENAME = 127, RETURN = 128, ROLLBACK = 129, 
+    ROLLBACK_SKIP_CHECKPOINT = 130, SEQUENCE = 131, SET = 132, SHORTEST = 133, 
+    START = 134, STARTS = 135, TABLE = 136, THEN = 137, TO = 138, TRAIL = 139, 
+    TRANSACTION = 140, TRUE = 141, TYPE = 142, UNION = 143, UNWIND = 144, 
+    USE = 145, WHEN = 146, WHERE = 147, WITH = 148, WRITE = 149, XOR = 150, 
+    SINGLE = 151, DECIMAL = 152, STAR = 153, L_SKIP = 154, INVALID_NOT_EQUAL = 155, 
+    MINUS = 156, FACTORIAL = 157, COLON = 158, StringLiteral = 159, EscapedChar = 160, 
+    DecimalInteger = 161, HexLetter = 162, HexDigit = 163, Digit = 164, 
+    NonZeroDigit = 165, NonZeroOctDigit = 166, ZeroDigit = 167, RegularDecimalReal = 168, 
+    UnescapedSymbolicName = 169, IdentifierStart = 170, IdentifierPart = 171, 
+    EscapedSymbolicName = 172, SP = 173, WHITESPACE = 174, CypherComment = 175, 
+    Unknown = 176
   };
 
   enum {
@@ -1969,6 +1970,8 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *SHORTEST();
     antlr4::tree::TerminalNode *ALL();
+    antlr4::tree::TerminalNode *TRAIL();
+    antlr4::tree::TerminalNode *ACYCLIC();
     OC_IntegerLiteralContext *oC_IntegerLiteral();
     KU_RecursiveRelationshipComprehensionContext *kU_RecursiveRelationshipComprehension();
     OC_LowerBoundContext *oC_LowerBound();

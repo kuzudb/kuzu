@@ -425,17 +425,13 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     }
     auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
         std::string(InternalKeyword::ANONYMOUS));
-    if (nodePredicate != nullptr) {
-        nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::OR,
-            nodePredicate, nodePredicateExecutionFlag);
-    }
     // Bind rel
     restoreScope(std::move(prevScope));
     auto parsedName = relPattern.getVariableName();
     if (emptyRecursivePattern) {
         relTableEntries.clear();
     }
-    auto queryRel = make_shared<RelExpression>(
+    auto queryRel = std::make_shared<RelExpression>(
         getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
         getUniqueExpressionName(parsedName), parsedName, relTableEntries, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
@@ -449,8 +445,13 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     recursiveInfo->nodeCopy = std::move(nodeCopy);
     recursiveInfo->rel = std::move(rel);
     recursiveInfo->lengthExpression = std::move(lengthExpression);
-    recursiveInfo->nodePredicateExecFlag = std::move(nodePredicateExecutionFlag);
-    recursiveInfo->nodePredicate = std::move(nodePredicate);
+    recursiveInfo->nodePredicateExecFlag = nodePredicateExecutionFlag;
+    recursiveInfo->originalNodePredicate = nodePredicate;
+    if (nodePredicate != nullptr) {
+        recursiveInfo->nodePredicate = expressionBinder.combineBooleanExpressions(
+            ExpressionType::OR, nodePredicate, nodePredicateExecutionFlag);
+    }
+
     recursiveInfo->relPredicate = std::move(relPredicate);
     recursiveInfo->nodeProjectionList = std::move(nodeProjectionList);
     recursiveInfo->relProjectionList = std::move(relProjectionList);

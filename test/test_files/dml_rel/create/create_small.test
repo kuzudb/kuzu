@@ -47,6 +47,42 @@
 ---- 1
 0
 
+-CASE CreateOneToOneRelMultiplicityError
+-STATEMENT CREATE NODE TABLE User(id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE City(id STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE LivesIn(FROM User TO City, ONE_ONE);
+---- ok
+-STATEMENT CREATE (u:User { id: 'user1' });
+---- ok
+-STATEMENT CREATE (u:User { id: 'user2' });
+---- ok
+-STATEMENT CREATE (c:City { id: 'city1' });
+---- ok
+-STATEMENT CREATE (c:City { id: 'city2' });
+---- ok
+-STATEMENT MATCH (u:User), (c:City) WHERE u.id = 'user1' AND c.id = 'city1' CREATE (u)-[e:LivesIn]->(c);
+---- ok
+
+-LOG EntriesCommitedInMem
+-STATEMENT MATCH (u:User), (c:City) WHERE u.id = 'user2' AND c.id = 'city1' CREATE (u)-[e:LivesIn]->(c);
+---- error
+Runtime exception: Node(nodeOffset: 0) has more than one neighbour in table LivesIn in the bwd direction, which violates the rel multiplicity constraint.
+-STATEMENT MATCH (u:User), (c:City) WHERE u.id = 'user1' AND c.id = 'city2' CREATE (u)-[e:LivesIn]->(c);
+---- error
+Runtime exception: Node(nodeOffset: 0) has more than one neighbour in table LivesIn in the fwd direction, which violates the rel multiplicity constraint.
+
+-LOG EntriesCheckpointed
+-STATEMENT CHECKPOINT
+---- ok
+-STATEMENT MATCH (u:User), (c:City) WHERE u.id = 'user2' AND c.id = 'city1' CREATE (u)-[e:LivesIn]->(c);
+---- error
+Runtime exception: Node(nodeOffset: 0) has more than one neighbour in table LivesIn in the bwd direction, which violates the rel multiplicity constraint.
+-STATEMENT MATCH (u:User), (c:City) WHERE u.id = 'user1' AND c.id = 'city2' CREATE (u)-[e:LivesIn]->(c);
+---- error
+Runtime exception: Node(nodeOffset: 0) has more than one neighbour in table LivesIn in the fwd direction, which violates the rel multiplicity constraint.
+
 -CASE CreateOneToOneRelTableAfterCreateNodes
 -STATEMENT CREATE NODE TABLE N1(ID SERIAL, PRIMARY KEY (ID));
 ---- ok

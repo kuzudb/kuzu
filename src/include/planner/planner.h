@@ -254,6 +254,8 @@ public:
         LogicalPlan& plan);
     void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo,
         common::ExtendDirection direction, bool extendFromSource, LogicalPlan& plan);
+    void createPathNodeFilterPlan(const std::shared_ptr<binder::NodeExpression>& node,
+        std::shared_ptr<binder::Expression> nodePredicate, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& boundNode,
