@@ -157,6 +157,9 @@ TEST_F(CApiConnectionTest, QueryTimeout) {
     ASSERT_EQ(kuzu_connection_set_query_timeout(&badConnection, 1), KuzuError);
 }
 
+#ifndef __SINGLE_THREADED__
+// The following test is disabled in single-threaded mode because it requires
+// a separate thread to run.
 TEST_F(CApiConnectionTest, Interrupt) {
     kuzu_query_result result;
     kuzu_state state;
@@ -183,3 +186,4 @@ TEST_F(CApiConnectionTest, Interrupt) {
     kuzu_query_result_destroy(&result);
     t.join();
 }
+#endif

@@ -5,20 +5,19 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalDummyScan : public LogicalOperator {
+class LogicalDummyScan final : public LogicalOperator {
 public:
-    explicit LogicalDummyScan(std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::DUMMY_SCAN, std::move(printInfo)} {}
+    explicit LogicalDummyScan() : LogicalOperator{LogicalOperatorType::DUMMY_SCAN} {}
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override { return std::string(); }
 
     static std::shared_ptr<binder::Expression> getDummyExpression();
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalDummyScan>(printInfo->copy());
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalDummyScan>();
     }
 };
 

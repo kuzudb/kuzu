@@ -17,10 +17,10 @@ namespace kuzu {
 namespace storage {
 
 ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataType,
-    uint64_t capacity, bool enableCompression, ResidencyState residencyState)
+    uint64_t capacity, bool enableCompression, ResidencyState residencyState, bool initializeToZero)
     : enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
-        enableCompression, capacity, residencyState);
+        enableCompression, capacity, residencyState, true, initializeToZero);
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
 }
 
@@ -28,7 +28,7 @@ ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataTy
     bool enableCompression, ColumnChunkMetadata metadata)
     : enableCompression{enableCompression} {
     data = ColumnChunkFactory::createColumnChunkData(memoryManager, dataType.copy(),
-        enableCompression, metadata, true);
+        enableCompression, metadata, true, true);
 }
 
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
@@ -190,6 +190,7 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
         data->write(&values, values.state->getSelVector().getSelectedPositions()[0], offsetInChunk);
         return;
     }
+    data->updateStats(&values, values.state->getSelVector());
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }

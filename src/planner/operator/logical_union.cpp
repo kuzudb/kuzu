@@ -39,8 +39,7 @@ std::unique_ptr<LogicalOperator> LogicalUnion::copy() {
     for (auto i = 0u; i < getNumChildren(); ++i) {
         copiedChildren.push_back(getChild(i)->copy());
     }
-    return make_unique<LogicalUnion>(expressionsToUnion, std::move(copiedChildren),
-        printInfo->copy());
+    return make_unique<LogicalUnion>(expressionsToUnion, std::move(copiedChildren));
 }
 
 bool LogicalUnion::requireFlatExpression(uint32_t expressionIdx) {

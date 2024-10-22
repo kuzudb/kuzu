@@ -5,9 +5,7 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendMultiplicityReducer(LogicalPlan& plan) {
-    auto printInfo = std::make_unique<OPPrintInfo>();
-    auto multiplicityReducer =
-        make_shared<LogicalMultiplicityReducer>(plan.getLastOperator(), std::move(printInfo));
+    auto multiplicityReducer = make_shared<LogicalMultiplicityReducer>(plan.getLastOperator());
     multiplicityReducer->computeFactorizedSchema();
     plan.setLastOperator(std::move(multiplicityReducer));
 }

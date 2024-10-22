@@ -69,8 +69,6 @@ public:
         common::RelMultiplicity multiplicity) override;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
-    void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     void resizeDataColumnChunk(uint64_t numValues) const { dataColumnChunk->resize(numValues); }
 
@@ -85,6 +83,12 @@ public:
         ColumnChunkData::resize(newCapacity);
         sizeColumnChunk->resize(newCapacity);
         offsetColumnChunk->resize(newCapacity);
+    }
+
+    void resizeWithoutPreserve(uint64_t newCapacity) override {
+        ColumnChunkData::resizeWithoutPreserve(newCapacity);
+        sizeColumnChunk->resizeWithoutPreserve(newCapacity);
+        offsetColumnChunk->resizeWithoutPreserve(newCapacity);
     }
 
     common::offset_t getListStartOffset(common::offset_t offset) const;

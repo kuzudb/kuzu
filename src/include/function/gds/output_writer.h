@@ -1,7 +1,9 @@
 #pragma once
 
 #include "bfs_graph.h"
+#include "common/enums/path_semantic.h"
 #include "common/types/types.h"
+#include "processor/operator/gds_call_shared_state.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
@@ -98,23 +100,44 @@ protected:
         uint16_t length) const;
 };
 
+struct PathsOutputWriterInfo {
+    // Semantic
+    common::PathSemantic semantic = common::PathSemantic::WALK;
+    // Range
+    uint16_t lowerBound = 0;
+    // Direction
+    bool extendFromSource = false;
+    bool writeEdgeDirection = false;
+    // Node predicate mask
+    processor::NodeOffsetMaskMap* pathNodeMask = nullptr;
+
+    bool hasNodeMask() const { return pathNodeMask != nullptr; }
+};
+
 class PathsOutputWriter : public RJOutputWriter {
 public:
-    PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
-        uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection);
+    PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        PathsOutputWriterInfo info);
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
 
 private:
-    void beginWritingNewPath(uint64_t length) const;
+    bool checkPathNodeMask(const std::vector<ParentList*>& path) const;
+    bool checkSemantic(const std::vector<ParentList*>& path) const;
+    bool isTrail(const std::vector<ParentList*>& path) const;
+    bool isAcyclic(const std::vector<ParentList*>& path) const;
+
+    void beginWritePath(common::idx_t length) const;
+    void writePath(const std::vector<ParentList*>& path) const;
+    void writePathFwd(const std::vector<ParentList*>& path) const;
+    void writePathBwd(const std::vector<ParentList*>& path) const;
+
     void addEdge(common::relID_t edgeID, bool fwdEdge, common::sel_t pos) const;
     void addNode(common::nodeID_t nodeID, common::sel_t pos) const;
 
 protected:
-    uint16_t lowerBound;
-    uint16_t upperBound;
-    bool extendFromSource;
-    bool writeEdgeDirection;
+    PathsOutputWriterInfo info;
+
     std::unique_ptr<common::ValueVector> directionVector;
     std::unique_ptr<common::ValueVector> lengthVector;
     std::unique_ptr<common::ValueVector> pathNodeIDsVector;
@@ -123,10 +146,9 @@ protected:
 
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
-    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t upperBound,
-        bool extendFromSource, bool writeEdgeDirection)
-        : PathsOutputWriter(context, rjOutputs, 1 /* lower bound */, upperBound, extendFromSource,
-              writeEdgeDirection) {}
+    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        PathsOutputWriterInfo info)
+        : PathsOutputWriter(context, rjOutputs, std::move(info)) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
@@ -138,8 +160,7 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, upperBound,
-            extendFromSource, writeEdgeDirection);
+        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, info);
     }
 };
 

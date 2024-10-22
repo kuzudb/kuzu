@@ -16,6 +16,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
+    auto info = PathsOutputWriterInfo();
+    info.semantic = semantic;
+    info.lowerBound = lowerBound;
+    info.extendFromSource = extendFromSource;
+    info.writeEdgeDirection = extendDirection == ExtendDirection::BOTH;
+    return info;
+}
+
 RJCompState::RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
     std::unique_ptr<RJOutputWriter> outputWriter)
@@ -104,7 +113,7 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     auto extendDirection =
         ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
-        extendDirection);
+        PathSemantic::WALK, extendDirection);
 }
 
 class RJOutputWriterVCSharedState {
@@ -154,11 +163,12 @@ private:
 };
 
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
+    auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
     for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
-        if (!sharedState->inputNodeOffsetMasks.contains(tableID)) {
+        if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
         }
-        auto mask = sharedState->inputNodeOffsetMasks.at(tableID).get();
+        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
             if (!mask->isMasked(offset)) {
                 continue;

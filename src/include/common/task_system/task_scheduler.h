@@ -1,7 +1,10 @@
 #pragma once
-#include <condition_variable>
 #include <deque>
+
+#ifndef __SINGLE_THREADED__
+#include <condition_variable>
 #include <thread>
+#endif
 
 #include "common/task_system/task.h"
 #include "processor/execution_context.h"
@@ -36,6 +39,7 @@ struct ScheduledTask {
  * that is not accepting more registration can stay in the queue for an unlimited time until
  * completion.
  */
+#ifndef __SINGLE_THREADED__
 class TaskScheduler {
 public:
     explicit TaskScheduler(uint64_t numWorkerThreads);
@@ -50,12 +54,13 @@ public:
         processor::ExecutionContext* context, bool launchNewWorkerThread = false);
 
 private:
+    // Functions to launch worker threads and for the worker threads to use to grab task from queue.
+    void runWorkerThread();
+
     std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
 
     void removeErroringTask(uint64_t scheduledTaskID);
 
-    // Functions to launch worker threads and for the worker threads to use to grab task from queue.
-    void runWorkerThread();
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
     static void runTask(Task* task);
 
@@ -67,6 +72,30 @@ private:
     std::condition_variable cv;
     uint64_t nextScheduledTaskID;
 };
+#else
+// Single-threaded version of TaskScheduler
+class TaskScheduler {
+public:
+    explicit TaskScheduler(uint64_t numWorkerThreads);
+    ~TaskScheduler();
 
+    void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+        processor::ExecutionContext* context, bool launchNewWorkerThread = false);
+
+private:
+    std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
+
+    void removeErroringTask(uint64_t scheduledTaskID);
+
+    std::shared_ptr<ScheduledTask> getTaskAndRegister();
+    static void runTask(Task* task);
+
+private:
+    std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
+    bool stopWorkerThreads;
+    std::mutex taskSchedulerMtx;
+    uint64_t nextScheduledTaskID;
+};
+#endif
 } // namespace common
 } // namespace kuzu

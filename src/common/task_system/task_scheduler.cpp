@@ -1,10 +1,10 @@
 #include "common/task_system/task_scheduler.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace common {
 
+#ifndef __SINGLE_THREADED__
 TaskScheduler::TaskScheduler(uint64_t numWorkerThreads)
     : stopWorkerThreads{false}, nextScheduledTaskID{0} {
     for (auto n = 0u; n < numWorkerThreads; ++n) {
@@ -78,6 +78,67 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task
     }
 }
 
+void TaskScheduler::runWorkerThread() {
+    std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};
+    std::exception_ptr exceptionPtr = nullptr;
+    std::shared_ptr<ScheduledTask> scheduledTask = nullptr;
+    while (true) {
+        // Warning: Threads acquire a global lock (using taskSchedulerMutex) right before
+        // deregistering themselves from a task (and they immediately register themselves for
+        // another task without releasing the lock). This acquire-right-before-deregistering ensures
+        // that all writes that were done by threads in Task_j happen before a Task_{j+1} which
+        // depends on Task_j can start. That's because before Task_{j+1} can start, each thread T_i
+        // working on Task_j will need to deregister itself using the global lock. Therefore, by the
+        // time any thread gets to start on Task_{j+1}, all writes made to Task_j by T_i will become
+        // globally visible because T_i grabbed the global lock before deregistering (and without
+        // T_i deregistering Task_{j+1} cannot start).
+        lck.lock();
+        if (scheduledTask != nullptr) {
+            if (exceptionPtr != nullptr) {
+                scheduledTask->task->setException(exceptionPtr);
+                exceptionPtr = nullptr;
+            }
+            scheduledTask->task->deRegisterThreadAndFinalizeTask();
+            scheduledTask = nullptr;
+        }
+        cv.wait(lck, [&] {
+            scheduledTask = getTaskAndRegister();
+            return scheduledTask != nullptr || stopWorkerThreads;
+        });
+        lck.unlock();
+        if (stopWorkerThreads) {
+            return;
+        }
+        try {
+            scheduledTask->task->run();
+        } catch (std::exception& e) {
+            exceptionPtr = std::current_exception();
+        }
+    }
+}
+#else
+// Single-threaded version of TaskScheduler
+TaskScheduler::TaskScheduler(uint64_t) : stopWorkerThreads{false}, nextScheduledTaskID{0} {}
+
+TaskScheduler::~TaskScheduler() {
+    stopWorkerThreads = true;
+}
+
+void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task,
+    processor::ExecutionContext* context, bool) {
+    for (auto& dependency : task->children) {
+        scheduleTaskAndWaitOrError(dependency, context);
+    }
+    task->registerThread();
+    // runTask deregisters, so we don't need to deregister explicitly here
+    runTask(task.get());
+    if (task->hasException()) {
+        removeErroringTask(task->ID);
+        std::rethrow_exception(task->getExceptionPtr());
+    }
+}
+#endif
+
 std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
     lock_t lck{taskSchedulerMtx};
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
@@ -117,45 +178,6 @@ void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
         if (scheduledTaskID == (*it)->ID) {
             taskQueue.erase(it);
             return;
-        }
-    }
-}
-
-void TaskScheduler::runWorkerThread() {
-    std::unique_lock<std::mutex> lck{taskSchedulerMtx, std::defer_lock};
-    std::exception_ptr exceptionPtr = nullptr;
-    std::shared_ptr<ScheduledTask> scheduledTask = nullptr;
-    while (true) {
-        // Warning: Threads acquire a global lock (using taskSchedulerMutex) right before
-        // deregistering themselves from a task (and they immediately register themselves for
-        // another task without releasing the lock). This acquire-right-before-deregistering ensures
-        // that all writes that were done by threads in Task_j happen before a Task_{j+1} which
-        // depends on Task_j can start. That's because before Task_{j+1} can start, each thread T_i
-        // working on Task_j will need to deregister itself using the global lock. Therefore, by the
-        // time any thread gets to start on Task_{j+1}, all writes made to Task_j by T_i will become
-        // globally visible because T_i grabbed the global lock before deregistering (and without
-        // T_i deregistering Task_{j+1} cannot start).
-        lck.lock();
-        if (scheduledTask != nullptr) {
-            if (exceptionPtr != nullptr) {
-                scheduledTask->task->setException(exceptionPtr);
-                exceptionPtr = nullptr;
-            }
-            scheduledTask->task->deRegisterThreadAndFinalizeTask();
-            scheduledTask = nullptr;
-        }
-        cv.wait(lck, [&] {
-            scheduledTask = getTaskAndRegister();
-            return scheduledTask != nullptr || stopWorkerThreads;
-        });
-        lck.unlock();
-        if (stopWorkerThreads) {
-            return;
-        }
-        try {
-            scheduledTask->task->run();
-        } catch (std::exception& e) {
-            exceptionPtr = std::current_exception();
         }
     }
 }

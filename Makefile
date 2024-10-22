@@ -65,6 +65,10 @@ ifdef VECTOR_CAPACITY_LOG2
 	CMAKE_FLAGS += -DVECTOR_CAPACITY_LOG2=$(VECTOR_CAPACITY_LOG2)
 endif
 
+ifdef SINGLE_THREADED
+	CMAKE_FLAGS += -DSINGLE_THREADED=$(SINGLE_THREADED)
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
@@ -169,7 +173,7 @@ rusttest: rust
 
 wasmtest:
 	mkdir -p build/wasm && cd build/wasm &&\
-	emcmake cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=TRUE -DBUILD_SHELL=FALSE -DENABLE_WERROR=FALSE ../.. && \
+	emcmake cmake $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=TRUE -DBUILD_SHELL=FALSE  ../.. && \
 	cmake --build . --config Release -j $(NUM_THREADS) &&\
 	cd ../.. && ctest --test-dir  build/wasm/test/ --output-on-failure -j ${TEST_JOBS} --timeout 600
 

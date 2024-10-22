@@ -6,7 +6,7 @@ import java.util.Map;
  * Connection is used to interact with a Database instance. Each Connection is thread-safe. Multiple
  * connections can connect to the same Database instance in a multi-threaded environment.
  */
-public class Connection {
+public class Connection implements AutoCloseable {
 
     long conn_ref;
     boolean destroyed = false;
@@ -31,11 +31,11 @@ public class Connection {
     }
 
     /**
-    * Finalize.
+    * Close the connection and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.    
     * @throws ObjectRefDestroyedException If the connection has been destroyed.
     */
     @Override
-    protected void finalize() throws ObjectRefDestroyedException {
+    public void close() throws ObjectRefDestroyedException {
         destroy();
     }
 
@@ -43,7 +43,7 @@ public class Connection {
     * Destroy the connection.
     * @throws ObjectRefDestroyedException If the connection has been destroyed.
     */
-    public void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         Native.kuzu_connection_destroy(this);
         destroyed = true;

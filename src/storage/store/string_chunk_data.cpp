@@ -61,6 +61,11 @@ void StringChunkData::resize(uint64_t newCapacity) {
     indexColumnChunk->resize(newCapacity);
 }
 
+void StringChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
+    ColumnChunkData::resizeWithoutPreserve(newCapacity);
+    indexColumnChunk->resizeWithoutPreserve(newCapacity);
+}
+
 void StringChunkData::resetToEmpty() {
     ColumnChunkData::resetToEmpty();
     indexColumnChunk->resetToEmpty();
@@ -198,19 +203,6 @@ void StringChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
         }
         setValueFromString(srcStringChunk.getValue<std::string_view>(srcPos), dstPos);
     }
-}
-
-void StringChunkData::copy(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
-    offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
-    KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
-    KU_ASSERT(dstOffsetInChunk >= numValues);
-    while (numValues < dstOffsetInChunk) {
-        indexColumnChunk->setValue<DictionaryChunk::string_index_t>(0, numValues);
-        nullData->setNull(numValues, true);
-        updateNumValues(numValues + 1);
-    }
-    auto& srcStringChunk = srcChunk->cast<StringChunkData>();
-    append(&srcStringChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void StringChunkData::appendStringColumnChunk(StringChunkData* other, offset_t startPosInOtherChunk,

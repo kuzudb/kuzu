@@ -5,20 +5,20 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalOrderBy : public LogicalOperator {
+class LogicalOrderBy final : public LogicalOperator {
 public:
     LogicalOrderBy(binder::expression_vector expressionsToOrderBy, std::vector<bool> sortOrders,
-        std::shared_ptr<LogicalOperator> child, std::unique_ptr<OPPrintInfo> printInfo)
-        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child), std::move(printInfo)},
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child)},
           expressionsToOrderBy{std::move(expressionsToOrderBy)},
           isAscOrders{std::move(sortOrders)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    void computeFactorizedSchema() final;
-    void computeFlatSchema() final;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    std::string getExpressionsForPrinting() const final;
+    std::string getExpressionsForPrinting() const override;
 
     inline binder::expression_vector getExpressionsToOrderBy() const {
         return expressionsToOrderBy;
@@ -32,9 +32,8 @@ public:
     inline bool hasLimitNum() const { return limitNum != UINT64_MAX; }
     inline uint64_t getLimitNum() const { return limitNum; }
 
-    inline std::unique_ptr<LogicalOperator> copy() final {
-        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy(),
-            printInfo->copy());
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy());
     }
 
 private:

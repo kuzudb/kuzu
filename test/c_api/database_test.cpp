@@ -7,14 +7,22 @@ using namespace kuzu::testing;
 
 class CApiDatabaseTest : public APIEmptyDBTest {
 public:
-    void SetUp() override { APIEmptyDBTest::SetUp(); }
+    void SetUp() override {
+        APIEmptyDBTest::SetUp();
+        defaultSystemConfig = kuzu_default_system_config();
+
+        // limit memory usage by keeping max number of threads small
+        defaultSystemConfig.max_num_threads = 2;
+    }
+
+    kuzu_system_config defaultSystemConfig;
 };
 
 TEST_F(CApiDatabaseTest, CreationAndDestroy) {
     kuzu_database database;
     kuzu_state state;
     auto databasePathCStr = databasePath.c_str();
-    auto systemConfig = kuzu_default_system_config();
+    auto systemConfig = defaultSystemConfig;
     state = kuzu_database_init(databasePathCStr, systemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_NE(database._database, nullptr);
@@ -29,7 +37,7 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     kuzu_query_result queryResult;
     kuzu_state state;
     auto databasePathCStr = databasePath.c_str();
-    auto systemConfig = kuzu_default_system_config();
+    auto systemConfig = defaultSystemConfig;
     // First, create a read-write database.
     state = kuzu_database_init(databasePathCStr, systemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
@@ -66,11 +74,11 @@ TEST_F(CApiDatabaseTest, CreationInMemory) {
     kuzu_database database;
     kuzu_state state;
     auto databasePathCStr = (char*)"";
-    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+    state = kuzu_database_init(databasePathCStr, defaultSystemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     kuzu_database_destroy(&database);
     databasePathCStr = (char*)":memory:";
-    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+    state = kuzu_database_init(databasePathCStr, defaultSystemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     kuzu_database_destroy(&database);
 }
@@ -81,7 +89,7 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_connection connection;
     kuzu_state state;
     auto databasePathCStr = (char*)"~/ku_test.db/";
-    state = kuzu_database_init(databasePathCStr, kuzu_default_system_config(), &database);
+    state = kuzu_database_init(databasePathCStr, defaultSystemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     state = kuzu_connection_init(&database, &connection);
     ASSERT_EQ(state, KuzuSuccess);
