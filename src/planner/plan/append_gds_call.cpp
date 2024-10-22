@@ -8,8 +8,7 @@ namespace kuzu {
 namespace planner {
 
 std::shared_ptr<LogicalOperator> Planner::getGDSCall(const BoundGDSCallInfo& info) {
-    auto printInfo = std::make_unique<OPPrintInfo>();
-    return std::make_shared<LogicalGDSCall>(info.copy(), std::move(printInfo));
+    return std::make_shared<LogicalGDSCall>(info.copy());
 }
 
 } // namespace planner

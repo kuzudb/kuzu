@@ -41,8 +41,6 @@ public:
         common::RelMultiplicity multiplicity) override;
     void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
-    void copy(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
-        common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {
@@ -73,6 +71,7 @@ public:
 
     void setToInMemory() override;
     void resize(uint64_t newCapacity) override;
+    void resizeWithoutPreserve(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 
     void serialize(common::Serializer& serializer) const override;

@@ -45,6 +45,16 @@ struct CallTableFuncBindData : TableFuncBindData {
     }
 };
 
+struct StandaloneTableFuncBindData : public CallTableFuncBindData {
+    StandaloneTableFuncBindData()
+        : CallTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{}, 1} {
+    }
+
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<StandaloneTableFuncBindData>();
+    }
+};
+
 struct KUZU_API CallFunction {
     static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input);
     static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(TableFunctionInitInput& input,

@@ -3,7 +3,7 @@ package com.kuzudb;
 /**
  * PreparedStatement is a parameterized query which can avoid planning the same query for repeated execution.
  */
-public class PreparedStatement {
+public class PreparedStatement implements AutoCloseable {
     long ps_ref;
     boolean destroyed = false;
 
@@ -17,11 +17,11 @@ public class PreparedStatement {
     }
 
     /**
-    * Finalize.
+    * Close the prepared statement and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
     */
     @Override
-    protected void finalize() throws ObjectRefDestroyedException {
+    public void close() throws ObjectRefDestroyedException {
         destroy();
     }
 
@@ -29,7 +29,7 @@ public class PreparedStatement {
      * Destroy the prepared statement.
      * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
      */
-    public void destroy() throws ObjectRefDestroyedException {
+    private void destroy() throws ObjectRefDestroyedException {
         checkNotDestroyed();
         Native.kuzu_prepared_statement_destroy(this);
         destroyed = true;

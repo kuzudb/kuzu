@@ -27,8 +27,8 @@ public class TestBase {
     @AfterAll
     static void destroyDBandConn() throws ObjectRefDestroyedException {
         try {
-            db.destroy();
-            conn.destroy();
+            db.close();
+            conn.close();
         } catch (AssertionError e) {
             fail("destroyDBandConn failed: ");
         }

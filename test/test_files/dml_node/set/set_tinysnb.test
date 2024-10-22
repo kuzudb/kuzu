@@ -427,7 +427,3 @@ ABFsUni|
 ---- ok
 -STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 RETURN p.age
 ---- 4
-
-
-
-

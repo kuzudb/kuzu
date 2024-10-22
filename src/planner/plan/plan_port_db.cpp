@@ -41,16 +41,13 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
         auto path = filePath + "/" + exportTableData.tableName + copyToSuffix;
         function::ExportFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
             boundExportDatabase.getExportOptions()};
-        auto printInfo = std::make_unique<OPPrintInfo>();
         auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc.bind(bindInput), exportFunc,
-            tablePlan->getLastOperator(), std::move(printInfo));
+            tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto exportDatabase =
         make_shared<LogicalExportDatabase>(boundExportDatabase.getBoundFileInfo()->copy(),
-            statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators),
-            std::move(printInfo));
+            statement.getStatementResult()->getSingleColumnExpr(), std::move(logicalOperators));
     plan->setLastOperator(std::move(exportDatabase));
     return plan;
 }
@@ -59,9 +56,8 @@ std::unique_ptr<LogicalPlan> Planner::planImportDatabase(const BoundStatement& s
     auto& boundImportDatabase = statement.constCast<BoundImportDatabase>();
     auto query = boundImportDatabase.getQuery();
     auto plan = std::make_unique<LogicalPlan>();
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto importDatabase = make_shared<LogicalImportDatabase>(query,
-        statement.getStatementResult()->getSingleColumnExpr(), std::move(printInfo));
+        statement.getStatementResult()->getSingleColumnExpr());
     plan->setLastOperator(std::move(importDatabase));
     return plan;
 }

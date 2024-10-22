@@ -15,8 +15,10 @@
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 
 using namespace kuzu::common;
@@ -103,9 +105,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         properties_ = ExpressionUtil::removeDuplication(properties_);
     }
     // Append extend
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, extendFromSource,
-        properties_, plan.getLastOperator(), std::move(printInfo));
+        properties_, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
     plan.setCost(CostModel::computeExtendCost(plan));
@@ -145,8 +146,9 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     auto functionSet = VarLenJoinsFunction::getFunctionSet();
     KU_ASSERT(functionSet.size() == 1);
     auto gdsFunction = functionSet[0]->constPtrCast<GDSFunction>()->copy();
+    auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
     auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, recursiveInfo->lowerBound,
-        recursiveInfo->upperBound, direction);
+        recursiveInfo->upperBound, semantic, direction);
     bindData->extendFromSource = *boundNode == *rel->getSrcNode();
     if (direction == common::ExtendDirection::BOTH) {
         bindData->directionExpr = recursiveInfo->pathEdgeDirectionsExpr;
@@ -161,6 +163,11 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     auto probePlan = LogicalPlan();
     auto gdsCall = getGDSCall(gdsInfo);
     gdsCall->computeFactorizedSchema();
+    if (recursiveInfo->nodePredicate != nullptr) {
+        auto p = LogicalPlan();
+        createPathNodeFilterPlan(recursiveInfo->node, recursiveInfo->originalNodePredicate, p);
+        gdsCall->ptrCast<LogicalGDSCall>()->setNodePredicateRoot(p.getLastOperator());
+    }
     probePlan.setLastOperator(std::move(gdsCall));
     // Scan path node property pipeline
     std::shared_ptr<LogicalOperator> pathNodePropertyScanRoot = nullptr;
@@ -183,9 +190,9 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         pathRelPropertyScanRoot = pathRelPropertyScanPlan->getLastOperator();
     }
     // Construct path by probing scanned properties
-    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel,
-        probePlan.getLastOperator(), pathNodePropertyScanRoot, pathRelPropertyScanRoot,
-        RecursiveJoinType::TRACK_PATH, std::make_unique<OPPrintInfo>());
+    auto pathPropertyProbe =
+        std::make_shared<LogicalPathPropertyProbe>(rel, probePlan.getLastOperator(),
+            pathNodePropertyScanRoot, pathRelPropertyScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->direction = direction;
     pathPropertyProbe->extendFromSource_ = *boundNode == *rel->getSrcNode();
     pathPropertyProbe->pathNodeIDs = recursiveInfo->pathNodeIDsExpr;
@@ -212,10 +219,9 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
         appendNodeLabelFilter(boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(),
             plan);
     }
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         extendFromSource, RecursiveJoinType::TRACK_PATH, plan.getLastOperator(),
-        recursivePlan->getLastOperator(), printInfo->copy());
+        recursivePlan->getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
@@ -243,7 +249,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     }
     // Create path property probe
     auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, extend, nodeScanRoot,
-        relScanRoot, RecursiveJoinType::TRACK_PATH, printInfo->copy());
+        relScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->computeFactorizedSchema();
     // Check for sip
     auto ratio = plan.getCardinality() / relScanCardinality;
@@ -306,6 +312,20 @@ void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDire
     }
 }
 
+void Planner::createPathNodeFilterPlan(const std::shared_ptr<NodeExpression>& node,
+    std::shared_ptr<Expression> nodePredicate, LogicalPlan& plan) {
+    auto collector = PropertyExprCollector();
+    collector.visit(nodePredicate);
+    auto properties = ExpressionUtil::removeDuplication(collector.getPropertyExprs());
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), properties, plan);
+    appendFilter(nodePredicate, plan);
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE,
+        SemiMaskTargetType::GDS_PATH_NODE, node->getInternalID(), node->getTableIDs(),
+        plan.getLastOperator());
+    semiMasker->computeFlatSchema();
+    plan.setLastOperator(semiMasker);
+}
+
 void Planner::createPathNodePropertyScanPlan(const std::shared_ptr<NodeExpression>& node,
     const expression_vector& properties, LogicalPlan& plan) {
     appendScanNodeTable(node->getInternalID(), node->getTableIDs(), properties, plan);
@@ -323,9 +343,8 @@ void Planner::createPathRelPropertyScanPlan(const std::shared_ptr<NodeExpression
 
 void Planner::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
     std::unordered_set<table_id_t> tableIDSet, LogicalPlan& plan) {
-    auto printInfo = std::make_unique<OPPrintInfo>();
     auto filter = std::make_shared<LogicalNodeLabelFilter>(std::move(nodeID), std::move(tableIDSet),
-        plan.getLastOperator(), std::move(printInfo));
+        plan.getLastOperator());
     filter->computeFactorizedSchema();
     plan.setLastOperator(std::move(filter));
 }

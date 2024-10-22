@@ -14,6 +14,8 @@ grammar Cypher;
     virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 }
 
+ACYCLIC : ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'Y' | 'y' ) ( 'C' | 'c' ) ( 'L' | 'l' ) ( 'I' | 'i' ) ( 'C' | 'c' ) ;
+
 ANY : ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'Y' | 'y' ) ;
 
 ADD : ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
@@ -198,6 +200,8 @@ THEN : ( 'T' | 't' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ;
 
 TO : ( 'T' | 't' ) ( 'O' | 'o' ) ;
 
+TRAIL : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ;
+
 TRANSACTION : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 
 TRUE : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
@@ -294,7 +298,8 @@ kU_UseDatabase
     : USE SP oC_SchemaName;
 
 kU_StandaloneCall
-    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression;
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Expression
+        | CALL SP oC_FunctionInvocation;
 
 kU_CommentOn
     : COMMENT SP ON SP TABLE SP oC_SchemaName SP IS SP StringLiteral ;
@@ -464,7 +469,6 @@ oC_SingleQuery
 oC_SinglePartQuery
     : ( oC_ReadingClause SP? )* oC_Return
         | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
-        | ( oC_ReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
         ;
 
 oC_MultiPartQuery
@@ -621,7 +625,7 @@ oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
 oC_RangeLiteral
-    :  '*' SP? ( SHORTEST | ALL SP SHORTEST )? SP? (oC_LowerBound? SP? '..' SP? oC_UpperBound? | oC_IntegerLiteral)? (SP? kU_RecursiveRelationshipComprehension)? ;
+    :  '*' SP? ( SHORTEST | ALL SP SHORTEST | TRAIL | ACYCLIC )? SP? (oC_LowerBound? SP? '..' SP? oC_UpperBound? | oC_IntegerLiteral)? (SP? kU_RecursiveRelationshipComprehension)? ;
 
 kU_RecursiveRelationshipComprehension
     : '(' SP? oC_Variable SP? ',' SP? oC_Variable ( SP? '|' SP? oC_Where SP? )? ( SP? '|' SP? kU_IntermediateRelProjectionItems SP? ',' SP? kU_IntermediateNodeProjectionItems SP? )? ')' ;

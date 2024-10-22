@@ -8,9 +8,7 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendDelete(const std::vector<BoundDeleteInfo>& infos, LogicalPlan& plan) {
-    auto printInfo = std::make_unique<OPPrintInfo>();
-    auto delete_ = std::make_shared<LogicalDelete>(copyVector(infos), plan.getLastOperator(),
-        std::move(printInfo));
+    auto delete_ = std::make_shared<LogicalDelete>(copyVector(infos), plan.getLastOperator());
     appendFlattens(delete_->getGroupsPosToFlatten(), plan);
     delete_->setChild(0, plan.getLastOperator());
     delete_->computeFactorizedSchema();

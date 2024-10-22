@@ -110,6 +110,8 @@ Binder exception: Table movies does not exist.
 Binder exception: Table knows does not exist.
 
 -CASE AddNodeProperty
+-STATEMENT CALL enable_zone_map=true;
+---- ok
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
 ---- ok
 -STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/lsqb-sf01/Comment.csv' (HEADER=true);
@@ -119,9 +121,15 @@ Binder exception: Table knows does not exist.
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
 ---- 1
 
+-STATEMENT MATCH (c:Comment) WHERE c.propx <> 1 RETURN COUNT(*);
+---- 1
+0
 -STATEMENT alter table Comment add propy int64 default 1;
 ---- ok
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propy);
+---- 1
+215488
+-STATEMENT MATCH (c:Comment) WHERE c.propy = 1 RETURN COUNT(*);
 ---- 1
 215488
 -STATEMENT create (c:Comment {id: 12345});

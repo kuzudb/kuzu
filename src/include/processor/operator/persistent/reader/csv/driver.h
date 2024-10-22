@@ -24,6 +24,7 @@ enum class DriverType {
     SERIAL,
     SNIFF_CSV_DIALECT,
     SNIFF_CSV_NAME_AND_TYPE,
+    SNIFF_CSV_HEADER,
     HEADER,
     SKIP_ROW
 };
@@ -126,13 +127,32 @@ public:
     SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
         const function::ScanTableFuncBindInput* bindInput);
 
-    bool done(uint64_t rowNum) const;
+    bool done(uint64_t rowNum);
+    bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;
+
+public:
+    std::vector<std::string_view> firstRow;
+    std::vector<std::pair<std::string, common::LogicalType>> columns;
+    std::vector<bool> sniffType;
+    // if the type isn't declared in the header, sniff it
+};
+
+class SniffCSVHeaderDriver : public SerialParsingDriver {
+public:
+    SniffCSVHeaderDriver(SerialCSVReader* reader, const function::ScanTableFuncBindInput* bindInput,
+        const std::vector<std::pair<std::string, common::LogicalType>>& TypeDetected);
+
+    bool done(uint64_t rowNum) const {
+        // Only read the first line.
+        return (0 < rowNum);
+    };
+
     bool addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value) override;
 
 public:
     std::vector<std::pair<std::string, common::LogicalType>> columns;
-    std::vector<bool> sniffType;
-    // if the type isn't declared in the header, sniff it
+    std::vector<std::pair<std::string, common::LogicalType>> header;
+    bool detectedHeader = false;
 };
 
 } // namespace processor

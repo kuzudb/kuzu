@@ -173,31 +173,28 @@ private:
 
 class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
-    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, uint16_t lowerBound,
-        uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection)
-        : PathsOutputWriter(context, rjOutputs, lowerBound, upperBound, extendFromSource,
-              writeEdgeDirection) {}
+    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        PathsOutputWriterInfo info)
+        : PathsOutputWriter{context, rjOutputs, info} {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
-        auto firstIterParentAndNextPtr =
-            pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-                std::memory_order_relaxed);
+        auto firstParent = pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
+            std::memory_order_relaxed);
         // For variable lengths joins, we skip a destination node d in the following conditions:
         //    (i) if no path has reached d from the source, except when the lower bound is 0.
         //    (ii) the longest path that has reached d, which is stored in the iter value of the
-        //    firstIterParentAndNextPtr is smaller than the lower bound.
+        //    firstParent is smaller than the lower bound.
         // We also do not output any results if a destination node has not been reached.
-        if (nullptr == firstIterParentAndNextPtr) {
-            return lowerBound > 0;
+        if (nullptr == firstParent) {
+            return info.lowerBound > 0;
         } else {
-            return firstIterParentAndNextPtr->getIter() < lowerBound;
+            return firstParent->getIter() < info.lowerBound;
         }
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, lowerBound, upperBound,
-            extendFromSource, writeEdgeDirection);
+        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, info);
     }
 };
 
@@ -376,9 +373,10 @@ private:
             std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
                 sourceNodeID, clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
+        auto writerInfo = rjBindData->getPathWriterInfo();
+        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->upperBound, rjBindData->extendFromSource, writeDirection);
+            std::move(writerInfo));
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -450,7 +448,7 @@ public:
         auto extendDirection = ExtendDirectionUtil::fromString(
             ExpressionUtil::getLiteralValue<std::string>(*params[4]));
         bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
-            extendDirection);
+            PathSemantic::WALK, extendDirection);
     }
 
     binder::expression_vector getResultColumns(Binder* binder) const override {
@@ -472,10 +470,10 @@ private:
         auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
         auto output = std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        bool writeDirection = rjBindData->extendDirection == ExtendDirection::BOTH;
+        auto writerInfo = rjBindData->getPathWriterInfo();
+        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
-            rjBindData->lowerBound, rjBindData->upperBound, rjBindData->extendFromSource,
-            writeDirection);
+            std::move(writerInfo));
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
             clientContext->getMaxNumThreadForExec(), mm);
         auto edgeCompute =

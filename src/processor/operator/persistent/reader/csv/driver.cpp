@@ -181,9 +181,19 @@ SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
     }
 }
 
-bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) const {
+bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) {
     auto& csvOption = reader->getCSVOption();
-    return (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+    bool finished = (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
+    // if the csv only has one row
+    if (finished && rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader) {
+        for (auto columnIdx = 0u; columnIdx < firstRow.size(); ++columnIdx) {
+            std::string columnName = std::string(firstRow[columnIdx]);
+            LogicalType columnType = function::inferMinimalTypeFromString(firstRow[columnIdx]);
+            columns[columnIdx].first = columnName;
+            columns[columnIdx].second = std::move(columnType);
+        }
+    }
+    return finished;
 }
 
 bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t columnIdx,
@@ -226,7 +236,8 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         }
         columns[columnIdx].first = columnName;
         columns[columnIdx].second = std::move(columnType);
-    } else if (sniffType[columnIdx]) {
+    } else if (sniffType[columnIdx] &&
+               (rowNum != 0 || !csvOption.autoDetection || csvOption.setHeader)) {
         // reading the body
         LogicalType combinedType;
         columns[columnIdx].second = LogicalTypeUtils::combineTypes(columns[columnIdx].second,
@@ -234,6 +245,57 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
         if (columns[columnIdx].second.getLogicalTypeID() == LogicalTypeID::STRING) {
             sniffType[columnIdx] = false;
         }
+    } else if (sniffType[columnIdx] &&
+               (rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader)) {
+        // store the first line for later use
+        firstRow.push_back(value);
+    }
+
+    return true;
+}
+
+SniffCSVHeaderDriver::SniffCSVHeaderDriver(SerialCSVReader* reader,
+    const function::ScanTableFuncBindInput* /*bindInput*/,
+    const std::vector<std::pair<std::string, common::LogicalType>>& typeDetected)
+    : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_HEADER) {
+    for (auto i = 0u; i < typeDetected.size(); i++) {
+        columns.push_back({typeDetected[i].first, typeDetected[i].second.copy()});
+    }
+}
+
+bool SniffCSVHeaderDriver::addValue(uint64_t /*rowNum*/, common::column_id_t columnIdx,
+    std::string_view value) {
+    uint64_t length = value.length();
+    if (length == 0 && columnIdx == 0) {
+        rowEmpty = true;
+    } else {
+        rowEmpty = false;
+    }
+    if (columnIdx == reader->getNumColumns() && length == 0) {
+        // skip a single trailing delimiter in last columnIdx
+        return true;
+    }
+
+    // reading the header
+    LogicalType columnType(LogicalTypeID::ANY);
+
+    columnType = function::inferMinimalTypeFromString(value);
+
+    // Store the value to Header vector for potential later use.
+    header.push_back({std::string(value), columnType.copy()});
+
+    // If we already determined has a header, just skip
+    if (detectedHeader) {
+        return true;
+    }
+
+    // If any of the column in the first row cannot be casted to its expected type, we have a
+    // header.
+    if (columnType.getLogicalTypeID() == LogicalTypeID::STRING &&
+        columnType.getLogicalTypeID() != columns[columnIdx].second.getLogicalTypeID() &&
+        LogicalTypeID::BLOB != columns[columnIdx].second.getLogicalTypeID() &&
+        LogicalTypeID::UNION != columns[columnIdx].second.getLogicalTypeID()) {
+        detectedHeader = true;
     }
 
     return true;

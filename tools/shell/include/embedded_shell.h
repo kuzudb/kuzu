@@ -53,6 +53,8 @@ private:
 
     void updateTableNames();
 
+    void updateFunctionNames();
+
     void setMaxRows(const std::string& maxRowsString);
 
     void setMaxWidth(const std::string& maxWidthString);
@@ -66,6 +68,8 @@ private:
     void setHighlighting(const std::string& highlightingString);
 
     void setErrors(const std::string& errorsString);
+
+    void setComplete(const std::string& completeString);
 
 private:
     std::shared_ptr<Database> database;

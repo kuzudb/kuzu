@@ -59,29 +59,31 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
 ChunkedCSRHeader::ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression,
     uint64_t capacity, ResidencyState residencyState) {
     offset = std::make_unique<ColumnChunk>(memoryManager, LogicalType::UINT64(), capacity,
-        enableCompression, residencyState);
+        enableCompression, residencyState, false);
     length = std::make_unique<ColumnChunk>(memoryManager, LogicalType::UINT64(), capacity,
-        enableCompression, residencyState);
+        enableCompression, residencyState, false);
 }
 
 offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
     // TODO(Guodong): I think we can simplify the check here by getting rid of some of the
     // conditions.
-    if (nodeOffset == 0 || offset->getNumValues() == 0) {
+    auto numValues = offset->getNumValues();
+    if (nodeOffset == 0 || numValues == 0) {
         return 0;
     }
     return offset->getData().getValue<offset_t>(
-        nodeOffset >= offset->getNumValues() ? (offset->getNumValues() - 1) : nodeOffset - 1);
+        nodeOffset >= numValues ? (numValues - 1) : nodeOffset - 1);
 }
 
 offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
     // TODO(Guodong): I think we can simplify the check here by getting rid of some of the
     // conditions.
-    if (offset->getNumValues() == 0) {
+    auto numValues = offset->getNumValues();
+    if (numValues == 0) {
         return 0;
     }
     return offset->getData().getValue<offset_t>(
-        nodeOffset >= offset->getNumValues() ? (offset->getNumValues() - 1) : nodeOffset);
+        nodeOffset >= numValues ? (numValues - 1) : nodeOffset);
 }
 
 length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
