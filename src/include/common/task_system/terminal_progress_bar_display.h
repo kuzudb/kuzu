@@ -26,7 +26,7 @@ private:
 
 private:
     bool printing = false;
-    std::atomic<bool> terminalBusy;
+    std::atomic<bool> currentlyPrintingProgress;
 };
 
 } // namespace common

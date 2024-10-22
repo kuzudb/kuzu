@@ -5,13 +5,12 @@ namespace common {
 
 void TerminalProgressBarDisplay::updateProgress(uint64_t /*queryID*/, double newPipelineProgress,
     uint32_t newNumPipelinesFinished) {
-    /*
-     * There can still be data races as the comparison + update of cur/old progress is not done
-     * atomically
-     * However this error does not build up over time and we don't require perfect progress bar
-     * accuracy
-     * So we implement it this way with atomics (instead of mutexes) for better performance
-     */
+
+    // There can still be data races as the comparison + update of cur/old progress is not done
+    // atomically
+    // However this error does not build up over time and we don't require perfect progress bar
+    // accuracy
+    // So we implement it this way with atomics (instead of mutexes) for better performance
     uint32_t curPipelineProgress = (uint32_t)(newPipelineProgress * 100.0);
     uint32_t oldPipelineProgress = (uint32_t)(pipelineProgress * 100.0);
     if (curPipelineProgress > oldPipelineProgress ||
@@ -34,8 +33,10 @@ void TerminalProgressBarDisplay::finishProgress(uint64_t /*queryID*/) {
 }
 
 void TerminalProgressBarDisplay::printProgressBar() {
+    // If a different thread is already printing the progress skip the current update
+    // As we do not require the displayed value to be perfectly up to date
     bool falseValue{false};
-    if (terminalBusy.compare_exchange_strong(falseValue, true)) {
+    if (currentlyPrintingProgress.compare_exchange_strong(falseValue, true)) {
         setGreenFont();
         if (printing) {
             if (pipelineProgress == 0) {
@@ -54,7 +55,7 @@ void TerminalProgressBarDisplay::printProgressBar() {
                   << "\n";
         setDefaultFont();
         std::cout.flush();
-        terminalBusy.store(false);
+        currentlyPrintingProgress.store(false);
     }
 }
 

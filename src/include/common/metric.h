@@ -30,6 +30,7 @@ public:
     double getElapsedTimeMS() const;
 
 public:
+    double accumulatedTime;
     bool isStarted;
     Timer timer;
 };

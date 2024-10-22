@@ -5,11 +5,10 @@
 namespace kuzu {
 namespace common {
 
-ProgressBar::ProgressBar() {
+ProgressBar::ProgressBar() : queryTimer() {
     display = DefaultProgressBarDisplay();
     numPipelines = 0;
     numPipelinesFinished = 0;
-    queryTimer = std::make_unique<TimeMetric>(true);
     showProgressAfter = 1000;
     trackProgress = false;
 }
@@ -27,7 +26,7 @@ void ProgressBar::startProgress(uint64_t queryID) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
-    queryTimer->start();
+    queryTimer.start();
     updateDisplay(queryID, 0.0);
 }
 
@@ -62,14 +61,12 @@ void ProgressBar::updateProgress(uint64_t queryID, double curPipelineProgress) {
 void ProgressBar::resetProgressBar(uint64_t queryID) {
     numPipelines = 0;
     numPipelinesFinished = 0;
-    if (queryTimer->isStarted) {
-        queryTimer->stop();
-    }
+    queryTimer = Timer{};
     display->finishProgress(queryID);
 }
 
 bool ProgressBar::shouldUpdateProgress() const {
-    return queryTimer->getElapsedTimeMS() > showProgressAfter;
+    return queryTimer.getElapsedTimeInMS() > showProgressAfter;
 }
 
 void ProgressBar::updateDisplay(uint64_t queryID, double curPipelineProgress) {

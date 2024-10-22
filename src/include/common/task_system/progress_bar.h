@@ -3,7 +3,7 @@
 #include <memory>
 #include <mutex>
 
-#include "common/metric.h"
+#include "common/timer.h"
 #include "progress_bar_display.h"
 
 namespace kuzu {
@@ -17,7 +17,7 @@ typedef std::unique_ptr<ProgressBarDisplay> (*progress_bar_display_create_func_t
  */
 class ProgressBar {
 public:
-    explicit ProgressBar();
+    ProgressBar();
 
     static std::shared_ptr<ProgressBarDisplay> DefaultProgressBarDisplay();
 
@@ -53,7 +53,7 @@ private:
     uint32_t numPipelinesFinished;
     std::mutex progressBarLock;
     bool trackProgress;
-    std::unique_ptr<TimeMetric> queryTimer;
+    Timer queryTimer;
     uint64_t showProgressAfter;
     std::shared_ptr<ProgressBarDisplay> display;
 };
