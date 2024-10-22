@@ -110,6 +110,9 @@ public:
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine();
 
+    // binder
+    binder::Binder* getBinder() const;
+
     // Query.
     std::unique_ptr<PreparedStatement> prepare(std::string_view query);
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
@@ -194,6 +197,7 @@ private:
     // Warning information
     processor::WarningContext warningContext;
     std::mutex mtx;
+    std::unique_ptr<binder::Binder> binder;
 };
 
 } // namespace main
