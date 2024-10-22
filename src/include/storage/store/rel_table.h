@@ -36,14 +36,15 @@ struct RelTableScanState : TableScanState {
     }
 
     RelTableScanState(MemoryManager& mm, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
-        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction)
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<const Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
+        common::RelDataDirection direction)
         : RelTableScanState(mm, tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
               std::vector<ColumnPredicateSet>{}) {}
     RelTableScanState(MemoryManager& mm, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<Column*>& columns,
-        Column* csrOffsetCol, Column* csrLengthCol, common::RelDataDirection direction,
-        std::vector<ColumnPredicateSet> columnPredicateSets);
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<const Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
+        common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets);
 
     void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup) override;
 
@@ -134,7 +135,8 @@ public:
     common::table_id_t getFromNodeTableID() const { return fromNodeTableID; }
     common::table_id_t getToNodeTableID() const { return toNodeTableID; }
 
-    void initScanState(transaction::Transaction* transaction, TableScanState& scanState) override;
+    void initScanState(transaction::Transaction* transaction,
+        TableScanState& scanState) const override;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 

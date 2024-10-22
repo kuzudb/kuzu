@@ -28,7 +28,7 @@ idx_t PrimaryKeyScanSharedState::getTableIdx() {
 void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
     for (auto& nodeInfo : nodeInfos) {
-        std::vector<Column*> columns;
+        std::vector<const Column*> columns;
         columns.reserve(nodeInfo.columnIDs.size());
         for (const auto columnID : nodeInfo.columnIDs) {
             if (columnID == INVALID_COLUMN_ID) {

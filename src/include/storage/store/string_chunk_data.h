@@ -29,7 +29,7 @@ public:
     ColumnChunkData* getIndexColumnChunk();
     const ColumnChunkData* getIndexColumnChunk() const;
 
-    void initializeScanState(ChunkState& state, Column* column) const override;
+    void initializeScanState(ChunkState& state, const Column* column) const override;
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,

@@ -35,7 +35,7 @@ static std::unique_ptr<RelTableScanState> getRelScanState(MemoryManager& mm,
     for (auto property : properties) {
         columnIDs.push_back(property->constCast<PropertyExpression>().getColumnID(relEntry));
     }
-    auto columns = std::vector<Column*>{};
+    auto columns = std::vector<const Column*>{};
     for (const auto columnID : columnIDs) {
         columns.push_back(table.getColumn(columnID, direction));
     }

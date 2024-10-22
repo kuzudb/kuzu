@@ -131,7 +131,7 @@ Column* Column::getNullColumn() const {
     return nullColumn.get();
 }
 
-void Column::populateExtraChunkState(ChunkState& state) {
+void Column::populateExtraChunkState(ChunkState& state) const {
     if (state.metadata.compMeta.compression == CompressionType::ALP) {
         Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
         if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
@@ -188,7 +188,7 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHand
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInChunk,
-    row_idx_t numValuesToScan, ValueVector* resultVector) {
+    row_idx_t numValuesToScan, ValueVector* resultVector) const {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
         nullColumn->scan(transaction, *state.nullState, startOffsetInChunk, numValuesToScan,
@@ -198,7 +198,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
-    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
+    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) const {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
         nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
@@ -209,7 +209,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunkData* columnChunk,
-    offset_t startOffset, offset_t endOffset) {
+    offset_t startOffset, offset_t endOffset) const {
     if (nullColumn) {
         nullColumn->scan(transaction, *state.nullState, columnChunk->getNullData(), startOffset,
             endOffset);
@@ -241,7 +241,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
 }
 
 void Column::scanInternal(Transaction* transaction, const ChunkState& state,
-    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) {
+    offset_t startOffsetInChunk, row_idx_t numValuesToScan, ValueVector* resultVector) const {
     if (resultVector->state->getSelVector().isUnfiltered()) {
         columnReadWriter->readCompressedValuesToVector(transaction, state, resultVector, 0,
             startOffsetInChunk, startOffsetInChunk + numValuesToScan, readToVectorFunc);
@@ -269,7 +269,7 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
 }
 
 void Column::lookupValue(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
-    ValueVector* resultVector, uint32_t posInVector) {
+    ValueVector* resultVector, uint32_t posInVector) const {
     if (nullColumn) {
         nullColumn->lookupValue(transaction, *state.nullState, nodeOffset, resultVector,
             posInVector);
@@ -281,7 +281,7 @@ void Column::lookupValue(Transaction* transaction, const ChunkState& state, offs
 }
 
 void Column::lookupInternal(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
-    ValueVector* resultVector, uint32_t posInVector) {
+    ValueVector* resultVector, uint32_t posInVector) const {
     columnReadWriter->readCompressedValueToVector(transaction, state, nodeOffset, resultVector,
         posInVector, readToVectorFunc);
 }

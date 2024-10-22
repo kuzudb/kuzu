@@ -21,7 +21,7 @@ namespace kuzu {
 namespace storage {
 
 RelTableScanState::RelTableScanState(MemoryManager& mm, table_id_t tableID,
-    const std::vector<column_id_t>& columnIDs, const std::vector<Column*>& columns,
+    const std::vector<column_id_t>& columnIDs, const std::vector<const Column*>& columns,
     Column* csrOffsetCol, Column* csrLengthCol, RelDataDirection direction,
     std::vector<ColumnPredicateSet> columnPredicateSets)
     : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
@@ -142,7 +142,7 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     return relTable;
 }
 
-void RelTable::initScanState(Transaction* transaction, TableScanState& scanState) {
+void RelTable::initScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& relScanState = scanState.cast<RelTableScanState>();
     // Note there we directly read node at pos 0 here regardless the selVector is filtered or not.
     // This is because we're assuming the nodeIDVector is always a sequence here.

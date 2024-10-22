@@ -49,7 +49,7 @@ bool CSRNodeGroupScanState::tryScanCachedTuples(RelTableScanState& tableScanStat
     return true;
 }
 
-void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) {
+void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) const {
     auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
@@ -112,7 +112,7 @@ void CSRNodeGroup::initScanForCommittedInMem(RelTableScanState& relScanState,
     nodeGroupScanState.inMemCSRList.clear();
 }
 
-NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) {
+NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) const {
     auto& relScanState = state.cast<RelTableScanState>();
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     while (true) {
@@ -217,7 +217,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWtihoutCache(
 }
 
 NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(Transaction* transaction,
-    RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
+    RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     while (true) {
         if (tableState.currBoundNodeIdx >= tableState.cachedBoundNodeSelVector.getSelSize()) {
             return NODE_GROUP_SCAN_EMMPTY_RESULT;
@@ -250,7 +250,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(Transaction* transaction,
 }
 
 NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction* transaction,
-    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
+    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     const auto startRow =
         nodeGroupScanState.inMemCSRList.rowIndices[0] + nodeGroupScanState.nextRowToScan;
     auto numRows =
@@ -273,7 +273,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
 }
 
 NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transaction,
-    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) {
+    const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     const auto numRows = std::min(nodeGroupScanState.inMemCSRList.rowIndices.size() -
                                       nodeGroupScanState.nextRowToScan,
         DEFAULT_VECTOR_CAPACITY);

@@ -302,7 +302,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void ColumnChunkData::initializeScanState(ChunkState& state, Column* column) const {
+void ColumnChunkData::initializeScanState(ChunkState& state, const Column* column) const {
     if (nullData) {
         KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState, column->getNullColumn());

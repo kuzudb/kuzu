@@ -34,7 +34,7 @@ ColumnChunk::ColumnChunk(MemoryManager& memoryManager, const LogicalType& dataTy
 ColumnChunk::ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data)
     : enableCompression{enableCompression}, data{std::move(data)} {}
 
-void ColumnChunk::initializeScanState(ChunkState& state, Column* column) const {
+void ColumnChunk::initializeScanState(ChunkState& state, const Column* column) const {
     data->initializeScanState(state, column);
 }
 

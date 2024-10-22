@@ -88,7 +88,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
         *memoryManager->getBufferManager(), shadowFile, vfs, context);
 }
 
-void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState) {
+void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& nodeScanState = scanState.cast<NodeTableScanState>();
     NodeGroup* nodeGroup = nullptr;
     switch (nodeScanState.source) {

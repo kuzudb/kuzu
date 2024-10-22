@@ -41,8 +41,8 @@ public:
     Column* getCSRLengthColumn() const { return csrHeaderColumns.length.get(); }
     common::column_id_t getNumColumns() const { return columns.size(); }
     Column* getColumn(common::column_id_t columnID) const { return columns[columnID].get(); }
-    std::vector<Column*> getColumns() const {
-        std::vector<Column*> columns;
+    std::vector<const Column*> getColumns() const {
+        std::vector<const Column*> columns;
         columns.reserve(this->columns.size());
         for (const auto& column : this->columns) {
             columns.push_back(column.get());

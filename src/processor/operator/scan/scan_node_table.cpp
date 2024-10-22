@@ -59,7 +59,7 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
 }
 
 void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
-    std::vector<Column*> columns;
+    std::vector<const Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
         if (columnID == INVALID_COLUMN_ID) {
