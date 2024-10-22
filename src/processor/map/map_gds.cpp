@@ -21,8 +21,8 @@ static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(
     auto map = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : tableIDs) {
         auto nodeTable = storageManager->getTable(tableID)->ptrCast<NodeTable>();
-        map->addMask(tableID,
-            std::make_unique<NodeOffsetLevelSemiMask>(tableID, nodeTable->getNumRows()));
+        map->addMask(tableID, RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
+                                  nodeTable->getNumRows()));
     }
     return map;
 }
@@ -43,7 +43,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto graph = std::make_unique<OnDiskGraph>(clientContext, call.getInfo().graphEntry);
     auto storageManager = clientContext->getStorageManager();
     auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph));
-    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
     if (call.getInfo().getBindData()->hasNodeInput()) {
         // Generate an empty semi mask which later on picked by SemiMaker.
         auto& node =

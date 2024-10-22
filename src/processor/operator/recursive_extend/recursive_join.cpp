@@ -11,12 +11,12 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::vector<NodeSemiMask*> RecursiveJoin::getSemiMask() const {
-    std::vector<NodeSemiMask*> result;
+std::vector<RoaringBitmapSemiMask*> RecursiveJoin::getSemiMask() const {
+    std::vector<RoaringBitmapSemiMask*> maskVector;
     for (auto& mask : sharedState->semiMasks) {
-        result.push_back(mask.get());
+        maskVector.push_back(mask.get());
     }
-    return result;
+    return maskVector;
 }
 
 void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
