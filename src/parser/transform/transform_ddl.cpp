@@ -109,6 +109,33 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
+std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
+    CypherParser::KU_CreateRelTableGroupContext& ctx) {
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    std::vector<std::pair<std::string, std::string>> propertyDefinitions;
+
+    std::string relMultiplicity = "MANY_MANY";
+    if (ctx.oC_SymbolicName()) {
+        relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
+    }
+    std::vector<std::pair<std::string, std::string>> srcDstTablePairs;
+    for (auto& connection : ctx.kU_RelTableConnection()) {
+        auto srcTableName = transformSchemaName(*connection->oC_SchemaName(0));
+        auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
+        srcDstTablePairs.emplace_back(srcTableName, dstTableName);
+    }
+    auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName,
+        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                               common::ConflictAction::ON_CONFLICT_THROW);
+    if (ctx.kU_PropertyDefinitions()) {
+        createTableInfo.propertyDefinitions =
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+    }
+    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
+        std::move(srcDstTablePairs));
+    return std::make_unique<CreateTable>(std::move(createTableInfo));
+}
+
 std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
     CypherParser::KU_CreateRdfGraphContext& ctx) {
     auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());

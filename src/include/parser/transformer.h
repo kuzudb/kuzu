@@ -201,6 +201,7 @@ private:
     std::unique_ptr<Statement> transformCreateNodeTable(
         CypherParser::KU_CreateNodeTableContext& ctx);
     std::unique_ptr<Statement> transformCreateRelTable(CypherParser::KU_CreateRelTableContext& ctx);
+    std::unique_ptr<Statement> transformCreateRelTableGroup(CypherParser::KU_CreateRelTableGroupContext& ctx);
     std::unique_ptr<Statement> transformCreateRdfGraphClause(
         CypherParser::KU_CreateRdfGraphContext& ctx);
     std::unique_ptr<Statement> transformCreateSequence(CypherParser::KU_CreateSequenceContext& ctx);

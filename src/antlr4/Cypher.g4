@@ -9,6 +9,7 @@ oC_Statement
     : oC_Query
         | kU_CreateNodeTable
         | kU_CreateRelTable
+        | kU_CreateRelTableGroup
         | kU_CreateRdfGraph
         | kU_CreateSequence
         | kU_CreateType
@@ -104,7 +105,10 @@ kU_CreateRelTable
       ( ',' SP? oC_SymbolicName SP? )? 
       ')'
     ;
-
+    
+kU_CreateRelTableGroup
+    : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    
 kU_RelTableConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
