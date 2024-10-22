@@ -33,7 +33,7 @@ public:
         const common::ValueVector& relIDVector) const;
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
-    void checkIfNodeHasRels(transaction::Transaction* transaction,
+    bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::ValueVector* srcNodeIDVector) const;
 
     Column* getNbrIDColumn() const { return columns[NBR_ID_COLUMN_ID].get(); }
@@ -65,6 +65,8 @@ public:
         }
         return numRows;
     }
+
+    common::RelMultiplicity getMultiplicity() const { return multiplicity; }
 
     TableStats getStats() const { return nodeGroups->getStats(); }
 

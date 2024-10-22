@@ -1,6 +1,8 @@
 #include "storage/store/rel_table.h"
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
@@ -166,7 +168,31 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
     return scanState.scanNext(transaction);
 }
 
+static void throwRelMultiplicityConstraintError(const std::string& tableName, offset_t nodeOffset,
+    RelDataDirection direction) {
+    throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
+        std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
+}
+
+void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
+    const TableInsertState& state) const {
+    const auto& insertState = state.constCast<RelTableInsertState>();
+    KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
+              insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
+
+    if (fwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
+        throwIfNodeHasRels(transaction, common::RelDataDirection::FWD, &insertState.srcNodeIDVector,
+            throwRelMultiplicityConstraintError);
+    }
+    if (bwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
+        throwIfNodeHasRels(transaction, common::RelDataDirection::BWD, &insertState.dstNodeIDVector,
+            throwRelMultiplicityConstraintError);
+    }
+}
+
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    checkRelMultiplicityConstraint(transaction, insertState);
+
     KU_ASSERT(transaction->getLocalStorage());
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
@@ -284,16 +310,28 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     hasChanges = true;
 }
 
-void RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
+bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector) const {
+    bool hasRels = false;
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
     if (localTable) {
-        localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector);
+        hasRels = hasRels ||
+                  localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
     }
-    direction == RelDataDirection::FWD ?
-        fwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector) :
-        bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector);
+    hasRels = hasRels || ((direction == RelDataDirection::FWD) ?
+                                 fwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector) :
+                                 bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector));
+    return hasRels;
+}
+
+void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
+    ValueVector* srcNodeIDVector, const rel_multiplicity_constraint_throw_func_t& throwFunc) const {
+    const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
+    const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    if (checkIfNodeHasRels(transaction, direction, srcNodeIDVector)) {
+        throwFunc(tableName, nodeOffset, direction);
+    }
 }
 
 void RelTable::detachDeleteForCSRRels(Transaction* transaction, const RelTableData* tableData,

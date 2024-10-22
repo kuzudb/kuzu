@@ -121,6 +121,9 @@ struct RelTableDeleteState final : TableDeleteState {
 
 class RelTable final : public Table {
 public:
+    using rel_multiplicity_constraint_throw_func_t =
+        std::function<void(const std::string&, common::offset_t, common::RelDataDirection)>;
+
     RelTable(catalog::RelTableCatalogEntry* relTableEntry, const StorageManager* storageManager,
         MemoryManager* memoryManager, common::Deserializer* deSer = nullptr);
 
@@ -141,8 +144,11 @@ public:
 
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         RelTableDeleteState* deleteState);
-    void checkIfNodeHasRels(transaction::Transaction* transaction,
+    bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
+    void throwIfNodeHasRels(transaction::Transaction* transaction,
+        common::RelDataDirection direction, common::ValueVector* srcNodeIDVector,
+        const rel_multiplicity_constraint_throw_func_t& throwFunc) const;
 
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
@@ -198,6 +204,9 @@ private:
     void detachDeleteForCSRRels(transaction::Transaction* transaction,
         const RelTableData* tableData, const RelTableData* reverseTableData,
         RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
+
+    void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
+        const TableInsertState& state) const;
 
 private:
     common::table_id_t fromNodeTableID;
