@@ -135,7 +135,9 @@ double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     case QueryRelType::NON_RECURSIVE: {
         return oneHopExtensionRate;
     }
-    case QueryRelType::VARIABLE_LENGTH:
+    case QueryRelType::VARIABLE_LENGTH_WALK:
+    case QueryRelType::VARIABLE_LENGTH_TRAIL:
+    case QueryRelType::VARIABLE_LENGTH_ACYCLIC:
     case QueryRelType::SHORTEST:
     case QueryRelType::ALL_SHORTEST: {
         auto rate = std::min<double>(oneHopExtensionRate * rel.getUpperBound(), numRels);

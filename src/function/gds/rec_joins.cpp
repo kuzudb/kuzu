@@ -16,6 +16,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
+    auto info = PathsOutputWriterInfo();
+    info.semantic = semantic;
+    info.lowerBound = lowerBound;
+    info.extendFromSource = extendFromSource;
+    info.writeEdgeDirection = extendDirection == ExtendDirection::BOTH;
+    return info;
+}
+
 RJCompState::RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
     std::unique_ptr<RJOutputWriter> outputWriter)
@@ -104,7 +113,7 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     auto extendDirection =
         ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
-        extendDirection);
+        PathSemantic::WALK, extendDirection);
 }
 
 class RJOutputWriterVCSharedState {

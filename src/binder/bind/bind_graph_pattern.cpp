@@ -431,7 +431,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     if (emptyRecursivePattern) {
         relTableEntries.clear();
     }
-    auto queryRel = make_shared<RelExpression>(
+    auto queryRel = std::make_shared<RelExpression>(
         getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
         getUniqueExpressionName(parsedName), parsedName, relTableEntries, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
