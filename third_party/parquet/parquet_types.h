@@ -10,13 +10,13 @@
 #include <iosfwd>
 #include <vector>
 
-#include "thrift/Thrift.h"
-#include "thrift/TApplicationException.h"
-#include "thrift/TBase.h"
-#include "thrift/protocol/TProtocol.h"
-#include "thrift/transport/TTransport.h"
+#include "Thrift.h"
+#include "TApplicationException.h"
+#include "TBase.h"
+#include "protocol/TProtocol.h"
+#include "transport/TTransport.h"
 
-#include "thrift/stdcxx.h"
+#include "stdcxx.h"
 
 #include "windows_compatibility.h"
 

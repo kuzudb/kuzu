@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <ostream>
 
-#include "thrift/TToString.h"
+#include "TToString.h"
 
 namespace kuzu_parquet { namespace format {
 

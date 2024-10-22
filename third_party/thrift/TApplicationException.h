@@ -20,7 +20,7 @@
 #ifndef _KUZU_THRIFT_TAPPLICATIONEXCEPTION_H_
 #define _KUZU_THRIFT_TAPPLICATIONEXCEPTION_H_ 1
 
-#include "thrift/Thrift.h"
+#include "Thrift.h"
 
 namespace kuzu_apache {
 namespace thrift {

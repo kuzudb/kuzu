@@ -20,7 +20,7 @@
 #ifndef _KUZU_THRIFT_PROTOCOL_TCOMPACTPROTOCOL_H_
 #define _KUZU_THRIFT_PROTOCOL_TCOMPACTPROTOCOL_H_ 1
 
-#include "thrift/protocol/TVirtualProtocol.h"
+#include "protocol/TVirtualProtocol.h"
 
 #include <stack>
 #include <memory>
@@ -261,6 +261,6 @@ typedef TCompactProtocolFactoryT<TTransport> TCompactProtocolFactory;
 }
 } // kuzu_apache::thrift::protocol
 
-#include "thrift/protocol/TCompactProtocol.tcc"
+#include "protocol/TCompactProtocol.tcc"
 
 #endif

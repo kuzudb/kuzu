@@ -17,7 +17,7 @@
  * under the License.
  */
 
-#include "thrift/protocol/TProtocol.h"
+#include "protocol/TProtocol.h"
 
 namespace kuzu_apache {
 namespace thrift {

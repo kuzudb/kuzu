@@ -5,7 +5,7 @@
 
 #include "common/assert.h"
 #include "common/file_system/file_info.h"
-#include "thrift/transport/TVirtualTransport.h"
+#include "transport/TVirtualTransport.h"
 
 namespace kuzu {
 namespace processor {
