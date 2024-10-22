@@ -112,8 +112,8 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
     validateLowerUpperBound(lowerBound, upperBound);
     auto extendDirection =
         ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
-    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound, PathSemantic::WALK,
-        extendDirection);
+    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+        PathSemantic::WALK, extendDirection);
 }
 
 class RJOutputWriterVCSharedState {

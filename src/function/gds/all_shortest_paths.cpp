@@ -173,14 +173,14 @@ private:
 
 class VarLenPathsOutputWriter : public PathsOutputWriter {
 public:
-    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, PathsOutputWriterInfo info)
+    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        PathsOutputWriterInfo info)
         : PathsOutputWriter{context, rjOutputs, info} {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
-        auto firstParent =
-            pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-                std::memory_order_relaxed);
+        auto firstParent = pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
+            std::memory_order_relaxed);
         // For variable lengths joins, we skip a destination node d in the following conditions:
         //    (i) if no path has reached d from the source, except when the lower bound is 0.
         //    (ii) the longest path that has reached d, which is stored in the iter value of the
@@ -447,8 +447,8 @@ public:
         validateLowerUpperBound(lowerBound, upperBound);
         auto extendDirection = ExtendDirectionUtil::fromString(
             ExpressionUtil::getLiteralValue<std::string>(*params[4]));
-        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound, PathSemantic::WALK,
-            extendDirection);
+        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
+            PathSemantic::WALK, extendDirection);
     }
 
     binder::expression_vector getResultColumns(Binder* binder) const override {

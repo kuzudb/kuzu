@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include "path_semantic.h"
 
 namespace kuzu {

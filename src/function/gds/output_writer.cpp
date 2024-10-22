@@ -1,8 +1,8 @@
 #include "function/gds/output_writer.h"
 
+#include "common/types/internal_id_util.h"
 #include "function/gds/gds_frontier.h"
 #include "main/client_context.h"
-#include "common/types/internal_id_util.h"
 
 using namespace kuzu::common;
 

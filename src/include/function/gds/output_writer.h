@@ -1,10 +1,10 @@
 #pragma once
 
 #include "bfs_graph.h"
+#include "common/enums/path_semantic.h"
 #include "common/types/types.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "processor/result/factorized_table.h"
-#include "common/enums/path_semantic.h"
 
 namespace kuzu {
 namespace function {
@@ -111,9 +111,7 @@ struct PathsOutputWriterInfo {
     // Node predicate mask
     processor::NodeOffsetMaskMap* pathNodeMask = nullptr;
 
-    bool hasNodeMask() const {
-        return pathNodeMask != nullptr;
-    }
+    bool hasNodeMask() const { return pathNodeMask != nullptr; }
 };
 
 class PathsOutputWriter : public RJOutputWriter {
@@ -148,7 +146,8 @@ protected:
 
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
-    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs, PathsOutputWriterInfo info)
+    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        PathsOutputWriterInfo info)
         : PathsOutputWriter(context, rjOutputs, std::move(info)) {}
 
     bool skipWriting(common::nodeID_t dstNodeID) const override {

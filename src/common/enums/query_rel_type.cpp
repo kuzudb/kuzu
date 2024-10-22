@@ -1,4 +1,5 @@
 #include "common/enums/query_rel_type.h"
+
 #include "common/assert.h"
 
 namespace kuzu {
@@ -19,5 +20,5 @@ PathSemantic QueryRelTypeUtils::getPathSemantic(QueryRelType queryRelType) {
     }
 }
 
-}
-}
+} // namespace common
+} // namespace kuzu
