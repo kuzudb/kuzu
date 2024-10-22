@@ -36,9 +36,11 @@ RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutput
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    uint16_t lowerBound, uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection)
+    uint16_t lowerBound, uint16_t upperBound, bool extendFromSource, bool writeEdgeDirection,
+    processor::NodeOffsetMaskMap* mask)
     : RJOutputWriter(context, rjOutputs), lowerBound{lowerBound}, upperBound{upperBound},
-      extendFromSource{extendFromSource}, writeEdgeDirection{writeEdgeDirection} {
+      extendFromSource{extendFromSource}, writeEdgeDirection{writeEdgeDirection},
+      pathNodeMask{mask} {
     auto mm = context->getMemoryManager();
     if (writeEdgeDirection) {
         directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm, vectors);
@@ -82,30 +84,32 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         auto top = curPath[curPath.size() - 1];
         auto topNodeID = top->getNodeID();
         if (topNodeID == sourceNodeID) {
-            beginWritingNewPath(curPath.size());
-            if (extendFromSource) {
-                // Write path in reverse direction because we append ParentList from dst to src.
-                for (auto i = 1u; i < curPath.size(); i++) {
-                    auto p = curPath[curPath.size() - 1 - i];
-                    addNode(p->getNodeID(), i - 1);
-                    addEdge(p->getEdgeID(), p->isFwdEdge(), i);
+            // check path
+            if (checkPathNode(curPath)) {
+                beginWritingNewPath(curPath.size());
+                if (extendFromSource) {
+                    // Write path in reverse direction because we append ParentList from dst to src.
+                    for (auto i = 1u; i < curPath.size(); i++) {
+                        auto p = curPath[curPath.size() - 1 - i];
+                        addNode(p->getNodeID(), i - 1);
+                        addEdge(p->getEdgeID(), p->isFwdEdge(), i);
+                    }
+                    auto lastPathElement = curPath[curPath.size() - 1];
+                    addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(), 0);
+                } else {
+                    // Write path in original direction because computation started from dst node.
+                    // We want to present result in src->dst order.
+                    for (auto i = 0u; i < curPath.size() - 1; i++) {
+                        auto p = curPath[i];
+                        addNode(p->getNodeID(), i);
+                        addEdge(p->getEdgeID(), p->isFwdEdge(), i);
+                    }
+                    auto lastPathElement = curPath[curPath.size() - 1];
+                    addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(),
+                        curPath.size() - 1);
                 }
-                auto lastPathElement = curPath[curPath.size() - 1];
-                addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(), 0);
-            } else {
-                // Write path in original direction because computation started from dst node.
-                // We want to present result in src->dst order.
-                for (auto i = 0u; i < curPath.size() - 1; i++) {
-                    auto p = curPath[i];
-                    addNode(p->getNodeID(), i);
-                    addEdge(p->getEdgeID(), p->isFwdEdge(), i);
-                }
-                auto lastPathElement = curPath[curPath.size() - 1];
-                addEdge(lastPathElement->getEdgeID(), lastPathElement->isFwdEdge(),
-                    curPath.size() - 1);
+                fTable.append(vectors);
             }
-
-            fTable.append(vectors);
             backtracking = true;
         }
         if (backtracking) {
@@ -142,6 +146,19 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             backtracking = false;
         }
     }
+}
+
+bool PathsOutputWriter::checkPathNode(const std::vector<ParentList*>& path) const {
+    if (pathNodeMask == nullptr) {
+        return true;
+    }
+    // Path node predicate should only be applied to intermediate node. So we exclude dst node.
+    for (auto i = 0u; i < path.size() - 1; ++i) {
+        if (!pathNodeMask->valid(path[i]->getNodeID())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void PathsOutputWriter::beginWritingNewPath(uint64_t length) const {
