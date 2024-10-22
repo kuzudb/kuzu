@@ -3,7 +3,6 @@
 #include <memory>
 #include <mutex>
 
-#include "common/timer.h"
 #include "progress_bar_display.h"
 
 namespace kuzu {
@@ -31,8 +30,6 @@ public:
 
     void toggleProgressBarPrinting(bool enable);
 
-    void setShowProgressAfter(uint64_t showProgressAfter);
-
     void updateProgress(uint64_t queryID, double curPipelineProgress);
 
     void setDisplay(std::shared_ptr<ProgressBarDisplay> progressBarDipslay);
@@ -46,15 +43,11 @@ private:
 
     void updateDisplay(uint64_t queryID, double curPipelineProgress);
 
-    bool shouldUpdateProgress() const;
-
 private:
     uint32_t numPipelines;
     uint32_t numPipelinesFinished;
     std::mutex progressBarLock;
     bool trackProgress;
-    Timer queryTimer;
-    uint64_t showProgressAfter;
     std::shared_ptr<ProgressBarDisplay> display;
 };
 

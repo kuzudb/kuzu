@@ -275,7 +275,6 @@ describe("Close", function () {
 
 describe("Progress", function () {
     it("should execute a valid prepared statement with progress", async function () {
-        await conn.query("CALL progress_bar_time = 0");
         let progressCalled = false;
         const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
             progressCalled = true;
@@ -300,7 +299,6 @@ describe("Progress", function () {
     });
 
     it("should execute multiple valid prepared statements with progress", async function () {
-        await conn.query("CALL progress_bar_time = 0");
         let progressCalled = false;
         const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
             progressCalled = true;
@@ -365,7 +363,6 @@ describe("Progress", function () {
     });
 
     it("should execute a valid query with progress", async function () {
-        await conn.query("CALL progress_bar_time = 0");
         let progressCalled = false;
         const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
             progressCalled = true;
@@ -385,7 +382,6 @@ describe("Progress", function () {
     });
 
     it("should execute multiple valid querys with progress", async function () {
-        await conn.query("CALL progress_bar_time = 0");
         let progressCalled = false;
         const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
             progressCalled = true;
