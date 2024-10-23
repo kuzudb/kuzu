@@ -25,5 +25,3 @@ add_subdirectory(zstd)
 add_subdirectory(lz4)
 
 target_compile_definitions(parquet PUBLIC HAVE_STDINT_H)
-target_link_libraries(parquet PUBLIC snappy)
-target_link_libraries(parquet PUBLIC thrift)
