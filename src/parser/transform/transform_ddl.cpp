@@ -82,14 +82,14 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
         auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
         srcDstTablePairs.emplace_back(srcTableName, dstTableName);
     }
-    
+
     // Determine the table type based on the number of connections
     TableType tableType = srcDstTablePairs.size() > 1 ? TableType::REL_GROUP : TableType::REL;
 
     auto createTableInfo = CreateTableInfo(tableType, tableName,
         ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
                                common::ConflictAction::ON_CONFLICT_THROW);
-    
+
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
