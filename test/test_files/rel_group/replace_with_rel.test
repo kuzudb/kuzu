@@ -1,0 +1,38 @@
+-DATASET CSV rel-group
+
+--
+
+-CASE DMLCreateWithSRCandDEST
+
+-STATEMENT CREATE (a);
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+-STATEMENT CREATE (a {ID:1145})-[:likes]->(b {ID:1919});
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+-STATEMENT CREATE (a:personA {ID:1145})-[:likes]->(b {ID:1919});
+---- error
+Binder exception: Create node b with multiple node labels is not supported.
+-STATEMENT CREATE (a {ID:1145})-[:likes]->(b:personB {ID:1919});
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+-STATEMENT CREATE (a:personA {ID:1145})-[:likes]->(b:personB {ID:1919});
+---- ok
+-STATEMENT MATCH (a)-[e:likes]-(b) WHERE b.ID = 1919 RETURN a.ID,b.ID,label(a),label(b),label(e);
+---- 1
+1145|1919|personA|personB|likes_personA_personB
+
+-CASE COPYWithFROMTO
+
+-STATEMENT create rel table test (FROM personA TO personA, FROM personA To personB, date DATE);
+---- ok
+-STATEMENT COPY test FROM '/home/sterling/Desktop/kuzu/dataset/rel-group/edge.csv';
+---- error
+Binder exception: Need to speicify the SRC and DEST nodes for copying to a REL GROUP.
+-STATEMENT COPY test FROM '/home/sterling/Desktop/kuzu/dataset/rel-group/edge.csv' (from = 'personA', to = 'personB');
+---- ok
+-STATEMENT MATCH (a:personA)-[e:test]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+test_personA_personB|personB|2|Bob
+test_personA_personB|personB|3|Carol
+test_personA_personB|personB|5|Dan
