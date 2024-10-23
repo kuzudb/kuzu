@@ -99,6 +99,25 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
             return 1;
         } else {
+            // TODO(Guodong): Hack for now. We should only apply stats for equal predicate on single
+            // labeled node table.
+            if (predicate.getChild(0)->expressionType == ExpressionType::PROPERTY) {
+                auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
+                if (propertyExpr.isSingleLable()) {
+                    auto tableID = propertyExpr.getTableID();
+                    auto tableEntry =
+                        context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID);
+                    if (tableEntry->getTableType() == TableType::NODE) {
+                        auto columnID = propertyExpr.getColumnID(*tableEntry);
+                        auto stats = context->getStorageManager()
+                                         ->getTable(tableID)
+                                         ->cast<storage::NodeTable>()
+                                         .getStats(context->getTx());
+                        auto numDistinctValues = stats.getNumDistinctValues(columnID);
+                        return atLeastOne(childPlan.estCardinality / numDistinctValues);
+                    }
+                }
+            }
             return atLeastOne(
                 childPlan.estCardinality * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         }
