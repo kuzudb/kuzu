@@ -110,6 +110,7 @@ struct BinaryFunctionExecutor {
         if (left.isNull(lPos)) {
             result.setAllNull();
         } else if (right.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
             rightSelVector.forEach([&](auto i) {
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                     result, lPos, i, i, dataPtr);
@@ -134,6 +135,7 @@ struct BinaryFunctionExecutor {
         if (right.isNull(rPos)) {
             result.setAllNull();
         } else if (left.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
             leftSelVector.forEach([&](auto i) {
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                     result, i, rPos, i, dataPtr);
@@ -156,6 +158,7 @@ struct BinaryFunctionExecutor {
         KU_ASSERT(left.state == right.state);
         auto& resultSelVector = result.state->getSelVector();
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
             resultSelVector.forEach([&](auto i) {
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                     result, i, i, i, dataPtr);
