@@ -417,7 +417,7 @@ bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const
 bool NodeTable::isVisibleNoLock(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
-    return nodeGroup->isVisible(transaction, offsetInGroup);
+    return nodeGroup->isVisibleNoLock(transaction, offsetInGroup);
 }
 
 bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector, uint64_t vectorPos,
