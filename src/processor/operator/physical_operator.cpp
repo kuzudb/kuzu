@@ -128,6 +128,11 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         throw RuntimeException("Unknown physical operator type.");
     }
 }
+
+std::string PhysicalOperatorUtils::operatorToString(const PhysicalOperator* physicalOp) {
+    return PhysicalOperatorUtils::operatorTypeToString(physicalOp->getOperatorType()) + "[" +
+           std::to_string(physicalOp->getOperatorID()) + "]";
+}
 // LCOV_EXCL_STOP
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,

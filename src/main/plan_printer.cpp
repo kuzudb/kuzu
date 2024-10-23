@@ -403,7 +403,7 @@ std::ostringstream PlanPrinter::printPlanToOstream(const LogicalPlan* logicalPla
 }
 
 std::string PlanPrinter::getOperatorName(const PhysicalOperator* physicalOperator) {
-    return PhysicalOperatorUtils::operatorTypeToString(physicalOperator->getOperatorType());
+    return PhysicalOperatorUtils::operatorToString(physicalOperator);
 }
 
 std::string PlanPrinter::getOperatorParams(const PhysicalOperator* physicalOperator) {

@@ -31,8 +31,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getTargetOperators()) {
         const auto physicalOp = logicalOpToPhysicalOpMap.at(op);
-        operatorNames.push_back(
-            PhysicalOperatorUtils::operatorTypeToString(physicalOp->getOperatorType()));
+        operatorNames.push_back(PhysicalOperatorUtils::operatorToString(physicalOp));
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::SCAN_NODE);
