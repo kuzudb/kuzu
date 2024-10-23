@@ -23,5 +23,3 @@ add_subdirectory(serd)
 add_subdirectory(utf8proc)
 add_subdirectory(zstd)
 add_subdirectory(lz4)
-
-target_compile_definitions(parquet PUBLIC HAVE_STDINT_H)
