@@ -278,3 +278,37 @@
 (0:1)-{_LABEL: studyAt, _ID: 2:1, year: 2020, places: [anew,jsdnwusklklklwewsd], length: 55, level: 120, code: 6689, temperature: 1, ulength: 90, ulevel: 220, hugedata: -1844674407370955161511}->(1:0)
 (0:3)-{_LABEL: studyAt, _ID: 2:4611686018427387904, year: 2000, places: [], length: 4, level: 4, code: 9223372036854775807, temperature: 32799, ulength: 33767, ulevel: 249, hugedata: 1844674407370955161811111110}->(1:2)
 (0:5)-{_LABEL: studyAt, _ID: 2:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2, code: 23, temperature: 20, ulength: 180, ulevel: 12, hugedata: -15}->(1:0)
+
+-CASE issue3906
+-STATEMENT CREATE NODE TABLE L1 (k5 BOOLEAN, k6 STRING, k7 BOOLEAN, k8 INT64, k9 INT64, id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE L2 (k10 STRING, k11 BOOLEAN, k12 STRING, k13 STRING, k14 BOOLEAN, k15 INT64, id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE L3 (k16 INT64, k17 BOOLEAN, k18 BOOLEAN, k19 BOOLEAN, k20 INT64, id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE REL TABLE T3 (FROM L3 TO L1, k68 INT64, k69 INT64, k70 STRING, k71 BOOLEAN, k72 STRING, k73 INT64, k74 BOOLEAN, id INT64);
+---- ok
+-STATEMENT CREATE REL TABLE T4 (FROM L1 TO L2, k75 BOOLEAN, k76 INT64, k77 STRING, k78 INT64, k79 INT64, k80 INT64, k81 INT64, id INT64);
+---- ok
+-STATEMENT CREATE (n0 :L3{k17 : false, k16 : 8993382861735600205, k19 : true, k18 : true, k20 : 627801758695764003, id : 1});
+---- ok
+-STATEMENT CREATE (n0 :L1{k5 : true, k6 : "0sE0v", id : 3, k7 : true, k8 : 4583869781704786832, k9 : -2450552654359393402});
+---- ok
+-STATEMENT CREATE (n0 :L3{k17 : true, k16 : -6767407109008028552, k19 : true, k18 : true, k20 : 3222522150000917167, id : 7});
+---- ok
+-STATEMENT CREATE (n0 :L2{k11 : true, k10 : "hxS0uD", id : 8, k13 : "GW6VMHfM", k12 : "hSWWBpac0", k15 : -8129440654474488646, k14 : true});
+---- ok
+-STATEMENT MATCH (n0 {id : 3}), (n1 {id : 8}) CREATE(n0)-[r :T4{k80 : 1623934273299180333, k81 : 2691253309671402116, k75 : false, k77 : "OdcmX8O", k76 : 8922449714764930060, id : 12, k79 : 2358311490140127332, k78 : -8031617625991434006}]->(n1);
+---- ok
+-STATEMENT MATCH (n0 {id : 7}), (n1 {id : 3}) CREATE(n0)-[r :T3{k71 : false, k70 : "5vgOI", k72 : "yfz47n32", k74 : false, id : 14, k68 : 5436079733038307420, k69 : 7879073479750221767}]->(n1);
+---- ok
+-STATEMENT MATCH (n0)<-[r4]-(n1)-[r5]-(n2), (n3 :L3)-[r6]->(n4)-[r7]-(n5) RETURN DISTINCT r7.k80 , n0.id
+---- 4
+|3
+|8
+1623934273299180333|8
+1623934273299180333|3
+-STATEMENT MATCH (n0)<-[r4]-(n1)-[r5]-(n2), (n3 :L3)-[r6]->(n4)-[r7]-(n5) RETURN DISTINCT r7.k80 > n0.id
+---- 2
+
+True
