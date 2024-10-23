@@ -1,5 +1,6 @@
 #include "processor/processor.h"
 
+#include "common/task_system/progress_bar.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"

@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
 #include "common/string_utils.h"
+#include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
 #include "main/attached_database.h"
 #include "main/database.h"
@@ -46,7 +47,6 @@ void ActiveQuery::reset() {
 
 ClientContext::ClientContext(Database* database)
     : dbConfig{database->dbConfig}, localDatabase{database}, warningContext(&clientConfig) {
-    progressBar = std::make_unique<ProgressBar>();
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
@@ -68,6 +68,7 @@ ClientContext::ClientContext(Database* database)
         ClientConfigDefault::RECURSIVE_PATTERN_FACTOR;
     clientConfig.disableMapKeyCheck = ClientConfigDefault::DISABLE_MAP_KEY_CHECK;
     clientConfig.warningLimit = ClientConfigDefault::WARNING_LIMIT;
+    progressBar = std::make_unique<ProgressBar>(clientConfig.enableProgressBar);
 }
 
 ClientContext::~ClientContext() = default;

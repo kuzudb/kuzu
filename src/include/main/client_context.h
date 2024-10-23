@@ -4,7 +4,6 @@
 #include <memory>
 #include <mutex>
 
-#include "common/task_system/progress_bar.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/table/scan_replacement.h"
@@ -25,6 +24,7 @@ class ExpressionBinder;
 namespace common {
 class RandomEngine;
 class TaskScheduler;
+class ProgressBar;
 } // namespace common
 
 namespace extension {

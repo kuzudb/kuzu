@@ -5,13 +5,11 @@
 namespace kuzu {
 namespace common {
 
-ProgressBar::ProgressBar() {
+ProgressBar::ProgressBar(bool enableProgressBar) {
     display = DefaultProgressBarDisplay();
     numPipelines = 0;
     numPipelinesFinished = 0;
-    queryTimer = std::make_unique<TimeMetric>(true);
-    showProgressAfter = 1000;
-    trackProgress = false;
+    trackProgress = enableProgressBar;
 }
 
 std::shared_ptr<ProgressBarDisplay> ProgressBar::DefaultProgressBarDisplay() {
@@ -27,7 +25,6 @@ void ProgressBar::startProgress(uint64_t queryID) {
         return;
     }
     std::lock_guard<std::mutex> lock(progressBarLock);
-    queryTimer->start();
     updateDisplay(queryID, 0.0);
 }
 
@@ -56,40 +53,21 @@ void ProgressBar::updateProgress(uint64_t queryID, double curPipelineProgress) {
     if (!trackProgress) {
         return;
     }
-    std::lock_guard<std::mutex> lock(progressBarLock);
     updateDisplay(queryID, curPipelineProgress);
 }
 
 void ProgressBar::resetProgressBar(uint64_t queryID) {
     numPipelines = 0;
     numPipelinesFinished = 0;
-    if (queryTimer->isStarted) {
-        queryTimer->stop();
-    }
     display->finishProgress(queryID);
 }
 
-bool ProgressBar::shouldUpdateProgress() const {
-    if (queryTimer->isStarted) {
-        queryTimer->stop();
-    }
-    bool shouldUpdate = queryTimer->getElapsedTimeMS() > showProgressAfter;
-    queryTimer->start();
-    return shouldUpdate;
-}
-
 void ProgressBar::updateDisplay(uint64_t queryID, double curPipelineProgress) {
-    if (shouldUpdateProgress()) {
-        display->updateProgress(queryID, curPipelineProgress, numPipelinesFinished);
-    }
+    display->updateProgress(queryID, curPipelineProgress, numPipelinesFinished);
 }
 
 void ProgressBar::toggleProgressBarPrinting(bool enable) {
     trackProgress = enable;
-}
-
-void ProgressBar::setShowProgressAfter(uint64_t time) {
-    showProgressAfter = time;
 }
 
 } // namespace common

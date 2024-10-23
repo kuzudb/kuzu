@@ -1,7 +1,5 @@
 #include "include/node_progress_bar_display.h"
 
-#include <tuple>
-
 using namespace kuzu;
 using namespace common;
 
@@ -14,13 +12,14 @@ void NodeProgressBarDisplay::updateProgress(uint64_t queryID, double newPipeline
     uint32_t oldPipelineProgress = (uint32_t)(pipelineProgress * 100.0);
     if (curPipelineProgress > oldPipelineProgress ||
         newNumPipelinesFinished > numPipelinesFinished) {
-        pipelineProgress = newPipelineProgress;
-        numPipelinesFinished = newNumPipelinesFinished;
+        pipelineProgress.store(newPipelineProgress);
+        numPipelinesFinished.store(newNumPipelinesFinished);
         auto callback = queryCallbacks.find(queryID);
         if (callback != queryCallbacks.end()) {
             double capturedPipelineProgress = pipelineProgress;
             uint32_t capturedNumPipelinesFinished = numPipelinesFinished;
             uint32_t capturedNumPipelines = numPipelines;
+
             callback->second.BlockingCall(
                 [capturedPipelineProgress, capturedNumPipelinesFinished,
                     capturedNumPipelines](Napi::Env env, Napi::Function jsCallback) {
