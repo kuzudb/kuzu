@@ -26,10 +26,10 @@ Binder exception: Create node a with multiple node labels is not supported.
 
 -STATEMENT create rel table test (FROM personA TO personA, FROM personA To personB, date DATE);
 ---- ok
--STATEMENT COPY test FROM '/home/sterling/Desktop/kuzu/dataset/rel-group/edge.csv';
+-STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv';
 ---- error
 Binder exception: Need to speicify the SRC and DEST nodes for copying to a REL GROUP.
--STATEMENT COPY test FROM '/home/sterling/Desktop/kuzu/dataset/rel-group/edge.csv' (from = 'personA', to = 'personB');
+-STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv' (from = 'personA', to = 'personB');
 ---- ok
 -STATEMENT MATCH (a:personA)-[e:test]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
 ---- 3
