@@ -229,6 +229,7 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) const {
             std::vector<catalog::TableCatalogEntry*> newRelEntries{temp.begin(), temp.end()};
             if (!same(newRelEntries, rel.getEntries())) {
                 rel.setEntries(newRelEntries);
+                rel.getRecursiveInfo()->rel->setEntries(newRelEntries);
                 // update src&dst entries
                 auto forwardRelNodes =
                     collectRelNodes("<-", getTableCatalogEntries(stepActivationRelInfos.front()));
