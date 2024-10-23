@@ -2,6 +2,7 @@
 
 #include "binder/query/query_graph.h"
 #include "planner/operator/logical_plan.h"
+#include "storage/stats/table_stats.h"
 
 namespace kuzu {
 namespace main {
@@ -23,7 +24,7 @@ public:
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
     void initNodeIDDom(const binder::QueryGraph& queryGraph,
         const transaction::Transaction* transaction);
-    void addNodeIDDom(const binder::Expression& nodeID,
+    void addNodeIDDomAndStats(const binder::Expression& nodeID,
         const std::vector<common::table_id_t>& tableIDs,
         const transaction::Transaction* transaction);
 
@@ -37,7 +38,7 @@ public:
     uint64_t estimateFilter(const LogicalPlan& childPlan, const binder::Expression& predicate);
 
     double getExtensionRate(const binder::RelExpression& rel,
-        const binder::NodeExpression& boundNode, const transaction::Transaction* transaction);
+        const binder::NodeExpression& boundNode);
 
 private:
     uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
@@ -46,13 +47,14 @@ private:
         KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
-    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs,
-        const transaction::Transaction* transaction);
+    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs);
 
     uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs);
 
 private:
     main::ClientContext* context;
+    // TODO(Guodong): Extend this to cover rel tables.
+    std::unordered_map<common::table_id_t, storage::TableStats> nodeTableStats;
     // The domain of nodeID is defined as the number of unique value of nodeID, i.e. num nodes.
     std::unordered_map<std::string, uint64_t> nodeIDName2dom;
 };

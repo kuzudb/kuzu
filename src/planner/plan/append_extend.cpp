@@ -110,8 +110,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
     plan.setCost(CostModel::computeExtendCost(plan));
-    auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode);
     extend->setCardinality(extensionRate * plan.getCardinality());
     plan.setCardinality(extend->getCardinality());
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
@@ -126,7 +125,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         auto rdfInfo = rel->getRdfPredicateInfo();
         // Append hash join for remaining properties
         auto tmpPlan = std::make_unique<LogicalPlan>();
-        cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs,
+        cardinalityEstimator.addNodeIDDomAndStats(*rdfInfo->predicateID, rdfInfo->resourceTableIDs,
             clientContext->getTx());
         appendScanNodeTable(rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri},
             *tmpPlan);
@@ -259,8 +258,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     }
     plan.setLastOperator(std::move(pathPropertyProbe));
     // Update cost
-    auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode);
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
     // Update cardinality
     auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
