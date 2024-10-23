@@ -5,11 +5,11 @@
 namespace kuzu {
 namespace common {
 
-ProgressBar::ProgressBar() {
+ProgressBar::ProgressBar(bool enableProgressBar) {
     display = DefaultProgressBarDisplay();
     numPipelines = 0;
     numPipelinesFinished = 0;
-    trackProgress = false;
+    trackProgress = enableProgressBar;
 }
 
 std::shared_ptr<ProgressBarDisplay> ProgressBar::DefaultProgressBarDisplay() {
