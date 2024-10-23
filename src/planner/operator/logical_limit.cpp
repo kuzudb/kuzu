@@ -8,10 +8,13 @@ namespace planner {
 std::string LogicalLimit::getExpressionsForPrinting() const {
     std::string result;
     if (hasSkipNum()) {
-        result += "SKIP " + std::to_string(skipNum) + "\n";
+        result += "SKIP " + std::to_string(skipNum);
     }
     if (hasLimitNum()) {
-        result += "LIMIT " + std::to_string(limitNum) + "\n";
+        if (!result.empty()) {
+            result += ",";
+        }
+        result += "LIMIT " + std::to_string(limitNum);
     }
     return result;
 }

@@ -71,6 +71,9 @@ enum class PhysicalOperatorType : uint8_t {
 
 class PhysicalOperatorUtils {
 public:
+    static std::string operatorToString(const PhysicalOperator* physicalOp);
+
+private:
     static std::string operatorTypeToString(PhysicalOperatorType operatorType);
 };
 
