@@ -1,8 +1,5 @@
 #pragma once
 
-#include <optional>
-#include <unordered_set>
-
 #include "common/task_system/progress_bar_display.h"
 #include <napi.h>
 

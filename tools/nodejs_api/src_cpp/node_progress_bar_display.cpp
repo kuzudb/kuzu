@@ -20,7 +20,6 @@ void NodeProgressBarDisplay::updateProgress(uint64_t queryID, double newPipeline
             uint32_t capturedNumPipelinesFinished = numPipelinesFinished;
             uint32_t capturedNumPipelines = numPipelines;
 
-            callback->second.Acquire();
             callback->second.BlockingCall(
                 [capturedPipelineProgress, capturedNumPipelinesFinished,
                     capturedNumPipelines](Napi::Env env, Napi::Function jsCallback) {
@@ -29,7 +28,6 @@ void NodeProgressBarDisplay::updateProgress(uint64_t queryID, double newPipeline
                         Napi::Number::New(env, capturedNumPipelinesFinished),
                         Napi::Number::New(env, capturedNumPipelines)});
                 });
-            callback->second.Release();
         }
     }
 }
