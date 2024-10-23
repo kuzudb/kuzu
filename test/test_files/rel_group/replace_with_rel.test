@@ -36,3 +36,18 @@ Binder exception: Need to speicify the SRC and DEST nodes for copying to a REL G
 test_personA_personB|personB|2|Bob
 test_personA_personB|personB|3|Carol
 test_personA_personB|personB|5|Dan
+
+-CASE ImportRELGROUPfromOldVersion
+-STATEMENT create rel table group likes_import (FROM personA TO personB, FROM personB To personA, date DATE);
+---- ok
+-STATEMENT COPY likes_import_personA_personB FROM "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv";
+---- ok
+-STATEMENT MATCH (a:personA)-[e:likes_import]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+likes_import_personA_personB|personB|2|Bob
+likes_import_personA_personB|personB|3|Carol
+likes_import_personA_personB|personB|5|Dan
+-STATEMENT MATCH (a)-[e:likes_import]-(b) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+6
+
