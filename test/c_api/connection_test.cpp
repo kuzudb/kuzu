@@ -138,52 +138,52 @@ TEST_F(CApiConnectionTest, ExecuteError) {
     kuzu_prepared_statement_destroy(&preparedStatement);
 }
 
- TEST_F(CApiConnectionTest, QueryTimeout) {
-     kuzu_query_result result;
-     kuzu_state state;
-     auto connection = getConnection();
-     ASSERT_EQ(kuzu_connection_set_query_timeout(connection, 1), KuzuSuccess);
-     state = kuzu_connection_query(connection,
-         "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);", &result);
-     ASSERT_EQ(state, KuzuError);
-     ASSERT_NE(result._query_result, nullptr);
-     auto resultCpp = static_cast<QueryResult*>(result._query_result);
-     ASSERT_NE(resultCpp, nullptr);
-     ASSERT_FALSE(resultCpp->isSuccess());
-     ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
-     kuzu_query_result_destroy(&result);
-     kuzu_connection badConnection;
-     ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
-     ASSERT_EQ(kuzu_connection_set_query_timeout(&badConnection, 1), KuzuError);
- }
+TEST_F(CApiConnectionTest, QueryTimeout) {
+    kuzu_query_result result;
+    kuzu_state state;
+    auto connection = getConnection();
+    ASSERT_EQ(kuzu_connection_set_query_timeout(connection, 1), KuzuSuccess);
+    state = kuzu_connection_query(connection,
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);", &result);
+    ASSERT_EQ(state, KuzuError);
+    ASSERT_NE(result._query_result, nullptr);
+    auto resultCpp = static_cast<QueryResult*>(result._query_result);
+    ASSERT_NE(resultCpp, nullptr);
+    ASSERT_FALSE(resultCpp->isSuccess());
+    ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
+    kuzu_query_result_destroy(&result);
+    kuzu_connection badConnection;
+    ASSERT_EQ(kuzu_connection_init(nullptr, &badConnection), KuzuError);
+    ASSERT_EQ(kuzu_connection_set_query_timeout(&badConnection, 1), KuzuError);
+}
 
- #ifndef __SINGLE_THREADED__
+#ifndef __SINGLE_THREADED__
 // The following test is disabled in single-threaded mode because it requires
 // a separate thread to run.
- TEST_F(CApiConnectionTest, Interrupt) {
-     kuzu_query_result result;
-     kuzu_state state;
-     auto connection = getConnection();
-     bool finished = false;
+TEST_F(CApiConnectionTest, Interrupt) {
+    kuzu_query_result result;
+    kuzu_state state;
+    auto connection = getConnection();
+    bool finished = false;
 
-     // Interrupt the query after 100ms
-     // This may happen too early, so try again until the query function finishes.
-     std::thread t([&connection, &finished]() {
-         do {
-             std::this_thread::sleep_for(std::chrono::milliseconds(100));
-             kuzu_connection_interrupt(connection);
-         } while (!finished);
-     });
-     state = kuzu_connection_query(connection,
-         "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);", &result);
-     finished = true;
-     ASSERT_EQ(state, KuzuError);
-     ASSERT_NE(result._query_result, nullptr);
-     auto resultCpp = static_cast<QueryResult*>(result._query_result);
-     ASSERT_NE(resultCpp, nullptr);
-     ASSERT_FALSE(resultCpp->isSuccess());
-     ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
-     kuzu_query_result_destroy(&result);
-     t.join();
- }
- #endif
+    // Interrupt the query after 100ms
+    // This may happen too early, so try again until the query function finishes.
+    std::thread t([&connection, &finished]() {
+        do {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            kuzu_connection_interrupt(connection);
+        } while (!finished);
+    });
+    state = kuzu_connection_query(connection,
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);", &result);
+    finished = true;
+    ASSERT_EQ(state, KuzuError);
+    ASSERT_NE(result._query_result, nullptr);
+    auto resultCpp = static_cast<QueryResult*>(result._query_result);
+    ASSERT_NE(resultCpp, nullptr);
+    ASSERT_FALSE(resultCpp->isSuccess());
+    ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
+    kuzu_query_result_destroy(&result);
+    t.join();
+}
+#endif

@@ -28,7 +28,8 @@ public:
     }
 
     static void executeLongRunningQuery(main::Connection* conn) {
-        auto result = conn->query("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);");
+        auto result = conn->query(
+            "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
     }
