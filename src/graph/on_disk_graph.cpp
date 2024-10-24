@@ -18,6 +18,7 @@
 #include "processor/expression_mapper.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
@@ -344,9 +345,15 @@ bool OnDiskGraphVertexScanState::next() {
     if (currentOffset >= endOffsetExclusive) {
         return false;
     }
-    numNodesScanned = std::min(endOffsetExclusive - currentOffset, DEFAULT_VECTOR_CAPACITY);
+    auto endOffset = std::min(endOffsetExclusive,
+        StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1));
+    numNodesScanned = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
     auto result = tableScanState->scanNext(context.getTx(), currentOffset, numNodesScanned);
     currentOffset += numNodesScanned;
+    if (currentOffset < endOffsetExclusive &&
+        StorageUtils::getNodeGroupIdx(currentOffset) != tableScanState->nodeGroupIdx) {
+        startScan(currentOffset, endOffsetExclusive);
+    }
     return result;
 }
 
@@ -374,8 +381,6 @@ void OnDiskGraphVertexScanState::startScan(common::offset_t beginOffset,
     // duplicating code
     tableScanState->source = TableScanSource::COMMITTED;
     tableScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(beginOffset);
-    KU_ASSERT(
-        tableScanState->nodeGroupIdx == StorageUtils::getNodeGroupIdx(endOffsetExclusive - 1));
 
     this->currentOffset = beginOffset;
     this->endOffsetExclusive = endOffsetExclusive;

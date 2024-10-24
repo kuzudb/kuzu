@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/uniq_lock.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group.h"
@@ -18,7 +20,7 @@ class NodeGroup;
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
     common::idx_t chunkedGroupIdx = 0;
-    common::row_idx_t numScannedRows = 0;
+    common::row_idx_t nextRowToScan = 0;
     // State of each chunk in the checkpointed chunked group.
     std::vector<ChunkState> chunkStates;
 
@@ -28,7 +30,7 @@ struct NodeGroupScanState {
 
     virtual void resetState() {
         chunkedGroupIdx = 0;
-        numScannedRows = 0;
+        nextRowToScan = 0;
         for (auto& chunkState : chunkStates) {
             chunkState.resetState();
         }
@@ -188,9 +190,11 @@ public:
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
 private:
+    common::idx_t findChunkedGroupIdxFromRowIdx(const common::UniqLock& lock,
+        common::row_idx_t rowIdx) const;
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
-        common::row_idx_t rowIdx);
-    ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx);
+        common::row_idx_t rowIdx) const;
+    ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx) const;
 
     std::unique_ptr<ChunkedNodeGroup> checkpointInMemOnly(MemoryManager& memoryManager,
         const common::UniqLock& lock, NodeGroupCheckpointState& state);
