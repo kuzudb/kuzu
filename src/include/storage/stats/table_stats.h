@@ -33,6 +33,8 @@ public:
 
     void update(const std::vector<common::ValueVector*>& vectors);
 
+    void addNewColumn() { columnStats.emplace_back(); }
+
     void serialize(common::Serializer& serializer) const;
     TableStats deserialize(common::Deserializer& deserializer);
 

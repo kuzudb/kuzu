@@ -173,6 +173,7 @@ void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnStat
         nodeGroup->addColumn(transaction, addColumnState, dataFH);
     }
     types.push_back(addColumnState.propertyDefinition.getType().copy());
+    stats.addNewColumn();
 }
 
 uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {

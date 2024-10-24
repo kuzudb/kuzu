@@ -117,15 +117,17 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
             return 1;
         } else {
             KU_ASSERT(predicate.getNumChildren() >= 1);
-            auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
-            if (isSingleLabelledProperty(propertyExpr)) {
+            if (isSingleLabelledProperty(*predicate.getChild(0))) {
+                auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
                 auto tableID = propertyExpr.getTableID();
                 if (nodeTableStats.contains(tableID)) {
                     auto columnID = propertyExpr.getColumnID(
                         *context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID));
-                    auto& stats = nodeTableStats.at(tableID);
-                    auto numDistinctValues = stats.getNumDistinctValues(columnID);
-                    return atLeastOne(childPlan.estCardinality / numDistinctValues);
+                    if (columnID != INVALID_COLUMN_ID && columnID != ROW_IDX_COLUMN_ID) {
+                        auto& stats = nodeTableStats.at(tableID);
+                        auto numDistinctValues = stats.getNumDistinctValues(columnID);
+                        return atLeastOne(childPlan.estCardinality / numDistinctValues);
+                    }
                 }
             }
             return atLeastOne(

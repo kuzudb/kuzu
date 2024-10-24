@@ -181,6 +181,7 @@ static void computeStructVecHash(const ValueVector& operand, const SelectionVect
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
             *StructVector::getFieldVector(&operand, 3), operandSelVec, result, resultSelVec);
     } break;
+    case LogicalTypeID::RDF_VARIANT:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
