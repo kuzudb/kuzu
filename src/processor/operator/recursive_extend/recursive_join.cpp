@@ -210,11 +210,20 @@ bool RecursiveJoin::scanOutput() {
     return true;
 }
 
+void RecursiveJoin::setActivationRelInfo() {
+    auto currentLevel = bfsState->getCurrentLevel();
+    if (recursiveScanMultiRelTable && currentLevel < info.stepActivationRelInfos.size()) {
+        recursiveScanMultiRelTable->setRecursiveActivationRelInfo(
+            info.stepActivationRelInfos.at(currentLevel));
+    }
+}
+
 void RecursiveJoin::computeBFS(ExecutionContext* context) {
     auto nodeID = vectors->srcNodeIDVector->getValue<nodeID_t>(
         vectors->srcNodeIDVector->state->getSelVector()[0]);
     bfsState->markSrc(nodeID);
     vectors->recursiveNodePredicateExecFlagVector->setValue<bool>(0, true);
+    setActivationRelInfo();
     while (!bfsState->isComplete()) {
         auto boundNodeID = bfsState->getNextNodeID();
         if (boundNodeID.offset != INVALID_OFFSET) {
@@ -227,6 +236,7 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
             // Otherwise move to the next frontier.
             bfsState->finalizeCurrentLevel();
             vectors->recursiveNodePredicateExecFlagVector->setValue<bool>(0, false);
+            setActivationRelInfo();
         }
     }
 }
@@ -255,6 +265,14 @@ static PhysicalOperator* getSource(PhysicalOperator* op) {
     return op;
 }
 
+static ScanMultiRelTable* getScanMultiRelTable(PhysicalOperator* op) {
+    if (op->getOperatorType() == PhysicalOperatorType::SCAN_REL_TABLE) {
+        return dynamic_cast<ScanMultiRelTable*>(op);
+    }
+    KU_ASSERT(op->getNumChildren() == 1);
+    return getScanMultiRelTable(op->getChild(0));
+}
+
 void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     auto& dataInfo = info.dataInfo;
     localResultSet = std::make_unique<ResultSet>(dataInfo.localResultSetDescriptor.get(),
@@ -271,6 +289,7 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     }
     recursiveRoot->initLocalState(localResultSet.get(), context);
     recursiveSource = getSource(recursiveRoot.get())->ptrCast<OffsetScanNodeTable>();
+    recursiveScanMultiRelTable = getScanMultiRelTable(recursiveRoot.get());
 }
 
 void RecursiveJoin::populateTargetDstNodes(ExecutionContext*) {
