@@ -37,12 +37,14 @@ public:
     T* getGroup(const common::UniqLock& lock, common::idx_t groupIdx) const {
         KU_ASSERT(lock.isLocked());
         KU_UNUSED(lock);
+        // TODO(Guodong): Should assert no nullptr here.
         if (groupIdx >= groups.size()) {
             return nullptr;
         }
         return groups[groupIdx].get();
     }
     T* getGroupNoLock(common::idx_t groupIdx) const {
+        // TODO(Guodong): Should assert no nullptr here.
         if (groupIdx >= groups.size()) {
             return nullptr;
         }

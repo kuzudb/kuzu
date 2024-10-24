@@ -1,13 +1,15 @@
 #include "transaction/transaction.h"
 
+#include <iostream>
+
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/local_storage/local_storage.h"
-#include "storage/store/version_info.h"
+#include "storage/storage_manager.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
-#include <main/db_config.h>
 
 using namespace kuzu::catalog;
 
@@ -22,6 +24,15 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     undoBuffer = std::make_unique<storage::UndoBuffer>(this);
     currentTS = common::Timestamp::getCurrentTimestamp().value;
+    // Note that the use of `this` should be safe here as there is no inheritance.
+    for (auto tableID : clientContext.getCatalog()->getNodeTableIDs(this)) {
+        minUncommittedNodeOffsets[tableID] =
+            clientContext.getStorageManager()->getTable(tableID)->getNumRows();
+        //        std::cout << "tableID: " << tableID
+        //                  << ", minUncommittedNodeOffset: " <<
+        //                  minUncommittedNodeOffsets.at(tableID)
+        //                  << std::endl;
+    }
 }
 
 Transaction::Transaction(TransactionType transactionType) noexcept
@@ -183,6 +194,11 @@ void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
 }
 
 Transaction::~Transaction() = default;
+
+Transaction Transaction::getDummyTransaction(main::ClientContext& clientContext) {
+    return Transaction(clientContext, TransactionType::DUMMY, DUMMY_TRANSACTION_ID,
+        Transaction::START_TRANSACTION_ID - 1);
+}
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
 Transaction DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,

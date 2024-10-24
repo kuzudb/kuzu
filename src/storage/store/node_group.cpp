@@ -201,6 +201,7 @@ void NodeGroup::update(Transaction* transaction, row_idx_t rowIdxInGroup, column
         const auto lock = chunkedGroups.lock();
         chunkedGroupToUpdate = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
     }
+    KU_ASSERT(chunkedGroupToUpdate);
     const auto rowIdxInChunkedGroup = rowIdxInGroup - chunkedGroupToUpdate->getStartRowIdx();
     chunkedGroupToUpdate->update(transaction, rowIdxInChunkedGroup, columnID, propertyVector);
 }

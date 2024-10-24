@@ -31,7 +31,8 @@ void LocalNodeTable::initLocalHashIndex() {
 }
 
 bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) {
-    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(
+        transaction->getLocalRowIdx(table.getTableID(), offset));
     auto* nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
     if (nodeGroup->isDeleted(transaction, offsetInGroup)) {
         return false;
@@ -48,8 +49,8 @@ offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transac
 
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
-    const auto numRowsInLocalTable = nodeGroups.getNumTotalRows();
-    const auto nodeOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
+    const auto nodeOffset =
+        transaction->getUncommittedOffset(table.getTableID(), nodeGroups.getNumTotalRows());
     KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
     if (!hashIndex->insert(nodeInsertState.pkVector, nodeOffset,
             [&](offset_t offset) { return isVisible(transaction, offset); })) {
@@ -77,7 +78,7 @@ bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateSt
             [&](offset_t offset_) { return isVisible(transaction, offset_); });
     }
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
-        offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
+        transaction->getLocalRowIdx(table.getTableID(), offset), StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
     nodeGroup->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
@@ -92,7 +93,7 @@ bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteS
     const auto offset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     hashIndex->delete_(nodeDeleteState.pkVector);
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
-        offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE, StorageConstants::NODE_GROUP_SIZE);
+        transaction->getLocalRowIdx(table.getTableID(), offset), StorageConstants::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
     return nodeGroup->delete_(transaction, rowIdxInGroup);
 }

@@ -30,8 +30,8 @@
 ---- ok
 -STATEMENT MATCH (p1:person)-[r:knows]->(p2:person) RETURN ID(p1), p1.fName, ID(p2), p2.fName;
 ---- 2
-0:4611686018427387904|Alice|0:4611686018427387906|Charlie
-0:4611686018427387904|Alice|0:4611686018427387907|Dave
+0:0|Alice|0:2|Charlie
+0:0|Alice|0:3|Dave
 -STATEMENT COMMIT;
 ---- ok
 -STATEMENT MATCH (p:person) RETURN ID(p);
