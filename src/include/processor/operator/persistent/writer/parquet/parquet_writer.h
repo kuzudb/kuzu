@@ -3,10 +3,10 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/file_system/file_info.h"
 #include "common/types/types.h"
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/column_writer.h"
 #include "processor/result/factorized_table.h"
-#include "thrift/protocol/TProtocol.h"
+#include "protocol/TProtocol.h"
 
 namespace kuzu {
 namespace main {

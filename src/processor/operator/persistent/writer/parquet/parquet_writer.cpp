@@ -4,7 +4,7 @@
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
-#include "thrift/protocol/TCompactProtocol.h"
+#include "protocol/TCompactProtocol.h"
 
 namespace kuzu {
 namespace processor {

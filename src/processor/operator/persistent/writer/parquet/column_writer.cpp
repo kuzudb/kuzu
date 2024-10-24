@@ -13,7 +13,7 @@
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/struct_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/uuid_column_writer.h"
-#include "snappy/snappy.h"
+#include "snappy.h"
 #include "zstd.h"
 
 namespace kuzu {

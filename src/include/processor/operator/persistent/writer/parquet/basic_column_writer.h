@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parquet/parquet_types.h"
+#include "parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/column_writer.h"
 
 namespace kuzu {

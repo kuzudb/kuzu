@@ -16,7 +16,7 @@
 #include "processor/operator/persistent/reader/parquet/string_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/templated_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/uuid_column_reader.h"
-#include "snappy/snappy.h"
+#include "snappy.h"
 #include "zstd.h"
 
 using namespace kuzu::common;
