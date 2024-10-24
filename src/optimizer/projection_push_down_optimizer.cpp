@@ -1,10 +1,13 @@
 #include "optimizer/projection_push_down_optimizer.h"
 
 #include "binder/expression_visitor.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds/rec_joins.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_filter.h"
+#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_node_label_filter.h"
@@ -21,6 +24,7 @@
 using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::binder;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace optimizer {
@@ -44,18 +48,34 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto& pathPropertyProbe = op->cast<LogicalPathPropertyProbe>();
-
-    if (pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL) {
+    auto child = pathPropertyProbe.getChild(0);
+    if (child->getOperatorType() == LogicalOperatorType::GDS_CALL) {
         if (!nodeOrRelInUse.contains(pathPropertyProbe.getRel())) {
+            // Path is not needed
             pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
+            auto call = child->ptrCast<LogicalGDSCall>();
+            auto& info = call->getInfoUnsafe();
+            if (info.func.name == VarLenJoinsFunction::name) {
+                auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
+                rjAlg.setToNoPath();
+                info.outExprs = rjAlg.getResultColumnsNoPath();
+            } else if (info.func.name == SingleSPPathsFunction::name) {
+                auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
+                info.outExprs = rjAlg.getResultColumnsNoPath();
+                auto func = SingleSPDestinationsFunction::getFunction();
+                func.gds->setBindData(info.func.gds->getBindData()->copy());
+                info.func = std::move(func);
+            } else if (info.func.name == AllSPPathsFunction::name) {
+                auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
+                info.outExprs = rjAlg.getResultColumnsNoPath();
+                auto func = AllSPDestinationsFunction::getFunction();
+                func.gds->setBindData(info.func.gds->getBindData()->copy());
+                info.func = std::move(func);
+            }
         }
         return;
     }
-
-    if (pathPropertyProbe.getChild(0)->getOperatorType() !=
-        planner::LogicalOperatorType::RECURSIVE_EXTEND) {
-        return;
-    }
+    KU_ASSERT(child->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
     auto& recursiveExtend = pathPropertyProbe.getChild(0)->cast<LogicalRecursiveExtend>();
     auto boundNodeID = recursiveExtend.getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);

@@ -92,9 +92,9 @@ private:
     std::atomic<multiplicity_entry_t*> curBoundMultiplicities;
 };
 
-struct AllSPMultiplicitiesOutputs : public SPOutputs {
+struct AllSPDestinationsOutputs : public SPOutputs {
 public:
-    AllSPMultiplicitiesOutputs(std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    AllSPDestinationsOutputs(std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes,
         nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
         : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
           multiplicities{nodeTableIDAndNumNodes, mm} {}
@@ -133,42 +133,12 @@ protected:
     void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         uint16_t) const override {
         auto multiplicity =
-            rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities.getTargetMultiplicity(
+            rjOutputs->ptrCast<AllSPDestinationsOutputs>()->multiplicities.getTargetMultiplicity(
                 dstNodeID.offset);
         for (uint64_t i = 0; i < multiplicity; ++i) {
             fTable.append(vectors);
         }
     }
-};
-
-class AllSPLengthsOutputWriter : public DestinationsOutputWriter {
-public:
-    AllSPLengthsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-        : DestinationsOutputWriter(context, rjOutputs) {
-        lengthVector =
-            std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
-        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(lengthVector.get());
-    }
-
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPLengthsOutputWriter>(context, rjOutputs);
-    }
-
-protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
-        uint16_t length) const override {
-        lengthVector->setValue<int64_t>(0, length);
-        auto multiplicity =
-            rjOutputs->ptrCast<AllSPMultiplicitiesOutputs>()->multiplicities.getTargetMultiplicity(
-                dstNodeID.offset);
-        for (uint64_t i = 0; i < multiplicity; ++i) {
-            fTable.append(vectors);
-        }
-    }
-
-private:
-    std::unique_ptr<common::ValueVector> lengthVector;
 };
 
 class VarLenPathsOutputWriter : public PathsOutputWriter {
@@ -198,9 +168,9 @@ public:
     }
 };
 
-class AllSPLengthsEdgeCompute : public EdgeCompute {
+class AllSPDestinationsEdgeCompute : public EdgeCompute {
 public:
-    AllSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
+    AllSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
         PathMultiplicities* multiplicities)
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
@@ -230,7 +200,7 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<AllSPLengthsEdgeCompute>(frontierPair, multiplicities);
+        return std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair, multiplicities);
     }
 
 private:
@@ -293,9 +263,7 @@ public:
     AllSPDestinationsAlgorithm() = default;
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder* binder) const override {
-        return getBaseResultColumns(binder);
-    }
+    expression_vector getResultColumns(Binder*) const override { return getBaseResultColumns(); }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
@@ -304,46 +272,14 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
-            sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
-            clientContext->getMemoryManager());
+        auto output = std::make_unique<AllSPDestinationsOutputs>(
+            sharedState->graph->getNumNodesMap(), sourceNodeID, clientContext->getMemoryManager());
         auto outputWriter =
             std::make_unique<AllSPDestinationsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
-        auto edgeCompute =
-            std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(), &output->multiplicities);
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
-            std::move(outputWriter));
-    }
-};
-
-class AllSPLengthsAlgorithm final : public SPAlgorithm {
-public:
-    AllSPLengthsAlgorithm() = default;
-    AllSPLengthsAlgorithm(const AllSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
-
-    expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getBaseResultColumns(binder);
-        columns.push_back(getLengthColumn(binder));
-        return columns;
-    }
-
-    std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<AllSPLengthsAlgorithm>(*this);
-    }
-
-private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
-        auto clientContext = context->clientContext;
-        auto output = std::make_unique<AllSPMultiplicitiesOutputs>(
-            sharedState->graph->getNodeTableIDAndNumNodes(), sourceNodeID,
-            clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<AllSPLengthsOutputWriter>(clientContext, output.get());
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
-            clientContext->getMaxNumThreadForExec());
-        auto edgeCompute =
-            std::make_unique<AllSPLengthsEdgeCompute>(frontierPair.get(), &output->multiplicities);
+        auto edgeCompute = std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(),
+            &output->multiplicities);
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
@@ -354,11 +290,11 @@ public:
     AllSPPathsAlgorithm() = default;
     AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getBaseResultColumns(binder);
-        columns.push_back(getLengthColumn(binder));
-        columns.push_back(getPathNodeIDsColumn(binder));
-        columns.push_back(getPathEdgeIDsColumn(binder));
+    expression_vector getResultColumns(Binder*) const override {
+        auto columns = getBaseResultColumns();
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        columns.push_back(rjBindData->pathNodeIDsExpr);
+        columns.push_back(rjBindData->pathEdgeIDsExpr);
         return columns;
     }
 
@@ -369,9 +305,8 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output =
-            std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
-                sourceNodeID, clientContext->getMemoryManager());
+        auto output = std::make_unique<PathsOutputs>(sharedState->graph->getNumNodesMap(),
+            sourceNodeID, clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
@@ -449,13 +384,16 @@ public:
             ExpressionUtil::getLiteralValue<std::string>(*params[4]));
         bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
             PathSemantic::WALK, extendDirection);
+        bindColumnExpressions(binder);
     }
 
-    binder::expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getBaseResultColumns(binder);
-        columns.push_back(getLengthColumn(binder));
-        columns.push_back(getPathNodeIDsColumn(binder));
-        columns.push_back(getPathEdgeIDsColumn(binder));
+    binder::expression_vector getResultColumns(Binder*) const override {
+        auto columns = getBaseResultColumns();
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        if (rjBindData->writePath) {
+            columns.push_back(rjBindData->pathNodeIDsExpr);
+            columns.push_back(rjBindData->pathEdgeIDsExpr);
+        }
         return columns;
     }
 
@@ -467,7 +405,7 @@ private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
-        auto nodeTableToNumNodes = sharedState->graph->getNodeTableIDAndNumNodes();
+        auto nodeTableToNumNodes = sharedState->graph->getNumNodesMap();
         auto output = std::make_unique<PathsOutputs>(nodeTableToNumNodes, sourceNodeID, mm);
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
@@ -485,34 +423,38 @@ private:
 
 function_set VarLenJoinsFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<VarLenJoinsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(std::make_unique<GDSFunction>(getFunction()));
     return result;
+}
+
+GDSFunction VarLenJoinsFunction::getFunction() {
+    auto algo = std::make_unique<VarLenJoinsAlgorithm>();
+    auto params = algo->getParameterTypeIDs();
+    return GDSFunction(name, std::move(params), std::move(algo));
 }
 
 function_set AllSPDestinationsFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<AllSPDestinationsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(std::make_unique<GDSFunction>(getFunction()));
     return result;
 }
 
-function_set AllSPLengthsFunction::getFunctionSet() {
-    function_set result;
-    auto algo = std::make_unique<AllSPLengthsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
-    return result;
+GDSFunction AllSPDestinationsFunction::getFunction() {
+    auto algo = std::make_unique<AllSPDestinationsAlgorithm>();
+    auto params = algo->getParameterTypeIDs();
+    return GDSFunction(name, std::move(params), std::move(algo));
 }
 
 function_set AllSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<AllSPPathsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(std::make_unique<GDSFunction>(getFunction()));
     return result;
+}
+
+GDSFunction AllSPPathsFunction::getFunction() {
+    auto algo = std::make_unique<AllSPPathsAlgorithm>();
+    auto params = algo->getParameterTypeIDs();
+    return GDSFunction(name, std::move(params), std::move(algo));
 }
 
 } // namespace function

@@ -133,9 +133,9 @@ std::vector<table_id_t> OnDiskGraph::getRelTableIDs() {
     return result;
 }
 
-std::unordered_map<common::table_id_t, offset_t> OnDiskGraph::getNodeTableIDAndNumNodes() {
-    std::unordered_map<common::table_id_t, offset_t> retVal;
-    for (common::table_id_t tableID : getNodeTableIDs()) {
+table_id_map_t<offset_t> OnDiskGraph::getNumNodesMap() {
+    table_id_map_t<offset_t> retVal;
+    for (auto tableID : getNodeTableIDs()) {
         retVal[tableID] = getNumNodes(tableID);
     }
     return retVal;

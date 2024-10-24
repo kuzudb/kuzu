@@ -33,18 +33,18 @@ public:
 
 struct SPOutputs : public RJOutputs {
 public:
-    SPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        common::nodeID_t sourceNodeID, storage::MemoryManager* mm);
+    SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, common::nodeID_t sourceNodeID,
+        storage::MemoryManager* mm);
 
 public:
+    // TODO: I don't think
     std::shared_ptr<PathLengths> pathLengths;
 };
 
 struct PathsOutputs : public SPOutputs {
-    PathsOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    PathsOutputs(common::table_id_map_t<common::offset_t> numNodesMap,
         common::nodeID_t sourceNodeID, storage::MemoryManager* mm = nullptr)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
-          bfsGraph{nodeTableIDAndNumNodes, mm} {}
+        : SPOutputs(numNodesMap, sourceNodeID, mm), bfsGraph{numNodesMap, mm} {}
 
     void beginFrontierComputeBetweenTables(common::table_id_t,
         common::table_id_t nextFrontierTableID) override {
@@ -61,7 +61,7 @@ public:
 
 class RJOutputWriter {
 public:
-    explicit RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs);
+    RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs);
     virtual ~RJOutputWriter() = default;
 
     void beginWritingForDstNodesInTable(common::table_id_t tableID) {
@@ -75,6 +75,10 @@ public:
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
 protected:
+    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type,
+        storage::MemoryManager* mm);
+
+protected:
     main::ClientContext* context;
     RJOutputs* rjOutputs;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
@@ -84,8 +88,7 @@ protected:
 
 class DestinationsOutputWriter : public RJOutputWriter {
 public:
-    DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-        : RJOutputWriter(context, rjOutputs){};
+    DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs);
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
 
@@ -98,6 +101,9 @@ public:
 protected:
     virtual void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         uint16_t length) const;
+
+protected:
+    std::unique_ptr<common::ValueVector> lengthVector;
 };
 
 struct PathsOutputWriterInfo {
@@ -108,6 +114,7 @@ struct PathsOutputWriterInfo {
     // Direction
     bool extendFromSource = false;
     bool writeEdgeDirection = false;
+    bool writePath = false;
     // Node predicate mask
     processor::NodeOffsetMaskMap* pathNodeMask = nullptr;
 
@@ -138,10 +145,10 @@ private:
 protected:
     PathsOutputWriterInfo info;
 
-    std::unique_ptr<common::ValueVector> directionVector;
-    std::unique_ptr<common::ValueVector> lengthVector;
-    std::unique_ptr<common::ValueVector> pathNodeIDsVector;
-    std::unique_ptr<common::ValueVector> pathEdgeIDsVector;
+    std::unique_ptr<common::ValueVector> directionVector = nullptr;
+    std::unique_ptr<common::ValueVector> lengthVector = nullptr;
+    std::unique_ptr<common::ValueVector> pathNodeIDsVector = nullptr;
+    std::unique_ptr<common::ValueVector> pathEdgeIDsVector = nullptr;
 };
 
 class SPPathsOutputWriter : public PathsOutputWriter {

@@ -74,7 +74,7 @@ public:
     // We skip binding and directly set bind data.
     void setBindData(std::unique_ptr<GDSBindData> bindData_) { bindData = std::move(bindData_); }
 
-    GDSBindData* getBindData() const { return bindData.get(); }
+    const GDSBindData* getBindData() const { return bindData.get(); }
 
     // Note: The reason this field is set separately here and not inside constructor is that the
     // original GDSAlgorithm is constructed in the binding stage. In contrast, sharedState is
@@ -89,6 +89,11 @@ public:
     virtual void exec(processor::ExecutionContext* executionContext) = 0;
 
     virtual std::unique_ptr<GDSAlgorithm> copy() const = 0;
+
+    template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
+    }
 
 protected:
     // TODO(Semih/Xiyang): See if this will be still needed after PageRank and other algorithms are

@@ -29,6 +29,8 @@ struct RJBindData final : public GDSBindData {
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
     bool extendFromSource = true;
+    bool writePath = true;
+
     std::shared_ptr<binder::Expression> directionExpr = nullptr;
     std::shared_ptr<binder::Expression> lengthExpr = nullptr;
     std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
@@ -42,12 +44,7 @@ struct RJBindData final : public GDSBindData {
           extendDirection{extendDirection} {
         KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
     }
-    RJBindData(const RJBindData& other)
-        : GDSBindData{other}, nodeInput{other.nodeInput}, lowerBound{other.lowerBound},
-          upperBound{other.upperBound}, semantic{other.semantic},
-          extendDirection{other.extendDirection}, extendFromSource{other.extendFromSource},
-          directionExpr{other.directionExpr}, lengthExpr{other.lengthExpr},
-          pathNodeIDsExpr{other.pathNodeIDsExpr}, pathEdgeIDsExpr{other.pathEdgeIDsExpr} {}
+    RJBindData(const RJBindData& other);
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
@@ -69,7 +66,9 @@ struct RJCompState {
 
     RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
-        std::unique_ptr<RJOutputWriter> outputWriter);
+        std::unique_ptr<RJOutputWriter> outputWriter)
+        : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
+          outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
 
     void initSource(common::nodeID_t sourceNodeID) const {
         frontierPair->initRJFromSource(sourceNodeID);
@@ -105,14 +104,14 @@ public:
     void exec(processor::ExecutionContext* executionContext) override;
     virtual RJCompState getRJCompState(processor::ExecutionContext* executionContext,
         common::nodeID_t sourceNodeID) = 0;
+    void setToNoPath();
+    binder::expression_vector getResultColumnsNoPath();
 
 protected:
     void validateLowerUpperBound(int64_t lowerBound, int64_t upperBound);
 
-    binder::expression_vector getBaseResultColumns(binder::Binder* binder) const;
-    std::shared_ptr<binder::Expression> getLengthColumn(binder::Binder* binder) const;
-    std::shared_ptr<binder::Expression> getPathNodeIDsColumn(binder::Binder* binder) const;
-    std::shared_ptr<binder::Expression> getPathEdgeIDsColumn(binder::Binder* binder) const;
+    binder::expression_vector getBaseResultColumns() const;
+    void bindColumnExpressions(binder::Binder* binder) const;
 };
 
 class SPAlgorithm : public RJAlgorithm {

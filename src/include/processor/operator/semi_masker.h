@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/mask.h"
+#include "common/enums/extend_direction.h"
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/scan/scan_multi_rel_tables.h"
 
 namespace kuzu {
 namespace processor {

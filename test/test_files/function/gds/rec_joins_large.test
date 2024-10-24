@@ -116,7 +116,7 @@
 -LOG AllSPLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_lengths(PK, a, 30, "FWD")
+           CALL ALL_SP_DESTINATIONS(PK, a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|10
@@ -127,7 +127,7 @@
 -LOG AllSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_lengths(PK, a, 30, "FWD")
+           CALL ALL_SP_DESTINATIONS(PK, a, 30, "FWD")
            RETURN length, count(*);
 ---- 4
 1|10
@@ -139,7 +139,7 @@
 -LOG AllSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_lengths(PK, a, 30, "FWD")
+           CALL ALL_SP_DESTINATIONS(PK, a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|20
@@ -212,7 +212,7 @@
 -LOG SingleSPLengths
 -STATEMENT PROJECT GRAPH PK (person1, knows11)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_lengths(PK, a, 30, "FWD")
+           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|10
@@ -223,7 +223,7 @@
 -LOG SingleSPLengthsMultilabel1
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_lengths(PK, a, 30, "FWD")
+           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
            RETURN length, count(*);
 ---- 4
 1|10
@@ -235,7 +235,7 @@
 -LOG SingleSPLengthsMultilabel2
 -STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
            MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_lengths(PK, a, 30, "FWD")
+           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|20
