@@ -25,7 +25,7 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     // Note that the use of `this` should be safe here as there is no inheritance.
     for (auto tableID : clientContext.getCatalog()->getNodeTableIDs(this)) {
         minUncommittedNodeOffsets[tableID] =
-            clientContext.getStorageManager()->getTable(tableID)->getNumRows();
+            clientContext.getStorageManager()->getTable(tableID)->getNumTotalRows(this);
     }
 }
 

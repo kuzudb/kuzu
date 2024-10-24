@@ -173,13 +173,10 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
         }
-        auto localTable = clientContext->getTx()->getLocalStorage()->getLocalTable(tableID);
-        if (localTable && localTable->cast<storage::LocalNodeTable>().getNumRows()) {
-            throw RuntimeException("Current recursive algorithm does not work with uncommited "
-                                   "data. Execute COMMIT or ROLLBACK first.");
-        }
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
-        for (auto offset = 0u; offset < sharedState->graph->getNumNodes(tableID); ++offset) {
+        for (auto offset = 0u; offset < sharedState->graph->getNumNodes(
+                                            executionContext->clientContext->getTx(), tableID);
+            ++offset) {
             if (!mask->isMasked(offset)) {
                 continue;
             }

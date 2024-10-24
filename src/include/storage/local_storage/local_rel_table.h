@@ -56,6 +56,7 @@ public:
     getNodeOffsetColumns() const {
         return nodeOffsetColumns;
     }
+    common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
 
     rel_index_t& getFWDIndex() { return fwdIndex; }
     rel_index_t& getBWDIndex() { return bwdIndex; }

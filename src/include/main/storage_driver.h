@@ -19,6 +19,7 @@ public:
     void scan(const std::string& nodeName, const std::string& propertyName,
         common::offset_t* offsets, size_t numOffsets, uint8_t* result, size_t numThreads);
 
+    // TODO: Should merge following two functions into a single one.
     uint64_t getNumNodes(const std::string& nodeName);
     uint64_t getNumRels(const std::string& relName);
 

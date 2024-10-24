@@ -529,5 +529,14 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     bwdRelTableData->serialize(ser);
 }
 
+row_idx_t RelTable::getNumTotalRows(const Transaction* transaction) {
+    auto numLocalRows = 0u;
+    if (auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        numLocalRows = localTable->getNumTotalRows();
+    }
+    return numLocalRows + nextRelOffset;
+}
+
 } // namespace storage
 } // namespace kuzu

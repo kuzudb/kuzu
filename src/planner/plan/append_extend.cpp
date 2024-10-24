@@ -124,8 +124,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         auto rdfInfo = rel->getRdfPredicateInfo();
         // Append hash join for remaining properties
         auto tmpPlan = std::make_unique<LogicalPlan>();
-        cardinalityEstimator.addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs,
-            clientContext->getTx());
+        cardinalityEstimator.addNodeIDDom(clientContext->getTx(), *rdfInfo->predicateID,
+            rdfInfo->resourceTableIDs);
         appendScanNodeTable(rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri},
             *tmpPlan);
         appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan,

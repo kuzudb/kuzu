@@ -127,10 +127,12 @@ public:
     std::vector<common::table_id_t> getNodeTableIDs() override;
     std::vector<common::table_id_t> getRelTableIDs() override;
 
-    common::table_id_map_t<common::offset_t> getNumNodesMap() override;
+    common::table_id_map_t<common::offset_t> getNumNodesMap(
+        transaction::Transaction* transaction) override;
 
-    common::offset_t getNumNodes() override;
-    common::offset_t getNumNodes(common::table_id_t id) override;
+    common::offset_t getNumNodes(transaction::Transaction* transcation) override;
+    common::offset_t getNumNodes(transaction::Transaction* transaction,
+        common::table_id_t id) override;
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 

@@ -177,7 +177,7 @@ public:
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
-    common::row_idx_t getNumRows() override { return nextRelOffset; }
+    common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
     RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :

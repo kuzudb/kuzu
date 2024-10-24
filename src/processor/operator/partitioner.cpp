@@ -2,7 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/constants.h"
-#include "common/data_chunk/sel_vector.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -37,9 +36,10 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
     return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
 }
 
-void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo) {
-    maxNodeOffsets[0] = srcNodeTable->getNumRows();
-    maxNodeOffsets[1] = dstNodeTable->getNumRows();
+void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo,
+    main::ClientContext* clientContext) {
+    maxNodeOffsets[0] = srcNodeTable->getNumTotalRows(clientContext->getTx());
+    maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTx());
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
     numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
     Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
@@ -64,7 +64,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(
             std::move(localPartitioningStates[partitioningIdx]));
     }
@@ -89,8 +89,8 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
     partitionIdxes = std::make_unique<ValueVector>(LogicalTypeID::INT64);
 }
 
-void Partitioner::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    sharedState->initialize(dataInfo);
+void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->initialize(dataInfo, context->clientContext);
 }
 
 void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {

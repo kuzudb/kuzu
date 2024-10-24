@@ -88,6 +88,15 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
         *memoryManager->getBufferManager(), shadowFile, vfs, context);
 }
 
+row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
+    auto numLocalRows = 0u;
+    if (auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        numLocalRows = localTable->getNumTotalRows();
+    }
+    return numLocalRows + nodeGroups->getNumTotalRows();
+}
+
 void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& nodeScanState = scanState.cast<NodeTableScanState>();
     NodeGroup* nodeGroup = nullptr;
@@ -296,7 +305,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by

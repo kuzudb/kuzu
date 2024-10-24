@@ -40,13 +40,11 @@
 -STATEMENT CREATE (:V {id: 0}), (:V {id: 1});
 ---- ok
 -STATEMENT MATCH (ba:V)-[:after*0..]->(bb:V) return ba.id;
----- error
-Runtime exception: Current recursive algorithm does not work with uncommited data. Execute COMMIT or ROLLBACK first.
-#---- 2
-#0
-#1
-#-STATEMENT COMMIT;
-#---- ok
+---- 2
+0
+1
+-STATEMENT COMMIT;
+---- ok
 
 -CASE 3691
 -STATEMENT CREATE NODE TABLE V (id INT64, PRIMARY KEY(id));
@@ -557,11 +555,9 @@ Binder exception: Table rel2 does not exist.
 -STATEMENT CREATE (:V {id: 1})-[:R]->(:V {id: 2})-[:R]->(:V {id:3});
 ---- ok
 -STATEMENT MATCH p=(v:V)-[:R*]->(:V) RETURN properties(nodes(p), 'id');
----- error
-Runtime exception: Current recursive algorithm does not work with uncommited data. Execute COMMIT or ROLLBACK first.
-#---- 3
-#[1,2,3]
-#[1,2]
-#[2,3]
-#-STATEMENT COMMIT;
-#---- ok
+---- 3
+[1,2,3]
+[1,2]
+[2,3]
+-STATEMENT COMMIT;
+---- ok

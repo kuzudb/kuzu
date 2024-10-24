@@ -4,7 +4,6 @@
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
-#include "function/gds_function.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -157,8 +156,8 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     if (!properties.empty()) {
         auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
         auto scanPlan = LogicalPlan();
-        cardinalityEstimator.addNodeIDDom(*node.getInternalID(), node.getTableIDs(),
-            clientContext->getTx());
+        cardinalityEstimator.addNodeIDDom(clientContext->getTx(), *node.getInternalID(),
+            node.getTableIDs());
         appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
         expression_vector joinConditions;
         joinConditions.push_back(node.getInternalID());

@@ -59,7 +59,7 @@ struct PartitionerSharedState {
     // In copy rdf, we need to access num nodes before it is available in statistics.
     std::vector<std::shared_ptr<BatchInsertSharedState>> nodeBatchInsertSharedStates;
 
-    void initialize(const PartitionerDataInfo& dataInfo);
+    void initialize(const PartitionerDataInfo& dataInfo, main::ClientContext* clientContext);
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
         RelBatchInsertProgressSharedState& progressSharedState);
