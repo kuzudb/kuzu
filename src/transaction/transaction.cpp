@@ -5,6 +5,7 @@
 #include "main/client_context.h"
 #include "main/db_config.h"
 #include "storage/local_storage/local_storage.h"
+#include "storage/storage_manager.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
 
@@ -21,6 +22,11 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     undoBuffer = std::make_unique<storage::UndoBuffer>(this);
     currentTS = common::Timestamp::getCurrentTimestamp().value;
+    // Note that the use of `this` should be safe here as there is no inheritance.
+    for (auto tableID : clientContext.getCatalog()->getNodeTableIDs(this)) {
+        minUncommittedNodeOffsets[tableID] =
+            clientContext.getStorageManager()->getTable(tableID)->getNumRows();
+    }
 }
 
 Transaction::Transaction(TransactionType transactionType) noexcept
@@ -183,6 +189,20 @@ void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
 }
 
 Transaction::~Transaction() = default;
+
+Transaction::Transaction(TransactionType transactionType, common::transaction_t ID,
+    common::transaction_t startTS,
+    std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets,
+    std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets)
+    : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
+      currentTS{INT64_MAX}, clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false},
+      minUncommittedNodeOffsets{minUncommittedNodeOffsets},
+      maxCommittedNodeOffsets{maxCommittedNodeOffsets} {}
+
+Transaction Transaction::getDummyTransactionFromExistingOne(const Transaction& other) {
+    return Transaction(TransactionType::DUMMY, DUMMY_TRANSACTION_ID, DUMMY_START_TIMESTAMP,
+        other.minUncommittedNodeOffsets, other.maxCommittedNodeOffsets);
+}
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
 Transaction DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,

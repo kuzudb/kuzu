@@ -1,9 +1,6 @@
 #pragma once
 
-#include <map>
-
 #include "common/enums/table_type.h"
-#include "common/types/types.h"
 #include "storage/store/table.h"
 
 namespace kuzu {
@@ -13,10 +10,6 @@ class Transaction;
 
 namespace storage {
 class MemoryManager;
-
-using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
-using offset_to_row_idx_vec_t = std::map<common::offset_t, std::vector<common::row_idx_t>>;
-using offset_set_t = std::unordered_set<common::offset_t>;
 
 struct TableAddColumnState;
 struct TableInsertState;

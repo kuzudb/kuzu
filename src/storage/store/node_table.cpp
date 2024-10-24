@@ -32,7 +32,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     if (source == TableScanSource::UNCOMMITTED) {
-        nodeGroupStartOffset += StorageConstants::MAX_NUM_ROWS_IN_TABLE;
+        nodeGroupStartOffset = transaction->getUncommittedOffset(tableID, nodeGroupStartOffset);
     }
     for (auto i = 0u; i < scanResult.numRows; i++) {
         nodeIDVector->setValue(i,
@@ -125,14 +125,11 @@ bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState
         return false;
     }
     const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
-    offset_t rowIdxInGroup = INVALID_OFFSET;
-    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
-        rowIdxInGroup = nodeOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE -
-                        StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
-    } else {
-        rowIdxInGroup =
+    offset_t rowIdxInGroup =
+        transaction->isUnCommitted(tableID, nodeOffset) ?
+            transaction->getLocalRowIdx(tableID, nodeOffset) -
+                StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx);
-    }
     scanState.rowIdxVector->setValue<row_idx_t>(nodeIDPos, rowIdxInGroup);
     return scanState.nodeGroup->lookup(transaction, scanState);
 }
@@ -206,11 +203,12 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         validatePkNotExists(transaction, &nodeUpdateState.propertyVector);
     }
     const auto nodeOffset = nodeUpdateState.nodeIDVector.readNodeOffset(pos);
-    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+    if (transaction->isUnCommitted(tableID, nodeOffset)) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
         KU_ASSERT(localTable);
-        localTable->update(&DUMMY_TRANSACTION, updateState);
+        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
+        localTable->update(&dummyTrx, updateState);
     } else {
         if (nodeUpdateState.columnID == pkColumnID && pkIndex) {
             insertPK(transaction, nodeUpdateState.nodeIDVector, nodeUpdateState.propertyVector);
@@ -241,11 +239,11 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     }
     bool isDeleted = false;
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
-    if (nodeOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
-        const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
-            LocalStorage::NotExistAction::RETURN_NULL);
-        KU_ASSERT(localTable);
-        isDeleted = localTable->delete_(&DUMMY_TRANSACTION, deleteState);
+    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+        LocalStorage::NotExistAction::RETURN_NULL);
+    if (localTable && transaction->isUnCommitted(tableID, nodeOffset)) {
+        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
+        isDeleted = localTable->delete_(&dummyTrx, deleteState);
     } else {
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         const auto rowIdxInGroup =

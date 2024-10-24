@@ -40,7 +40,7 @@ public:
         common::transaction_t transactionID, common::transaction_t startTS);
 
     explicit Transaction(TransactionType transactionType) noexcept;
-    explicit Transaction(TransactionType transactionType, common::transaction_t ID,
+    Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS) noexcept;
 
     ~Transaction();
@@ -80,9 +80,33 @@ public:
     void setMaxCommittedNodeOffset(common::table_id_t tableID, common::offset_t offset) {
         maxCommittedNodeOffsets[tableID] = offset;
     }
-    common::offset_t getMaxNodeOffsetBeforeCommit(common::table_id_t tableID) const {
+    bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
+        return nodeOffset >= getMinUncommittedNodeOffset(tableID);
+    }
+    common::row_idx_t getLocalRowIdx(common::table_id_t tableID,
+        common::offset_t nodeOffset) const {
+        KU_ASSERT(isUnCommitted(tableID, nodeOffset));
+        return nodeOffset - getMinUncommittedNodeOffset(tableID);
+    }
+    common::offset_t getUncommittedOffset(common::table_id_t tableID,
+        common::row_idx_t localRowIdx) const {
+        return getMinUncommittedNodeOffset(tableID) + localRowIdx;
+    }
+    common::offset_t getMinUncommittedNodeOffset(common::table_id_t tableID) const {
+        // The only case that minUncommittedNodeOffsets doesn't track the given tableID is when the
+        // table is newly created within the same transaction, thus the minUncommittedNodeOffsets
+        // should be 0.
+        return minUncommittedNodeOffsets.contains(tableID) ? minUncommittedNodeOffsets.at(tableID) :
+                                                             0;
+    }
+    common::offset_t getMaxCommittedNodeOffset(common::table_id_t tableID) const {
         KU_ASSERT(maxCommittedNodeOffsets.contains(tableID));
         return maxCommittedNodeOffsets.at(tableID);
+    }
+    common::offset_t getCommittedOffsetFromUncommitted(common::table_id_t tableID,
+        common::offset_t uncommittedOffset) const {
+        KU_ASSERT(maxCommittedNodeOffsets.contains(tableID));
+        return maxCommittedNodeOffsets.at(tableID) + getLocalRowIdx(tableID, uncommittedOffset);
     }
 
     void pushCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
@@ -96,6 +120,14 @@ public:
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
+    static Transaction getDummyTransactionFromExistingOne(const Transaction& other);
+
+private:
+    Transaction(TransactionType transactionType, common::transaction_t ID,
+        common::transaction_t startTS,
+        std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets,
+        std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets);
+
 private:
     TransactionType type;
     common::transaction_t ID;
@@ -107,6 +139,13 @@ private:
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
     bool forceCheckpoint;
 
+    // For each node table, we keep track of the minimum uncommitted node offset when the
+    // transaction starts. This is mainly used to assign offsets to local nodes and determine if a
+    // given node is transaction local or not.
+    std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets;
+    // For each node table, we keep track of committed node offset when the transaction commits.
+    // This is mainly used to shift bound/nbr node offsets for rel tables within the same
+    // transaction.
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
