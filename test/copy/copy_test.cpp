@@ -1,23 +1,82 @@
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "graph_test/base_graph_test.h"
 #include "graph_test/graph_test.h"
 #include "main/database.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 namespace kuzu {
 namespace testing {
 
+class FlakyBufferManager : public storage::BufferManager {
+public:
+    FlakyBufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
+        uint64_t bufferPoolSize, uint64_t maxDBSize, common::VirtualFileSystem* vfs, bool readOnly,
+        uint64_t& failureFrequency)
+        : storage::BufferManager(databasePath, spillToDiskPath, bufferPoolSize, maxDBSize, vfs,
+              readOnly),
+          failureFrequency(failureFrequency) {}
+
+    bool reserve(uint64_t sizeToReserve) override {
+        reserveCount = (reserveCount + 1) % failureFrequency;
+        if (reserveCount == 0) {
+            failureFrequency *= 2;
+            return false;
+        }
+        return storage::BufferManager::reserve(sizeToReserve);
+    }
+
+    uint64_t& failureFrequency;
+    uint64_t reserveCount = 0;
+};
+
+class StubbedDatabase final : public main::Database {
+public:
+    static std::unique_ptr<Database> construct(std::string_view databasePath,
+        uint64_t& failureFrequency, main::SystemConfig systemConfig) {
+        auto ret = std::make_unique<StubbedDatabase>(failureFrequency, systemConfig);
+        ret->initMembers(databasePath);
+        return ret;
+    }
+
+    explicit StubbedDatabase(uint64_t& failureFrequency,
+        main::SystemConfig systemConfig = main::SystemConfig())
+        : main::Database(systemConfig), failureFrequency(failureFrequency) {}
+
+    std::unique_ptr<storage::BufferManager> initBufferManager() override {
+        return std::make_unique<FlakyBufferManager>(this->databasePath,
+            this->dbConfig.spillToDiskTmpFile.value_or(
+                vfs->joinPath(this->databasePath, "copy.tmp")),
+            this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly,
+            failureFrequency);
+    }
+
+    uint64_t& failureFrequency;
+};
+
 class CopyTest : public BaseGraphTest {
 public:
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        failureFrequency = 8;
+    }
+
     void resetDB(uint64_t bufferPoolSize) {
         systemConfig->bufferPoolSize = bufferPoolSize;
         conn.reset();
         database.reset();
         createDBAndConn();
     }
+    void resetDBFlaky() {
+        systemConfig->bufferPoolSize = main::SystemConfig{}.bufferPoolSize;
+        database = StubbedDatabase::construct(databasePath, failureFrequency, *systemConfig);
+        conn = std::make_unique<main::Connection>(database.get());
+    }
     std::string getInputDir() override { KU_UNREACHABLE; }
+    uint64_t failureFrequency;
 };
 
-TEST_F(CopyTest, DISABLED_OutOfMemoryRecovery) {
+TEST_F(CopyTest, RelCopyOutOfMemoryRecovery) {
     if (inMemMode) {
         GTEST_SKIP();
     }
@@ -52,6 +111,45 @@ TEST_F(CopyTest, DISABLED_OutOfMemoryRecovery) {
         ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2420766);
+    }
+}
+
+TEST_F(CopyTest, NodeCopyOutOfMemoryRecovery) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    static constexpr uint64_t dbSize = 64 * 1024 * 1024;
+    resetDB(dbSize);
+    conn->query("CREATE NODE TABLE Comment(ID INT64, creationDate TIMESTAMP, locationIP STRING, "
+                "browserUsed STRING, content STRING, length INT64, PRIMARY KEY(ID));");
+    for (int i = 0;; i++) {
+        ASSERT_LT(i, 50);
+
+        resetDBFlaky();
+        resetDBFlaky();
+        auto result = conn->query(common::stringFormat(
+            "COPY Comment FROM \"{}/dataset/ldbc-1/csv/comment_0_0.csv\"", KUZU_ROOT_DIRECTORY));
+        if (!result->isSuccess()) {
+            ASSERT_EQ(result->getErrorMessage(), "Buffer manager exception: Unable to allocate "
+                                                 "memory! The buffer pool is full and no "
+                                                 "memory could be freed!");
+        } else {
+            // the copy shouldn't succeed first try
+            ASSERT_GT(i, 0);
+            break;
+        }
+    }
+    // Try opening then closing the database
+    resetDB(dbSize);
+    // Try again with a larger buffer pool size
+    resetDB(dbSize);
+
+    {
+        // Test that the table copied as expected after the query
+        auto result = conn->query("MATCH (a:Comment) RETURN COUNT(*)");
+        ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
+        ASSERT_TRUE(result->hasNext());
+        ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 81305);
     }
 }
 

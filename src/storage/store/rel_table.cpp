@@ -378,6 +378,11 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     hasChanges = true;
 }
 
+NodeGroup* RelTable::getNodeGroup(node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
+    return direction == RelDataDirection::FWD ? fwdRelTableData->getNodeGroup(nodeGroupIdx) :
+                                                bwdRelTableData->getNodeGroup(nodeGroupIdx);
+}
+
 NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
     RelDataDirection direction) const {
     return direction == RelDataDirection::FWD ?

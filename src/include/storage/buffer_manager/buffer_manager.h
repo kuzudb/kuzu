@@ -180,7 +180,7 @@ class BufferManager {
 public:
     BufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
         uint64_t bufferPoolSize, uint64_t maxDBSize, common::VirtualFileSystem* vfs, bool readOnly);
-    ~BufferManager();
+    virtual ~BufferManager();
 
     // Currently, these functions are specifically used only for WAL files.
     void removeFilePagesFromFrames(FileHandle& fileHandle);
@@ -204,6 +204,11 @@ public:
         }
     }
 
+protected:
+    // Reclaims used memory until the given size to reserve is available
+    // The specified amount of memory will be recorded as being used
+    virtual bool reserve(uint64_t sizeToReserve);
+
 private:
     uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
@@ -221,9 +226,6 @@ private:
 
     static void verifySizeParams(uint64_t bufferPoolSize, uint64_t maxDBSize);
 
-    // Reclaims used memory until the given size to reserve is available
-    // The specified amount of memory will be recorded as being used
-    bool reserve(uint64_t sizeToReserve);
     bool claimAFrame(FileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
     // Return number of bytes freed.

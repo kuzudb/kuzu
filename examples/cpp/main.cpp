@@ -4,7 +4,7 @@
 using namespace kuzu::main;
 
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
+    auto database = Database::construct("" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
 
     // Create schema.

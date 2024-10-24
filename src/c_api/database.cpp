@@ -9,9 +9,10 @@ kuzu_state kuzu_database_init(const char* database_path, kuzu_system_config conf
     kuzu_database* out_database) {
     try {
         std::string database_path_str = database_path;
-        out_database->_database = new Database(database_path_str,
+        out_database->_database = Database::construct(database_path_str,
             SystemConfig(config.buffer_pool_size, config.max_num_threads, config.enable_compression,
-                config.read_only));
+                config.read_only))
+                                      .release();
     } catch (Exception& e) {
         out_database->_database = nullptr;
         return KuzuError;

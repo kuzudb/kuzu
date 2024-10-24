@@ -171,6 +171,8 @@ public:
                                                             bwdRelTableData->getColumn(columnID);
     }
 
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx,
+        common::RelDataDirection direction) const;
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
         common::RelDataDirection direction) const;
 
