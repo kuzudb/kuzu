@@ -6,6 +6,7 @@
 #include "main/db_config.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
+#include "storage/store/node_table.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
 
@@ -171,14 +172,24 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
     }
 }
 
+void Transaction::pushInsertInfo(storage::NodeGroupCollection* nodeGroups,
+    common::row_idx_t startRow, common::row_idx_t numRows) const {
+    undoBuffer->createInsertInfo(nodeGroups, startRow, numRows);
+}
+
+void Transaction::pushInsertInfo(storage::NodeTable* nodeTable, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    undoBuffer->createInsertInfo(nodeTable, startRow, numRows);
+}
+
 void Transaction::pushInsertInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
     common::row_idx_t startRow, common::row_idx_t numRows) const {
     undoBuffer->createInsertInfo(chunkedNodeGroup, startRow, numRows);
 }
 
-void Transaction::pushDeleteInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
-    common::row_idx_t startRow, common::row_idx_t numRows) const {
-    undoBuffer->createDeleteInfo(chunkedNodeGroup, startRow, numRows);
+void Transaction::pushDeleteInfo(storage::ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    undoBuffer->createDeleteInfo(nodeGroup, startRow, numRows);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,

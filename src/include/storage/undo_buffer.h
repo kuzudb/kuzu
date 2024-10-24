@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <variant>
 
 #include "common/constants.h"
 #include "common/types/types.h"
@@ -65,6 +66,8 @@ private:
 class UpdateInfo;
 class VersionInfo;
 struct VectorUpdateInfo;
+class NodeGroupCollection;
+class NodeTable;
 class ChunkedNodeGroup;
 class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
@@ -85,9 +88,13 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void createInsertInfo(NodeGroupCollection* nodeGroupCollection, common::row_idx_t startRow,
         common::row_idx_t numRows);
-    void createDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void createInsertInfo(NodeTable* nodeTable, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    void createInsertInfo(ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    void createDeleteInfo(ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
         common::row_idx_t numRows);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
@@ -100,7 +107,8 @@ public:
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVersionInfo(UndoRecordType recordType, ChunkedNodeGroup* chunkedNodeGroup,
+    void createVersionInfo(UndoRecordType recordType,
+        std::variant<NodeTable*, NodeGroupCollection*, ChunkedNodeGroup*> object,
         common::row_idx_t startRow, common::row_idx_t numRows);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,

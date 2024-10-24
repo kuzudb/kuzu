@@ -139,7 +139,8 @@ public:
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
-    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_);
+    template<typename Func>
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_, const Func& func);
     void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
     void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_);
@@ -181,6 +182,24 @@ protected:
     // it is safe to do so. If false, it is safe to spill the data to disk.
     bool dataInUse;
 };
+
+template<typename Func>
+void ChunkedNodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+    const Func& func) {
+    func(this, startRow, numRows_);
+
+    if (startRow == 0) {
+        setNumRows(0);
+        versionInfo.reset();
+        return;
+    }
+    if (startRow >= numRows) {
+        // Nothing to rollback.
+        return;
+    }
+    versionInfo->rollbackInsert(startRow, numRows_);
+    numRows = startRow;
+}
 
 } // namespace storage
 } // namespace kuzu

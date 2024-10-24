@@ -20,6 +20,8 @@ class WAL;
 class VersionInfo;
 class UpdateInfo;
 struct VectorUpdateInfo;
+class NodeGroupCollection;
+class NodeTable;
 class ChunkedNodeGroup;
 } // namespace storage
 namespace transaction {
@@ -113,9 +115,13 @@ public:
         bool skipLoggingToWAL = false) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
-    void pushInsertInfo(storage::ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void pushInsertInfo(storage::NodeGroupCollection* nodeGroup, common::row_idx_t startRow,
         common::row_idx_t numRows) const;
-    void pushDeleteInfo(storage::ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void pushInsertInfo(storage::NodeTable* nodeTable, common::row_idx_t startRow,
+        common::row_idx_t numRows) const;
+    void pushInsertInfo(storage::ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
+        common::row_idx_t numRows) const;
+    void pushDeleteInfo(storage::ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
         common::row_idx_t numRows) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;

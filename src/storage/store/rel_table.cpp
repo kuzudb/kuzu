@@ -378,11 +378,26 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     hasChanges = true;
 }
 
+NodeGroup* RelTable::getNodeGroup(node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
+    return direction == RelDataDirection::FWD ? fwdRelTableData->getNodeGroup(nodeGroupIdx) :
+                                                bwdRelTableData->getNodeGroup(nodeGroupIdx);
+}
+
 NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
     RelDataDirection direction) const {
     return direction == RelDataDirection::FWD ?
                fwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx) :
                bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx);
+}
+
+void RelTable::pushInsertInfo(Transaction* transaction, RelDataDirection direction,
+    node_group_idx_t nodeGroupIdx, row_idx_t numRows_) {
+    if (transaction->shouldAppendToUndoBuffer()) {
+        auto& relTableData =
+            (direction == common::RelDataDirection::FWD) ? fwdRelTableData : bwdRelTableData;
+        transaction->pushInsertInfo(relTableData->getNodeGroups(),
+            relTableData->getNumRows(nodeGroupIdx + 1), numRows_);
+    }
 }
 
 void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
@@ -401,22 +416,26 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     for (auto i = 0u; i < localRelTable.getNumColumns(); i++) {
         columnIDsToScan.push_back(i);
     }
-    auto& fwdIndex = localRelTable.getFWDIndex();
-    for (auto& [boundNodeOffset, rowIndices] : fwdIndex) {
-        auto [nodeGroupIdx, boundOffsetInGroup] =
-            StorageUtils::getQuotientRemainder(boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
-        auto& nodeGroup = fwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
-        prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,
-            rowIndices, LOCAL_BOUND_NODE_ID_COLUMN_ID);
-    }
-    auto& bwdIndex = localRelTable.getBWDIndex();
-    for (auto& [boundNodeOffset, rowIndices] : bwdIndex) {
-        auto [nodeGroupIdx, boundOffsetInGroup] =
-            StorageUtils::getQuotientRemainder(boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
-        auto& nodeGroup = bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
-        prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,
-            rowIndices, LOCAL_NBR_NODE_ID_COLUMN_ID);
-    }
+
+    const auto commitRelTableData = [&](RelDataDirection direction) {
+        auto [index, relTableData, columnToSkip] =
+            (direction == common::RelDataDirection::FWD) ?
+                std::tie(localRelTable.getFWDIndex(), fwdRelTableData,
+                    LOCAL_BOUND_NODE_ID_COLUMN_ID) :
+                std::tie(localRelTable.getBWDIndex(), bwdRelTableData, LOCAL_NBR_NODE_ID_COLUMN_ID);
+        for (auto& [boundNodeOffset, rowIndices] : index) {
+            auto [nodeGroupIdx, boundOffsetInGroup] = StorageUtils::getQuotientRemainder(
+                boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
+            auto& nodeGroup =
+                relTableData->getOrCreateNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
+            pushInsertInfo(transaction, direction, nodeGroupIdx, rowIndices.size());
+            prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,
+                rowIndices, columnToSkip);
+        }
+    };
+    commitRelTableData(common::RelDataDirection::FWD);
+    commitRelTableData(common::RelDataDirection::BWD);
+
     localRelTable.clear();
 }
 

@@ -20,7 +20,7 @@ public:
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
     void append(const transaction::Transaction* transaction, NodeGroupCollection& other);
-    void appned(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
+    void append(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
 
     // This function only tries to append data into the last node group, and if the last node group
     // is not enough to hold all the data, it will append partially and return the number of rows
@@ -54,6 +54,12 @@ public:
         nodeGroups.replaceGroup(lock, nodeGroupIdx, std::move(group));
     }
 
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
+
+    template<typename Func>
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_, const Func& func);
+
     void clear() {
         const auto lock = nodeGroups.lock();
         nodeGroups.clear(lock);
@@ -81,6 +87,35 @@ private:
     FileHandle* dataFH;
     TableStats stats;
 };
+
+template<typename Func>
+void NodeGroupCollection::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+    const Func& func) {
+    const auto lock = nodeGroups.lock();
+    common::node_group_idx_t startNodeGroupIdx = 0;
+    auto rowIdx = startRow;
+    while (startNodeGroupIdx < nodeGroups.getNumGroups(lock) &&
+           rowIdx >= nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows()) {
+        rowIdx -= nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows();
+        ++startNodeGroupIdx;
+    }
+    const auto startRowInNodeGroup = rowIdx;
+    const bool shouldRemoveStartGroup = (startRowInNodeGroup == 0);
+    KU_ASSERT(startNodeGroupIdx < nodeGroups.getNumGroups(lock));
+    const auto numGroupsToRemove =
+        nodeGroups.getNumGroups(lock) - startNodeGroupIdx - (shouldRemoveStartGroup ? 0 : 1);
+    for (common::node_group_idx_t i = nodeGroups.getNumGroups(lock) - numGroupsToRemove;
+         i < nodeGroups.getNumGroups(lock); ++i) {
+        nodeGroups.getGroup(lock, i)->rollbackInsert(0, nodeGroups.getGroup(lock, i)->getNumRows(),
+            func);
+    }
+    nodeGroups.removeTrailingGroups(numGroupsToRemove, lock);
+    if (!shouldRemoveStartGroup) {
+        nodeGroups.getGroup(lock, startNodeGroupIdx)
+            ->rollbackInsert(startRowInNodeGroup, numRows_, func);
+    }
+    numTotalRows = startRow;
+}
 
 } // namespace storage
 } // namespace kuzu

@@ -5,6 +5,8 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "storage/store/chunked_node_group.h"
+#include "storage/store/node_group_collection.h"
+#include "storage/store/node_table.h"
 #include "storage/store/update_info.h"
 
 using namespace kuzu::catalog;
@@ -37,7 +39,7 @@ struct NodeBatchInsertRecord {
 };
 
 struct VersionRecord {
-    ChunkedNodeGroup* chunkedNodeGroup;
+    std::variant<NodeTable*, NodeGroupCollection*, ChunkedNodeGroup*> object;
     row_idx_t startRow;
     row_idx_t numRows;
 };
@@ -109,23 +111,33 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
+void UndoBuffer::createInsertInfo(NodeGroupCollection* nodeGroups, row_idx_t startRow,
+    row_idx_t numRows) {
+    createVersionInfo(UndoRecordType::INSERT_INFO, nodeGroups, startRow, numRows);
+}
+
+void UndoBuffer::createInsertInfo(NodeTable* nodeTable, row_idx_t startRow, row_idx_t numRows) {
+    createVersionInfo(UndoRecordType::INSERT_INFO, nodeTable, startRow, numRows);
+}
+
 void UndoBuffer::createInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
     row_idx_t numRows) {
     createVersionInfo(UndoRecordType::INSERT_INFO, chunkedNodeGroup, startRow, numRows);
 }
 
-void UndoBuffer::createDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow,
+void UndoBuffer::createDeleteInfo(ChunkedNodeGroup* nodeGroup, row_idx_t startRow,
     row_idx_t numRows) {
-    createVersionInfo(UndoRecordType::DELETE_INFO, chunkedNodeGroup, startRow, numRows);
+    createVersionInfo(UndoRecordType::DELETE_INFO, nodeGroup, startRow, numRows);
 }
 
 void UndoBuffer::createVersionInfo(const UndoRecordType recordType,
-    ChunkedNodeGroup* chunkedNodeGroup, row_idx_t startRow, row_idx_t numRows) {
+    std::variant<NodeTable*, NodeGroupCollection*, ChunkedNodeGroup*> object, row_idx_t startRow,
+    row_idx_t numRows) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VersionRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    const VersionRecord vectorVersionRecord{chunkedNodeGroup, startRow, numRows};
+    const VersionRecord vectorVersionRecord{object, startRow, numRows};
     *reinterpret_cast<VersionRecord*>(buffer) = vectorVersionRecord;
 }
 
@@ -210,12 +222,18 @@ void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* rec
     const auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        undoRecord.chunkedNodeGroup->commitInsert(undoRecord.startRow, undoRecord.numRows,
-            commitTS);
+        std::visit(
+            [&undoRecord, commitTS]<typename T>(T*) {
+                std::get<T*>(undoRecord.object)
+                    ->commitInsert(undoRecord.startRow, undoRecord.numRows, commitTS);
+            },
+            undoRecord.object);
     } break;
     case UndoRecordType::DELETE_INFO: {
-        undoRecord.chunkedNodeGroup->commitDelete(undoRecord.startRow, undoRecord.numRows,
-            commitTS);
+        if (std::holds_alternative<ChunkedNodeGroup*>(undoRecord.object)) {
+            auto* chunkedNodeGroup = std::get<ChunkedNodeGroup*>(undoRecord.object);
+            chunkedNodeGroup->commitDelete(undoRecord.startRow, undoRecord.numRows, commitTS);
+        }
     } break;
     default: {
         KU_UNREACHABLE;
@@ -289,10 +307,25 @@ void UndoBuffer::rollbackVersionInfo(UndoRecordType recordType, const uint8_t* r
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        undoRecord.chunkedNodeGroup->rollbackInsert(undoRecord.startRow, undoRecord.numRows);
+        std::visit(
+            [&undoRecord]<typename T>(T*) {
+                if constexpr (std::is_same_v<T, NodeTable>) {
+                    std::get<T*>(undoRecord.object)
+                        ->rollbackInsert(undoRecord.startRow, undoRecord.numRows);
+                } else {
+                    std::get<T*>(undoRecord.object)
+                        ->rollbackInsert(undoRecord.startRow, undoRecord.numRows,
+                            [](ChunkedNodeGroup*, row_idx_t, row_idx_t) {});
+                }
+            },
+            undoRecord.object);
+
     } break;
     case UndoRecordType::DELETE_INFO: {
-        undoRecord.chunkedNodeGroup->rollbackDelete(undoRecord.startRow, undoRecord.numRows);
+        if (std::holds_alternative<ChunkedNodeGroup*>(undoRecord.object)) {
+            std::get<ChunkedNodeGroup*>(undoRecord.object)
+                ->rollbackDelete(undoRecord.startRow, undoRecord.numRows);
+        }
     } break;
     default: {
         KU_UNREACHABLE;

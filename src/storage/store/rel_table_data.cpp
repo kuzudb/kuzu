@@ -186,6 +186,16 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     return false;
 }
 
+common::row_idx_t RelTableData::getNumRows(common::node_group_idx_t maxNodeGroupIdx) const {
+    common::row_idx_t numRows = 0;
+    const auto numGroups = nodeGroups->getNumNodeGroups();
+    for (auto nodeGroupIdx = 0u; nodeGroupIdx < std::min(maxNodeGroupIdx, numGroups);
+         nodeGroupIdx++) {
+        numRows += nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
+    }
+    return numRows;
+}
+
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
     std::vector<std::unique_ptr<Column>> checkpointColumns;
     for (auto i = 0u; i < columnIDs.size(); i++) {

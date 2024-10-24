@@ -62,11 +62,11 @@ void NodeGroupCollection::append(const Transaction* transaction,
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
     const auto otherLock = other.nodeGroups.lock();
     for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
-        appned(transaction, *nodeGroup);
+        append(transaction, *nodeGroup);
     }
 }
 
-void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& nodeGroup) {
+void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& nodeGroup) {
     const auto numRowsToAppend = nodeGroup.getNumRows();
     KU_ASSERT(nodeGroup.getDataTypes().size() == types.size());
     const auto lock = nodeGroups.lock();
@@ -102,25 +102,34 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
     stats.incrementCardinality(numRowsToAppend);
 }
 
+static void appendNodeGroupIfNeeded(std::unique_ptr<NodeGroup> nodeGroupToAppend,
+    GroupCollection<NodeGroup>& nodeGroups, const common::UniqLock& lock) {
+    if (nodeGroupToAppend) {
+        nodeGroups.appendGroup(lock, std::move(nodeGroupToAppend));
+    }
+}
+
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
     Transaction* transaction, ChunkedNodeGroup& chunkedGroup) {
     NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
     bool directFlushWhenAppend = false;
+    std::unique_ptr<NodeGroup> nodeGroupToAppend;
     {
         const auto lock = nodeGroups.lock();
         startOffset = numTotalRows;
-        if (nodeGroups.isEmpty(lock)) {
-            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
-                                             enableCompression, LogicalType::copy(types)));
-        }
         lastNodeGroup = nodeGroups.getLastGroup(lock);
+        if (nodeGroups.isEmpty(lock)) {
+            nodeGroupToAppend = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
+                enableCompression, LogicalType::copy(types));
+            lastNodeGroup = nodeGroupToAppend.get();
+        }
         auto numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         if (numRowsLeftInLastNodeGroup == 0) {
-            nodeGroups.appendGroup(lock, std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
-                                             enableCompression, LogicalType::copy(types)));
-            lastNodeGroup = nodeGroups.getLastGroup(lock);
+            nodeGroupToAppend = std::make_unique<NodeGroup>(nodeGroups.getNumGroups(lock),
+                enableCompression, LogicalType::copy(types));
+            lastNodeGroup = nodeGroupToAppend.get();
             numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         }
         numToAppend = std::min(chunkedGroup.getNumRows(), numRowsLeftInLastNodeGroup);
@@ -129,6 +138,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
         if (!directFlushWhenAppend) {
+            appendNodeGroupIfNeeded(std::move(nodeGroupToAppend), nodeGroups, lock);
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
             lastNodeGroup->append(transaction, chunkedGroup, 0, numToAppend);
@@ -139,8 +149,10 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *dataFH);
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
+        appendNodeGroupIfNeeded(std::move(nodeGroupToAppend), nodeGroups, nodeGroups.lock());
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
+
     stats.incrementCardinality(numToAppend);
     return {startOffset, numToAppend};
 }
@@ -188,6 +200,31 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         nodeGroup->checkpoint(memoryManager, state);
+    }
+}
+
+void NodeGroupCollection::commitInsert(row_idx_t startRow, row_idx_t numRows_,
+    common::transaction_t commitTS) {
+    const auto lock = nodeGroups.lock();
+    node_group_idx_t startNodeGroupIdx = 0;
+    auto rowIdx = startRow;
+    while (startNodeGroupIdx < nodeGroups.getNumGroups(lock) &&
+           rowIdx > nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows()) {
+        rowIdx -= nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows();
+        ++startNodeGroupIdx;
+    }
+
+    auto startRowInNodeGroup = rowIdx;
+    auto numRowsLeft = numRows_;
+    while (numRowsLeft > 0 && startNodeGroupIdx < nodeGroups.getNumGroups(lock)) {
+        auto* nodeGroup = nodeGroups.getGroup(lock, startNodeGroupIdx);
+        const auto numRowsForGroup =
+            std::min(numRowsLeft, nodeGroup->getNumRows() - startRowInNodeGroup);
+        nodeGroup->commitInsert(startRowInNodeGroup, numRowsForGroup, commitTS);
+
+        ++startNodeGroupIdx;
+        numRowsLeft -= numRowsForGroup;
+        startRowInNodeGroup = 0;
     }
 }
 

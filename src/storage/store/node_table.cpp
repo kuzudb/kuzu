@@ -290,6 +290,9 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
     ChunkedNodeGroup& chunkedGroup) {
     hasChanges = true;
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushInsertInfo(this, nodeGroups->getNumTotalRows(), chunkedGroup.getNumRows());
+    }
     return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, chunkedGroup);
 }
 
@@ -301,6 +304,10 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     // Note: We cannot simply remove all deleted tuples in local node table, as they may have
     // connected local rels. Directly removing them will cause shift of committed node offset,
     // leading to inconsistent result with connected rels.
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushInsertInfo(this, nodeGroups->getNumTotalRows(),
+            localNodeTable.getNumTotalRows());
+    }
     nodeGroups->append(transaction, localNodeTable.getNodeGroups());
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
@@ -405,6 +412,73 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     serialize(ser);
 }
 
+template<typename T>
+concept notIndexHashable = !IndexHashable<T>;
+static void indexRollback(ChunkedNodeGroup* chunkedGroup, common::row_idx_t startRow,
+    common::row_idx_t numRows_, PrimaryKeyIndex* pkIndex, column_id_t pkColumnId) {
+    const auto& pkColumnChunk = chunkedGroup->getColumnChunk(pkColumnId).getData();
+    auto rollbackFunc = [&]<IndexHashable T>(T) {
+        for (row_idx_t i = startRow; i < std::min(startRow + numRows_, chunkedGroup->getNumRows());
+             ++i) {
+            T key = pkColumnChunk.getValue<T>(i);
+            pkIndex->delete_(key);
+        }
+    };
+    TypeUtils::visit(pkColumnChunk.getDataType(), std::cref(rollbackFunc),
+        []<notIndexHashable T>(T) { KU_UNREACHABLE; });
+}
+
+void NodeTable::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_) {
+    {
+        // const auto& pkType = columns[pkColumnID]->getDataType();
+        // auto nodeIDVector =
+        //     std::make_shared<ValueVector>(LogicalType::INTERNAL_ID(), memoryManager);
+        // auto deleteVector = std::make_shared<ValueVector>(pkType.copy(), memoryManager);
+        // auto state = std::make_shared<DataChunkState>();
+        // state->initOriginalAndSelectedSize(DEFAULT_VECTOR_CAPACITY);
+        // state->setToFlat();
+        // deleteVector->setState(state);
+        // nodeIDVector->setState(state);
+
+        // auto scanState =
+        //     std::make_unique<NodeTableScanState>(tableID, std::vector<column_id_t>{pkColumnID},
+        //         std::vector<const Column*>{columns[pkColumnID].get()});
+        // scanState->nodeIDVector = nodeIDVector.get();
+        // scanState->outputVectors = {deleteVector.get()};
+        // scanState->outState = state.get();
+
+        const auto numGroups = nodeGroups->getNumNodeGroups();
+        common::row_idx_t curRow = 0;
+        for (node_group_idx_t i = 0; i < numGroups; ++i) {
+            auto* nodeGroup = nodeGroups->getNodeGroup(i);
+            // scanState->initState(&DUMMY_TRANSACTION, nodeGroup);
+            if (curRow >= startRow && curRow + nodeGroup->getNumRows() <= startRow + numRows_) {
+
+                auto startRowInChunk =
+                    (startRow < curRow + nodeGroup->getNumRows()) ? (startRow - curRow) : 0;
+                auto numRowsInChunk = nodeGroup->getNumRows() - startRowInChunk;
+                auto chunkedGroup =
+                    nodeGroup->scanAll(*memoryManager, {pkColumnID}, {columns[pkColumnID].get()});
+                indexRollback(chunkedGroup.get(), startRowInChunk, numRowsInChunk, pkIndex.get(),
+                    pkColumnID);
+            }
+
+            curRow += nodeGroup->getNumRows();
+        }
+    }
+    auto indexRollbackFunc = [this](ChunkedNodeGroup* chunkedGroup,
+                                 common::row_idx_t startRowInChunk,
+                                 common::row_idx_t numRowsInChunk) {
+        // indexRollback(chunkedGroup, startRowInChunk, numRowsInChunk, pkIndex.get(), pkColumnID);
+    };
+    nodeGroups->rollbackInsert(startRow, numRows_, indexRollbackFunc);
+}
+
+void NodeTable::commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+    common::transaction_t commitTS) {
+    nodeGroups->commitInsert(startRow, numRows_, commitTS);
+}
+
 TableStats NodeTable::getStats(const Transaction* transaction) const {
     auto stats = nodeGroups->getStats();
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -429,6 +503,9 @@ bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const
 
 bool NodeTable::isVisibleNoLock(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    if (nodeGroupIdx >= nodeGroups->getNumNodeGroups()) {
+        return false;
+    }
     auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
     return nodeGroup->isVisibleNoLock(transaction, offsetInGroup);
 }

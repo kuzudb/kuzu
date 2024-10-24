@@ -71,6 +71,7 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
                 ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, ResidencyState::IN_MEMORY));
     }
+
     row_idx_t numRowsAppended = 0;
     while (numRowsAppended < numRowsToAppend) {
         auto lastChunkedGroup = chunkedGroups.getLastGroup(lock);
@@ -87,6 +88,7 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
             numRowsToAppendInGroup);
         numRowsAppended += numRowsToAppendInGroup;
     }
+
     numRows += numRowsAppended;
 }
 
@@ -96,8 +98,8 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType().getPhysicalType() ==
                   dataTypes[i].getPhysicalType());
     }
-    const auto lock = chunkedGroups.lock();
     numRows += chunkedGroup->getNumRows();
+    const auto lock = chunkedGroups.lock();
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
@@ -282,25 +284,51 @@ void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
     chunkedGroups.resize(lock, 1);
 }
 
+void NodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRows_,
+    common::transaction_t commitTS) {
+    const auto lock = chunkedGroups.lock();
+    auto [startChunkedGroupIdx, startRowIdxInChunk] = findChunkedGroupIdxFromRowIdx(lock, startRow);
+
+    auto numRowsLeft = numRows_;
+    while (numRowsLeft > 0 && startChunkedGroupIdx < chunkedGroups.getNumGroups(lock)) {
+        auto* nodeGroup = chunkedGroups.getGroup(lock, startChunkedGroupIdx);
+        const auto numRowsForGroup =
+            std::min(numRowsLeft, nodeGroup->getNumRows() - startRowIdxInChunk);
+        nodeGroup->commitInsert(startRowIdxInChunk, numRowsForGroup, commitTS);
+
+        ++startChunkedGroupIdx;
+        numRowsLeft -= numRowsForGroup;
+        startRowIdxInChunk = 0;
+    }
+}
+
+std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAll(MemoryManager& memoryManager,
+    const std::vector<common::column_id_t>& columnIDs, const std::vector<const Column*>& columns) {
+    auto lock = chunkedGroups.lock();
+    return scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager, lock, columnIDs,
+        columns);
+}
+
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
     // We don't need to consider deletions here, as they are flushed separately as metadata.
     // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
     // flushing the data.
     const auto lock = chunkedGroups.lock();
-    KU_ASSERT(chunkedGroups.getNumGroups(lock) >= 1);
-    const auto firstGroup = chunkedGroups.getFirstGroup(lock);
-    const auto hasPersistentData = firstGroup->getResidencyState() == ResidencyState::ON_DISK;
-    // Re-populate version info here first.
-    auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
-    std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
-    if (hasPersistentData) {
-        checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
-    } else {
-        checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+    if (!chunkedGroups.isEmpty(lock)) {
+        const auto firstGroup = chunkedGroups.getFirstGroup(lock);
+        const auto hasPersistentData = firstGroup->getResidencyState() == ResidencyState::ON_DISK;
+        // Re-populate version info here first.
+        auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
+        std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
+        if (hasPersistentData) {
+            checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+        } else {
+            checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        }
+        checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
+        chunkedGroups.clear(lock);
+        chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
     }
-    checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
-    chunkedGroups.clear(lock);
-    chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
 }
 
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryManager& memoryManager,
@@ -455,21 +483,37 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     }
 }
 
-ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) {
-    KU_ASSERT(!chunkedGroups.isEmpty(lock));
+std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdx(const UniqLock& lock,
+    row_idx_t rowIdx) {
+    if (chunkedGroups.isEmpty(lock)) {
+        return {UINT32_MAX, UINT64_MAX};
+    }
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroup(lock)->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
-        return chunkedGroups.getFirstGroup(lock);
+        return {0, rowIdx};
     }
     rowIdx -= numRowsInFirstGroup;
     const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    const auto rowIdxInChunk = rowIdx % ChunkedNodeGroup::CHUNK_CAPACITY;
     if (chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
+        return {UINT32_MAX, UINT64_MAX};
+    }
+    return {chunkedGroupIdx, rowIdxInChunk};
+}
+
+ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) {
+    const auto [chunkedGroupIdx, rowIdxInChunkedGroup] =
+        findChunkedGroupIdxFromRowIdx(lock, rowIdx);
+    if (chunkedGroupIdx == UINT32_MAX) {
         return nullptr;
     }
     return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
 ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) {
+    if (chunkedGroups.getNumGroupsNoLock() == 0) {
+        return nullptr;
+    }
     const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
         return chunkedGroups.getFirstGroupNoLock();

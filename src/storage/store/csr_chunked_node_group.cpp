@@ -245,7 +245,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
         std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());
-    flushedChunkedGroup->versionInfo->append(transaction, flushedChunkedGroup.get(), 0, numRows);
+    flushedChunkedGroup->versionInfo->append(transaction, 0, numRows);
     return flushedChunkedGroup;
 }
 

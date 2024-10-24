@@ -57,14 +57,9 @@ public:
         return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
     }
 
-    common::row_idx_t getNumRows() const {
-        common::row_idx_t numRows = 0;
-        const auto numGroups = nodeGroups->getNumNodeGroups();
-        for (auto nodeGroupIdx = 0u; nodeGroupIdx < numGroups; nodeGroupIdx++) {
-            numRows += nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
-        }
-        return numRows;
-    }
+    NodeGroupCollection* getNodeGroups() { return nodeGroups.get(); }
+    common::row_idx_t getNumRows(common::node_group_idx_t maxNodeGroupIdx =
+                                     std::numeric_limits<common::node_group_idx_t>::max()) const;
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
 

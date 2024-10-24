@@ -80,6 +80,12 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     initMembers(databasePath);
 }
 
+Database::Database(std::string_view databasePath, SystemConfig systemConfig,
+    construct_bm_func_t constructBMFunc)
+    : dbConfig(systemConfig) {
+    initMembers(databasePath, constructBMFunc);
+}
+
 std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Database& db) {
     return std::make_unique<BufferManager>(db.databasePath,
         db.dbConfig.spillToDiskTmpFile.value_or(db.vfs->joinPath(db.databasePath, "copy.tmp")),

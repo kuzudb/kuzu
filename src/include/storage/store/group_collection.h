@@ -24,6 +24,13 @@ public:
             [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
     }
 
+    void removeTrailingGroups(common::idx_t numGroups, const common::UniqLock&) {
+        KU_ASSERT(numGroups <= groups.size());
+        for (common::idx_t i = 0; i < numGroups; ++i) {
+            groups.pop_back();
+        }
+    }
+
     void serializeGroups(common::Serializer& ser) {
         auto lockGuard = lock();
         ser.serializeVectorOfPtrs<T>(groups);
