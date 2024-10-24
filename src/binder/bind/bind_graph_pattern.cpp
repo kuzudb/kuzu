@@ -55,8 +55,13 @@ QueryGraph Binder::bindPatternElement(const PatternElement& patternElement) {
         nodeAndRels.push_back(rightNode);
         leftNode = rightNode;
     }
-    if (patternElement.hasPathName()) {
-        auto pathName = patternElement.getPathName();
+
+    if (patternElement.hasPathName() ||
+        this->clientContext->getClientConfig()->recursivePatternSemantic != PathSemantic::WALK) {
+        // query may not explicitly define a path name, but it requires a path for semantic filter;
+        // therefore, an implicitly defined path is added internally.
+        auto pathName =
+            patternElement.hasPathName() ? patternElement.getPathName() : getInternalPathName();
         auto pathExpression = createPath(pathName, nodeAndRels);
         addToScope(pathName, pathExpression);
     }

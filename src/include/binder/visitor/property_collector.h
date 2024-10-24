@@ -1,6 +1,8 @@
 #pragma once
 
 #include "binder/bound_statement_visitor.h"
+#include "common/enums/path_semantic.h"
+#include "main/client_config.h"
 
 namespace kuzu {
 namespace binder {
@@ -13,6 +15,11 @@ public:
     // Skip collecting node/rel properties if they are in WITH projection list.
     // See with_clause_projection_rewriter for more details.
     void visitSingleQuerySkipNodeRel(const NormalizedSingleQuery& singleQuery);
+
+    inline void setRecursivePatternSemantic(common::PathSemantic semantic) {
+        recursivePatternSemantic = semantic;
+    }
+    inline common::PathSemantic getRecursivePatternSemantic() { return recursivePatternSemantic; }
 
 private:
     void visitQueryPartSkipNodeRel(const NormalizedQueryPart& queryPart);
@@ -36,6 +43,8 @@ private:
 
 private:
     expression_set properties;
+    common::PathSemantic recursivePatternSemantic =
+        main::ClientConfigDefault::RECURSIVE_PATTERN_SEMANTIC;
 };
 
 } // namespace binder
