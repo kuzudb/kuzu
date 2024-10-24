@@ -2,6 +2,7 @@
 
 #include "args.hxx"
 #include "common/file_system/local_file_system.h"
+#include "common/task_system/progress_bar.h"
 #include "embedded_shell.h"
 #include "linenoise.h"
 #include "main/db_config.h"
@@ -88,9 +89,8 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<std::string> mode(parser, "", "Set the output mode of the shell",
         {'m', "mode"});
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
-    // TODO: re-enable when progress bar performance issues are fixed
-    /*args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
-        {'b', "no_progress_bar", "noprogressbar"});*/
+    args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
+        {'b', "no_progress_bar", "noprogressbar"});
     args::ValueFlag<std::string> init(parser, "", "Path to file with script to run on startup",
         {'i', "init"});
 
@@ -174,11 +174,10 @@ int main(int argc, char* argv[]) {
         std::cerr << e.what() << '\n';
         return 1;
     }
-    // TODO: re-enable when progress bar performance issues are fixed
-    /*if (!progress_bar) {
+    if (!progress_bar) {
         conn->getClientContext()->getClientConfigUnsafe()->enableProgressBar = true;
         conn->getClientContext()->getProgressBar()->toggleProgressBarPrinting(true);
-    }*/
+    }
 
     std::string initFile = ".kuzurc";
     if (init) {
