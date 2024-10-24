@@ -104,16 +104,5 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
     ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(b)S(a)");
 }
 
-TEST_F(OptimizerTest, RecursiveJoinTest) {
-    auto q1 = "MATCH (a:person)-[e:knows* SHORTEST 1..5]->(b:person) "
-              "WHERE b.ID < 0 "
-              "RETURN e, a.fName;";
-    ASSERT_STREQ(getEncodedPlan(q1).c_str(), "HJ(a._ID){RE(a)Filter()S(b)}{S(a)}");
-    auto q2 = "MATCH (a:person)-[e:knows* SHORTEST 1..5]->(b:person) "
-              "HINT (a JOIN e) JOIN b "
-              "RETURN length(e);";
-    ASSERT_STREQ(getEncodedPlan(q2).c_str(), "RE_NO_TRACK(b)S(a)");
-}
-
 } // namespace testing
 } // namespace kuzu

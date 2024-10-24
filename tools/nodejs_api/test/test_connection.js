@@ -234,7 +234,7 @@ describe("Timeout", function () {
       await newConn.init();
       newConn.setQueryTimeout(1);
       await newConn.query(
-        "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);"
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);"
       );
       assert.fail("No error thrown when the query times out.");
     } catch (err) {
@@ -248,7 +248,7 @@ describe("Timeout", function () {
       newConn.setQueryTimeout(1);
       await newConn.init();
       await newConn.query(
-        "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);"
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);"
       );
       assert.fail("No error thrown when the query times out.");
     } catch (err) {

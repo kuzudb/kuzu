@@ -44,6 +44,14 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto& pathPropertyProbe = op->cast<LogicalPathPropertyProbe>();
+
+    if (pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL) {
+        if (!nodeOrRelInUse.contains(pathPropertyProbe.getRel())) {
+            pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
+        }
+        return;
+    }
+
     if (pathPropertyProbe.getChild(0)->getOperatorType() !=
         planner::LogicalOperatorType::RECURSIVE_EXTEND) {
         return;

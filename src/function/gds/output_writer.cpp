@@ -81,7 +81,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     while (!curPath.empty()) {
         auto top = curPath[curPath.size() - 1];
         auto topNodeID = top->getNodeID();
-        if (topNodeID == sourceNodeID && top->getIter() == 1) {
+        if (top->getIter() == 1) {
             // check path
             if (checkPathNodeMask(curPath) && checkSemantic(curPath)) {
                 writePath(curPath);

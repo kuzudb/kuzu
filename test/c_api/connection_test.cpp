@@ -144,7 +144,7 @@ TEST_F(CApiConnectionTest, QueryTimeout) {
     auto connection = getConnection();
     ASSERT_EQ(kuzu_connection_set_query_timeout(connection, 1), KuzuSuccess);
     state = kuzu_connection_query(connection,
-        "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);", &result);
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);", &result);
     ASSERT_EQ(state, KuzuError);
     ASSERT_NE(result._query_result, nullptr);
     auto resultCpp = static_cast<QueryResult*>(result._query_result);
@@ -175,7 +175,7 @@ TEST_F(CApiConnectionTest, Interrupt) {
         } while (!finished);
     });
     state = kuzu_connection_query(connection,
-        "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);", &result);
+        "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);", &result);
     finished = true;
     ASSERT_EQ(state, KuzuError);
     ASSERT_NE(result._query_result, nullptr);
