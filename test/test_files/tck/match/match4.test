@@ -147,7 +147,7 @@ Binder exception: Bind relationship r to relationship with same name is not supp
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP Y(FROM A TO B, FROM B TO C);
+-STATEMENT CREATE REL TABLE Y(FROM A TO B, FROM B TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C)
            CREATE (a)-[:Y]->(b),
@@ -172,7 +172,7 @@ Binder exception: rs has data type REL[] but RECURSIVE_REL was expected.
 ---- ok
 -STATEMENT CREATE NODE TABLE D(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP LIKES(FROM A TO B, FROM B TO C, FROM C TO D);
+-STATEMENT CREATE REL TABLE LIKES(FROM A TO B, FROM B TO C, FROM C TO D);
 ---- ok
 -STATEMENT CREATE (n0:A {name: 'n0'}),
                   (n00:B {name: 'n00'}),

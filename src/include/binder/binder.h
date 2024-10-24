@@ -24,6 +24,7 @@ struct JoinHintNode;
 namespace catalog {
 class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
+class RelGroupCatalogEntry;
 class RDFGraphCatalogEntry;
 class Catalog;
 } // namespace catalog
@@ -125,6 +126,8 @@ public:
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
         catalog::NodeTableCatalogEntry* nodeTableEntry);
+    std::unique_ptr<BoundStatement> bindCopyRelGroupFrom(const parser::Statement& statement,
+        catalog::RelGroupCatalogEntry* relGroupEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
         catalog::RelTableCatalogEntry* relTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
