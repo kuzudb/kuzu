@@ -46,7 +46,7 @@ struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
     explicit BoundExtraRenameTableInfo(std::string newName) : newName{std::move(newName)} {}
     BoundExtraRenameTableInfo(const BoundExtraRenameTableInfo& other) : newName{other.newName} {}
 
-     std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const final {
         return std::make_unique<BoundExtraRenameTableInfo>(*this);
     }
 };

@@ -108,7 +108,8 @@ void ParsedExpressionUtils::validateDataType(const kuzu::parser::ParsedExpressio
         expr.toString(), literalExpr.getValue().getDataType().toString(), type.toString()));
 }
 
-std::string ParsedExpressionUtils::getStringLiteralValue(const kuzu::parser::ParsedExpression& expr) {
+std::string ParsedExpressionUtils::getStringLiteralValue(
+    const kuzu::parser::ParsedExpression& expr) {
     return expr.constCast<parser::ParsedLiteralExpression>().getValue().getValue<std::string>();
 }
 

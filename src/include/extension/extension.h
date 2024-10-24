@@ -23,7 +23,7 @@
 #define ADD_SCALAR_FUNC_ALIAS(FUNC_STRUCT)                                                         \
     ADD_FUNC_ALIAS(FUNC_STRUCT, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY)
 
-#define ADD_GDS_FUNC(FUNC_STRUCT)                                                               \
+#define ADD_GDS_FUNC(FUNC_STRUCT)                                                                  \
     ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY)
 
 namespace kuzu {

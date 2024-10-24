@@ -17,7 +17,7 @@ typedef unsigned char sb_symbol;
  *
  *  The list must not be modified in any way.
  */
-const char ** sb_stemmer_list(void);
+const char** sb_stemmer_list(void);
 
 /** Create a new stemmer object, using the specified algorithm, for the
  *  specified character encoding.
@@ -43,7 +43,7 @@ const char ** sb_stemmer_list(void);
  *
  *  @note NULL will also be returned if an out of memory error occurs.
  */
-struct sb_stemmer * sb_stemmer_new(const char * algorithm, const char * charenc);
+struct sb_stemmer* sb_stemmer_new(const char* algorithm, const char* charenc);
 
 /** Delete a stemmer object.
  *
@@ -53,7 +53,7 @@ struct sb_stemmer * sb_stemmer_new(const char * algorithm, const char * charenc)
  *  It is safe to pass a null pointer to this function - this will have
  *  no effect.
  */
-void                sb_stemmer_delete(struct sb_stemmer * stemmer);
+void sb_stemmer_delete(struct sb_stemmer* stemmer);
 
 /** Stem a word.
  *
@@ -65,13 +65,12 @@ void                sb_stemmer_delete(struct sb_stemmer * stemmer);
  *
  *  If an out-of-memory error occurs, this will return NULL.
  */
-const sb_symbol *   sb_stemmer_stem(struct sb_stemmer * stemmer,
-                                    const sb_symbol * word, int size);
+const sb_symbol* sb_stemmer_stem(struct sb_stemmer* stemmer, const sb_symbol* word, int size);
 
 /** Get the length of the result of the last stemmed word.
  *  This should not be called before sb_stemmer_stem() has been called.
  */
-int                 sb_stemmer_length(struct sb_stemmer * stemmer);
+int sb_stemmer_length(struct sb_stemmer* stemmer);
 
 #ifdef __cplusplus
 }

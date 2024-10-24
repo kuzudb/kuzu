@@ -3,6 +3,7 @@
 #include <iterator>
 #include <memory>
 #include <vector>
+
 #include "common/api.h"
 
 namespace kuzu {
