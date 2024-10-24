@@ -35,7 +35,7 @@ void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("primaryKeyName");
     serializer.write(primaryKeyName);
-    serializer.serializeValue(indexes.size());
+    serializer.serializeValue<uint64_t>(indexes.size());
     for (auto& [name, index] : indexes) {
         index->serialize(serializer);
     }
@@ -49,7 +49,7 @@ std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
     deserializer.deserializeValue(primaryKeyName);
     auto nodeTableEntry = std::make_unique<NodeTableCatalogEntry>();
     nodeTableEntry->primaryKeyName = primaryKeyName;
-    auto numIndexes = 0u;
+    uint64_t numIndexes = 0u;
     deserializer.deserializeValue(numIndexes);
     for (auto i = 0u; i < numIndexes; i++) {
         auto indexEntry = IndexCatalogEntry::deserialize(deserializer);

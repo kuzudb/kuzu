@@ -237,6 +237,12 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         deserializer.deserializeValue(newName);
         extraInfo = std::make_unique<BoundExtraRenameTableInfo>(std::move(newName));
     } break;
+    case AlterType::DROP_INDEX:
+    case AlterType::ADD_INDEX: {
+        std::string indexName;
+        deserializer.deserializeValue(indexName);
+        extraInfo = std::make_unique<BoundExtraIndexInfo>(std::move(indexName));
+    } break;
     default: {
         KU_UNREACHABLE;
     }

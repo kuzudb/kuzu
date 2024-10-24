@@ -47,20 +47,21 @@ private:
 
 struct KUZU_API VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
-    std::vector<std::string> propertiesToScan;
+
     graph::Graph* graph;
 
-    VertexComputeTaskSharedState(uint64_t maxThreadsForExecution,
-        std::vector<std::string> propertiesToScan, graph::Graph* graph)
-        : morselDispatcher{maxThreadsForExecution}, propertiesToScan{std::move(propertiesToScan)},
-          graph{graph} {}
+    VertexComputeTaskSharedState(uint64_t maxThreadsForExecution, graph::Graph* graph)
+        : morselDispatcher{maxThreadsForExecution}, graph{graph} {}
 };
 
 struct VertexComputeTaskInfo {
     VertexCompute& vc;
+    std::vector<std::string> propertiesToScan;
 
-    explicit VertexComputeTaskInfo(VertexCompute& vc) : vc{vc} {}
-    VertexComputeTaskInfo(const VertexComputeTaskInfo& other) : vc{other.vc} {}
+    VertexComputeTaskInfo(VertexCompute& vc, std::vector<std::string> propertiesToScan)
+        : vc{vc}, propertiesToScan{std::move(propertiesToScan)} {}
+    VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
+        : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
 };
 
 class KUZU_API VertexComputeTask : public common::Task {

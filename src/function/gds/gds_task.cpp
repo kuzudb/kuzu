@@ -53,9 +53,8 @@ void FrontierTask::run() {
 void VertexComputeTask::run() {
     FrontierMorsel frontierMorsel;
     auto graph = sharedState->graph;
-    std::vector<std::string> propertiesToScan;
     auto scanState =
-        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), propertiesToScan);
+        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), info.propertiesToScan);
     auto localVc = info.vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
         for (auto [nodeIDs, propertyVectors] : graph->scanVertices(frontierMorsel.getBeginOffset(),

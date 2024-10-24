@@ -207,10 +207,10 @@ void runVertexComputeIteration(processor::ExecutionContext* executionContext, gr
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
             .getValue<uint64_t>(),
-        std::vector<std::string>{"len"}, graph);
+        graph);
     auto tableID = graph->getNodeTableIDs()[1];
     sharedState->morselDispatcher.init(tableID, graph->getNumNodes(tableID));
-    auto info = VertexComputeTaskInfo(vc);
+    auto info = VertexComputeTaskInfo(vc, std::vector<std::string>{"len"});
     auto task = std::make_shared<VertexComputeTask>(
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
             .getValue<uint64_t>(),

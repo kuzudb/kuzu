@@ -69,7 +69,13 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     auto properties = createFTSBindData->properties;
     binder::BoundAlterInfo boundAlterInfo{common::AlterType::ADD_INDEX, tableName,
         std::make_unique<binder::BoundExtraIndexInfo>(indexName)};
+    // TODO(Ziyi): Copy statement can't be wrapped in manual transaction, so we can't wrap all
+    // statements in a single transaction there.
+    context.getTransactionContext()->commit();
+    context.getTransactionContext()->beginAutoTransaction(false /* readOnly */);
     context.getCatalog()->alterTableEntry(context.getTx(), std::move(boundAlterInfo));
+    context.getTransactionContext()->commit();
+    context.getTransactionContext()->beginAutoTransaction(true /* readOnly */);
     auto tablePrefix = common::stringFormat("{}_{}", tableName, indexName);
     // Create the tokenize macro.
     std::string query = common::stringFormat(R"(CREATE MACRO {}_tokenize(query) AS

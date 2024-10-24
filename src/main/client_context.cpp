@@ -388,7 +388,7 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     std::vector<std::shared_ptr<Statement>> statements;
     bool startNewTrx = !transactionContext->hasActiveTransaction();
     if (startNewTrx) {
-        transactionContext->beginAutoTransaction(false /* readOnlyStatement */);
+        transactionContext->beginAutoTransaction(true /* readOnlyStatement */);
     }
     try {
         auto parsedStatements = Parser::parseQuery(query, this);
