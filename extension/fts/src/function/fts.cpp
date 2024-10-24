@@ -41,6 +41,7 @@ struct EdgeInfo {
 struct FTSEdgeCompute : public EdgeCompute {
     DoublePathLengthsFrontierPair* frontierPair;
     common::node_id_map_t<EdgeInfo>* score;
+    std::mutex mtx;
     common::node_id_map_t<uint64_t>* nodeProp;
     FTSEdgeCompute(DoublePathLengthsFrontierPair* frontierPair,
         common::node_id_map_t<EdgeInfo>* score, common::node_id_map_t<uint64_t>* nodeProp)
@@ -48,33 +49,36 @@ struct FTSEdgeCompute : public EdgeCompute {
 
     void edgeCompute(nodeID_t boundNodeID, std::span<const common::nodeID_t> nbrIDs,
         std::span<const relID_t>, SelectionVector& mask, bool /*isFwd*/,
-        const ValueVector* edgeProp) override {
-        KU_ASSERT(nodeProp->contains(boundNodeID));
-        size_t activeCount = 0;
-        mask.forEach([&](auto i) {
-            auto nbrNodeID = nbrIDs[i];
-            auto df = nodeProp->at(boundNodeID);
-            auto tf = edgeProp->getValue<uint64_t>(i);
-            if (!score->contains(nbrNodeID)) {
-                score->emplace(nbrNodeID, EdgeInfo{boundNodeID});
-            }
-            score->at(nbrNodeID).addEdge(df, tf);
-            mask.getMutableBuffer()[activeCount++] = i;
-        });
-        mask.setToFiltered(activeCount);
-    }
+        const ValueVector* edgeProp) override;
 
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<FTSEdgeCompute>(frontierPair, score, nodeProp);
     }
 };
 
-struct FTSOutput {
-public:
-    explicit FTSOutput() = default;
-    virtual ~FTSOutput() = default;
+void FTSEdgeCompute::edgeCompute(nodeID_t boundNodeID, std::span<const common::nodeID_t> nbrIDs,
+    std::span<const relID_t>, SelectionVector& mask, bool /*isFwd*/, const ValueVector* edgeProp) {
+    KU_ASSERT(nodeProp->contains(boundNodeID));
+    size_t activeCount = 0;
+    std::lock_guard<std::mutex> guard{mtx};
+    mask.forEach([&](auto i) {
+        auto nbrNodeID = nbrIDs[i];
+        auto df = nodeProp->at(boundNodeID);
+        auto tf = edgeProp->getValue<uint64_t>(i);
+        if (!score->contains(nbrNodeID)) {
+            score->emplace(nbrNodeID, EdgeInfo{boundNodeID});
+        }
+        score->at(nbrNodeID).addEdge(df, tf);
+        mask.getMutableBuffer()[activeCount++] = i;
+    });
+    mask.setToFiltered(activeCount);
+}
 
+struct FTSOutput {
     common::node_id_map_t<EdgeInfo> score;
+
+    FTSOutput() = default;
+    virtual ~FTSOutput() = default;
 };
 
 void runFrontiersOnce(processor::ExecutionContext* executionContext, FTSState& ftsState,
@@ -91,14 +95,6 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, FTSState& f
         auto maxThreads =
             clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
         auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
-        // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
-        // already executed by a worker thread Tm of the task scheduler. So this function is
-        // executed by Tm. Because this function will monitor the task and wait for it to
-        // complete, running GDS algorithms effectively "loses" Tm. This can even lead to the
-        // query processor to halt, e.g., if there is a single worker thread in the system, and
-        // more generally decrease the number of worker threads by 1. Therefore, we instruct
-        // scheduleTaskAndWaitOrError to start a new thread by passing true as the last
-        // argument.
         clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, executionContext,
             true /* launchNewWorkerThread */);
     }
