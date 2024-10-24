@@ -343,9 +343,11 @@ void DiskArrayInternal::WriteIterator::unpin() {
     if (shadowPageAndFrame.shadowPage != INVALID_PAGE_IDX) {
         // unpin current page
         diskArray.shadowFile->getShadowingFH().unpinPage(shadowPageAndFrame.shadowPage);
+        shadowPageAndFrame.shadowPage = INVALID_PAGE_IDX;
     } else if (shadowPageAndFrame.originalPage != INVALID_PAGE_IDX) {
         diskArray.fileHandle.setLockedPageDirty(shadowPageAndFrame.originalPage);
         diskArray.fileHandle.unpinPage(shadowPageAndFrame.originalPage);
+        shadowPageAndFrame.originalPage = INVALID_PAGE_IDX;
     }
 }
 

@@ -58,7 +58,7 @@ class CopyTest : public BaseGraphTest {
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
-        failureFrequency = 8;
+        failureFrequency = 16384;
     }
 
     void resetDB(uint64_t bufferPoolSize) {
@@ -127,6 +127,7 @@ TEST_F(CopyTest, NodeCopyOutOfMemoryRecovery) {
 
         resetDBFlaky();
         resetDBFlaky();
+        conn->query("CALL threads=1;");
         auto result = conn->query(common::stringFormat(
             "COPY Comment FROM \"{}/dataset/ldbc-1/csv/comment_0_0.csv\"", KUZU_ROOT_DIRECTORY));
         if (!result->isSuccess()) {

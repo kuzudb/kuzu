@@ -50,6 +50,8 @@ public:
         nodeGroups.replaceGroup(lock, nodeGroupIdx, std::move(group));
     }
 
+    void removeEmptyNodeGroups();
+
     void clear() {
         const auto lock = nodeGroups.lock();
         nodeGroups.clear(lock);
@@ -69,6 +71,8 @@ public:
     void deserialize(common::Deserializer& deSer, MemoryManager& memoryManager);
 
 private:
+    common::idx_t getNumEmptyNodeGroups();
+
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
     common::row_idx_t numTotalRows;

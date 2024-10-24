@@ -195,9 +195,20 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     }
 }
 
+idx_t NodeGroupCollection::getNumEmptyNodeGroups() {
+    auto lockGuard = nodeGroups.lock();
+    const auto numGroups = nodeGroups.getNumGroups(lockGuard);
+    for (idx_t i = 0; i < numGroups; ++i) {
+        if (!nodeGroups.getGroup(lockGuard, numGroups - i - 1)->isEmpty()) {
+            return numGroups - i - 1;
+        }
+    }
+    return numGroups;
+}
+
 void NodeGroupCollection::serialize(Serializer& ser) {
     ser.writeDebuggingInfo("node_groups");
-    nodeGroups.serializeGroups(ser);
+    nodeGroups.serializeGroups(ser, getNumEmptyNodeGroups());
     ser.writeDebuggingInfo("stats");
     stats.serialize(ser);
 }

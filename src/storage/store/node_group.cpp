@@ -256,24 +256,28 @@ void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
 }
 
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
-    // We don't need to consider deletions here, as they are flushed separately as metadata.
-    // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
-    // flushing the data.
     const auto lock = chunkedGroups.lock();
-    KU_ASSERT(chunkedGroups.getNumGroups(lock) >= 1);
-    const auto firstGroup = chunkedGroups.getFirstGroup(lock);
-    const auto hasPersistentData = firstGroup->getResidencyState() == ResidencyState::ON_DISK;
-    // Re-populate version info here first.
-    auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
-    std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
-    if (hasPersistentData) {
-        checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+    if (numRows == 0) {
+        chunkedGroups.clear(lock);
     } else {
-        checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        // We don't need to consider deletions here, as they are flushed separately as metadata.
+        // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
+        // flushing the data.
+        KU_ASSERT(chunkedGroups.getNumGroups(lock) >= 1);
+        const auto firstGroup = chunkedGroups.getFirstGroup(lock);
+        const auto hasPersistentData = firstGroup->getResidencyState() == ResidencyState::ON_DISK;
+        // Re-populate version info here first.
+        auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
+        std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
+        if (hasPersistentData) {
+            checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+        } else {
+            checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        }
+        checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
+        chunkedGroups.clear(lock);
+        chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
     }
-    checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
-    chunkedGroups.clear(lock);
-    chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
 }
 
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryManager& memoryManager,
