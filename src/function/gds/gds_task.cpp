@@ -52,11 +52,15 @@ void FrontierTask::run() {
 
 void VertexComputeTask::run() {
     FrontierMorsel frontierMorsel;
+    auto graph = sharedState->graph;
+    std::vector<std::string> propertiesToScan;
+    auto scanState =
+        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), propertiesToScan);
     auto localVc = info.vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
-        while (frontierMorsel.hasNextOffset()) {
-            common::nodeID_t nodeID = frontierMorsel.getNextNodeID();
-            localVc->vertexCompute(nodeID, sharedState->propertiesToScan);
+        for (auto [nodeIDs, propertyVectors] : graph->scanVertices(frontierMorsel.getBeginOffset(),
+                 frontierMorsel.getEndOffsetExclusive(), *scanState)) {
+            localVc->vertexCompute(nodeIDs, propertyVectors);
         }
     }
     localVc->finalizeWorkerThread();

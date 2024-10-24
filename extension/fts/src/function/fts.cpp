@@ -204,16 +204,17 @@ private:
 
 void runVertexComputeIteration(processor::ExecutionContext* executionContext, graph::Graph* graph,
     VertexCompute& vc) {
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(graph, vc,
+    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
             .getValue<uint64_t>(),
-        std::vector<std::string>{"len"});
+        std::vector<std::string>{"len"}, graph);
     auto tableID = graph->getNodeTableIDs()[1];
-    sharedState->morselDispatcher->init(tableID, graph->getNumNodes(tableID));
+    sharedState->morselDispatcher.init(tableID, graph->getNumNodes(tableID));
+    auto info = VertexComputeTaskInfo(vc);
     auto task = std::make_shared<VertexComputeTask>(
         executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
             .getValue<uint64_t>(),
-        sharedState);
+        info, sharedState);
     executionContext->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task,
         executionContext, true /* launchNewWorkerThread */);
 }

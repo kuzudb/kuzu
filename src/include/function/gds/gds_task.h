@@ -48,10 +48,12 @@ private:
 struct KUZU_API VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
     std::vector<std::string> propertiesToScan;
+    graph::Graph* graph;
 
-    explicit VertexComputeTaskSharedState(uint64_t maxThreadsForExecution,
-        std::vector<std::string> propertiesToScan)
-        : morselDispatcher{maxThreadsForExecution}, propertiesToScan{std::move(propertiesToScan)} {}
+    VertexComputeTaskSharedState(uint64_t maxThreadsForExecution,
+        std::vector<std::string> propertiesToScan, graph::Graph* graph)
+        : morselDispatcher{maxThreadsForExecution}, propertiesToScan{std::move(propertiesToScan)},
+          graph{graph} {}
 };
 
 struct VertexComputeTaskInfo {

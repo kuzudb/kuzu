@@ -15,9 +15,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPropertyCollector(
     LogicalOperator* logicalOperator) {
     const auto& propertyCollector = logicalOperator->cast<LogicalPropertyCollector>();
     const auto inSchema = propertyCollector.getChild(0)->getSchema();
-    //auto phy = logicalOpToPhysicalOpMap.at(propertyCollector.getOperator());
     PhysicalOperator* physicalOp = nullptr;
-    // todo: fix here
+    // TODO(Ziyi/Xiyang): fix finding of the GDS_CALL operator here.
     for (auto& [lop, pop] : logicalOpToPhysicalOpMap) {
         if (lop->getOperatorType() == LogicalOperatorType::GDS_CALL) {
             physicalOp = pop;
@@ -27,14 +26,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPropertyCollector(
     KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
     auto sharedState = std::make_shared<PropertyCollectorSharedState>();
-    auto gds = physicalOp->getChild(0)->ptrCast<
-        GDSCall>();
+    auto gds = physicalOp->getChild(0)->ptrCast<GDSCall>();
     gds->setNodeProperty(&sharedState->nodeProperty);
     auto nodeIDPos = DataPos(inSchema->getExpressionPos(*propertyCollector.getNodeID()));
     auto propPos = DataPos(inSchema->getExpressionPos(*propertyCollector.getProperty()));
     auto info = PropertyCollectorInfo{nodeIDPos, propPos};
     auto printInfo = std::make_unique<PropertyCollectorPrintInfo>(
-        PhysicalOperatorUtils::operatorTypeToString(physicalOp->getOperatorType()));
+        PhysicalOperatorUtils::operatorToString(physicalOp));
     return std::make_unique<PropertyCollector>(info, sharedState,
         mapOperator(logicalOperator->getChild(0).get()), getOperatorID(), std::move(printInfo));
 }
