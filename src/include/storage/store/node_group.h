@@ -180,6 +180,8 @@ public:
     }
 
     bool isVisible(const transaction::Transaction* transaction, common::row_idx_t rowIdxInGroup);
+    bool isVisibleNoLock(const transaction::Transaction* transaction,
+        common::row_idx_t rowIdxInGroup);
     bool isDeleted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 

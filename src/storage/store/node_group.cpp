@@ -514,7 +514,24 @@ NodeGroup::scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(MemoryManager& 
     const std::vector<const Column*>& columns) const;
 
 bool NodeGroup::isVisible(const Transaction* transaction, row_idx_t rowIdxInGroup) {
+    ChunkedNodeGroup* chunkedGroup = nullptr;
+    {
+        const auto lock = chunkedGroups.lock();
+        chunkedGroup = findChunkedGroupFromRowIdx(lock, rowIdxInGroup);
+    }
+    if (!chunkedGroup) {
+        return false;
+    }
+    const auto rowIdxInChunkedGroup = rowIdxInGroup - chunkedGroup->getStartRowIdx();
+    return !chunkedGroup->isDeleted(transaction, rowIdxInChunkedGroup) &&
+           chunkedGroup->isInserted(transaction, rowIdxInChunkedGroup);
+}
+
+bool NodeGroup::isVisibleNoLock(const Transaction* transaction, row_idx_t rowIdxInGroup) {
     const auto* chunkedGroup = findChunkedGroupFromRowIdxNoLock(rowIdxInGroup);
+    if (!chunkedGroup) {
+        return false;
+    }
     const auto rowIdxInChunkedGroup = rowIdxInGroup - chunkedGroup->getStartRowIdx();
     return !chunkedGroup->isDeleted(transaction, rowIdxInChunkedGroup) &&
            chunkedGroup->isInserted(transaction, rowIdxInChunkedGroup);
