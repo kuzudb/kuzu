@@ -32,7 +32,8 @@ add_library(kuzu_processor_operator
         standalone_call.cpp
         table_function_call.cpp
         transaction.cpp
-        unwind.cpp)
+        unwind.cpp
+        property_collector.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator>

@@ -13,13 +13,16 @@ struct FrontierTaskInfo {
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
+    std::optional<common::idx_t> edgePropertyIndex;
 
     FrontierTaskInfo(common::table_id_t tableID, graph::Graph* graph,
-        common::ExtendDirection direction, EdgeCompute& edgeCompute)
-        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute} {}
+        common::ExtendDirection direction, EdgeCompute& edgeCompute,
+        std::optional<common::idx_t> edgePropertyIndex)
+        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute},
+          edgePropertyIndex{std::move(edgePropertyIndex)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
         : relTableIDToScan{other.relTableIDToScan}, graph{other.graph}, direction{other.direction},
-          edgeCompute{other.edgeCompute} {}
+          edgeCompute{other.edgeCompute}, edgePropertyIndex{other.edgePropertyIndex} {}
 };
 
 struct FrontierTaskSharedState {
@@ -29,7 +32,7 @@ struct FrontierTaskSharedState {
     DELETE_COPY_AND_MOVE(FrontierTaskSharedState);
 };
 
-class FrontierTask : public common::Task {
+class KUZU_API FrontierTask : public common::Task {
 public:
     FrontierTask(uint64_t maxNumThreads, const FrontierTaskInfo& info,
         std::shared_ptr<FrontierTaskSharedState> sharedState)
@@ -42,21 +45,26 @@ private:
     std::shared_ptr<FrontierTaskSharedState> sharedState;
 };
 
-struct VertexComputeTaskSharedState {
+struct KUZU_API VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
 
-    explicit VertexComputeTaskSharedState(uint64_t maxThreadsForExecution)
-        : morselDispatcher{maxThreadsForExecution} {}
+    graph::Graph* graph;
+
+    VertexComputeTaskSharedState(uint64_t maxThreadsForExecution, graph::Graph* graph)
+        : morselDispatcher{maxThreadsForExecution}, graph{graph} {}
 };
 
 struct VertexComputeTaskInfo {
     VertexCompute& vc;
+    std::vector<std::string> propertiesToScan;
 
-    explicit VertexComputeTaskInfo(VertexCompute& vc) : vc{vc} {}
-    VertexComputeTaskInfo(const VertexComputeTaskInfo& other) : vc{other.vc} {}
+    VertexComputeTaskInfo(VertexCompute& vc, std::vector<std::string> propertiesToScan)
+        : vc{vc}, propertiesToScan{std::move(propertiesToScan)} {}
+    VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
+        : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
 };
 
-class VertexComputeTask : public common::Task {
+class KUZU_API VertexComputeTask : public common::Task {
 public:
     VertexComputeTask(uint64_t maxNumThreads, const VertexComputeTaskInfo& info,
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
@@ -68,5 +76,6 @@ private:
     VertexComputeTaskInfo info;
     std::shared_ptr<VertexComputeTaskSharedState> sharedState;
 };
+
 } // namespace function
 } // namespace kuzu

@@ -6,7 +6,7 @@ namespace kuzu {
 namespace binder {
 
 struct BoundTableFunction {
-    function::TableFunction tableFunction;
+    std::unique_ptr<function::TableFunction> tableFunction;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::shared_ptr<binder::Expression> offset;
 };

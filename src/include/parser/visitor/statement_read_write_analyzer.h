@@ -7,7 +7,7 @@ namespace parser {
 
 class StatementReadWriteAnalyzer final : public StatementVisitor {
 public:
-    StatementReadWriteAnalyzer() : StatementVisitor{}, readOnly{true} {}
+    StatementReadWriteAnalyzer() : StatementVisitor{nullptr /* context */}, readOnly{true} {}
 
     bool isReadOnly(const Statement& statement);
 

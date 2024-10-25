@@ -17,7 +17,8 @@ static void scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
     ExtendDirection extendDirection, RJCompState& rjCompState,
     processor::ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *rjCompState.edgeCompute);
+    auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *rjCompState.edgeCompute,
+        std::nullopt);
     auto sharedState = std::make_shared<FrontierTaskSharedState>(*rjCompState.frontierPair);
     auto maxThreads =
         clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
@@ -76,8 +77,8 @@ void GDSUtils::runVertexComputeIteration(processor::ExecutionContext* executionC
     auto clientContext = executionContext->clientContext;
     auto maxThreads =
         clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
-    auto info = VertexComputeTaskInfo(vc);
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
+    auto info = VertexComputeTaskInfo(vc, std::vector<std::string>{} /* propertiesToScan */);
+    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
     for (auto& tableID : graph->getNodeTableIDs()) {
         vc.beginOnTable(tableID);
         sharedState->morselDispatcher.init(tableID, graph->getNumNodes(tableID));

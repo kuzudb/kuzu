@@ -1,5 +1,6 @@
 #pragma once
 
+#include "index_catalog_entry.h"
 #include "table_catalog_entry.h"
 
 namespace kuzu {
@@ -10,7 +11,7 @@ class Transaction;
 namespace catalog {
 
 class CatalogSet;
-class NodeTableCatalogEntry final : public TableCatalogEntry {
+class KUZU_API NodeTableCatalogEntry final : public TableCatalogEntry {
     static constexpr CatalogEntryType entryType_ = CatalogEntryType::NODE_TABLE_ENTRY;
 
 public:
@@ -28,6 +29,17 @@ public:
         return getProperty(primaryKeyName);
     }
 
+    void addIndex(std::string name) {
+        indexes.emplace(name, std::make_unique<IndexCatalogEntry>(name, getTableID()));
+    }
+
+    bool containsIndex(std::string name) { return indexes.contains(name); }
+
+    void dropIndex(std::string name) { indexes.erase(name); }
+
+    std::unique_ptr<TableCatalogEntry> alter(
+        const binder::BoundAlterInfo& alterInfo) const override;
+
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<NodeTableCatalogEntry> deserialize(common::Deserializer& deserializer);
 
@@ -40,6 +52,7 @@ private:
 
 private:
     std::string primaryKeyName;
+    common::case_insensitive_map_t<std::unique_ptr<IndexCatalogEntry>> indexes;
 };
 
 } // namespace catalog

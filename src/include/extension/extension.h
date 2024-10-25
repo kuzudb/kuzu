@@ -3,17 +3,28 @@
 #include <string>
 #include <unordered_map>
 
+#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"
 #include "function/function.h"
 #include "main/db_config.h"
 
-#define ADD_FUNC_BASE(_PARAM, _NAME)                                                               \
+#define ADD_FUNC_BASE(_PARAM, _NAME, _TYPE)                                                        \
     kuzu::extension::ExtensionUtils::registerFunctionSet(db, std::string(_NAME),                   \
-        _PARAM::getFunctionSet())
+        _PARAM::getFunctionSet(), _TYPE)
 
-#define ADD_FUNC(FUNC_STRUCT) ADD_FUNC_BASE(FUNC_STRUCT, FUNC_STRUCT::name)
+#define ADD_FUNC(FUNC_STRUCT, FUNC_TYPE) ADD_FUNC_BASE(FUNC_STRUCT, FUNC_STRUCT::name, FUNC_TYPE)
 
-#define ADD_FUNC_ALIAS(FUNC_STRUCT) ADD_FUNC_BASE(FUNC_STRUCT::alias, FUNC_STRUCT::name)
+#define ADD_FUNC_ALIAS(FUNC_STRUCT, FUNC_TYPE)                                                     \
+    ADD_FUNC_BASE(FUNC_STRUCT::alias, FUNC_STRUCT::name, FUNC_TYPE)
+
+#define ADD_SCALAR_FUNC(FUNC_STRUCT)                                                               \
+    ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY)
+
+#define ADD_SCALAR_FUNC_ALIAS(FUNC_STRUCT)                                                         \
+    ADD_FUNC_ALIAS(FUNC_STRUCT, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY)
+
+#define ADD_GDS_FUNC(FUNC_STRUCT)                                                                  \
+    ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY)
 
 namespace kuzu {
 namespace function {
@@ -92,7 +103,7 @@ struct ExtensionUtils {
         std::unique_ptr<function::TableFunction> function);
 
     KUZU_API static void registerFunctionSet(main::Database& database, std::string name,
-        function::function_set functionSet);
+        function::function_set functionSet, catalog::CatalogEntryType functionType);
 
     static bool isOfficialExtension(const std::string& extension);
 };

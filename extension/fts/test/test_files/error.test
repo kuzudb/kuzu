@@ -1,0 +1,16 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE FTSInvalidInput
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-LOG CreateFTSNonExistTable
+-STATEMENT CALL CREATE_FTS_INDEX('person1', 'contentIdx', ['content'])
+---- error
+Binder exception: Table person1 does not exist.
+-STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])
+---- error
+Binder exception: Index with name: personIdx already exists in table: person.

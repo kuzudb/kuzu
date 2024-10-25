@@ -1,5 +1,6 @@
 #include "binder/expression/expression_util.h"
 #include "common/data_chunk/sel_vector.h"
+#include "common/vector/value_vector.h"
 #include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -205,7 +206,7 @@ public:
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
     void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrIDs,
-        std::span<const relID_t>, SelectionVector& mask, bool) override {
+        std::span<const relID_t>, SelectionVector& mask, bool, const ValueVector*) override {
         size_t activeCount = 0;
         mask.forEach([&](auto i) {
             auto nbrVal =
@@ -246,7 +247,8 @@ public:
     }
 
     void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
-        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool fwdEdge) override {
+        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool fwdEdge,
+        const ValueVector*) override {
         size_t activeCount = 0;
         mask.forEach([&](auto i) {
             auto nbrLen = frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
@@ -397,7 +399,8 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
     };
 
     void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
-        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
+        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd,
+        const ValueVector*) override {
         mask.forEach([&](auto i) {
             // We should always update the nbrID in variable length joins
             if (!parentPtrsBlock->hasSpace()) {

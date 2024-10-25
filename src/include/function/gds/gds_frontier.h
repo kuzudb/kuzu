@@ -5,6 +5,7 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -26,7 +27,7 @@ public:
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
     virtual void edgeCompute(common::nodeID_t boundNodeID,
         std::span<const common::nodeID_t> nbrNodeID, std::span<const common::relID_t> edgeID,
-        common::SelectionVector& mask, bool fwdEdge) = 0;
+        common::SelectionVector& mask, bool fwdEdge, const common::ValueVector* edgeProperty) = 0;
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };
@@ -48,7 +49,8 @@ public:
     // GDSUtils helper functions call isActive on nodes to check if any work should be done for
     // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
     // the function on each node in a graph.
-    virtual void vertexCompute(common::nodeID_t curNodeID) = 0;
+    virtual void vertexCompute(std::span<const common::nodeID_t> nodeIDs,
+        std::span<const std::unique_ptr<common::ValueVector>> properties) = 0;
 
     // This function is called by each worker thread T once at the end of
     // GDSUtils::runVertexComputeIteration().
@@ -67,6 +69,9 @@ public:
 
     common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
 
+    common::offset_t getBeginOffset() const { return beginOffset; }
+    common::offset_t getEndOffsetExclusive() const { return endOffsetExclusive; }
+
 protected:
     void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
         common::offset_t _endOffsetExclusive) {
@@ -83,7 +88,7 @@ private:
     common::offset_t nextOffset = common::INVALID_OFFSET;
 };
 
-class FrontierMorselDispatcher {
+class KUZU_API FrontierMorselDispatcher {
     static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
     // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
     // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
@@ -96,6 +101,8 @@ public:
     void init(common::table_id_t _tableID, common::offset_t _numOffsets);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
+
+    common::table_id_t getTableID() const { return tableID; }
 
 private:
     std::atomic<uint64_t> maxThreadsForExec;
@@ -230,7 +237,7 @@ private:
  *
  * All functions supported in this base interface are thread-safe.
  */
-class FrontierPair {
+class KUZU_API FrontierPair {
     friend class FrontierTask;
 
 public:
@@ -306,7 +313,7 @@ private:
     FrontierMorselDispatcher morselDispatcher;
 };
 
-class DoublePathLengthsFrontierPair : public FrontierPair {
+class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(
         std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,

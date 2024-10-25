@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class LiteralExpression final : public Expression {
+class KUZU_API LiteralExpression final : public Expression {
 public:
     LiteralExpression(common::Value value, const std::string& uniqueName)
         : Expression{common::ExpressionType::LITERAL, value.getDataType().copy(), uniqueName},

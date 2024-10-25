@@ -475,7 +475,7 @@ private:
     LogicalType type;
 };
 
-class StructTypeInfo final : public ExtraTypeInfo {
+class KUZU_API StructTypeInfo final : public ExtraTypeInfo {
 public:
     StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<StructField>&& fields);

@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "common/mask.h"
+#include "common/types/internal_id_util.h"
 #include "graph/graph.h"
 #include "processor/result/factorized_table.h"
 
@@ -38,9 +39,11 @@ struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
+    common::node_id_map_t<uint64_t>* nodeProp;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph)
-        : fTable{fTable}, graph{std::move(graph)} {}
+        : fTable{std::move(fTable)}, graph{std::move(graph)}, nodeProp{nullptr} {}
+
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 
     void setInputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {

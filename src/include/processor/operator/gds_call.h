@@ -41,6 +41,12 @@ public:
 
     bool isParallel() const override { return false; }
 
+    function::GDSAlgorithm* getGDS() const { return gds.get(); }
+
+    void setNodeProperty(common::node_id_map_t<uint64_t>* nodeProp) {
+        sharedState->nodeProp = nodeProp;
+    }
+
     void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) override {
         gds->setSharedState(sharedState);
     }
