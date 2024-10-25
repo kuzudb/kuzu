@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <random>
 #include <vector>
 
 #include "catalog/catalog.h"
@@ -7,7 +6,6 @@
 #include "common/types/types.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
-#include "graph_test/base_graph_test.h"
 #include "main/client_context.h"
 #include "main_test_helper/private_main_test_helper.h"
 
@@ -54,7 +52,8 @@ TEST_F(RelScanTest, ScanFwd) {
     auto relTableID = catalog->getTableID(context->getTx(), "knows");
     auto datePropertyIndex =
         catalog->getTableCatalogEntry(context->getTx(), relTableID)->getPropertyIdx("date");
-    auto scanState = graph->prepareScan(relTableID, datePropertyIndex);
+    auto fwdScanState = graph->prepareScanFwd(relTableID, datePropertyIndex);
+    auto bwdScanState = graph->prepareScanBwd(relTableID, datePropertyIndex);
 
     std::unordered_map<offset_t, common::date_t> expectedDates = {
         {0, Date::fromDate(2021, 6, 30)},
@@ -82,7 +81,7 @@ TEST_F(RelScanTest, ScanFwd) {
 
         std::vector<offset_t> resultRelOffsets;
         std::vector<common::date_t> resultDates;
-        for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
+        for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *fwdScanState)) {
             chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
                 EXPECT_EQ(nbr.tableID, tableID);
                 resultNodeOffsets.push_back(nbr.offset);
@@ -99,14 +98,14 @@ TEST_F(RelScanTest, ScanFwd) {
                 << Date::toString(resultDates[i]) << " but we expected "
                 << Date::toString(expectedDates[resultRelOffsets[i]]);
         }
-        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
+        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *fwdScanState).collectNbrNodes(),
             expectedNodes);
 
         resultNodeOffsets.clear();
         resultRelOffsets.clear();
         resultDates.clear();
 
-        for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
+        for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *bwdScanState)) {
             chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
                 EXPECT_EQ(nbr.tableID, tableID);
                 resultNodeOffsets.push_back(nbr.offset);
@@ -123,7 +122,7 @@ TEST_F(RelScanTest, ScanFwd) {
                 << Date::toString(resultDates[i]) << " but we expected "
                 << Date::toString(expectedDates[resultRelOffsets[i]]);
         }
-        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
+        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *fwdScanState).collectNbrNodes(),
             expectedNodes);
     };
     compare(0, {1, 2, 3}, {0, 1, 2}, {3, 6, 9});

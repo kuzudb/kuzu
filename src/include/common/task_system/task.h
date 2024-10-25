@@ -72,6 +72,12 @@ public:
         return exceptionsPtr;
     }
 
+    // Resets a task so that it can be re-used and run again
+    virtual void resetState() {
+        numThreadsFinished = 0;
+        numThreadsRegistered = 0;
+    }
+
 private:
     bool canRegisterNoLock() const {
         return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
