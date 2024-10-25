@@ -64,7 +64,10 @@ public:
     void addTarget(LogicalOperator* op) { targetOps.push_back(op); }
     std::vector<LogicalOperator*> getTargetOperators() const { return targetOps; }
 
-    void setDirection(common::ExtendDirection extendDirection) { direction = extendDirection; }
+    void setDirection(common::ExtendDirection extendDirection) {
+        KU_ASSERT(keyType == SemiMaskKeyType::PATH);
+        direction = extendDirection;
+    }
     common::ExtendDirection getDirection() const { return direction; }
     std::unique_ptr<LogicalOperator> copy() override {
         if (!targetOps.empty()) {
@@ -85,7 +88,7 @@ private:
     std::vector<common::table_id_t> nodeTableIDs;
     // Operators accepting semi masker
     std::vector<LogicalOperator*> targetOps;
-    // for path semi masker
+    // For path semi masker marking src or dst nodes
     common::ExtendDirection direction;
 };
 
