@@ -284,6 +284,9 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     }
     auto semiMask = appendSemiMasker(SemiMaskKeyType::PATH, SemiMaskTargetType::SCAN_NODE,
         recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
+    KU_ASSERT(op->getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
+    semiMask->cast<LogicalSemiMasker>().setDirection(
+        op->getChild(0)->cast<LogicalRecursiveExtend>().getDirection());
     auto& sipInfo = pathPropertyProbe.getSIPInfoUnsafe();
     sipInfo.position = SemiMaskPosition::ON_PROBE;
     sipInfo.dependency = SIPDependency::PROBE_DEPENDS_ON_BUILD;

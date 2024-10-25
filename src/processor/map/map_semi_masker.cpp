@@ -74,10 +74,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     case SemiMaskKeyType::PATH: {
         if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(std::move(info),
-                std::move(prevOperator), getOperatorID(), std::move(printInfo));
+                std::move(prevOperator), getOperatorID(), std::move(printInfo),
+                semiMasker.getDirection());
         } else {
             return std::make_unique<PathSingleTableSemiMasker>(std::move(info),
-                std::move(prevOperator), getOperatorID(), std::move(printInfo));
+                std::move(prevOperator), getOperatorID(), std::move(printInfo),
+                semiMasker.getDirection());
         }
     }
     default:

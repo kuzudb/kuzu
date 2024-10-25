@@ -2,6 +2,7 @@
 
 #include "common/mask.h"
 #include "processor/operator/physical_operator.h"
+#include "processor/operator/scan/scan_multi_rel_tables.h"
 
 namespace kuzu {
 namespace processor {
@@ -109,10 +110,10 @@ public:
 class PathSemiMasker : public BaseSemiMasker {
 protected:
     PathSemiMasker(std::unique_ptr<SemiMaskerInfo> info, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo, common::ExtendDirection direction)
         : BaseSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)},
           pathRelsVector{nullptr}, pathRelsSrcIDDataVector{nullptr},
-          pathRelsDstIDDataVector{nullptr} {}
+          pathRelsDstIDDataVector{nullptr}, direction{std::move(direction)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
@@ -120,20 +121,22 @@ protected:
     common::ValueVector* pathRelsVector;
     common::ValueVector* pathRelsSrcIDDataVector;
     common::ValueVector* pathRelsDstIDDataVector;
+    common::ExtendDirection direction;
 };
 
 class PathSingleTableSemiMasker : public PathSemiMasker {
 public:
     PathSingleTableSemiMasker(std::unique_ptr<SemiMaskerInfo> info,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : PathSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
+        std::unique_ptr<OPPrintInfo> printInfo, common::ExtendDirection direction)
+        : PathSemiMasker{std::move(info), std::move(child), id, std::move(printInfo),
+              std::move(direction)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<PathSingleTableSemiMasker>(info->copy(), children[0]->clone(), id,
-            printInfo->copy());
+            printInfo->copy(), direction);
     }
 };
 
@@ -141,14 +144,15 @@ class PathMultipleTableSemiMasker : public PathSemiMasker {
 public:
     PathMultipleTableSemiMasker(std::unique_ptr<SemiMaskerInfo> info,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : PathSemiMasker{std::move(info), std::move(child), id, std::move(printInfo)} {}
+        std::unique_ptr<OPPrintInfo> printInfo, common::ExtendDirection direction)
+        : PathSemiMasker{std::move(info), std::move(child), id, std::move(printInfo),
+              std::move(direction)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<PathMultipleTableSemiMasker>(info->copy(), children[0]->clone(), id,
-            printInfo->copy());
+            printInfo->copy(), direction);
     }
 };
 

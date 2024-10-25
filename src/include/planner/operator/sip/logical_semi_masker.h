@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/extend_direction.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_operator.h"
 
@@ -44,7 +45,8 @@ public:
         std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
         std::vector<LogicalOperator*> ops, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child)}, keyType{keyType}, targetType{targetType},
-          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, targetOps{std::move(ops)} {}
+          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, targetOps{std::move(ops)},
+          direction{common::ExtendDirection::BOTH} {}
 
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }
@@ -62,14 +64,18 @@ public:
     void addTarget(LogicalOperator* op) { targetOps.push_back(op); }
     std::vector<LogicalOperator*> getTargetOperators() const { return targetOps; }
 
+    void setDirection(common::ExtendDirection extendDirection) { direction = extendDirection; }
+    common::ExtendDirection getDirection() const { return direction; }
     std::unique_ptr<LogicalOperator> copy() override {
         if (!targetOps.empty()) {
             throw common::RuntimeException(
                 "LogicalSemiMasker::copy() should not be called when ops "
                 "is not empty. Raw pointers will be point to corrupted object after copy.");
         }
-        return std::make_unique<LogicalSemiMasker>(keyType, targetType, key, nodeTableIDs,
+        auto copy = std::make_unique<LogicalSemiMasker>(keyType, targetType, key, nodeTableIDs,
             children[0]->copy());
+        copy->direction = this->direction;
+        return copy;
     }
 
 private:
@@ -79,6 +85,8 @@ private:
     std::vector<common::table_id_t> nodeTableIDs;
     // Operators accepting semi masker
     std::vector<LogicalOperator*> targetOps;
+    // for path semi masker
+    common::ExtendDirection direction;
 };
 
 } // namespace planner

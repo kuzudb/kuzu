@@ -178,9 +178,6 @@ expression_vector ExpressionChildrenCollector::collectRelChildren(const Expressi
     if (rel.hasDirectionExpr()) {
         result.push_back(rel.getDirectionExpr());
     }
-    if (rel.hasDirectionExpr()) {
-        result.push_back(rel.getDirectionExpr());
-    }
     return result;
 }
 
