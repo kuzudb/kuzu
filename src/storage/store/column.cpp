@@ -10,7 +10,6 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
 #include "storage/file_handle.h"
-#include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/column_chunk_data.h"

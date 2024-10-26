@@ -3,11 +3,10 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/local_storage/local_storage.h"
-#include "storage/store/version_info.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/wal.h"
-#include <main/db_config.h>
 
 using namespace kuzu::catalog;
 
@@ -30,6 +29,7 @@ Transaction::Transaction(TransactionType transactionType) noexcept
       forceCheckpoint{false} {
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
+
 Transaction::Transaction(TransactionType transactionType, common::transaction_t ID,
     common::transaction_t startTS) noexcept
     : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},

@@ -217,7 +217,7 @@ void HashIndex<T>::reserve(const Transaction* transaction, uint64_t newEntries) 
         if (numRequiredSlots >= numSlotsOfCurrentLevel) {
             this->indexHeaderForWriteTrx.nextSplitSlotId =
                 numRequiredSlots - numSlotsOfCurrentLevel;
-        };
+        }
     } else {
         splitSlots(transaction, this->indexHeaderForWriteTrx,
             numRequiredSlots - pSlots->getNumElements(transaction->getType()));

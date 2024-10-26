@@ -248,7 +248,7 @@ protected:
     // constructor.
     void initializeBuffer(common::PhysicalTypeID physicalType, MemoryManager& mm,
         bool initializeToZero);
-    void initializeFunction(bool enableCompression);
+    void initializeFunction();
 
     // Note: This function is not setting child/null chunk data recursively.
     void setToOnDisk(const ColumnChunkMetadata& metadata);

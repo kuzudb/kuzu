@@ -38,8 +38,12 @@ public:
     NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) {
         return nodeGroups.getGroupNoLock(groupIdx);
     }
-    NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx) const {
+    NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx,
+        bool mayOutOfBound = false) const {
         const auto lock = nodeGroups.lock();
+        if (mayOutOfBound && groupIdx >= nodeGroups.getNumGroups(lock)) {
+            return nullptr;
+        }
         return nodeGroups.getGroup(lock, groupIdx);
     }
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t groupIdx, NodeGroupDataFormat format);

@@ -130,10 +130,6 @@ public:
     common::column_id_t getPKColumnID() const { return pkColumnID; }
     PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     common::column_id_t getNumColumns() const { return columns.size(); }
-    Column* getColumnPtr(common::column_id_t columnID) const {
-        KU_ASSERT(columnID < columns.size());
-        return columns[columnID].get();
-    }
     Column& getColumn(common::column_id_t columnID) {
         KU_ASSERT(columnID < columns.size());
         return *columns[columnID];

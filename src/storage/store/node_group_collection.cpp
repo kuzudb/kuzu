@@ -153,20 +153,16 @@ row_idx_t NodeGroupCollection::getNumTotalRows() {
 NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(node_group_idx_t groupIdx,
     NodeGroupDataFormat format) {
     const auto lock = nodeGroups.lock();
-    const auto nodeGroup = nodeGroups.getGroup(lock, groupIdx);
-    if (!nodeGroup) {
-        while (groupIdx >= nodeGroups.getNumGroups(lock)) {
-            const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
-            nodeGroups.replaceGroup(lock, currentGroupIdx,
-                format == NodeGroupDataFormat::REGULAR ?
-                    std::make_unique<NodeGroup>(currentGroupIdx, enableCompression,
-                        LogicalType::copy(types)) :
-                    std::make_unique<CSRNodeGroup>(currentGroupIdx, enableCompression,
-                        LogicalType::copy(types)));
-        }
-        return nodeGroups.getGroup(lock, groupIdx);
+    while (groupIdx >= nodeGroups.getNumGroups(lock)) {
+        const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
+        nodeGroups.appendGroup(lock, format == NodeGroupDataFormat::REGULAR ?
+                                         std::make_unique<NodeGroup>(currentGroupIdx,
+                                             enableCompression, LogicalType::copy(types)) :
+                                         std::make_unique<CSRNodeGroup>(currentGroupIdx,
+                                             enableCompression, LogicalType::copy(types)));
     }
-    return nodeGroup;
+    KU_ASSERT(groupIdx < nodeGroups.getNumGroups(lock));
+    return nodeGroups.getGroup(lock, groupIdx);
 }
 
 void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {

@@ -42,16 +42,16 @@ public:
     common::column_id_t getNumColumns() const { return columns.size(); }
     Column* getColumn(common::column_id_t columnID) const { return columns[columnID].get(); }
     std::vector<const Column*> getColumns() const {
-        std::vector<const Column*> columns;
-        columns.reserve(this->columns.size());
-        for (const auto& column : this->columns) {
-            columns.push_back(column.get());
+        std::vector<const Column*> result;
+        result.reserve(columns.size());
+        for (const auto& column : columns) {
+            result.push_back(column.get());
         }
-        return columns;
+        return result;
     }
     common::node_group_idx_t getNumNodeGroups() const { return nodeGroups->getNumNodeGroups(); }
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getNodeGroup(nodeGroupIdx);
+        return nodeGroups->getNodeGroup(nodeGroupIdx, true /*mayOutOfBound*/);
     }
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);

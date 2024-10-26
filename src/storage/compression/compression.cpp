@@ -495,7 +495,6 @@ void ConstantCompression::decompressValues(uint8_t* dstBuffer, uint64_t dstOffse
         [&](auto) {
             throw NotImplementedException("CONSTANT compression is not implemented for type " +
                                           PhysicalTypeUtils::toString(physicalType));
-            ;
         });
 }
 

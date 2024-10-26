@@ -279,7 +279,7 @@ template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transac
     ChunkedNodeGroup& output) const;
 
 bool ChunkedNodeGroup::hasDeletions(const Transaction* transaction) const {
-    return versionInfo ? versionInfo->hasDeletions(transaction) : false;
+    return versionInfo && versionInfo->hasDeletions(transaction);
 }
 
 row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
@@ -339,13 +339,13 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
 
 void ChunkedNodeGroup::addColumn(Transaction* transaction,
     const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH) {
-    auto numRows = getNumRows();
     auto& dataType = addColumnState.propertyDefinition.getType();
     chunks.push_back(
         std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
             dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
-    chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numRows);
+    auto numExistingRows = getNumRows();
+    chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numExistingRows);
     if (residencyState == ResidencyState::ON_DISK) {
         KU_ASSERT(dataFH);
         chunkData.flush(*dataFH);
@@ -367,14 +367,14 @@ bool ChunkedNodeGroup::isInserted(const Transaction* transaction, row_idx_t rowI
 }
 
 bool ChunkedNodeGroup::hasAnyUpdates(const Transaction* transaction, column_id_t columnID,
-    row_idx_t startRow, length_t numRows) const {
-    return getColumnChunk(columnID).hasUpdates(transaction, startRow, numRows);
+    row_idx_t startRow, length_t numRowsToCheck) const {
+    return getColumnChunk(columnID).hasUpdates(transaction, startRow, numRowsToCheck);
 }
 
 row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_idx_t startRow,
-    length_t numRows) const {
+    length_t numRowsToCheck) const {
     if (versionInfo) {
-        return versionInfo->getNumDeletions(transaction, startRow, numRows);
+        return versionInfo->getNumDeletions(transaction, startRow, numRowsToCheck);
     }
     return 0;
 }
@@ -429,8 +429,9 @@ bool ChunkedNodeGroup::hasUpdates() const {
     return false;
 }
 
-void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRows, transaction_t commitTS) {
-    versionInfo->commitInsert(startRow, numRows, commitTS);
+void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommit,
+    transaction_t commitTS) {
+    versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);
 }
 
 void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_) {
