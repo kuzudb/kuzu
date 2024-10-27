@@ -9,7 +9,7 @@ namespace kuzu {
                 : capacity{capacity}, actual_size{0} {
             // Initialize nodes with invalid entries
             nodes.resize(capacity + 1, T());  // +1 for 1-based indexing
-            minElement.store(&nodes[1], std::memory_order_relaxed);
+//            minElement.store(&nodes[1], std::memory_order_relaxed);
         }
 
         template<typename T>
@@ -23,7 +23,7 @@ namespace kuzu {
             }
             actual_size++;
             pushToHeap(node);
-            minElement.store(&nodes[1], std::memory_order_relaxed);
+//            minElement.store(&nodes[1], std::memory_order_relaxed);
         }
 
         template<typename T>
@@ -52,7 +52,7 @@ namespace kuzu {
             if (actual_size == 0) {
                 nodes[1] = T();
             }
-            minElement.store(&nodes[1], std::memory_order_relaxed);
+//            minElement.store(&nodes[1], std::memory_order_relaxed);
             return minNode;
         }
 

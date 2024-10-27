@@ -49,8 +49,7 @@ namespace kuzu {
                                                  std::vector<std::vector<NodeDistCloser>> entrypoints)
                     : efSearch(efSearch), maxK(maxK), maxNumThreads(maxNumThreads), context(context), graph(graph),
                       distanceComputer(distanceComputer), filterMask(filterMask),
-                      header(header), visited(visited), parallelResults(parallelResults),
-                      entrypoints(std::move(entrypoints)) {
+                      header(header) {
                 numPartitions = header->getNumPartitions();
 
             };

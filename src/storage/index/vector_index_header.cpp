@@ -32,6 +32,7 @@ namespace kuzu {
                   re(RandomEngine()) {
             actualIds = std::vector<vector_id_t>(other.actualIds);
             neighbors = std::vector<vector_id_t>(other.neighbors);
+            quantizedVectors = std::vector<uint8_t>(other.quantizedVectors);
         }
 
         VectorIndexHeaderPerPartition::VectorIndexHeaderPerPartition(
@@ -45,14 +46,15 @@ namespace kuzu {
                 node_group_idx_t startNodeGroupId,
                 node_group_idx_t endNodeGroupId,
                 table_id_t csrRelTableIds,
-                std::unique_ptr<SQ8Bit> quantizer) :
+                std::unique_ptr<SQ8Bit> quantizer,
+                std::vector<uint8_t> quantizedVectors) :
                 partitionId(partitionId), numVectors(numVectors), entrypoint(entrypoint),
                 entrypointLevel(entrypointLevel),
                 maxNbrsAtUpperLevel(maxNbrsAtUpperLevel), samplingProbability(samplingProbability),
                 actualIds(std::move(actualIds)), neighbors(std::move(neighbors)),
                 numVectorsInUpperLevel(numVectorsInUpperLevel), startNodeGroupId(startNodeGroupId),
                 endNodeGroupId(endNodeGroupId), csrRelTableId(csrRelTableIds), quantizer(std::move(quantizer)),
-                re(RandomEngine()) {}
+                quantizedVectors(std::move(quantizedVectors)), re(RandomEngine()) {}
 
 
         bool VectorIndexHeaderPerPartition::includeInUpperLevel() {
@@ -78,6 +80,9 @@ namespace kuzu {
                 actualIds.resize(newSize, INVALID_VECTOR_ID);
                 neighbors.resize(newSize * maxNbrsAtUpperLevel, INVALID_VECTOR_ID);
             }
+
+            // TODO: Maybe remove this!!
+            quantizedVectors.resize(quantizer->codeSize * numVectors, 0);
         }
 
         void VectorIndexHeaderPerPartition::update(const vector_id_t *vectorIds, int numVectors,
@@ -131,6 +136,7 @@ namespace kuzu {
             serializer.serializeValue(endNodeGroupId);
             serializer.serializeValue(csrRelTableId);
             quantizer->serialize(serializer);
+            serializer.serializeVector(quantizedVectors);
         }
 
         std::unique_ptr<VectorIndexHeaderPerPartition>
@@ -160,12 +166,15 @@ namespace kuzu {
             table_id_t csrRelTableId;
             deserializer.deserializeValue(csrRelTableId);
             std::unique_ptr<SQ8Bit> quantizer = SQ8Bit::deserialize(deserializer);
+            std::vector<uint8_t> quantizedVectors;
+            deserializer.deserializeVector(quantizedVectors);
             return std::make_unique<VectorIndexHeaderPerPartition>(partitionId, numVectors, entrypoint, entrypointLevel,
                                                                    maxNbrsAtUpperLevel, samplingProbability,
                                                                    std::move(actualIds), std::move(neighbors),
                                                                    numVectorsInUpperLevel, startNodeGroupId,
                                                                    endNodeGroupId,
-                                                                   csrRelTableId, std::move(quantizer));
+                                                                   csrRelTableId, std::move(quantizer),
+                                                                   std::move(quantizedVectors));
         }
 
         VectorIndexHeader::VectorIndexHeader(const int dim, const kuzu::common::VectorIndexConfig config,

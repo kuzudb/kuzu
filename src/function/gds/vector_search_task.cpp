@@ -8,102 +8,102 @@ using namespace kuzu::graph;
 namespace kuzu {
     namespace function {
         void VectorSearchTask::run() {
-            auto [partitionId, threadId] = sharedState->getWork();
-            auto context = sharedState->context;
-            auto readLocalState = localState->clone(context);
-            auto efSearch = ((float) sharedState->efSearch / sharedState->maxNumThreads) * 1.2;
-            auto visited = sharedState->visited;
-            auto dc = sharedState->distanceComputer;
-            auto header = sharedState->header;
-            auto nodeTableId = header->getNodeTableId();
-            auto graph = sharedState->graph;
-            auto filterMask = sharedState->filterMask;
-            auto maxK = sharedState->maxK;
-            auto partition = header->getPartitionHeader(partitionId);
-
-            auto state = graph->prepareScan(header->);
-            // sync into the final result after every 2 iterations
-            int syncAfterIter = 3;
-            auto isFilteredSearch = filterMask->isEnabled();
-            auto useInFilterSearch = false;
-            // Find maxK value based on selectivity
-            if (isFilteredSearch) {
-                auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
-                if (selectivity <= 0.005) {
-                    // TODO: Add code to calculate distance for all nodes
-                    printf("skipping search since selectivity too low\n");
-                    return;
-                }
-                if (selectivity > 0.3) {
-                    useInFilterSearch = true;
-                }
-                maxK = calculateMaxK(filterMask->getNumMaskedNodes(), header->getNumVectors());
-            }
-            // Initialize the results and candidates
-            std::priority_queue<NodeDistFarther> candidates;
-            std::vector<NodeDistFarther> localResults;
-            auto &entrypoints = sharedState->entrypoints[threadId];
-            for (auto &entrypoint: entrypoints) {
-                candidates.emplace(entrypoint.id, entrypoint.dist);
-            }
-
-            while (!candidates.empty()) {
-                auto queueSize = parallelResults->size();
-                double topDist = std::numeric_limits<double>::max();
-                auto topElement = parallelResults->top();
-                if (topElement != nullptr) {
-                    topDist = topElement->dist;
-                }
-                int searchIter = 0;
-                while (!candidates.empty()) {
-                    auto candidate = candidates.top();
-                    candidates.pop();
-                    std::vector<common::nodeID_t> neighbors;
-                    if (isFilteredSearch && !useInFilterSearch) {
-                        findFilteredNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors,
-                                                    filterMask, visited, maxK, efSearch,
-                                                    sharedState->graph);
-                        // If empty, work with unfiltered neighbours to move forward
-                        if (candidates.empty() && neighbors.empty()) {
-                            // Figure out how expensive this is!!
-                            // Push a random masked neighbour to continue the search
-                            for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
-                                if (filterMask->isMasked(i) && !visited->atomic_is_bit_set(i)) {
-                                    neighbors.push_back({i, nodeTableId});
-                                    visited->atomic_set_bit(i);
-                                    break;
-                                }
-                            }
-                        }
-                    } else {
-                        // TODO: Fix this!!
-                        findNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors, visited, graph);
-                    }
-                    // TODO: Try batch compute distances
-                    for (auto neighbor: neighbors) {
-                        double dist;
-                        auto embed = readLocalState->getEmbedding(context, neighbor.offset);
-                        dc->computeDistance(embed, &dist);
-                        if (queueSize < efSearch || dist < topDist) {
-                            candidates.emplace(neighbor.offset, dist);
-                            if (!useInFilterSearch || isMasked(neighbor.offset, filterMask)) {
-                                localResults.emplace_back(neighbor.offset, dist);
-                                queueSize++;
-                            }
-                        }
-                    }
-                    searchIter++;
-                    if (searchIter == syncAfterIter) {
-                        break;
-                    }
-                }
+//            auto [partitionId, threadId] = sharedState->getWork();
+//            auto context = sharedState->context;
+//            auto readLocalState = localState->clone(context);
+//            auto efSearch = ((float) sharedState->efSearch / sharedState->maxNumThreads) * 1.2;
+//            auto visited = sharedState->visited;
+//            auto dc = sharedState->distanceComputer;
+//            auto header = sharedState->header;
+//            auto nodeTableId = header->getNodeTableId();
+//            auto graph = sharedState->graph;
+//            auto filterMask = sharedState->filterMask;
+//            auto maxK = sharedState->maxK;
+//            auto partition = header->getPartitionHeader(partitionId);
+//
+//            auto state = graph->prepareScan(header->);
+//            // sync into the final result after every 2 iterations
+//            int syncAfterIter = 3;
+//            auto isFilteredSearch = filterMask->isEnabled();
+//            auto useInFilterSearch = false;
+//            // Find maxK value based on selectivity
+//            if (isFilteredSearch) {
+//                auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
+//                if (selectivity <= 0.005) {
+//                    // TODO: Add code to calculate distance for all nodes
+//                    printf("skipping search since selectivity too low\n");
+//                    return;
+//                }
+//                if (selectivity > 0.3) {
+//                    useInFilterSearch = true;
+//                }
+//                maxK = calculateMaxK(filterMask->getNumMaskedNodes(), header->getNumVectors());
+//            }
+//            // Initialize the results and candidates
+//            std::priority_queue<NodeDistFarther> candidates;
+//            std::vector<NodeDistFarther> localResults;
+//            auto &entrypoints = sharedState->entrypoints[threadId];
+//            for (auto &entrypoint: entrypoints) {
+//                candidates.emplace(entrypoint.id, entrypoint.dist);
+//            }
+//
+//            while (!candidates.empty()) {
+//                auto queueSize = parallelResults->size();
+//                double topDist = std::numeric_limits<double>::max();
+//                auto topElement = parallelResults->top();
+//                if (topElement != nullptr) {
+//                    topDist = topElement->dist;
+//                }
+//                int searchIter = 0;
+//                while (!candidates.empty()) {
+//                    auto candidate = candidates.top();
+//                    candidates.pop();
+//                    std::vector<common::nodeID_t> neighbors;
+//                    if (isFilteredSearch && !useInFilterSearch) {
+//                        findFilteredNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors,
+//                                                    filterMask, visited, maxK, efSearch,
+//                                                    sharedState->graph);
+//                        // If empty, work with unfiltered neighbours to move forward
+//                        if (candidates.empty() && neighbors.empty()) {
+//                            // Figure out how expensive this is!!
+//                            // Push a random masked neighbour to continue the search
+//                            for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
+//                                if (filterMask->isMasked(i) && !visited->atomic_is_bit_set(i)) {
+//                                    neighbors.push_back({i, nodeTableId});
+//                                    visited->atomic_set_bit(i);
+//                                    break;
+//                                }
+//                            }
+//                        }
+//                    } else {
+//                        // TODO: Fix this!!
+//                        findNextKNeighbours({candidate.id, nodeTableId}, *state, neighbors, visited, graph);
+//                    }
+//                    // TODO: Try batch compute distances
+//                    for (auto neighbor: neighbors) {
+//                        double dist;
+//                        auto embed = readLocalState->getEmbedding(context, neighbor.offset);
+//                        dc->computeDistance(embed, &dist);
+//                        if (queueSize < efSearch || dist < topDist) {
+//                            candidates.emplace(neighbor.offset, dist);
+//                            if (!useInFilterSearch || isMasked(neighbor.offset, filterMask)) {
+//                                localResults.emplace_back(neighbor.offset, dist);
+//                                queueSize++;
+//                            }
+//                        }
+//                    }
+//                    searchIter++;
+//                    if (searchIter == syncAfterIter) {
+//                        break;
+//                    }
+//                }
                 // Push to the parallel results
-                parallelResults->bulkPush(localResults.data(), localResults.size());
-                localResults.clear();
-                if (candidates.empty() || candidates.top().dist > parallelResults->top()->dist) {
-                    break;
-                }
-            }
+//                parallelResults->bulkPush(localResults.data(), localResults.size());
+//                localResults.clear();
+//                if (candidates.empty() || candidates.top().dist > parallelResults->top()->dist) {
+//                    break;
+//                }
+//            }
         }
 
         int VectorSearchTask::findFilteredNextKNeighbours(common::nodeID_t nodeID,

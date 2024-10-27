@@ -41,7 +41,8 @@ namespace kuzu {
                                                    std::vector<vector_id_t> neighbors, uint64_t numVectorsInUpperLevel,
                                                    node_group_idx_t startNodeGroupId,
                                                    node_group_idx_t endNodeGroupId,
-                                                   table_id_t csrRelTableIds, std::unique_ptr<SQ8Bit> quantizer);
+                                                   table_id_t csrRelTableIds, std::unique_ptr<SQ8Bit> quantizer,
+                                                   std::vector<uint8_t> quantizedVectors);
 
             void initSampleGraph(uint64_t numVectors);
 
@@ -70,6 +71,8 @@ namespace kuzu {
             inline uint64_t getNumVectors() const { return numVectors; }
 
             inline SQ8Bit *getQuantizer() { return quantizer.get(); }
+
+            inline uint8_t *getQuantizedVectors() { return quantizedVectors.data(); }
 
             inline node_group_idx_t getStartNodeGroupId() const { return startNodeGroupId; }
 
@@ -120,6 +123,8 @@ namespace kuzu {
 
             // Quantizer
             std::unique_ptr<SQ8Bit> quantizer;
+            // TODO: Maybe remove this!
+            std::vector<uint8_t> quantizedVectors;
 
             // This is used to keep track of the number of vectors in each level
             RandomEngine re;

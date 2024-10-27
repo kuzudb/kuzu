@@ -82,37 +82,36 @@ namespace kuzu {
                 auto nodeTable = ku_dynamic_cast<Table *, NodeTable *>(
                         context->getStorageManager()->getTable(nodeTableId));
                 embeddingColumn = nodeTable->getColumn(embeddingPropertyId);
-                compressedColumn = nodeTable->getColumn(indexHeader->getCompressedPropertyId());
+//                compressedColumn = nodeTable->getColumn(indexHeader->getCompressedPropertyId());
 
                 // TODO: Replace with compressed vector. Should be stored in the
                 embeddingVector = std::make_unique<ValueVector>(embeddingColumn->getDataType().copy(),
                                                                 context->getMemoryManager());
                 embeddingVector->state = DataChunkState::getSingleValueDataChunkState();
-                compressedVector = std::make_unique<ValueVector>(compressedColumn->getDataType().copy(),
-                                                                 context->getMemoryManager());
-                compressedVector->state = DataChunkState::getSingleValueDataChunkState();
+//                compressedVector = std::make_unique<ValueVector>(compressedColumn->getDataType().copy(),
+//                                                                 context->getMemoryManager());
+//                compressedVector->state = DataChunkState::getSingleValueDataChunkState();
                 inputNodeIdVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID().copy(),
                                                                   context->getMemoryManager());
                 inputNodeIdVector->state = DataChunkState::getSingleValueDataChunkState();
-                for (size_t i = 0; i < compressedColumn->getNumNodeGroups(context->getTx()); i++) {
+                for (size_t i = 0; i < embeddingColumn->getNumNodeGroups(context->getTx()); i++) {
                     readStates.push_back(std::make_unique<Column::ChunkState>());
                 }
             }
 
-            void materialize(graph::Graph *graph, std::priority_queue<NodeDistCloser> &result,
+            void materialize(graph::Graph *graph, BinaryHeap<NodeDistFarther> &results,
                              FactorizedTable &table, int k) const {
-                // Remove elements until we have k elements
+                // TODO: Rerank the results if using some even lower quantization like bitQ
 
-                // TODO: Rerank the results
-                while (result.size() > k) {
-                    auto candidate = result.top();
-                    result.pop();
+                // Remove elements until we have k elements
+                while (results.size() > k) {
+                    results.popMin();
                 }
 
                 std::priority_queue<NodeDistFarther> reversed;
-                while (!result.empty()) {
-                    reversed.emplace(result.top().id, result.top().dist);
-                    result.pop();
+                while (results.size() > 0) {
+                    reversed.emplace(results.top()->id, results.top()->dist);
+                    results.popMin();
                 }
 
                 while (!reversed.empty()) {
@@ -206,95 +205,26 @@ namespace kuzu {
                                                                       bind->embeddingPropertyID);
             }
 
-            void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                      const float *query, CosineDistanceComputer *dc, vector_id_t &nearest,
-                                      double &nearestDist) {
-                while (true) {
-                    vector_id_t prev_nearest = nearest;
-                    size_t begin, end;
-                    auto neighbors = header->getNeighbors(nearest, begin, end);
-                    for (size_t i = begin; i < end; i++) {
-                        vector_id_t neighbor = neighbors[i];
-                        if (neighbor == INVALID_VECTOR_ID) {
-                            break;
-                        }
-                        double dist;
-                        auto embed = getEmbedding(context, header->getActualId(neighbor));
-                        dc->computeDistance(embed, &dist);
-                        if (dist < nearestDist) {
-                            nearest = neighbor;
-                            nearestDist = dist;
-                        }
-                    }
-                    if (prev_nearest == nearest) {
-                        break;
-                    }
-                }
-            }
-
-            void searchANNOnUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                       const float *query, CosineDistanceComputer *dc, vector_id_t &entrypoint,
-                                       double &entrypointDist, std::priority_queue<NodeDistCloser> &results,
-                                       BitVectorVisitedTable *visited, int efSearch) {
-                std::priority_queue<NodeDistFarther> candidates;
-                candidates.emplace(entrypoint, entrypointDist);
-                results.emplace(entrypoint, entrypointDist);
-                visited->set_bit(entrypoint);
-                while (!candidates.empty()) {
-                    auto candidate = candidates.top();
-                    if (candidate.dist > results.top().dist) {
-                        break;
-                    }
-                    candidates.pop();
-                    size_t begin, end;
-                    auto neighbors = header->getNeighbors(candidate.id, begin, end);
-
-                    for (size_t i = begin; i < end; i++) {
-                        auto neighbor = neighbors[i];
-                        if (neighbor == INVALID_VECTOR_ID) {
-                            break;
-                        }
-                        if (visited->is_bit_set(neighbor)) {
-                            continue;
-                        }
-                        visited->set_bit(neighbor);
-                        double dist;
-                        auto actualNbr = header->getActualId(neighbor);
-                        auto embed = getEmbedding(context, actualNbr);
-                        dc->computeDistance(embed, &dist);
-                        if (results.size() < efSearch || dist < results.top().dist) {
-                            candidates.emplace(neighbor, dist);
-                            results.emplace(actualNbr, dist);
-                            if (results.size() > efSearch) {
-                                results.pop();
-                            }
-                        }
-                    }
-                }
-                // Reset the visited table
-                visited->reset();
-            }
-
             // TODO: Use in-mem compressed vectors
             // TODO: Maybe try using separate threads to separate io and computation (ideal async io)
-            const uint8_t *getCompressedEmbedding(processor::ExecutionContext *context, vector_id_t id) {
-                auto searchLocalState =
-                        ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
-                auto compressedColumn = searchLocalState->compressedColumn;
-                auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(id);
-
-                // Initialize the read state
-                auto readState = searchLocalState->readStates[nodeGroupIdx].get();
-                compressedColumn->initChunkState(context->clientContext->getTx(), nodeGroupIdx, *readState);
-
-                // Read the embedding
-                auto nodeIdVector = searchLocalState->inputNodeIdVector.get();
-                nodeIdVector->setValue(0, id);
-                auto resultVector = searchLocalState->compressedVector.get();
-                compressedColumn->lookup(context->clientContext->getTx(), *readState, nodeIdVector,
-                                         resultVector);
-                return ListVector::getDataVector(resultVector)->getData();
-            }
+//            const uint8_t *getCompressedEmbedding(processor::ExecutionContext *context, vector_id_t id) {
+//                auto searchLocalState =
+//                        ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
+//                auto compressedColumn = searchLocalState->compressedColumn;
+//                auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(id);
+//
+//                // Initialize the read state
+//                auto readState = searchLocalState->readStates[nodeGroupIdx].get();
+//                compressedColumn->initChunkState(context->clientContext->getTx(), nodeGroupIdx, *readState);
+//
+//                // Read the embedding
+//                auto nodeIdVector = searchLocalState->inputNodeIdVector.get();
+//                nodeIdVector->setValue(0, id);
+//                auto resultVector = searchLocalState->compressedVector.get();
+//                compressedColumn->lookup(context->clientContext->getTx(), *readState, nodeIdVector,
+//                                         resultVector);
+//                return ListVector::getDataVector(resultVector)->getData();
+//            }
 
             const float *getEmbedding(processor::ExecutionContext *context, vector_id_t id) {
                 auto searchLocalState =
@@ -315,19 +245,50 @@ namespace kuzu {
                 return reinterpret_cast<float *>(ListVector::getDataVector(resultVector)->getData());
             }
 
+            inline const uint8_t *getCompressedEmbedding(VectorIndexHeaderPerPartition *header, vector_id_t id) {
+                return header->getQuantizedVectors() + id * header->getQuantizer()->codeSize;
+            }
+
+            void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
+                                      const float *query, QuantizedDistanceComputer<float, uint8_t> *dc,
+                                      vector_id_t &nearest,
+                                      double &nearestDist) {
+                while (true) {
+                    vector_id_t prev_nearest = nearest;
+                    size_t begin, end;
+                    auto neighbors = header->getNeighbors(nearest, begin, end);
+                    for (size_t i = begin; i < end; i++) {
+                        vector_id_t neighbor = neighbors[i];
+                        if (neighbor == INVALID_VECTOR_ID) {
+                            break;
+                        }
+                        double dist;
+                        auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
+                        dc->compute_distance(query, embedding, &dist);
+                        if (dist < nearestDist) {
+                            nearest = neighbor;
+                            nearestDist = dist;
+                        }
+                    }
+                    if (prev_nearest == nearest) {
+                        break;
+                    }
+                }
+            }
+
             void findEntrypointUsingUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                               const float *query, CosineDistanceComputer *dc, vector_id_t &entrypoint,
+                                               const float *query, QuantizedDistanceComputer<float, uint8_t> *dc, vector_id_t &entrypoint,
                                                double *entrypointDist) {
                 uint8_t entrypointLevel;
                 header->getEntrypoint(entrypoint, entrypointLevel);
                 if (entrypointLevel == 1) {
-                    auto embedding = getEmbedding(context, header->getActualId(entrypoint));
-                    dc->computeDistance(embedding, entrypointDist);
+                    auto embedding = getCompressedEmbedding(header, header->getActualId(entrypoint));
+                    dc->compute_distance(query, embedding, entrypointDist);
                     searchNNOnUpperLevel(context, header, query, dc, entrypoint, *entrypointDist);
                     entrypoint = header->getActualId(entrypoint);
                 } else {
-                    auto embedding = getEmbedding(context, entrypoint);
-                    dc->computeDistance(embedding, entrypointDist);
+                    auto embedding = getCompressedEmbedding(header, entrypoint);
+                    dc->compute_distance(query, embedding, entrypointDist);
                 }
             }
 
@@ -369,72 +330,6 @@ namespace kuzu {
                 return neighboursChecked;
             }
 
-            // findFilteredNextKNeighboursV2 (uses priority queue) expands the closest first
-            // Assumption is that distance computation gets cheaper as we move forward, using quantization
-//            inline int
-//            findFilteredNextKNeighboursSmart(DistanceComputer *dc, ExecutionContext *context, common::nodeID_t entryPoint, GraphScanState &state,
-//                                             std::vector<common::nodeID_t> &nbrs,
-//                                             NodeOffsetLevelSemiMask *filterMask,
-//                                             VisitedTable &visited, int minK, int maxNeighboursCheck, int& totalDistanceComputations, int& depth) {
-//                auto graph = sharedState->graph.get();
-//                auto tableId = entryPoint.tableID;
-//                // Initialize the priority queue with the entry point
-//
-//                std::unordered_map<vector_id_t, std::vector<nodeID_t>> cachedNbrs;
-//                std::priority_queue<NodeDistFarther> candidates;
-//                candidates.emplace(entryPoint.offset, MAXFLOAT);
-//                std::priority_queue<NodeDistFarther> exploreCandidates;
-//                exploreCandidates.emplace(entryPoint.offset, MAXFLOAT);
-//                std::unordered_set<offset_t> visitedSet;
-//                auto neighboursChecked = 0;
-//                while (neighboursChecked <= maxNeighboursCheck && !candidates.empty()) {
-//                    auto candidate = candidates.top();
-//                    candidates.pop();
-//                    if (visitedSet.contains(candidate.id)) {
-//                        continue;
-//                    }
-//                    visitedSet.insert(candidate.id);
-//                    visited.set(candidate.id);
-//                    auto neighbors = graph->scanFwdRandom({candidate.id, tableId}, state);
-//                    neighboursChecked += 1;
-//                    depth = std::max(depth, candidate.depth);
-//                    for (auto &neighbor: neighbors) {
-//                        if (visited.get(neighbor.offset)) {
-//                            continue;
-//                        }
-//                        if (filterMask->isMasked(neighbor.offset)) {
-//                            nbrs.push_back(neighbor);
-//                            visited.set(neighbor.offset);
-//                        }
-//                    }
-//
-//                    if (nbrs.size() >= minK) {
-//                        break;
-//                    }
-//                    cachedNbrs[candidate.id] = std::move(neighbors);
-//                    if (candidates.empty()) {
-//                        if (exploreCandidates.empty()) {
-//                            break;
-//                        }
-//                        auto exploreCandidate = exploreCandidates.top();
-//                        exploreCandidates.pop();
-//                        for (auto &neighbor: cachedNbrs[exploreCandidate.id]) {
-//                            if (visited.get(neighbor.offset) || visitedSet.contains(neighbor.offset)) {
-//                                continue;
-//                            }
-//                            // TODO: This will get optimized when we cache the neighbours in memory
-//                            auto embedding = getEmbedding(context, neighbor.offset);
-//                            double dist;
-//                            totalDistanceComputations += 1;
-//                            dc->computeDistance(embedding, &dist);
-//                            candidates.emplace(neighbor.offset, dist, exploreCandidate.depth + 1);
-//                            exploreCandidates.emplace(neighbor.offset, dist, exploreCandidate.depth + 1);
-//                        }
-//                    }
-//                }
-//                return neighboursChecked;
-//            }
-
             inline void findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
                                             std::vector<common::nodeID_t> &nbrs, AtomicVisitedTable* visited) {
                 auto unFilteredNbrs = sharedState->graph.get()->scanFwdRandom(nodeID, state);
@@ -458,97 +353,178 @@ namespace kuzu {
                 results = std::move(reranked);
             }
 
-            void coreSearch(ExecutionContext *context, GDSLocalState *searchLocalState, GDSBindData *bindState, Graph *graph,
-                            DistanceComputer *dc, const bool isFilteredSearch, const bool useInFilterSearch, NodeOffsetLevelSemiMask *filterMask,
-                            GraphScanState *state, const vector_id_t entrypoint, const double entrypointDist, const int maxK,
-                            std::priority_queue<NodeDistCloser> &results, AtomicVisitedTable* visited, VectorIndexHeader* header, const int efSearch) {
-
+            void unfilteredSearch(const float *query, const table_id_t tableId, Graph *graph,
+                                  QuantizedDistanceComputer<float, uint8_t> *dc,
+                                  GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
+                                  BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                  VectorIndexHeaderPerPartition *header, const int efSearch) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
-
-                visited->set(entrypoint);
-
-                // Metrics
-                int totalIterations = 0;
-                int avgDepth = 0;
-                int maxDepth = 0;
-                int minDepth = 0;
-                int totalDistanceComputations = 0;
-                int totalCallsToScanNbr = 0;
-                std::chrono::nanoseconds filterGraphSearchTime(0);
-                std::chrono::nanoseconds randomFilterNeighbourTime(0);
-
+                results.push(NodeDistFarther{entrypoint, entrypointDist});
+                visited->set_bit(entrypoint);
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
-                    if (!results.empty() && candidate.dist > results.top().dist) {
+                    if (candidate.dist > results.top()->dist) {
                         break;
                     }
                     candidates.pop();
 
-                    std::vector<common::nodeID_t> neighbors;
-//                    if (isFilteredSearch && !useInFilterSearch) {
-//                        int searchDepth = 0;
-//                        auto startFilterSearch = std::chrono::high_resolution_clock::now();
-//                        auto callsToScanNbr = findFilteredNextKNeighboursSmart(dc, context,
-//                                                                               {candidate.id, header->getNodeTableId()},
-//                                                                               *state, neighbors, filterMask, *visited,
-//                                                                               maxK, 64,
-//                                                                               totalDistanceComputations, searchDepth);
-//                        avgDepth += searchDepth;
-//                        maxDepth = std::max(maxDepth, searchDepth);
-//                        minDepth = std::min(minDepth, searchDepth);
-//                        totalIterations++;
-//                        totalCallsToScanNbr += callsToScanNbr;
-//                        auto endFilterSearch = std::chrono::high_resolution_clock::now();
-//                        filterGraphSearchTime += std::chrono::duration_cast<std::chrono::nanoseconds>(
-//                                endFilterSearch - startFilterSearch);
-//
-//                        if (candidates.empty() && neighbors.empty()) {
-//                            auto startRandomNbr = std::chrono::high_resolution_clock::now();
-//                            for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
-//                                if (filterMask->isMasked(i) && !visited->get(i)) {
-//                                    neighbors.push_back({i, header->getNodeTableId()});
-//                                    break;
-//                                }
-//                            }
-//                            auto endRandomNbr = std::chrono::high_resolution_clock::now();
-//                            randomFilterNeighbourTime += std::chrono::duration_cast<std::chrono::nanoseconds>(
-//                                    endRandomNbr - startRandomNbr);
-//                        }
-//                    } else {
-                    auto startSearch = std::chrono::high_resolution_clock::now();
-                    findNextKNeighbours({candidate.id, header->getNodeTableId()}, *state, neighbors, visited);
-                    auto endSearch = std::chrono::high_resolution_clock::now();
-                    filterGraphSearchTime += std::chrono::duration_cast<std::chrono::nanoseconds>(endSearch - startSearch);
-//                    }
+                    // Get graph neighbours
+                    auto nbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
 
-                    for (auto neighbor: neighbors) {
+                    for (auto &neighbor: nbrs) {
+                        if (visited->is_bit_set(neighbor.offset)) {
+                            continue;
+                        }
+                        visited->set_bit(neighbor.offset);
                         double dist;
-                        auto embed = getEmbedding(context, neighbor.offset);
-                        dc->computeDistance(embed, &dist);
-                        totalDistanceComputations++;
-
-                        if (results.size() < efSearch || dist < results.top().dist) {
+                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
+                        dc->compute_distance(query, embedding, &dist);
+                        if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
-                            if (!useInFilterSearch || isMasked(neighbor.offset, filterMask)) {
-                                results.emplace(neighbor.offset, dist);
-                                if (results.size() > efSearch) {
-                                    results.pop();
-                                }
+                            results.push(NodeDistFarther{neighbor.offset, dist});
+                        }
+                    }
+                }
+            }
+
+            void filteredSearch(const float *query, const table_id_t tableId, Graph *graph,
+                                QuantizedDistanceComputer<float, uint8_t> *dc, NodeOffsetLevelSemiMask *filterMask,
+                                GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
+                                BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                VectorIndexHeaderPerPartition *header, const int efSearch) {
+                std::priority_queue<NodeDistFarther> candidates;
+                candidates.emplace(entrypoint, entrypointDist);
+                if (filterMask->isMasked(entrypoint)) {
+                    results.push(NodeDistFarther{entrypoint, entrypointDist});
+                }
+                visited->set_bit(entrypoint);
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    if (candidate.dist > results.top()->dist && results.size() >= efSearch) {
+                        break;
+                    }
+                    candidates.pop();
+
+                    // Get graph neighbours
+                    auto nbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+
+                    for (auto &neighbor: nbrs) {
+                        if (visited->is_bit_set(neighbor.offset)) {
+                            continue;
+                        }
+                        visited->set_bit(neighbor.offset);
+                        double dist;
+                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
+                        dc->compute_distance(query, embedding, &dist);
+                        if (results.size() < efSearch || dist < results.top()->dist) {
+                            candidates.emplace(neighbor.offset, dist);
+                            if (filterMask->isMasked(neighbor.offset)) {
+                                results.push(NodeDistFarther{neighbor.offset, dist});
                             }
                         }
                     }
                 }
+            }
 
-                // Print metrics at the end of the search
-                printf("Total distance computations: %d\n", totalDistanceComputations);
-                printf("Total calls to scan neighbours: %d\n", totalCallsToScanNbr);
-                printf("Total filter scan search time: %lld ns\n", filterGraphSearchTime.count());
-                printf("Total random filter neighbour time: %lld ns\n", randomFilterNeighbourTime.count());
-                printf("Avg depth: %f\n", static_cast<double>(avgDepth) / totalIterations);
-                printf("Max depth: %d\n", maxDepth);
-                printf("Min depth: %d\n", minDepth);
-                printf("Iterations: %d\n", totalIterations);
+            void dynamicTwoHopFilteredSearch(const float *query, const table_id_t tableId, const int maxK, Graph *graph,
+                                             QuantizedDistanceComputer<float, uint8_t> *dc,
+                                             NodeOffsetLevelSemiMask *filterMask,
+                                             GraphScanState &state, const vector_id_t entrypoint,
+                                             const double entrypointDist,
+                                             BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                             VectorIndexHeaderPerPartition *header, const int efSearch) {
+                std::priority_queue<NodeDistFarther> candidates;
+                candidates.emplace(entrypoint, entrypointDist);
+                if (filterMask->isMasked(entrypoint)) {
+                    results.push(NodeDistFarther{entrypoint, entrypointDist});
+                }
+                visited->set_bit(entrypoint);
+                // We will use this metric to skip some part of second hop.
+                std::unordered_map<vector_id_t, int> cachedNbrsCount;
+
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    if (candidate.dist > results.top()->dist) {
+                        break;
+                    }
+                    candidates.pop();
+                    // Get the first hop neighbours
+                    auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    std::priority_queue<NodeDistFarther> nbrsToExplore;
+
+                    // First hop neighbours
+                    int filteredCount = 0;
+                    for (auto &neighbor: firstHopNbrs) {
+                        auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
+                        if (isNeighborMasked) {
+                            filteredCount++;
+                        }
+                        if (visited->is_bit_set(neighbor.offset)) {
+                            continue;
+                        }
+                        double dist;
+                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
+                        dc->compute_distance(query, embedding, &dist);
+                        nbrsToExplore.emplace(neighbor.offset, dist);
+
+                        if (isNeighborMasked) {
+                            visited->set_bit(neighbor.offset);
+                        }
+
+                        if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
+                            candidates.emplace(neighbor.offset, dist);
+                            results.push(NodeDistFarther{neighbor.offset, dist});
+                        }
+                    }
+                    cachedNbrsCount[candidate.id] = filteredCount;
+
+                    // Second hop neighbours
+                    // TODO: Maybe there's some benefit in doing batch distance computation
+                    int exploredFilteredNbrCount = filteredCount;
+                    while (!nbrsToExplore.empty()) {
+                        auto neighbor = nbrsToExplore.top();
+                        nbrsToExplore.pop();
+
+                        if (cachedNbrsCount.contains(neighbor.id)) {
+                            exploredFilteredNbrCount += cachedNbrsCount[neighbor.id];
+                        }
+                        if (exploredFilteredNbrCount >= maxK) {
+                            break;
+                        }
+
+                        if (visited->is_bit_set(neighbor.id)) {
+                            continue;
+                        }
+                        visited->set_bit(neighbor.id);
+
+                        int secondHopFilteredNbrCount = 0;
+                        auto secondHopNbrs = graph->scanFwdRandom({neighbor.id, tableId}, state);
+                        for (auto &secondHopNeighbor: secondHopNbrs) {
+                            auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
+                            if (isNeighborMasked) {
+                                secondHopFilteredNbrCount++;
+                            }
+                            if (visited->is_bit_set(secondHopNeighbor.offset)) {
+                                continue;
+                            }
+                            // TODO: Maybe there's some benefit in doing batch distance computation
+                            double dist;
+                            auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
+                            dc->compute_distance(query, embedding, &dist);
+                            if (isNeighborMasked) {
+                                visited->set_bit(secondHopNeighbor.offset);
+                            }
+                            if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
+                                candidates.emplace(secondHopNeighbor.offset, dist);
+                                results.push(NodeDistFarther{secondHopNeighbor.offset, dist});
+                            }
+                        }
+                        exploredFilteredNbrCount += secondHopFilteredNbrCount;
+                        cachedNbrsCount[neighbor.id] = secondHopFilteredNbrCount;
+                    }
+                    // TODO: Add backup loop
+                }
             }
 
             void exec(ExecutionContext *context) override {
@@ -559,81 +535,49 @@ namespace kuzu {
                 auto graph = sharedState->graph.get();
                 auto nodeTableId = indexHeader->getNodeTableId();
                 auto efSearch = bindState->efSearch;
-                auto maxK = bindState->maxK;
+                auto filterMaxK = bindState->maxK;
                 auto k = bindState->k;
                 KU_ASSERT(bindState->queryVector.size() == indexHeader->getDim());
                 auto query = bindState->queryVector.data();
                 auto state = graph->prepareScan(header->getCSRRelTableId());
                 auto visited = std::make_unique<BitVectorVisitedTable>(header->getNumVectors());
-                auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
-                dc->setQuery(query);
                 auto filterMask = sharedState->inputNodeOffsetMasks.at(indexHeader->getNodeTableId()).get();
-                auto maxNumThreads = context->clientContext->getMaxNumThreadForExec();
-                std::unique_ptr<ParallelMultiQueue<NodeDistFarther>> parallelResults = std::make_unique<ParallelMultiQueue<NodeDistFarther>>(
-                        maxNumThreads * 2, efSearch);
+                bool isFilteredSearch = filterMask->isEnabled();
+                auto quantizedDc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
 
-//                if (isFilteredSearch) {
-//                    auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
-//                    if (selectivity <= 0.005) {
-//                        printf("skipping search since selectivity too low\n");
-//                        return;
-//                    }
-//                    if (selectivity > 0.3) {
-//                        useInFilterSearch = true;
-//                    }
-//                    maxK = calculateMaxK(filterMask->getNumMaskedNodes(), header->getNumVectors());
-//                }
+                //                auto dc = std::make_unique<L2DistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
+//                dc->setQuery(query);
 
-//                vector_id_t entrypoint;
-//                double entrypointDist;
-//                findEntrypointUsingUpperLayer(context, header, query, dc.get(), entrypoint, &entrypointDist);
-//                std::priority_queue<NodeDistCloser> results;
-//                coreSearch(context, searchLocalState, bindState, graph, dc.get(), isFilteredSearch, useInFilterSearch, filterMask, state.get(),
-//                           entrypoint, entrypointDist, maxK, results, visited.get(), header, 64);
-//                visited->reset();
-
-                std::priority_queue<NodeDistCloser> candidates;
-                uint8_t entrypointLevel;
+                // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
-                header->getEntrypoint(entrypoint, entrypointLevel);
-                assert(entrypointLevel == 1);
-                int entrypointNodes = maxNumThreads * 2;
-                auto embedding = getEmbedding(context, header->getActualId(entrypoint));
                 double entrypointDist;
-                dc->computeDistance(embedding, &entrypointDist);
-                searchANNOnUpperLayer(context, header, query, dc.get(), entrypoint, entrypointDist, candidates, visited.get(), 64);
-                assert(candidates.size() > entrypointNodes);
+                findEntrypointUsingUpperLayer(context, header, query, quantizedDc.get(), entrypoint, &entrypointDist);
+                BinaryHeap<NodeDistFarther> results(efSearch);
 
-                std::vector<std::vector<NodeDistCloser>> entrypointsPerThread(maxNumThreads);
-                int count = 0;
-                while (!candidates.empty()) {
-                    auto res = candidates.top();
-                    candidates.pop();
-                    if (candidates.size() <= entrypointNodes) {
-                        entrypointsPerThread[count % maxNumThreads].emplace_back(res.id, res.dist);
-                        count++;
-                        if (isMasked(res.id, filterMask)) {
-                            parallelResults->push(NodeDistFarther(res.id, res.dist));
-                            visited->atomic_set_bit(res.id);
-                        }
+                if (isFilteredSearch) {
+                    auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
+                    if (selectivity <= 0.005) {
+                        printf("skipping search since selectivity too low\n");
+                        return;
                     }
-                }
-                auto taskSharedState = std::make_shared<VectorSearchTaskSharedState>(maxNumThreads, efSearch, maxK, context,
-                                                                               graph, dc.get(), filterMask, indexHeader, visited.get(),
-                                                                               parallelResults.get(),
-                                                                               std::move(entrypointsPerThread));
-                auto taskLocalState = std::make_unique<NodeTableLookupLocalState>(context,
-                                                                                  searchLocalState->embeddingColumn,
-                                                                                  nullptr, nullptr);
-                auto task = std::make_shared<VectorSearchTask>(maxNumThreads, taskSharedState, std::move(taskLocalState));
-                context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context);
-                for (auto& queue : parallelResults->queues) {
-                    while (queue->size() > 0) {
-                        auto min = queue->popMin();
-                        candidates.push(NodeDistCloser(min.id, min.dist));
+
+                    if (selectivity > 0.3) {
+                        filteredSearch(query, nodeTableId, graph, quantizedDc.get(), filterMask, *state.get(),
+                                       entrypoint,
+                                       entrypointDist, results, visited.get(), header, efSearch);
+                    } else {
+                        dynamicTwoHopFilteredSearch(query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
+                                                    filterMask,
+                                                    *state.get(), entrypoint, entrypointDist, results, visited.get(),
+                                                    header,
+                                                    efSearch);
                     }
+                } else {
+                    unfilteredSearch(query, nodeTableId, graph, quantizedDc.get(), *state.get(), entrypoint,
+                                        entrypointDist, results, visited.get(), header, efSearch);
                 }
-                searchLocalState->materialize(graph, candidates, *sharedState->fTable, k);
+
+                searchLocalState->materialize(graph, results, *sharedState->fTable, k);
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {
