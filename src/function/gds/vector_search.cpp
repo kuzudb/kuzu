@@ -443,9 +443,9 @@ namespace kuzu {
                         if (cachedNbrsCount.contains(neighbor.id)) {
                             exploredFilteredNbrCount += cachedNbrsCount[neighbor.id];
                         }
-                        if (exploredFilteredNbrCount >= maxK) {
-                            break;
-                        }
+//                        if (exploredFilteredNbrCount >= maxK) {
+//                            break;
+//                        }
 
                         if (visited->is_bit_set(neighbor.id)) {
                             continue;
