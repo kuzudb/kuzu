@@ -400,6 +400,7 @@ namespace kuzu {
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist) {
+                        printf("toyo\n");
                         break;
                     }
                     candidates.pop();
@@ -444,6 +445,7 @@ namespace kuzu {
                             exploredFilteredNbrCount += cachedNbrsCount[neighbor.id];
                         }
                         if (exploredFilteredNbrCount >= maxK) {
+                            printf("skipping second hop\n");
                             break;
                         }
 
@@ -476,6 +478,9 @@ namespace kuzu {
                         }
                         exploredFilteredNbrCount += secondHopFilteredNbrCount;
                         cachedNbrsCount[neighbor.id] = secondHopFilteredNbrCount;
+                    }
+                    if (exploredFilteredNbrCount == 0) {
+                        printf("skipping second hop\n");
                     }
                     // TODO: Add backup loop
                 }
@@ -520,6 +525,7 @@ namespace kuzu {
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
+                        printf("doing dynamic two hop search\n");
                         dynamicTwoHopFilteredSearch(query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
                                                     filterMask,
                                                     *state.get(), entrypoint, entrypointDist, results, visited.get(),
