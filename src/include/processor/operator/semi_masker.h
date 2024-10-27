@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/mask.h"
 #include "common/enums/extend_direction.h"
+#include "common/mask.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
