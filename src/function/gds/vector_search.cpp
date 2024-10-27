@@ -594,8 +594,8 @@ namespace kuzu {
                 bool isFilteredSearch = filterMask->isEnabled();
                 auto quantizedDc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
 
-                //                auto dc = std::make_unique<L2DistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
-//                dc->setQuery(query);
+                auto dc = std::make_unique<L2DistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
+                dc->setQuery(query);
 
                 // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
@@ -634,6 +634,13 @@ namespace kuzu {
                 } else {
                     unfilteredSearch(query, nodeTableId, graph, quantizedDc.get(), *state.get(), entrypoint,
                                         entrypointDist, results, visited.get(), header, efSearch);
+                }
+
+                while (results.size() > k) {
+                    double res;
+                    dc->computeDistance(getEmbedding(context, results.top()->id), &res);
+                    printf("removing %f %f\n", results.top()->dist, res);
+                    results.popMin();
                 }
 
                 searchLocalState->materialize(graph, results, *sharedState->fTable, k);
