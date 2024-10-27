@@ -381,6 +381,84 @@ namespace kuzu {
                 }
             }
 
+            void twoHopFilteredSearch(const float *query, const table_id_t tableId, Graph *graph,
+                                             QuantizedDistanceComputer<float, uint8_t> *dc,
+                                             NodeOffsetLevelSemiMask *filterMask,
+                                             GraphScanState &state, const vector_id_t entrypoint,
+                                             const double entrypointDist,
+                                             BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                             VectorIndexHeaderPerPartition *header, const int efSearch) {
+                std::priority_queue<NodeDistFarther> candidates;
+                candidates.emplace(entrypoint, entrypointDist);
+                if (filterMask->isMasked(entrypoint)) {
+                    results.push(NodeDistFarther(entrypoint, entrypointDist));
+                }
+                visited->set_bit(entrypoint);
+
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    if (candidate.dist > results.top()->dist && results.size() > 0) {
+                        break;
+                    }
+                    candidates.pop();
+                    // Get the first hop neighbours
+                    auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    std::queue<vector_id_t> nbrsToExplore;
+
+                    // First hop neighbours
+                    for (auto &neighbor: firstHopNbrs) {
+                        auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
+                        if (visited->is_bit_set(neighbor.offset)) {
+                            continue;
+                        }
+                        if (isNeighborMasked) {
+                            double dist;
+                            auto embedding = getCompressedEmbedding(header, neighbor.offset);
+                            dc->compute_distance(query, embedding, &dist);
+                            visited->set_bit(neighbor.offset);
+                            if (results.size() < efSearch || dist < results.top()->dist) {
+                                candidates.emplace(neighbor.offset, dist);
+                                results.push(NodeDistFarther(neighbor.offset, dist));
+                            }
+                        }
+                        nbrsToExplore.push(neighbor.offset);
+                    }
+
+                    // Second hop neighbours
+                    // TODO: Maybe there's some benefit in doing batch distance computation
+                    while (!nbrsToExplore.empty()) {
+                        auto neighbor = nbrsToExplore.front();
+                        nbrsToExplore.pop();
+
+                        if (visited->is_bit_set(neighbor)) {
+                            continue;
+                        }
+                        visited->set_bit(neighbor);
+
+                        auto secondHopNbrs = graph->scanFwdRandom({neighbor, tableId}, state);
+                        for (auto &secondHopNeighbor: secondHopNbrs) {
+                            auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
+                            if (visited->is_bit_set(secondHopNeighbor.offset)) {
+                                continue;
+                            }
+                            if (isNeighborMasked) {
+                                // TODO: Maybe there's some benefit in doing batch distance computation
+                                visited->set_bit(secondHopNeighbor.offset);
+                                double dist;
+                                auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
+                                dc->compute_distance(query, embedding, &dist);
+                                if (results.size() < efSearch || dist < results.top()->dist) {
+                                    candidates.emplace(secondHopNeighbor.offset, dist);
+                                    results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
+                                }
+                            }
+                        }
+                    }
+                    // TODO: Add backup loop
+                }
+            }
+
+
             void dynamicTwoHopFilteredSearch(const float *query, const table_id_t tableId, const int maxK, Graph *graph,
                                              QuantizedDistanceComputer<float, uint8_t> *dc,
                                              NodeOffsetLevelSemiMask *filterMask,
@@ -462,16 +540,16 @@ namespace kuzu {
                             if (visited->is_bit_set(secondHopNeighbor.offset)) {
                                 continue;
                             }
-                            // TODO: Maybe there's some benefit in doing batch distance computation
-                            double dist;
-                            auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
-                            dc->compute_distance(query, embedding, &dist);
                             if (isNeighborMasked) {
+                                // TODO: Maybe there's some benefit in doing batch distance computation
                                 visited->set_bit(secondHopNeighbor.offset);
-                            }
-                            if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
-                                candidates.emplace(secondHopNeighbor.offset, dist);
-                                results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
+                                double dist;
+                                auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
+                                dc->compute_distance(query, embedding, &dist);
+                                if (results.size() < efSearch || dist < results.top()->dist) {
+                                    candidates.emplace(secondHopNeighbor.offset, dist);
+                                    results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
+                                }
                             }
                         }
                         exploredFilteredNbrCount += secondHopFilteredNbrCount;
@@ -523,12 +601,20 @@ namespace kuzu {
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
-                        printf("doing dynamic two hop search\n");
-                        dynamicTwoHopFilteredSearch(query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
-                                                    filterMask,
-                                                    *state.get(), entrypoint, entrypointDist, results, visited.get(),
-                                                    header,
-                                                    efSearch);
+                        if (filterMaxK > 100000) {
+                            twoHopFilteredSearch(query, nodeTableId, graph, quantizedDc.get(), filterMask,
+                                                 *state.get(), entrypoint, entrypointDist, results, visited.get(),
+                                                 header,
+                                                 efSearch);
+                        } else {
+                            printf("doing dynamic two hop search\n");
+                            dynamicTwoHopFilteredSearch(query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
+                                                        filterMask,
+                                                        *state.get(), entrypoint, entrypointDist, results,
+                                                        visited.get(),
+                                                        header,
+                                                        efSearch);
+                        }
                     }
                 } else {
                     unfilteredSearch(query, nodeTableId, graph, quantizedDc.get(), *state.get(), entrypoint,
