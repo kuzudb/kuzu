@@ -218,7 +218,6 @@ namespace kuzu {
             }
 
         private:
-            int dim;
             const float *alpha;
             const float *beta;
         };
@@ -239,7 +238,6 @@ namespace kuzu {
             }
 
         private:
-            int dim;
             const float *alphaSqr;
         };
 

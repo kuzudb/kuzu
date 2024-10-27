@@ -292,53 +292,7 @@ namespace kuzu {
                 }
             }
 
-            inline int findFilteredNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
-                                                   std::vector<common::nodeID_t> &nbrs,
-                                                   NodeOffsetLevelSemiMask *filterMask,
-                                                   VisitedTable &visited, int maxK, int maxNeighboursCheck, int& depth) {
-                std::queue<std::pair<common::nodeID_t, int>> candidates;
-                candidates.push({nodeID, 0});
-                std::unordered_set<offset_t> visitedSet;
-                auto neighboursChecked = 0;
-                while (neighboursChecked <= maxNeighboursCheck && !candidates.empty()) {
-                    auto candidate = candidates.front();
-                    candidates.pop();
-                    auto currentDepth = candidate.second;
-                    if (visitedSet.contains(candidate.first.offset)) {
-                        continue;
-                    }
-                    visitedSet.insert(candidate.first.offset);
-                    visited.set(candidate.first.offset);
-                    depth = std::max(depth, currentDepth);
-                    auto neighbors = sharedState->graph.get()->scanFwdRandom(candidate.first, state);
-                    neighboursChecked += 1;
-                    // TODO: Maybe make it prioritized, might help in correlated cases
-                    for (auto &neighbor: neighbors) {
-                        if (visited.get(neighbor.offset)) {
-                            continue;
-                        }
-                        if (filterMask->isMasked(neighbor.offset)) {
-                            nbrs.push_back(neighbor);
-                            visited.set(neighbor.offset);
-                            if (nbrs.size() >= maxK) {
-                                return neighboursChecked;
-                            }
-                        }
-                        candidates.push({neighbor, currentDepth + 1});
-                    }
-                }
-                return neighboursChecked;
-            }
 
-            inline void findNextKNeighbours(common::nodeID_t nodeID, GraphScanState &state,
-                                            std::vector<common::nodeID_t> &nbrs, AtomicVisitedTable* visited) {
-                auto unFilteredNbrs = sharedState->graph.get()->scanFwdRandom(nodeID, state);
-                for (auto &neighbor: unFilteredNbrs) {
-                    if (visited->getAndSet(neighbor.offset)) {
-                        nbrs.push_back(neighbor);
-                    }
-                }
-            }
 
             inline bool isMasked(common::offset_t offset, NodeOffsetLevelSemiMask *filterMask) {
                 return !filterMask->isEnabled() || filterMask->isMasked(offset);
