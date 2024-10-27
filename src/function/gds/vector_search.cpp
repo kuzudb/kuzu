@@ -394,6 +394,8 @@ namespace kuzu {
                     results.push(NodeDistFarther(entrypoint, entrypointDist));
                 }
                 visited->set_bit(entrypoint);
+                int totalGetNbrs = 0;
+                int totalDist = 0;
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
@@ -403,6 +405,7 @@ namespace kuzu {
                     candidates.pop();
                     // Get the first hop neighbours
                     auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    totalGetNbrs++;
                     std::queue<vector_id_t> nbrsToExplore;
 
                     // First hop neighbours
@@ -415,6 +418,7 @@ namespace kuzu {
                             double dist;
                             auto embedding = getCompressedEmbedding(header, neighbor.offset);
                             dc->compute_distance(query, embedding, &dist);
+                            totalDist++;
                             visited->set_bit(neighbor.offset);
                             if (results.size() < efSearch || dist < results.top()->dist) {
                                 candidates.emplace(neighbor.offset, dist);
@@ -436,6 +440,7 @@ namespace kuzu {
                         visited->set_bit(neighbor);
 
                         auto secondHopNbrs = graph->scanFwdRandom({neighbor, tableId}, state);
+                        totalGetNbrs++;
                         for (auto &secondHopNeighbor: secondHopNbrs) {
                             auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                             if (visited->is_bit_set(secondHopNeighbor.offset)) {
@@ -447,6 +452,7 @@ namespace kuzu {
                                 double dist;
                                 auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
                                 dc->compute_distance(query, embedding, &dist);
+                                totalDist++;
                                 if (results.size() < efSearch || dist < results.top()->dist) {
                                     candidates.emplace(secondHopNeighbor.offset, dist);
                                     results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
@@ -456,6 +462,7 @@ namespace kuzu {
                     }
                     // TODO: Add backup loop
                 }
+                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
             }
 
 
@@ -474,6 +481,8 @@ namespace kuzu {
                 visited->set_bit(entrypoint);
                 // We will use this metric to skip some part of second hop.
                 std::unordered_map<vector_id_t, int> cachedNbrsCount;
+                int totalGetNbrs = 0;
+                int totalDist = 0;
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
@@ -483,6 +492,7 @@ namespace kuzu {
                     candidates.pop();
                     // Get the first hop neighbours
                     auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    totalGetNbrs++;
                     std::priority_queue<NodeDistFarther> nbrsToExplore;
 
                     // First hop neighbours
@@ -498,6 +508,7 @@ namespace kuzu {
                         double dist;
                         auto embedding = getCompressedEmbedding(header, neighbor.offset);
                         dc->compute_distance(query, embedding, &dist);
+                        totalDist++;
                         nbrsToExplore.emplace(neighbor.offset, dist);
 
                         if (isNeighborMasked) {
@@ -532,6 +543,7 @@ namespace kuzu {
 
                         int secondHopFilteredNbrCount = 0;
                         auto secondHopNbrs = graph->scanFwdRandom({neighbor.id, tableId}, state);
+                        totalGetNbrs++;
                         for (auto &secondHopNeighbor: secondHopNbrs) {
                             auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                             if (isNeighborMasked) {
@@ -546,6 +558,7 @@ namespace kuzu {
                                 double dist;
                                 auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
                                 dc->compute_distance(query, embedding, &dist);
+                                totalDist++;
                                 if (results.size() < efSearch || dist < results.top()->dist) {
                                     candidates.emplace(secondHopNeighbor.offset, dist);
                                     results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
@@ -560,6 +573,7 @@ namespace kuzu {
 //                    }
                     // TODO: Add backup loop
                 }
+                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
             }
 
             void exec(ExecutionContext *context) override {
@@ -602,6 +616,7 @@ namespace kuzu {
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
                         if (filterMaxK > 100000) {
+                            printf("doing two hop search\n");
                             twoHopFilteredSearch(query, nodeTableId, graph, quantizedDc.get(), filterMask,
                                                  *state.get(), entrypoint, entrypointDist, results, visited.get(),
                                                  header,
