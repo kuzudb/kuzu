@@ -43,9 +43,21 @@ namespace kuzu {
             auto nodeTable = ku_dynamic_cast<Table *, NodeTable *>(table);
             auto numNodeGroups = nodeTable->getNumNodeGroups(txn);
             auto numNodeGroupsPerPartition = std::max(int(config.numberVectorsPerPartition / StorageConstants::NODE_GROUP_SIZE), 1);
+            // 30% of the vectors per partition
+            auto numVectorsThreshold = config.numberVectorsPerPartition * 0.3;
+
             // create rel table for each partition
             for (node_group_idx_t start = 0; start < numNodeGroups; start += numNodeGroupsPerPartition) {
                 auto end = std::min(start + numNodeGroupsPerPartition - 1, numNodeGroups - 1);
+                // Optimization where we avoid creating an index for last small partition, instead combine it with the
+                // previous one. Maybe a better way is to create no index for the last partition and do parallel knn
+                // search until there are enough vectors to create an index.
+                auto leftNodeGroup = numNodeGroups - end - 1;
+                auto breakLoop = false;
+                if (leftNodeGroup * StorageConstants::NODE_GROUP_SIZE < numVectorsThreshold) {
+                    end = numNodeGroups - 1;
+                    breakLoop = true;
+                }
                 auto propertyInfos = std::vector<binder::PropertyInfo>();
                 propertyInfos.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
                 binder::BoundCreateTableInfo createTableInfo(common::TableType::REL,
@@ -60,6 +72,9 @@ namespace kuzu {
                 auto relTableId = catalog->createTableSchema(context->clientContext->getTx(), createTableInfo);
                 storageManager->createTable(relTableId, catalog, context->clientContext);
                 header->createPartition(start, end, relTableId);
+                if (breakLoop) {
+                    break;
+                }
             }
             storageManager->addVectorIndex(std::move(header));
         }

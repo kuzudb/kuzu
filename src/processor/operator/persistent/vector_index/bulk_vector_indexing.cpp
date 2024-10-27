@@ -62,7 +62,6 @@ namespace kuzu {
             SQ8Bit *quantizer = sharedState->headerPerPartition->getQuantizer();
             printf("Running indexing %d!!\n", sharedState->partitionId);
             while (children[0]->getNextTuple(context)) {
-                printf("In indexing %d!!\n", sharedState->partitionId);
                 // print the thread id
                 auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
                 auto vectors = reinterpret_cast<float *>(
@@ -77,9 +76,7 @@ namespace kuzu {
                                                   localState->visited.get(), localState->dc.get());
                 // TODO: FIX this!!!
                 quantizer->batch_train(numVectors, vectors);
-                printf("yo\n");
             }
-            printf("Finished indexing %d!!\n", sharedState->partitionId);
             // Wait for all threads to finish indexing
             sharedState->compressionLatch.arrive_and_wait();
             printf("Running quantization!!\n");

@@ -449,31 +449,6 @@ namespace kuzu {
                 return !filterMask->isEnabled() || filterMask->isMasked(offset);
             }
 
-            inline int calculateMaxK(uint64_t numMaskedNodes, uint64_t totalNodes) {
-                auto selectivity = static_cast<double>(numMaskedNodes) / totalNodes;
-                if (selectivity < 0.005) {
-                    return 20;
-                } else if (selectivity < 0.01) {
-                    return 20;
-                } else if (selectivity < 0.05) {
-                    return 20;
-                } else if (selectivity < 0.1) {
-                    return 20;
-                } else if (selectivity < 0.2) {
-                    return 30;
-                } else if (selectivity < 0.4) {
-                    return 30;
-                } else if (selectivity < 0.5) {
-                    return 40;
-                } else if (selectivity < 0.8) {
-                    return 40;
-                } else if (selectivity < 0.9) {
-                    return 40;
-                } else {
-                    return 40;
-                }
-            }
-
             void rerankResults(std::priority_queue<NodeDistCloser> &results, int k) {
                 std::priority_queue<NodeDistCloser> reranked;
                 while (!results.empty()) {

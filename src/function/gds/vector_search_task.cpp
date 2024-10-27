@@ -8,20 +8,20 @@ using namespace kuzu::graph;
 namespace kuzu {
     namespace function {
         void VectorSearchTask::run() {
-            auto threadId = sharedState->getThreadId();
+            auto [partitionId, threadId] = sharedState->getWork();
             auto context = sharedState->context;
             auto readLocalState = localState->clone(context);
             auto efSearch = ((float) sharedState->efSearch / sharedState->maxNumThreads) * 1.2;
             auto visited = sharedState->visited;
             auto dc = sharedState->distanceComputer;
-            auto indexHeader = sharedState->indexHeader;
-            auto header = indexHeader->getPartitionHeader(0);
-            auto nodeTableId = indexHeader->getNodeTableId();
+            auto header = sharedState->header;
+            auto nodeTableId = header->getNodeTableId();
             auto graph = sharedState->graph;
-            auto state = graph->prepareScan(header->getCSRRelTableId());
             auto filterMask = sharedState->filterMask;
             auto maxK = sharedState->maxK;
-            auto parallelResults = sharedState->parallelResults;
+            auto partition = header->getPartitionHeader(partitionId);
+
+            auto state = graph->prepareScan(header->);
             // sync into the final result after every 2 iterations
             int syncAfterIter = 3;
             auto isFilteredSearch = filterMask->isEnabled();
@@ -153,6 +153,9 @@ namespace kuzu {
                                                    GraphScanState &state,
                                                    std::vector<common::nodeID_t> &nbrs,
                                                    BitVectorVisitedTable *visited,
+                                                   int minK,
+                                                   int maxK,
+                                                   int maxNeighboursCheck,
                                                    Graph *graph) {
             // TODO: Implement like findFilteredNextKNeighbours
             auto unFilteredNbrs = graph->scanFwdRandom(nodeID, state);

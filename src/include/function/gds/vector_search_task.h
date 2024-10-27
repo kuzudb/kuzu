@@ -19,6 +19,12 @@ using namespace kuzu::graph;
 
 namespace kuzu {
     namespace function {
+        struct PartSearchInfo {
+            ParallelMultiQueue<NodeDistFarther>* parallelResults;
+            std::vector<std::vector<NodeDistCloser>> entrypoints;
+            BitVectorVisitedTable *visited;
+        };
+
         struct VectorSearchTaskSharedState {
             const int efSearch;
             const int maxK;
@@ -27,28 +33,53 @@ namespace kuzu {
             graph::Graph *graph;
             DistanceComputer *distanceComputer;
             NodeOffsetLevelSemiMask *filterMask;
-            VectorIndexHeader *indexHeader;
-            BitVectorVisitedTable *visited;
-            ParallelMultiQueue<NodeDistFarther>* parallelResults;
-            std::atomic_uint8_t threadIdCounter = 0;
-            std::vector<std::vector<NodeDistCloser>> entrypoints;
+            VectorIndexHeader *header;
+            std::vector<PartSearchInfo> partSearchInfo;
 
-            explicit VectorSearchTaskSharedState(const uint64_t maxNumThreads, const int efSearch, const int maxK,
+            explicit VectorSearchTaskSharedState(const uint64_t maxNumThreads,
+                                                 const int efSearch,
+                                                 const int maxK,
                                                  processor::ExecutionContext *context,
                                                  graph::Graph *graph,
                                                  DistanceComputer *distanceComputer,
                                                  NodeOffsetLevelSemiMask *filterMask,
-                                                 VectorIndexHeader *indexHeader, BitVectorVisitedTable *visited,
+                                                 VectorIndexHeader *header,
+                                                 BitVectorVisitedTable *visited,
                                                  ParallelMultiQueue<NodeDistFarther> *parallelResults,
                                                  std::vector<std::vector<NodeDistCloser>> entrypoints)
                     : efSearch(efSearch), maxK(maxK), maxNumThreads(maxNumThreads), context(context), graph(graph),
                       distanceComputer(distanceComputer), filterMask(filterMask),
-                      indexHeader(indexHeader), visited(visited), parallelResults(parallelResults),
-                      entrypoints(std::move(entrypoints)) {};
+                      header(header), visited(visited), parallelResults(parallelResults),
+                      entrypoints(std::move(entrypoints)) {
+                numPartitions = header->getNumPartitions();
 
-            inline int getThreadId() {
-                return threadIdCounter++;
+            };
+
+            inline std::pair<int, int> getWork() {
+                if (currentPartition >= numPartitions) {
+                    return {-1, -1};
+                }
+
+                std::lock_guard<std::mutex> lock(mtx);
+                int partition = currentPartition;
+                int threadId = currentThreadId;
+                currentThreadId++;
+                if (currentThreadId == (int) maxNumThreads) {
+                    currentThreadId = 0;
+                    currentPartition++;
+                    if (currentPartition >= numPartitions) {
+                        return {-1, -1};
+                    }
+                }
+
+                return {partition, threadId};
             }
+
+        private:
+            std::mutex mtx;
+            int numPartitions;
+            int currentPartition = 0;
+            int currentThreadId = 0;
         };
 
         struct NodeTableLookupLocalState {
@@ -118,6 +149,9 @@ namespace kuzu {
                                             GraphScanState &state,
                                             std::vector<common::nodeID_t> &nbrs,
                                             BitVectorVisitedTable *visited,
+                                            int minK,
+                                            int maxK,
+                                            int maxNeighboursCheck,
                                             Graph *graph);
 
             inline bool isMasked(common::offset_t offset, NodeOffsetLevelSemiMask *filterMask);

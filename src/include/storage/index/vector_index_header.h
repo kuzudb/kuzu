@@ -152,6 +152,14 @@ namespace kuzu {
                                     endNodeGroupId);
             }
 
+            inline uint64_t getNumVectors() const {
+                uint64_t numVectors = 0;
+                for (const auto &header: headerPerPartition) {
+                    numVectors += header->getNumVectors();
+                }
+                return numVectors;
+            }
+
             // This method is not thread safe
             inline int createPartition(node_group_idx_t startNodeGroupId, node_group_idx_t endNodeGroupId,
                                        table_id_t csrRelTableId) {
