@@ -400,7 +400,6 @@ namespace kuzu {
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist && results.size() > 0) {
-                        printf("toyo\n");
                         break;
                     }
                     candidates.pop();
@@ -445,7 +444,6 @@ namespace kuzu {
                             exploredFilteredNbrCount += cachedNbrsCount[neighbor.id];
                         }
                         if (exploredFilteredNbrCount >= maxK) {
-                            printf("skipping second hop\n");
                             break;
                         }
 
@@ -479,9 +477,9 @@ namespace kuzu {
                         exploredFilteredNbrCount += secondHopFilteredNbrCount;
                         cachedNbrsCount[neighbor.id] = secondHopFilteredNbrCount;
                     }
-                    if (exploredFilteredNbrCount == 0) {
-                        printf("no nodes found\n");
-                    }
+//                    if (exploredFilteredNbrCount == 0) {
+//                        printf("no nodes found\n");
+//                    }
                     // TODO: Add backup loop
                 }
             }
