@@ -350,7 +350,7 @@ namespace kuzu {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
-                    results.push(NodeDistFarther{entrypoint, entrypointDist});
+                    results.push(NodeDistFarther(entrypoint, entrypointDist));
                 }
                 visited->set_bit(entrypoint);
                 while (!candidates.empty()) {
@@ -374,7 +374,7 @@ namespace kuzu {
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             if (filterMask->isMasked(neighbor.offset)) {
-                                results.push(NodeDistFarther{neighbor.offset, dist});
+                                results.push(NodeDistFarther(neighbor.offset, dist));
                             }
                         }
                     }
@@ -390,8 +390,10 @@ namespace kuzu {
                                              VectorIndexHeaderPerPartition *header, const int efSearch) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
+                printf("entrypoint: %d\n", entrypoint);
+                printf("entrypointDist: %f\n", entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
-                    results.push(NodeDistFarther{entrypoint, entrypointDist});
+                    results.push(NodeDistFarther(entrypoint, entrypointDist));
                 }
                 visited->set_bit(entrypoint);
                 // We will use this metric to skip some part of second hop.
@@ -399,6 +401,8 @@ namespace kuzu {
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
+                    printf("candidate: %d\n", candidate.id);
+                    printf("results top dist: %f\n", results.top()->dist);
                     if (candidate.dist > results.top()->dist) {
                         printf("toyo\n");
                         break;
@@ -429,7 +433,7 @@ namespace kuzu {
 
                         if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
                             candidates.emplace(neighbor.offset, dist);
-                            results.push(NodeDistFarther{neighbor.offset, dist});
+                            results.push(NodeDistFarther(neighbor.offset, dist));
                         }
                     }
                     cachedNbrsCount[candidate.id] = filteredCount;
@@ -473,7 +477,7 @@ namespace kuzu {
                             }
                             if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
                                 candidates.emplace(secondHopNeighbor.offset, dist);
-                                results.push(NodeDistFarther{secondHopNeighbor.offset, dist});
+                                results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
                             }
                         }
                         exploredFilteredNbrCount += secondHopFilteredNbrCount;
