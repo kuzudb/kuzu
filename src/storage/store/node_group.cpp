@@ -357,23 +357,6 @@ std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lo
     return checkpointVersionInfo;
 }
 
-void NodeGroup::populateNodeID(ValueVector& nodeIDVector, table_id_t tableID,
-    const offset_t startNodeOffset, const row_idx_t numRows) {
-    for (auto i = 0u; i < numRows; i++) {
-        nodeIDVector.setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
-    }
-}
-
-bool NodeGroup::hasChanges() {
-    const auto lock = chunkedGroups.lock();
-    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        if (chunkedGroup->hasUpdates()) {
-            return true;
-        }
-    }
-    return false;
-}
-
 uint64_t NodeGroup::getEstimatedMemoryUsage() {
     uint64_t memUsage = 0;
     const auto lock = chunkedGroups.lock();
@@ -449,24 +432,22 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
 
 ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) {
     KU_ASSERT(!chunkedGroups.isEmpty(lock));
-    auto firstGroup = chunkedGroups.getFirstGroup(lock);
-    const auto numRowsInFirstGroup = firstGroup->getNumRows();
+    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroup(lock)->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
-        return firstGroup;
+        return chunkedGroups.getFirstGroup(lock);
     }
     rowIdx -= numRowsInFirstGroup;
     const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
-    if (chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
+    if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
         return nullptr;
     }
     return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
 ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) {
-    auto firstGroup = chunkedGroups.getFirstGroupNoLock();
-    const auto numRowsInFirstGroup = firstGroup->getNumRows();
+    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
-        return firstGroup;
+        return chunkedGroups.getFirstGroupNoLock();
     }
     rowIdx -= numRowsInFirstGroup;
     const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
