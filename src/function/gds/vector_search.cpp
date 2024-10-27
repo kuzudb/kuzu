@@ -390,8 +390,6 @@ namespace kuzu {
                                              VectorIndexHeaderPerPartition *header, const int efSearch) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
-                printf("entrypoint: %d\n", entrypoint);
-                printf("entrypointDist: %f\n", entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
                     results.push(NodeDistFarther(entrypoint, entrypointDist));
                 }
@@ -401,9 +399,7 @@ namespace kuzu {
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
-                    printf("candidate: %d\n", candidate.id);
-                    printf("results top dist: %f\n", results.top()->dist);
-                    if (candidate.dist > results.top()->dist) {
+                    if (candidate.dist > results.top()->dist && results.size() > 0) {
                         printf("toyo\n");
                         break;
                     }
@@ -484,7 +480,7 @@ namespace kuzu {
                         cachedNbrsCount[neighbor.id] = secondHopFilteredNbrCount;
                     }
                     if (exploredFilteredNbrCount == 0) {
-                        printf("skipping second hop\n");
+                        printf("no nodes found\n");
                     }
                     // TODO: Add backup loop
                 }
