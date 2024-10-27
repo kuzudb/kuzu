@@ -240,8 +240,8 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
             Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
     }
-    ChunkedCSRHeader csrHeader{std::move(csrOffset), std::move(csrLength)};
-    auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(csrHeader),
+    ChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
+    auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(newCSRHeader),
         std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());

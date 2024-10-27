@@ -1,8 +1,6 @@
 #include "storage/buffer_manager/spiller.h"
 
 #include <cstdint>
-#include <cstring>
-#include <memory>
 
 #include "common/assert.h"
 #include "common/exception/io.h"

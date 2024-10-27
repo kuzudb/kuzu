@@ -9,7 +9,6 @@
 #include "common/file_system/virtual_file_system.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
-#include "storage/store/chunked_node_group.h"
 
 using namespace kuzu::common;
 

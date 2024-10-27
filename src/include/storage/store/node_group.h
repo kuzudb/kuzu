@@ -154,7 +154,6 @@ public:
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
-    bool hasChanges();
     uint64_t getEstimatedMemoryUsage();
 
     virtual void serialize(common::Serializer& serializer);
@@ -203,9 +202,6 @@ private:
     std::unique_ptr<ChunkedNodeGroup> scanAllInsertedAndVersions(MemoryManager& memoryManager,
         const common::UniqLock& lock, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<const Column*>& columns) const;
-
-    static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,
-        common::offset_t startNodeOffset, common::row_idx_t numRows);
 
 protected:
     common::node_group_idx_t nodeGroupIdx;

@@ -108,19 +108,21 @@ void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& st
 
 static void initializeScanStateForChunkedGroup(const TableScanState& state,
     ChunkedNodeGroup* chunkedGroup) {
-    if (chunkedGroup != nullptr && chunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
-        auto& nodeGroupScanState = *state.nodeGroupScanState;
-        for (auto i = 0u; i < state.columnIDs.size(); i++) {
-            KU_ASSERT(i < state.columnIDs.size());
-            KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
-            const auto columnID = state.columnIDs[i];
-            if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
-                continue;
-            }
-            auto& chunk = chunkedGroup->getColumnChunk(columnID);
-            auto& chunkState = nodeGroupScanState.chunkStates[i];
-            chunk.initializeScanState(chunkState, state.columns[i]);
+    KU_ASSERT(chunkedGroup);
+    if (chunkedGroup->getResidencyState() != ResidencyState::ON_DISK) {
+        return;
+    }
+    auto& nodeGroupScanState = *state.nodeGroupScanState;
+    for (auto i = 0u; i < state.columnIDs.size(); i++) {
+        KU_ASSERT(i < state.columnIDs.size());
+        KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
+        const auto columnID = state.columnIDs[i];
+        if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
+            continue;
         }
+        auto& chunk = chunkedGroup->getColumnChunk(columnID);
+        auto& chunkState = nodeGroupScanState.chunkStates[i];
+        chunk.initializeScanState(chunkState, state.columns[i]);
     }
 }
 
@@ -142,12 +144,12 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     if (chunkedGroup && nodeGroupScanState.numScannedRows >=
                             chunkedGroup->getNumRows() + chunkedGroup->getStartRowIdx()) {
         nodeGroupScanState.chunkedGroupIdx++;
+        if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
+            return NODE_GROUP_SCAN_EMMPTY_RESULT;
+        }
         ChunkedNodeGroup* currentChunkedGroup =
             chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
         initializeScanStateForChunkedGroup(state, currentChunkedGroup);
-    }
-    if (nodeGroupScanState.chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
-        return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
     const auto& chunkedGroupToScan =
         *chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
@@ -355,23 +357,6 @@ std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lo
     return checkpointVersionInfo;
 }
 
-void NodeGroup::populateNodeID(ValueVector& nodeIDVector, table_id_t tableID,
-    const offset_t startNodeOffset, const row_idx_t numRows) {
-    for (auto i = 0u; i < numRows; i++) {
-        nodeIDVector.setValue<nodeID_t>(i, {startNodeOffset + i, tableID});
-    }
-}
-
-bool NodeGroup::hasChanges() {
-    const auto lock = chunkedGroups.lock();
-    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        if (chunkedGroup->hasUpdates()) {
-            return true;
-        }
-    }
-    return false;
-}
-
 uint64_t NodeGroup::getEstimatedMemoryUsage() {
     uint64_t memUsage = 0;
     const auto lock = chunkedGroups.lock();
@@ -453,6 +438,9 @@ ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock, ro
     }
     rowIdx -= numRowsInFirstGroup;
     const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
+        return nullptr;
+    }
     return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
@@ -463,31 +451,34 @@ ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) 
     }
     rowIdx -= numRowsInFirstGroup;
     const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
+        return nullptr;
+    }
     return chunkedGroups.getGroupNoLock(chunkedGroupIdx);
 }
 
 template<ResidencyState RESIDENCY_STATE>
 row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) const {
-    row_idx_t numRows = 0u;
+    row_idx_t numResidentRows = 0u;
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         if (chunkedGroup->getResidencyState() == RESIDENCY_STATE) {
-            numRows += chunkedGroup->getNumRows();
+            numResidentRows += chunkedGroup->getNumRows();
         }
     }
-    return numRows;
+    return numResidentRows;
 }
 
 template<ResidencyState RESIDENCY_STATE>
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     MemoryManager& memoryManager, const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
     const std::vector<const Column*>& columns) const {
-    auto numRows = getNumResidentRows<RESIDENCY_STATE>(lock);
+    auto numResidentRows = getNumResidentRows<RESIDENCY_STATE>(lock);
     std::vector<LogicalType> columnTypes;
     for (const auto* column : columns) {
         columnTypes.push_back(column->getDataType().copy());
     }
     auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
-        enableCompression, numRows, 0, ResidencyState::IN_MEMORY);
+        enableCompression, numResidentRows, 0, ResidencyState::IN_MEMORY);
     auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, columnIDs, columns);
     scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
     initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, *scanState);
@@ -497,10 +488,10 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     }
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] != 0) {
-            KU_ASSERT(numRows == mergedInMemGroup->getColumnChunk(i).getNumValues());
+            KU_ASSERT(numResidentRows == mergedInMemGroup->getColumnChunk(i).getNumValues());
         }
     }
-    mergedInMemGroup->setNumRows(numRows);
+    mergedInMemGroup->setNumRows(numResidentRows);
     return mergedInMemGroup;
 }
 

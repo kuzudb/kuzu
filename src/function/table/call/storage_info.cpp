@@ -277,7 +277,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             auto& nodeTable = table->cast<NodeTable>();
             std::vector<Column*> columns;
             for (auto columnID = 0u; columnID < nodeTable.getNumColumns(); columnID++) {
-                collectColumns(nodeTable.getColumnPtr(columnID), columns);
+                collectColumns(&nodeTable.getColumn(columnID), columns);
             }
             outputData.columns = std::move(columns);
             numNodeGroups = nodeTable.getNumNodeGroups();

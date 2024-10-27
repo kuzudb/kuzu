@@ -22,7 +22,6 @@
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/string_chunk_data.h"
 #include "storage/store/struct_chunk_data.h"
-#include <ranges>
 
 using namespace kuzu::common;
 using namespace kuzu::evaluator;
@@ -86,7 +85,7 @@ ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, uint64
         nullData = std::make_unique<NullChunkData>(mm, capacity, enableCompression, residencyState);
     }
     initializeBuffer(this->dataType.getPhysicalType(), mm, initializeToZero);
-    initializeFunction(enableCompression);
+    initializeFunction();
 }
 
 ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, bool enableCompression,
@@ -99,7 +98,7 @@ ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, bool e
         nullData = std::make_unique<NullChunkData>(mm, enableCompression, metadata);
     }
     initializeBuffer(this->dataType.getPhysicalType(), mm, initializeToZero);
-    initializeFunction(enableCompression);
+    initializeFunction();
 }
 
 ColumnChunkData::ColumnChunkData(MemoryManager& mm, PhysicalTypeID dataType, bool enableCompression,
@@ -116,7 +115,7 @@ void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, Memo
     buffer = mm.mallocBuffer(initializeToZero, getBufferSize(capacity));
 }
 
-void ColumnChunkData::initializeFunction(bool enableCompression) {
+void ColumnChunkData::initializeFunction() {
     const auto compression = getCompression(dataType, enableCompression);
     getMetadataFunction = GetCompressionMetadata(compression, dataType);
     flushBufferFunction = initializeFlushBufferFunction(compression);
@@ -262,31 +261,31 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
     const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
-    const auto metadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
-    setToOnDisk(metadata);
+    const auto flushedMetadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
+    setToOnDisk(flushedMetadata);
     if (nullData) {
         nullData->flush(dataFH);
     }
 }
 
 // Note: This function is not setting child/null chunk data recursively.
-void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& metadata) {
+void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     residencyState = ResidencyState::ON_DISK;
     capacity = 0;
-    // Note: We don't need to set the buffer to nullptr, as it allows ColumnChunkDaat to be resized.
+    // Note: We don't need to set the buffer to nullptr, as it allows ColumnChunkData to be resized.
     buffer = buffer->getMemoryManager()->mallocBuffer(true, 0 /*size*/);
-    this->metadata = metadata;
-    this->numValues = metadata.numValues;
+    this->metadata = otherMetadata;
+    this->numValues = otherMetadata.numValues;
     resetInMemoryStats();
 }
 
 ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, page_idx_t startPageIdx,
-    const ColumnChunkMetadata& metadata) const {
-    if (!metadata.compMeta.isConstant() && getBufferSize() != 0) {
+    const ColumnChunkMetadata& otherMetadata) const {
+    if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->getBuffer(), dataFH, startPageIdx, metadata);
+        return flushBufferFunction(buffer->getBuffer(), dataFH, startPageIdx, otherMetadata);
     }
-    return metadata;
+    return otherMetadata;
 }
 
 uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
@@ -922,7 +921,7 @@ std::unique_ptr<ColumnChunkData> ColumnChunkFactory::createColumnChunkData(Memor
 }
 
 bool ColumnChunkData::isNull(offset_t pos) const {
-    return nullData ? nullData->isNull(pos) : false;
+    return nullData && nullData->isNull(pos);
 }
 
 MemoryManager& ColumnChunkData::getMemoryManager() const {

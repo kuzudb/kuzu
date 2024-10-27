@@ -239,7 +239,7 @@ void BufferManager::optimisticRead(FileHandle& fileHandle, page_idx_t pageIdx,
             // If the page is marked, we try to switch to unlocked.
             pageState->tryClearMark(currStateAndVersion);
             continue;
-        } break;
+        }
         case PageState::EVICTED: {
             pin(fileHandle, pageIdx, PageReadPolicy::READ_PAGE);
             unpin(fileHandle, pageIdx);

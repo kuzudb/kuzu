@@ -37,15 +37,11 @@ public:
     T* getGroup(const common::UniqLock& lock, common::idx_t groupIdx) const {
         KU_ASSERT(lock.isLocked());
         KU_UNUSED(lock);
-        if (groupIdx >= groups.size()) {
-            return nullptr;
-        }
+        KU_ASSERT(groupIdx < groups.size());
         return groups[groupIdx].get();
     }
     T* getGroupNoLock(common::idx_t groupIdx) const {
-        if (groupIdx >= groups.size()) {
-            return nullptr;
-        }
+        KU_ASSERT(groupIdx < groups.size());
         return groups[groupIdx].get();
     }
     void replaceGroup(const common::UniqLock& lock, common::idx_t groupIdx,
@@ -78,17 +74,12 @@ public:
         KU_UNUSED(lock);
         return groups.size();
     }
+    common::idx_t getNumGroupsNoLock() const { return groups.size(); }
 
     const std::vector<std::unique_ptr<T>>& getAllGroups(const common::UniqLock& lock) const {
         KU_ASSERT(lock.isLocked());
         KU_UNUSED(lock);
         return groups;
-    }
-    std::unique_ptr<T> moveGroup(const common::UniqLock& lock, common::idx_t groupIdx) {
-        KU_ASSERT(groupIdx < groups.size());
-        KU_ASSERT(lock.isLocked());
-        KU_UNUSED(lock);
-        return std::move(groups[groupIdx]);
     }
     T* getFirstGroup(const common::UniqLock& lock) const {
         KU_ASSERT(lock.isLocked());
