@@ -5,9 +5,7 @@
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -18,10 +16,10 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-struct SingleSPOutputs : public SPOutputs {
-    SingleSPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+struct SingleSPDestinationsOutputs : public SPOutputs {
+    SingleSPDestinationsOutputs(common::table_id_map_t<common::offset_t> numNodesMap,
         common::nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm) {}
+        : SPOutputs(numNodesMap, sourceNodeID, mm) {}
     // Note: We do not fix the node table for pathLengths, because PathLengths is a
     // FrontierPair implementation and RJCompState will call beginFrontierComputeBetweenTables
     // on FrontierPair (and RJOutputs). That's why this function is empty.
@@ -32,34 +30,9 @@ struct SingleSPOutputs : public SPOutputs {
     }
 };
 
-class SingleSPDestinationsLengthOutputWriter : public DestinationsOutputWriter {
+class SingleSPDestinationsEdgeCompute : public EdgeCompute {
 public:
-    SingleSPDestinationsLengthOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-        : DestinationsOutputWriter(context, rjOutputs) {
-        lengthVector =
-            std::make_unique<ValueVector>(LogicalType::INT64(), context->getMemoryManager());
-        lengthVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(lengthVector.get());
-    }
-
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SingleSPDestinationsLengthOutputWriter>(context, rjOutputs);
-    }
-
-protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t,
-        uint16_t length) const override {
-        lengthVector->setValue<int64_t>(0, length);
-        fTable.append(vectors);
-    }
-
-protected:
-    std::unique_ptr<common::ValueVector> lengthVector;
-};
-
-class SingleSPLengthsEdgeCompute : public EdgeCompute {
-public:
-    explicit SingleSPLengthsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+    explicit SingleSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
         : frontierPair{frontierPair} {};
 
     void edgeCompute(common::nodeID_t, std::span<const common::nodeID_t> nbrIDs,
@@ -75,7 +48,7 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<SingleSPLengthsEdgeCompute>(frontierPair);
+        return std::make_unique<SingleSPDestinationsEdgeCompute>(frontierPair);
     }
 
 private:
@@ -130,9 +103,7 @@ public:
     SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
         : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder* binder) const override {
-        return getBaseResultColumns(binder);
-    }
+    expression_vector getResultColumns(Binder*) const override { return getBaseResultColumns(); }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<SingleSPDestinationsAlgorithm>(*this);
@@ -141,44 +112,12 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output =
-            std::make_unique<SingleSPOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
-                sourceNodeID, clientContext->getMemoryManager());
+        auto output = std::make_unique<SingleSPDestinationsOutputs>(
+            sharedState->graph->getNumNodesMap(), sourceNodeID, clientContext->getMemoryManager());
         auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
-        auto edgeCompute = std::make_unique<SingleSPLengthsEdgeCompute>(frontierPair.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
-            std::move(outputWriter));
-    }
-};
-
-class SingleSPLengthsAlgorithm : public SPAlgorithm {
-public:
-    SingleSPLengthsAlgorithm() = default;
-    SingleSPLengthsAlgorithm(const SingleSPLengthsAlgorithm& other) : SPAlgorithm{other} {}
-
-    expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getBaseResultColumns(binder);
-        columns.push_back(getLengthColumn(binder));
-        return columns;
-    }
-
-    std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<SingleSPLengthsAlgorithm>(*this);
-    }
-
-private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
-        auto clientContext = context->clientContext;
-        auto output =
-            std::make_unique<SingleSPOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
-                sourceNodeID, clientContext->getMemoryManager());
-        auto outputWriter =
-            std::make_unique<SingleSPDestinationsLengthOutputWriter>(clientContext, output.get());
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
-            clientContext->getMaxNumThreadForExec());
-        auto edgeCompute = std::make_unique<SingleSPLengthsEdgeCompute>(frontierPair.get());
+        auto edgeCompute = std::make_unique<SingleSPDestinationsEdgeCompute>(frontierPair.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
@@ -189,11 +128,11 @@ public:
     SingleSPPathsAlgorithm() = default;
     SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder* binder) const override {
-        auto columns = getBaseResultColumns(binder);
-        columns.push_back(getLengthColumn(binder));
-        columns.push_back(getPathNodeIDsColumn(binder));
-        columns.push_back(getPathEdgeIDsColumn(binder));
+    expression_vector getResultColumns(Binder*) const override {
+        auto columns = getBaseResultColumns();
+        auto rjBindData = bindData->ptrCast<RJBindData>();
+        columns.push_back(rjBindData->pathNodeIDsExpr);
+        columns.push_back(rjBindData->pathEdgeIDsExpr);
         return columns;
     }
 
@@ -204,9 +143,8 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output =
-            std::make_unique<PathsOutputs>(sharedState->graph->getNodeTableIDAndNumNodes(),
-                sourceNodeID, clientContext->getMemoryManager());
+        auto output = std::make_unique<PathsOutputs>(sharedState->graph->getNumNodesMap(),
+            sourceNodeID, clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
@@ -223,26 +161,26 @@ private:
 
 function_set SingleSPDestinationsFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<SingleSPDestinationsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(std::make_unique<GDSFunction>(getFunction()));
     return result;
 }
 
-function_set SingleSPLengthsFunction::getFunctionSet() {
-    function_set result;
-    auto algo = std::make_unique<SingleSPLengthsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
-    return result;
+GDSFunction SingleSPDestinationsFunction::getFunction() {
+    auto algo = std::make_unique<SingleSPDestinationsAlgorithm>();
+    auto params = algo->getParameterTypeIDs();
+    return GDSFunction(name, std::move(params), std::move(algo));
 }
 
 function_set SingleSPPathsFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<SingleSPPathsAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(std::make_unique<GDSFunction>(getFunction()));
     return result;
+}
+
+GDSFunction SingleSPPathsFunction::getFunction() {
+    auto algo = std::make_unique<SingleSPPathsAlgorithm>();
+    auto params = algo->getParameterTypeIDs();
+    return GDSFunction(name, std::move(params), std::move(algo));
 }
 
 } // namespace function

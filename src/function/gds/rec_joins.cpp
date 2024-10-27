@@ -18,20 +18,33 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
+    nodeInput = other.nodeInput;
+    lowerBound = other.lowerBound;
+    upperBound = other.upperBound;
+    semantic = other.semantic;
+    extendDirection = other.extendDirection;
+    extendFromSource = other.extendFromSource;
+    writePath = other.writePath;
+    directionExpr = other.directionExpr;
+    lengthExpr = other.lengthExpr;
+    pathNodeIDsExpr = other.pathNodeIDsExpr;
+    pathEdgeIDsExpr = other.pathEdgeIDsExpr;
+}
+
 PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     auto info = PathsOutputWriterInfo();
     info.semantic = semantic;
     info.lowerBound = lowerBound;
     info.extendFromSource = extendFromSource;
-    info.writeEdgeDirection = extendDirection == ExtendDirection::BOTH;
+    info.writeEdgeDirection = writePath && extendDirection == ExtendDirection::BOTH;
+    info.writePath = writePath;
     return info;
 }
 
-RJCompState::RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
-    std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
-    std::unique_ptr<RJOutputWriter> outputWriter)
-    : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
-      outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
+void RJAlgorithm::setToNoPath() {
+    bindData->ptrCast<RJBindData>()->writePath = false;
+}
 
 void RJAlgorithm::validateLowerUpperBound(int64_t lowerBound, int64_t upperBound) {
     if (lowerBound < 0 || upperBound < 0) {
@@ -54,7 +67,17 @@ void RJAlgorithm::validateLowerUpperBound(int64_t lowerBound, int64_t upperBound
     }
 }
 
-expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
+binder::expression_vector RJAlgorithm::getResultColumnsNoPath() {
+    expression_vector columns;
+    auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
+    columns.push_back(inputNode.getInternalID());
+    auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+    columns.push_back(outputNode.getInternalID());
+    columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
+    return columns;
+}
+
+expression_vector RJAlgorithm::getBaseResultColumns() const {
     expression_vector columns;
     auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
     columns.push_back(inputNode.getInternalID());
@@ -62,36 +85,22 @@ expression_vector RJAlgorithm::getBaseResultColumns(Binder* binder) const {
     columns.push_back(outputNode.getInternalID());
     auto rjBindData = bindData->ptrCast<RJBindData>();
     if (rjBindData->extendDirection == ExtendDirection::BOTH) {
-        if (rjBindData->directionExpr != nullptr) {
-            columns.push_back(rjBindData->directionExpr);
-        } else {
-            columns.push_back(binder->createVariable(DIRECTION_COLUMN_NAME,
-                LogicalType::LIST(LogicalType::BOOL())));
-        }
+        columns.push_back(rjBindData->directionExpr);
     }
+    columns.push_back(rjBindData->lengthExpr);
     return columns;
 }
 
-std::shared_ptr<Expression> RJAlgorithm::getLengthColumn(Binder* binder) const {
-    if (bindData->ptrCast<RJBindData>()->lengthExpr != nullptr) {
-        return bindData->ptrCast<RJBindData>()->lengthExpr;
+void RJAlgorithm::bindColumnExpressions(binder::Binder* binder) const {
+    auto rjBindData = bindData->ptrCast<RJBindData>();
+    if (rjBindData->extendDirection == common::ExtendDirection::BOTH) {
+        rjBindData->directionExpr =
+            binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL()));
     }
-    return binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
-}
-
-std::shared_ptr<Expression> RJAlgorithm::getPathNodeIDsColumn(Binder* binder) const {
-    if (bindData->ptrCast<RJBindData>()->pathNodeIDsExpr != nullptr) {
-        return bindData->ptrCast<RJBindData>()->pathNodeIDsExpr;
-    }
-    return binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
+    rjBindData->lengthExpr = binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
+    rjBindData->pathNodeIDsExpr = binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
-}
-
-std::shared_ptr<Expression> RJAlgorithm::getPathEdgeIDsColumn(Binder* binder) const {
-    if (bindData->ptrCast<RJBindData>()->pathEdgeIDsExpr != nullptr) {
-        return bindData->ptrCast<RJBindData>()->pathEdgeIDsExpr;
-    }
-    return binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
+    rjBindData->pathEdgeIDsExpr = binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
 }
 
@@ -116,6 +125,7 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
         ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
         PathSemantic::WALK, extendDirection);
+    bindColumnExpressions(binder);
 }
 
 // All recursive join computation have the same vertex compute. This vertex compute writes

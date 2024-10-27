@@ -21,6 +21,7 @@ public:
     void computeFactorizedSchema() override;
 
     const binder::BoundGDSCallInfo& getInfo() const { return info; }
+    binder::BoundGDSCallInfo& getInfoUnsafe() { return info; }
 
     void setNodePredicateRoot(std::shared_ptr<LogicalOperator> op) {
         nodePredicateRoot = std::move(op);

@@ -9,10 +9,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-SPOutputs::SPOutputs(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-    nodeID_t sourceNodeID, storage::MemoryManager* mm)
+SPOutputs::SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, nodeID_t sourceNodeID,
+    storage::MemoryManager* mm)
     : RJOutputs(sourceNodeID) {
-    pathLengths = std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm);
+    pathLengths = std::make_shared<PathLengths>(numNodesMap, mm);
 }
 
 void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) {
@@ -20,20 +20,20 @@ void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tabl
     bfsGraph.pinNodeTable(tableID);
 }
 
-static std::unique_ptr<ValueVector> createVector(const LogicalType& type,
-    storage::MemoryManager* mm, std::vector<ValueVector*>& vectors) {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
+    : context{context}, rjOutputs{rjOutputs} {
+    auto mm = context->getMemoryManager();
+    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
+}
+
+std::unique_ptr<common::ValueVector> RJOutputWriter::createVector(const LogicalType& type,
+    storage::MemoryManager* mm) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     vectors.push_back(vector.get());
     return vector;
-}
-
-RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-    : context{context}, rjOutputs{rjOutputs} {
-    auto mm = context->getMemoryManager();
-    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm, vectors);
-    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm, vectors);
-    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
@@ -41,13 +41,13 @@ PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rj
     : RJOutputWriter(context, rjOutputs), info{info} {
     auto mm = context->getMemoryManager();
     if (info.writeEdgeDirection) {
-        directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm, vectors);
-    } else {
-        directionVector = nullptr;
+        directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm);
     }
-    lengthVector = createVector(LogicalType::INT64(), mm, vectors);
-    pathNodeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm, vectors);
-    pathEdgeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm, vectors);
+    lengthVector = createVector(LogicalType::INT64(), mm);
+    if (info.writePath) {
+        pathNodeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
+        pathEdgeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
+    }
 }
 
 static void addListEntry(ValueVector* vector, uint64_t length) {
@@ -69,7 +69,9 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             // We still output a path from src to src if required path length is 0.
             // This case should only run for variable length joins.
             lengthVector->setValue<int64_t>(0, 0);
-            beginWritePath(0);
+            if (info.writePath) {
+                beginWritePath(0);
+            }
             fTable.append(vectors);
         }
         return;
@@ -177,6 +179,7 @@ bool PathsOutputWriter::isAcyclic(const std::vector<ParentList*>& path) const {
 }
 
 void PathsOutputWriter::beginWritePath(common::idx_t length) const {
+    KU_ASSERT(info.writePath);
     addListEntry(pathNodeIDsVector.get(), length > 1 ? length - 1 : 0);
     addListEntry(pathEdgeIDsVector.get(), length);
     if (info.writeEdgeDirection) {
@@ -185,6 +188,9 @@ void PathsOutputWriter::beginWritePath(common::idx_t length) const {
 }
 
 void PathsOutputWriter::writePath(const std::vector<ParentList*>& path) const {
+    if (!info.writePath) {
+        return;
+    }
     beginWritePath(path.size());
     if (info.extendFromSource) {
         // Write path in reverse direction because we append ParentList from dst to src.
@@ -229,19 +235,26 @@ void PathsOutputWriter::addNode(common::nodeID_t nodeID, common::sel_t pos) cons
     ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos, nodeID);
 }
 
+DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
+    RJOutputs* rjOutputs)
+    : RJOutputWriter{context, rjOutputs} {
+    lengthVector = createVector(LogicalType::INT64(), context->getMemoryManager());
+}
+
 void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {
     auto length =
         rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
             dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+    lengthVector->setValue<int64_t>(0, length);
     writeMoreAndAppend(fTable, dstNodeID, length);
 }
 
 bool DestinationsOutputWriter::skipWriting(common::nodeID_t dstNodeID) const {
-    return dstNodeID == rjOutputs->ptrCast<SPOutputs>()->sourceNodeID ||
+    auto outputs = rjOutputs->ptrCast<SPOutputs>();
+    return dstNodeID == outputs->sourceNodeID ||
            PathLengths::UNVISITED ==
-               rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
-                   dstNodeID.offset);
+               outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
 }
 
 void DestinationsOutputWriter::writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t,

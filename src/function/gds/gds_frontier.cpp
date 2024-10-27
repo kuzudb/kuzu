@@ -41,11 +41,11 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
     return true;
 }
 
-PathLengths::PathLengths(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap_,
     storage::MemoryManager* mm) {
     curIter.store(0);
-    for (const auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
-        nodeTableIDAndNumNodesMap[tableID] = numNodes;
+    for (const auto& [tableID, numNodes] : numNodesMap_) {
+        numNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
         std::atomic<uint16_t>* memBufferPtr =
             reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
@@ -62,8 +62,7 @@ void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
     curFrontierFixedMask.store(
         reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->getData()),
         std::memory_order_relaxed);
-    maxNodesInCurFrontierFixedMask.store(
-        nodeTableIDAndNumNodesMap[curTableID.load(std::memory_order_relaxed)],
+    maxNodesInCurFrontierFixedMask.store(numNodesMap[curTableID.load(std::memory_order_relaxed)],
         std::memory_order_relaxed);
 }
 
@@ -110,11 +109,11 @@ void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
 }
 
 DoublePathLengthsFrontierPair::DoublePathLengthsFrontierPair(
-    std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
-    uint64_t maxThreadsForExec, storage::MemoryManager* mm)
-    : FrontierPair(std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm),
-          std::make_shared<PathLengths>(nodeTableIDAndNumNodes, mm),
-          1 /* initial num active nodes */, maxThreadsForExec) {
+    common::table_id_map_t<common::offset_t> numNodesMap, uint64_t maxThreadsForExec,
+    storage::MemoryManager* mm)
+    : FrontierPair(std::make_shared<PathLengths>(numNodesMap, mm),
+          std::make_shared<PathLengths>(numNodesMap, mm), 1 /* initial num active nodes */,
+          maxThreadsForExec) {
     morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExec);
 }
 

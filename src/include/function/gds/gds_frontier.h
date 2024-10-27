@@ -146,12 +146,12 @@ public:
  * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
 class PathLengths : public GDSFrontier {
-    friend class SinglePathLengthsFrontierPair;
+    friend class SingleSPDestinationsEdgeCompute;
 
 public:
     static constexpr uint16_t UNVISITED = UINT16_MAX;
 
-    explicit PathLengths(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap,
         storage::MemoryManager* mm);
 
     uint16_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
@@ -211,7 +211,7 @@ private:
     // We do not need to make nodeTableIDAndNumNodesMap and masks atomic because they should only
     // be accessed by functions that are called by the "master GDS thread" (so not accessed inside
     // the parallel functions in GDSUtils, which are called by other "worker threads").
-    std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodesMap;
+    common::table_id_map_t<common::offset_t> numNodesMap;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
     // See FrontierPair::curIter. We keep a copy of curIter here because PathLengths stores
     // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
@@ -280,13 +280,13 @@ protected:
 };
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
-    friend class AllSPLengthsEdgeCompute;
+    friend class AllSPDestinationsEdgeCompute;
     friend class AllSPPathsEdgeCompute;
-    friend class SingleSPLengthsEdgeCompute;
+    friend class SingleSPDestinationsEdgeCompute;
     friend class SingleSPPathsEdgeCompute;
 
 public:
-    explicit SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
         uint64_t maxThreadsForExec)
         : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
               1 /* initial num active nodes */, maxThreadsForExec),
@@ -308,8 +308,7 @@ private:
 
 class DoublePathLengthsFrontierPair : public FrontierPair {
 public:
-    DoublePathLengthsFrontierPair(
-        std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    DoublePathLengthsFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
         uint64_t maxThreadsForExec, storage::MemoryManager* mm);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;

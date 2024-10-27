@@ -127,7 +127,7 @@ public:
     std::vector<common::table_id_t> getNodeTableIDs() override;
     std::vector<common::table_id_t> getRelTableIDs() override;
 
-    std::unordered_map<common::table_id_t, uint64_t> getNodeTableIDAndNumNodes() override;
+    common::table_id_map_t<common::offset_t> getNumNodesMap() override;
 
     common::offset_t getNumNodes() override;
     common::offset_t getNumNodes(common::table_id_t id) override;

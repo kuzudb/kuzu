@@ -30,7 +30,7 @@
 60003
 
 # By the above formula, 28th, 29th, and 30th levels will contain 29*5K + 1, 30*5K + 1, and 31*5K+1 = 90*5K+3=450003.
-#-LOG KnowsVeryLargeAdjListLongPathTest
-#-STATEMENT MATCH (a:person)-[:knows*28..30]->(b:person) RETURN COUNT(*)
-#---- 1
-#450003
+-LOG KnowsVeryLargeAdjListLongPathTest
+-STATEMENT MATCH (a:person)-[:knows*28..30]->(b:person) RETURN COUNT(*)
+---- 1
+450003

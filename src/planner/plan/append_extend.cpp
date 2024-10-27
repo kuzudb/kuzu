@@ -143,20 +143,18 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     if (recursiveInfo->relPredicate != nullptr) {
         graphEntry.setRelPredicate(recursiveInfo->relPredicate);
     }
-
     GDSFunction gdsFunction;
     switch (rel->getRelType()) {
     case common::QueryRelType::VARIABLE_LENGTH_WALK:
     case common::QueryRelType::VARIABLE_LENGTH_TRAIL:
     case common::QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
-        gdsFunction = VarLenJoinsFunction::getFunctionSet()[0]->constPtrCast<GDSFunction>()->copy();
+        gdsFunction = VarLenJoinsFunction::getFunction();
     } break;
     case QueryRelType::SHORTEST: {
-        gdsFunction =
-            SingleSPPathsFunction::getFunctionSet()[0]->constPtrCast<GDSFunction>()->copy();
+        gdsFunction = SingleSPPathsFunction::getFunction();
     } break;
     case QueryRelType::ALL_SHORTEST: {
-        gdsFunction = AllSPPathsFunction::getFunctionSet()[0]->constPtrCast<GDSFunction>()->copy();
+        gdsFunction = AllSPPathsFunction::getFunction();
     } break;
     default:
         KU_UNREACHABLE;

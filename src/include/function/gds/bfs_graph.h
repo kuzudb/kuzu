@@ -57,10 +57,9 @@ class BFSGraph {
     using parent_entry_t = std::atomic<ParentList*>;
 
 public:
-    BFSGraph(std::unordered_map<common::table_id_t, common::offset_t> nodeTableIDAndNumNodes,
-        storage::MemoryManager* mm)
+    BFSGraph(common::table_id_map_t<common::offset_t> numNodesMap, storage::MemoryManager* mm)
         : mm{mm} {
-        for (auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+        for (auto& [tableID, numNodes] : numNodesMap) {
             parentArray.allocate(tableID, numNodes, mm);
             auto data = parentArray.getData(tableID);
             for (uint64_t i = 0; i < numNodes; ++i) {
