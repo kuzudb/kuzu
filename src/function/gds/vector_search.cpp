@@ -611,7 +611,7 @@ namespace kuzu {
                         return;
                     }
 
-                    if (selectivity > 0.5) {
+                    if (selectivity > 0.3) {
                         filteredSearch(context, query, nodeTableId, graph, quantizedDc.get(), filterMask, *state.get(),
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
