@@ -176,7 +176,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         for (auto offset = 0u; offset < sharedState->graph->getNumNodes(
                                             executionContext->clientContext->getTx(), tableID);
-            ++offset) {
+             ++offset) {
             if (!mask->isMasked(offset)) {
                 continue;
             }

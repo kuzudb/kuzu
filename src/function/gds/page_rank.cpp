@@ -45,10 +45,11 @@ public:
         vectors.push_back(rankVector.get());
     }
 
-    void materialize(main::ClientContext* context, Graph* graph, const common::node_id_map_t<double>& ranks,
-        FactorizedTable& table) const {
+    void materialize(main::ClientContext* context, Graph* graph,
+        const common::node_id_map_t<double>& ranks, FactorizedTable& table) const {
         for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(context->getTx(), tableID); ++offset) {
+            for (auto offset = 0u; offset < graph->getNumNodes(context->getTx(), tableID);
+                 ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 nodeIDVector->setValue<nodeID_t>(0, nodeID);
                 rankVector->setValue<double>(0, ranks.at(nodeID));
@@ -110,7 +111,8 @@ public:
         common::node_id_map_t<double> ranks;
         auto numNodes = graph->getNumNodes(context->clientContext->getTx());
         for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(context->clientContext->getTx(), tableID); ++offset) {
+            for (auto offset = 0u;
+                 offset < graph->getNumNodes(context->clientContext->getTx(), tableID); ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 ranks.insert({nodeID, 1.0 / numNodes});
             }
@@ -126,7 +128,9 @@ public:
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
             for (auto tableID : nodeTableIDs) {
-                for (auto offset = 0u; offset < graph->getNumNodes(context->clientContext->getTx(), tableID); ++offset) {
+                for (auto offset = 0u;
+                     offset < graph->getNumNodes(context->clientContext->getTx(), tableID);
+                     ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
                     auto iter = graph->scanFwd(nodeID, *scanState);
