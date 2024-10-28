@@ -115,7 +115,7 @@ private:
         auto output = std::make_unique<SingleSPDestinationsOutputs>(
             sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get());
+        auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get(), sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<SingleSPDestinationsEdgeCompute>(frontierPair.get());
@@ -151,7 +151,7 @@ private:
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            std::move(writerInfo));
+            sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =

@@ -20,8 +20,9 @@ void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tabl
     bfsGraph.pinNodeTable(tableID);
 }
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-    : context{context}, rjOutputs{rjOutputs} {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+    processor::NodeOffsetMaskMap* outputNodeMask)
+    : context{context}, rjOutputs{rjOutputs}, outputNodeMask{outputNodeMask} {
     auto mm = context->getMemoryManager();
     srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
@@ -36,9 +37,24 @@ std::unique_ptr<common::ValueVector> RJOutputWriter::createVector(const LogicalT
     return vector;
 }
 
+void RJOutputWriter::beginWritingForDstNodesInTable(common::table_id_t tableID) {
+    rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
+    if (outputNodeMask != nullptr) {
+        outputNodeMask->pin(tableID);
+    }
+}
+
+bool RJOutputWriter::skip(common::nodeID_t dstNodeID) const {
+    if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask() &&
+        !outputNodeMask->getPinnedMask()->isMasked(dstNodeID.offset)) {
+        return true;
+    }
+    return skipInternal(dstNodeID);
+}
+
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    PathsOutputWriterInfo info)
-    : RJOutputWriter(context, rjOutputs), info{info} {
+    processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
+    : RJOutputWriter{context, rjOutputs, outputNodeMask}, info{info} {
     auto mm = context->getMemoryManager();
     if (info.writeEdgeDirection) {
         directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm);
@@ -236,8 +252,8 @@ void PathsOutputWriter::addNode(common::nodeID_t nodeID, common::sel_t pos) cons
 }
 
 DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
-    RJOutputs* rjOutputs)
-    : RJOutputWriter{context, rjOutputs} {
+    RJOutputs* rjOutputs, processor::NodeOffsetMaskMap* outputNodeMask)
+    : RJOutputWriter{context, rjOutputs, outputNodeMask} {
     lengthVector = createVector(LogicalType::INT64(), context->getMemoryManager());
 }
 
@@ -250,7 +266,7 @@ void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_
     writeMoreAndAppend(fTable, dstNodeID, length);
 }
 
-bool DestinationsOutputWriter::skipWriting(common::nodeID_t dstNodeID) const {
+bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
     auto outputs = rjOutputs->ptrCast<SPOutputs>();
     return dstNodeID == outputs->sourceNodeID ||
            PathLengths::UNVISITED ==

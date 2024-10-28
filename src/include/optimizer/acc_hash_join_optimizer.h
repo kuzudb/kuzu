@@ -35,8 +35,10 @@ private:
     // most one match because rel table is scanned exactly once.
     std::vector<planner::LogicalOperator*> getRecursiveJoinCandidates(
         const binder::Expression& nodeID, planner::LogicalOperator* root);
-    std::vector<planner::LogicalOperator*> getGDSCallCandidates(const binder::Expression& nodeID,
-        planner::LogicalOperator* root);
+    std::vector<planner::LogicalOperator*> getGDSCallInputNodeCandidates(
+        const binder::Expression& nodeID, planner::LogicalOperator* root);
+    std::vector<planner::LogicalOperator*> getGDSCallOutputNodeCandidates(
+        const binder::Expression& nodeID, planner::LogicalOperator* root);
 };
 
 } // namespace optimizer

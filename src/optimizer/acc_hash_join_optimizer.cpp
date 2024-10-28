@@ -33,7 +33,7 @@ static table_id_vector_t getTableIDs(const std::vector<catalog::TableCatalogEntr
     return result;
 }
 
-static std::vector<table_id_t> getTableIDs(LogicalOperator* op) {
+static std::vector<table_id_t> getTableIDs(LogicalOperator* op, SemiMaskTargetType targetType) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return op->constCast<LogicalScanNodeTable>().getTableIDs();
@@ -44,9 +44,20 @@ static std::vector<table_id_t> getTableIDs(LogicalOperator* op) {
     }
     case LogicalOperatorType::GDS_CALL: {
         auto bindData = op->constCast<LogicalGDSCall>().getInfo().getBindData();
-        KU_ASSERT(bindData->hasNodeInput());
-        auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
-        return getTableIDs(node.getEntries());
+        switch (targetType) {
+        case SemiMaskTargetType::GDS_INPUT_NODE: {
+            KU_ASSERT(bindData->hasNodeInput());
+            auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
+            return getTableIDs(node.getEntries());
+        } break;
+        case SemiMaskTargetType::GDS_OUTPUT_NODE: {
+            KU_ASSERT(bindData->hasNodeOutput());
+            auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
+            return getTableIDs(node.getEntries());
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
     }
     default:
         KU_UNREACHABLE;
@@ -66,13 +77,14 @@ static bool sameTableIDs(const std::unordered_set<table_id_t>& set,
     return true;
 }
 
-static bool haveSameTableIDs(const std::vector<LogicalOperator*>& ops) {
+static bool haveSameTableIDs(const std::vector<LogicalOperator*>& ops,
+    SemiMaskTargetType targetType) {
     std::unordered_set<common::table_id_t> tableIDSet;
-    for (auto id : getTableIDs(ops[0])) {
+    for (auto id : getTableIDs(ops[0], targetType)) {
         tableIDSet.insert(id);
     }
     for (auto i = 0u; i < ops.size(); ++i) {
-        if (!sameTableIDs(tableIDSet, getTableIDs(ops[i]))) {
+        if (!sameTableIDs(tableIDSet, getTableIDs(ops[i], targetType))) {
             return false;
         }
     }
@@ -88,12 +100,13 @@ static bool haveSameType(const std::vector<LogicalOperator*>& ops) {
     return true;
 }
 
-bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops) {
+bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops,
+    SemiMaskTargetType targetType) {
     KU_ASSERT(!ops.empty());
     if (!haveSameType(ops)) {
         return false;
     }
-    if (!haveSameTableIDs(ops)) {
+    if (!haveSameTableIDs(ops, targetType)) {
         return false;
     }
     return true;
@@ -102,7 +115,7 @@ bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops) {
 static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskKeyType keyType,
     SemiMaskTargetType targetType, std::shared_ptr<Expression> key,
     std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
-    auto tableIDs = getTableIDs(candidates[0]);
+    auto tableIDs = getTableIDs(candidates[0], targetType);
     auto semiMasker =
         std::make_shared<LogicalSemiMasker>(keyType, targetType, key, tableIDs, candidates, child);
     semiMasker->computeFlatSchema();
@@ -297,15 +310,21 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
 std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(
     std::shared_ptr<binder::Expression> nodeID, std::shared_ptr<planner::LogicalOperator> fromRoot,
     LogicalOperator* toRoot) {
-    // TODO(Xiyang):
-    // 1. Enable semi mask on ScanNodeTable
-    // 2. Check if a semi mask can/need to be applied to ScanNodeTable, RecursiveJoin & GDS at
-    // the same time
-    auto gdsCandidates = getGDSCallCandidates(*nodeID, toRoot);
-    if (!gdsCandidates.empty()) {
-        KU_ASSERT(sanityCheckCandidates(gdsCandidates));
-        return appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::GDS_INPUT_NODE, nodeID,
-            gdsCandidates, fromRoot);
+    // TODO(Xiyang): Check if a semi mask can/need to be applied to ScanNodeTable, RecursiveJoin &
+    // GDS at the same time
+    auto gdsInputNodeCandidates = getGDSCallInputNodeCandidates(*nodeID, toRoot);
+    if (!gdsInputNodeCandidates.empty()) {
+        auto targetType = SemiMaskTargetType::GDS_INPUT_NODE;
+        KU_ASSERT(sanityCheckCandidates(gdsInputNodeCandidates, targetType));
+        return appendSemiMasker(SemiMaskKeyType::NODE, targetType, nodeID, gdsInputNodeCandidates,
+            fromRoot);
+    }
+    auto gdsOutputNodeCandidates = getGDSCallOutputNodeCandidates(*nodeID, toRoot);
+    if (!gdsOutputNodeCandidates.empty()) {
+        auto targetType = SemiMaskTargetType::GDS_OUTPUT_NODE;
+        KU_ASSERT(sanityCheckCandidates(gdsOutputNodeCandidates, targetType));
+        return appendSemiMasker(SemiMaskKeyType::NODE, targetType, nodeID, gdsOutputNodeCandidates,
+            fromRoot);
     }
     auto scanNodeCandidates = getScanNodeCandidates(*nodeID, toRoot);
     if (!scanNodeCandidates.empty()) {
@@ -314,10 +333,10 @@ std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(
     }
     auto recursiveExtendCandidates = getRecursiveJoinCandidates(*nodeID, toRoot);
     if (!recursiveExtendCandidates.empty()) {
-        KU_ASSERT(sanityCheckCandidates(recursiveExtendCandidates));
-        return appendSemiMasker(SemiMaskKeyType::NODE,
-            SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE, nodeID, recursiveExtendCandidates,
-            fromRoot);
+        auto targetType = SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE;
+        KU_ASSERT(sanityCheckCandidates(recursiveExtendCandidates, targetType));
+        return appendSemiMasker(SemiMaskKeyType::NODE, targetType, nodeID,
+            recursiveExtendCandidates, fromRoot);
     }
     return nullptr;
 }
@@ -356,8 +375,8 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::getRecursiveJoinCandidates(
     return result;
 }
 
-std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallCandidates(const Expression& nodeID,
-    LogicalOperator* root) {
+std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallInputNodeCandidates(
+    const Expression& nodeID, LogicalOperator* root) {
     std::vector<LogicalOperator*> result;
     auto collector = LogicalGDSCallCollector();
     collector.collect(root);
@@ -366,6 +385,22 @@ std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallCandidates(const E
         auto bindData = gdsCall.getInfo().getBindData();
         if (bindData->hasNodeInput() &&
             nodeID == *bindData->getNodeInput()->constCast<NodeExpression>().getInternalID()) {
+            result.push_back(op);
+        }
+    }
+    return result;
+}
+
+std::vector<LogicalOperator*> HashJoinSIPOptimizer::getGDSCallOutputNodeCandidates(
+    const Expression& nodeID, planner::LogicalOperator* root) {
+    std::vector<LogicalOperator*> result;
+    auto collector = LogicalGDSCallCollector();
+    collector.collect(root);
+    for (auto& op : collector.getOperators()) {
+        auto& gdsCall = op->constCast<LogicalGDSCall>();
+        auto bindData = gdsCall.getInfo().getBindData();
+        if (bindData->hasNodeOutput() &&
+            nodeID == *bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
         }
     }
