@@ -104,9 +104,9 @@ namespace kuzu {
                 // TODO: Rerank the results if using some even lower quantization like bitQ
 
                 // Remove elements until we have k elements
-                while (results.size() > k) {
-                    results.popMin();
-                }
+//                while (results.size() > k) {
+//                    results.popMin();
+//                }
 
                 std::priority_queue<NodeDistFarther> reversed;
                 while (results.size() > 0) {

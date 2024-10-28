@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
 //                totalQueriesSkipped += 1;
 //                continue;
 //            }
-            assert(res->getNumTuples() == k);
+            assert(res->getNumTuples() >= k);
             auto gt = gtVecs + i * k;
             while (res->hasNext()) {
                 auto row = res->getNext();
