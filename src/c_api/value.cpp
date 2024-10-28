@@ -186,7 +186,7 @@ kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
     auto first_element = static_cast<Value*>(elements[0]->_value);
     auto type = first_element->getDataType().copy();
 
-    for (uint64_t i = 0; i < num_elements; i++) {
+    for (uint64_t i = 0; i < num_elements; ++i) {
         auto child = static_cast<Value*>(elements[i]->_value);
         if (child->getDataType() != type) {
             return KuzuError;
