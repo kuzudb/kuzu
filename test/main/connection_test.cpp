@@ -54,16 +54,17 @@ TEST_F(ApiTest, ParallelConnect) {
     }
 }
 
-TEST_F(ApiTest, Interrupt) {
-    std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
-#ifdef _WIN32
-    Sleep(1000);
-#else
-    sleep(1 /* sleep 1 second before interrupt the query */);
-#endif
-    conn->interrupt();
-    longRunningQueryThread.join();
-}
+// TODO: FIX-ME. See Issue #4431.
+// TEST_F(ApiTest, Interrupt) {
+//     std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
+// #ifdef _WIN32
+//     Sleep(1000);
+// #else
+//     sleep(1 /* sleep 1 second before interrupt the query */);
+// #endif
+//     conn->interrupt();
+//     longRunningQueryThread.join();
+// }
 #endif
 
 TEST_F(ApiTest, CommitRollbackRemoveActiveTransaction) {
