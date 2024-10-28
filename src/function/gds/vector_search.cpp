@@ -263,8 +263,8 @@ namespace kuzu {
                             break;
                         }
                         double dist;
-                        auto embedding = getEmbedding(context, header->getActualId(neighbor));
-                        dc->computeDistance(embedding, &dist);
+                        auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
+                        qdc->compute_distance(query,embedding, &dist);
                         if (dist < nearestDist) {
                             nearest = neighbor;
                             nearestDist = dist;
@@ -282,17 +282,15 @@ namespace kuzu {
                 uint8_t entrypointLevel;
                 header->getEntrypoint(entrypoint, entrypointLevel);
                 if (entrypointLevel == 1) {
-                    auto embedding = getEmbedding(context, header->getActualId(entrypoint));
-                    dc->computeDistance(embedding, entrypointDist);
+                    auto embedding = getCompressedEmbedding(header, header->getActualId(entrypoint));
+                    qdc->compute_distance(query, embedding, entrypointDist);
                     searchNNOnUpperLevel(context, header, query, dc, qdc, entrypoint, *entrypointDist);
                     entrypoint = header->getActualId(entrypoint);
                 } else {
-                    auto embedding = getEmbedding(context, entrypoint);
-                    dc->computeDistance(embedding, entrypointDist);
+                    auto embedding = getCompressedEmbedding(header, entrypoint);
+                    qdc->compute_distance(query, embedding, entrypointDist);
                 }
             }
-
-
 
             inline bool isMasked(common::offset_t offset, NodeOffsetLevelSemiMask *filterMask) {
                 return !filterMask->isEnabled() || filterMask->isMasked(offset);
