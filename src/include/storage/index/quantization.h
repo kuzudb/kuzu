@@ -185,7 +185,7 @@ namespace kuzu {
             size_t i = 0;
             for (; i + 16 <= dim; i += 16) {
                 x_vec = _mm512_loadu_ps(x + i);
-                __m128i codes = _mm_loadu_si128(reinterpret_cast<const __m128i *>(y));
+                __m128i codes = _mm_loadu_si128(reinterpret_cast<const __m128i *>(y + i));
                 y_vec = decode_skylake(codes, i, alpha, beta);
                 d_vec = _mm512_sub_ps(x_vec, y_vec);
                 d2_vec = _mm512_fmadd_ps(d_vec, d_vec, d2_vec);
