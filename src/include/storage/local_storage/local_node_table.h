@@ -30,7 +30,7 @@ public:
 
     void clear() override;
 
-    common::row_idx_t getNumRows() { return nodeGroups.getNumTotalRows(); }
+    common::row_idx_t getNumTotalRows() override { return nodeGroups.getNumTotalRows(); }
     common::node_group_idx_t getNumNodeGroups() { return nodeGroups.getNumNodeGroups(); }
 
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) {

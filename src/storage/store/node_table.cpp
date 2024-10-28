@@ -88,6 +88,15 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
         *memoryManager->getBufferManager(), shadowFile, vfs, context);
 }
 
+row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
+    auto numLocalRows = 0u;
+    if (auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        numLocalRows = localTable->getNumTotalRows();
+    }
+    return numLocalRows + nodeGroups->getNumTotalRows();
+}
+
 void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState) const {
     auto& nodeScanState = scanState.cast<NodeTableScanState>();
     NodeGroup* nodeGroup = nullptr;

@@ -45,10 +45,11 @@ public:
         vectors.push_back(rankVector.get());
     }
 
-    void materialize(graph::Graph* graph, const common::node_id_map_t<double>& ranks,
-        FactorizedTable& table) const {
+    void materialize(main::ClientContext* context, Graph* graph,
+        const common::node_id_map_t<double>& ranks, FactorizedTable& table) const {
         for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+            for (auto offset = 0u; offset < graph->getNumNodes(context->getTx(), tableID);
+                 ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 nodeIDVector->setValue<nodeID_t>(0, nodeID);
                 rankVector->setValue<double>(0, ranks.at(nodeID));
@@ -108,9 +109,10 @@ public:
         auto graph = sharedState->graph.get();
         // Initialize state.
         common::node_id_map_t<double> ranks;
-        auto numNodes = graph->getNumNodes();
+        auto numNodes = graph->getNumNodes(context->clientContext->getTx());
         for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+            for (auto offset = 0u;
+                 offset < graph->getNumNodes(context->clientContext->getTx(), tableID); ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 ranks.insert({nodeID, 1.0 / numNodes});
             }
@@ -122,11 +124,13 @@ public:
         // We're using multiple overlapping iterators, both of which need access to a scan state, so
         // we need multiple scan states
         auto innerScanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
-        auto numNodesInGraph = graph->getNumNodes();
+        auto numNodesInGraph = graph->getNumNodes(context->clientContext->getTx());
         for (auto i = 0u; i < extraData->maxIteration; ++i) {
             auto change = 0.0;
             for (auto tableID : nodeTableIDs) {
-                for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+                for (auto offset = 0u;
+                     offset < graph->getNumNodes(context->clientContext->getTx(), tableID);
+                     ++offset) {
                     auto nodeID = nodeID_t{offset, tableID};
                     auto rank = 0.0;
                     auto iter = graph->scanFwd(nodeID, *scanState);
@@ -152,7 +156,7 @@ public:
             }
         }
         // Materialize result.
-        localState->materialize(graph, ranks, *sharedState->fTable);
+        localState->materialize(context->clientContext, graph, ranks, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

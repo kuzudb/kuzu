@@ -29,10 +29,11 @@ public:
         vectors.push_back(groupVector.get());
     }
 
-    void materialize(graph::Graph* graph, const common::node_id_map_t<int64_t>& visitedMap,
-        FactorizedTable& table) const {
+    void materialize(main::ClientContext* context, graph::Graph* graph,
+        const common::node_id_map_t<int64_t>& visitedMap, FactorizedTable& table) const {
         for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+            for (auto offset = 0u; offset < graph->getNumNodes(context->getTx(), tableID);
+                 ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 nodeIDVector->setValue<nodeID_t>(0, nodeID);
                 groupVector->setValue<int64_t>(0, visitedMap.at(nodeID));
@@ -94,7 +95,8 @@ public:
         auto nodeTableIDs = graph->getNodeTableIDs();
         auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
         for (auto tableID : nodeTableIDs) {
-            for (auto offset = 0u; offset < graph->getNumNodes(tableID); ++offset) {
+            for (auto offset = 0u;
+                 offset < graph->getNumNodes(context->clientContext->getTx(), tableID); ++offset) {
                 auto nodeID = nodeID_t{offset, tableID};
                 if (visitedMap.contains(nodeID)) {
                     continue;
@@ -102,7 +104,7 @@ public:
                 findConnectedComponent(nodeID, groupID++, *scanState);
             }
         }
-        localState->materialize(graph, visitedMap, *sharedState->fTable);
+        localState->materialize(context->clientContext, graph, visitedMap, *sharedState->fTable);
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

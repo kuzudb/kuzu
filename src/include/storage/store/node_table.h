@@ -96,7 +96,7 @@ public:
         const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
-    common::row_idx_t getNumRows() override { return nodeGroups->getNumTotalRows(); }
+    common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
     void initScanState(transaction::Transaction* transaction,
         TableScanState& scanState) const override;

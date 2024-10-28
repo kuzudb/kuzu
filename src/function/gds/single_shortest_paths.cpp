@@ -113,7 +113,8 @@ private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto output = std::make_unique<SingleSPDestinationsOutputs>(
-            sharedState->graph->getNumNodesMap(), sourceNodeID, clientContext->getMemoryManager());
+            sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
+            clientContext->getMemoryManager());
         auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
@@ -143,8 +144,9 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<PathsOutputs>(sharedState->graph->getNumNodesMap(),
-            sourceNodeID, clientContext->getMemoryManager());
+        auto output = std::make_unique<PathsOutputs>(
+            sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
+            clientContext->getMemoryManager());
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();

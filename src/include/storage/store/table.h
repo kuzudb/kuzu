@@ -168,7 +168,7 @@ public:
     virtual void commit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) = 0;
 
-    virtual common::row_idx_t getNumRows() = 0;
+    virtual common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) = 0;
 
     void setHasChanges() { hasChanges = true; }
 

@@ -16,13 +16,13 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(
+static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientContext* context,
     const std::vector<table_id_t>& tableIDs, StorageManager* storageManager) {
     auto map = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : tableIDs) {
         auto nodeTable = storageManager->getTable(tableID)->ptrCast<NodeTable>();
-        map->addMask(tableID,
-            std::make_unique<NodeOffsetLevelSemiMask>(tableID, nodeTable->getNumRows()));
+        map->addMask(tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+                                  nodeTable->getNumTotalRows(context->getTx())));
     }
     return map;
 }
@@ -48,7 +48,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         // Generate an empty semi mask which later on picked by SemiMaker.
         auto& node =
             call.getInfo().getBindData()->getNodeInput()->constCast<binder::NodeExpression>();
-        sharedState->setInputNodeMask(getNodeOffsetMaskMap(node.getTableIDs(), storageManager));
+        sharedState->setInputNodeMask(
+            getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
     }
 
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
@@ -61,8 +62,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         auto logicalRoot = call.getNodePredicateRoot();
         auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
         logicalSemiMasker->addTarget(logicalOperator);
-        sharedState->setPathNodeMask(
-            getNodeOffsetMaskMap(logicalSemiMasker->getNodeTableIDs(), storageManager));
+        sharedState->setPathNodeMask(getNodeOffsetMaskMap(clientContext,
+            logicalSemiMasker->getNodeTableIDs(), storageManager));
         logicalOpToPhysicalOpMap.insert({logicalOperator, gdsCall.get()});
         auto root = mapOperator(logicalRoot.get());
         auto dummySink = std::make_unique<DummySink>(
