@@ -359,11 +359,11 @@ namespace kuzu {
                     const float *xi = x + i * dim;
                     // We need to skip the last 4 bytes as they are precomputed values
                     uint8_t *ci = codes + i * codeSize;
-#if SIMSIMD_TARGET_HASWELL
-                    encode_haswell_8bit(xi, ci, dim, vmin, vdiff, alpha, beta);
-#else
+//#if SIMSIMD_TARGET_HASWELL
+//                    encode_haswell_8bit(xi, ci, dim, vmin, vdiff, alpha, beta);
+//#else
                     encode_serial_8bit(xi, ci, dim, vmin, vdiff, alpha, beta, 0);
-#endif
+//#endif
                 }
             }
 
