@@ -189,6 +189,7 @@ kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
     for (uint64_t i = 0; i < num_elements; ++i) {
         auto child = static_cast<Value*>(elements[i]->_value);
         if (child->getDataType() != type) {
+            free(c_value);
             return KuzuError;
         }
         // Copy the value to the list value to transfer ownership to the C++ side.
