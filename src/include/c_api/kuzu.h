@@ -953,7 +953,7 @@ KUZU_C_API kuzu_value* kuzu_value_create_interval(kuzu_interval_t val_);
  */
 KUZU_C_API kuzu_value* kuzu_value_create_string(const char* val_);
 /**
- * @brief Creates a list value with the given number of elements and the given elements. 
+ * @brief Creates a list value with the given number of elements and the given elements.
  * The caller needs to make sure that all elements have the same type.
  * The elements are copied into the list value, so destroying the elements after creating the list
  * value is safe.
@@ -963,7 +963,8 @@ KUZU_C_API kuzu_value* kuzu_value_create_string(const char* val_);
  * @param[out] out_value The output parameter that will hold a pointer to the created list value.
  * @return The state indicating the success or failure of the operation.
  */
-KUZU_C_API kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements, kuzu_value** out_value);
+KUZU_C_API kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
+    kuzu_value** out_value);
 /**
  * @brief Creates a new value based on the given value. Caller is responsible for destroying the
  * returned value.
