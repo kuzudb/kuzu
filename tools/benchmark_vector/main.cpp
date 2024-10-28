@@ -145,19 +145,20 @@ int main(int argc, char **argv) {
         // Run all queries and print avg latency
         printf("Benchmark started\n");
         auto recall = 0;
-        start = std::chrono::high_resolution_clock::now();
         auto totalQueries = 0;
         auto totalQueriesSkipped = 0;
+        long totalDuration = 0;
         for (int i = 0; i < queries.size(); i++) {
-//            printf("Running query: %d\n", i);
-//            printf("====================================\n");
             auto localRecall = 0;
+            start = std::chrono::high_resolution_clock::now();
             auto res = conn.query(queries[i]);
-//            printf("result size: %llu\n", res->getNumTuples());
-            if (res->getNumTuples() < k) {
-                totalQueriesSkipped += 1;
-                continue;
-            }
+            end = std::chrono::high_resolution_clock::now();
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            totalDuration += duration;
+//            if (res->getNumTuples() < k) {
+//                totalQueriesSkipped += 1;
+//                continue;
+//            }
             assert(res->getNumTuples() == k);
             auto gt = gtVecs + i * k;
             while (res->hasNext()) {
@@ -172,13 +173,9 @@ int main(int argc, char **argv) {
             printf("====================================\n");
             totalQueries++;
         }
-        // Get the current time after the function call
-        end = std::chrono::high_resolution_clock::now();
-        // Calculate the duration of the function execution
-        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         printf("Benchmark finished\n");
         printf("Total queries: %d\n", totalQueries);
-        printf("Benchmark time: %lld ms\n", duration);
+        printf("Benchmark time: %ld ms\n", totalDuration);
         printf("Avg latency: %f ms\n", (double) duration / totalQueries);
         printf("Total queries skipped: %d\n", totalQueriesSkipped);
         printf("Recall: %f\n", (double) recall / (queryNumVectors * k));
