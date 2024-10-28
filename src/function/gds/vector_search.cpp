@@ -250,7 +250,7 @@ namespace kuzu {
             }
 
             void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                      const float *query, QuantizedDistanceComputer<float, uint8_t> *dc,
+                                      const float *query, L2DistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc,
                                       vector_id_t &nearest,
                                       double &nearestDist) {
                 while (true) {
@@ -263,8 +263,8 @@ namespace kuzu {
                             break;
                         }
                         double dist;
-                        auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
-                        dc->compute_distance(query, embedding, &dist);
+                        auto embedding = getEmbedding(context, header->getActualId(neighbor));
+                        dc->computeDistance(embedding, &dist);
                         if (dist < nearestDist) {
                             nearest = neighbor;
                             nearestDist = dist;
@@ -277,18 +277,18 @@ namespace kuzu {
             }
 
             void findEntrypointUsingUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                               const float *query, QuantizedDistanceComputer<float, uint8_t> *dc, vector_id_t &entrypoint,
+                                               const float *query, L2DistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc, vector_id_t &entrypoint,
                                                double *entrypointDist) {
                 uint8_t entrypointLevel;
                 header->getEntrypoint(entrypoint, entrypointLevel);
                 if (entrypointLevel == 1) {
-                    auto embedding = getCompressedEmbedding(header, header->getActualId(entrypoint));
-                    dc->compute_distance(query, embedding, entrypointDist);
-                    searchNNOnUpperLevel(context, header, query, dc, entrypoint, *entrypointDist);
+                    auto embedding = getEmbedding(context, header->getActualId(entrypoint));
+                    dc->computeDistance(embedding, entrypointDist);
+                    searchNNOnUpperLevel(context, header, query, dc, qdc, entrypoint, *entrypointDist);
                     entrypoint = header->getActualId(entrypoint);
                 } else {
-                    auto embedding = getCompressedEmbedding(header, entrypoint);
-                    dc->compute_distance(query, embedding, entrypointDist);
+                    auto embedding = getEmbedding(context, entrypoint);
+                    dc->computeDistance(embedding, entrypointDist);
                 }
             }
 
@@ -468,8 +468,8 @@ namespace kuzu {
             }
 
 
-            void dynamicTwoHopFilteredSearch(const float *query, const table_id_t tableId, const int maxK, Graph *graph,
-                                             QuantizedDistanceComputer<float, uint8_t> *dc,
+            void dynamicTwoHopFilteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, const int maxK, Graph *graph,
+                                             L2DistanceComputer *dc,
                                              NodeOffsetLevelSemiMask *filterMask,
                                              GraphScanState &state, const vector_id_t entrypoint,
                                              const double entrypointDist,
@@ -508,8 +508,8 @@ namespace kuzu {
                             continue;
                         }
                         double dist;
-                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
-                        dc->compute_distance(query, embedding, &dist);
+                        auto embedding = getEmbedding(context, neighbor.offset);
+                        dc->computeDistance(embedding, &dist);
                         totalDist++;
                         nbrsToExplore.emplace(neighbor.offset, dist);
 
@@ -558,8 +558,9 @@ namespace kuzu {
                                 // TODO: Maybe there's some benefit in doing batch distance computation
                                 visited->set_bit(secondHopNeighbor.offset);
                                 double dist;
-                                auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
-                                dc->compute_distance(query, embedding, &dist);
+
+                                auto embedding = getEmbedding(context, secondHopNeighbor.offset);
+                                dc->computeDistance(embedding, &dist);
                                 totalDist++;
                                 if (results.size() < efSearch || dist < results.top()->dist) {
                                     candidates.emplace(secondHopNeighbor.offset, dist);
@@ -602,7 +603,7 @@ namespace kuzu {
                 // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
                 double entrypointDist;
-                findEntrypointUsingUpperLayer(context, header, query, quantizedDc.get(), entrypoint, &entrypointDist);
+                findEntrypointUsingUpperLayer(context, header, query, dc.get(), quantizedDc.get(), entrypoint, &entrypointDist);
                 BinaryHeap<NodeDistFarther> results(efSearch);
 
                 if (isFilteredSearch) {
@@ -625,7 +626,7 @@ namespace kuzu {
                                                  efSearch);
                         } else {
                             printf("doing dynamic two hop search\n");
-                            dynamicTwoHopFilteredSearch(query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
+                            dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
                                                         filterMask,
                                                         *state.get(), entrypoint, entrypointDist, results,
                                                         visited.get(),
