@@ -11,7 +11,6 @@ namespace storage {
 struct TableScanState;
 class MemoryManager;
 
-struct TableReadState;
 class LocalNodeTable final : public LocalTable {
 public:
     explicit LocalNodeTable(Table& table);

@@ -84,7 +84,7 @@ bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
     const auto srcNodeOffset = updateState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = updateState.dstNodeIDVector.readNodeOffset(dstNodePos);
     const auto relOffset = updateState.relIDVector.readNodeOffset(relIDPos);
-    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
+    const auto matchedRow = findMatchingRow(transaction, srcNodeOffset, dstNodeOffset, relOffset);
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
@@ -96,7 +96,7 @@ bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
     return true;
 }
 
-bool LocalRelTable::delete_(Transaction*, TableDeleteState& state) {
+bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
     const auto& deleteState = state.cast<RelTableDeleteState>();
     const auto srcNodePos = deleteState.srcNodeIDVector.state->getSelVector()[0];
     const auto dstNodePos = deleteState.dstNodeIDVector.state->getSelVector()[0];
@@ -108,7 +108,7 @@ bool LocalRelTable::delete_(Transaction*, TableDeleteState& state) {
     const auto srcNodeOffset = deleteState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = deleteState.dstNodeIDVector.readNodeOffset(dstNodePos);
     const auto relOffset = deleteState.relIDVector.readNodeOffset(relIDPos);
-    const auto matchedRow = findMatchingRow(srcNodeOffset, dstNodeOffset, relOffset);
+    const auto matchedRow = findMatchingRow(transaction, srcNodeOffset, dstNodeOffset, relOffset);
     if (matchedRow == INVALID_ROW_IDX) {
         return false;
     }
@@ -216,8 +216,8 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
     }
 }
 
-row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNodeOffset,
-    offset_t relOffset) {
+row_idx_t LocalRelTable::findMatchingRow(Transaction* transaction, offset_t srcNodeOffset,
+    offset_t dstNodeOffset, offset_t relOffset) {
     auto& fwdRows = fwdIndex[srcNodeOffset];
     std::sort(fwdRows.begin(), fwdRows.end());
     auto& bwdRows = bwdIndex[dstNodeOffset];
@@ -239,7 +239,8 @@ row_idx_t LocalRelTable::findMatchingRow(offset_t srcNodeOffset, offset_t dstNod
     for (auto i = 0u; i < intersectRows.size(); i++) {
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
-    localNodeGroup->lookup(&DUMMY_TRANSACTION, *scanState);
+    auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
+    localNodeGroup->lookup(&dummyTrx, *scanState);
     const auto scannedRelIDVector = scanState->outputVectors[0];
     KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());
     row_idx_t matchedRow = INVALID_ROW_IDX;

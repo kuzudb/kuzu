@@ -34,10 +34,10 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     auto nodeID = nodeIDVector->getValue<nodeID_t>(0);
     KU_ASSERT(tableIDToNodeInfo.contains(nodeID.tableID));
     auto& nodeInfo = tableIDToNodeInfo.at(nodeID.tableID);
-    if (nodeID.offset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+    if (transaction->isUnCommitted(nodeID.tableID, nodeID.offset)) {
         nodeInfo.localScanState->source = TableScanSource::UNCOMMITTED;
-        nodeInfo.localScanState->nodeGroupIdx =
-            StorageUtils::getNodeGroupIdx(nodeID.offset - StorageConstants::MAX_NUM_ROWS_IN_TABLE);
+        nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(
+            transaction->getLocalRowIdx(nodeID.tableID, nodeID.offset));
     } else {
         nodeInfo.localScanState->source = TableScanSource::COMMITTED;
         nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeID.offset);
