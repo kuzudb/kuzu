@@ -382,7 +382,7 @@ namespace kuzu {
             }
 
             void twoHopFilteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, Graph *graph,
-                                             L2DistanceComputer *dc,
+                                             QuantizedDistanceComputer<float, uint8_t> *dc,
                                              NodeOffsetLevelSemiMask *filterMask,
                                              GraphScanState &state, const vector_id_t entrypoint,
                                              const double entrypointDist,
@@ -416,8 +416,8 @@ namespace kuzu {
                         }
                         if (isNeighborMasked) {
                             double dist;
-                            auto embedding = getEmbedding(context, neighbor.offset);
-                            dc->computeDistance(embedding, &dist);
+                            auto embedding = getCompressedEmbedding(header, neighbor.offset);
+                            dc->compute_distance(query,embedding, &dist);
                             totalDist++;
                             visited->set_bit(neighbor.offset);
                             if (results.size() < efSearch || dist < results.top()->dist) {
@@ -450,10 +450,10 @@ namespace kuzu {
                                 // TODO: Maybe there's some benefit in doing batch distance computation
                                 visited->set_bit(secondHopNeighbor.offset);
                                 double dist;
-                                auto embedding = getEmbedding(context, secondHopNeighbor.offset);
-                                dc->computeDistance(embedding, &dist);
-//                                auto embedding = getCompressedEmbedding(header, s);
-//                                dc->compute_distance(query, embedding, &dist);
+//                                auto embedding = getEmbedding(context, secondHopNeighbor.offset);
+//                                dc->computeDistance(embedding, &dist);
+                                auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
+                                dc->compute_distance(query, embedding, &dist);
                                 totalDist++;
                                 if (results.size() < efSearch || dist < results.top()->dist) {
                                     candidates.emplace(secondHopNeighbor.offset, dist);
@@ -620,7 +620,7 @@ namespace kuzu {
                     } else {
                         if (filterMaxK > 100000) {
                             printf("doing two hop search\n");
-                            twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), filterMask,
+                            twoHopFilteredSearch(context, query, nodeTableId, graph, quantizedDc.get(), filterMask,
                                                  *state.get(), entrypoint, entrypointDist, results, visited.get(),
                                                  header,
                                                  efSearch);
@@ -638,13 +638,6 @@ namespace kuzu {
                     unfilteredSearch(query, nodeTableId, graph, quantizedDc.get(), *state.get(), entrypoint,
                                         entrypointDist, results, visited.get(), header, efSearch);
                 }
-//
-//                while (results.size() > k) {
-//                    double res;
-//                    dc->computeDistance(getEmbedding(context, results.top()->id), &res);
-//                    printf("removing %f %f\n", results.top()->dist, res);
-//                    results.popMin();
-//                }
 
                 searchLocalState->materialize(graph, results, *sharedState->fTable, k);
             }

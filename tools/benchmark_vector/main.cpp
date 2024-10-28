@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
         printf("Benchmark finished\n");
         printf("Total queries: %d\n", totalQueries);
         printf("Benchmark time: %ld ms\n", totalDuration);
-        printf("Avg latency: %f ms\n", (double) duration / totalQueries);
+        printf("Avg latency: %f ms\n", (double) totalDuration / totalQueries);
         printf("Total queries skipped: %d\n", totalQueriesSkipped);
         printf("Recall: %f\n", (double) recall / (queryNumVectors * k));
     }
