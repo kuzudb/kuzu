@@ -341,7 +341,7 @@ namespace kuzu {
             }
 
             void filteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, Graph *graph,
-                                L2DistanceComputer *dc, NodeOffsetLevelSemiMask *filterMask,
+                                QuantizedDistanceComputer<float, uint8_t> *dc, NodeOffsetLevelSemiMask *filterMask,
                                 GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
                                 VectorIndexHeaderPerPartition *header, const int efSearch) {
@@ -367,8 +367,8 @@ namespace kuzu {
                         }
                         visited->set_bit(neighbor.offset);
                         double dist;
-                        auto embedding = getEmbedding(context, neighbor.offset);
-                        dc->computeDistance(embedding, &dist);
+                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
+                        dc->compute_distance(query,embedding, &dist);
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             if (filterMask->isMasked(neighbor.offset)) {
@@ -611,8 +611,8 @@ namespace kuzu {
                         return;
                     }
 
-                    if (selectivity > 0.5) {
-                        filteredSearch(context, query, nodeTableId, graph, dc.get(), filterMask, *state.get(),
+                    if (selectivity > 0.3) {
+                        filteredSearch(context, query, nodeTableId, graph, quantizedDc.get(), filterMask, *state.get(),
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
