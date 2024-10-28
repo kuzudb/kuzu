@@ -361,7 +361,7 @@ TEST(CApiValueTestEmptyDB, CreateListDifferentTypes) {
 }
 
 TEST(CApiValueTestEmptyDB, CreateListEmpty) {
-    kuzu_value* elements[] = {};
+    kuzu_value* elements[] = {nullptr}; // Must be non-empty
     kuzu_value* value = nullptr;
     kuzu_state state = kuzu_value_create_list(0, elements, &value);
     ASSERT_EQ(state, KuzuError);
