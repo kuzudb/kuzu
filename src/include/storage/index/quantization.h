@@ -305,7 +305,7 @@ namespace kuzu {
                 vdiff[i] -= vmin[i];
             }
 
-            determine_smallest_breakpoint(x, n, dim, vmin, vdiff, hist_num_bins, break_point_data_ratio);
+//            determine_smallest_breakpoint(x, n, dim, vmin, vdiff, hist_num_bins, break_point_data_ratio);
             // Precompute alpha and gamma, as well as their squares
             for (size_t i = 0; i < dim; i++) {
                 alpha[i] = vdiff[i] / scalar_range;
@@ -318,7 +318,7 @@ namespace kuzu {
         class SQ8Bit {
             static constexpr size_t HISTOGRAM_NUM_BINS = 512;
         public:
-            explicit SQ8Bit(int dim, float break_point_data_ratio = 0.95f)
+            explicit SQ8Bit(int dim, float break_point_data_ratio = 0.99f)
                     : dim(dim), codeSize(dim + 4), break_point_data_ratio(break_point_data_ratio) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
@@ -359,11 +359,11 @@ namespace kuzu {
                     const float *xi = x + i * dim;
                     // We need to skip the last 4 bytes as they are precomputed values
                     uint8_t *ci = codes + i * codeSize;
-//#if SIMSIMD_TARGET_HASWELL
-//                    encode_haswell_8bit(xi, ci, dim, vmin, vdiff, alpha, beta);
-//#else
+#if SIMSIMD_TARGET_HASWELL
+                    encode_haswell_8bit(xi, ci, dim, vmin, vdiff, alpha, beta);
+#else
                     encode_serial_8bit(xi, ci, dim, vmin, vdiff, alpha, beta, 0);
-//#endif
+#endif
                 }
             }
 
