@@ -7,7 +7,7 @@ namespace planner {
 
 class CostModel {
 public:
-    static uint64_t computeExtendCost(const LogicalPlan& childPlan);
+    static uint64_t computeExtendCost(const LogicalPlan& childPlan, double extensionRate);
     static uint64_t computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
         const LogicalPlan& childPlan);
     static uint64_t computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
