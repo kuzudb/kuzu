@@ -4,148 +4,107 @@
 #include <mutex>
 
 #include "common/constants.h"
+#include "common/exception/runtime.h"
 #include "common/types/types.h"
+#include "roaring.hh"
 
 namespace kuzu {
 namespace common {
 
-// Note: Classes in this file are NOT thread-safe.
-struct MaskUtil {
-    static common::offset_t getVectorIdx(common::offset_t offset) {
-        return offset >> VECTOR_CAPACITY_LOG_2;
-    }
-};
-
-struct MaskData {
-    uint8_t* data;
-
-    explicit MaskData(uint64_t size, uint8_t defaultVal = 0) : size{size} {
-        dataBuffer = std::make_unique<uint8_t[]>(size);
-        data = dataBuffer.get();
-        std::fill(data, data + size, defaultVal);
-    }
-
-    inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
-    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
-        return data[pos] == trueMaskVal;
-    }
-    inline uint8_t getMaskValue(uint64_t pos) const { return data[pos]; }
-    inline uint64_t getSize() const { return size; }
-
-private:
-    std::unique_ptr<uint8_t[]> dataBuffer;
-    uint64_t size;
-};
-
-// MaskCollection represents multiple mask on the same domain with AND semantic.
-class MaskCollection {
+// unsafe
+class RoaringBitmapSemiMask {
 public:
-    MaskCollection() : numMasks{0} {}
+    explicit RoaringBitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : tableID{tableID}, maxOffset{maxOffset}, enabled{false} {}
 
-    void init(common::offset_t maxOffset) {
-        std::unique_lock lck{mtx};
-        if (maskData != nullptr) {
-            // MaskCollection might be initialized repeatedly. Because multiple semiMasker can
-            // hold the same mask.
-            return;
-        }
-        maskData = std::make_unique<MaskData>(maxOffset + 1);
-    }
+    virtual ~RoaringBitmapSemiMask() = default;
 
-    bool isMasked(common::offset_t offset) const { return maskData->isMasked(offset, numMasks); }
-    // Return true if any offset between [startOffset, endOffset] is masked. Otherwise return false.
-    bool isAnyMasked(common::offset_t startOffset, common::offset_t endOffset) const {
-        auto offset = startOffset;
-        auto numMasked = 0u;
-        while (offset <= endOffset) {
-            numMasked += maskData->isMasked(offset++, numMasks);
-        }
-        return numMasked > 0;
-    }
-    // Increment mask value for the given nodeOffset if its current mask value is equal to
-    // the specified `currentMaskValue`.
-    // Note: blindly update mask does not parallelize well, so we minimize write by first checking
-    // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
-    void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
-        if (offset >= maskData->getSize()) [[unlikely]] { // Handle uncommitted node offsets.
-            return;
-        }
-        if (maskData->isMasked(offset, currentMaskValue)) {
-            maskData->setMask(offset, currentMaskValue + 1);
-        }
-    }
+    virtual void mask(common::offset_t nodeOffset) = 0;
 
-    uint8_t getNumMasks() const { return numMasks; }
-    void incrementNumMasks() { numMasks++; }
+    virtual bool isMasked(common::offset_t startNodeOffset) = 0;
 
-private:
-    std::mutex mtx;
-    std::unique_ptr<MaskData> maskData;
-    uint8_t numMasks;
-};
-
-class NodeSemiMask {
-public:
-    explicit NodeSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : tableID{tableID}, maxOffset{maxOffset} {}
-    virtual ~NodeSemiMask() = default;
+    // include&exclude
+    virtual std::vector<common::offset_t> range(uint32_t start, uint32_t end) = 0;
 
     common::table_id_t getTableID() const { return tableID; }
     common::offset_t getMaxOffset() const { return maxOffset; }
 
-    virtual void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) = 0;
-    virtual bool isMasked(common::offset_t offset) = 0;
-    virtual bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
+    bool isEnabled() const { return enabled; }
+    void enable() { enabled = true; }
 
-    bool isEnabled() const { return getNumMasks() > 0; }
-    uint8_t getNumMasks() const { return maskCollection.getNumMasks(); }
-    void incrementNumMasks() { maskCollection.incrementNumMasks(); }
-
-protected:
+private:
     common::table_id_t tableID;
     common::offset_t maxOffset;
-    MaskCollection maskCollection;
+    bool enabled;
+};
+class Roaring32BitmapSemiMask : public RoaringBitmapSemiMask {
+public:
+    explicit Roaring32BitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : RoaringBitmapSemiMask(tableID, maxOffset), roaring(std::make_shared<roaring::Roaring>()) {
+    }
+
+    void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
+
+    bool isMasked(common::offset_t startNodeOffset) override {
+        return roaring->contains(startNodeOffset);
+    }
+
+    // include&exclude
+    std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
+        auto it = roaring->begin();
+        it.equalorlarger(start);
+        std::vector<common::offset_t> ans;
+        for (; it != roaring->end(); it++) {
+            auto value = *it;
+            if (value >= end) {
+                break;
+            }
+            ans.push_back(value);
+        }
+        return ans;
+    };
+
+    std::shared_ptr<roaring::Roaring> roaring;
 };
 
-class NodeOffsetLevelSemiMask final : public NodeSemiMask {
+class Roaring64BitmapSemiMask : public RoaringBitmapSemiMask {
 public:
-    explicit NodeOffsetLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : NodeSemiMask{tableID, maxOffset} {
+    explicit Roaring64BitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+        : RoaringBitmapSemiMask(tableID, maxOffset),
+          roaring(std::make_shared<roaring::Roaring64Map>()) {}
 
-        if (maxOffset != common::INVALID_OFFSET) {
-            maskCollection.init(maxOffset + 1);
+    void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
+
+    bool isMasked(common::offset_t startNodeOffset) override {
+        return roaring->contains(startNodeOffset);
+    }
+
+    // include&exclude
+    std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
+        auto it = roaring->begin();
+        it.move(start);
+        std::vector<common::offset_t> ans;
+        for (; it != roaring->end(); it++) {
+            auto value = *it;
+            if (value >= end) {
+                break;
+            }
+            ans.push_back(value);
         }
-    }
+        return ans;
+    };
 
-    void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
-        maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
-    }
-
-    bool isMasked(common::offset_t offset) override { return maskCollection.isMasked(offset); }
-    bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
-        return maskCollection.isAnyMasked(startNodeOffset, endNodeOffset);
-    }
+    std::shared_ptr<roaring::Roaring64Map> roaring;
 };
 
-class NodeVectorLevelSemiMask final : public NodeSemiMask {
-public:
-    explicit NodeVectorLevelSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
-        : NodeSemiMask{tableID, maxOffset} {
-        if (maxOffset != common::INVALID_OFFSET) {
-            maskCollection.init(MaskUtil::getVectorIdx(maxOffset) + 1);
+struct RoaringBitmapSemiMaskUtil {
+    static std::unique_ptr<RoaringBitmapSemiMask> createRoaringBitmapSemiMask(
+        common::table_id_t tableID, common::offset_t maxOffset) {
+        if (maxOffset > std::numeric_limits<u_int32_t>::max()) {
+            return std::make_unique<Roaring64BitmapSemiMask>(tableID, maxOffset);
+        } else {
+            return std::make_unique<Roaring32BitmapSemiMask>(tableID, maxOffset);
         }
-    }
-
-    void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
-        maskCollection.incrementMaskValue(MaskUtil::getVectorIdx(nodeOffset), currentMaskValue);
-    }
-
-    bool isMasked(common::offset_t offset) override {
-        return maskCollection.isMasked(MaskUtil::getVectorIdx(offset));
-    }
-    bool isAnyMasked(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
-        return maskCollection.isAnyMasked(MaskUtil::getVectorIdx(startNodeOffset),
-            MaskUtil::getVectorIdx(endNodeOffset));
     }
 };
 

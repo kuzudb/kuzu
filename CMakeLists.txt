@@ -294,6 +294,7 @@ include_directories(third_party/zstd/include)
 include_directories(third_party/httplib)
 include_directories(third_party/pcg)
 include_directories(third_party/lz4)
+include_directories(third_party/roaring_bitmap)
 
 add_subdirectory(third_party)
 

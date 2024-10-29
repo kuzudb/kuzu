@@ -45,9 +45,11 @@ void RJOutputWriter::beginWritingForDstNodesInTable(common::table_id_t tableID) 
 }
 
 bool RJOutputWriter::skip(common::nodeID_t dstNodeID) const {
-    if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask() &&
-        !outputNodeMask->getPinnedMask()->isMasked(dstNodeID.offset)) {
-        return true;
+    if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask()) {
+        auto mask = outputNodeMask->getPinnedMask();
+        if (mask->isEnabled() && !mask->isMasked(dstNodeID.offset)) {
+            return true;
+        }
     }
     return skipInternal(dstNodeID);
 }

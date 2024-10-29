@@ -157,18 +157,42 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         nodeGroupScanState.numScannedRows - chunkedGroupToScan.getStartRowIdx();
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
-    if (state.source == TableScanSource::COMMITTED && state.semiMask &&
-        state.semiMask->isEnabled()) {
+    bool enableSemiMask =
+        state.source == TableScanSource::COMMITTED && state.semiMask && state.semiMask->isEnabled();
+    if (enableSemiMask) {
         const auto startNodeOffset = nodeGroupScanState.numScannedRows +
                                      StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
-        if (!state.semiMask->isAnyMasked(startNodeOffset, startNodeOffset + numRowsToScan - 1)) {
+        const auto endNodeOffset = startNodeOffset + numRowsToScan;
+        const auto& arr = state.semiMask->range(startNodeOffset, endNodeOffset);
+        if (arr.empty()) {
             state.outState->getSelVectorUnsafe().setSelSize(0);
             nodeGroupScanState.numScannedRows += numRowsToScan;
             return NodeGroupScanResult{nodeGroupScanState.numScannedRows, 0};
+        } else {
+            chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+                numRowsToScan);
+            auto& selVector = state.outState->getSelVectorUnsafe();
+            auto stat = selVector.getMutableBuffer();
+            uint64_t numSelectedValues = 0;
+            size_t i = 0, j = 0;
+            while (i < selVector.getSelSize() && j < arr.size()) {
+                auto temp = arr[j] - startNodeOffset;
+                if (selVector[i] < temp) {
+                    ++i;
+                } else if (selVector[i] > temp) {
+                    ++j;
+                } else {
+                    stat[numSelectedValues++] = temp;
+                    ++i;
+                    ++j;
+                }
+            }
+            selVector.setToFiltered(numSelectedValues);
         }
+    } else {
+        chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+            numRowsToScan);
     }
-    chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
-        numRowsToScan);
     const auto startRow = nodeGroupScanState.numScannedRows;
     nodeGroupScanState.numScannedRows += numRowsToScan;
     return NodeGroupScanResult{startRow, numRowsToScan};

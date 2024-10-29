@@ -11,16 +11,21 @@ namespace processor {
 
 class NodeOffsetMaskMap {
 public:
-    void addMask(common::table_id_t tableID,
-        std::unique_ptr<common::NodeOffsetLevelSemiMask> mask) {
+    void addMask(common::table_id_t tableID, std::unique_ptr<common::RoaringBitmapSemiMask> mask) {
         KU_ASSERT(!maskMap.contains(tableID));
         maskMap.insert({tableID, std::move(mask)});
     }
 
-    std::vector<common::NodeSemiMask*> getMasks() const;
+    std::vector<common::RoaringBitmapSemiMask*> getMasks() const {
+        std::vector<common::RoaringBitmapSemiMask*> masks;
+        for (auto& [_, mask] : maskMap) {
+            masks.push_back(mask.get());
+        }
+        return masks;
+    }
 
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
-    common::NodeOffsetLevelSemiMask* getOffsetMask(common::table_id_t tableID) const {
+    common::RoaringBitmapSemiMask* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));
         return maskMap.at(tableID).get();
     }
@@ -33,7 +38,7 @@ public:
         }
     }
     bool hasPinnedMask() const { return pinnedMask != nullptr; }
-    common::NodeOffsetLevelSemiMask* getPinnedMask() const { return pinnedMask; }
+    common::RoaringBitmapSemiMask* getPinnedMask() const { return pinnedMask; }
 
     bool valid(common::nodeID_t nodeID) {
         KU_ASSERT(maskMap.contains(nodeID.tableID));
@@ -41,8 +46,8 @@ public:
     }
 
 private:
-    common::table_id_map_t<std::unique_ptr<common::NodeOffsetLevelSemiMask>> maskMap;
-    common::NodeOffsetLevelSemiMask* pinnedMask = nullptr;
+    common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>> maskMap;
+    common::RoaringBitmapSemiMask* pinnedMask = nullptr;
 };
 
 struct GDSCallSharedState {
@@ -57,7 +62,7 @@ struct GDSCallSharedState {
     void setInputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         inputNodeMask = std::move(maskMap);
     }
-    std::vector<common::NodeSemiMask*> getInputNodeMasks() const {
+    std::vector<common::RoaringBitmapSemiMask*> getInputNodeMasks() const {
         return inputNodeMask->getMasks();
     }
     NodeOffsetMaskMap* getInputNodeMaskMap() const { return inputNodeMask.get(); }
@@ -65,7 +70,7 @@ struct GDSCallSharedState {
     void setOutputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         outputNodeMask = std::move(maskMap);
     }
-    std::vector<common::NodeSemiMask*> getOutputNodeMasks() const {
+    std::vector<common::RoaringBitmapSemiMask*> getOutputNodeMasks() const {
         return outputNodeMask->getMasks();
     }
     NodeOffsetMaskMap* getOutputNodeMaskMap() const { return outputNodeMask.get(); }
@@ -74,7 +79,9 @@ struct GDSCallSharedState {
         pathNodeMask = std::move(maskMap);
     }
     bool hasPathNodeMask() const { return pathNodeMask != nullptr; }
-    std::vector<common::NodeSemiMask*> getPathNodeMasks() const { return pathNodeMask->getMasks(); }
+    std::vector<common::RoaringBitmapSemiMask*> getPathNodeMasks() const {
+        return pathNodeMask->getMasks();
+    }
     NodeOffsetMaskMap* getPathNodeMaskMap() const { return pathNodeMask.get(); }
 
     FactorizedTable* claimLocalTable(storage::MemoryManager* mm);

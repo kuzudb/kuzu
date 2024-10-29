@@ -5,14 +5,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::vector<NodeSemiMask*> NodeOffsetMaskMap::getMasks() const {
-    std::vector<NodeSemiMask*> masks;
-    for (auto& [_, mask] : maskMap) {
-        masks.push_back(mask.get());
-    }
-    return masks;
-}
-
 FactorizedTable* GDSCallSharedState::claimLocalTable(storage::MemoryManager* mm) {
     std::unique_lock<std::mutex> lck{mtx};
     if (availableLocalTables.empty()) {

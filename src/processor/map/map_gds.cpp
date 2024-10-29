@@ -21,7 +21,7 @@ static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientConte
     auto map = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : tableIDs) {
         auto nodeTable = storageManager->getTable(tableID)->ptrCast<NodeTable>();
-        map->addMask(tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+        map->addMask(tableID, RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
                                   nodeTable->getNumTotalRows(context->getTx())));
     }
     return map;
@@ -44,7 +44,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     auto graph = std::make_unique<OnDiskGraph>(clientContext, logicalInfo.graphEntry);
     auto storageManager = clientContext->getStorageManager();
     auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph));
-    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
     auto bindData = call.getInfo().getBindData();
     if (bindData->hasNodeInput()) {
         auto& node = bindData->getNodeInput()->constCast<NodeExpression>();

@@ -4,6 +4,7 @@
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
+using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::planner;
 
@@ -12,11 +13,11 @@ namespace processor {
 
 static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExpression& nbrNode,
     const main::ClientContext& context) {
-    std::vector<std::unique_ptr<common::NodeOffsetLevelSemiMask>> semiMasks;
+    std::vector<std::unique_ptr<RoaringBitmapSemiMask>> semiMasks;
     for (auto entry : nbrNode.getEntries()) {
         auto tableID = entry->getTableID();
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
-        semiMasks.push_back(std::make_unique<common::NodeOffsetLevelSemiMask>(tableID,
+        semiMasks.push_back(RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
             table->getNumTotalRows(context.getTx())));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
