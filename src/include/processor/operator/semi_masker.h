@@ -14,7 +14,7 @@ using mask_vector = std::vector<common::RoaringBitmapSemiMask*>;
 struct SemiMaskerLocalInfo {
     std::unordered_map<common::table_id_t, std::unique_ptr<common::RoaringBitmapSemiMask>>
         localMasksPerTable;
-    common::RoaringBitmapSemiMask* singleTableRef;
+    common::RoaringBitmapSemiMask* singleTableRef = nullptr;
 };
 
 struct SemiMaskerInnerInfo {
