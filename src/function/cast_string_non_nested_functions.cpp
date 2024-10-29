@@ -172,6 +172,9 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
     if (cpy.size() == 0) {
         return LogicalType::ANY();
     }
+    if (cpy == "NULL") {
+        return LogicalType::NULL_STR();
+    }
     // Boolean
     if (RE2::FullMatch(cpy, boolPattern())) {
         return LogicalType::BOOL();
@@ -233,7 +236,9 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         auto split = StringUtils::smartSplit(cpy.substr(1, cpy.size() - 2), ',');
         auto childType = LogicalType::ANY();
         for (auto& ele : split) {
-            childType = LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
+            if (StringUtils::ltrim(StringUtils::rtrim(ele)) != "NULL") {
+                childType = LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
+            }   
         }
         return LogicalType::LIST(std::move(childType));
     }

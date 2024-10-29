@@ -207,6 +207,8 @@ enum class LogicalTypeID : uint8_t {
 
     UUID = 59,
 
+    NULL_STR = 60,
+
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -319,6 +321,7 @@ public:
     static LogicalType STRING() { return LogicalType(LogicalTypeID::STRING); }
     static LogicalType BLOB() { return LogicalType(LogicalTypeID::BLOB); }
     static LogicalType UUID() { return LogicalType(LogicalTypeID::UUID); }
+    static LogicalType NULL_STR() { return LogicalType(LogicalTypeID::NULL_STR); }
     static LogicalType POINTER() { return LogicalType(LogicalTypeID::POINTER); }
     static KUZU_API LogicalType STRUCT(std::vector<StructField>&& fields);
 
