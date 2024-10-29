@@ -608,9 +608,9 @@ TEST_F(CApiValueTest, CreateStruct) {
     kuzu_prepared_statement_destroy(&stmt);
 }
 
-TEST(CApiValueTestEmptyDB, CreateStructEmpty){
+TEST(CApiValueTestEmptyDB, CreateStructEmpty) {
     const char* fieldNames[] = {(char*)"name"}; // Must be non-empty
-    kuzu_value* values[] = {nullptr}; // Must be non-empty
+    kuzu_value* values[] = {nullptr};           // Must be non-empty
     kuzu_value* value = nullptr;
     kuzu_state state = kuzu_value_create_struct(0, fieldNames, values, &value);
     ASSERT_EQ(state, KuzuError);
