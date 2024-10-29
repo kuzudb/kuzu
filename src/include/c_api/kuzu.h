@@ -966,6 +966,20 @@ KUZU_C_API kuzu_value* kuzu_value_create_string(const char* val_);
 KUZU_C_API kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
     kuzu_value** out_value);
 /**
+ * @brief Creates a struct value with the given number of fields and the given field names and
+ * values. The caller needs to make sure that all field names are unique.
+ * The field names and values are copied into the struct value, so destroying the field names and
+ * values after creating the struct value is safe.
+ * Caller is responsible for destroying the returned value.
+ * @param num_fields The number of fields in the struct.
+ * @param field_names The field names of the struct.
+ * @param field_values The field values of the struct.
+ * @param[out] out_value The output parameter that will hold a pointer to the created struct value.
+ * @return The state indicating the success or failure of the operation.
+ */
+KUZU_C_API kuzu_state kuzu_value_create_struct(uint64_t num_fields, const char** field_names,
+    kuzu_value** field_values, kuzu_value** out_value);
+/**
  * @brief Creates a new value based on the given value. Caller is responsible for destroying the
  * returned value.
  * @param value The value to create from.
