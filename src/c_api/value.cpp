@@ -252,7 +252,7 @@ kuzu_state kuzu_value_create_map(uint64_t num_fields, kuzu_value** keys, kuzu_va
         struct_values.push_back(key->copy());
         struct_values.push_back(value->copy());
         auto struct_type = LogicalType::STRUCT(std::move(struct_fields));
-       auto struct_value = new Value(std::move(struct_type), std::move(struct_values));
+        auto struct_value = new Value(std::move(struct_type), std::move(struct_values));
         children.push_back(std::unique_ptr<Value>(struct_value));
     }
     auto map_type = LogicalType::MAP(key_type.copy(), value_type.copy());
@@ -369,8 +369,7 @@ kuzu_state kuzu_value_get_map_key(kuzu_value* value, uint64_t index, kuzu_value*
     return kuzu_value_get_struct_field_value(&map_entry, 0, out_key);
 }
 
-kuzu_state kuzu_value_get_map_value(kuzu_value* value, uint64_t index,
-    kuzu_value* out_value) {
+kuzu_state kuzu_value_get_map_value(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
     kuzu_value map_entry;
     if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
         return KuzuError;

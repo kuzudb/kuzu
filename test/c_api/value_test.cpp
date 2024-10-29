@@ -616,7 +616,7 @@ TEST(CApiValueTestEmptyDB, CreateStructEmpty) {
     ASSERT_EQ(state, KuzuError);
 }
 
-TEST_F(CApiValueTest, CreateMap){
+TEST_F(CApiValueTest, CreateMap) {
     auto connection = getConnection();
     kuzu_value* key1 = kuzu_value_create_int64(1);
     kuzu_value* value1 = kuzu_value_create_string((char*)"one");
@@ -705,7 +705,7 @@ TEST_F(CApiValueTest, CreateMap){
 }
 
 TEST(CApiValueTestEmptyDB, CreateMapEmpty) {
-    kuzu_value* keys[] = {nullptr}; // Must be non-empty
+    kuzu_value* keys[] = {nullptr};   // Must be non-empty
     kuzu_value* values[] = {nullptr}; // Must be non-empty
     kuzu_value* map = nullptr;
     kuzu_state state = kuzu_value_create_map(0, keys, values, &map);
