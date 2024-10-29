@@ -175,6 +175,33 @@ kuzu_value* kuzu_value_create_string(const char* val_) {
     return c_value;
 }
 
+kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
+    kuzu_value** out_value) {
+    if (num_elements == 0) {
+        return KuzuError;
+    }
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    std::vector<std::unique_ptr<Value>> children;
+
+    auto first_element = static_cast<Value*>(elements[0]->_value);
+    auto type = first_element->getDataType().copy();
+
+    for (uint64_t i = 0; i < num_elements; ++i) {
+        auto child = static_cast<Value*>(elements[i]->_value);
+        if (child->getDataType() != type) {
+            free(c_value);
+            return KuzuError;
+        }
+        // Copy the value to the list value to transfer ownership to the C++ side.
+        children.push_back(child->copy());
+    }
+    auto list_type = LogicalType::LIST(first_element->getDataType().copy());
+    c_value->_value = new Value(list_type.copy(), std::move(children));
+    c_value->_is_owned_by_cpp = false;
+    *out_value = c_value;
+    return KuzuSuccess;
+}
+
 kuzu_value* kuzu_value_clone(kuzu_value* value) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(*static_cast<Value*>(value->_value));

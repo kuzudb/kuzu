@@ -279,6 +279,183 @@ TEST(CApiValueTestEmptyDB, CreateString) {
     kuzu_value_destroy(value);
 }
 
+TEST_F(CApiValueTest, CreateList) {
+    auto connection = getConnection();
+    kuzu_value* value1 = kuzu_value_create_int64(123);
+    kuzu_value* value2 = kuzu_value_create_int64(456);
+    kuzu_value* value3 = kuzu_value_create_int64(789);
+    kuzu_value* value4 = kuzu_value_create_int64(101112);
+    kuzu_value* value5 = kuzu_value_create_int64(131415);
+    kuzu_value* elements[] = {value1, value2, value3, value4, value5};
+    kuzu_value* value = nullptr;
+    kuzu_state state = kuzu_value_create_list(5, elements, &value);
+    ASSERT_EQ(state, KuzuSuccess);
+    // Destroy the original values, the list should still be valid
+    for (int i = 0; i < 5; ++i) {
+        kuzu_value_destroy(elements[i]);
+    }
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    kuzu_prepared_statement stmt;
+    state = kuzu_connection_prepare(connection, (char*)"RETURN $1", &stmt);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_prepared_statement_bind_value(&stmt, "1", value);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_query_result result;
+    state = kuzu_connection_execute(connection, &stmt, &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    kuzu_flat_tuple flatTuple;
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_value outValue;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &outValue), KuzuSuccess);
+    ASSERT_TRUE(outValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&outValue));
+    uint64_t size;
+    ASSERT_EQ(kuzu_value_get_list_size(&outValue, &size), KuzuSuccess);
+    ASSERT_EQ(size, 5);
+    kuzu_value listElement;
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 0, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    int64_t int64Result;
+    ASSERT_EQ(kuzu_value_get_int64(&listElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 123);
+    kuzu_value_destroy(&listElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 1, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    ASSERT_EQ(kuzu_value_get_int64(&listElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 456);
+    kuzu_value_destroy(&listElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 2, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    ASSERT_EQ(kuzu_value_get_int64(&listElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 789);
+    kuzu_value_destroy(&listElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 3, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    ASSERT_EQ(kuzu_value_get_int64(&listElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 101112);
+    kuzu_value_destroy(&listElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 4, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    ASSERT_EQ(kuzu_value_get_int64(&listElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 131415);
+    kuzu_value_destroy(&listElement);
+    kuzu_value_destroy(&outValue);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(&flatTuple);
+    kuzu_query_result_destroy(&result);
+    kuzu_prepared_statement_destroy(&stmt);
+}
+
+TEST(CApiValueTestEmptyDB, CreateListDifferentTypes) {
+    kuzu_value* value1 = kuzu_value_create_int64(123);
+    kuzu_value* value2 = kuzu_value_create_string((char*)"abcdefg");
+    kuzu_value* elements[] = {value1, value2};
+    kuzu_value* value = nullptr;
+    kuzu_state state = kuzu_value_create_list(2, elements, &value);
+    ASSERT_EQ(state, KuzuError);
+    kuzu_value_destroy(value1);
+    kuzu_value_destroy(value2);
+}
+
+TEST(CApiValueTestEmptyDB, CreateListEmpty) {
+    kuzu_value* elements[] = {nullptr}; // Must be non-empty
+    kuzu_value* value = nullptr;
+    kuzu_state state = kuzu_value_create_list(0, elements, &value);
+    ASSERT_EQ(state, KuzuError);
+}
+
+TEST_F(CApiValueTest, CreateListNested) {
+    auto connection = getConnection();
+    kuzu_value* value1 = kuzu_value_create_int64(123);
+    kuzu_value* value2 = kuzu_value_create_int64(456);
+    kuzu_value* value3 = kuzu_value_create_int64(789);
+    kuzu_value* value4 = kuzu_value_create_int64(101112);
+    kuzu_value* value5 = kuzu_value_create_int64(131415);
+    kuzu_value* elements1[] = {value1, value2, value3};
+    kuzu_value* elements2[] = {value4, value5};
+    kuzu_value* list1 = nullptr;
+    kuzu_value* list2 = nullptr;
+    kuzu_value_create_list(3, elements1, &list1);
+    ASSERT_FALSE(list1->_is_owned_by_cpp);
+    kuzu_value_create_list(2, elements2, &list2);
+    ASSERT_FALSE(list2->_is_owned_by_cpp);
+    kuzu_value* elements[] = {list1, list2};
+    kuzu_value* nestedList = nullptr;
+    kuzu_state state = kuzu_value_create_list(2, elements, &nestedList);
+    ASSERT_EQ(state, KuzuSuccess);
+    // Destroy the original values, the list should still be valid
+    for (int i = 0; i < 3; ++i) {
+        kuzu_value_destroy(elements1[i]);
+    }
+    for (int i = 0; i < 2; ++i) {
+        kuzu_value_destroy(elements2[i]);
+    }
+    kuzu_value_destroy(list1);
+    kuzu_value_destroy(list2);
+    ASSERT_FALSE(nestedList->_is_owned_by_cpp);
+    kuzu_prepared_statement stmt;
+    state = kuzu_connection_prepare(connection, (char*)"RETURN $1", &stmt);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_prepared_statement_bind_value(&stmt, "1", nestedList);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_query_result result;
+    state = kuzu_connection_execute(connection, &stmt, &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    kuzu_flat_tuple flatTuple;
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_value outValue;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &outValue), KuzuSuccess);
+    ASSERT_TRUE(outValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&outValue));
+    uint64_t size;
+    ASSERT_EQ(kuzu_value_get_list_size(&outValue, &size), KuzuSuccess);
+    ASSERT_EQ(size, 2);
+    kuzu_value listElement;
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 0, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&listElement));
+    ASSERT_EQ(kuzu_value_get_list_size(&listElement, &size), KuzuSuccess);
+    ASSERT_EQ(size, 3);
+    kuzu_value innerListElement;
+    ASSERT_EQ(kuzu_value_get_list_element(&listElement, 0, &innerListElement), KuzuSuccess);
+    ASSERT_TRUE(innerListElement._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&innerListElement));
+    int64_t int64Result;
+    ASSERT_EQ(kuzu_value_get_int64(&innerListElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 123);
+    kuzu_value_destroy(&innerListElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&listElement, 1, &innerListElement), KuzuSuccess);
+    ASSERT_TRUE(innerListElement._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&innerListElement));
+    ASSERT_EQ(kuzu_value_get_int64(&innerListElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 456);
+    kuzu_value_destroy(&innerListElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&listElement, 2, &innerListElement), KuzuSuccess);
+    ASSERT_TRUE(innerListElement._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&innerListElement));
+    ASSERT_EQ(kuzu_value_get_int64(&innerListElement, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 789);
+    kuzu_value_destroy(&innerListElement);
+    kuzu_value_destroy(&listElement);
+    ASSERT_EQ(kuzu_value_get_list_element(&outValue, 1, &listElement), KuzuSuccess);
+    ASSERT_TRUE(listElement._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&listElement));
+    ASSERT_EQ(kuzu_value_get_list_size(&listElement, &size), KuzuSuccess);
+    ASSERT_EQ(size, 2);
+    kuzu_value_destroy(&listElement);
+    kuzu_value_destroy(&outValue);
+    kuzu_value_destroy(nestedList);
+    kuzu_flat_tuple_destroy(&flatTuple);
+    kuzu_query_result_destroy(&result);
+    kuzu_prepared_statement_destroy(&stmt);
+}
+
 TEST(CApiValueTestEmptyDB, Clone) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -648,7 +825,8 @@ TEST_F(CApiValueTest, getDecimalAsString) {
     kuzu_state state;
     auto connection = getConnection();
     state = kuzu_connection_query(connection,
-        (char*)"UNWIND [1] AS A UNWIND [5.7, 8.3, 8.7, 13.7] AS B WITH cast(CAST(A AS DECIMAL) * "
+        (char*)"UNWIND [1] AS A UNWIND [5.7, 8.3, 8.7, 13.7] AS B WITH cast(CAST(A AS DECIMAL) "
+               "* "
                "CAST(B AS DECIMAL) AS DECIMAL(18, 1)) AS PROD RETURN COLLECT(PROD) AS RES",
         &result);
     ASSERT_EQ(state, KuzuSuccess);
@@ -924,7 +1102,8 @@ TEST_F(CApiValueTest, GetUInt16) {
     kuzu_state state;
     auto connection = getConnection();
     state = kuzu_connection_query(connection,
-        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID",
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY "
+               "a.ID",
         &result);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_TRUE(kuzu_query_result_has_next(&result));
@@ -1011,7 +1190,8 @@ TEST_F(CApiValueTest, GetInt128) {
     kuzu_state state;
     auto connection = getConnection();
     state = kuzu_connection_query(connection,
-        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID",
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY "
+               "a.ID",
         &result);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));
     ASSERT_TRUE(kuzu_query_result_has_next(&result));
