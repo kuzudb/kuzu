@@ -42,14 +42,15 @@ struct ScanRelTablePrintInfo final : OPPrintInfo {
     std::shared_ptr<binder::RelExpression> rel;
     std::shared_ptr<binder::NodeExpression> nbrNode;
     common::ExtendDirection direction;
+    std::string alias;
 
     ScanRelTablePrintInfo(std::vector<std::string> tableNames, binder::expression_vector properties,
         std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::RelExpression> rel, std::shared_ptr<binder::NodeExpression> nbrNode,
-        common::ExtendDirection direction)
+        common::ExtendDirection direction, std::string alias)
         : tableNames{std::move(tableNames)}, properties{std::move(properties)},
           boundNode{std::move(boundNode)}, rel{std::move(rel)}, nbrNode{std::move(nbrNode)},
-          direction{std::move(direction)} {}
+          direction{std::move(direction)}, alias{std::move(alias)} {}
 
     std::string toString() const override;
 
@@ -61,7 +62,7 @@ private:
     ScanRelTablePrintInfo(const ScanRelTablePrintInfo& other)
         : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties},
           boundNode{other.boundNode}, rel{other.rel}, nbrNode{other.nbrNode},
-          direction{other.direction} {}
+          direction{other.direction}, alias{other.alias} {}
 };
 
 class ScanRelTable final : public ScanTable {

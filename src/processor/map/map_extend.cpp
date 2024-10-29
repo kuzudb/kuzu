@@ -109,7 +109,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         tableNames.push_back(relTable->getTableName());
     }
     auto printInfo = std::make_unique<ScanRelTablePrintInfo>(tableNames, extend->getProperties(),
-        boundNode, rel, nbrNode, extendDirection);
+        boundNode, rel, nbrNode, extendDirection, rel->getVariableName());
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
         auto entry = rel->getSingleEntry();
         auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
