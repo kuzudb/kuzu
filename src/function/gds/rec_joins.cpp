@@ -144,7 +144,7 @@ public:
     }
 
     void vertexCompute(nodeID_t nodeID) override {
-        if (writer->skipWriting(nodeID)) {
+        if (writer->skip(nodeID)) {
             return;
         }
         writer->write(*localFT, nodeID);

@@ -25,6 +25,16 @@ public:
         return maskMap.at(tableID).get();
     }
 
+    void pin(common::table_id_t tableID) {
+        if (maskMap.contains(tableID)) {
+            pinnedMask = maskMap.at(tableID).get();
+        } else {
+            pinnedMask = nullptr;
+        }
+    }
+    bool hasPinnedMask() const { return pinnedMask != nullptr; }
+    common::NodeOffsetLevelSemiMask* getPinnedMask() const { return pinnedMask; }
+
     bool valid(common::nodeID_t nodeID) {
         KU_ASSERT(maskMap.contains(nodeID.tableID));
         return maskMap.at(nodeID.tableID)->isMasked(nodeID.offset);
@@ -32,6 +42,7 @@ public:
 
 private:
     common::table_id_map_t<std::unique_ptr<common::NodeOffsetLevelSemiMask>> maskMap;
+    common::NodeOffsetLevelSemiMask* pinnedMask = nullptr;
 };
 
 struct GDSCallSharedState {
@@ -51,6 +62,14 @@ struct GDSCallSharedState {
     }
     NodeOffsetMaskMap* getInputNodeMaskMap() const { return inputNodeMask.get(); }
 
+    void setOutputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
+        outputNodeMask = std::move(maskMap);
+    }
+    std::vector<common::NodeSemiMask*> getOutputNodeMasks() const {
+        return outputNodeMask->getMasks();
+    }
+    NodeOffsetMaskMap* getOutputNodeMaskMap() const { return outputNodeMask.get(); }
+
     void setPathNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         pathNodeMask = std::move(maskMap);
     }
@@ -64,6 +83,7 @@ struct GDSCallSharedState {
 
 private:
     std::unique_ptr<NodeOffsetMaskMap> inputNodeMask = nullptr;
+    std::unique_ptr<NodeOffsetMaskMap> outputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> pathNodeMask = nullptr;
     // We implement a local ftable pool to avoid generate many small ftables when running GDS.
     // Alternative solutions are directly writing to global ftable with partition so conflict is

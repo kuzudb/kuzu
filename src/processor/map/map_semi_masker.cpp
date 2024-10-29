@@ -44,10 +44,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             initMaskIdx(masksPerTable, recursiveJoin.getSemiMask());
         } break;
         case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
-            KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::GDS_INPUT_NODE);
             KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
             auto sharedState = physicalOp->getChild(0)->ptrCast<GDSCall>()->getSharedState();
-            initMaskIdx(masksPerTable, sharedState->getInputNodeMasks());
+            switch (semiMasker.getTargetType()) {
+            case SemiMaskTargetType::GDS_INPUT_NODE: {
+                initMaskIdx(masksPerTable, sharedState->getInputNodeMasks());
+            } break;
+            case SemiMaskTargetType::GDS_OUTPUT_NODE: {
+                initMaskIdx(masksPerTable, sharedState->getOutputNodeMasks());
+            } break;
+            default:
+                KU_UNREACHABLE;
+            }
         } break;
         case PhysicalOperatorType::GDS_CALL: {
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::GDS_PATH_NODE);

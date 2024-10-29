@@ -122,11 +122,12 @@ public:
 
 class AllSPDestinationsOutputWriter : public DestinationsOutputWriter {
 public:
-    AllSPDestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs)
-        : DestinationsOutputWriter(context, rjOutputs) {}
+    AllSPDestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        processor::NodeOffsetMaskMap* outputNodeMask)
+        : DestinationsOutputWriter{context, rjOutputs, outputNodeMask} {}
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs);
+        return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
     }
 
 protected:
@@ -141,13 +142,13 @@ protected:
     }
 };
 
-class VarLenPathsOutputWriter : public PathsOutputWriter {
+class VarLenPathsOutputWriter final : public PathsOutputWriter {
 public:
     VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        PathsOutputWriterInfo info)
-        : PathsOutputWriter{context, rjOutputs, info} {}
+        processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
+        : PathsOutputWriter{context, rjOutputs, outputNodeMask, info} {}
 
-    bool skipWriting(common::nodeID_t dstNodeID) const override {
+    bool skipInternal(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
         auto firstParent = pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
             std::memory_order_relaxed);
@@ -164,7 +165,7 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, info);
+        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, outputNodeMask, info);
     }
 };
 
@@ -275,8 +276,8 @@ private:
         auto output = std::make_unique<AllSPDestinationsOutputs>(
             sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
             clientContext->getMemoryManager());
-        auto outputWriter =
-            std::make_unique<AllSPDestinationsOutputWriter>(clientContext, output.get());
+        auto outputWriter = std::make_unique<AllSPDestinationsOutputWriter>(clientContext,
+            output.get(), sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(),
@@ -313,7 +314,7 @@ private:
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            std::move(writerInfo));
+            sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
@@ -413,7 +414,7 @@ private:
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
-            std::move(writerInfo));
+            sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(nodeTableToNumNodes,
             clientContext->getMaxNumThreadForExec(), mm);
         auto edgeCompute =
