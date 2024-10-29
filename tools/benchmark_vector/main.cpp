@@ -170,6 +170,7 @@ int main(int argc, char **argv) {
                 }
             }
             printf("Recall for query %d: %d\n", i, localRecall);
+            printf("duration: %ld ms\n", duration);
             printf("====================================\n");
             totalQueries++;
         }
