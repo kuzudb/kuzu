@@ -56,8 +56,11 @@ struct LogicalScanNodeTablePrintInfo final : OPPrintInfo {
         : nodeID{std::move(nodeID)}, properties{std::move(properties)} {}
 
     std::string toString() const override {
-        auto result = "Tables: " + nodeID->toString() + ",Properties :";
-        result += binder::ExpressionUtil::toString(properties);
+        auto result = "Tables: " + nodeID->toString();
+        if (nodeID->hasAlias()) {
+            result += "Alias: " + nodeID->getAlias();
+        }
+        result += ",Properties :" + binder::ExpressionUtil::toString(properties);
         return result;
     }
 };

@@ -18,6 +18,10 @@ std::string ScanRelTablePrintInfo::toString() const {
             result += ", ";
         }
     }
+    if (!alias.empty()) {
+        result += ",Alias: ";
+        result += alias;
+    }
     result += ",Direction: (";
     result += boundNode->toString();
     result += ")";

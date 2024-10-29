@@ -18,6 +18,10 @@ std::string ScanNodeTablePrintInfo::toString() const {
             result += ", ";
         }
     }
+    if (!alias.empty()) {
+        result += ",Alias: ";
+        result += alias;
+    }
     if (!properties.empty()) {
         result += ",Properties: ";
         result += binder::ExpressionUtil::toString(properties);
