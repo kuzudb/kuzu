@@ -1,10 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
 
-#include "common/constants.h"
-#include "common/exception/runtime.h"
 #include "common/types/types.h"
 #include "roaring.hh"
 
@@ -37,6 +34,7 @@ private:
     common::offset_t maxOffset;
     bool enabled;
 };
+
 class Roaring32BitmapSemiMask : public RoaringBitmapSemiMask {
 public:
     explicit Roaring32BitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
@@ -100,7 +98,7 @@ public:
 struct RoaringBitmapSemiMaskUtil {
     static std::unique_ptr<RoaringBitmapSemiMask> createRoaringBitmapSemiMask(
         common::table_id_t tableID, common::offset_t maxOffset) {
-        if (maxOffset > std::numeric_limits<u_int32_t>::max()) {
+        if (maxOffset > std::numeric_limits<uint32_t>::max()) {
             return std::make_unique<Roaring64BitmapSemiMask>(tableID, maxOffset);
         } else {
             return std::make_unique<Roaring32BitmapSemiMask>(tableID, maxOffset);
