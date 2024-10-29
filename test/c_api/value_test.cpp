@@ -616,6 +616,102 @@ TEST(CApiValueTestEmptyDB, CreateStructEmpty) {
     ASSERT_EQ(state, KuzuError);
 }
 
+TEST_F(CApiValueTest, CreateMap){
+    auto connection = getConnection();
+    kuzu_value* key1 = kuzu_value_create_int64(1);
+    kuzu_value* value1 = kuzu_value_create_string((char*)"one");
+    kuzu_value* key2 = kuzu_value_create_int64(2);
+    kuzu_value* value2 = kuzu_value_create_string((char*)"two");
+    kuzu_value* key3 = kuzu_value_create_int64(3);
+    kuzu_value* value3 = kuzu_value_create_string((char*)"three");
+    kuzu_value* keys[] = {key1, key2, key3};
+    kuzu_value* values[] = {value1, value2, value3};
+    kuzu_value* map = nullptr;
+    kuzu_state state = kuzu_value_create_map(3, keys, values, &map);
+    ASSERT_EQ(state, KuzuSuccess);
+    // Destroy the original values, the map should still be valid
+    for (int i = 0; i < 3; ++i) {
+        kuzu_value_destroy(keys[i]);
+        kuzu_value_destroy(values[i]);
+    }
+    ASSERT_FALSE(map->_is_owned_by_cpp);
+    kuzu_prepared_statement stmt;
+    state = kuzu_connection_prepare(connection, (char*)"RETURN $1", &stmt);
+    ASSERT_EQ(state, KuzuSuccess);
+    state = kuzu_prepared_statement_bind_value(&stmt, "1", map);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_query_result result;
+    state = kuzu_connection_execute(connection, &stmt, &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    kuzu_flat_tuple flatTuple;
+    state = kuzu_query_result_get_next(&result, &flatTuple);
+    ASSERT_EQ(state, KuzuSuccess);
+    kuzu_value outValue;
+    ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &outValue), KuzuSuccess);
+    ASSERT_TRUE(outValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&outValue));
+    uint64_t size;
+    ASSERT_EQ(kuzu_value_get_map_size(&outValue, &size), KuzuSuccess);
+    ASSERT_EQ(size, 3);
+    kuzu_value mapValue;
+    ASSERT_EQ(kuzu_value_get_map_value(&outValue, 0, &mapValue), KuzuSuccess);
+    ASSERT_TRUE(mapValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&mapValue));
+    char* stringResult;
+    ASSERT_EQ(kuzu_value_get_string(&mapValue, &stringResult), KuzuSuccess);
+    ASSERT_STREQ(stringResult, "one");
+    kuzu_value_destroy(&mapValue);
+    kuzu_destroy_string(stringResult);
+    ASSERT_EQ(kuzu_value_get_map_value(&outValue, 1, &mapValue), KuzuSuccess);
+    ASSERT_TRUE(mapValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&mapValue));
+    ASSERT_EQ(kuzu_value_get_string(&mapValue, &stringResult), KuzuSuccess);
+    ASSERT_STREQ(stringResult, "two");
+    kuzu_value_destroy(&mapValue);
+    kuzu_destroy_string(stringResult);
+    ASSERT_EQ(kuzu_value_get_map_value(&outValue, 2, &mapValue), KuzuSuccess);
+    ASSERT_TRUE(mapValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&mapValue));
+    ASSERT_EQ(kuzu_value_get_string(&mapValue, &stringResult), KuzuSuccess);
+    ASSERT_STREQ(stringResult, "three");
+    kuzu_value_destroy(&mapValue);
+    kuzu_destroy_string(stringResult);
+    ASSERT_EQ(kuzu_value_get_map_key(&outValue, 0, &mapValue), KuzuSuccess);
+    ASSERT_TRUE(mapValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&mapValue));
+    int64_t int64Result;
+    ASSERT_EQ(kuzu_value_get_int64(&mapValue, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 1);
+    kuzu_value_destroy(&mapValue);
+    ASSERT_EQ(kuzu_value_get_map_key(&outValue, 1, &mapValue), KuzuSuccess);
+    ASSERT_TRUE(mapValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&mapValue));
+    ASSERT_EQ(kuzu_value_get_int64(&mapValue, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 2);
+    kuzu_value_destroy(&mapValue);
+    ASSERT_EQ(kuzu_value_get_map_key(&outValue, 2, &mapValue), KuzuSuccess);
+    ASSERT_TRUE(mapValue._is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(&mapValue));
+    ASSERT_EQ(kuzu_value_get_int64(&mapValue, &int64Result), KuzuSuccess);
+    ASSERT_EQ(int64Result, 3);
+    kuzu_value_destroy(&mapValue);
+    kuzu_value_destroy(&outValue);
+    kuzu_value_destroy(map);
+    kuzu_flat_tuple_destroy(&flatTuple);
+    kuzu_query_result_destroy(&result);
+    kuzu_prepared_statement_destroy(&stmt);
+}
+
+TEST(CApiValueTestEmptyDB, CreateMapEmpty) {
+    kuzu_value* keys[] = {nullptr}; // Must be non-empty
+    kuzu_value* values[] = {nullptr}; // Must be non-empty
+    kuzu_value* map = nullptr;
+    kuzu_state state = kuzu_value_create_map(0, keys, values, &map);
+    ASSERT_EQ(state, KuzuError);
+}
+
 TEST(CApiValueTestEmptyDB, Clone) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -909,7 +1005,7 @@ TEST_F(CApiValueTest, getMapNumFields) {
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
 
     uint64_t mapFields;
-    ASSERT_EQ(kuzu_value_get_map_num_fields(&value, &mapFields), KuzuSuccess);
+    ASSERT_EQ(kuzu_value_get_map_size(&value, &mapFields), KuzuSuccess);
     ASSERT_EQ(mapFields, 1);
 
     kuzu_query_result_destroy(&result);
@@ -917,7 +1013,7 @@ TEST_F(CApiValueTest, getMapNumFields) {
     kuzu_flat_tuple_destroy(&flatTuple);
 }
 
-TEST_F(CApiValueTest, getMapName) {
+TEST_F(CApiValueTest, getMapKey) {
     kuzu_query_result result;
     kuzu_flat_tuple flatTuple;
     kuzu_state state;
@@ -933,13 +1029,19 @@ TEST_F(CApiValueTest, getMapName) {
     kuzu_value value;
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
 
+    kuzu_value key;
+    ASSERT_EQ(kuzu_value_get_map_key(&value, 0, &key), KuzuSuccess);
+    kuzu_logical_type keyType;
+    kuzu_value_get_data_type(&key, &keyType);
+    ASSERT_EQ(kuzu_data_type_get_id(&keyType), KUZU_STRING);
     char* mapName;
-    ASSERT_EQ(kuzu_value_get_map_field_name(&value, 0, &mapName), KuzuSuccess);
+    ASSERT_EQ(kuzu_value_get_string(&key, &mapName), KuzuSuccess);
     ASSERT_STREQ(mapName, "audience1");
     kuzu_destroy_string(mapName);
+    kuzu_data_type_destroy(&keyType);
+    kuzu_value_destroy(&key);
 
-    ASSERT_EQ(kuzu_value_get_map_field_name(&value, 1, &mapName), KuzuError);
-
+    ASSERT_EQ(kuzu_value_get_map_key(&value, 1, &key), KuzuError);
     kuzu_query_result_destroy(&result);
     kuzu_value_destroy(&value);
     kuzu_flat_tuple_destroy(&flatTuple);
@@ -962,7 +1064,7 @@ TEST_F(CApiValueTest, getMapValue) {
     ASSERT_EQ(kuzu_flat_tuple_get_value(&flatTuple, 0, &value), KuzuSuccess);
 
     kuzu_value mapValue;
-    ASSERT_EQ(kuzu_value_get_map_field_value(&value, 0, &mapValue), KuzuSuccess);
+    ASSERT_EQ(kuzu_value_get_map_value(&value, 0, &mapValue), KuzuSuccess);
     kuzu_logical_type mapType;
     kuzu_value_get_data_type(&mapValue, &mapType);
     ASSERT_EQ(kuzu_data_type_get_id(&mapType), KUZU_INT64);
@@ -970,7 +1072,7 @@ TEST_F(CApiValueTest, getMapValue) {
     ASSERT_EQ(kuzu_value_get_int64(&mapValue, &mapIntValue), KuzuSuccess);
     ASSERT_EQ(mapIntValue, 33);
 
-    ASSERT_EQ(kuzu_value_get_map_field_value(&value, 1, &mapValue), KuzuError);
+    ASSERT_EQ(kuzu_value_get_map_value(&value, 1, &mapValue), KuzuError);
 
     kuzu_data_type_destroy(&mapType);
     kuzu_query_result_destroy(&result);
