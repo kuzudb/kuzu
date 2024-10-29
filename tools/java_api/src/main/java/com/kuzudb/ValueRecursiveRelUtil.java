@@ -6,6 +6,7 @@ package com.kuzudb;
 public class ValueRecursiveRelUtil {
     /**
      * Get the node list from the given recursive_rel value.
+     *
      * @param value: The recursive_rel value.
      * @return The node list from the given recursive_rel value.
      * @throws ObjectRefDestroyedException If the recursive_rel value has been destroyed.
@@ -16,6 +17,7 @@ public class ValueRecursiveRelUtil {
 
     /**
      * Get the rel list from the given recursive_rel value.
+     *
      * @param value: The recursive_rel value.
      * @return The rel list from the given recursive_rel value.
      * @throws ObjectRefDestroyedException If the recursive_rel value has been destroyed.

@@ -2,6 +2,7 @@
 
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
+#include "common/constants.h"
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
@@ -218,7 +219,44 @@ kuzu_state kuzu_value_create_struct(uint64_t num_fields, const char** field_name
         children.push_back(field_value->copy());
     }
     auto struct_type = LogicalType::STRUCT(std::move(struct_fields));
-    c_value->_value = new Value(struct_type.copy(), std::move(children));
+    c_value->_value = new Value(std::move(struct_type), std::move(children));
+    c_value->_is_owned_by_cpp = false;
+    *out_value = c_value;
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_value_create_map(uint64_t num_fields, kuzu_value** keys, kuzu_value** values,
+    kuzu_value** out_value) {
+    if (num_fields == 0) {
+        return KuzuError;
+    }
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    std::vector<std::unique_ptr<Value>> children;
+
+    auto first_key = static_cast<Value*>(keys[0]->_value);
+    auto first_value = static_cast<Value*>(values[0]->_value);
+    auto key_type = first_key->getDataType().copy();
+    auto value_type = first_value->getDataType().copy();
+
+    for (uint64_t i = 0; i < num_fields; ++i) {
+        auto key = static_cast<Value*>(keys[i]->_value);
+        auto value = static_cast<Value*>(values[i]->_value);
+        if (key->getDataType() != key_type || value->getDataType() != value_type) {
+            free(c_value);
+            return KuzuError;
+        }
+        std::vector<StructField> struct_fields;
+        struct_fields.emplace_back(InternalKeyword::MAP_KEY, key_type.copy());
+        struct_fields.emplace_back(InternalKeyword::MAP_VALUE, value_type.copy());
+        std::vector<std::unique_ptr<Value>> struct_values;
+        struct_values.push_back(key->copy());
+        struct_values.push_back(value->copy());
+        auto struct_type = LogicalType::STRUCT(std::move(struct_fields));
+        auto struct_value = new Value(std::move(struct_type), std::move(struct_values));
+        children.push_back(std::unique_ptr<Value>(struct_value));
+    }
+    auto map_type = LogicalType::MAP(key_type.copy(), value_type.copy());
+    c_value->_value = new Value(map_type.copy(), std::move(children));
     c_value->_is_owned_by_cpp = false;
     *out_value = c_value;
     return KuzuSuccess;
@@ -313,7 +351,7 @@ kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
     return kuzu_value_get_list_element(value, index, out_value);
 }
 
-kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result) {
+kuzu_state kuzu_value_get_map_size(kuzu_value* value, uint64_t* out_result) {
     auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::MAP) {
         return KuzuError;
@@ -323,20 +361,15 @@ kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char** out_result) {
+kuzu_state kuzu_value_get_map_key(kuzu_value* value, uint64_t index, kuzu_value* out_key) {
     kuzu_value map_entry;
     if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
         return KuzuError;
     }
-    kuzu_value map_name_value;
-    if (kuzu_value_get_struct_field_value(&map_entry, 0, &map_name_value) == KuzuError) {
-        return KuzuError;
-    }
-    return kuzu_value_get_string(&map_name_value, out_result);
+    return kuzu_value_get_struct_field_value(&map_entry, 0, out_key);
 }
 
-kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index,
-    kuzu_value* out_value) {
+kuzu_state kuzu_value_get_map_value(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
     kuzu_value map_entry;
     if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
         return KuzuError;

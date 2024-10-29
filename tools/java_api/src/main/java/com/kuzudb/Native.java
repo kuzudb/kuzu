@@ -56,7 +56,7 @@ public class Native {
             new File(lib_file.toString()).deleteOnExit();
             String lib_path = lib_file.toAbsolutePath().toString();
             System.load(lib_path);
-            if(os_name.equals("linux")) {
+            if (os_name.equals("linux")) {
                 kuzu_native_reload_library(lib_path);
             }
         } catch (IOException e) {
@@ -218,10 +218,6 @@ public class Native {
     protected static native String kuzu_value_get_struct_field_name(Value struct_val, long index);
 
     protected static native long kuzu_value_get_struct_index(Value struct_val, String field_name);
-
-    protected static native String kuzu_value_get_map_field_name(Value struct_val, long index);
-
-    protected static native Value kuzu_value_get_map_value(Value struct_val, long index);
 
     protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
 

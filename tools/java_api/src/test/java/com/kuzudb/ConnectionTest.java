@@ -18,7 +18,7 @@ public class ConnectionTest extends TestBase {
 
     @Test
     void ConnCreationAndDestroy() {
-        try ( Connection conn = new Connection(db)) {
+        try (Connection conn = new Connection(db)) {
         } catch (AssertionError e) {
             fail("ConnCreationAndDestroy failed");
         } catch (ObjectRefDestroyedException e) {
@@ -46,7 +46,7 @@ public class ConnectionTest extends TestBase {
             assertEquals(result.getNumTuples(), 8);
             assertEquals(result.getNumColumns(), 1);
             assertTrue(result.getColumnName(0).equals("a.fName"));
-        }        
+        }
     }
 
     @Test
@@ -273,7 +273,7 @@ public class ConnectionTest extends TestBase {
         // Not strictly necessary, but this makes sure if we freed v1 or v2 in
         // the execute() call, we segfault here.
         v1.close();
-        v2.close();        
+        v2.close();
     }
 
     @Test
@@ -283,7 +283,7 @@ public class ConnectionTest extends TestBase {
             assertNotNull(result);
             assertFalse(result.isSuccess());
             assertTrue(result.getErrorMessage().equals("Interrupted."));
-        }        
+        }
     }
 
 }

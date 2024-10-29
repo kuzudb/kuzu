@@ -13,7 +13,7 @@ public class PreparedStatementTest extends TestBase {
             assertNotNull(preparedStatement1);
             assertTrue(preparedStatement1.isSuccess());
         }
-        
+
         query = "MATCH (a:personnnn) WHERE a.isStudent = $1 RETURN COUNT(*)";
         try (PreparedStatement preparedStatement2 = conn.prepare(query)) {
             assertNotNull(preparedStatement2);
@@ -29,13 +29,13 @@ public class PreparedStatementTest extends TestBase {
             String message = preparedStatement1.getErrorMessage();
             assertTrue(message.equals(""));
         }
-        
+
         query = "MATCH (a:personnnn) WHERE a.isStudent = $1 RETURN COUNT(*)";
         try (PreparedStatement preparedStatement2 = conn.prepare(query)) {
             assertNotNull(preparedStatement2);
             String message = preparedStatement2.getErrorMessage();
             assertTrue(message.equals("Binder exception: Table personnnn does not exist."));
-        }        
+        }
     }
 
 }
