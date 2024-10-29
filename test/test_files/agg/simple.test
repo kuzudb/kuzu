@@ -73,7 +73,7 @@ False
 -LOG SimpleMinTest
 -STATEMENT MATCH (m:movies) RETURN MIN(m.note)
 ---- 1
- the movie is very very good
+the movie is very interesting and funny
 
 -LOG TwoHopTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
