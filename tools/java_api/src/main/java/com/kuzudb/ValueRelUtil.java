@@ -6,6 +6,7 @@ package com.kuzudb;
 public class ValueRelUtil {
     /**
      * Get src id of the given rel value.
+     *
      * @param value: The rel value.
      * @return The src id of the given rel value.
      * @throws ObjectRefDestroyedException If the rel value has been destroyed.
@@ -17,6 +18,7 @@ public class ValueRelUtil {
 
     /**
      * Get dst id of the given rel value.
+     *
      * @param value: The rel value.
      * @return The dst id of the given rel value.
      * @throws ObjectRefDestroyedException If the rel value has been destroyed.
@@ -28,6 +30,7 @@ public class ValueRelUtil {
 
     /**
      * Get the label name of the rel value.
+     *
      * @param value: The rel value.
      * @return The label name of the rel value.
      * @throws ObjectRefDestroyedException If the rel value has been destroyed.
@@ -39,6 +42,7 @@ public class ValueRelUtil {
 
     /**
      * Get the property size of the rel value.
+     *
      * @param value: The rel value.
      * @return The property size of the rel value.
      * @throws ObjectRefDestroyedException If the rel value has been destroyed.
@@ -50,6 +54,7 @@ public class ValueRelUtil {
 
     /**
      * Get the property name at the given index from the given rel value.
+     *
      * @param value: The rel value.
      * @param index: The index of the property.
      * @return The property name at the given index from the given rel value.
@@ -62,6 +67,7 @@ public class ValueRelUtil {
 
     /**
      * Get the property value at the given index from the given rel value.
+     *
      * @param value: The rel value.
      * @param index: The index of the property.
      * @return The property value at the given index from the given rel value.
@@ -74,6 +80,7 @@ public class ValueRelUtil {
 
     /**
      * Convert the given rel value to string.
+     *
      * @param value: The rel value.
      * @return The given rel value in string format.
      * @throws ObjectRefDestroyedException If the rel value has been destroyed.

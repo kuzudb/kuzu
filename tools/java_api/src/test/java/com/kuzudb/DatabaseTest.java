@@ -21,12 +21,12 @@ public class DatabaseTest extends TestBase {
         }
 
         try (Database database = new Database(
-            dbPath,
-            1 << 28 /* 256 MB */,
-            true /* compression */,
-            false /* readOnly */,
-            1 << 30 /* 1 GB */)) {
-        // Database will be automatically destroyed after this block
+                dbPath,
+                1 << 28 /* 256 MB */,
+                true /* compression */,
+                false /* readOnly */,
+                1 << 30 /* 1 GB */)) {
+            // Database will be automatically destroyed after this block
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithArgs failed: " + e.getMessage());
         }
@@ -39,8 +39,8 @@ public class DatabaseTest extends TestBase {
             dbPath = tempDir.toFile().getAbsolutePath();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
-        }  
-        
+        }
+
         try (Database database = new Database(dbPath)) {
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithPathOnly failed: " + e.getMessage());
@@ -48,7 +48,7 @@ public class DatabaseTest extends TestBase {
     }
 
     @Test
-    void DBCreationAndDestroyWithNoParam(){
+    void DBCreationAndDestroyWithNoParam() {
         try (Database database = new Database()) {
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithNoParam failed: " + e.getMessage());

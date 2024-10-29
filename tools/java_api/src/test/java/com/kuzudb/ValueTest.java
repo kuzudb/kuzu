@@ -90,17 +90,17 @@ public class ValueTest extends TestBase {
     @Test
     void ValueCreateAndCloseDefault() throws ObjectRefDestroyedException {
         try (DataType type = new DataType(DataTypeID.INT64, null, 0);
-            Value value = Value.createDefault(type)) {
-        
+             Value value = Value.createDefault(type)) {
+
             assertFalse(value.isOwnedByCPP());
             assertFalse(value.isNull());
             assertEquals(value.getDataType().getID(), DataTypeID.INT64);
             assertTrue(value.getValue().equals(0L));
         }
-   
+
         try (DataType type = new DataType(DataTypeID.STRING, null, 0);
-            Value value = Value.createDefault(type)) {
-   
+             Value value = Value.createDefault(type)) {
+
             assertFalse(value.isOwnedByCPP());
             assertFalse(value.isNull());
             assertEquals(value.getDataType().getID(), DataTypeID.STRING);
@@ -180,7 +180,7 @@ public class ValueTest extends TestBase {
         Value value = new Value(new BigDecimal("-3.140"));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), DataTypeID.DECIMAL);
-        BigDecimal val = (BigDecimal)value.getValue();
+        BigDecimal val = (BigDecimal) value.getValue();
         assertTrue(val.compareTo(new BigDecimal("-3.14")) == 0);
         value.close();
     }
@@ -337,18 +337,18 @@ public class ValueTest extends TestBase {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
-        
+
             try (FlatTuple flatTuple = result.getNext()) {
                 try (Value value = flatTuple.getValue(0)) {
                     DataType dataType = value.getDataType();
                     assertEquals(dataType.getID(), DataTypeID.STRING);
                 }
-        
+
                 try (Value value = flatTuple.getValue(1)) {
                     DataType dataType = value.getDataType();
                     assertEquals(dataType.getID(), DataTypeID.BOOL);
                 }
-        
+
                 try (Value value = flatTuple.getValue(2)) {
                     DataType dataType = value.getDataType();
                     assertEquals(dataType.getID(), DataTypeID.LIST);
@@ -357,7 +357,7 @@ public class ValueTest extends TestBase {
                     }
                 }
             }
-        }        
+        }
     }
 
     @Test
@@ -773,24 +773,24 @@ public class ValueTest extends TestBase {
         try (QueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
-        
+
             try (FlatTuple flatTuple = result.getNext()) {
                 try (Value value = flatTuple.getValue(0)) {
                     String str = value.toString();
                     assertTrue(str.equals("Alice"));
                 }
-        
+
                 try (Value value = flatTuple.getValue(1)) {
                     String str = value.toString();
                     assertTrue(str.equals("True"));
                 }
-        
+
                 try (Value value = flatTuple.getValue(2)) {
                     String str = value.toString();
                     assertTrue(str.equals("[10,5]"));
                 }
             }
-        }        
+        }
     }
 
     @Test
@@ -991,7 +991,7 @@ public class ValueTest extends TestBase {
         assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_sec"), 6);
         assertEquals(ValueStructUtil.getIndexByFieldName(value, "release_tz"), 7);
         assertEquals(ValueStructUtil.getIndexByFieldName(value, "film"), 8);
-    
+
         value.close();
         flatTuple.close();
         result.close();
@@ -1015,7 +1015,7 @@ public class ValueTest extends TestBase {
         assertEquals(ValueStructUtil.getFieldNameByIndex(value, 6), "release_sec");
         assertEquals(ValueStructUtil.getFieldNameByIndex(value, 7), "release_tz");
         assertEquals(ValueStructUtil.getFieldNameByIndex(value, 8), "film");
-    
+
         value.close();
         flatTuple.close();
         result.close();
@@ -1092,112 +1092,39 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetIndexByFieldName() throws ObjectRefDestroyedException {
+    void MapValGetKey() throws ObjectRefDestroyedException {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         FlatTuple flatTuple = result.getNext();
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        long index = ValueMapUtil.getIndexByFieldName(value, "audience1");
-        assertEquals(index, 0);
-        index = ValueMapUtil.getIndexByFieldName(value, "NOT_EXXIST");
-        assertEquals(index, -1);
-        index = ValueMapUtil.getIndexByFieldName(value, "audience53");
-        assertEquals(index, 1);
-        value.close();
-        flatTuple.close();
-
-        flatTuple = result.getNext();
-        value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        index = ValueMapUtil.getIndexByFieldName(value, "NOT_EXXIST");
-        assertEquals(index, -1);
-        value.close();
-
-        flatTuple = result.getNext();
-        value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        index = ValueMapUtil.getIndexByFieldName(value, "audience1");
-        assertEquals(index, 0);
-        value.close();
-        flatTuple.close();
-
-        assertFalse(result.hasNext());
-        result.close();
-    }
-
-    @Test
-    void MapValGetValueByFieldName() throws ObjectRefDestroyedException {
-        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
-        assertTrue(result.isSuccess());
-        assertTrue(result.hasNext());
-        FlatTuple flatTuple = result.getNext();
-        Value value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        Value fieldValue = ValueMapUtil.getValueByFieldName(value, "audience1");
-        assertEquals((long)fieldValue.getValue(), 52);
-        fieldValue.close();
-        fieldValue = ValueMapUtil.getValueByFieldName(value, "audience53");
-        assertEquals((long)fieldValue.getValue(), 42);
-        fieldValue.close();
-        fieldValue = ValueMapUtil.getValueByFieldName(value, "NOT_EXIST");
-        assertNull(fieldValue);
-        value.close();
-        flatTuple.close();
-
-        flatTuple = result.getNext();
-        value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        fieldValue = ValueMapUtil.getValueByFieldName(value, "NOT_EXIST");
-        assertNull(fieldValue);
-        value.close();
-        flatTuple.close();
-
-        flatTuple = result.getNext();
-        value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        fieldValue = ValueMapUtil.getValueByFieldName(value, "audience1");
-        assertEquals((long)fieldValue.getValue(), 33);
-        fieldValue.close();
-        value.close();
-        flatTuple.close();
-
-        assertFalse(result.hasNext());
-        result.close();
-    }
-
-    @Test
-    void MapValGetFieldNameByIndex() throws ObjectRefDestroyedException {
-        QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
-        assertTrue(result.isSuccess());
-        assertTrue(result.hasNext());
-        FlatTuple flatTuple = result.getNext();
-        Value value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        String fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
+        Value key = ValueMapUtil.getKey(value, 0);
+        String fieldName = key.getValue();
         assertEquals(fieldName, "audience1");
-        fieldName = ValueMapUtil.getFieldNameByIndex(value, 1);
+        key = ValueMapUtil.getKey(value, 1);
+        fieldName = key.getValue();
         assertEquals(fieldName, "audience53");
-        fieldName = ValueMapUtil.getFieldNameByIndex(value, -1);
-        assertNull(fieldName);
-        fieldName = ValueMapUtil.getFieldNameByIndex(value, 1024);
-        assertNull(fieldName);
+        key = ValueMapUtil.getKey(value, -1);
+        assertNull(key);
+        key = ValueMapUtil.getKey(value, 1024);
+        assertNull(key);
         value.close();
         flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
-        assertNull(fieldName);
+        key = ValueMapUtil.getKey(value, 0);
+        assertNull(key);
         value.close();
         flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        fieldName = ValueMapUtil.getFieldNameByIndex(value, 0);
+        key = ValueMapUtil.getKey(value, 0);
+        fieldName = key.getValue();
         assertEquals(fieldName, "audience1");
         value.close();
         flatTuple.close();
@@ -1207,7 +1134,7 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void MapValGetValueByIndex() throws ObjectRefDestroyedException {
+    void MapValGetValue() throws ObjectRefDestroyedException {
         QueryResult result = conn.query("MATCH (m:movies) RETURN m.audience ORDER BY m.length");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -1215,22 +1142,22 @@ public class ValueTest extends TestBase {
         FlatTuple flatTuple = result.getNext();
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        Value fieldValue = ValueMapUtil.getValueByIndex(value, 1024);
+        Value fieldValue = ValueMapUtil.getValue(value, 1024);
         assertNull(fieldValue);
-        fieldValue = ValueMapUtil.getValueByIndex(value, -1);
+        fieldValue = ValueMapUtil.getValue(value, -1);
         assertNull(fieldValue);
-        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
-        assertEquals((long)fieldValue.getValue(), 52);
+        fieldValue = ValueMapUtil.getValue(value, 0);
+        assertEquals((long) fieldValue.getValue(), 52);
         fieldValue.close();
-        fieldValue = ValueMapUtil.getValueByIndex(value, 1);
-        assertEquals((long)fieldValue.getValue(), 42);
+        fieldValue = ValueMapUtil.getValue(value, 1);
+        assertEquals((long) fieldValue.getValue(), 42);
         value.close();
         flatTuple.close();
 
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
+        fieldValue = ValueMapUtil.getValue(value, 0);
         assertNull(fieldValue);
         value.close();
         flatTuple.close();
@@ -1238,8 +1165,8 @@ public class ValueTest extends TestBase {
         flatTuple = result.getNext();
         value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        fieldValue = ValueMapUtil.getValueByIndex(value, 0);
-        assertEquals((long)fieldValue.getValue(), 33);
+        fieldValue = ValueMapUtil.getValue(value, 0);
+        assertEquals((long) fieldValue.getValue(), 33);
         fieldValue.close();
         value.close();
         flatTuple.close();
@@ -1253,35 +1180,35 @@ public class ValueTest extends TestBase {
         try (QueryResult result = conn.query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
-        
+
             try (FlatTuple flatTuple = result.getNext();
                  Value value = flatTuple.getValue(0)) {
-                 
+
                 assertTrue(value.isOwnedByCPP());
-        
+
                 try (Value nodeList = ValueRecursiveRelUtil.getNodeList(value)) {
                     assertTrue(nodeList.isOwnedByCPP());
                     assertEquals(ValueListUtil.getListSize(nodeList), 0);
                 }
-        
+
                 try (Value relList = ValueRecursiveRelUtil.getRelList(value)) {
                     assertTrue(relList.isOwnedByCPP());
                     assertEquals(ValueListUtil.getListSize(relList), 1);
-        
+
                     try (Value rel = ValueListUtil.getListElement(relList, 0)) {
                         assertTrue(rel.isOwnedByCPP());
-                        
+
                         InternalID srcId = ValueRelUtil.getSrcID(rel);
                         assertEquals(srcId.tableId, 0);
                         assertEquals(srcId.offset, 0);
-        
+
                         InternalID dstId = ValueRelUtil.getDstID(rel);
                         assertEquals(dstId.tableId, 1);
                         assertEquals(dstId.offset, 0);
                     }
                 }
             }
-        }        
+        }
     }
 
     @Test

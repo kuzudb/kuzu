@@ -6,6 +6,7 @@ package com.kuzudb;
 public class ValueStructUtil {
     /**
      * Get the number of fields of the struct value.
+     *
      * @param value: The struct value.
      * @return The number of fields of the struct value.
      * @throws ObjectRefDestroyedException If the struct value has been destroyed.
@@ -17,7 +18,8 @@ public class ValueStructUtil {
 
     /**
      * Get the index of the field with the given name from the given struct value.
-     * @param value: The struct value.
+     *
+     * @param value:     The struct value.
      * @param fieldName: The name of the field.
      * @return The index of the field with the given name from the given struct value.
      * @throws ObjectRefDestroyedException If the struct value has been destroyed.
@@ -29,6 +31,7 @@ public class ValueStructUtil {
 
     /**
      * Get the name of the field at the given index from the given struct value.
+     *
      * @param value: The struct value.
      * @param index: The index of the field.
      * @return The name of the field at the given index from the given struct value.
@@ -41,7 +44,8 @@ public class ValueStructUtil {
 
     /**
      * Get the value of the field with the given name from the given struct value.
-     * @param value: The struct value.
+     *
+     * @param value:     The struct value.
      * @param fieldName: The name of the field.
      * @return The value of the field with the given name from the given struct value.
      * @throws ObjectRefDestroyedException If the struct value has been destroyed.
@@ -57,6 +61,7 @@ public class ValueStructUtil {
 
     /**
      * Get the value of the field at the given index from the given struct value.
+     *
      * @param value: The struct value.
      * @param index: The index of the field.
      * @return The value of the field at the given index from the given struct value.

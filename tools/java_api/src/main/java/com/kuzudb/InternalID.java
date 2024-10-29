@@ -9,8 +9,9 @@ public class InternalID {
 
     /**
      * Create a InternalID from the given table_id and offset.
+     *
      * @param tableId: The table_id of the node/rel.
-     * @param offset: The offset of the node/rel.
+     * @param offset:  The offset of the node/rel.
      */
     public InternalID(long tableId, long offset) {
         this.tableId = tableId;

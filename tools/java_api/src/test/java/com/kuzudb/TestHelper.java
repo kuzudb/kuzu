@@ -75,7 +75,7 @@ public class TestHelper {
 
         try (QueryResult result = conn.query("create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID));")) {
         }
-        
+
         try (QueryResult result = conn.query("copy moviesSerial from \"../../dataset/tinysnb-serial/vMovies.csv\"")) {
         }
     }

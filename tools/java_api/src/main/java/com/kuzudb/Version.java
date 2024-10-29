@@ -7,6 +7,7 @@ public class Version {
 
     /**
      * Get the version of the Kùzu.
+     *
      * @return The version of the Kùzu.
      */
     public static String getVersion() {
@@ -15,6 +16,7 @@ public class Version {
 
     /**
      * Get the storage version of the Kùzu.
+     *
      * @return The storage version of the Kùzu.
      */
     public static long getStorageVersion() {

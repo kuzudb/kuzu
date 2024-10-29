@@ -10,6 +10,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Construct a Value from a val.
+     *
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
     public <T> Value(T val) throws ObjectRefDestroyedException {
@@ -19,6 +20,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Create a null Value.
+     *
      * @return The null Value.
      */
     public static Value createNull() {
@@ -27,6 +29,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Create a null Value with the given data type.
+     *
      * @param data_type: The data type of the null Value.
      */
     public static Value createNullWithDataType(DataType data_type) {
@@ -35,6 +38,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Create a default Value with the given data type.
+     *
      * @param data_type: The data type of the default Value.
      * @return The default Value.
      */
@@ -44,6 +48,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Check if the Value has been destroyed.
+     *
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
     public void checkNotDestroyed() throws ObjectRefDestroyedException {
@@ -52,7 +57,8 @@ public class Value implements AutoCloseable {
     }
 
     /**
-    * Close the value and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+     * Close the value and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+     *
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
     @Override
@@ -66,6 +72,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Destroy the Value.
+     *
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
     private void destroy() throws ObjectRefDestroyedException {
@@ -78,6 +85,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Check if the Value is null.
+     *
      * @return True if the Value is null, false otherwise.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
@@ -88,6 +96,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Set the Value to null.
+     *
      * @param flag: True if the Value is set to null, false otherwise.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
@@ -98,6 +107,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Copy the Value from another Value.
+     *
      * @param other: The Value to copy from.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
@@ -108,6 +118,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Clone the Value.
+     *
      * @return The cloned Value.
      */
     public Value clone() {
@@ -119,6 +130,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Get the actual value from the Value.
+     *
      * @return The value of the given type.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
@@ -129,6 +141,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Get the data type of the Value.
+     *
      * @return The data type of the Value.
      * @throws ObjectRefDestroyedException If the Value has been destroyed.
      */
@@ -139,6 +152,7 @@ public class Value implements AutoCloseable {
 
     /**
      * Convert the Value to string.
+     *
      * @return The current value in string format.
      */
     public String toString() {

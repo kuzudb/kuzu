@@ -129,16 +129,16 @@ public class DataTypeTest extends TestBase {
         try (DataType dataType = new DataType(DataTypeID.INT64, null, 0)) {
             assertNotNull(dataType);
             assertEquals(dataType.getFixedNumElementsInList(), 0);
-        
+
             try (DataType dataType2 = new DataType(DataTypeID.LIST, dataType, 0)) {
                 assertNotNull(dataType2);
                 assertEquals(dataType2.getFixedNumElementsInList(), 0);
             }
-        
+
             try (DataType dataType3 = new DataType(DataTypeID.ARRAY, dataType, 100)) {
                 assertNotNull(dataType3);
                 assertEquals(dataType3.getFixedNumElementsInList(), 100);
             }
-        }          
+        }
     }
 }
