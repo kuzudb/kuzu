@@ -1,6 +1,7 @@
 import os
 
 import pytest
+import pexpect
 from conftest import ShellTest
 from test_helper import deleteIfExists
 
@@ -201,3 +202,36 @@ def test_comments(temp_db) -> None:
     )
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
+
+
+def test_shell_auto_completion(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement("CREATE NODE TABLE coolTable(i STRING, longPropertyName STRING, PRIMARY KEY(i));\n")
+    )
+    result = test.run()
+    result.check_stdout("\u2502 Table coolTable has been created. \u2502")
+
+    # table auto completion only works if table exists on startup currently and
+    # due to how the shell handles tab characters, in this test we need to send 
+    # tabs without characters directly after them to avoid being processed as
+    # pasted input
+    test = ShellTest().add_argument(temp_db)
+    test.start()
+    test.send_statement("ma\t")
+    test.send_statement("\t")
+    test.send_statement("\t")
+    test.send_statement("\x1b[Z")
+    test.send_statement(" (n:\t")
+    test.send_statement(") ret\t")
+    test.send_statement(" n.\t")
+    test.send_statement("\t")
+    test.send_finished_statement(";\r")
+    assert test.shell_process.expect_exact(["\u2502 n.longPropertyName \u2502", pexpect.EOF]) == 0
+
+    test.send_statement("c\t")
+    test.send_statement(" show_t\t")
+    test.send_statement("() ret\t")
+    test.send_finished_statement(" *;\n")
+    assert test.shell_process.expect_exact(["\u2502 coolTable \u2502", pexpect.EOF]) == 0
