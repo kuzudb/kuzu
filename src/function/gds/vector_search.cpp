@@ -473,7 +473,7 @@ namespace kuzu {
 
             void dynamicTwoHopFilteredSearch(processor::ExecutionContext *context, const float *query,
                                              const table_id_t tableId, const int maxK, Graph *graph,
-                                             QuantizedDistanceComputer<float, uint8_t> *dc,
+                                             L2DistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc,
                                              NodeOffsetLevelSemiMask *filterMask,
                                              GraphScanState &state, const vector_id_t entrypoint,
                                              const double entrypointDist,
@@ -512,8 +512,8 @@ namespace kuzu {
                             continue;
                         }
                         double dist;
-                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
-                        dc->compute_distance(query, embedding, &dist);
+                        auto embedding = getEmbedding(context, neighbor.offset);
+                        dc->computeDistance(embedding, &dist);
                         totalDist++;
                         nbrsToExplore.emplace(neighbor.offset, dist);
 
@@ -563,8 +563,8 @@ namespace kuzu {
                                 visited->set_bit(secondHopNeighbor.offset);
                                 double dist;
 
-                                auto embedding = getCompressedEmbedding(header, secondHopNeighbor.offset);
-                                dc->compute_distance(query, embedding, &dist);
+                                auto embedding = getEmbedding(context, secondHopNeighbor.offset);
+                                dc->computeDistance(embedding, &dist);
                                 totalDist++;
                                 if (results.size() < efSearch || dist < results.top()->dist) {
                                     candidates.emplace(secondHopNeighbor.offset, dist);
@@ -624,7 +624,7 @@ namespace kuzu {
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
                         printf("doing dynamic two hop search\n");
-                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
+                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(), quantizedDc.get(),
                                                     filterMask,
                                                     *state.get(), entrypoint, entrypointDist, results,
                                                     visited.get(),
