@@ -173,13 +173,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
         }
-        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
-        for (auto offset = 0u; offset < sharedState->graph->getNumNodes(
-                                            executionContext->clientContext->getTx(), tableID);
-             ++offset) {
-            if (!mask->isMasked(offset)) {
-                continue;
-            }
+        auto calcFun = [tableID, executionContext, clientContext, this](offset_t offset) {
             auto sourceNodeID = nodeID_t{offset, tableID};
             RJCompState rjCompState = getRJCompState(executionContext, sourceNodeID);
             rjCompState.initSource(sourceNodeID);
@@ -191,6 +185,18 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
                     sharedState.get(), rjCompState.outputWriter->copy());
             GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
                 *vertexCompute);
+        };
+        auto numNodes =
+            sharedState->graph->getNumNodes(executionContext->clientContext->getTx(), tableID);
+        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
+        if (mask->isEnabled()) {
+            for (const auto& offset : mask->range(0, numNodes)) {
+                calcFun(offset);
+            }
+        } else {
+            for (auto offset = 0u; offset < numNodes; ++offset) {
+                calcFun(offset);
+            }
         }
     }
     sharedState->mergeLocalTables();

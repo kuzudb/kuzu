@@ -23,7 +23,7 @@ struct TableScanState {
     std::vector<common::ValueVector*> outputVectors;
     common::DataChunkState* outState;
     std::vector<common::column_id_t> columnIDs;
-    common::NodeSemiMask* semiMask;
+    common::RoaringBitmapSemiMask* semiMask;
 
     // Only used when scan from persistent data.
     std::vector<const Column*> columns;
