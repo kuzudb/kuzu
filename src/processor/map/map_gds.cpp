@@ -53,7 +53,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     if (bindData->hasNodeOutput()) {
         auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
-        sharedState->setOutputNodeMask(getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
+        sharedState->setOutputNodeMask(
+            getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
     }
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
     auto gdsAlgorithm = call.getInfo().getGDS()->copy();
