@@ -250,7 +250,8 @@ namespace kuzu {
             }
 
             void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                      const float *query, L2DistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc,
+                                      const float *query, L2DistanceComputer *dc,
+                                      QuantizedDistanceComputer<float, uint8_t> *qdc,
                                       vector_id_t &nearest,
                                       double &nearestDist) {
                 while (true) {
@@ -264,7 +265,7 @@ namespace kuzu {
                         }
                         double dist;
                         auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
-                        qdc->compute_distance(query,embedding, &dist);
+                        qdc->compute_distance(query, embedding, &dist);
                         if (dist < nearestDist) {
                             nearest = neighbor;
                             nearestDist = dist;
@@ -277,7 +278,8 @@ namespace kuzu {
             }
 
             void findEntrypointUsingUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                               const float *query, L2DistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc, vector_id_t &entrypoint,
+                                               const float *query, L2DistanceComputer *dc,
+                                               QuantizedDistanceComputer<float, uint8_t> *qdc, vector_id_t &entrypoint,
                                                double *entrypointDist) {
                 uint8_t entrypointLevel;
                 header->getEntrypoint(entrypoint, entrypointLevel);
@@ -340,7 +342,8 @@ namespace kuzu {
                 }
             }
 
-            void filteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, Graph *graph,
+            void filteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId,
+                                Graph *graph,
                                 QuantizedDistanceComputer<float, uint8_t> *dc, NodeOffsetLevelSemiMask *filterMask,
                                 GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
@@ -368,7 +371,7 @@ namespace kuzu {
                         visited->set_bit(neighbor.offset);
                         double dist;
                         auto embedding = getCompressedEmbedding(header, neighbor.offset);
-                        dc->compute_distance(query,embedding, &dist);
+                        dc->compute_distance(query, embedding, &dist);
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             if (filterMask->isMasked(neighbor.offset)) {
@@ -379,13 +382,15 @@ namespace kuzu {
                 }
             }
 
-            void twoHopFilteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, Graph *graph,
-                                             QuantizedDistanceComputer<float, uint8_t> *dc,
-                                             NodeOffsetLevelSemiMask *filterMask,
-                                             GraphScanState &state, const vector_id_t entrypoint,
-                                             const double entrypointDist,
-                                             BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                             VectorIndexHeaderPerPartition *header, const int efSearch) {
+            void
+            twoHopFilteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId,
+                                 Graph *graph,
+                                 QuantizedDistanceComputer<float, uint8_t> *dc,
+                                 NodeOffsetLevelSemiMask *filterMask,
+                                 GraphScanState &state, const vector_id_t entrypoint,
+                                 const double entrypointDist,
+                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                 VectorIndexHeaderPerPartition *header, const int efSearch) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
@@ -415,7 +420,7 @@ namespace kuzu {
                         if (isNeighborMasked) {
                             double dist;
                             auto embedding = getCompressedEmbedding(header, neighbor.offset);
-                            dc->compute_distance(query,embedding, &dist);
+                            dc->compute_distance(query, embedding, &dist);
                             totalDist++;
                             visited->set_bit(neighbor.offset);
                             if (results.size() < efSearch || dist < results.top()->dist) {
@@ -466,7 +471,8 @@ namespace kuzu {
             }
 
 
-            void dynamicTwoHopFilteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, const int maxK, Graph *graph,
+            void dynamicTwoHopFilteredSearch(processor::ExecutionContext *context, const float *query,
+                                             const table_id_t tableId, const int maxK, Graph *graph,
                                              QuantizedDistanceComputer<float, uint8_t> *dc,
                                              NodeOffsetLevelSemiMask *filterMask,
                                              GraphScanState &state, const vector_id_t entrypoint,
@@ -601,7 +607,8 @@ namespace kuzu {
                 // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
                 double entrypointDist;
-                findEntrypointUsingUpperLayer(context, header, query, dc.get(), quantizedDc.get(), entrypoint, &entrypointDist);
+                findEntrypointUsingUpperLayer(context, header, query, dc.get(), quantizedDc.get(), entrypoint,
+                                              &entrypointDist);
                 BinaryHeap<NodeDistFarther> results(efSearch);
 
                 if (isFilteredSearch) {
@@ -611,30 +618,22 @@ namespace kuzu {
                         return;
                     }
 
-                    if (selectivity > 0.3) {
+                    if (selectivity > 0.4) {
                         filteredSearch(context, query, nodeTableId, graph, quantizedDc.get(), filterMask, *state.get(),
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
-                        if (filterMaxK > 100000) {
-                            printf("doing two hop search\n");
-                            twoHopFilteredSearch(context, query, nodeTableId, graph, quantizedDc.get(), filterMask,
-                                                 *state.get(), entrypoint, entrypointDist, results, visited.get(),
-                                                 header,
-                                                 efSearch);
-                        } else {
-                            printf("doing dynamic two hop search\n");
-                            dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
-                                                        filterMask,
-                                                        *state.get(), entrypoint, entrypointDist, results,
-                                                        visited.get(),
-                                                        header,
-                                                        efSearch);
-                        }
+                        printf("doing dynamic two hop search\n");
+                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, quantizedDc.get(),
+                                                    filterMask,
+                                                    *state.get(), entrypoint, entrypointDist, results,
+                                                    visited.get(),
+                                                    header,
+                                                    efSearch);
                     }
                 } else {
                     unfilteredSearch(query, nodeTableId, graph, quantizedDc.get(), *state.get(), entrypoint,
-                                        entrypointDist, results, visited.get(), header, efSearch);
+                                     entrypointDist, results, visited.get(), header, efSearch);
                 }
 
                 searchLocalState->materialize(graph, results, *sharedState->fTable, k);
