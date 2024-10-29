@@ -202,6 +202,28 @@ kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
     return KuzuSuccess;
 }
 
+kuzu_state kuzu_value_create_struct(uint64_t num_fields, const char** field_names,
+    kuzu_value** field_values, kuzu_value** out_value) {
+    if (num_fields == 0) {
+        return KuzuError;
+    }
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    std::vector<std::unique_ptr<Value>> children;
+    auto struct_fields = std::vector<StructField>{};
+    for (uint64_t i = 0; i < num_fields; ++i) {
+        auto field_name = std::string(field_names[i]);
+        auto field_value = static_cast<Value*>(field_values[i]->_value);
+        auto field_type = field_value->getDataType().copy();
+        struct_fields.emplace_back(std::move(field_name), std::move(field_type));
+        children.push_back(field_value->copy());
+    }
+    auto struct_type = LogicalType::STRUCT(std::move(struct_fields));
+    c_value->_value = new Value(struct_type.copy(), std::move(children));
+    c_value->_is_owned_by_cpp = false;
+    *out_value = c_value;
+    return KuzuSuccess;
+}
+
 kuzu_value* kuzu_value_clone(kuzu_value* value) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(*static_cast<Value*>(value->_value));
