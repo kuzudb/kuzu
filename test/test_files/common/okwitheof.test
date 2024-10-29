@@ -1,0 +1,9 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE OkWithEOFTest
+
+
+-STATEMENT CALL show_tables() RETURN *
+---- ok
