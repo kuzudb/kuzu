@@ -1,10 +1,5 @@
-#include "common/data_chunk/sel_vector.h"
-#include "function/gds/bfs_graph.h"
-#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/gds/gds_object_manager.h"
 #include "function/gds/rec_joins.h"
-#include "function/gds_function.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::processor;

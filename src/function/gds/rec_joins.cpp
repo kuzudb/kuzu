@@ -97,7 +97,7 @@ void RJAlgorithm::bindColumnExpressions(binder::Binder* binder) const {
         rjBindData->directionExpr =
             binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL()));
     }
-    rjBindData->lengthExpr = binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
+    rjBindData->lengthExpr = binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::UINT16());
     rjBindData->pathNodeIDsExpr = binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
     rjBindData->pathEdgeIDsExpr = binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,

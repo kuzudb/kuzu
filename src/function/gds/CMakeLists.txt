@@ -9,6 +9,7 @@ add_library(kuzu_function_algorithm
         single_shortest_paths.cpp
         gds_utils.cpp
         output_writer.cpp
+        variable_length_path.cpp
         weakly_connected_components.cpp)
 
 set(ALL_OBJECT_FILES
