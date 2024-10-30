@@ -6,6 +6,7 @@
 #include "common/types/types.h"
 #include "graph/graph.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "processor/operator/gds_call_shared_state.h"
 
 namespace kuzu {
 namespace function {
@@ -26,6 +27,12 @@ public:
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
     virtual std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
         graph::GraphScanState::Chunk& results, bool fwdEdge) = 0;
+
+    virtual void resetSingleThreadState() {}
+
+    virtual bool terminate(processor::NodeOffsetMaskMap&) {
+        return false;
+    }
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };
@@ -113,14 +120,28 @@ private:
  */
 class GDSFrontier {
 public:
+    explicit GDSFrontier(const common::table_id_map_t<common::offset_t>& numNodesMap)
+        : numNodesMap{numNodesMap} {}
+
     virtual ~GDSFrontier() = default;
-    virtual bool isActive(common::nodeID_t nodeID) = 0;
+    virtual void pinTableID(common::table_id_t tableID) = 0;
+    // isActive assumes a tableID has been pinned.
+    virtual bool isActive(common::offset_t nodeID) = 0;
     virtual void setActive(std::span<const common::nodeID_t> nodeIDs) = 0;
     virtual void setActive(common::nodeID_t nodeID) = 0;
+
+    const common::table_id_map_t<common::offset_t>& getNumNodesMap() const { return numNodesMap; }
+
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
+
+protected:
+    // We do not need to make nodeTableIDAndNumNodesMap and masks atomic because they should only
+    // be accessed by functions that are called by the "master GDS thread" (so not accessed inside
+    // the parallel functions in GDSUtils, which are called by other "worker threads").
+    common::table_id_map_t<common::offset_t> numNodesMap;
 };
 
 /**
@@ -160,9 +181,10 @@ public:
         return getNextFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
     }
 
-    bool isActive(common::nodeID_t nodeID) override {
-        return getCurFrontierFixedMask()[nodeID.offset] ==
-               curIter.load(std::memory_order_relaxed) - 1;
+    void pinTableID(common::table_id_t tableID) override { fixCurFrontierNodeTable(tableID); }
+
+    bool isActive(common::offset_t offset) override {
+        return getCurFrontierFixedMask()[offset] == curIter.load(std::memory_order_relaxed) - 1;
     }
 
     void setActive(const std::span<const common::nodeID_t> nodeIDs) override {
@@ -205,10 +227,6 @@ private:
     }
 
 private:
-    // We do not need to make nodeTableIDAndNumNodesMap and masks atomic because they should only
-    // be accessed by functions that are called by the "master GDS thread" (so not accessed inside
-    // the parallel functions in GDSUtils, which are called by other "worker threads").
-    common::table_id_map_t<common::offset_t> numNodesMap;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
     // See FrontierPair::curIter. We keep a copy of curIter here because PathLengths stores
     // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
@@ -251,6 +269,7 @@ public:
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
     uint16_t getNextIter() { return curIter.load() + 1u; }
+    GDSFrontier& getCurrentFrontierUnsafe() const { return *curFrontier; }
 
     GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
@@ -323,6 +342,22 @@ public:
 private:
     std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
 };
+
+class SPEdgeCompute : public EdgeCompute {
+public:
+    explicit SPEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+        : frontierPair{frontierPair}, numNodesReached{0} {}
+
+    void resetSingleThreadState() override { numNodesReached = 0; }
+
+    bool terminate(processor::NodeOffsetMaskMap &maskMap) override;
+
+protected:
+    SinglePathLengthsFrontierPair* frontierPair;
+    // States that should be only modified with single thread
+    common::offset_t numNodesReached;
+};
+
 
 } // namespace function
 } // namespace kuzu

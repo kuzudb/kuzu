@@ -30,10 +30,10 @@ struct SingleSPDestinationsOutputs : public SPOutputs {
     }
 };
 
-class SingleSPDestinationsEdgeCompute : public EdgeCompute {
+class SingleSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
     explicit SingleSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
-        : frontierPair{frontierPair} {};
+        : SPEdgeCompute{frontierPair} {};
 
     std::vector<nodeID_t> edgeCompute(common::nodeID_t, GraphScanState::Chunk& resultChunk,
         bool) override {
@@ -50,15 +50,12 @@ public:
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<SingleSPDestinationsEdgeCompute>(frontierPair);
     }
-
-private:
-    SinglePathLengthsFrontierPair* frontierPair;
 };
 
-class SingleSPPathsEdgeCompute : public EdgeCompute {
+class SingleSPPathsEdgeCompute : public SPEdgeCompute {
 public:
     SingleSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
-        : frontierPair{frontierPair}, bfsGraph{bfsGraph} {
+        : SPEdgeCompute{frontierPair}, bfsGraph{bfsGraph} {
         parentListBlock = bfsGraph->addNewBlock();
     }
 
@@ -86,7 +83,6 @@ public:
     }
 
 private:
-    SinglePathLengthsFrontierPair* frontierPair;
     BFSGraph* bfsGraph;
     ObjectBlock<ParentList>* parentListBlock = nullptr;
 };

@@ -23,7 +23,7 @@ void FrontierTask::run() {
     while (sharedState->frontierPair.getNextRangeMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextOffset()) {
             common::nodeID_t nodeID = frontierMorsel.getNextNodeID();
-            if (sharedState->frontierPair.curFrontier->isActive(nodeID)) {
+            if (sharedState->frontierPair.curFrontier->isActive(nodeID.offset)) {
                 switch (info.direction) {
                 case ExtendDirection::FWD: {
                     for (auto chunk : graph->scanFwd(nodeID, *scanState)) {

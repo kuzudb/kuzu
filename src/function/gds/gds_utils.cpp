@@ -38,30 +38,35 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     RJCompState& rjCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
     auto frontierPair = rjCompState.frontierPair.get();
+    auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
+    rjCompState.edgeCompute->resetSingleThreadState();
     while (frontierPair->hasActiveNodesForNextLevel() && frontierPair->getNextIter() <= maxIters) {
         frontierPair->beginNewIteration();
+        if (outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
+            break;
+        }
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, common::ExtendDirection::FWD,
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
                     rjCompState, context);
             } break;
             case ExtendDirection::BWD: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
                     relTableIDInfo.fromNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, common::ExtendDirection::BWD,
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD,
                     rjCompState, context);
             } break;
             case ExtendDirection::BOTH: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, common::ExtendDirection::FWD,
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
                     rjCompState, context);
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
                     relTableIDInfo.fromNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, common::ExtendDirection::BWD,
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD,
                     rjCompState, context);
             } break;
             default:

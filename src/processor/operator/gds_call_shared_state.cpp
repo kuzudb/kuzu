@@ -5,6 +5,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+offset_t NodeOffsetMaskMap::getNumMaskedNode() const {
+    KU_ASSERT(enabled_);
+    offset_t numNodes = 0;
+    for (auto& [tableID, mask] : maskMap) {
+        numNodes += mask->getNumMaskedNodes();
+    }
+    return numNodes;
+}
+
 FactorizedTable* GDSCallSharedState::claimLocalTable(storage::MemoryManager* mm) {
     std::unique_lock<std::mutex> lck{mtx};
     if (availableLocalTables.empty()) {

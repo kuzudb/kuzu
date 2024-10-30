@@ -11,6 +11,13 @@ namespace processor {
 
 class NodeOffsetMaskMap {
 public:
+    NodeOffsetMaskMap() : enabled_{false} {}
+
+    void enable() { enabled_ = true; }
+    bool enabled() const { return enabled_; }
+
+    common::offset_t getNumMaskedNode() const;
+
     void addMask(common::table_id_t tableID, std::unique_ptr<common::RoaringBitmapSemiMask> mask) {
         KU_ASSERT(!maskMap.contains(tableID));
         maskMap.insert({tableID, std::move(mask)});
@@ -24,6 +31,10 @@ public:
         return masks;
     }
 
+    const common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>>&
+    getMaskMap() const {
+        return maskMap;
+    }
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
     common::RoaringBitmapSemiMask* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));
@@ -48,6 +59,8 @@ public:
 private:
     common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>> maskMap;
     common::RoaringBitmapSemiMask* pinnedMask = nullptr;
+    // If mask map is enabled, then some nodes might be masked.
+    bool enabled_;
 };
 
 struct GDSCallSharedState {
@@ -62,6 +75,7 @@ struct GDSCallSharedState {
     void setInputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         inputNodeMask = std::move(maskMap);
     }
+    void enableInputNodeMask() { inputNodeMask->enable(); }
     std::vector<common::RoaringBitmapSemiMask*> getInputNodeMasks() const {
         return inputNodeMask->getMasks();
     }
@@ -70,6 +84,7 @@ struct GDSCallSharedState {
     void setOutputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         outputNodeMask = std::move(maskMap);
     }
+    void enableOutputNodeMask() { outputNodeMask->enable(); }
     std::vector<common::RoaringBitmapSemiMask*> getOutputNodeMasks() const {
         return outputNodeMask->getMasks();
     }
