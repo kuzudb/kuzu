@@ -24,13 +24,6 @@ public:
             [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
     }
 
-    void removeEmptyGroups(common::idx_t numEmptyGroups, const common::UniqLock&) {
-        KU_ASSERT(numEmptyGroups <= groups.size());
-        for (common::idx_t i = 0; i < numEmptyGroups; ++i) {
-            groups.pop_back();
-        }
-    }
-
     void serializeGroups(common::Serializer& ser) {
         auto lockGuard = lock();
         ser.serializeVectorOfPtrs<T>(groups);
