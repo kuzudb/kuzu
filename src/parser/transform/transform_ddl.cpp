@@ -116,15 +116,6 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
-std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
-    CypherParser::KU_CreateRdfGraphContext& ctx) {
-    auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
-    auto createTableInfo = CreateTableInfo(TableType::RDF, rdfGraphName,
-        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
-                               common::ConflictAction::ON_CONFLICT_THROW);
-    return std::make_unique<CreateTable>(std::move(createTableInfo));
-}
-
 std::unique_ptr<Statement> Transformer::transformCreateSequence(
     CypherParser::KU_CreateSequenceContext& ctx) {
     auto sequenceName = transformSchemaName(*ctx.oC_SchemaName());
@@ -192,7 +183,7 @@ std::unique_ptr<Statement> Transformer::transformCreateType(
 }
 
 DropType transformDropType(CypherParser::KU_DropContext& ctx) {
-    if (ctx.TABLE() || ctx.RDFGRAPH()) {
+    if (ctx.TABLE()) {
         return DropType::TABLE;
     } else if (ctx.SEQUENCE()) {
         return DropType::SEQUENCE;

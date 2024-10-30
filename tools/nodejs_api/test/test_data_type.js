@@ -501,34 +501,6 @@ describe("MAP", function () {
   });
 });
 
-describe("RDF_VARIANT", function () {
-  it("should convert RDF_VARIANT type", async function () {
-    const queryResult = await conn.query(
-      "MATCH (a:T_l) RETURN a.val ORDER BY a.id;"
-    );
-    const result = await queryResult.getAll();
-    assert.equal(result.length, 16);
-    assert.deepEqual(result[0]["a.val"], 12);
-    assert.deepEqual(result[1]["a.val"], 43);
-    assert.deepEqual(result[2]["a.val"], 33);
-    assert.deepEqual(result[3]["a.val"], 2);
-    assert.deepEqual(result[4]["a.val"], 90);
-    assert.deepEqual(result[5]["a.val"], 77);
-    assert.deepEqual(result[6]["a.val"], 12);
-    assert.deepEqual(result[7]["a.val"], 1);
-    let val = result[8]["a.val"];
-    assert.approximately(val, 4.4, EPSILON);
-    val = result[9]["a.val"];
-    assert.approximately(val, 1.2, EPSILON);
-    assert.deepEqual(result[10]["a.val"], true);
-    assert.deepEqual(result[11]["a.val"], "hhh");
-    assert.deepEqual(result[12]["a.val"], new Date("2024-01-01"));
-    assert.deepEqual(result[13]["a.val"], new Date("2024-01-01 11:25:30Z"));
-    assert.deepEqual(result[14]["a.val"], 172800000);
-    assert.deepEqual(result[15]["a.val"], new Uint8Array([0xb2]));
-  });
-});
-
 describe("DECIMAL", function () {
   it("should convert DECIMAL type", async function () {
     const queryResult = await conn.query(

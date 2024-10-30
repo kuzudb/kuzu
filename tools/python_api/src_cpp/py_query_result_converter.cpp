@@ -102,9 +102,6 @@ void NPArrayWrapper::appendElement(Value* value) {
         case LogicalTypeID::RECURSIVE_REL: {
             ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
         } break;
-        case LogicalTypeID::RDF_VARIANT: {
-            ((py::object*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
-        } break;
         default: {
             KU_UNREACHABLE;
         }
@@ -181,8 +178,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::STRING:
     case LogicalTypeID::MAP:
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::RDF_VARIANT: {
+    case LogicalTypeID::RECURSIVE_REL: {
         dtype = "object";
     } break;
     default: {

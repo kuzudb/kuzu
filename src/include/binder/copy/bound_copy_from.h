@@ -65,25 +65,6 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
     }
 };
 
-struct ExtraBoundCopyRdfInfo final : public ExtraBoundCopyFromInfo {
-    BoundCopyFromInfo rInfo;
-    BoundCopyFromInfo lInfo;
-    BoundCopyFromInfo rrrInfo;
-    BoundCopyFromInfo rrlInfo;
-
-    ExtraBoundCopyRdfInfo(BoundCopyFromInfo rInfo, BoundCopyFromInfo lInfo,
-        BoundCopyFromInfo rrrInfo, BoundCopyFromInfo rrlInfo)
-        : rInfo{std::move(rInfo)}, lInfo{std::move(lInfo)}, rrrInfo{std::move(rrrInfo)},
-          rrlInfo{std::move(rrlInfo)} {}
-    ExtraBoundCopyRdfInfo(const ExtraBoundCopyRdfInfo& other)
-        : rInfo{other.rInfo.copy()}, lInfo{other.lInfo.copy()}, rrrInfo{other.rrrInfo.copy()},
-          rrlInfo{other.rrlInfo.copy()} {}
-
-    std::unique_ptr<ExtraBoundCopyFromInfo> copy() const override {
-        return std::make_unique<ExtraBoundCopyRdfInfo>(*this);
-    }
-};
-
 class BoundCopyFrom : public BoundStatement {
     static constexpr common::StatementType statementType_ = common::StatementType::COPY_FROM;
 

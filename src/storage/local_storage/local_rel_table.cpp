@@ -26,17 +26,6 @@ std::vector<LogicalType> LocalRelTable::getTypesForLocalRelTable(const RelTable&
 LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     localNodeGroup = std::make_unique<NodeGroup>(0, false,
         getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
-    const auto& relTable = table.cast<RelTable>();
-    nodeOffsetColumns[LOCAL_BOUND_NODE_ID_COLUMN_ID] = relTable.getFromNodeTableID();
-    nodeOffsetColumns[LOCAL_NBR_NODE_ID_COLUMN_ID] = relTable.getToNodeTableID();
-    const auto numColumns = relTable.getNumColumns();
-    // skip NBR_ID and REL_ID, this assumes all INTERNAL_ID are node references
-    for (auto i = 2u; i < numColumns; i++) {
-        const auto column = relTable.getColumn(i, RelDataDirection::FWD);
-        if (column->getDataType().getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
-            nodeOffsetColumns[i + 1] = column->cast<InternalIDColumn>().getCommonTableID();
-        }
-    }
 }
 
 bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {

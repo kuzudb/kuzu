@@ -34,13 +34,11 @@ add_library(kuzu_function
         vector_date_functions.cpp
         vector_hash_functions.cpp
         vector_null_functions.cpp
-        vector_rdf_functions.cpp
         vector_node_rel_functions.cpp
         vector_string_functions.cpp
         vector_timestamp_functions.cpp
         vector_blob_functions.cpp
-        vector_uuid_functions.cpp
-        vector_rdf_functions.cpp)
+        vector_uuid_functions.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function>

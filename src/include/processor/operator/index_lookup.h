@@ -12,17 +12,14 @@ namespace processor {
 struct BatchInsertSharedState;
 struct IndexLookupInfo {
     storage::NodeTable* nodeTable;
-    // In copy rdf, we need to perform lookup before primary key is persist on disk. So we need to
-    // use index builder.
-    std::shared_ptr<BatchInsertSharedState> batchInsertSharedState;
     DataPos keyVectorPos;
     DataPos resultVectorPos;
     std::vector<DataPos> warningDataVectorPos;
 
     IndexLookupInfo(storage::NodeTable* nodeTable, const DataPos& keyVectorPos,
         const DataPos& resultVectorPos, std::vector<DataPos> warningDataVectorPos)
-        : nodeTable{nodeTable}, batchInsertSharedState{nullptr}, keyVectorPos{keyVectorPos},
-          resultVectorPos{resultVectorPos}, warningDataVectorPos(std::move(warningDataVectorPos)) {}
+        : nodeTable{nodeTable}, keyVectorPos{keyVectorPos}, resultVectorPos{resultVectorPos},
+          warningDataVectorPos(std::move(warningDataVectorPos)) {}
     IndexLookupInfo(const IndexLookupInfo& other) = default;
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
@@ -65,8 +62,6 @@ public:
           infos{std::move(infos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-
-    void setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState);
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 

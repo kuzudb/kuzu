@@ -59,22 +59,6 @@ const initTests = async () => {
     'copy moviesSerial from "../../dataset/tinysnb-serial/vMovies.csv"'
   );
 
-  const rdfSchema = await fs.readFile(
-    "../../dataset/rdf/rdf_variant/schema.cypher"
-  );
-  const rdfCopy = await fs.readFile(
-    "../../dataset/rdf/rdf_variant/copy.cypher"
-  );
-  for (const file of [rdfSchema, rdfCopy]) {
-    const lines = file.toString().split("\n");
-    for (const line of lines) {
-      if (line.trim().length === 0) {
-        continue;
-      }
-      await conn.query(line);
-    }
-  }
-
   global.dbPath = dbPath;
   global.db = db;
   global.conn = conn;

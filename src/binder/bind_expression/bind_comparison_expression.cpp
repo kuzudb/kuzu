@@ -37,8 +37,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
     if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {
         combinedType = LogicalType(LogicalTypeID::INT8);
-    } else if (combinedType.getLogicalTypeID() == LogicalTypeID::RDF_VARIANT) {
-        combinedType = LogicalType(LogicalTypeID::STRING);
     }
     std::vector<LogicalType> childrenTypes;
     for (auto i = 0u; i < children.size(); i++) {

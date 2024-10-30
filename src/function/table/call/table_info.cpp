@@ -1,7 +1,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/runtime.h"
-#include "common/keyword/rdf_keyword.h"
 #include "common/string_utils.h"
 #include "function/table/bind_input.h"
 #include "function/table/call_functions.h"
@@ -44,16 +43,6 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         if (tableEntry->getTableType() == TableType::REL) {
             if (property.getName() == InternalKeyword::ID) {
                 // Skip internal id column.
-                continue;
-            }
-            if (property.getName() == rdf::PID) {
-                // Replace pid column with (virtual) iri column.
-                dataChunk.getValueVectorMutable(0).setValue<int64_t>(vectorPos, -1);
-                dataChunk.getValueVectorMutable(1).setValue(vectorPos,
-                    std::string(rdf::IRI) + " (Virtual)");
-                dataChunk.getValueVectorMutable(2).setValue(vectorPos,
-                    LogicalType::STRING().toString());
-                vectorPos++;
                 continue;
             }
         }

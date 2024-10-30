@@ -200,7 +200,6 @@ enum class LogicalTypeID : uint8_t {
     STRUCT = 54,
     MAP = 55,
     UNION = 56,
-    RDF_VARIANT = 57,
     POINTER = 58,
 
     UUID = 59,
@@ -325,8 +324,6 @@ public:
     static KUZU_API LogicalType NODE(std::unique_ptr<StructTypeInfo> typeInfo);
 
     static KUZU_API LogicalType REL(std::unique_ptr<StructTypeInfo> typeInfo);
-
-    static KUZU_API LogicalType RDF_VARIANT();
 
     static KUZU_API LogicalType UNION(std::vector<StructField>&& fields);
 

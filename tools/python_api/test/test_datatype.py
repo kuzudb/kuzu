@@ -7,6 +7,7 @@ from uuid import UUID
 import numpy as np
 import pandas as pd
 import pytz
+
 from type_aliases import ConnDB
 
 
@@ -353,55 +354,6 @@ def test_recursive_rel(conn_db_readonly: ConnDB) -> None:
     assert rel == excepted_rel
     assert not result.has_next()
     result.close()
-
-
-def test_rdf_variant(conn_db_readwrite: ConnDB) -> None:
-    conn, db = conn_db_readwrite
-
-    with conn.execute("MATCH (a:T_l) RETURN a.val ORDER BY a.id") as result:
-        assert result.has_next()
-        assert result.get_next() == [12]
-        assert result.has_next()
-        assert result.get_next() == [43]
-        assert result.has_next()
-        assert result.get_next() == [33]
-        assert result.has_next()
-        assert result.get_next() == [2]
-        assert result.has_next()
-        assert result.get_next() == [90]
-        assert result.has_next()
-        assert result.get_next() == [77]
-        assert result.has_next()
-        assert result.get_next() == [12]
-        assert result.has_next()
-        assert result.get_next() == [1]
-        assert result.has_next()
-
-        float_result = result.get_next()[0]
-        assert abs(float_result - 4.4) < 0.00001
-        assert result.has_next()
-
-        float_result = result.get_next()[0]
-        assert abs(float_result - 1.2) < 0.00001
-        assert result.has_next()
-        assert result.get_next() == [True]
-        assert result.has_next()
-        assert result.get_next() == ["hhh"]
-        assert result.has_next()
-        assert result.get_next() == [datetime.date(2024, 1, 1)]
-        assert result.has_next()
-        assert result.get_next() == [datetime.datetime(2024, 1, 1, 11, 25, 30)]
-        assert result.has_next()
-        assert result.get_next() == [datetime.timedelta(days=2)]
-        assert result.has_next()
-
-        result_blob = result.get_next()[0]
-        assert len(result_blob) == 1
-        assert result_blob[0] == 0xB2
-        assert not result.has_next()
-
-    with conn.execute("DROP RDFGraph T;") as result:
-        result.close()
 
 
 def test_large_array(conn_db_readwrite: ConnDB) -> None:

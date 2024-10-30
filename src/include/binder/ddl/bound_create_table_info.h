@@ -140,31 +140,5 @@ struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogE
         common::Deserializer& deserializer);
 };
 
-struct BoundExtraCreateRdfGraphInfo final : public BoundExtraCreateCatalogEntryInfo {
-    BoundCreateTableInfo resourceInfo;
-    BoundCreateTableInfo literalInfo;
-    BoundCreateTableInfo resourceTripleInfo;
-    BoundCreateTableInfo literalTripleInfo;
-
-    BoundExtraCreateRdfGraphInfo(BoundCreateTableInfo resourceInfo,
-        BoundCreateTableInfo literalInfo, BoundCreateTableInfo resourceTripleInfo,
-        BoundCreateTableInfo literalTripleInfo)
-        : resourceInfo{std::move(resourceInfo)}, literalInfo{std::move(literalInfo)},
-          resourceTripleInfo{std::move(resourceTripleInfo)},
-          literalTripleInfo{std::move(literalTripleInfo)} {}
-    BoundExtraCreateRdfGraphInfo(const BoundExtraCreateRdfGraphInfo& other)
-        : resourceInfo{other.resourceInfo.copy()}, literalInfo{other.literalInfo.copy()},
-          resourceTripleInfo{other.resourceTripleInfo.copy()},
-          literalTripleInfo{other.literalTripleInfo.copy()} {}
-
-    inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
-        return std::make_unique<BoundExtraCreateRdfGraphInfo>(*this);
-    }
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateRdfGraphInfo> deserialize(
-        common::Deserializer& deserializer);
-};
-
 } // namespace binder
 } // namespace kuzu

@@ -1,8 +1,0 @@
-@prefix : <http://www.example.org/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-:ints :int 1, 2, 3 .
-:decimals :dec 1.0, 2.2, 3.5 .
-:doubles :double 1.0E2, 2.0E3, 3.0E4 .
-:mixed1 :int 1 ; :dec 2.2 .
-:mixed2 :double 2E-1 ; :dec 2.2 .

@@ -219,10 +219,6 @@ public class Native {
 
     protected static native long kuzu_value_get_struct_index(Value struct_val, String field_name);
 
-    protected static native DataType kuzu_rdf_variant_get_data_type(Value rdf_variant);
-
-    protected static native <T> T kuzu_rdf_variant_get_value(Value rdf_variant);
-
     protected static native String kuzu_get_version();
 
     protected static native long kuzu_get_storage_version();

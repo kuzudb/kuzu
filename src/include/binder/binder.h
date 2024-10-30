@@ -14,7 +14,6 @@
 
 namespace kuzu {
 namespace parser {
-struct PropertyDefinitionDDL;
 struct CreateTableInfo;
 struct BaseScanSource;
 class ProjectGraph;
@@ -24,7 +23,6 @@ struct JoinHintNode;
 namespace catalog {
 class NodeTableCatalogEntry;
 class RelTableCatalogEntry;
-class RDFGraphCatalogEntry;
 class Catalog;
 } // namespace catalog
 
@@ -48,10 +46,6 @@ struct TableFunction;
 namespace transaction {
 class Transaction;
 } // namespace transaction
-
-namespace common {
-struct RdfReaderConfig;
-}
 
 namespace binder {
 struct BoundBaseScanSource;
@@ -104,7 +98,6 @@ public:
     BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
-    BoundCreateTableInfo bindCreateRdfGraphInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
@@ -127,16 +120,6 @@ public:
         catalog::NodeTableCatalogEntry* nodeTableEntry);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
         catalog::RelTableCatalogEntry* relTableEntry);
-    std::unique_ptr<BoundStatement> bindCopyRdfFrom(const parser::Statement& statement,
-        catalog::RDFGraphCatalogEntry* rdfGraphEntry);
-    BoundCopyFromInfo bindCopyRdfResourceInfo(const common::RdfReaderConfig& config,
-        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
-    BoundCopyFromInfo bindCopyRdfLiteralInfo(const common::RdfReaderConfig& config,
-        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
-    BoundCopyFromInfo bindCopyRdfResourceTriplesInfo(const common::RdfReaderConfig& config,
-        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
-    BoundCopyFromInfo bindCopyRdfLiteralTriplesInfo(const common::RdfReaderConfig& config,
-        const function::TableFuncBindData& bindData, const catalog::RDFGraphCatalogEntry& rdfEntry);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
