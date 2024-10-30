@@ -26,6 +26,7 @@ std::shared_ptr<LogicalOperator> TopKOptimizer::visitOperator(
 // TODO(Xiyang): we should probably remove the projection between ORDER BY and MULTIPLICITY REDUCER
 // We search for pattern
 // ORDER BY -> PROJECTION -> MULTIPLICITY REDUCER -> LIMIT
+// ORDER BY -> MULTIPLICITY REDUCER -> LIMIT
 // and rewrite as TOP_K
 std::shared_ptr<LogicalOperator> TopKOptimizer::visitLimitReplace(
     std::shared_ptr<LogicalOperator> op) {
@@ -35,18 +36,23 @@ std::shared_ptr<LogicalOperator> TopKOptimizer::visitLimitReplace(
     }
     auto multiplicityReducer = limit->getChild(0);
     KU_ASSERT(multiplicityReducer->getOperatorType() == LogicalOperatorType::MULTIPLICITY_REDUCER);
-    if (multiplicityReducer->getChild(0)->getOperatorType() != LogicalOperatorType::PROJECTION) {
+
+    auto projectionOrOrderBy = multiplicityReducer->getChild(0);
+    std::shared_ptr<LogicalOrderBy> orderBy;
+    if (projectionOrOrderBy->getOperatorType() == LogicalOperatorType::PROJECTION) {
+        if (projectionOrOrderBy->getChild(0)->getOperatorType() != LogicalOperatorType::ORDER_BY) {
+            return op;
+        }
+        orderBy = std::static_pointer_cast<LogicalOrderBy>(projectionOrOrderBy->getChild(0));
+    } else if (projectionOrOrderBy->getOperatorType() == LogicalOperatorType::ORDER_BY) {
+        orderBy = std::static_pointer_cast<LogicalOrderBy>(projectionOrOrderBy);
+    } else {
         return op;
     }
-    auto projection = multiplicityReducer->getChild(0);
-    if (projection->getChild(0)->getOperatorType() != LogicalOperatorType::ORDER_BY) {
-        return op;
-    }
-    auto orderBy = std::static_pointer_cast<LogicalOrderBy>(projection->getChild(0));
     orderBy->setLimitNum(limit->getLimitNum());
     auto skipNum = limit->hasSkipNum() ? limit->getSkipNum() : 0;
     orderBy->setSkipNum(skipNum);
-    return projection;
+    return projectionOrOrderBy;
 }
 
 } // namespace optimizer

@@ -14,8 +14,13 @@ std::string HashAggregatePrintInfo::toString() const {
     std::string result = "";
     result += "Group By: ";
     result += binder::ExpressionUtil::toString(keys);
-    result += ", Aggregates: ";
-    result += binder::ExpressionUtil::toString(aggregates);
+    if (!aggregates.empty()) {
+        result += ", Aggregates: ";
+        result += binder::ExpressionUtil::toString(aggregates);
+    }
+    if (limitNum != UINT64_MAX) {
+        result += ", Distinct Limit: " + std::to_string(limitNum);
+    }
     return result;
 }
 
@@ -117,6 +122,9 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         const auto numAppendedFlatTuples = localState.append(aggInputs, resultSet->multiplicity);
         metrics->numOutputTuple.increase(numAppendedFlatTuples);
+        if (sharedState->increaseAndCheckLimitCount(numAppendedFlatTuples)) {
+            break;
+        }
     }
     sharedState->appendAggregateHashTable(std::move(localState.aggregateHashTable));
 }

@@ -6,6 +6,7 @@
 #include "optimizer/correlated_subquery_unnest_solver.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
+#include "optimizer/limit_push_down_optimizer.h"
 #include "optimizer/projection_push_down_optimizer.h"
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
@@ -37,6 +38,9 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
         auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
         hashJoinSIPOptimizer.rewrite(plan);
     }
+
+    auto limitPushDownOptimizer = LimitPushDownOptimizer(context);
+    limitPushDownOptimizer.rewrite(plan);
 
     auto topKOptimizer = TopKOptimizer();
     topKOptimizer.rewrite(plan);

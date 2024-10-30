@@ -12,7 +12,8 @@ class HashAggregateSharedState final : public BaseAggregateSharedState {
 public:
     explicit HashAggregateSharedState(
         const std::vector<function::AggregateFunction>& aggregateFunctions)
-        : BaseAggregateSharedState{aggregateFunctions} {}
+        : BaseAggregateSharedState{aggregateFunctions}, limitCounter{0},
+          limitNumber{common::INVALID_LIMIT} {}
 
     void appendAggregateHashTable(std::unique_ptr<AggregateHashTable> aggregateHashTable);
 
@@ -28,9 +29,22 @@ public:
 
     uint64_t getCurrentOffset() const { return currentOffset; }
 
+    // return whether limitNumber is exceeded
+    bool increaseAndCheckLimitCount(uint64_t num) {
+        if (limitNumber == common::INVALID_LIMIT) {
+            return false;
+        } else {
+            return limitCounter.fetch_add(num) >= limitNumber;
+        }
+    }
+
+    void setLimitNumber(uint64_t num) { limitNumber = num; }
+
 private:
     std::vector<std::unique_ptr<AggregateHashTable>> localAggregateHashTables;
     std::unique_ptr<AggregateHashTable> globalAggregateHashTable;
+    std::atomic_uint64_t limitCounter;
+    uint64_t limitNumber;
 };
 
 struct HashAggregateInfo {
@@ -61,9 +75,10 @@ struct HashAggregateLocalState {
 struct HashAggregatePrintInfo final : OPPrintInfo {
     binder::expression_vector keys;
     binder::expression_vector aggregates;
+    uint64_t limitNum;
 
     HashAggregatePrintInfo(binder::expression_vector keys, binder::expression_vector aggregates)
-        : keys{std::move(keys)}, aggregates{std::move(aggregates)} {}
+        : keys{std::move(keys)}, aggregates{std::move(aggregates)}, limitNum{UINT64_MAX} {}
 
     std::string toString() const override;
 
@@ -73,7 +88,8 @@ struct HashAggregatePrintInfo final : OPPrintInfo {
 
 private:
     HashAggregatePrintInfo(const HashAggregatePrintInfo& other)
-        : OPPrintInfo{other}, keys{other.keys}, aggregates{other.aggregates} {}
+        : OPPrintInfo{other}, keys{other.keys}, aggregates{other.aggregates},
+          limitNum{other.limitNum} {}
 };
 
 class HashAggregate : public BaseAggregate {
@@ -98,6 +114,8 @@ public:
             copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->clone(), id,
             printInfo->copy());
     }
+
+    std::shared_ptr<HashAggregateSharedState> getSharedState() const { return sharedState; }
 
 private:
     HashAggregateInfo hashInfo;
