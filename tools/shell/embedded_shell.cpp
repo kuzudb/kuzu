@@ -85,6 +85,8 @@ std::string historyLine;
 
 static Connection* globalConnection;
 
+bool printInterrupted = false;
+
 #ifndef _WIN32
 struct termios orig_termios;
 bool noEcho = false;
@@ -393,7 +395,10 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     stats = shellConfig.stats;
     updateTableNames();
     updateFunctionNames();
-    KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
+    auto sigResult = std::signal(SIGINT, interruptHandler);
+    if (sigResult == SIG_ERR) {
+        throw std::runtime_error("Error: Failed to set signal handler");
+    }
 }
 
 std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
@@ -501,6 +506,7 @@ void EmbeddedShell::run() {
         }
         for (auto& queryResult : queryResults) {
             if (queryResult->isSuccess()) {
+                printInterrupted = false;
                 printExecutionResult(*queryResult);
             } else {
                 printErrorMessage(lineStr, *queryResult);
@@ -523,13 +529,7 @@ void EmbeddedShell::run() {
 
 void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
-#ifndef _WIN32
-    /* Don't even check the return value as it's too late. */
-    if (noEcho && tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) != -1)
-        noEcho = false;
-#else
-    SetConsoleOutputCP(oldOutputCP);
-#endif
+    printInterrupted = true;
 }
 
 void EmbeddedShell::setLinenoiseMode(int mode) {
@@ -774,6 +774,9 @@ std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) co
         printString = jsonDrawingCharacters->ArrayOpen;
     }
     while (queryResult.hasNext()) {
+        if (printInterrupted) {
+            return std::string();
+        }
         auto tuple = queryResult.getNext();
         printString += jsonDrawingCharacters->ObjectOpen;
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
@@ -846,6 +849,9 @@ std::string EmbeddedShell::printHtmlExecutionResult(QueryResult& queryResult) co
     printString += htmlDrawingCharacters->RowClose;
     printString += "\n";
     while (queryResult.hasNext()) {
+        if (printInterrupted) {
+            return std::string();
+        }
         auto tuple = queryResult.getNext();
         printString += htmlDrawingCharacters->RowOpen;
         printString += "\n";
@@ -933,6 +939,9 @@ std::string EmbeddedShell::printLatexExecutionResult(QueryResult& queryResult) c
     printString += latexDrawingCharacters->Line;
     printString += "\n";
     while (queryResult.hasNext()) {
+        if (printInterrupted) {
+            return std::string();
+        }
         auto tuple = queryResult.getNext();
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
             printString += escapeLatexString(tuple->getValue(i)->toString());
@@ -954,6 +963,9 @@ std::string EmbeddedShell::printLineExecutionResult(QueryResult& queryResult) co
     auto colNames = queryResult.getColumnNames();
     std::string printString = "";
     while (queryResult.hasNext()) {
+        if (printInterrupted) {
+            return std::string();
+        }
         auto tuple = queryResult.getNext();
         for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
             printString += colNames[i];
@@ -1016,6 +1028,9 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         }
         printString += "\n";
         while (queryResult.hasNext()) {
+            if (printInterrupted) {
+                return;
+            }
             auto tuple = queryResult.getNext();
             for (auto i = 0u; i < queryResult.getNumColumns(); i++) {
                 std::string field = tuple->getValue(i)->toString();
@@ -1027,8 +1042,10 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             printString += "\n";
         }
     }
-    printf("%s", printString.c_str());
-    if (stats) {
+    if (!printInterrupted) {
+        printf("%s", printString.c_str());
+    }
+    if (stats && !printInterrupted) {
         if (queryResult.getNumTuples() == 1) {
             printf("(1 tuple)\n");
         } else {
@@ -1340,6 +1357,9 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
     rowCount = 0;
     bool rowTruncated = false;
     while (queryResult.hasNext()) {
+        if (printInterrupted) {
+            return;
+        }
         if (numTuples > maxRowSize && rowCount >= (maxRowSize / 2) + (maxRowSize % 2 != 0) &&
             rowCount < numTuples - maxRowSize / 2) {
             auto tuple = queryResult.getNext();
