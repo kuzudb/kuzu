@@ -237,8 +237,9 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         auto childType = LogicalType::ANY();
         for (auto& ele : split) {
             if (StringUtils::ltrim(StringUtils::rtrim(ele)) != "NULL") {
-                childType = LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
-            }   
+                childType =
+                    LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
+            }
         }
         return LogicalType::LIST(std::move(childType));
     }
