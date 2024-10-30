@@ -381,11 +381,11 @@ void NodeTable::insertPK(const Transaction* transaction, const ValueVector& node
 void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     if (hasChanges) {
         // Deleted columns are vaccumed and not checkpointed or serialized.
-        std::vector<std::unique_ptr<Column>> checkpointColumns;
+        std::vector<Column*> checkpointColumns;
         std::vector<column_id_t> columnIDs;
         for (auto& property : tableEntry->getProperties()) {
             auto columnID = tableEntry->getColumnID(property.getName());
-            checkpointColumns.push_back(std::move(columns[columnID]));
+            checkpointColumns.push_back(columns[columnID].get());
             columnIDs.push_back(columnID);
         }
         NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH,
@@ -393,7 +393,6 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         nodeGroups->checkpoint(*memoryManager, state);
         pkIndex->checkpoint();
         hasChanges = false;
-        columns = std::move(state.columns);
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
     serialize(ser);

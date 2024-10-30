@@ -95,12 +95,15 @@ public:
      *        an in-memory database.
      * @param systemConfig System configurations (buffer pool size and max num threads).
      */
-    KUZU_API explicit Database(std::string_view databasePath,
+    KUZU_API static std::unique_ptr<Database> construct(std::string_view databasePath,
         SystemConfig systemConfig = SystemConfig());
+    KUZU_API static std::shared_ptr<Database> constructShared(std::string_view databasePath,
+        SystemConfig systemConfig = SystemConfig());
+
     /**
      * @brief Destructs the database object.
      */
-    KUZU_API ~Database();
+    KUZU_API virtual ~Database();
 
     // TODO(Ziyi): Instead of exposing a dedicated API for adding a new function, we should consider
     // add function through the extension module.
@@ -126,6 +129,11 @@ public:
 
     uint64_t getNextQueryID();
 
+protected:
+    explicit Database(SystemConfig systemConfig = SystemConfig());
+    virtual std::unique_ptr<storage::BufferManager> initBufferManager();
+    void initMembers(std::string_view dbPath);
+
 private:
     struct QueryIDGenerator {
         uint64_t queryID = 0;
@@ -135,7 +143,7 @@ private:
     void openLockFile();
     void initAndLockDBDir();
 
-private:
+protected:
     std::string databasePath;
     DBConfig dbConfig;
     std::unique_ptr<common::VirtualFileSystem> vfs;

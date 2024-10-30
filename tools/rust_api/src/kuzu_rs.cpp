@@ -79,7 +79,7 @@ std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t b
     if (maxDBSize != -1u) {
         systemConfig.maxDBSize = maxDBSize;
     }
-    return std::make_unique<Database>(databasePath, systemConfig);
+    return Database::construct(databasePath, systemConfig);
 }
 
 std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& database) {

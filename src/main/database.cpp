@@ -75,18 +75,29 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
     lock = readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
 }
 
-Database::Database(std::string_view databasePath, SystemConfig systemConfig)
-    : dbConfig{systemConfig} {
+Database::Database(SystemConfig systemConfig) : dbConfig{systemConfig} {}
+
+std::unique_ptr<Database> Database::construct(std::string_view databasePath,
+    SystemConfig systemConfig) {
+    auto ret = std::unique_ptr<Database>(new Database(systemConfig));
+    ret->initMembers(databasePath);
+    return ret;
+}
+
+std::shared_ptr<Database> Database::constructShared(std::string_view databasePath,
+    SystemConfig systemConfig) {
+    return std::shared_ptr<Database>(construct(databasePath, systemConfig).release());
+}
+
+void Database::initMembers(std::string_view dbPath) {
     vfs = std::make_unique<VirtualFileSystem>();
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);
-    const auto dbPathStr = std::string(databasePath);
-    this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
+    const auto dbPathStr = std::string(dbPath);
+    databasePath = vfs->expandPath(&clientContext, dbPathStr);
     initAndLockDBDir();
-    bufferManager = std::make_unique<BufferManager>(this->databasePath,
-        this->dbConfig.spillToDiskTmpFile.value_or(vfs->joinPath(this->databasePath, "copy.tmp")),
-        this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly);
+    bufferManager = initBufferManager();
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());
@@ -98,11 +109,20 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     databaseManager = std::make_unique<DatabaseManager>();
 }
 
+std::unique_ptr<storage::BufferManager> Database::initBufferManager() {
+    return std::make_unique<BufferManager>(this->databasePath,
+        this->dbConfig.spillToDiskTmpFile.value_or(vfs->joinPath(this->databasePath, "copy.tmp")),
+        this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly);
+}
+
 Database::~Database() {
     if (!dbConfig.readOnly && dbConfig.forceCheckpointOnClose) {
         try {
             ClientContext clientContext(this);
-            transactionManager->checkpoint(clientContext);
+            if (transactionManager) {
+                // if the construction of the Database throws transactionManager may still be null
+                transactionManager->checkpoint(clientContext);
+            }
         } catch (...) {} // NOLINT
     }
 }

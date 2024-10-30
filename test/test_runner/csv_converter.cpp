@@ -185,7 +185,7 @@ void CSVConverter::convertCSVDataset() {
     // FIXME(bmwinger): This ignores the environment variables
     systemConfig->bufferPoolSize = bufferPoolSize;
     std::string tempDatabasePath = TestHelper::getTempDir("csv_converter");
-    tempDb = std::make_unique<main::Database>(tempDatabasePath, *systemConfig);
+    tempDb = main::Database::construct(tempDatabasePath, *systemConfig);
     tempConn = std::make_unique<main::Connection>(tempDb.get());
 
     convertCSVFiles();

@@ -28,10 +28,10 @@ public:
 
     template<typename T>
     void handleError(IndexBuilderError<T> error) {
+        baseErrorHandler.handleError(std::move(error.message), std::move(error.warningData));
+
         setCurrentErroneousRow(error.key, error.nodeID);
         deleteCurrentErroneousRow();
-
-        baseErrorHandler.handleError(std::move(error.message), std::move(error.warningData));
     }
 
     void flushStoredErrors();

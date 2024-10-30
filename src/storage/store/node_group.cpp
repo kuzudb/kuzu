@@ -309,8 +309,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
     const auto numPersistentRows = firstGroup->getNumRows();
     std::vector<const Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
-    for (auto& column : state.columns) {
-        columnPtrs.push_back(column.get());
+    for (auto* column : state.columns) {
+        columnPtrs.push_back(column);
     }
     const auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(
         memoryManager, lock, state.columnIDs, columnPtrs);
@@ -328,7 +328,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
         if (columnHasUpdates) {
             // TODO(Guodong): Optimize this to scan only vectors with updates.
             const auto updateChunk = scanAllInsertedAndVersions<ResidencyState::ON_DISK>(
-                memoryManager, lock, {columnID}, {state.columns[columnID].get()});
+                memoryManager, lock, {columnID}, {state.columns[columnID]});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
             chunkCheckpointStates.push_back(ChunkCheckpointState{
                 updateChunk->getColumnChunk(0).moveData(), 0, updateChunk->getNumRows()});
@@ -356,7 +356,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     std::vector<const Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
     for (auto& column : state.columns) {
-        columnPtrs.push_back(column.get());
+        columnPtrs.push_back(column);
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);

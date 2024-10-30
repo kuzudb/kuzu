@@ -187,15 +187,14 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
-    std::vector<std::unique_ptr<Column>> checkpointColumns;
+    std::vector<Column*> checkpointColumns;
     for (auto i = 0u; i < columnIDs.size(); i++) {
         const auto columnID = columnIDs[i];
-        checkpointColumns.push_back(std::move(columns[columnID]));
+        checkpointColumns.push_back(columns[columnID].get());
     }
     CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH,
         memoryManager, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(*memoryManager, state);
-    columns = std::move(state.columns);
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

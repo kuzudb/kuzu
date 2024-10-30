@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> conn;
     try {
-        database = std::make_shared<Database>(databasePath, systemConfig);
+        database = Database::constructShared(databasePath, systemConfig);
         conn = std::make_shared<Connection>(database.get());
     } catch (Exception& e) {
         std::cerr << e.what() << '\n';

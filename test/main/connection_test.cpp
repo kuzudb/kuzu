@@ -157,7 +157,7 @@ TEST_F(ApiTest, Prepare) {
 
 TEST_F(ApiTest, CreateTableAfterClosingDatabase) {
     database.reset();
-    database = std::make_unique<Database>(databasePath, *systemConfig);
+    database = Database::construct(databasePath, *systemConfig);
     conn = std::make_unique<Connection>(database.get());
 
     auto result = conn->query("CREATE NODE TABLE Test(name STRING, age INT64, PRIMARY KEY(name));");
