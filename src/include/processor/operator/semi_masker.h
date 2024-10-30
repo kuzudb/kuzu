@@ -14,7 +14,7 @@ using mask_vector = std::vector<common::RoaringBitmapSemiMask*>;
 struct SemiMaskerLocalInfo {
     std::unordered_map<common::table_id_t, std::unique_ptr<common::RoaringBitmapSemiMask>>
         localMasksPerTable;
-    common::RoaringBitmapSemiMask* singleTableRef;
+    common::RoaringBitmapSemiMask* singleTableRef = nullptr;
 };
 
 struct SemiMaskerInnerInfo {
@@ -57,7 +57,7 @@ public:
 
     void mergeToGlobalInfo() {
         for (const auto& [tableID, globalVector] : innerInfo->masksPerTable) {
-            if (globalVector.front()->getMaxOffset() > std::numeric_limits<u_int32_t>::max()) {
+            if (globalVector.front()->getMaxOffset() > std::numeric_limits<uint32_t>::max()) {
                 std::vector<roaring::Roaring64Map*> masks;
                 for (const auto& localInfo : innerInfo->localInfos) {
                     const auto& mask = localInfo->localMasksPerTable.at(tableID);
