@@ -298,7 +298,7 @@ TEST_F(ApiTest, TernaryUDFStr) {
         LogicalTypeID::INT32, &ternaryLenTotal);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (m:movies) return ternaryLenTotal(m.name, m.content, m.note)"));
-    auto expectedResult = std::vector<std::string>{"64", "67", "83"};
+    auto expectedResult = std::vector<std::string>{"64", "68", "84"};
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 

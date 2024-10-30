@@ -169,11 +169,8 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
     constexpr char array_begin = common::CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR;
     constexpr char array_end = common::CopyConstants::DEFAULT_CSV_LIST_END_CHAR;
     auto cpy = StringUtils::ltrim(StringUtils::rtrim(str));
-    if (cpy.size() == 0) {
+    if (cpy.size() == 0 || cpy == "NULL") {
         return LogicalType::ANY();
-    }
-    if (cpy == "NULL") {
-        return LogicalType::NULL_STR();
     }
     // Boolean
     if (RE2::FullMatch(cpy, boolPattern())) {
@@ -236,10 +233,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         auto split = StringUtils::smartSplit(cpy.substr(1, cpy.size() - 2), ',');
         auto childType = LogicalType::ANY();
         for (auto& ele : split) {
-            if (StringUtils::ltrim(StringUtils::rtrim(ele)) != "NULL") {
-                childType =
-                    LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
-            }
+            childType = LogicalTypeUtils::combineTypes(childType, inferMinimalTypeFromString(ele));
         }
         return LogicalType::LIST(std::move(childType));
     }

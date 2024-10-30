@@ -279,11 +279,6 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
     value_start:
         // state: value_start
         // this state parses the first character of a value
-        // skip the spaces after delimiter
-        if (buffer[position] == ' ') {
-            position++;
-            goto value_start;
-        }
         if (buffer[position] == option.quoteChar) {
             [[unlikely]]
             // quote: actual value starts in the next position

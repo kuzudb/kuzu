@@ -757,7 +757,6 @@ std::vector<LogicalType> LogicalType::copy(const std::vector<LogicalType*>& type
 PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID,
     const std::unique_ptr<ExtraTypeInfo>& extraTypeInfo) {
     switch (typeID) {
-    case LogicalTypeID::NULL_STR:
     case LogicalTypeID::ANY: {
         return PhysicalTypeID::ANY;
     }
@@ -1782,13 +1781,6 @@ bool LogicalTypeUtils::tryGetMaxLogicalType(const std::vector<LogicalType>& type
 
 LogicalType LogicalTypeUtils::combineTypes(const common::LogicalType& lft,
     const common::LogicalType& rit) { // always succeeds
-    if (lft.getLogicalTypeID() == LogicalTypeID::NULL_STR) {
-        return rit;
-    }
-    if (rit.getLogicalTypeID() == LogicalTypeID::NULL_STR) {
-        return lft;
-    }
-
     if (lft.getLogicalTypeID() == LogicalTypeID::STRING ||
         rit.getLogicalTypeID() == LogicalTypeID::STRING) {
         return LogicalType::STRING();
