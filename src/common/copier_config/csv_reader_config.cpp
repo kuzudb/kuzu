@@ -91,6 +91,10 @@ static bool validateIntParsingOptionName(const std::string& parsingOptionName) {
     return hasOption(CopyConstants::INT_CSV_PARSING_OPTIONS, parsingOptionName);
 }
 
+static bool validateIgnoredOptionName(const std::string& parsingOptionName) {
+    return hasOption(CopyConstants::IGNORED_CSV_PARSING_OPTIONS, parsingOptionName);
+}
+
 static bool isValidBooleanOptionValue(const Value& value, const std::string& name) {
 
     // Normalize and check if the string is a valid Boolean representation
@@ -117,6 +121,7 @@ CSVReaderConfig CSVReaderConfig::construct(
         auto isValidStringParsingOption = validateStringParsingOptionName(name);
         auto isValidBoolParsingOption = validateBoolParsingOptionName(name);
         auto isValidIntParsingOption = validateIntParsingOptionName(name);
+        auto isIgnoredOption = validateIgnoredOptionName(name);
         if (isValidBoolParsingOption) {
             bindBoolParsingOption(config, name, isValidBooleanOptionValue(op.second, name));
         } else if (isValidStringParsingOption) {
@@ -131,6 +136,9 @@ CSVReaderConfig CSVReaderConfig::construct(
                     stringFormat("The type of csv parsing option {} must be a INT64.", name));
             }
             bindIntParsingOption(config, name, op.second.getValue<int64_t>());
+        } else if (isIgnoredOption) {
+            // Ignore the options that are not for parsing purposes.
+            continue;
         } else {
             throw BinderException(stringFormat("Unrecognized csv parsing option: {}.", name));
         }

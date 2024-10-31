@@ -11,7 +11,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE User (xxx String, PRIMARY KEY (xxx));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP has (FROM User TO Source, FROM Source TO Exercise, xxx String);
+-STATEMENT CREATE REL TABLE has (FROM User TO Source, FROM Source TO Exercise, xxx String);
 ---- ok
 -STATEMENT CREATE (ex:Exercise {xxx: "11-ex"});
 ---- ok
