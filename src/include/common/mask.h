@@ -23,6 +23,8 @@ public:
     // include&exclude
     virtual std::vector<common::offset_t> range(uint32_t start, uint32_t end) = 0;
 
+    virtual uint64_t size() const = 0;
+
     common::table_id_t getTableID() const { return tableID; }
     common::offset_t getMaxOffset() const { return maxOffset; }
 
@@ -62,6 +64,8 @@ public:
         return ans;
     };
 
+    uint64_t size() const override { return roaring->cardinality(); }
+
     std::shared_ptr<roaring::Roaring> roaring;
 };
 
@@ -91,6 +95,8 @@ public:
         }
         return ans;
     };
+
+    uint64_t size() const override { return roaring->cardinality(); }
 
     std::shared_ptr<roaring::Roaring64Map> roaring;
 };

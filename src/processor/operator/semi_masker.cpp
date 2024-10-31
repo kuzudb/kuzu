@@ -74,22 +74,23 @@ bool PathSingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context)
         return false;
     }
     auto& selVector = keyVector->state->getSelVector();
-    uint64_t num = 0;
     // for both direction, we should deal with direction based on the actual direction of the edge
+    auto masker = localInfo->singleTableRef;
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        auto pos = selVector[i];
-        num++;
-        if (direction == ExtendDirection::FWD || direction == ExtendDirection::BOTH) {
-            auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(pos);
-            localInfo->singleTableRef->mask(srcNodeID.offset);
-        }
-
-        if (direction == ExtendDirection::BWD || direction == ExtendDirection::BOTH) {
-            auto dstNodeID = pathRelsDstIDDataVector->getValue<nodeID_t>(pos);
-            localInfo->singleTableRef->mask(dstNodeID.offset);
+        auto [offset, size] = pathRelsVector->getValue<list_entry_t>(selVector[i]);
+        for (auto j = 0u; j < size; ++j) {
+            auto pos = offset + j;
+            if (direction == ExtendDirection::FWD || direction == ExtendDirection::BOTH) {
+                auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(pos);
+                masker->mask(srcNodeID.offset);
+            }
+            if (direction == ExtendDirection::BWD || direction == ExtendDirection::BOTH) {
+                auto dstNodeID = pathRelsDstIDDataVector->getValue<nodeID_t>(pos);
+                masker->mask(dstNodeID.offset);
+            }
         }
     }
-    metrics->numOutputTuple.increase(num);
+    metrics->numOutputTuple.increase(masker->size());
     return true;
 }
 
@@ -98,12 +99,10 @@ bool PathMultipleTableSemiMasker::getNextTuplesInternal(ExecutionContext* contex
         return false;
     }
     auto& selVector = pathRelsVector->state->getSelVector();
-    uint64_t num = 0;
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto [offset, size] = pathRelsVector->getValue<list_entry_t>(selVector[i]);
         for (auto j = 0u; j < size; ++j) {
             auto pos = offset + j;
-            num++;
             if (direction == ExtendDirection::FWD || direction == ExtendDirection::BOTH) {
                 auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(pos);
                 localInfo->localMasksPerTable.at(srcNodeID.tableID)->mask(srcNodeID.offset);
@@ -113,6 +112,10 @@ bool PathMultipleTableSemiMasker::getNextTuplesInternal(ExecutionContext* contex
                 localInfo->localMasksPerTable.at(dstNodeID.tableID)->mask(dstNodeID.offset);
             }
         }
+    }
+    uint64_t num = 0;
+    for (const auto& [_, masker] : localInfo->localMasksPerTable) {
+        num += masker->size();
     }
     metrics->numOutputTuple.increase(num);
     return true;
