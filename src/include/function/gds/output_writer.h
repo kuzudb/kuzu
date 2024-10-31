@@ -133,12 +133,19 @@ public:
         processor::GDSOutputCounter* counter) override;
 
 private:
-    bool isNextViable(const std::vector<ParentList*>& path, ParentList* next) const;
 
-    bool checkPathNodeMask(const std::vector<ParentList*>& path) const;
-    bool checkSemantic(const std::vector<ParentList*>& path) const;
-    bool isTrail(const std::vector<ParentList*>& path) const;
-    bool isAcyclic(const std::vector<ParentList*>& path) const;
+    ParentList* findFirstParent(common::offset_t dstOffset, BFSGraph& bfsGraph) const;
+
+    bool checkPathNodeMask(ParentList* element) const;
+
+    bool checkAppendSemantic(const std::vector<ParentList*>& path, ParentList* candidate) const;
+    bool checkReplaceTopSemantic(const std::vector<ParentList*>& path, ParentList* candidate) const;
+    bool isAppendTrail(const std::vector<ParentList*>& path, ParentList* candidate) const;
+    bool isAppendAcyclic(const std::vector<ParentList*>& path, ParentList* candidate) const;
+    bool isReplaceTopTrail(const std::vector<ParentList*>& path, ParentList* candidate) const;
+    bool isReplaceTopAcyclic(const std::vector<ParentList*>& path, ParentList* candidate) const;
+
+    bool isNextViable(ParentList* next, const std::vector<ParentList*>& path) const;
 
     void beginWritePath(common::idx_t length) const;
     void writePath(const std::vector<ParentList*>& path) const;
