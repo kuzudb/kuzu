@@ -84,11 +84,6 @@ std::unique_ptr<Database> Database::construct(std::string_view databasePath,
     return ret;
 }
 
-std::shared_ptr<Database> Database::constructShared(std::string_view databasePath,
-    SystemConfig systemConfig) {
-    return std::shared_ptr<Database>(construct(databasePath, systemConfig).release());
-}
-
 void Database::initMembers(std::string_view dbPath) {
     vfs = std::make_unique<VirtualFileSystem>();
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which

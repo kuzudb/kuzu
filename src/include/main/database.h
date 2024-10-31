@@ -97,8 +97,6 @@ public:
      */
     KUZU_API static std::unique_ptr<Database> construct(std::string_view databasePath,
         SystemConfig systemConfig = SystemConfig());
-    KUZU_API static std::shared_ptr<Database> constructShared(std::string_view databasePath,
-        SystemConfig systemConfig = SystemConfig());
 
     /**
      * @brief Destructs the database object.
