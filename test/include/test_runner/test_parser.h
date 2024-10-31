@@ -118,7 +118,6 @@ private:
     void replaceVariables(std::string& str) const;
     static void extractConnName(std::string& query, TestStatement* statement);
 
-    bool endOfFile() const { return fileStream.eof(); }
     void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
 
     bool nextLine() {

@@ -1,4 +1,4 @@
--DATASET CSV empty
+-DATASET CSV tinysnb
 
 --
 
@@ -20,3 +20,10 @@
            RETURN 1;
 ---- 1
 1
+
+-CASE OkWithEOFTest
+
+-STATEMENT RETURN 5
+
+-STATEMENT CALL show_tables() RETURN *
+---- ok
