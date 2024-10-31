@@ -3,10 +3,13 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 
+#include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include <span>
 
 namespace kuzu {
@@ -26,17 +29,58 @@ struct RelTableIDInfo {
 class GraphScanState {
 public:
     struct Chunk {
+        friend class GraphScanState;
+
+        // Any neighbour for which the given function returns false
+        // will be omitted from future iterations
+        // Used in GDSTask/EdgeCompute for updating the frontier
+        template<class Func>
+        void forEach(Func&& func) const {
+            selVector.forEach([&](auto i) { func(nbrNodes[i], edges[i]); });
+        }
+
+        // Any neighbour for which the given function returns false
+        // will be omitted from future iterations
+        // Used in GDSTask/EdgeCompute for updating the frontier
+        template<class T, class Func>
+        void forEach(Func&& func) const {
+            KU_ASSERT(propertyVector);
+            selVector.forEach(
+                [&](auto i) { func(nbrNodes[i], edges[i], propertyVector->getValue<T>(i)); });
+        }
+
+        uint64_t size() const { return selVector.getSelSize(); }
+
+    private:
+        Chunk(std::span<const common::nodeID_t> nbrNodes, std::span<const common::relID_t> edges,
+            common::SelectionVector& selVector, const common::ValueVector* propertyVector)
+            : nbrNodes{nbrNodes}, edges{edges}, selVector{selVector},
+              propertyVector{propertyVector} {
+            KU_ASSERT(nbrNodes.size() == common::DEFAULT_VECTOR_CAPACITY);
+            KU_ASSERT(edges.size() == common::DEFAULT_VECTOR_CAPACITY);
+        }
+
+    private:
         std::span<const common::nodeID_t> nbrNodes;
         std::span<const common::relID_t> edges;
         // this reference can be modified, but the underlying data will be reset the next time next
         // is called
         common::SelectionVector& selVector;
+        const common::ValueVector* propertyVector;
     };
+
     virtual ~GraphScanState() = default;
     virtual Chunk getChunk() = 0;
 
     // Returns true if there are more values after the current batch
     virtual bool next() = 0;
+
+protected:
+    Chunk createChunk(std::span<const common::nodeID_t> nbrNodes,
+        std::span<const common::relID_t> edges, common::SelectionVector& selVector,
+        const common::ValueVector* propertyVector) {
+        return Chunk{nbrNodes, edges, selVector, propertyVector};
+    }
 };
 
 /**
@@ -76,19 +120,17 @@ public:
             // TODO(bmwinger): avoid scanning if all that's necessary is to count the results
             uint64_t result = 0;
             do {
-                result += scanState->getChunk().selVector.getSelSize();
+                result += scanState->getChunk().size();
             } while (scanState->next());
             return result;
         }
 
         std::vector<common::nodeID_t> collectNbrNodes() {
             std::vector<common::nodeID_t> nbrNodes;
-            // Old versions of apple clang have a bug which prevents capture bindings from being
-            // captured by the lambda.
-            // for (const auto [nbrNodes, edges, mask] : *this) // doesn't work here
             for (const auto chunk : *this) {
-                nbrNodes.reserve(nbrNodes.size() + chunk.selVector.getSelSize());
-                chunk.selVector.forEach([&](auto i) { nbrNodes.push_back(chunk.nbrNodes[i]); });
+                nbrNodes.reserve(nbrNodes.size() + chunk.size());
+                chunk.forEach(
+                    [&](auto nbrNodeID, auto /*edgeID*/) { nbrNodes.push_back(nbrNodeID); });
             }
             return nbrNodes;
         }
@@ -122,7 +164,8 @@ public:
     virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) = 0;
+    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
     // Prepares scan on all connected relationship tables using forward adjList.
     virtual std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) = 0;

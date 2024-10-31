@@ -4,8 +4,8 @@
 #include <mutex>
 #include <iostream>
 
-#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
+#include "graph/graph.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -22,12 +22,11 @@ public:
 
     // Does any work that is needed while extending the (boundNodeID, nbrNodeID, edgeID) edge.
     // boundNodeID is the nodeID that is in the current frontier and currently executing.
-    // Updates the mask to indicate the neighbors which should be put in the next frontier.
+    // Returns a list of neighbors which should be put in the next frontier.
     // So if the implementing class has access to the next frontier as a field,
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
-    virtual void edgeCompute(common::nodeID_t boundNodeID,
-        std::span<const common::nodeID_t> nbrNodeID, std::span<const common::relID_t> edgeID,
-        common::SelectionVector& mask, bool fwdEdge) = 0;
+    virtual std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
+        graph::GraphScanState::Chunk& results, bool fwdEdge) = 0;
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };
@@ -117,8 +116,7 @@ class GDSFrontier {
 public:
     virtual ~GDSFrontier() = default;
     virtual bool isActive(common::nodeID_t nodeID) = 0;
-    virtual void setActive(const common::SelectionVector& mask,
-        std::span<const common::nodeID_t> nodeIDs) = 0;
+    virtual void setActive(std::span<const common::nodeID_t> nodeIDs) = 0;
     virtual void setActive(common::nodeID_t nodeID) = 0;
     template<class TARGET>
     TARGET* ptrCast() {
@@ -334,13 +332,12 @@ public:
                curIter.load(std::memory_order_relaxed) - 1;
     }
 
-    void setActive(const common::SelectionVector& mask,
-        std::span<const common::nodeID_t> nodeIDs) override {
+    void setActive(const std::span<const common::nodeID_t> nodeIDs) override {
         auto frontierMask = getNextFrontierFixedMask();
-        mask.forEach([&](auto i) {
-            frontierMask[nodeIDs[i].offset].store(curIter.load(std::memory_order_relaxed),
+        for (const auto nodeID : nodeIDs) {
+            frontierMask[nodeID.offset].store(curIter.load(std::memory_order_relaxed),
                 std::memory_order_relaxed);
-        });
+        }
     }
 
     void setActive(common::nodeID_t nodeID) override {

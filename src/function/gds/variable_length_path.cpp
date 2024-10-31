@@ -1,6 +1,10 @@
+#include <vector>
+
 #include "binder/expression/expression_util.h"
+#include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
+#include "graph/graph.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::binder;
@@ -47,17 +51,20 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         parentPtrsBlock = bfsGraph->addNewBlock();
     };
 
-    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
-        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
-        mask.forEach([&](auto i) {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::GraphScanState::Chunk& chunk,
+        bool isFwd) override {
+        std::vector<nodeID_t> activeNodes;
+        chunk.forEach([&](auto nbrNode, auto edgeID) {
             // We should always update the nbrID in variable length joins
             if (!parentPtrsBlock->hasSpace()) {
                 parentPtrsBlock = bfsGraph->addNewBlock();
             }
             bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock,
-                nbrNodeIDs[i] /* child */, boundNodeID /* parent */, edgeIDs[i], isFwd);
-            // all nodes visited are active, so the mask is left unmodified
+                nbrNode /* child */, boundNodeID /* parent */, edgeID, isFwd);
+
+            activeNodes.push_back(nbrNode);
         });
+        return activeNodes;
     }
 
     std::unique_ptr<EdgeCompute> copy() override {

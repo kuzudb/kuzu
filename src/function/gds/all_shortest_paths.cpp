@@ -1,5 +1,11 @@
+#include "common/types/types.h"
+#include "function/gds/bfs_graph.h"
+#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
+#include "function/gds_function.h"
+#include "graph/graph.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::processor;
@@ -140,12 +146,12 @@ public:
         PathMultiplicities* multiplicities)
         : frontierPair{frontierPair}, multiplicities{multiplicities} {};
 
-    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrIDs,
-        std::span<const relID_t>, SelectionVector& mask, bool) override {
-        size_t activeCount = 0;
-        mask.forEach([&](auto i) {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, GraphScanState::Chunk& resultChunk,
+        bool) override {
+        std::vector<nodeID_t> activeNodes;
+        resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
             auto nbrVal =
-                frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrIDs[i].offset);
+                frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
@@ -155,14 +161,14 @@ public:
             if (shouldUpdate) {
                 // Note: This is safe because curNodeID is in the current frontier, so its
                 // shortest paths multiplicity is guaranteed to not change in the current iteration.
-                multiplicities->incrementTargetMultiplicity(nbrIDs[i].offset,
+                multiplicities->incrementTargetMultiplicity(nbrNodeID.offset,
                     multiplicities->getBoundMultiplicity(boundNodeID.offset));
             }
             if (nbrVal == PathLengths::UNVISITED) {
-                mask.getMutableBuffer()[activeCount++] = i;
+                activeNodes.push_back(nbrNodeID);
             }
         });
-        mask.setToFiltered(activeCount);
+        return activeNodes;
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -181,12 +187,12 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
-        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool fwdEdge) override {
-        size_t activeCount = 0;
-        mask.forEach([&](auto i) {
-            auto nbrLen = frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
-                nbrNodeIDs[i].offset);
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, GraphScanState::Chunk& resultChunk,
+        bool fwdEdge) override {
+        std::vector<nodeID_t> activeNodes;
+        resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
+            auto nbrLen =
+                frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
@@ -198,14 +204,14 @@ public:
                     parentListBlock = bfsGraph->addNewBlock();
                 }
                 bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
-                    parentListBlock, nbrNodeIDs[i] /* child */, boundNodeID /* parent */,
-                    edgeIDs[i], fwdEdge);
+                    parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID,
+                    fwdEdge);
             }
             if (nbrLen == PathLengths::UNVISITED) {
-                mask.getMutableBuffer()[activeCount++] = i;
+                activeNodes.push_back(nbrNodeID);
             }
         });
-        mask.setToFiltered(activeCount);
+        return activeNodes;
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
