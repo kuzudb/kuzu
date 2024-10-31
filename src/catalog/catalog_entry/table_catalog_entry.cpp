@@ -76,6 +76,10 @@ column_id_t TableCatalogEntry::getColumnID(const std::string& propertyName) cons
     return propertyCollection.getColumnID(propertyName);
 }
 
+common::column_id_t TableCatalogEntry::getColumnID(common::idx_t idx) const {
+    return propertyCollection.getColumnID(idx);
+}
+
 void TableCatalogEntry::addProperty(const PropertyDefinition& propertyDefinition) {
     propertyCollection.add(propertyDefinition);
 }
