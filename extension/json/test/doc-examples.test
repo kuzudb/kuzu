@@ -62,7 +62,7 @@
 ---- ok
 -STATEMENT COPY (match (p:Person) return p.*) to '${DATABASE_PATH}/people-output.json';
 ---- ok
--STATEMENT LOAD FROM '${DATABASE_PATH}/people-output1.json' RETURN *;
+-STATEMENT LOAD FROM '${DATABASE_PATH}/people-output.json' RETURN *;
 ---- 3
 0│Alice│{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
 1│Bob│{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}

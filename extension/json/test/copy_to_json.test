@@ -3,7 +3,7 @@
 --
 
 -CASE TinySnbCopyToJSON
-#-SKIP_IN_MEM
+-SKIP_IN_MEM
 #-SKIP
 #TODO(Ziyi): there is a bug related to our copy-to json test, int128 is treated as null when copy to json.
 -STATEMENT COPY (MATCH (p:person) RETURN [id(p)], p.*) TO '${DATABASE_PATH}/tinysnb_person.json'
@@ -34,6 +34,7 @@ Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 10
 hi
 
 -CASE CopyToJsonAllTypeTest
+-SKIP_IN_MEM
 -STATEMENT load from '${KUZU_ROOT_DIRECTORY}/dataset/all_types/duckdb_all_type.csv' return *
 ---- 2 
 False|-128|-32768|-2147483648|-9223372036854775808|-170141183460469231731687303715884105728.000000|0|0|0|0|0|5877642-06-25 (BC)|00:00:00|290309-12-22 (BC) 00:00:00|290309-12-22 (BC) 00:00:00|290309-12-22 (BC) 00:00:00|1677-09-22 00:00:00|00:00:00+15:59:59|290309-12-21 (BC) 18:42:28-05:17|-3.4028235e+38|-1.7976931348623157e+308|-999.9|-99999.9999|-1000000000000.0|-1e+28|00000000-0000-0000-0000-000000000000|00:00:00|thisisalongblob\x00withnullbytes|[]|[]|[]|[]|[]|[]|[]|{a: , b: }|{a: , b: }|[]|{}|Frank|[,2,3]|[a,,c]|[[,2,3],,[,2,3]]|[[a,,c],,[a,,c]]|[{a: , b: },{a: 42, b: 🦆🦆🦆🦆🦆🦆},{a: , b: }]|{a: [,2,3], b: [a,,c]}|[[],[42,999,,,-42],[]]|[[,2,3],[4,5,6],[,2,3]]
