@@ -42,11 +42,7 @@ bool PropertyExpression::isPrimaryKey(common::table_id_t tableID) const {
 }
 
 bool PropertyExpression::hasProperty(common::table_id_t tableID) const {
-    // For RDF, we mock the existence of iri on resource triples table. So we cannot assert infos
-    // always contain tableID.
-    if (!infos.contains(tableID)) {
-        return false;
-    }
+    KU_ASSERT(infos.contains(tableID));
     return infos.at(tableID).exists;
 }
 

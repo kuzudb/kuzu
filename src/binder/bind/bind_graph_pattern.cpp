@@ -6,11 +6,9 @@
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"
@@ -253,58 +251,6 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     }
     queryRel->setAlias(parsedName);
     bindQueryRelProperties(*queryRel);
-    // Try bind rdf rel table.
-    // For rdf rel table, we store predicate ID instead of predicate IRI. However, we need to hide
-    // this information from the user. The following code block tries to create a IRI property
-    // expression to mock as if predicate IRI exists in rel table.
-    common::table_id_set_t rdfGraphTableIDSet;
-    common::table_id_set_t nonRdfRelTableIDSet;
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
-    for (auto& entry : relTableEntries) {
-        bool isRdfRelTable = false;
-        for (auto& rdfGraphEntry : catalog->getRdfGraphEntries(transaction)) {
-            if (rdfGraphEntry->isParent(entry->getTableID())) {
-                KU_ASSERT(rdfGraphEntry->getTableType() == TableType::RDF);
-                rdfGraphTableIDSet.insert(rdfGraphEntry->getTableID());
-                isRdfRelTable = true;
-            }
-        }
-        if (!isRdfRelTable) {
-            nonRdfRelTableIDSet.insert(entry->getTableID());
-        }
-    }
-    if (!rdfGraphTableIDSet.empty()) {
-        if (!nonRdfRelTableIDSet.empty()) {
-            auto relTableName =
-                catalog->getTableCatalogEntry(transaction, *nonRdfRelTableIDSet.begin())->getName();
-            auto rdfGraphName =
-                catalog->getTableCatalogEntry(transaction, *rdfGraphTableIDSet.begin())->getName();
-            throw BinderException(stringFormat(
-                "Relationship pattern {} contains both PropertyGraph relationship "
-                "label {} and RDFGraph label {}. Mixing relationships tables from an RDFGraph and "
-                "PropertyGraph in one pattern is currently not supported.",
-                parsedName, relTableName, rdfGraphName));
-        }
-        common::table_id_vector_t resourceTableIDs;
-        for (auto& tableID : rdfGraphTableIDSet) {
-            auto entry = catalog->getTableCatalogEntry(transaction, tableID);
-            auto& rdfGraphEntry = entry->constCast<RDFGraphCatalogEntry>();
-            resourceTableIDs.push_back(rdfGraphEntry.getResourceTableID());
-        }
-        auto pID =
-            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
-        auto rdfInfo = std::make_unique<RdfPredicateInfo>(resourceTableIDs, std::move(pID));
-        queryRel->setRdfPredicateInfo(std::move(rdfInfo));
-        std::vector<TableCatalogEntry*> resourceTableSchemas;
-        for (auto tableID : resourceTableIDs) {
-            resourceTableSchemas.push_back(catalog->getTableCatalogEntry(transaction, tableID));
-        }
-        // Mock existence of pIRI property.
-        auto pIRI =
-            createPropertyExpression(std::string(rdf::IRI), *queryRel, resourceTableSchemas);
-        queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(pIRI));
-    }
     std::vector<StructField> fields;
     fields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
     fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
@@ -720,14 +666,6 @@ std::vector<TableCatalogEntry*> Binder::getRelTableEntries(TableCatalogEntry* en
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTx();
     switch (entry->getTableType()) {
-    case TableType::RDF: {
-        auto& rdfEntry = entry->constCast<RDFGraphCatalogEntry>();
-        auto rtEntry =
-            catalog->getTableCatalogEntry(transaction, rdfEntry.getResourceTripleTableID());
-        auto ltEntry =
-            catalog->getTableCatalogEntry(transaction, rdfEntry.getLiteralTripleTableID());
-        return {rtEntry, ltEntry};
-    }
     case TableType::REL_GROUP: {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         std::vector<TableCatalogEntry*> result;

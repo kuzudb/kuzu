@@ -54,9 +54,6 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
     case TableType::REL: {
         return planCopyRelFrom(copyFromInfo, outExprs);
     }
-    case TableType::RDF: {
-        return planCopyRdfFrom(copyFromInfo, outExprs);
-    }
     default:
         KU_UNREACHABLE;
     }
@@ -118,28 +115,6 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
     appendPartitioner(*info, *plan);
     appendCopyFrom(*info, results, *plan);
     return plan;
-}
-
-std::unique_ptr<LogicalPlan> Planner::planCopyRdfFrom(const BoundCopyFromInfo* info,
-    binder::expression_vector results) {
-    auto& extraRdfInfo = info->extraInfo->constCast<ExtraBoundCopyRdfInfo>();
-    auto rPlan = planCopyResourceFrom(&extraRdfInfo.rInfo, results);
-    auto lPlan = planCopyNodeFrom(&extraRdfInfo.lInfo, results);
-    auto rrrPlan = planCopyRelFrom(&extraRdfInfo.rrrInfo, results);
-    auto rrlPlan = planCopyRelFrom(&extraRdfInfo.rrlInfo, results);
-    auto children = logical_op_vector_t{rrlPlan->getLastOperator(), rrrPlan->getLastOperator(),
-        lPlan->getLastOperator(), rPlan->getLastOperator()};
-    if (info->source->type == ScanSourceType::FILE) {
-        auto readerPlan = LogicalPlan();
-        auto& scanSource = info->source->constCast<BoundTableScanSource>();
-        appendTableFunctionCall(scanSource.info, readerPlan);
-        children.push_back(readerPlan.getLastOperator());
-    }
-    auto resultPlan = std::make_unique<LogicalPlan>();
-    auto op = make_shared<LogicalCopyFrom>(info->copy(), results, children);
-    op->computeFactorizedSchema();
-    resultPlan->setLastOperator(std::move(op));
-    return resultPlan;
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyTo(const BoundStatement& statement) {

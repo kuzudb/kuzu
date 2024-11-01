@@ -175,8 +175,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         entry = getEntryNoLock(transaction, alterInfo.tableName);
         KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
                   entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
-                  entry->getType() == CatalogEntryType::REL_GROUP_ENTRY ||
-                  entry->getType() == CatalogEntryType::RDF_GRAPH_ENTRY);
+                  entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
         const auto tableEntry = entry->ptrCast<TableCatalogEntry>();
         auto newEntry = tableEntry->alter(alterInfo);
         newEntry->setTimestamp(transaction->getID());

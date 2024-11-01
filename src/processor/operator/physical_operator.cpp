@@ -21,8 +21,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "ATTACH_DATABASE";
     case PhysicalOperatorType::BATCH_INSERT:
         return "BATCH_INSERT";
-    case PhysicalOperatorType::COPY_RDF:
-        return "COPY_RDF";
     case PhysicalOperatorType::COPY_TO:
         return "COPY_TO";
     case PhysicalOperatorType::CREATE_MACRO:

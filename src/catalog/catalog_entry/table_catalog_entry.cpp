@@ -2,7 +2,6 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
@@ -119,9 +118,6 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
         break;
     case CatalogEntryType::REL_GROUP_ENTRY:
         result = RelGroupCatalogEntry::deserialize(deserializer);
-        break;
-    case CatalogEntryType::RDF_GRAPH_ENTRY:
-        result = RDFGraphCatalogEntry::deserialize(deserializer);
         break;
     default:
         KU_UNREACHABLE;

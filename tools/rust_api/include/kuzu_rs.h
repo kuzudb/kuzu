@@ -69,10 +69,6 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     std::unique_ptr<kuzu::common::LogicalType> keyType,
     std::unique_ptr<kuzu::common::LogicalType> valueType);
 
-inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_rdf_variant() {
-    return std::make_unique<kuzu::common::LogicalType>(kuzu::common::LogicalType::RDF_VARIANT());
-}
-
 inline std::unique_ptr<kuzu::common::LogicalType> create_logical_type_decimal(uint32_t precision,
     uint32_t scale) {
     return std::make_unique<kuzu::common::LogicalType>(
@@ -237,17 +233,6 @@ std::unique_ptr<ValueListBuilder> create_list();
 
 inline std::string_view string_view_from_str(rust::Str s) {
     return {s.data(), s.size()};
-}
-
-// Converts bytes containing blob_t into actual blob bytes
-inline rust::Vec<uint8_t> get_blob_from_bytes(const rust::Vec<uint8_t>& value) {
-    KU_ASSERT(value.size() == sizeof(kuzu::common::blob_t));
-    std::string_view blob = ((kuzu::common::blob_t*)value.data())->value.getAsStringView();
-    rust::Vec<uint8_t> result;
-    for (auto c : blob) {
-        result.push_back(c);
-    }
-    return result;
 }
 
 inline kuzu::storage::storage_version_t get_storage_version() {

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+
 from test_helper import KUZU_ROOT
 
 python_build_dir = Path(__file__).parent.parent / "build"
@@ -141,16 +142,6 @@ def init_movie_serial(conn: kuzu.Connection) -> None:
     conn.execute(f'COPY moviesSerial from "{KUZU_ROOT}/dataset/tinysnb-serial/vMovies.csv"')
 
 
-def init_rdf(conn: kuzu.Connection) -> None:
-    rdf_path = (Path(__file__).parent / f"{KUZU_ROOT}/dataset/rdf/rdf_variant").resolve()
-    scripts = [Path(rdf_path) / "schema.cypher", Path(rdf_path) / "copy.cypher"]
-    for script in scripts:
-        with script.open(mode="r") as f:
-            for line in f.readlines():
-                if line := line.strip():
-                    conn.execute(line)
-
-
 _POOL_SIZE_: int = 256 * 1024 * 1024
 
 
@@ -165,7 +156,6 @@ def init_db(path: Path) -> Path:
     init_tensor(conn)
     init_long_str(conn)
     init_movie_serial(conn)
-    init_rdf(conn)
     return path
 
 

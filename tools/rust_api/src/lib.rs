@@ -38,7 +38,6 @@ pub use logical_type::LogicalType;
 #[cfg(feature = "arrow")]
 pub use query_result::ArrowIterator;
 pub use query_result::{CSVOptions, QueryResult};
-pub use rdf_variant::RDFVariant;
 pub use value::{InternalID, NodeVal, RelVal, Value};
 
 mod connection;
@@ -47,7 +46,6 @@ mod error;
 mod ffi;
 mod logical_type;
 mod query_result;
-mod rdf_variant;
 mod value;
 
 /// The version of the Kùzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable

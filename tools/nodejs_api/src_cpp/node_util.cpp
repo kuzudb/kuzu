@@ -1,86 +1,11 @@
 #include "include/node_util.h"
 
 #include "common/exception/exception.h"
-#include "common/types/blob.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
-#include "common/types/value/rdf_variant.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
-
-Napi::Value ConvertRdfVariantToNapiObject(const Value& value, Napi::Env env) {
-    auto type = RdfVariant::getLogicalTypeID(&value);
-    switch (type) {
-    case LogicalTypeID::STRING: {
-        auto str = RdfVariant::getValue<std::string>(&value);
-        return Napi::String::New(env, str.data(), str.size());
-    }
-    case LogicalTypeID::BLOB: {
-        auto blobStr = RdfVariant::getValue<blob_t>(&value).value.getAsString();
-        return Napi::Buffer<char>::Copy(env, blobStr.c_str(), blobStr.size());
-    }
-    case LogicalTypeID::INT64: {
-        return Napi::Number::New(env, RdfVariant::getValue<int64_t>(&value));
-    }
-    case LogicalTypeID::INT32: {
-        return Napi::Number::New(env, RdfVariant::getValue<int32_t>(&value));
-    }
-    case LogicalTypeID::INT16: {
-        return Napi::Number::New(env, RdfVariant::getValue<int16_t>(&value));
-    }
-    case LogicalTypeID::INT8: {
-        return Napi::Number::New(env, RdfVariant::getValue<int8_t>(&value));
-    }
-    case LogicalTypeID::UINT64: {
-        return Napi::Number::New(env, RdfVariant::getValue<uint64_t>(&value));
-    }
-    case LogicalTypeID::UINT32: {
-        return Napi::Number::New(env, RdfVariant::getValue<uint32_t>(&value));
-    }
-    case LogicalTypeID::UINT16: {
-        return Napi::Number::New(env, RdfVariant::getValue<uint16_t>(&value));
-    }
-    case LogicalTypeID::UINT8: {
-        return Napi::Number::New(env, RdfVariant::getValue<uint8_t>(&value));
-    }
-    case LogicalTypeID::DOUBLE: {
-        return Napi::Number::New(env, RdfVariant::getValue<double>(&value));
-    }
-    case LogicalTypeID::FLOAT: {
-        return Napi::Number::New(env, RdfVariant::getValue<float>(&value));
-    }
-    case LogicalTypeID::BOOL: {
-        return Napi::Boolean::New(env, RdfVariant::getValue<bool>(&value));
-    }
-    case LogicalTypeID::DATE: {
-        auto dateVal = RdfVariant::getValue<date_t>(&value);
-        // Javascript Date type contains both date and time information. This returns the Date at
-        // 00:00:00 in UTC timezone.
-        auto milliseconds = Date::getEpochNanoSeconds(dateVal) / Interval::NANOS_PER_MICRO /
-                            Interval::MICROS_PER_MSEC;
-        return Napi::Date::New(env, milliseconds);
-    }
-    case LogicalTypeID::TIMESTAMP: {
-        auto timestampVal = RdfVariant::getValue<timestamp_t>(&value);
-        auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
-        return Napi::Date::New(env, milliseconds);
-    }
-    case LogicalTypeID::INTERVAL: {
-        auto intervalVal = RdfVariant::getValue<interval_t>(&value);
-        // TODO: By default, Node.js returns the difference in milliseconds between two dates, so we
-        // follow the convention here, but it might not be the best choice in terms of usability.
-        auto microseconds = intervalVal.micros;
-        microseconds += intervalVal.days * Interval::MICROS_PER_DAY;
-        microseconds += intervalVal.months * Interval::MICROS_PER_MONTH;
-        auto milliseconds = microseconds / Interval::MICROS_PER_MSEC;
-        return Napi::Number::New(env, milliseconds);
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-}
 
 Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     if (value.isNull()) {
@@ -269,9 +194,6 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
             napiObj.Set(key, val);
         }
         return napiObj;
-    }
-    case LogicalTypeID::RDF_VARIANT: {
-        return ConvertRdfVariantToNapiObject(value, env);
     }
     case LogicalTypeID::DECIMAL: {
         auto valString = value.toString();

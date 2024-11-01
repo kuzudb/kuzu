@@ -165,8 +165,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
-    case CatalogEntryType::REL_GROUP_ENTRY:
-    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         KU_ASSERT(clientContext.getCatalog());
         clientContext.getCatalog()->dropTableEntry(clientContext.getTx(), entryID);
         KU_ASSERT(clientContext.getStorageManager());

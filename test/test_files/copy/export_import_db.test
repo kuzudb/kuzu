@@ -151,14 +151,6 @@ Imported database successfully.
 ---- 1
 0
 
--CASE ExportImportDatabaseRDFGraph
--SKIP_WASM
--STATEMENT CREATE RDFGraph UniKG;
----- ok
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case6/demo-db"
----- 1
-Exported database successfully. But we skip exporting RDF graphs.
-
 -CASE ExportDatabaseWithSerialTable
 -SKIP_WASM
 -STATEMENT CREATE NODE TABLE oneserial(ID serial, PRIMARY KEY(ID));

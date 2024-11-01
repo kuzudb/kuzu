@@ -308,7 +308,6 @@ typedef enum {
     KUZU_STRUCT = 54,
     KUZU_MAP = 55,
     KUZU_UNION = 56,
-    KUZU_RDF_VARIANT = 57,
     KUZU_POINTER = 58,
     KUZU_UUID = 59
 } kuzu_data_type_id;
@@ -1402,130 +1401,6 @@ KUZU_C_API kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, ui
  * @return The state indicating the success or failure of the operation.
  */
 KUZU_C_API kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_result);
-/**
- * @brief Returns the underlying data type of the given rdf variant.
- * @param rdf_variant The rdf variant.
- * @param[out] out_type The output parameter that will hold the data type of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant,
-    kuzu_data_type_id* out_type);
-/**
- * @brief Returns the string value of the given rdf variant. The value must be of type STRING.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the string value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_string(kuzu_value* rdf_variant, char** out_result);
-/**
- * @brief Returns the blob value of the given rdf variant. The returned buffer is null-terminated
- * similar to a string. The value must be of type BLOB.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the blob value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant, uint8_t** out_result);
-/**
- * @brief Returns the int64 value of the given rdf variant. The value must be of type INT64.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the int64 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant, int64_t* out_result);
-/**
- * @brief Returns the int32 value of the given rdf variant. The value must be of type INT32.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the int32 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant, int32_t* out_result);
-/**
- * @brief Returns the int16 value of the given rdf variant. The value must be of type INT16.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the int16 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant, int16_t* out_result);
-/**
- * @brief Returns the int8 value of the given rdf variant. The value must be of type INT8.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the int8 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant, int8_t* out_result);
-/**
- * @brief Returns the uint64 value of the given rdf variant. The value must be of type UINT64.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the uint64 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant, uint64_t* out_result);
-/**
- * @brief Returns the uint32 value of the given rdf variant. The value must be of type UINT32.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the uint32 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant, uint32_t* out_result);
-/**
- * @brief Returns the uint16 value of the given rdf variant. The value must be of type UINT16.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the uint16 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant, uint16_t* out_result);
-/**
- * @brief Returns the uint8 value of the given rdf variant. The value must be of type UINT8.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the uint8 value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant, uint8_t* out_result);
-/**
- * @brief Returns the float value of the given rdf variant. The value must be of type FLOAT.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the float value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_float(kuzu_value* rdf_variant, float* out_result);
-/**
- * @brief Returns the double value of the given rdf variant. The value must be of type DOUBLE.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the double value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_double(kuzu_value* rdf_variant, double* out_result);
-/**
- * @brief Returns the boolean value of the given rdf variant. The value must be of type BOOL.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the boolean value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant, bool* out_result);
-/**
- * @brief Returns the date value of the given rdf variant. The value must be of type DATE.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the date value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_date(kuzu_value* rdf_variant, kuzu_date_t* out_result);
-/**
- * @brief Returns the timestamp value of the given rdf variant. The value must be of type TIMESTAMP.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the timestamp value of the rdf
- * variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant,
-    kuzu_timestamp_t* out_result);
-/**
- * @brief Returns the interval value of the given rdf variant. The value must be of type INTERVAL.
- * @param rdf_variant The rdf variant.
- * @param[out] out_result The output parameter that will hold the interval value of the rdf variant.
- * @return The state indicating the success or failure of the operation.
- */
-KUZU_C_API kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant,
-    kuzu_interval_t* out_result);
 /**
  * @brief Destroys any string created by the Kùzu C API, including both the error message and the
  * values returned by the API functions. This function is provided to avoid the inconsistency

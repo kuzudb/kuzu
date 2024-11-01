@@ -34,9 +34,6 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     case TableType::REL: {
         extraInfo = BoundExtraCreateTableInfo::deserialize(deserializer, type);
     } break;
-    case TableType::RDF: {
-        extraInfo = BoundExtraCreateRdfGraphInfo::deserialize(deserializer);
-    } break;
     case TableType::REL_GROUP: {
         extraInfo = BoundExtraCreateRelTableGroupInfo::deserialize(deserializer);
     } break;
@@ -178,23 +175,6 @@ std::unique_ptr<BoundExtraCreateRelTableGroupInfo> BoundExtraCreateRelTableGroup
     std::vector<BoundCreateTableInfo> infos;
     deserializer.deserializeVector(infos);
     return std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(infos));
-}
-
-void BoundExtraCreateRdfGraphInfo::serialize(Serializer& serializer) const {
-    resourceInfo.serialize(serializer);
-    literalInfo.serialize(serializer);
-    resourceTripleInfo.serialize(serializer);
-    literalTripleInfo.serialize(serializer);
-}
-
-std::unique_ptr<BoundExtraCreateRdfGraphInfo> BoundExtraCreateRdfGraphInfo::deserialize(
-    Deserializer& deserializer) {
-    auto resourceInfo = BoundCreateTableInfo::deserialize(deserializer);
-    auto literalInfo = BoundCreateTableInfo::deserialize(deserializer);
-    auto resourceTripleInfo = BoundCreateTableInfo::deserialize(deserializer);
-    auto literalTripleInfo = BoundCreateTableInfo::deserialize(deserializer);
-    return std::make_unique<BoundExtraCreateRdfGraphInfo>(std::move(resourceInfo),
-        std::move(literalInfo), std::move(resourceTripleInfo), std::move(literalTripleInfo));
 }
 
 } // namespace binder

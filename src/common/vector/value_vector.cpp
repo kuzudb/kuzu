@@ -7,7 +7,6 @@
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "common/types/blob.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 #include "common/vector/auxiliary_buffer.h"
@@ -674,91 +673,6 @@ void StructVector::copyFromVectorData(ValueVector* dstVector, const uint8_t* dst
         auto dstFieldVector = dstFieldVectors[i];
         dstFieldVector->copyFromVectorData(dstPos, srcFieldVector.get(), srcPos);
     }
-}
-
-void RdfVariantVector::addString(ValueVector* vector, sel_t pos, ku_string_t str) {
-    addString(vector, pos, (const char*)str.getData(), str.len);
-}
-
-void RdfVariantVector::addString(ValueVector* vector, common::sel_t pos, const char* str,
-    uint32_t length) {
-    auto typeVector = StructVector::getFieldVector(vector, 0).get();
-    auto valVector = StructVector::getFieldVector(vector, 1).get();
-    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(LogicalTypeID::STRING));
-    BlobVector::addBlob(valVector, pos, str, length);
-}
-
-template<typename T>
-static void addRdfVariant(ValueVector* vector, sel_t pos, LogicalTypeID typeID, T val) {
-    auto typeVector = StructVector::getFieldVector(vector, 0).get();
-    auto valVector = StructVector::getFieldVector(vector, 1).get();
-    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(typeID));
-    BlobVector::addBlob(valVector, pos, (uint8_t*)&val, sizeof(T));
-}
-
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, int128_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::INT128, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, int64_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::INT64, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, int32_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::INT32, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, int16_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::INT16, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, int8_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::INT8, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, uint64_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::UINT64, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, uint32_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::UINT32, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, uint16_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::UINT16, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, uint8_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::UINT8, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, double val) {
-    addRdfVariant(vector, pos, LogicalTypeID::DOUBLE, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, float val) {
-    addRdfVariant(vector, pos, LogicalTypeID::FLOAT, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, blob_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::BLOB, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, bool val) {
-    addRdfVariant(vector, pos, LogicalTypeID::BOOL, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, date_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::DATE, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, timestamp_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::TIMESTAMP, val);
-}
-template<>
-void RdfVariantVector::add(ValueVector* vector, sel_t pos, interval_t val) {
-    addRdfVariant(vector, pos, LogicalTypeID::INTERVAL, val);
 }
 
 } // namespace common

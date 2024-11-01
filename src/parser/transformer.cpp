@@ -39,8 +39,6 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformCreateRelTable(*ctx.kU_CreateRelTable());
     } else if (ctx.kU_CreateRelTableGroup()) {
         return transformCreateRelTableGroup(*ctx.kU_CreateRelTableGroup());
-    } else if (ctx.kU_CreateRdfGraph()) {
-        return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
     } else if (ctx.kU_CreateSequence()) {
         return transformCreateSequence(*ctx.kU_CreateSequence());
     } else if (ctx.kU_CreateType()) {

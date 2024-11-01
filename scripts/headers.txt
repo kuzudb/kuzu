@@ -37,7 +37,6 @@ src/include/common/types/types.h
 src/include/common/types/uuid.h
 src/include/common/types/value/nested.h
 src/include/common/types/value/node.h
-src/include/common/types/value/rdf_variant.h
 src/include/common/types/value/recursive_rel.h
 src/include/common/types/value/rel.h
 src/include/common/types/value/value.h

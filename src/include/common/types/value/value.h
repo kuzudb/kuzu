@@ -256,7 +256,6 @@ private:
     void copyFromColLayoutStruct(const struct_entry_t& structEntry, ValueVector* vec);
     void copyFromUnion(const uint8_t* kuUnion);
 
-    std::string rdfVariantToString() const;
     std::string mapToString() const;
     std::string listToString() const;
     std::string structToString() const;

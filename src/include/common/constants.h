@@ -180,11 +180,6 @@ struct CopyConstants {
     static constexpr column_id_t MAX_NUM_WARNING_DATA_COLUMNS = CSV_WARNING_DATA_NUM_COLUMNS;
 };
 
-struct RdfConstants {
-    static constexpr char IN_MEMORY_OPTION[] = "IN_MEMORY";
-    static constexpr char STRICT_OPTION[] = "STRICT";
-};
-
 struct PlannerKnobs {
     static constexpr double NON_EQUALITY_PREDICATE_SELECTIVITY = 0.1;
     static constexpr double EQUALITY_PREDICATE_SELECTIVITY = 0.01;

@@ -5,7 +5,6 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
-#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
@@ -160,8 +159,6 @@ struct ReservedNames {
             StringUtils::getUpper(InternalKeyword::ROW_OFFSET),
             StringUtils::getUpper(InternalKeyword::SRC_OFFSET),
             StringUtils::getUpper(InternalKeyword::DST_OFFSET),
-            StringUtils::getUpper(rdf::PID),
-            StringUtils::getUpper(rdf::IRI),
         };
     }
 
@@ -169,7 +166,6 @@ struct ReservedNames {
     static std::unordered_set<std::string> getPropertyLookupName() {
         return {
             InternalKeyword::ID,
-            StringUtils::getUpper(rdf::PID),
         };
     }
 };
