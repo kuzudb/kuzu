@@ -95,13 +95,12 @@ public:
      *        an in-memory database.
      * @param systemConfig System configurations (buffer pool size and max num threads).
      */
-    KUZU_API static std::unique_ptr<Database> construct(std::string_view databasePath,
+    KUZU_API explicit Database(std::string_view databasePath,
         SystemConfig systemConfig = SystemConfig());
-
     /**
      * @brief Destructs the database object.
      */
-    KUZU_API virtual ~Database();
+    KUZU_API ~Database();
 
     // TODO(Ziyi): Instead of exposing a dedicated API for adding a new function, we should consider
     // add function through the extension module.
@@ -127,21 +126,26 @@ public:
 
     uint64_t getNextQueryID();
 
-protected:
-    explicit Database(SystemConfig systemConfig = SystemConfig());
-    virtual std::unique_ptr<storage::BufferManager> initBufferManager();
-    void initMembers(std::string_view dbPath);
-
 private:
+    using construct_bm_func_t =
+        std::function<std::unique_ptr<storage::BufferManager>(const Database&)>;
+
     struct QueryIDGenerator {
         uint64_t queryID = 0;
         std::mutex queryIDLock;
     };
 
+    static std::unique_ptr<storage::BufferManager> initBufferManager(const Database& db);
+    void initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc = initBufferManager);
+
+    // factory method only to be used for tests
+    static std::unique_ptr<Database> construct(std::string_view databasePath,
+        SystemConfig systemConfig, construct_bm_func_t constructFunc);
+
     void openLockFile();
     void initAndLockDBDir();
 
-protected:
+private:
     std::string databasePath;
     DBConfig dbConfig;
     std::unique_ptr<common::VirtualFileSystem> vfs;

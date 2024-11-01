@@ -31,29 +31,6 @@ public:
     uint64_t reserveCount = 0;
 };
 
-class StubbedDatabase final : public main::DatabaseInternal {
-public:
-    static std::unique_ptr<DatabaseInternal> construct(std::string_view databasePath,
-        main::Database* db, uint64_t& failureFrequency) {
-        auto ret = std::make_unique<StubbedDatabase>(failureFrequency);
-        ret->initMembers(databasePath, db);
-        return ret;
-    }
-
-    explicit StubbedDatabase(uint64_t& failureFrequency)
-        : main::DatabaseInternal(), failureFrequency(failureFrequency) {}
-
-    std::unique_ptr<storage::BufferManager> initBufferManager(
-        const main::DBConfig& dbConfig) override {
-        return std::make_unique<FlakyBufferManager>(this->databasePath,
-            dbConfig.spillToDiskTmpFile.value_or(vfs->joinPath(this->databasePath, "copy.tmp")),
-            dbConfig.bufferPoolSize, dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly,
-            failureFrequency);
-    }
-
-    uint64_t& failureFrequency;
-};
-
 class CopyTest : public BaseGraphTest {
 public:
     void SetUp() override {
@@ -67,15 +44,18 @@ public:
         database.reset();
         createDBAndConn();
     }
+
     void resetDBFlaky() {
         database.reset();
         conn.reset();
         systemConfig->bufferPoolSize = main::SystemConfig{}.bufferPoolSize;
-        database = BaseGraphTest::constructDB(
-            [&](main::Database* db) {
-                return StubbedDatabase::construct(databasePath, db, failureFrequency);
-            },
-            *systemConfig);
+        auto constructBMFunc = [&](const main::Database& db) {
+            return std::unique_ptr<storage::BufferManager>(new FlakyBufferManager(databasePath,
+                getFileSystem(db)->joinPath(databasePath, "copy.tmp"), systemConfig->bufferPoolSize,
+                systemConfig->maxDBSize, getFileSystem(db), systemConfig->readOnly,
+                failureFrequency));
+        };
+        database = BaseGraphTest::constructDB(databasePath, *systemConfig, constructBMFunc);
         conn = std::make_unique<main::Connection>(database.get());
     }
     std::string getInputDir() override { KU_UNREACHABLE; }
