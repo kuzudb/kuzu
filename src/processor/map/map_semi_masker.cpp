@@ -49,9 +49,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             switch (semiMasker.getTargetType()) {
             case SemiMaskTargetType::GDS_INPUT_NODE: {
                 initMask(masksPerTable, sharedState->getInputNodeMasks());
+                sharedState->enableInputNodeMask();
             } break;
             case SemiMaskTargetType::GDS_OUTPUT_NODE: {
                 initMask(masksPerTable, sharedState->getOutputNodeMasks());
+                sharedState->enableOutputNodeMask();
             } break;
             default:
                 KU_UNREACHABLE;

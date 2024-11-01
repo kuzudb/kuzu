@@ -140,11 +140,11 @@ protected:
     }
 };
 
-class AllSPDestinationsEdgeCompute : public EdgeCompute {
+class AllSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
     AllSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
         PathMultiplicities* multiplicities)
-        : frontierPair{frontierPair}, multiplicities{multiplicities} {};
+        : SPEdgeCompute{frontierPair}, multiplicities{multiplicities} {};
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, GraphScanState::Chunk& resultChunk,
         bool) override {
@@ -176,14 +176,13 @@ public:
     }
 
 private:
-    SinglePathLengthsFrontierPair* frontierPair;
     PathMultiplicities* multiplicities;
 };
 
-class AllSPPathsEdgeCompute : public EdgeCompute {
+class AllSPPathsEdgeCompute : public SPEdgeCompute {
 public:
     AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
-        : frontiersPair{frontiersPair}, bfsGraph{bfsGraph} {
+        : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
         parentListBlock = bfsGraph->addNewBlock();
     }
 
@@ -192,18 +191,18 @@ public:
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
             auto nbrLen =
-                frontiersPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
+                frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
             auto shouldUpdate = nbrLen == PathLengths::UNVISITED ||
-                                nbrLen == frontiersPair->pathLengths->getCurIter();
+                                nbrLen == frontierPair->pathLengths->getCurIter();
             if (shouldUpdate) {
                 if (!parentListBlock->hasSpace()) {
                     parentListBlock = bfsGraph->addNewBlock();
                 }
-                bfsGraph->addParent(frontiersPair->curIter.load(std::memory_order_relaxed),
+                bfsGraph->addParent(frontierPair->curIter.load(std::memory_order_relaxed),
                     parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID,
                     fwdEdge);
             }
@@ -215,11 +214,10 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<AllSPPathsEdgeCompute>(frontiersPair, bfsGraph);
+        return std::make_unique<AllSPPathsEdgeCompute>(frontierPair, bfsGraph);
     }
 
 private:
-    SinglePathLengthsFrontierPair* frontiersPair;
     BFSGraph* bfsGraph;
     ObjectBlock<ParentList>* parentListBlock = nullptr;
 };

@@ -20,6 +20,8 @@ public:
 
     virtual bool isMasked(common::offset_t startNodeOffset) = 0;
 
+    virtual common::offset_t getNumMaskedNodes() = 0;
+
     // include&exclude
     virtual std::vector<common::offset_t> range(uint32_t start, uint32_t end) = 0;
 
@@ -48,6 +50,8 @@ public:
     bool isMasked(common::offset_t startNodeOffset) override {
         return roaring->contains(startNodeOffset);
     }
+
+    common::offset_t getNumMaskedNodes() override { return roaring->cardinality(); }
 
     // include&exclude
     std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
@@ -80,6 +84,8 @@ public:
     bool isMasked(common::offset_t startNodeOffset) override {
         return roaring->contains(startNodeOffset);
     }
+
+    common::offset_t getNumMaskedNodes() override { return roaring->cardinality(); }
 
     // include&exclude
     std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {

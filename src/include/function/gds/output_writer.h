@@ -64,6 +64,8 @@ public:
         processor::NodeOffsetMaskMap* outputNodeMask);
     virtual ~RJOutputWriter() = default;
 
+    processor::NodeOffsetMaskMap* getOutputNodeMask() const { return outputNodeMask; }
+
     void beginWritingForDstNodesInTable(common::table_id_t tableID);
 
     bool skip(common::nodeID_t dstNodeID) const;
