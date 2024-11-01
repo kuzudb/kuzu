@@ -90,7 +90,7 @@ bool PathSingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context)
             }
         }
     }
-    metrics->numOutputTuple.increase(masker->size());
+    metrics->numOutputTuple.increase(masker->getNumMaskedNodes());
     return true;
 }
 
@@ -115,7 +115,7 @@ bool PathMultipleTableSemiMasker::getNextTuplesInternal(ExecutionContext* contex
     }
     uint64_t num = 0;
     for (const auto& [_, masker] : localInfo->localMasksPerTable) {
-        num += masker->size();
+        num += masker->getNumMaskedNodes();
     }
     metrics->numOutputTuple.increase(num);
     return true;

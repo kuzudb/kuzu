@@ -104,5 +104,11 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
     ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(b)S(a)");
 }
 
+TEST_F(OptimizerTest, PkScanTest) {
+    auto q1 = "MATCH (a:person {ID:24189255811663})-[f]->(b) RETURN b;";
+    auto ans = getEncodedPlan(q1);
+    ASSERT_STREQ(ans.c_str(), "HJ(b._ID){S(b)}{E(b)IndexScan(a)}");
+}
+
 } // namespace testing
 } // namespace kuzu
