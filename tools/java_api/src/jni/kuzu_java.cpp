@@ -259,7 +259,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1database_1init(JNIEnv* env,
     systemConfig.readOnly = read_only;
     systemConfig.maxDBSize = max_db_size == 0 ? systemConfig.maxDBSize : max_db_size;
     try {
-        Database* db = Database::construct(path, systemConfig).release();
+        Database* db = new Database(path, systemConfig);
         uint64_t address = reinterpret_cast<uint64_t>(db);
 
         env->ReleaseStringUTFChars(database_path, path);

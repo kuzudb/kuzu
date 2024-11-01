@@ -70,7 +70,7 @@ void BaseGraphTest::createDB() {
     if (database != nullptr) {
         database.reset();
     }
-    database = Database::construct(databasePath, *systemConfig);
+    database = std::make_unique<Database>(databasePath, *systemConfig);
     spdlog::set_level(spdlog::level::info);
 }
 
@@ -91,7 +91,7 @@ void BaseGraphTest::createDBAndConn() {
     if (database != nullptr) {
         database.reset();
     }
-    database = Database::construct(databasePath, *systemConfig);
+    database = std::make_unique<Database>(databasePath, *systemConfig);
     conn = std::make_unique<Connection>(database.get());
     spdlog::set_level(spdlog::level::info);
 }

@@ -47,7 +47,7 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
     uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize) {
     auto systemConfig =
         SystemConfig(bufferPoolSize, maxNumThreads, compression, readOnly, maxDBSize);
-    database = Database::construct(databasePath, systemConfig);
+    database = std::make_unique<Database>(databasePath, systemConfig);
     database->addTableFunction(kuzu::PandasScanFunction::name,
         kuzu::PandasScanFunction::getFunctionSet());
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(database.get());

@@ -48,7 +48,7 @@ void NodeDatabase::InitCppDatabase() {
     if (maxDBSize > 0) {
         systemConfig.maxDBSize = maxDBSize;
     }
-    this->database = Database::construct(databasePath, systemConfig);
+    this->database = std::make_shared<Database>(databasePath, systemConfig);
 }
 
 void NodeDatabase::Close(const Napi::CallbackInfo& info) {

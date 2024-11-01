@@ -31,24 +31,23 @@ public:
     uint64_t reserveCount = 0;
 };
 
-class StubbedDatabase final : public main::Database {
+class StubbedDatabase final : public main::DatabaseInternal {
 public:
-    static std::unique_ptr<Database> construct(std::string_view databasePath,
-        uint64_t& failureFrequency, main::SystemConfig systemConfig) {
-        auto ret = std::make_unique<StubbedDatabase>(failureFrequency, systemConfig);
-        ret->initMembers(databasePath);
+    static std::unique_ptr<DatabaseInternal> construct(std::string_view databasePath,
+        main::Database* db, uint64_t& failureFrequency) {
+        auto ret = std::make_unique<StubbedDatabase>(failureFrequency);
+        ret->initMembers(databasePath, db);
         return ret;
     }
 
-    explicit StubbedDatabase(uint64_t& failureFrequency,
-        main::SystemConfig systemConfig = main::SystemConfig())
-        : main::Database(systemConfig), failureFrequency(failureFrequency) {}
+    explicit StubbedDatabase(uint64_t& failureFrequency)
+        : main::DatabaseInternal(), failureFrequency(failureFrequency) {}
 
-    std::unique_ptr<storage::BufferManager> initBufferManager() override {
+    std::unique_ptr<storage::BufferManager> initBufferManager(
+        const main::DBConfig& dbConfig) override {
         return std::make_unique<FlakyBufferManager>(this->databasePath,
-            this->dbConfig.spillToDiskTmpFile.value_or(
-                vfs->joinPath(this->databasePath, "copy.tmp")),
-            this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly,
+            dbConfig.spillToDiskTmpFile.value_or(vfs->joinPath(this->databasePath, "copy.tmp")),
+            dbConfig.bufferPoolSize, dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly,
             failureFrequency);
     }
 
@@ -72,7 +71,11 @@ public:
         database.reset();
         conn.reset();
         systemConfig->bufferPoolSize = main::SystemConfig{}.bufferPoolSize;
-        database = StubbedDatabase::construct(databasePath, failureFrequency, *systemConfig);
+        database = BaseGraphTest::constructDB(
+            [&](main::Database* db) {
+                return StubbedDatabase::construct(databasePath, db, failureFrequency);
+            },
+            *systemConfig);
         conn = std::make_unique<main::Connection>(database.get());
     }
     std::string getInputDir() override { KU_UNREACHABLE; }
