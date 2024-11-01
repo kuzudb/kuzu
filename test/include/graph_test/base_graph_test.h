@@ -63,6 +63,11 @@ public:
 
 protected:
     // Static functions to access Database's non-public properties/interfaces.
+    static std::unique_ptr<main::Database> constructDB(std::string_view databasePath,
+        main::SystemConfig systemConfig, main::Database::construct_bm_func_t constructFunc) {
+        return main::Database::construct(databasePath, systemConfig, constructFunc);
+    }
+
     static storage::BufferManager* getBufferManager(const main::Database& database) {
         return database.bufferManager.get();
     }

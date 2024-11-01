@@ -47,12 +47,12 @@ struct NodeGroupScanState {
 class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
-    std::vector<std::unique_ptr<Column>> columns;
+    std::vector<Column*> columns;
     FileHandle& dataFH;
     MemoryManager* mm;
 
     NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<std::unique_ptr<Column>> columns, FileHandle& dataFH, MemoryManager* mm)
+        std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm)
         : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, dataFH{dataFH}, mm{mm} {}
     virtual ~NodeGroupCheckpointState() = default;
 

@@ -4,6 +4,7 @@
 #include <mutex>
 #include <unordered_set>
 
+#include "common/uniq_lock.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
@@ -37,11 +38,8 @@ private:
     bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
     bool canCheckpointNoLock() const;
     void checkpointNoLock(main::ClientContext& clientContext);
-    // This functions locks the mutex to start new transactions. This lock needs to be manually
-    // unlocked later by calling allowReceivingNewTransactions() by the thread that called
-    // stopNewTransactionsAndWaitUntilAllTransactionsLeave().
-    void stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    void allowReceivingNewTransactions();
+    // This functions locks the mutex to start new transactions.
+    common::UniqLock stopNewTransactionsAndWaitUntilAllTransactionsLeave();
 
     bool hasActiveWriteTransactionNoLock() const { return !activeWriteTransactions.empty(); }
 

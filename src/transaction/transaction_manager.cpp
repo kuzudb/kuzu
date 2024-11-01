@@ -102,15 +102,14 @@ void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     checkpointNoLock(clientContext);
 }
 
-void TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
-    mtxForStartingNewTransactions.lock();
+common::UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
+    common::UniqLock startTransactionLock{mtxForStartingNewTransactions};
     uint64_t numTimesWaited = 0;
     while (true) {
         if (!canCheckpointNoLock()) {
             numTimesWaited++;
             if (numTimesWaited * THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS >
                 checkpointWaitTimeoutInMicros) {
-                mtxForStartingNewTransactions.unlock();
                 throw TransactionManagerException(
                     "Timeout waiting for active transactions to leave the system before "
                     "checkpointing. If you have an open transaction, please close it and try "
@@ -122,10 +121,7 @@ void TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
             break;
         }
     }
-}
-
-void TransactionManager::allowReceivingNewTransactions() {
-    mtxForStartingNewTransactions.unlock();
+    return startTransactionLock;
 }
 
 bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientContext) const {
@@ -155,7 +151,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // will only return results or error after all threads working on the tasks of a
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
-    stopNewTransactionsAndWaitUntilAllTransactionsLeave();
+    auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
     // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
     // disk.
     clientContext.getStorageManager()->checkpoint(clientContext);
@@ -178,8 +174,6 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
     StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
         clientContext.getVFSUnsafe());
-    // Resume receiving new transactions.
-    allowReceivingNewTransactions();
 }
 
 } // namespace transaction
