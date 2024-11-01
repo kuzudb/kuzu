@@ -111,12 +111,19 @@ True
 "ab"
 
 -CASE JsonStructureTest2
--SKIP
+#-SKIP
 #TODO(Ziyi): We should fix our sniffing before enabling the test.
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
--STATEMENT load from "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json"(maximum_depth=1, sample_size=3) return *;
----- 3
-STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE, stars UINT8, views UINT8, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content STRING, audience STRING, grade BOOL)
-STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT8, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content ANY, audience STRING, grade DOUBLE)
-STRUCT(name STRING, length UINT16, note STRING, description STRUCT(rating UINT16, stars UINT8, views UINT16, release STRING, release_ns STRING, release_ms STRING, release_sec STRING, release_tz STRING, film STRING, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8), content STRING, audience STRUCT(), grade UINT8)
+-STATEMENT return json_structure(
+          '{
+            "name": "Sóló cón tu párejâ",
+            "length": 126,
+            "note": "this is a very very good movie",
+            "description": {"rating": 5.3, "stars":2, "views": 152, "release": "2011-08-20 11:25:30", "release_ns": "2011-08-20 11:25:30.1234567", "release_ms": "2011-08-20 11:25:30.1234567", "release_sec": "2011-08-20 11:25:30.1234567", "release_tz": "2011-08-20 11:25:30.1234567", "film": "2012-05-11", "u8": 220, "u16": 20, "u32": 1, "u64": 180, "hugedata": 114514},
+            "content": "",
+            "audience": {"audience1": 52, "audience53": 42},
+            "grade": true
+          }');
+---- 1
+STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE, stars UINT8, views UINT8, release TIMESTAMP, release_ns TIMESTAMP, release_ms TIMESTAMP, release_sec TIMESTAMP, release_tz TIMESTAMP, film DATE, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8, hugedata UINT32), content STRING, audience STRUCT(audience1 UINT8, audience53 UINT8), grade BOOL)
