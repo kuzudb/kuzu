@@ -165,11 +165,20 @@ static RE2& realPattern() {
     return retval;
 }
 
+bool isAny(std::string_view cpy) {
+    std::string cpy_upper = std::string(cpy);
+    StringUtils::toUpper(cpy_upper);
+    return cpy.size() == 0 ||
+        cpy_upper == "NULL" || 
+        cpy_upper == "NAN";
+}
+
 LogicalType inferMinimalTypeFromString(std::string_view str) {
     constexpr char array_begin = common::CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR;
     constexpr char array_end = common::CopyConstants::DEFAULT_CSV_LIST_END_CHAR;
     auto cpy = StringUtils::ltrim(StringUtils::rtrim(str));
-    if (cpy.size() == 0 || cpy == "NULL") {
+    // Any   
+    if (isAny(cpy)) {
         return LogicalType::ANY();
     }
     // Boolean

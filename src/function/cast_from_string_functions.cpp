@@ -836,7 +836,7 @@ void CastString::operation(const ku_string_t& input, union_entry_t& result,
 void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
     std::string_view strVal, const CSVOption* option) {
     auto& type = vector->dataType;
-    if (strVal.empty() || isNull(strVal)) {
+    if (strVal.empty() || isNull(strVal) || isAny(strVal)) {
         vector->setNull(vectorPos, true /* isNull */);
         return;
     }

@@ -20,6 +20,7 @@ json~test~interactive_short_json.LDBCInteractiveShortJSON /home/sterling/Desktop
 json~test~large_adj_list_json.LargeAdjListTestJSON /home/sterling/Desktop/kuzu/extension/json/test/large_adj_list_json.test
 json~test~copy_to_json.CopyToJsonAllTypeTest /home/sterling/Desktop/kuzu/extension/json/test/copy_to_json.test
 json~test~copy_to_json.TinySnbCopyToJSON /home/sterling/Desktop/kuzu/extension/json/test/copy_to_json.test
+json~test~json_utils.JsonDataType /home/sterling/Desktop/kuzu/extension/json/test/json_utils.test
 json~test~json_utils.JsonStructureTest2 /home/sterling/Desktop/kuzu/extension/json/test/json_utils.test
 json~test~json_utils.MinifyJsonTest /home/sterling/Desktop/kuzu/extension/json/test/json_utils.test
 json~test~json_utils.JsonValidTest /home/sterling/Desktop/kuzu/extension/json/test/json_utils.test
