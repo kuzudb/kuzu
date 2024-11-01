@@ -10,7 +10,8 @@ add_library(kuzu_function_algorithm
         gds_utils.cpp
         output_writer.cpp
         variable_length_path.cpp
-        weakly_connected_components.cpp)
+        weakly_connected_components.cpp
+        par_wcc.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function_algorithm>

@@ -41,6 +41,48 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
     return true;
 }
 
+/**
+ * Constructor of ComponentIDs. For Weakly Connected Components:
+* The frontier will always be the entire set of nodes
+* Each node will have its own unique beginning ID
+*Each node starts in its own component group. As the algortihm runs, adjacent nodes will both take smaller the componentID,
+* Which puts them into the same component group.
+ */
+ComponentIDs::ComponentIDs(const common::table_id_map_t<common::offset_t>& numNodesMap_, storage::MemoryManager* mm) {
+    curIter.store(0);
+    for (const auto& [tableID, numNodes] : numNodesMap_) {
+        numNodesMap[tableID] = numNodes;
+        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint64_t>));
+        std::atomic<uint16_t>* memBufferPtr = 
+            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
+
+        // Cast a unique number to each node
+        for (uint64_t i = 0; i < numNodes; ++i) {
+            memBufferPtr[i].store(static_cast<uint64_t>(i), std::memory_order_relaxed);
+        }
+        masks.insert({tableID, std::move(memBuffer)});
+    }
+}
+
+// Functions to link current and next frontiers to the correct memory buffer
+void ComponentIDs::fixCurFrontierNodeTable(common::table_id_t tableID) {
+    KU_ASSERT(masks.contains(tableID));
+    curTableID.store(tableID, std::memory_order_relaxed);
+    curFrontierFixedMask.store(
+        reinterpret_cast<std::atomic<uint64_t>*>(masks.at(tableID).get()->getData()),
+        std::memory_order_relaxed);
+    maxNodesInCurFrontierFixedMask.store(
+        numNodesMap[curTableID.load(std::memory_order_relaxed)],
+        std::memory_order_relaxed);
+}
+
+void ComponentIDs::fixNextFrontierNodeTable(common::table_id_t tableID) {
+    KU_ASSERT(masks.contains(tableID));
+    nextFrontierFixedMask.store(
+        reinterpret_cast<std::atomic<uint64_t>*>(masks.at(tableID).get()->getData()),
+        std::memory_order_relaxed);
+}
+
 PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap_,
     storage::MemoryManager* mm) {
     curIter.store(0);
@@ -89,6 +131,14 @@ void FrontierPair::beginNewIteration() {
     numApproxActiveNodesForNextIter.store(0u);
     std::swap(curFrontier, nextFrontier);
     beginNewIterationInternalNoLock();
+}
+
+// Setup componentID tables and initalize morsel dispatcher
+void WCCFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID, table_id_t nextFrontierTableID) {
+    componentIDs->fixCurFrontierNodeTable(curFrontierTableID);
+    componentIDs->fixNextFrontierNodeTable(nextFrontierTableID);
+    morselDispatcher.init(curFrontierTableID,
+    componentIDs->getNumNodesInCurFrontierFixedNodeTable());
 }
 
 void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
