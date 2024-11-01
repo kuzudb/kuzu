@@ -126,15 +126,16 @@ public:
 };
 
 /**
-* ComponentIDs extends from the GDSFrontier virtual class.
-* It will be used within the algorithm for WeaklyConnectedComponents, and keeps track of nodes within the frontier
-*/
+ * ComponentIDs extends from the GDSFrontier virtual class.
+ * It will be used within the algorithm for WeaklyConnectedComponents, and keeps track of nodes
+ * within the frontier
+ */
 class ComponentIDs : public GDSFrontier {
-    //TODO: Define WCC's edge compute
+    // TODO: Define WCC's edge compute
 public:
     // Constructor of ComponentIDs
     ComponentIDs(const common::table_id_map_t<common::offset_t>& numNodesMap,
-    storage::MemoryManager* mm);
+        storage::MemoryManager* mm);
 
     // Gets the initial number of active nodes, which is the sum over all nodes in the map
     uint64_t getInitialActiveNodeCount() const {
@@ -150,12 +151,12 @@ public:
     void updateComponentID(const common::nodeID_t& node, uint16_t newComponentID) {
         // Get a reference to the component ID of the node
         std::atomic<uint64_t>& currentComponentID = getCurFrontierFixedMask()[node.offset];
-        
+
         // Update the component ID to newComponentID if it is smaller than the current ID
         uint64_t expectedComponentID = currentComponentID.load(std::memory_order_relaxed);
         while (expectedComponentID > newComponentID &&
-            !currentComponentID.compare_exchange_weak(expectedComponentID, newComponentID,
-                                                        std::memory_order_relaxed)) {
+               !currentComponentID.compare_exchange_weak(expectedComponentID, newComponentID,
+                   std::memory_order_relaxed)) {
             // If compare_exchange_weak fails, expectedComponentID is updated with the current value
         }
     }
@@ -172,8 +173,8 @@ public:
 
     // Gets whether a node is active
     bool isActive(common::nodeID_t nodeID) override {
-        return getCurFrontierFixedMask()[nodeID.offset] != 
-                getNextFrontierFixedMask()[nodeID.offset];
+        return getCurFrontierFixedMask()[nodeID.offset] !=
+               getNextFrontierFixedMask()[nodeID.offset];
     }
 
     // Functions to set nodes as active
@@ -182,8 +183,8 @@ public:
         auto frontierMask = getNextFrontierFixedMask();
         mask.forEach([&](auto i) {
             frontierMask[nodeIDs[i].offset].store(
-                std::min(frontierMask[nodeIDs[i].offset].load(std::memory_order_relaxed), 
-                        (nodeIDs[i].offset)),
+                std::min(frontierMask[nodeIDs[i].offset].load(std::memory_order_relaxed),
+                    (nodeIDs[i].offset)),
                 std::memory_order_relaxed);
         });
     }
@@ -191,8 +192,8 @@ public:
     void setActive(common::nodeID_t nodeID) override {
         auto frontierMask = getNextFrontierFixedMask();
         frontierMask[nodeID.offset].store(
-            std::min(frontierMask[nodeID.offset].load(std::memory_order_relaxed), 
-                    getMaskValueFromCurFrontierFixedMask(nodeID.offset)),
+            std::min(frontierMask[nodeID.offset].load(std::memory_order_relaxed),
+                getMaskValueFromCurFrontierFixedMask(nodeID.offset)),
             std::memory_order_relaxed);
     }
 
@@ -344,9 +345,10 @@ private:
 };
 
 /**
- * FrontierPair is a single instance of FrontierNode in the current GDSFrontier. 
- * GDSFrontier keeps track of the entire information of the current Frontier, including information such as current Interation and Frontier Masks.
- * 
+ * FrontierPair is a single instance of FrontierNode in the current GDSFrontier.
+ * GDSFrontier keeps track of the entire information of the current Frontier, including information
+ * such as current Interation and Frontier Masks.
+ *
  * Base class for maintaining a current and a next GDSFrontier of nodes for GDS algorithms. At any
  * point in time, maintains the current iteration curIter the algorithm is in and the number of
  * active nodes that have been set for the next iteration. This information can be used
@@ -410,19 +412,19 @@ protected:
  */
 class WCCFrontierPair : public FrontierPair {
     friend class WCCEdgeCompute;
+
 public:
     // Constructor
     WCCFrontierPair(std::shared_ptr<ComponentIDs> componentIDs, uint64_t maxThreadsForExec)
-    : FrontierPair(componentIDs /* curFrontier */, componentIDs /* nextFrontier */,
+        : FrontierPair(componentIDs /* curFrontier */, componentIDs /* nextFrontier */,
               componentIDs->getInitialActiveNodeCount(), maxThreadsForExec),
-              componentIDs{componentIDs}, morselDispatcher(maxThreadsForExec) {}
+          componentIDs{componentIDs}, morselDispatcher(maxThreadsForExec) {}
 
-    void initRJFromSource(common::nodeID_t /* source */) override {
-        return;
-    }
+    void initRJFromSource(common::nodeID_t /* source */) override { return; }
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID, common::table_id_t nextFrontierTableID) override;
-    
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) override;
+
     void beginNewIterationInternalNoLock() override { componentIDs->incrementCurIter(); }
 
 private:

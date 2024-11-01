@@ -43,17 +43,18 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
 
 /**
  * Constructor of ComponentIDs. For Weakly Connected Components:
-* The frontier will always be the entire set of nodes
-* Each node will have its own unique beginning ID
-*Each node starts in its own component group. As the algortihm runs, adjacent nodes will both take smaller the componentID,
-* Which puts them into the same component group.
+ * The frontier will always be the entire set of nodes
+ * Each node will have its own unique beginning ID
+ *Each node starts in its own component group. As the algortihm runs, adjacent nodes will both take
+ *smaller the componentID, Which puts them into the same component group.
  */
-ComponentIDs::ComponentIDs(const common::table_id_map_t<common::offset_t>& numNodesMap_, storage::MemoryManager* mm) {
+ComponentIDs::ComponentIDs(const common::table_id_map_t<common::offset_t>& numNodesMap_,
+    storage::MemoryManager* mm) {
     curIter.store(0);
     for (const auto& [tableID, numNodes] : numNodesMap_) {
         numNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint64_t>));
-        std::atomic<uint16_t>* memBufferPtr = 
+        std::atomic<uint16_t>* memBufferPtr =
             reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
 
         // Cast a unique number to each node
@@ -71,8 +72,7 @@ void ComponentIDs::fixCurFrontierNodeTable(common::table_id_t tableID) {
     curFrontierFixedMask.store(
         reinterpret_cast<std::atomic<uint64_t>*>(masks.at(tableID).get()->getData()),
         std::memory_order_relaxed);
-    maxNodesInCurFrontierFixedMask.store(
-        numNodesMap[curTableID.load(std::memory_order_relaxed)],
+    maxNodesInCurFrontierFixedMask.store(numNodesMap[curTableID.load(std::memory_order_relaxed)],
         std::memory_order_relaxed);
 }
 
@@ -134,11 +134,12 @@ void FrontierPair::beginNewIteration() {
 }
 
 // Setup componentID tables and initalize morsel dispatcher
-void WCCFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID, table_id_t nextFrontierTableID) {
+void WCCFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
+    table_id_t nextFrontierTableID) {
     componentIDs->fixCurFrontierNodeTable(curFrontierTableID);
     componentIDs->fixNextFrontierNodeTable(nextFrontierTableID);
     morselDispatcher.init(curFrontierTableID,
-    componentIDs->getNumNodesInCurFrontierFixedNodeTable());
+        componentIDs->getNumNodesInCurFrontierFixedNodeTable());
 }
 
 void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
