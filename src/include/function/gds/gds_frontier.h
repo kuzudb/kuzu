@@ -5,8 +5,8 @@
 
 #include "common/types/types.h"
 #include "graph/graph.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "processor/operator/gds_call_shared_state.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace function {
@@ -30,9 +30,7 @@ public:
 
     virtual void resetSingleThreadState() {}
 
-    virtual bool terminate(processor::NodeOffsetMaskMap&) {
-        return false;
-    }
+    virtual bool terminate(processor::NodeOffsetMaskMap&) { return false; }
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };
@@ -350,14 +348,13 @@ public:
 
     void resetSingleThreadState() override { numNodesReached = 0; }
 
-    bool terminate(processor::NodeOffsetMaskMap &maskMap) override;
+    bool terminate(processor::NodeOffsetMaskMap& maskMap) override;
 
 protected:
     SinglePathLengthsFrontierPair* frontierPair;
     // States that should be only modified with single thread
     common::offset_t numNodesReached;
 };
-
 
 } // namespace function
 } // namespace kuzu
