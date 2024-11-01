@@ -159,7 +159,7 @@ public:
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
         auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
         SlotIterator iter(slotId, this);
-        std::optional<entry_pos_t> deletedPos = 0;
+        std::optional<entry_pos_t> deletedPos;
         do {
             for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
                 if (iter.slot->header.isEntryValid(entryPos) &&
@@ -180,14 +180,16 @@ public:
             auto newIter = iter;
             while (nextChainedSlot(newIter))
                 ;
-            if (newIter.slotInfo != iter.slotInfo ||
-                *deletedPos != newIter.slot->header.numEntries() - 1) {
-                auto lastEntryPos = newIter.slot->header.numEntries();
+            if (newIter.slot->header.numEntries() > 0 &&
+                (newIter.slotInfo != iter.slotInfo ||
+                    *deletedPos != newIter.slot->header.numEntries() - 1)) {
+                auto lastEntryPos = newIter.slot->header.numEntries() - 1;
                 iter.slot->entries[*deletedPos] = newIter.slot->entries[lastEntryPos];
                 iter.slot->header.setEntryValid(*deletedPos,
                     newIter.slot->header.fingerprints[lastEntryPos]);
                 newIter.slot->header.setEntryInvalid(lastEntryPos);
             }
+            return true;
         }
         return false;
     }

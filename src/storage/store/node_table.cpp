@@ -421,7 +421,10 @@ static void indexRollback(ChunkedNodeGroup* chunkedGroup, common::row_idx_t star
         for (row_idx_t i = startRow; i < std::min(startRow + numRows_, chunkedGroup->getNumRows());
              ++i) {
             T key = pkColumnChunk.getValue<T>(i);
-            pkIndex->delete_(key);
+            // TODO fix
+            if (HashIndexUtils::getHashIndexPosition(key) == 0) {
+                pkIndex->delete_(key);
+            }
         }
     };
     TypeUtils::visit(pkColumnChunk.getDataType(), std::cref(rollbackFunc),
@@ -453,7 +456,6 @@ void NodeTable::rollbackInsert(common::row_idx_t startRow, common::row_idx_t num
             auto* nodeGroup = nodeGroups->getNodeGroup(i);
             // scanState->initState(&DUMMY_TRANSACTION, nodeGroup);
             if (curRow >= startRow && curRow + nodeGroup->getNumRows() <= startRow + numRows_) {
-
                 auto startRowInChunk =
                     (startRow < curRow + nodeGroup->getNumRows()) ? (startRow - curRow) : 0;
                 auto numRowsInChunk = nodeGroup->getNumRows() - startRowInChunk;

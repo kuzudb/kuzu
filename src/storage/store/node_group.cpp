@@ -305,7 +305,7 @@ void NodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRows_,
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAll(MemoryManager& memoryManager,
     const std::vector<common::column_id_t>& columnIDs, const std::vector<const Column*>& columns) {
     auto lock = chunkedGroups.lock();
-    return scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager, lock, columnIDs,
+    return scanAllInsertedAndVersions<ResidencyState::ON_DISK>(memoryManager, lock, columnIDs,
         columns);
 }
 
