@@ -10,6 +10,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Check if the query result has been destroyed.
+     *
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     private void checkNotDestroyed() throws ObjectRefDestroyedException {
@@ -18,7 +19,8 @@ public class QueryResult implements AutoCloseable {
     }
 
     /**
-    * Close the query result and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+     * Close the query result and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+     *
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     @Override
@@ -32,6 +34,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Destroy the query result.
+     *
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     private void destroy() throws ObjectRefDestroyedException {
@@ -44,6 +47,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Check if the query is executed successfully.
+     *
      * @return Query is executed successfully or not.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -54,6 +58,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the error message if any.
+     *
      * @return Error message of the query execution if the query fails.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -64,6 +69,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the number of columns in the query result.
+     *
      * @return The number of columns in the query result.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -74,6 +80,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the column name at the given index.
+     *
      * @param index: The index of the column.
      * @return The column name at the given index.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
@@ -85,6 +92,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the column data type at the given index.
+     *
      * @param index: The index of the column.
      * @return The column data type at the given index.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
@@ -96,6 +104,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the number of tuples in the query result.
+     *
      * @return The number of tuples in the query result.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -106,6 +115,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the query summary.
+     *
      * @return The query summary.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -116,6 +126,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Return if the query result has next tuple or not.
+     *
      * @return Whether there are more tuples to read.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -126,6 +137,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the next tuple.
+     *
      * @return The next tuple.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -136,6 +148,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Return if the query result has next query result or not.
+     *
      * @return Whether there are more query results to read.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -146,6 +159,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Get the next query result.
+     *
      * @return The next query result.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
@@ -156,6 +170,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Convert the query result to string.
+     *
      * @return The string representation of the query result.
      */
     public String toString() {
@@ -167,6 +182,7 @@ public class QueryResult implements AutoCloseable {
 
     /**
      * Reset the query result iterator.
+     *
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
      */
     public void resetIterator() throws ObjectRefDestroyedException {

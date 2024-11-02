@@ -77,16 +77,24 @@ static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, F
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
     : dbConfig{systemConfig} {
+    initMembers(databasePath);
+}
+
+std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Database& db) {
+    return std::make_unique<BufferManager>(db.databasePath,
+        db.dbConfig.spillToDiskTmpFile.value_or(db.vfs->joinPath(db.databasePath, "copy.tmp")),
+        db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
+}
+
+void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc) {
     vfs = std::make_unique<VirtualFileSystem>();
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     auto clientContext = ClientContext(this);
-    const auto dbPathStr = std::string(databasePath);
-    this->databasePath = vfs->expandPath(&clientContext, dbPathStr);
+    const auto dbPathStr = std::string(dbPath);
+    databasePath = vfs->expandPath(&clientContext, dbPathStr);
     initAndLockDBDir();
-    bufferManager = std::make_unique<BufferManager>(this->databasePath,
-        this->dbConfig.spillToDiskTmpFile.value_or(vfs->joinPath(this->databasePath, "copy.tmp")),
-        this->dbConfig.bufferPoolSize, this->dbConfig.maxDBSize, vfs.get(), dbConfig.readOnly);
+    bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(dbConfig.maxNumThreads);
     catalog = std::make_unique<Catalog>(this->databasePath, vfs.get());

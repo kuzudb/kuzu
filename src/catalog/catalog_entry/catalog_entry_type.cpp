@@ -13,8 +13,6 @@ std::string CatalogEntryTypeUtils::toString(CatalogEntryType type) {
         return "REL_TABLE_ENTRY";
     case CatalogEntryType::REL_GROUP_ENTRY:
         return "REL_GROUP_ENTRY";
-    case CatalogEntryType::RDF_GRAPH_ENTRY:
-        return "RDF_GRAPH_ENTRY";
     case CatalogEntryType::FOREIGN_TABLE_ENTRY:
         return "FOREIGN_TABLE_ENTRY";
     case CatalogEntryType::SCALAR_MACRO_ENTRY:

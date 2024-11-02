@@ -37,7 +37,6 @@ public:
         storage::MemoryManager* mm);
 
 public:
-    // TODO: I don't think
     std::shared_ptr<PathLengths> pathLengths;
 };
 
@@ -61,26 +60,30 @@ public:
 
 class RJOutputWriter {
 public:
-    RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs);
+    RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        processor::NodeOffsetMaskMap* outputNodeMask);
     virtual ~RJOutputWriter() = default;
 
-    void beginWritingForDstNodesInTable(common::table_id_t tableID) {
-        rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
-    }
+    processor::NodeOffsetMaskMap* getOutputNodeMask() const { return outputNodeMask; }
 
-    virtual bool skipWriting(common::nodeID_t dstNodeID) const = 0;
+    void beginWritingForDstNodesInTable(common::table_id_t tableID);
+
+    bool skip(common::nodeID_t dstNodeID) const;
 
     virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const = 0;
 
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
 protected:
+    virtual bool skipInternal(common::nodeID_t dstNodeID) const = 0;
     std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type,
         storage::MemoryManager* mm);
 
 protected:
     main::ClientContext* context;
     RJOutputs* rjOutputs;
+    processor::NodeOffsetMaskMap* outputNodeMask;
+
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::vector<common::ValueVector*> vectors;
@@ -88,17 +91,17 @@ protected:
 
 class DestinationsOutputWriter : public RJOutputWriter {
 public:
-    DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs);
+    DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        processor::NodeOffsetMaskMap* outputNodeMask);
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
 
-    bool skipWriting(common::nodeID_t dstNodeID) const override;
-
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<DestinationsOutputWriter>(context, rjOutputs);
+        return std::make_unique<DestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
     }
 
 protected:
+    bool skipInternal(common::nodeID_t dstNodeID) const override;
     virtual void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         uint16_t length) const;
 
@@ -124,7 +127,7 @@ struct PathsOutputWriterInfo {
 class PathsOutputWriter : public RJOutputWriter {
 public:
     PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        PathsOutputWriterInfo info);
+        processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info);
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
 
@@ -154,20 +157,21 @@ protected:
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
     SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        PathsOutputWriterInfo info)
-        : PathsOutputWriter(context, rjOutputs, std::move(info)) {}
+        processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
+        : PathsOutputWriter{context, rjOutputs, outputNodeMask, std::move(info)} {}
 
-    bool skipWriting(common::nodeID_t dstNodeID) const override {
+    std::unique_ptr<RJOutputWriter> copy() override {
+        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, outputNodeMask, info);
+    }
+
+protected:
+    bool skipInternal(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
         // For single/all shortest path computations, we do not output any results from source to
         // source. We also do not output any results if a destination node has not been reached.
         return dstNodeID == pathsOutputs->sourceNodeID ||
                nullptr == pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
                               std::memory_order_relaxed);
-    }
-
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, info);
     }
 };
 

@@ -11,18 +11,6 @@ namespace planner {
 std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(const BoundInsertInfo* info) {
     auto insertInfo = std::make_unique<LogicalInsertInfo>(info->tableType, info->pattern,
         info->columnExprs, info->columnDataExprs, info->conflictAction);
-    if (info->iriReplaceExpr != nullptr) { // See bound_insert_info.h for explanation.
-        insertInfo->columnExprs = expression_vector{info->iriReplaceExpr};
-        KU_ASSERT(insertInfo->columnExprs.size() == 1);
-        auto projectIri = false;
-        for (auto& property : propertyExprCollection.getProperties()) {
-            if (*property == *info->iriReplaceExpr) {
-                projectIri = true;
-            }
-        }
-        insertInfo->isReturnColumnExprs.push_back(projectIri);
-        return insertInfo;
-    }
     binder::expression_set propertyExprSet;
     for (auto& expr : getProperties(*info->pattern)) {
         propertyExprSet.insert(expr);

@@ -1,7 +1,6 @@
 #include "storage/storage_manager.h"
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rdf_graph_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
@@ -46,24 +45,6 @@ FileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualF
         vfs, context);
 }
 
-// TODO(Guodong): Rework setting common table ID for rdf rel tables.
-static void setCommonTableIDToRdfRelTable(const RelTable* relTable,
-    const std::vector<RDFGraphCatalogEntry*>& rdfEntries) {
-    for (const auto rdfEntry : rdfEntries) {
-        if (rdfEntry->isParent(relTable->getTableID())) {
-            std::vector<Column*> columns;
-            // TODO(Guodong): This is a hack. We should not use constant 2 and should move
-            // the setting logic inside RelTableData.
-            columns.push_back(relTable->getDirectedTableData(RelDataDirection::FWD)->getColumn(2));
-            columns.push_back(relTable->getDirectedTableData(RelDataDirection::BWD)->getColumn(2));
-            for (const auto& column : columns) {
-                ku_dynamic_cast<InternalIDColumn*>(column)->setCommonTableID(
-                    rdfEntry->getResourceTableID());
-            }
-        }
-    }
-}
-
 void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
     main::ClientContext* context) {
     if (main::DBConfig::isDBPathInMemory(databasePath)) {
@@ -84,14 +65,6 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
                 tables[table->getTableID()] = std::move(table);
             }
         }
-    }
-
-    // TODO(Guodong): Rework setting common table ID for rdf rel tables.
-    const auto rdfGraphSchemas = catalog.getRdfGraphEntries(&DUMMY_TRANSACTION);
-    for (const auto relTableEntry : catalog.getRelTableEntries(&DUMMY_TRANSACTION)) {
-        KU_ASSERT(tables.contains(relTableEntry->getTableID()));
-        auto& relTable = tables.at(relTableEntry->getTableID()).get()->cast<RelTable>();
-        setCommonTableIDToRdfRelTable(&relTable, rdfGraphSchemas);
     }
 }
 
@@ -124,10 +97,8 @@ void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* 
 }
 
 void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
-    const Catalog* catalog, Transaction* transaction) {
-    auto relTable = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
-    setCommonTableIDToRdfRelTable(relTable.get(), catalog->getRdfGraphEntries(transaction));
-    tables[tableID] = std::move(relTable);
+    const Catalog*, Transaction*) {
+    tables[tableID] = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
 }
 
 void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry* tableSchema,
@@ -138,30 +109,6 @@ void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry*
                 catalog->getTableCatalogEntry(transaction, relTableID)),
             catalog, transaction);
     }
-}
-
-void StorageManager::createRdfGraph(table_id_t, RDFGraphCatalogEntry* tableSchema,
-    const Catalog* catalog, main::ClientContext* context) {
-    KU_ASSERT(context != nullptr);
-    const auto rdfGraphSchema = ku_dynamic_cast<RDFGraphCatalogEntry*>(tableSchema);
-    const auto resourceTableID = rdfGraphSchema->getResourceTableID();
-    const auto resourceTableEntry = ku_dynamic_cast<NodeTableCatalogEntry*>(
-        catalog->getTableCatalogEntry(context->getTx(), resourceTableID));
-    createNodeTable(resourceTableID, resourceTableEntry, context);
-    const auto literalTableID = rdfGraphSchema->getLiteralTableID();
-    const auto literalTableEntry = catalog->getTableCatalogEntry(context->getTx(), literalTableID)
-                                       ->ptrCast<NodeTableCatalogEntry>();
-    createNodeTable(literalTableID, literalTableEntry, context);
-    const auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
-    const auto resourceTripleTableEntry =
-        catalog->getTableCatalogEntry(context->getTx(), resourceTripleTableID)
-            ->ptrCast<RelTableCatalogEntry>();
-    createRelTable(resourceTripleTableID, resourceTripleTableEntry, catalog, context->getTx());
-    const auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
-    const auto literalTripleTableEntry =
-        catalog->getTableCatalogEntry(context->getTx(), literalTripleTableID)
-            ->ptrCast<RelTableCatalogEntry>();
-    createRelTable(literalTripleTableID, literalTripleTableEntry, catalog, context->getTx());
 }
 
 void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
@@ -179,9 +126,6 @@ void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
     case TableType::REL_GROUP: {
         createRelTableGroup(tableID, tableEntry->ptrCast<RelGroupCatalogEntry>(), catalog,
             context->getTx());
-    } break;
-    case TableType::RDF: {
-        createRdfGraph(tableID, tableEntry->ptrCast<RDFGraphCatalogEntry>(), catalog, context);
     } break;
     default: {
         KU_UNREACHABLE;

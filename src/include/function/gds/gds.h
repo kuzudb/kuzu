@@ -32,6 +32,8 @@ struct GDSBindData {
 
     virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
 
+    virtual bool hasNodeOutput() const { return false; }
+
     virtual std::shared_ptr<binder::Expression> getNodeOutput() const {
         KU_ASSERT(nodeOutput != nullptr);
         return nodeOutput;

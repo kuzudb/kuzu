@@ -192,10 +192,16 @@ void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
         const auto columnID = columnIDs[i];
         checkpointColumns.push_back(std::move(columns[columnID]));
     }
-    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH,
+    columns = std::move(checkpointColumns);
+
+    std::vector<Column*> checkpointColumnPtrs;
+    for (const auto& column : columns) {
+        checkpointColumnPtrs.push_back(column.get());
+    }
+
+    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), *dataFH,
         memoryManager, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(*memoryManager, state);
-    columns = std::move(state.columns);
 }
 
 void RelTableData::serialize(Serializer& serializer) const {

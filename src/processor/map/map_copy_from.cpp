@@ -5,7 +5,6 @@
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/partitioner.h"
-#include "processor/operator/persistent/copy_rdf.h"
 #include "processor/operator/persistent/node_batch_insert.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "processor/operator/table_function_call.h"
@@ -51,8 +50,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
         }
         return scan;
     }
-    case TableType::RDF:
-        return mapCopyRdfFrom(logicalOperator);
     default:
         KU_UNREACHABLE;
     }
@@ -202,69 +199,6 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
     result.push_back(std::move(copyRelFWD));
     result.push_back(std::move(partitioner));
     return result;
-}
-
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRdfFrom(LogicalOperator* logicalOperator) {
-    const auto copyFrom = ku_dynamic_cast<LogicalCopyFrom*>(logicalOperator);
-    const auto logicalRRLChild = logicalOperator->getChild(0).get();
-    const auto logicalRRRChild = logicalOperator->getChild(1).get();
-    const auto logicalLChild = logicalOperator->getChild(2).get();
-    const auto logicalRChild = logicalOperator->getChild(3).get();
-    std::unique_ptr<PhysicalOperator> scanChild;
-    if (logicalOperator->getNumChildren() > 4) {
-        const auto logicalScanChild = logicalOperator->getChild(4).get();
-        scanChild = mapOperator(logicalScanChild);
-        scanChild = createResultCollector(AccumulateType::REGULAR, expression_vector{},
-            logicalScanChild->getSchema(), std::move(scanChild));
-    }
-
-    auto rChild = mapCopyNodeFrom(logicalRChild);
-    KU_ASSERT(rChild->getOperatorType() == PhysicalOperatorType::BATCH_INSERT);
-    const auto rCopy = ku_dynamic_cast<NodeBatchInsert*>(rChild.get());
-    auto lChild = mapCopyNodeFrom(logicalLChild);
-    const auto lCopy = ku_dynamic_cast<NodeBatchInsert*>(lChild.get());
-    auto rrrChildren = mapCopyRelFrom(logicalRRRChild);
-    KU_ASSERT(rrrChildren[2]->getOperatorType() == PhysicalOperatorType::PARTITIONER);
-    const auto rrrPartitioner = ku_dynamic_cast<Partitioner*>(rrrChildren[2].get());
-    rrrPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
-        rCopy->getSharedState());
-    rrrPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
-        rCopy->getSharedState());
-    KU_ASSERT(rrrChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
-    const auto rrrLookup = ku_dynamic_cast<IndexLookup*>(rrrChildren[2]->getChild(0));
-    rrrLookup->setBatchInsertSharedState(rCopy->getSharedState());
-    auto rrlChildren = mapCopyRelFrom(logicalRRLChild);
-    const auto rrLPartitioner = ku_dynamic_cast<Partitioner*>(rrlChildren[2].get());
-    rrLPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
-        rCopy->getSharedState());
-    rrLPartitioner->getSharedState()->nodeBatchInsertSharedStates.push_back(
-        lCopy->getSharedState());
-    KU_ASSERT(rrlChildren[2]->getChild(0)->getOperatorType() == PhysicalOperatorType::INDEX_LOOKUP);
-    const auto rrlLookup = ku_dynamic_cast<IndexLookup*>(rrlChildren[2]->getChild(0));
-    rrlLookup->setBatchInsertSharedState(rCopy->getSharedState());
-    auto sharedState = std::make_shared<CopyRdfSharedState>();
-    const auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
-    sharedState->fTable = fTable;
-    auto printInfo = std::make_unique<CopyRdfPrintInfo>(copyFrom->getInfo()->tableEntry->getName());
-    auto copyRdf = std::make_unique<CopyRdf>(std::move(sharedState),
-        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), getOperatorID(),
-        std::move(printInfo));
-    for (auto& child : rrlChildren) {
-        copyRdf->addChild(std::move(child));
-    }
-    for (auto& child : rrrChildren) {
-        copyRdf->addChild(std::move(child));
-    }
-    copyRdf->addChild(std::move(lChild));
-    copyRdf->addChild(std::move(rChild));
-    if (scanChild != nullptr) {
-        copyRdf->addChild(std::move(scanChild));
-    }
-    physical_op_vector_t children;
-    children.push_back(std::move(copyRdf));
-    return createFTableScanAligned(copyFrom->getOutExprs(), copyFrom->getSchema(), fTable,
-        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
 }
 
 } // namespace processor

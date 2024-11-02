@@ -135,14 +135,12 @@ public:
                     auto rank = 0.0;
                     auto iter = graph->scanFwd(nodeID, *scanState);
                     for (const auto chunk : iter) {
-                        chunk.selVector.forEach([&](auto i) {
-                            auto numNbrOfNbr =
-                                graph->scanFwd(chunk.nbrNodes[i], *innerScanState).count();
+                        chunk.forEach([&](auto nbr, auto) {
+                            auto numNbrOfNbr = graph->scanFwd(nbr, *innerScanState).count();
                             if (numNbrOfNbr == 0) {
                                 numNbrOfNbr = numNodesInGraph;
                             }
-                            rank +=
-                                extraData->dampingFactor * (ranks[chunk.nbrNodes[i]] / numNbrOfNbr);
+                            rank += extraData->dampingFactor * (ranks[nbr] / numNbrOfNbr);
                         });
                     }
                     rank += dampingValue;

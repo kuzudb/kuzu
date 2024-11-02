@@ -83,8 +83,6 @@ pub enum LogicalType {
     },
     /// Correponds to [Value::UUID](crate::value::Value::UUID)
     UUID,
-    /// Correponds to [Value::RDFVariant](crate::value::Value::RDFVariant)
-    RDFVariant,
     /// Correponds to [Value::Decimal](crate::value::Value::Decimal)
     Decimal {
         precision: u32,
@@ -190,7 +188,6 @@ impl From<&ffi::LogicalType> for LogicalType {
                 }
             }
             LogicalTypeID::UUID => LogicalType::UUID,
-            LogicalTypeID::RDF_VARIANT => LogicalType::RDFVariant,
             LogicalTypeID::DECIMAL => {
                 let precision = ffi::logical_type_get_decimal_precision(logical_type);
                 let scale = ffi::logical_type_get_decimal_scale(logical_type);
@@ -263,7 +260,6 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                 key_type,
                 value_type,
             } => ffi::create_logical_type_map(key_type.as_ref().into(), value_type.as_ref().into()),
-            LogicalType::RDFVariant => ffi::create_logical_type_rdf_variant(),
             LogicalType::Decimal { precision, scale } => {
                 ffi::create_logical_type_decimal(*precision, *scale)
             }
@@ -308,7 +304,6 @@ impl LogicalType {
             LogicalType::Map { .. } => LogicalTypeID::MAP,
             LogicalType::Union { .. } => LogicalTypeID::UNION,
             LogicalType::UUID => LogicalTypeID::UUID,
-            LogicalType::RDFVariant => LogicalTypeID::RDF_VARIANT,
             LogicalType::Decimal { .. } => LogicalTypeID::DECIMAL,
         }
     }

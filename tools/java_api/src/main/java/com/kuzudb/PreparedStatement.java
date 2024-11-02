@@ -9,6 +9,7 @@ public class PreparedStatement implements AutoCloseable {
 
     /**
      * Check if the prepared statement has been destroyed.
+     *
      * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     private void checkNotDestroyed() throws ObjectRefDestroyedException {
@@ -17,9 +18,10 @@ public class PreparedStatement implements AutoCloseable {
     }
 
     /**
-    * Close the prepared statement and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
-    * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
-    */
+     * Close the prepared statement and release the underlying resources. This method is invoked automatically on objects managed by the try-with-resources statement.
+     *
+     * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
+     */
     @Override
     public void close() throws ObjectRefDestroyedException {
         destroy();
@@ -27,6 +29,7 @@ public class PreparedStatement implements AutoCloseable {
 
     /**
      * Destroy the prepared statement.
+     *
      * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     private void destroy() throws ObjectRefDestroyedException {
@@ -37,6 +40,7 @@ public class PreparedStatement implements AutoCloseable {
 
     /**
      * Check if the query is prepared successfully or not.
+     *
      * @return The query is prepared successfully or not.
      * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
      */
@@ -47,6 +51,7 @@ public class PreparedStatement implements AutoCloseable {
 
     /**
      * Get the error message if the query is not prepared successfully.
+     *
      * @return The error message if the query is not prepared successfully.
      * @throws ObjectRefDestroyedException If the prepared statement has been destroyed.
      */

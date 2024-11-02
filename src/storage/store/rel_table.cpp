@@ -451,20 +451,16 @@ static void updateIndexNodeOffsets(const transaction::Transaction* transaction,
     }
 }
 
-void RelTable::updateNodeOffsets(const Transaction* transaction, LocalRelTable& localRelTable) {
-    std::unordered_map<column_id_t, offset_t> columnsToUpdate;
-    for (auto& [columnID, tableID] : localRelTable.getNodeOffsetColumns()) {
-        if (transaction->hasNewlyInsertedNodes(tableID)) {
-            const auto maxCommittedOffset = transaction->getMaxCommittedNodeOffset(tableID);
-            columnsToUpdate[columnID] = maxCommittedOffset;
-            if (columnID == LOCAL_BOUND_NODE_ID_COLUMN_ID) {
-                updateIndexNodeOffsets(transaction, localRelTable.getFWDIndex(),
-                    localRelTable.getNodeOffsetColumns().at(columnID));
-            } else if (columnID == LOCAL_NBR_NODE_ID_COLUMN_ID) {
-                updateIndexNodeOffsets(transaction, localRelTable.getBWDIndex(),
-                    localRelTable.getNodeOffsetColumns().at(columnID));
-            }
-        }
+void RelTable::updateNodeOffsets(const Transaction* transaction,
+    LocalRelTable& localRelTable) const {
+    std::unordered_map<column_id_t, table_id_t> columnsToUpdate;
+    if (transaction->hasNewlyInsertedNodes(fromNodeTableID)) {
+        columnsToUpdate[LOCAL_BOUND_NODE_ID_COLUMN_ID] = fromNodeTableID;
+        updateIndexNodeOffsets(transaction, localRelTable.getFWDIndex(), fromNodeTableID);
+    }
+    if (transaction->hasNewlyInsertedNodes(toNodeTableID)) {
+        columnsToUpdate[LOCAL_NBR_NODE_ID_COLUMN_ID] = toNodeTableID;
+        updateIndexNodeOffsets(transaction, localRelTable.getFWDIndex(), toNodeTableID);
     }
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
@@ -475,10 +471,9 @@ void RelTable::updateNodeOffsets(const Transaction* transaction, LocalRelTable& 
                 chunkedGroup->getColumnChunk(columnID).getData().cast<InternalIDChunkData>();
             for (auto rowIdx = 0u; rowIdx < nodeIDData.getNumValues(); rowIdx++) {
                 const auto localOffset = nodeIDData[rowIdx];
-                if (transaction->isUnCommitted(localRelTable.getNodeOffsetColumns().at(columnID),
-                        localOffset)) {
+                if (transaction->isUnCommitted(columnsToUpdate.at(columnID), localOffset)) {
                     const auto committedOffset = transaction->getCommittedOffsetFromUncommitted(
-                        localRelTable.getNodeOffsetColumns().at(columnID), localOffset);
+                        columnsToUpdate.at(columnID), localOffset);
                     nodeIDData[rowIdx] = committedOffset;
                 }
             }

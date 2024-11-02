@@ -1,8 +1,8 @@
 package com.kuzudb;
 
 /**
-*  data type ID.
-*/
+ * data type ID.
+ */
 public enum DataTypeID {
     ANY(0),
     NODE(10),
@@ -37,7 +37,8 @@ public enum DataTypeID {
     STRUCT(54),
     MAP(55),
     UNION(56),
-    UUID(59),;
+    UUID(59),
+    ;
 
     public final int value;
 

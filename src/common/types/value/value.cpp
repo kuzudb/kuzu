@@ -183,8 +183,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::STRUCT:
-    case LogicalTypeID::RDF_VARIANT: {
+    case LogicalTypeID::STRUCT: {
         std::vector<std::unique_ptr<Value>> children;
         for (auto& field : StructType::getFields(dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(field.getType())));
@@ -428,8 +427,7 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::STRUCT:
-    case LogicalTypeID::RDF_VARIANT: {
+    case LogicalTypeID::STRUCT: {
         copyFromRowLayoutStruct(value);
     } break;
     case LogicalTypeID::POINTER: {
@@ -622,9 +620,6 @@ std::string Value::toString() const {
         return UUID::toString(val.int128Val);
     case LogicalTypeID::STRING:
         return strVal;
-    case LogicalTypeID::RDF_VARIANT: {
-        return rdfVariantToString();
-    }
     case LogicalTypeID::MAP: {
         return mapToString();
     }
@@ -1016,63 +1011,6 @@ uint64_t Value::computeHash() const {
     }
     }
     return hashValue;
-}
-
-std::string Value::rdfVariantToString() const {
-    auto type = static_cast<LogicalTypeID>(children[0]->val.uint8Val);
-    auto blobData = children[1]->strVal.data();
-    switch (type) {
-    case LogicalTypeID::STRING: {
-        return children[1]->strVal;
-    }
-    case LogicalTypeID::BLOB: {
-        return TypeUtils::toString(Blob::getValue<blob_t>(blobData));
-    }
-    case LogicalTypeID::INT64: {
-        return TypeUtils::toString(Blob::getValue<int64_t>(blobData));
-    }
-    case LogicalTypeID::INT32: {
-        return TypeUtils::toString(Blob::getValue<int32_t>(blobData));
-    }
-    case LogicalTypeID::INT16: {
-        return TypeUtils::toString(Blob::getValue<int16_t>(blobData));
-    }
-    case LogicalTypeID::INT8: {
-        return TypeUtils::toString(Blob::getValue<int8_t>(blobData));
-    }
-    case LogicalTypeID::UINT64: {
-        return TypeUtils::toString(Blob::getValue<uint64_t>(blobData));
-    }
-    case LogicalTypeID::UINT32: {
-        return TypeUtils::toString(Blob::getValue<uint32_t>(blobData));
-    }
-    case LogicalTypeID::UINT16: {
-        return TypeUtils::toString(Blob::getValue<uint16_t>(blobData));
-    }
-    case LogicalTypeID::UINT8: {
-        return TypeUtils::toString(Blob::getValue<uint8_t>(blobData));
-    }
-    case LogicalTypeID::DOUBLE: {
-        return TypeUtils::toString(Blob::getValue<double>(blobData));
-    }
-    case LogicalTypeID::FLOAT: {
-        return TypeUtils::toString(Blob::getValue<float>(blobData));
-    }
-    case LogicalTypeID::BOOL: {
-        return TypeUtils::toString(Blob::getValue<bool>(blobData));
-    }
-    case LogicalTypeID::DATE: {
-        return TypeUtils::toString(Blob::getValue<date_t>(blobData));
-    }
-    case LogicalTypeID::TIMESTAMP: {
-        return TypeUtils::toString(Blob::getValue<timestamp_t>(blobData));
-    }
-    case LogicalTypeID::INTERVAL: {
-        return TypeUtils::toString(Blob::getValue<interval_t>(blobData));
-    }
-    default:
-        KU_UNREACHABLE;
-    }
 }
 
 std::string Value::mapToString() const {

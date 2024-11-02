@@ -226,9 +226,6 @@ std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
 
 TestStatement* TestParser::extractStatement(TestStatement* statement,
     const std::string& testCaseName) {
-    if (endOfFile()) {
-        return statement;
-    }
     tokenize();
     switch (currentToken.type) {
     case TokenType::LOG: {

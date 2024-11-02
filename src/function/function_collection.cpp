@@ -16,7 +16,6 @@
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
 #include "function/path/vector_path_functions.h"
-#include "function/rdf/vector_rdf_functions.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/string/vector_string_functions.h"
@@ -30,7 +29,6 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
-#include "processor/operator/persistent/reader/rdf/rdf_scan.h"
 #include "processor/operator/table_scan/ftable_scan_function.h"
 
 using namespace kuzu::processor;
@@ -194,9 +192,6 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(PropertiesFunction), SCALAR_FUNCTION(IsTrailFunction),
         SCALAR_FUNCTION(IsACyclicFunction), REWRITE_FUNCTION(LengthFunction),
 
-        // Rdf functions
-        SCALAR_FUNCTION(RDFTypeFunction), SCALAR_FUNCTION(ValidatePredicateFunction),
-
         // Hash functions
         SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),
         SCALAR_FUNCTION(HashFunction),
@@ -229,12 +224,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
-        TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
-        TABLE_FUNCTION(RdfResourceScan), TABLE_FUNCTION(RdfLiteralScan),
-        TABLE_FUNCTION(RdfResourceTripleScan), TABLE_FUNCTION(RdfLiteralTripleScan),
-        TABLE_FUNCTION(RdfAllTripleScan), TABLE_FUNCTION(RdfResourceInMemScan),
-        TABLE_FUNCTION(RdfLiteralInMemScan), TABLE_FUNCTION(RdfResourceTripleInMemScan),
-        TABLE_FUNCTION(RdfLiteralTripleInMemScan), TABLE_FUNCTION(FTableScan),
+        TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan), TABLE_FUNCTION(FTableScan),
 
         // Algorithm functions
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),

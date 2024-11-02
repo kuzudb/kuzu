@@ -157,18 +157,42 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         nodeGroupScanState.numScannedRows - chunkedGroupToScan.getStartRowIdx();
     const auto numRowsToScan =
         std::min(chunkedGroupToScan.getNumRows() - rowIdxInChunkToScan, DEFAULT_VECTOR_CAPACITY);
-    if (state.source == TableScanSource::COMMITTED && state.semiMask &&
-        state.semiMask->isEnabled()) {
+    bool enableSemiMask =
+        state.source == TableScanSource::COMMITTED && state.semiMask && state.semiMask->isEnabled();
+    if (enableSemiMask) {
         const auto startNodeOffset = nodeGroupScanState.numScannedRows +
                                      StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
-        if (!state.semiMask->isAnyMasked(startNodeOffset, startNodeOffset + numRowsToScan - 1)) {
+        const auto endNodeOffset = startNodeOffset + numRowsToScan;
+        const auto& arr = state.semiMask->range(startNodeOffset, endNodeOffset);
+        if (arr.empty()) {
             state.outState->getSelVectorUnsafe().setSelSize(0);
             nodeGroupScanState.numScannedRows += numRowsToScan;
             return NodeGroupScanResult{nodeGroupScanState.numScannedRows, 0};
+        } else {
+            chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+                numRowsToScan);
+            auto& selVector = state.outState->getSelVectorUnsafe();
+            auto stat = selVector.getMutableBuffer();
+            uint64_t numSelectedValues = 0;
+            size_t i = 0, j = 0;
+            while (i < selVector.getSelSize() && j < arr.size()) {
+                auto temp = arr[j] - startNodeOffset;
+                if (selVector[i] < temp) {
+                    ++i;
+                } else if (selVector[i] > temp) {
+                    ++j;
+                } else {
+                    stat[numSelectedValues++] = temp;
+                    ++i;
+                    ++j;
+                }
+            }
+            selVector.setToFiltered(numSelectedValues);
         }
+    } else {
+        chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
+            numRowsToScan);
     }
-    chunkedGroupToScan.scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
-        numRowsToScan);
     const auto startRow = nodeGroupScanState.numScannedRows;
     nodeGroupScanState.numScannedRows += numRowsToScan;
     return NodeGroupScanResult{startRow, numRowsToScan};
@@ -285,8 +309,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
     const auto numPersistentRows = firstGroup->getNumRows();
     std::vector<const Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
-    for (auto& column : state.columns) {
-        columnPtrs.push_back(column.get());
+    for (auto* column : state.columns) {
+        columnPtrs.push_back(column);
     }
     const auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(
         memoryManager, lock, state.columnIDs, columnPtrs);
@@ -304,7 +328,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
         if (columnHasUpdates) {
             // TODO(Guodong): Optimize this to scan only vectors with updates.
             const auto updateChunk = scanAllInsertedAndVersions<ResidencyState::ON_DISK>(
-                memoryManager, lock, {columnID}, {state.columns[columnID].get()});
+                memoryManager, lock, {columnID}, {state.columns[columnID]});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
             chunkCheckpointStates.push_back(ChunkCheckpointState{
                 updateChunk->getColumnChunk(0).moveData(), 0, updateChunk->getNumRows()});
@@ -332,7 +356,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     std::vector<const Column*> columnPtrs;
     columnPtrs.reserve(state.columns.size());
     for (auto& column : state.columns) {
-        columnPtrs.push_back(column.get());
+        columnPtrs.push_back(column);
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);

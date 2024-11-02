@@ -11,6 +11,10 @@ namespace processor {
 std::string PrimaryKeyScanPrintInfo::toString() const {
     std::string result = "Key: ";
     result += key;
+    if (!alias.empty()) {
+        result += ",Alias: ";
+        result += alias;
+    }
     result += ", Expressions: ";
     result += binder::ExpressionUtil::toString(expressions);
 

@@ -97,7 +97,7 @@ void RJAlgorithm::bindColumnExpressions(binder::Binder* binder) const {
         rjBindData->directionExpr =
             binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL()));
     }
-    rjBindData->lengthExpr = binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::INT64());
+    rjBindData->lengthExpr = binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::UINT16());
     rjBindData->pathNodeIDsExpr = binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
         LogicalType::LIST(LogicalType::INTERNAL_ID()));
     rjBindData->pathEdgeIDsExpr = binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
@@ -144,7 +144,7 @@ public:
     }
 
     void vertexCompute(nodeID_t nodeID) override {
-        if (writer->skipWriting(nodeID)) {
+        if (writer->skip(nodeID)) {
             return;
         }
         writer->write(*localFT, nodeID);
@@ -173,13 +173,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
         }
-        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
-        for (auto offset = 0u; offset < sharedState->graph->getNumNodes(
-                                            executionContext->clientContext->getTx(), tableID);
-             ++offset) {
-            if (!mask->isMasked(offset)) {
-                continue;
-            }
+        auto calcFun = [tableID, executionContext, clientContext, this](offset_t offset) {
             auto sourceNodeID = nodeID_t{offset, tableID};
             RJCompState rjCompState = getRJCompState(executionContext, sourceNodeID);
             rjCompState.initSource(sourceNodeID);
@@ -191,6 +185,18 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
                     sharedState.get(), rjCompState.outputWriter->copy());
             GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
                 *vertexCompute);
+        };
+        auto numNodes =
+            sharedState->graph->getNumNodes(executionContext->clientContext->getTx(), tableID);
+        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
+        if (mask->isEnabled()) {
+            for (const auto& offset : mask->range(0, numNodes)) {
+                calcFun(offset);
+            }
+        } else {
+            for (auto offset = 0u; offset < numNodes; ++offset) {
+                calcFun(offset);
+            }
         }
     }
     sharedState->mergeLocalTables();

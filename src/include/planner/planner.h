@@ -93,8 +93,6 @@ public:
         binder::expression_vector results);
     std::unique_ptr<LogicalPlan> planCopyRelFrom(const binder::BoundCopyFromInfo* info,
         binder::expression_vector outExprs);
-    std::unique_ptr<LogicalPlan> planCopyRdfFrom(const binder::BoundCopyFromInfo* info,
-        binder::expression_vector outExprs);
 
     // Plan export/import database
     std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);

@@ -48,6 +48,7 @@ struct RJBindData final : public GDSBindData {
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
+    bool hasNodeOutput() const override { return true; }
 
     PathsOutputWriterInfo getPathWriterInfo() const;
 

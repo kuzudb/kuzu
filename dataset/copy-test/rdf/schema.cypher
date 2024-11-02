@@ -1,1 +1,0 @@
-CREATE RDFGraph taxonomy;

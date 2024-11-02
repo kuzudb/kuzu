@@ -53,16 +53,6 @@ struct RecursiveInfo {
     std::shared_ptr<Expression> pathEdgeDirectionsExpr;
 };
 
-struct RdfPredicateInfo {
-    std::vector<common::table_id_t> resourceTableIDs;
-    std::shared_ptr<Expression> predicateID;
-
-    RdfPredicateInfo(std::vector<common::table_id_t> resourceTableIDs,
-        std::shared_ptr<Expression> predicateID)
-        : resourceTableIDs{std::move(resourceTableIDs)}, predicateID{std::move(predicateID)} {}
-    DELETE_COPY_DEFAULT_MOVE(RdfPredicateInfo);
-};
-
 class RelExpression : public NodeOrRelExpression {
 public:
     RelExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
@@ -109,11 +99,6 @@ public:
         return recursiveInfo->lengthExpression;
     }
 
-    void setRdfPredicateInfo(std::unique_ptr<RdfPredicateInfo> info) {
-        rdfPredicateInfo = std::move(info);
-    }
-    RdfPredicateInfo* getRdfPredicateInfo() const { return rdfPredicateInfo.get(); }
-
     bool isSelfLoop() const { return *srcNode == *dstNode; }
 
     std::string detailsToString() const;
@@ -131,8 +116,6 @@ private:
     common::QueryRelType relType;
     // Null if relationship type is non-recursive.
     std::unique_ptr<RecursiveInfo> recursiveInfo;
-    // Null if relationship does not map to an RDF resource triple table.
-    std::unique_ptr<RdfPredicateInfo> rdfPredicateInfo;
 };
 
 } // namespace binder

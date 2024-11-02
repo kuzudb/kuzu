@@ -52,30 +52,10 @@ public class TestHelper {
         } while (line != null);
         reader.close();
 
-        reader = new BufferedReader(new FileReader("../../dataset/rdf/rdf_variant/schema.cypher"));
-        do {
-            line = reader.readLine();
-            if (line == null) {
-                break;
-            }
-            try (QueryResult result = conn.query(line)) {
-            }
-        } while (line != null);
-        reader.close();
-
-        reader = new BufferedReader(new FileReader("../../dataset/rdf/rdf_variant/copy.cypher"));
-        do {
-            line = reader.readLine();
-            if (line == null) {
-                break;
-            }
-            try (QueryResult result = conn.query(line)) {
-            }
-        } while (line != null);
 
         try (QueryResult result = conn.query("create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID));")) {
         }
-        
+
         try (QueryResult result = conn.query("copy moviesSerial from \"../../dataset/tinysnb-serial/vMovies.csv\"")) {
         }
     }

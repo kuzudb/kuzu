@@ -2,10 +2,10 @@
 
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
+#include "common/constants.h"
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
-#include "common/types/value/rdf_variant.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "function/cast/functions/cast_from_string_functions.h"
@@ -175,6 +175,92 @@ kuzu_value* kuzu_value_create_string(const char* val_) {
     return c_value;
 }
 
+kuzu_state kuzu_value_create_list(uint64_t num_elements, kuzu_value** elements,
+    kuzu_value** out_value) {
+    if (num_elements == 0) {
+        return KuzuError;
+    }
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    std::vector<std::unique_ptr<Value>> children;
+
+    auto first_element = static_cast<Value*>(elements[0]->_value);
+    auto type = first_element->getDataType().copy();
+
+    for (uint64_t i = 0; i < num_elements; ++i) {
+        auto child = static_cast<Value*>(elements[i]->_value);
+        if (child->getDataType() != type) {
+            free(c_value);
+            return KuzuError;
+        }
+        // Copy the value to the list value to transfer ownership to the C++ side.
+        children.push_back(child->copy());
+    }
+    auto list_type = LogicalType::LIST(first_element->getDataType().copy());
+    c_value->_value = new Value(list_type.copy(), std::move(children));
+    c_value->_is_owned_by_cpp = false;
+    *out_value = c_value;
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_value_create_struct(uint64_t num_fields, const char** field_names,
+    kuzu_value** field_values, kuzu_value** out_value) {
+    if (num_fields == 0) {
+        return KuzuError;
+    }
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    std::vector<std::unique_ptr<Value>> children;
+    auto struct_fields = std::vector<StructField>{};
+    for (uint64_t i = 0; i < num_fields; ++i) {
+        auto field_name = std::string(field_names[i]);
+        auto field_value = static_cast<Value*>(field_values[i]->_value);
+        auto field_type = field_value->getDataType().copy();
+        struct_fields.emplace_back(std::move(field_name), std::move(field_type));
+        children.push_back(field_value->copy());
+    }
+    auto struct_type = LogicalType::STRUCT(std::move(struct_fields));
+    c_value->_value = new Value(std::move(struct_type), std::move(children));
+    c_value->_is_owned_by_cpp = false;
+    *out_value = c_value;
+    return KuzuSuccess;
+}
+
+kuzu_state kuzu_value_create_map(uint64_t num_fields, kuzu_value** keys, kuzu_value** values,
+    kuzu_value** out_value) {
+    if (num_fields == 0) {
+        return KuzuError;
+    }
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    std::vector<std::unique_ptr<Value>> children;
+
+    auto first_key = static_cast<Value*>(keys[0]->_value);
+    auto first_value = static_cast<Value*>(values[0]->_value);
+    auto key_type = first_key->getDataType().copy();
+    auto value_type = first_value->getDataType().copy();
+
+    for (uint64_t i = 0; i < num_fields; ++i) {
+        auto key = static_cast<Value*>(keys[i]->_value);
+        auto value = static_cast<Value*>(values[i]->_value);
+        if (key->getDataType() != key_type || value->getDataType() != value_type) {
+            free(c_value);
+            return KuzuError;
+        }
+        std::vector<StructField> struct_fields;
+        struct_fields.emplace_back(InternalKeyword::MAP_KEY, key_type.copy());
+        struct_fields.emplace_back(InternalKeyword::MAP_VALUE, value_type.copy());
+        std::vector<std::unique_ptr<Value>> struct_values;
+        struct_values.push_back(key->copy());
+        struct_values.push_back(value->copy());
+        auto struct_type = LogicalType::STRUCT(std::move(struct_fields));
+        auto struct_value = new Value(std::move(struct_type), std::move(struct_values));
+        children.push_back(std::unique_ptr<Value>(struct_value));
+    }
+    auto map_type = LogicalType::MAP(key_type.copy(), value_type.copy());
+    c_value->_value = new Value(map_type.copy(), std::move(children));
+    c_value->_is_owned_by_cpp = false;
+    *out_value = c_value;
+    return KuzuSuccess;
+}
+
 kuzu_value* kuzu_value_clone(kuzu_value* value) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(*static_cast<Value*>(value->_value));
@@ -264,7 +350,7 @@ kuzu_state kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index,
     return kuzu_value_get_list_element(value, index, out_value);
 }
 
-kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result) {
+kuzu_state kuzu_value_get_map_size(kuzu_value* value, uint64_t* out_result) {
     auto logical_type_id = static_cast<Value*>(value->_value)->getDataType().getLogicalTypeID();
     if (logical_type_id != LogicalTypeID::MAP) {
         return KuzuError;
@@ -274,20 +360,15 @@ kuzu_state kuzu_value_get_map_num_fields(kuzu_value* value, uint64_t* out_result
     return KuzuSuccess;
 }
 
-kuzu_state kuzu_value_get_map_field_name(kuzu_value* value, uint64_t index, char** out_result) {
+kuzu_state kuzu_value_get_map_key(kuzu_value* value, uint64_t index, kuzu_value* out_key) {
     kuzu_value map_entry;
     if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
         return KuzuError;
     }
-    kuzu_value map_name_value;
-    if (kuzu_value_get_struct_field_value(&map_entry, 0, &map_name_value) == KuzuError) {
-        return KuzuError;
-    }
-    return kuzu_value_get_string(&map_name_value, out_result);
+    return kuzu_value_get_struct_field_value(&map_entry, 0, out_key);
 }
 
-kuzu_state kuzu_value_get_map_field_value(kuzu_value* value, uint64_t index,
-    kuzu_value* out_value) {
+kuzu_state kuzu_value_get_map_value(kuzu_value* value, uint64_t index, kuzu_value* out_value) {
     kuzu_value map_entry;
     if (kuzu_value_get_list_element(value, index, &map_entry) == KuzuError) {
         return KuzuError;
@@ -874,256 +955,6 @@ kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_result) {
     }
     try {
         *out_result = convertToOwnedCString(RelVal::toString(static_cast<Value*>(rel_val->_value)));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_type(kuzu_value* rdf_variant, kuzu_data_type_id* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        auto type = NestedVal::getChildVal(static_cast<Value*>(rdf_variant->_value), 0)
-                        ->getValue<uint8_t>();
-        *out_result = static_cast<kuzu_data_type_id>(type);
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_string(kuzu_value* rdf_variant, char** out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        auto str = RdfVariant::getValue<std::string>(static_cast<Value*>(rdf_variant->_value));
-        *out_result = convertToOwnedCString(str);
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_blob(kuzu_value* rdf_variant, uint8_t** out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        auto blobData = RdfVariant::getValue<blob_t>(static_cast<Value*>(rdf_variant->_value));
-        auto blobStr = blobData.value.getAsString();
-        *out_result = (uint8_t*)convertToOwnedCString(blobStr);
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_int64(kuzu_value* rdf_variant, int64_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<int64_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_int32(kuzu_value* rdf_variant, int32_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<int32_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_int16(kuzu_value* rdf_variant, int16_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<int16_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_int8(kuzu_value* rdf_variant, int8_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<int8_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_uint64(kuzu_value* rdf_variant, uint64_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<uint64_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_uint32(kuzu_value* rdf_variant, uint32_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<uint32_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_uint16(kuzu_value* rdf_variant, uint16_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<uint16_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_uint8(kuzu_value* rdf_variant, uint8_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<uint8_t>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_float(kuzu_value* rdf_variant, float* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<float>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_double(kuzu_value* rdf_variant, double* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<double>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_bool(kuzu_value* rdf_variant, bool* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        *out_result = RdfVariant::getValue<bool>(static_cast<Value*>(rdf_variant->_value));
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_date(kuzu_value* rdf_variant, kuzu_date_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        auto dateVal = RdfVariant::getValue<date_t>(static_cast<Value*>(rdf_variant->_value));
-        out_result->days = dateVal.days;
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_timestamp(kuzu_value* rdf_variant, kuzu_timestamp_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        auto timestampVal =
-            RdfVariant::getValue<timestamp_t>(static_cast<Value*>(rdf_variant->_value));
-        out_result->value = timestampVal.value;
-    } catch (Exception& e) {
-        return KuzuError;
-    }
-    return KuzuSuccess;
-}
-
-kuzu_state kuzu_rdf_variant_get_interval(kuzu_value* rdf_variant, kuzu_interval_t* out_result) {
-    auto logical_type_id =
-        static_cast<Value*>(rdf_variant->_value)->getDataType().getLogicalTypeID();
-    if (logical_type_id != LogicalTypeID::RDF_VARIANT) {
-        return KuzuError;
-    }
-    try {
-        auto intervalVal =
-            RdfVariant::getValue<interval_t>(static_cast<Value*>(rdf_variant->_value));
-        out_result->months = intervalVal.months;
-        out_result->days = intervalVal.days;
-        out_result->micros = intervalVal.micros;
     } catch (Exception& e) {
         return KuzuError;
     }

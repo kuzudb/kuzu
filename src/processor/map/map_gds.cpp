@@ -21,7 +21,7 @@ static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientConte
     auto map = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : tableIDs) {
         auto nodeTable = storageManager->getTable(tableID)->ptrCast<NodeTable>();
-        map->addMask(tableID, std::make_unique<NodeOffsetLevelSemiMask>(tableID,
+        map->addMask(tableID, RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
                                   nodeTable->getNumTotalRows(context->getTx())));
     }
     return map;
@@ -29,9 +29,10 @@ static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientConte
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
+    auto& logicalInfo = call.getInfo();
     auto outSchema = call.getSchema();
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
-    auto columns = call.getInfo().outExprs;
+    auto columns = logicalInfo.outExprs;
     for (auto& expr : columns) {
         auto dataPos = getDataPos(*expr, *outSchema);
         auto columnSchema = ColumnSchema(false /* isUnFlat */, dataPos.dataChunkPos,
@@ -40,18 +41,20 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
-    auto graph = std::make_unique<OnDiskGraph>(clientContext, call.getInfo().graphEntry);
+    auto graph = std::make_unique<OnDiskGraph>(clientContext, logicalInfo.graphEntry);
     auto storageManager = clientContext->getStorageManager();
     auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph));
-    common::table_id_map_t<std::unique_ptr<NodeOffsetLevelSemiMask>> masks;
-    if (call.getInfo().getBindData()->hasNodeInput()) {
-        // Generate an empty semi mask which later on picked by SemiMaker.
-        auto& node =
-            call.getInfo().getBindData()->getNodeInput()->constCast<binder::NodeExpression>();
+    auto bindData = call.getInfo().getBindData();
+    if (bindData->hasNodeInput()) {
+        auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
         sharedState->setInputNodeMask(
             getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
     }
-
+    if (bindData->hasNodeOutput()) {
+        auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
+        sharedState->setOutputNodeMask(
+            getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
+    }
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
     auto gdsAlgorithm = call.getInfo().getGDS()->copy();
     auto descriptor = std::make_unique<ResultSetDescriptor>();

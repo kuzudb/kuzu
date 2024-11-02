@@ -1,8 +1,0 @@
--DATASET TTL rdf/large_block
-
---
-
--CASE LargeBlock
--STATEMENT MATCH (a:example_r) RETURN COUNT(*);
----- 1
-6003

@@ -256,8 +256,7 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     const auto entryType = entryToRollback->getType();
     if (entryType == CatalogEntryType::NODE_TABLE_ENTRY ||
         entryType == CatalogEntryType::REL_TABLE_ENTRY ||
-        entryType == CatalogEntryType::REL_GROUP_ENTRY ||
-        entryType == CatalogEntryType::RDF_GRAPH_ENTRY) {
+        entryType == CatalogEntryType::REL_GROUP_ENTRY) {
         entryToRollback->ptrCast<TableCatalogEntry>()->resetAlterInfo();
     }
     if (entryToRollback->getNext()) {

@@ -388,12 +388,18 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
             checkpointColumns.push_back(std::move(columns[columnID]));
             columnIDs.push_back(columnID);
         }
-        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumns), *dataFH,
+        columns = std::move(checkpointColumns);
+
+        std::vector<Column*> checkpointColumnPtrs;
+        for (const auto& column : columns) {
+            checkpointColumnPtrs.push_back(column.get());
+        }
+
+        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), *dataFH,
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
         pkIndex->checkpoint();
         hasChanges = false;
-        columns = std::move(state.columns);
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
     }
     serialize(ser);

@@ -1,7 +1,6 @@
 use crate::ffi::ffi;
 use crate::ffi::ffi::PhysicalTypeID;
 use crate::logical_type::LogicalType;
-use crate::rdf_variant::RDFVariant;
 use std::cmp::Ordering;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
@@ -15,7 +14,6 @@ pub enum ConversionError {
     TimestampNs(i64),
     TimestampMs(i64),
     TimestampSec(i64),
-    String(std::string::FromUtf8Error),
 }
 
 impl std::fmt::Display for ConversionError {
@@ -34,7 +32,6 @@ impl std::fmt::Debug for ConversionError {
             TimestampNs(ns) => write!(f, "Could not convert Kuzu timestamp_ns offset of UNIX_EPOCH + {ns} nanoseconds to time::OffsetDateTime"),
             TimestampMs(ms) => write!(f, "Could not convert Kuzu timestamp_ms offset of UNIX_EPOCH + {ms} milliseconds to time::OffsetDateTime"),
             TimestampSec(sec) => write!(f, "Could not convert Kuzu timestamp_sec offset of UNIX_EPOCH + {sec} seconds to time::OffsetDateTime"),
-            String(error) => write!(f, "Could not read Kuzu RDF string as a utf-8 std::string::String: {error}"),
         }
     }
 }
@@ -269,7 +266,6 @@ pub enum Value {
         value: Box<Value>,
     },
     UUID(uuid::Uuid),
-    RDFVariant(RDFVariant),
     Decimal(rust_decimal::Decimal),
 }
 
@@ -345,7 +341,6 @@ impl std::fmt::Display for Value {
             }
             Value::Union { types: _, value } => write!(f, "{value}"),
             Value::UUID(x) => write!(f, "{x}"),
-            Value::RDFVariant(x) => write!(f, "{x}"),
             Value::Decimal(value) => write!(f, "{value}"),
         }
     }
@@ -404,7 +399,6 @@ impl From<&Value> for LogicalType {
                 types: types.clone(),
             },
             Value::UUID(_) => LogicalType::UUID,
-            Value::RDFVariant(_) => LogicalType::RDFVariant,
             Value::Decimal(value) => LogicalType::Decimal {
                 scale: value.scale(),
                 precision: value.mantissa().checked_ilog10().unwrap_or(0) + 1,
@@ -661,78 +655,6 @@ impl TryFrom<&ffi::Value> for Value {
                     value: Box::new(value),
                 })
             }
-            LogicalTypeID::RDF_VARIANT => {
-                let runtime_type: Value = ffi::value_get_child(value, 0).try_into()?;
-                let runtime_logical_type = LogicalType::from(&runtime_type);
-                let value_blob: Value = ffi::value_get_child(value, 1).try_into()?;
-                let value_logical_type = LogicalType::from(&value_blob);
-                let value = if let (Value::UInt8(type_id), Value::Blob(value)) =
-                    (runtime_type, value_blob)
-                {
-                    match (LogicalTypeID { repr: type_id }) {
-                        LogicalTypeID::BOOL => RDFVariant::Bool(value[0] != 0),
-                        LogicalTypeID::INT8 => RDFVariant::Int8(value[0] as i8),
-                        LogicalTypeID::UINT8 => RDFVariant::UInt8(value[0] as u8),
-                        LogicalTypeID::INT16 => {
-                            RDFVariant::Int16(i16::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::UINT16 => {
-                            RDFVariant::UInt16(u16::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::INT32 => {
-                            RDFVariant::Int32(i32::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::UINT32 => {
-                            RDFVariant::UInt32(u32::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::INT64 => {
-                            RDFVariant::Int64(i64::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::UINT64 => {
-                            RDFVariant::UInt64(u64::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::DOUBLE => {
-                            RDFVariant::Double(f64::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::FLOAT => {
-                            RDFVariant::Float(f32::from_ne_bytes(value.try_into().unwrap()))
-                        }
-                        LogicalTypeID::DATE => {
-                            let days: i32 = i32::from_ne_bytes(value.try_into().unwrap());
-                            RDFVariant::Date(get_date_from_unix_days(days)?)
-                        }
-                        LogicalTypeID::TIMESTAMP => {
-                            let microseconds: i64 = i64::from_ne_bytes(value.try_into().unwrap());
-                            RDFVariant::Timestamp(get_timestamp_from_unix_micros(microseconds)?)
-                        }
-                        LogicalTypeID::INTERVAL => {
-                            let months = i32::from_ne_bytes(value[0..4].try_into().unwrap());
-                            let days = i32::from_ne_bytes(value[4..8].try_into().unwrap());
-                            let micros = i64::from_ne_bytes(value[8..].try_into().unwrap());
-
-                            RDFVariant::Interval(time::Duration::new(
-                                (months as i64 * 30 + days as i64) * 24 * 60 * 60
-                                    + micros / i64::pow(1000, 2), // seconds
-                                (micros as i32 % i32::pow(1000, 2)) * 1000, // nanoseconds
-                            ))
-                        }
-                        LogicalTypeID::STRING => RDFVariant::String(
-                            String::from_utf8(value).map_err(ConversionError::String)?,
-                        ),
-                        LogicalTypeID::BLOB => RDFVariant::Blob(ffi::get_blob_from_bytes(&value)),
-                        x => {
-                            panic!("Type {:?} is not a supported RDF type", &x)
-                        }
-                    }
-                } else {
-                    panic!(
-                        "RDF Values are expected to always be blobs \
-                        and their types to be int8, but instead they were {:?} and {:?}",
-                        value_logical_type, runtime_logical_type
-                    )
-                };
-                Ok(Value::RDFVariant(value))
-            }
             LogicalTypeID::DECIMAL => {
                 let logical_type: LogicalType = ffi::value_get_data_type(value).into();
                 if let LogicalType::Decimal {
@@ -926,48 +848,6 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                     builder,
                 ))
             }
-            Value::RDFVariant(child) => {
-                let typ = ffi::create_logical_type_rdf_variant();
-
-                let mut builder = ffi::create_list();
-                builder
-                    .pin_mut()
-                    .insert(ffi::create_value_u8(ffi::LogicalTypeID::from(&child).repr));
-                let blob = match child {
-                    RDFVariant::Bool(b) => {
-                        vec![b as u8]
-                    }
-                    RDFVariant::Int8(x) => vec![x as u8],
-                    RDFVariant::Int16(x) => x.to_ne_bytes().into(),
-                    RDFVariant::Int32(x) => x.to_ne_bytes().into(),
-                    RDFVariant::Int64(x) => x.to_ne_bytes().into(),
-                    RDFVariant::UInt8(x) => x.to_ne_bytes().into(),
-                    RDFVariant::UInt16(x) => x.to_ne_bytes().into(),
-                    RDFVariant::UInt32(x) => x.to_ne_bytes().into(),
-                    RDFVariant::UInt64(x) => x.to_ne_bytes().into(),
-                    RDFVariant::Double(x) => x.to_ne_bytes().into(),
-                    RDFVariant::Float(x) => x.to_ne_bytes().into(),
-                    RDFVariant::Date(x) => date_to_kuzu_date_t(x).to_ne_bytes().into(),
-                    RDFVariant::Timestamp(x) => datetime_to_timestamp_t(x).to_ne_bytes().into(),
-                    RDFVariant::Interval(x) => {
-                        let (months, days, micros) = get_interval_t(x);
-                        let mut result = vec![];
-                        result.extend(months.to_ne_bytes());
-                        result.extend(days.to_ne_bytes());
-                        result.extend(micros.to_ne_bytes());
-                        result
-                    }
-                    RDFVariant::String(x) => x.into_bytes(),
-                    // Not sure if this is possible as it is stored as a blob_t and doesn't own the
-                    // actual data (unless the blob is short)
-                    RDFVariant::Blob(_) => unimplemented!(),
-                };
-                builder
-                    .pin_mut()
-                    .insert(ffi::create_value_string(ffi::LogicalTypeID::BLOB, &blob));
-
-                Ok(ffi::get_list_value(typ, builder))
-            }
             Value::Decimal(decimal_value) => {
                 let (high, low) = get_high_low(decimal_value.mantissa());
                 if let LogicalType::Decimal { scale, precision } = (&self).into() {
@@ -1062,8 +942,7 @@ impl From<&str> for Value {
 mod tests {
     use crate::ffi::ffi;
     use crate::{
-        Connection, Database, InternalID, LogicalType, NodeVal, RDFVariant, RelVal, SystemConfig,
-        Value,
+        Connection, Database, InternalID, LogicalType, NodeVal, RelVal, SystemConfig, Value,
     };
     use anyhow::Result;
     use rust_decimal_macros::dec;
@@ -1185,7 +1064,6 @@ mod tests {
         convert_recursive_rel_type: LogicalType::RecursiveRel,
         convert_map_type: LogicalType::Map { key_type: Box::new(LogicalType::Interval), value_type: Box::new(LogicalType::Rel) },
         convert_union_type: LogicalType::Union { types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval), ("string".to_string(), LogicalType::String)] },
-        convert_rdf_type: LogicalType::RDFVariant,
         convert_decimal_type: LogicalType::Decimal { scale: 3, precision: 9 },
     }
 
@@ -1229,7 +1107,6 @@ mod tests {
             types: vec![("Num".to_string(), LogicalType::Int8), ("duration".to_string(), LogicalType::Interval)],
             value: Box::new(Value::Int8(-127))
         },
-        convert_rdf_int: Value::RDFVariant(RDFVariant::Int64(1)),
         convert_decimal16: Value::Decimal(dec!(12.34)),
         convert_decimal32: Value::Decimal(dec!(12.3456789)),
         convert_decimal64: Value::Decimal(dec!(12.34567890)),
@@ -1269,7 +1146,6 @@ mod tests {
         display_uuid: Value::UUID(uuid!("00000000-0000-0000-0000-ffff00000000")),
         display_uuid2: Value::UUID(uuid!("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")),
         display_uuid3: Value::UUID(uuid!("a1a2a3a4b1b2c1c2d1d2d3d4d5d6d7d8")),
-        display_rdf_int: Value::RDFVariant(RDFVariant::Int64(1)),
         display_decimal16: Value::Decimal(dec!(12.34)),
         display_decimal32: Value::Decimal(dec!(12.3456789)),
         display_decimal64: Value::Decimal(dec!(12.34567890)),
@@ -1547,105 +1423,6 @@ mod tests {
             ]
         );
         temp_dir.close()?;
-        Ok(())
-    }
-
-    #[test]
-    fn test_rdf() -> Result<()> {
-        let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
-        let conn = Connection::new(&db)?;
-        conn.query("CREATE RDFGraph T;")?;
-        conn.query("CREATE (:T_l {val: true});")?;
-        conn.query("CREATE (:T_l {val: cast(-1, 'INT8')});")?;
-        conn.query("CREATE (:T_l {val: cast(-2, 'INT16')});")?;
-        conn.query("CREATE (:T_l {val: cast(-3, 'INT32')});")?;
-        conn.query("CREATE (:T_l {val: cast(-4, 'INT64')});")?;
-        conn.query("CREATE (:T_l {val: cast(5, 'UINT8')});")?;
-        conn.query("CREATE (:T_l {val: cast(6, 'UINT16')});")?;
-        conn.query("CREATE (:T_l {val: cast(7, 'UINT32')});")?;
-        conn.query("CREATE (:T_l {val: cast(8, 'UINT64')});")?;
-        conn.query("CREATE (:T_l {val: cast(10.1, 'DOUBLE')});")?;
-        conn.query("CREATE (:T_l {val: cast(11.2, 'FLOAT')});")?;
-        conn.query("CREATE (:T_l {val: date('2024-02-07')});")?;
-        conn.query("CREATE (:T_l {val: interval('5 days')});")?;
-        conn.query("CREATE (:T_l {val: timestamp('2024-02-07 12:32:00')});")?;
-        conn.query("CREATE (:T_l {val: \"Long string that doesn't fit in ku_string_t\"});")?;
-        conn.query("CREATE (:T_l {val: blob('foo')});")?;
-        // TODO: long strings appear to be broken
-        //conn.query("CREATE (:T_l {val: blob(\"Long string that doesn't fit in ku_string_t\")});")?;
-        let result = conn.query("MATCH (a:T_l) RETURN a.val;")?;
-        assert_eq!(
-            result.get_column_data_types(),
-            vec![LogicalType::RDFVariant]
-        );
-        let results: Vec<Value> = result.map(|mut x| x.pop().unwrap()).collect();
-        assert_eq!(
-            results,
-            vec![
-                Value::RDFVariant(RDFVariant::Bool(true)),
-                Value::RDFVariant(RDFVariant::Int8(-1)),
-                Value::RDFVariant(RDFVariant::Int16(-2)),
-                Value::RDFVariant(RDFVariant::Int32(-3)),
-                Value::RDFVariant(RDFVariant::Int64(-4)),
-                Value::RDFVariant(RDFVariant::UInt8(5)),
-                Value::RDFVariant(RDFVariant::UInt16(6)),
-                Value::RDFVariant(RDFVariant::UInt32(7)),
-                Value::RDFVariant(RDFVariant::UInt64(8)),
-                Value::RDFVariant(RDFVariant::Double(10.1)),
-                Value::RDFVariant(RDFVariant::Float(11.2)),
-                Value::RDFVariant(RDFVariant::Date(date!(2024 - 02 - 07))),
-                Value::RDFVariant(RDFVariant::Interval(time::Duration::days(5))),
-                Value::RDFVariant(RDFVariant::Timestamp(datetime!(2024-02-07 12:32:00 UTC))),
-                Value::RDFVariant(RDFVariant::String(
-                    "Long string that doesn't fit in ku_string_t".to_string()
-                )),
-                Value::RDFVariant(RDFVariant::Blob(b"foo".to_vec())),
-                /*Value::RDFVariant(RDFVariant::Blob(
-                    b"Long string that doesn't fit in ku_string_t".to_vec()
-                )),*/
-            ]
-        );
-        temp_dir.close()?;
-        Ok(())
-    }
-
-    #[test]
-    fn test_rdf_prepare() -> Result<()> {
-        let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
-        let conn = Connection::new(&db)?;
-        conn.query("CREATE RDFGraph T;")?;
-        let mut prepared = conn.prepare("CREATE (:T_l {val: $val});")?;
-        let values = vec![
-            Value::RDFVariant(RDFVariant::Bool(true)),
-            Value::RDFVariant(RDFVariant::Int8(-1)),
-            Value::RDFVariant(RDFVariant::Int16(-2)),
-            Value::RDFVariant(RDFVariant::Int32(-3)),
-            Value::RDFVariant(RDFVariant::Int64(-4)),
-            Value::RDFVariant(RDFVariant::UInt8(5)),
-            Value::RDFVariant(RDFVariant::UInt16(6)),
-            Value::RDFVariant(RDFVariant::UInt32(7)),
-            Value::RDFVariant(RDFVariant::UInt64(8)),
-            Value::RDFVariant(RDFVariant::Double(10.1)),
-            Value::RDFVariant(RDFVariant::Float(11.2)),
-            Value::RDFVariant(RDFVariant::Date(date!(2024 - 02 - 07))),
-            Value::RDFVariant(RDFVariant::Interval(time::Duration::days(5))),
-            Value::RDFVariant(RDFVariant::Timestamp(datetime!(2024-02-07 12:32:00 UTC))),
-            Value::RDFVariant(RDFVariant::String(
-                "Long string that doesn't fit in ku_string_t".to_string(),
-            )),
-        ];
-        for value in &values {
-            conn.execute(&mut prepared, vec![("val", value.clone())])?;
-        }
-        let result = conn.query("MATCH (a:T_l) RETURN a.val;")?;
-        assert_eq!(
-            result.get_column_data_types(),
-            vec![LogicalType::RDFVariant]
-        );
-        let results: Vec<Value> = result.map(|mut x| x.pop().unwrap()).collect();
-        assert_eq!(results, values);
         Ok(())
     }
 }

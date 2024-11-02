@@ -107,11 +107,8 @@ struct StorageConstants {
 
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
     static constexpr uint64_t NODE_GROUP_SIZE = static_cast<uint64_t>(1) << NODE_GROUP_SIZE_LOG2;
-    static constexpr uint64_t NUM_VECTORS_PER_NODE_GROUP =
-        NODE_GROUP_SIZE / DEFAULT_VECTOR_CAPACITY;
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;
-    static constexpr double LEAF_LOW_CSR_DENSITY = 0.1;
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
     // The number of CSR lists in a leaf region.
     static constexpr uint64_t CSR_LEAF_REGION_SIZE_LOG2 = 10;
@@ -124,7 +121,6 @@ struct StorageConstants {
 // Hash Index Configurations
 struct HashIndexConstants {
     static constexpr uint16_t SLOT_CAPACITY_BYTES = 256;
-    static constexpr double MAX_LOAD_FACTOR = 0.8;
 };
 
 struct CopyConstants {
@@ -146,19 +142,16 @@ struct CopyConstants {
         "QUOTE"};
     static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '"';
     static constexpr char DEFAULT_CSV_DELIMITER = ',';
-    static constexpr char DEFAULT_CSV_LIST_DELIMITER = ',';
     static constexpr bool DEFAULT_CSV_ALLOW_UNBRACED_LIST = false;
     static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
-    static constexpr char DEFAULT_CSV_LINE_BREAK = '\n';
     static constexpr bool DEFAULT_IGNORE_ERRORS = false;
     static constexpr bool DEFAULT_CSV_AUTO_DETECT = true;
     static constexpr bool DEFAULT_CSV_SET_DIALECT = false;
     static constexpr std::array DEFAULT_CSV_DELIMITER_SEARCH_SPACE = {',', ';', '\t', '|'};
     static constexpr std::array DEFAULT_CSV_QUOTE_SEARCH_SPACE = {'"', '\''};
     static constexpr std::array DEFAULT_CSV_ESCAPE_SEARCH_SPACE = {'"', '\\', '\''};
-    static constexpr const char* ROW_IDX_COLUMN_NAME = "ROW_IDX";
     static constexpr uint64_t PANDAS_PARTITION_COUNT = 50 * DEFAULT_VECTOR_CAPACITY;
 
     static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP", "SAMPLE_SIZE"};
@@ -175,8 +168,6 @@ struct CopyConstants {
 
     static constexpr std::array CSV_SPECIFIC_WARNING_DATA_COLUMN_NAMES = {"fileIdx"};
     static constexpr std::array CSV_SPECIFIC_WARNING_DATA_COLUMN_TYPES = {LogicalTypeID::UINT32};
-    static constexpr column_id_t CSV_SPECIFIC_WARNING_DATA_NUM_COLUMNS =
-        CSV_SPECIFIC_WARNING_DATA_COLUMN_NAMES.size();
 
     static constexpr std::array CSV_WARNING_DATA_COLUMN_NAMES =
         arrayConcat(SHARED_WARNING_DATA_COLUMN_NAMES, CSV_SPECIFIC_WARNING_DATA_COLUMN_NAMES);
@@ -187,11 +178,6 @@ struct CopyConstants {
     static_assert(CSV_WARNING_DATA_NUM_COLUMNS == CSV_WARNING_DATA_COLUMN_TYPES.size());
 
     static constexpr column_id_t MAX_NUM_WARNING_DATA_COLUMNS = CSV_WARNING_DATA_NUM_COLUMNS;
-};
-
-struct RdfConstants {
-    static constexpr char IN_MEMORY_OPTION[] = "IN_MEMORY";
-    static constexpr char STRICT_OPTION[] = "STRICT";
 };
 
 struct PlannerKnobs {

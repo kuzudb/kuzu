@@ -9,20 +9,21 @@ namespace processor {
 struct PrimaryKeyScanPrintInfo final : OPPrintInfo {
     binder::expression_vector expressions;
     std::string key;
+    std::string alias;
 
-    PrimaryKeyScanPrintInfo(binder::expression_vector expressions, std::string key)
-        : expressions(std::move(expressions)), key(std::move(key)) {}
+    PrimaryKeyScanPrintInfo(binder::expression_vector expressions, std::string key,
+        std::string alias)
+        : expressions(std::move(expressions)), key(std::move(key)), alias{std::move(alias)} {}
 
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
         return std::unique_ptr<PrimaryKeyScanPrintInfo>(new PrimaryKeyScanPrintInfo(*this));
-        ;
     }
 
 private:
     PrimaryKeyScanPrintInfo(const PrimaryKeyScanPrintInfo& other)
-        : OPPrintInfo(other), expressions(other.expressions) {}
+        : OPPrintInfo(other), expressions(other.expressions), alias(other.alias) {}
 };
 
 struct PrimaryKeyScanSharedState {

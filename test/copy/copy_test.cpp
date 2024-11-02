@@ -1,20 +1,65 @@
+#include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "graph_test/base_graph_test.h"
 #include "graph_test/graph_test.h"
 #include "main/database.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 namespace kuzu {
 namespace testing {
 
+// TODO(Royi) add tests that use this once enough issues are fixed so that the tests can pass
+class FlakyBufferManager : public storage::BufferManager {
+public:
+    FlakyBufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
+        uint64_t bufferPoolSize, uint64_t maxDBSize, common::VirtualFileSystem* vfs, bool readOnly,
+        uint64_t& failureFrequency)
+        : storage::BufferManager(databasePath, spillToDiskPath, bufferPoolSize, maxDBSize, vfs,
+              readOnly),
+          failureFrequency(failureFrequency) {}
+
+    bool reserve(uint64_t sizeToReserve) override {
+        reserveCount = (reserveCount + 1) % failureFrequency;
+        if (reserveCount == 0) {
+            failureFrequency *= 2;
+            return false;
+        }
+        return storage::BufferManager::reserve(sizeToReserve);
+    }
+
+    uint64_t& failureFrequency;
+    uint64_t reserveCount = 0;
+};
+
 class CopyTest : public BaseGraphTest {
 public:
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        failureFrequency = 32;
+    }
+
     void resetDB(uint64_t bufferPoolSize) {
         systemConfig->bufferPoolSize = bufferPoolSize;
         conn.reset();
         database.reset();
         createDBAndConn();
     }
+
+    void resetDBFlaky() {
+        database.reset();
+        conn.reset();
+        systemConfig->bufferPoolSize = main::SystemConfig{}.bufferPoolSize;
+        auto constructBMFunc = [&](const main::Database& db) {
+            return std::unique_ptr<storage::BufferManager>(new FlakyBufferManager(databasePath,
+                getFileSystem(db)->joinPath(databasePath, "copy.tmp"), systemConfig->bufferPoolSize,
+                systemConfig->maxDBSize, getFileSystem(db), systemConfig->readOnly,
+                failureFrequency));
+        };
+        database = BaseGraphTest::constructDB(databasePath, *systemConfig, constructBMFunc);
+        conn = std::make_unique<main::Connection>(database.get());
+    }
     std::string getInputDir() override { KU_UNREACHABLE; }
+    uint64_t failureFrequency;
 };
 
 TEST_F(CopyTest, DISABLED_OutOfMemoryRecovery) {

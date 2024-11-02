@@ -83,7 +83,6 @@ pub(crate) mod ffi {
         STRUCT = 54,
         MAP = 55,
         UNION = 56,
-        RDF_VARIANT = 57,
 
         UUID = 59,
     }
@@ -269,7 +268,6 @@ pub(crate) mod ffi {
             value: &LogicalType,
         ) -> UniquePtr<CxxVector<LogicalType>>;
 
-        fn create_logical_type_rdf_variant() -> UniquePtr<LogicalType>;
         fn logical_type_get_decimal_precision(value: &LogicalType) -> u32;
         fn logical_type_get_decimal_scale(value: &LogicalType) -> u32;
     }
@@ -407,8 +405,6 @@ pub(crate) mod ffi {
 
         fn recursive_rel_get_nodes(value: &Value) -> &Value;
         fn recursive_rel_get_rels(value: &Value) -> &Value;
-
-        fn get_blob_from_bytes(value: &Vec<u8>) -> Vec<u8>;
     }
 
     #[namespace = "kuzu_rs"]

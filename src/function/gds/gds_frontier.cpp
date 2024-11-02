@@ -42,10 +42,10 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
 }
 
 PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap_,
-    storage::MemoryManager* mm) {
+    storage::MemoryManager* mm)
+    : GDSFrontier{numNodesMap_} {
     curIter.store(0);
     for (const auto& [tableID, numNodes] : numNodesMap_) {
-        numNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
         std::atomic<uint16_t>* memBufferPtr =
             reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
@@ -132,6 +132,30 @@ void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t
 void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(source.tableID);
     nextFrontier->ptrCast<PathLengths>()->setActive(source);
+}
+
+static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
+
+bool SPEdgeCompute::terminate(processor::NodeOffsetMaskMap& maskMap) {
+    auto targetNumNodes = maskMap.getNumMaskedNode();
+    if (targetNumNodes > EARLY_TERM_NUM_NODES_THRESHOLD) {
+        // Skip checking if it's unlikely to early terminate.
+        return false;
+    }
+    auto& frontier = frontierPair->getCurrentFrontierUnsafe();
+    for (auto& [tableID, maxNumNodes] : frontier.getNumNodesMap()) {
+        frontier.pinTableID(tableID);
+        if (!maskMap.containsTableID(tableID)) {
+            continue;
+        }
+        auto offsetMask = maskMap.getOffsetMask(tableID);
+        for (auto offset = 0u; offset < maxNumNodes; ++offset) {
+            if (frontier.isActive(offset)) {
+                numNodesReached += offsetMask->isMasked(offset);
+            }
+        }
+    }
+    return numNodesReached == targetNumNodes;
 }
 
 } // namespace function

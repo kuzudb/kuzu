@@ -11,11 +11,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void initMaskIdx(common::table_id_map_t<std::vector<mask_with_idx>>& masksPerTable,
-    std::vector<NodeSemiMask*> masks) {
+static void initMask(common::table_id_map_t<mask_vector>& masksPerTable, mask_vector masks) {
     for (auto& mask : masks) {
         auto tableID = mask->getTableID();
-        masksPerTable.at(tableID).emplace_back(mask, 0 /* initial mask idx */);
+        mask->enable();
+        masksPerTable.at(tableID).emplace_back(mask);
     }
 }
 
@@ -24,9 +24,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     const auto inSchema = semiMasker.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     const auto tableIDs = semiMasker.getNodeTableIDs();
-    common::table_id_map_t<std::vector<mask_with_idx>> masksPerTable;
+    common::table_id_map_t<mask_vector> masksPerTable;
     for (auto tableID : tableIDs) {
-        masksPerTable.insert({tableID, std::vector<mask_with_idx>{}});
+        masksPerTable.insert({tableID, std::vector<RoaringBitmapSemiMask*>{}});
     }
     std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getTargetOperators()) {
@@ -36,23 +36,33 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         case PhysicalOperatorType::SCAN_NODE_TABLE: {
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::SCAN_NODE);
             auto scan = physicalOp->ptrCast<ScanNodeTable>();
-            initMaskIdx(masksPerTable, scan->getSemiMasks());
+            initMask(masksPerTable, scan->getSemiMasks());
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE);
             auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
-            initMaskIdx(masksPerTable, recursiveJoin.getSemiMask());
+            initMask(masksPerTable, recursiveJoin.getSemiMask());
         } break;
         case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
-            KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::GDS_INPUT_NODE);
             KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
             auto sharedState = physicalOp->getChild(0)->ptrCast<GDSCall>()->getSharedState();
-            initMaskIdx(masksPerTable, sharedState->getInputNodeMasks());
+            switch (semiMasker.getTargetType()) {
+            case SemiMaskTargetType::GDS_INPUT_NODE: {
+                initMask(masksPerTable, sharedState->getInputNodeMasks());
+                sharedState->enableInputNodeMask();
+            } break;
+            case SemiMaskTargetType::GDS_OUTPUT_NODE: {
+                initMask(masksPerTable, sharedState->getOutputNodeMasks());
+                sharedState->enableOutputNodeMask();
+            } break;
+            default:
+                KU_UNREACHABLE;
+            }
         } break;
         case PhysicalOperatorType::GDS_CALL: {
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::GDS_PATH_NODE);
             auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
-            initMaskIdx(masksPerTable, sharedState->getPathNodeMasks());
+            initMask(masksPerTable, sharedState->getPathNodeMasks());
         } break;
         default:
             KU_UNREACHABLE;

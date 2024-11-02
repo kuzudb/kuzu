@@ -106,13 +106,9 @@ uint32_t BuiltInFunctionsUtils::getCastCost(LogicalTypeID inputTypeID, LogicalTy
         return 0;
     }
     // TODO(Jiamin): should check any type
-    if (inputTypeID == LogicalTypeID::ANY || targetTypeID == LogicalTypeID::ANY ||
-        inputTypeID == LogicalTypeID::RDF_VARIANT) {
+    if (inputTypeID == LogicalTypeID::ANY || targetTypeID == LogicalTypeID::ANY) {
         // anything can be cast to ANY type for (almost no) cost
         return 1;
-    }
-    if (targetTypeID == LogicalTypeID::RDF_VARIANT) {
-        return castFromRDFVariant(inputTypeID);
     }
     if (targetTypeID == LogicalTypeID::STRING) {
         return castFromString(inputTypeID);
@@ -189,8 +185,6 @@ uint32_t BuiltInFunctionsUtils::getTargetTypeCost(LogicalTypeID typeID) {
     case LogicalTypeID::LIST:
     case LogicalTypeID::UNION:
         return 160;
-    case LogicalTypeID::RDF_VARIANT:
-        return 170;
     default:
         return 110;
     }
@@ -404,23 +398,6 @@ uint32_t BuiltInFunctionsUtils::castFromString(LogicalTypeID inputTypeID) {
     }
 }
 
-uint32_t BuiltInFunctionsUtils::castFromRDFVariant(LogicalTypeID inputTypeID) {
-    switch (inputTypeID) {
-    case LogicalTypeID::STRUCT:
-    case LogicalTypeID::LIST:
-    case LogicalTypeID::ARRAY:
-    case LogicalTypeID::UNION:
-    case LogicalTypeID::MAP:
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::RDF_VARIANT:
-        return UNDEFINED_CAST_COST;
-    default: // Any other inputTypeID can be cast to RDF_VARIANT, but this cast has a high cost
-        return getTargetTypeCost(LogicalTypeID::RDF_VARIANT);
-    }
-}
-
 uint32_t BuiltInFunctionsUtils::castList(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::ARRAY:
@@ -533,10 +510,6 @@ void BuiltInFunctionsUtils::validateSpecialCases(std::vector<Function*>& candida
         auto inputType1 = inputTypes[1].getLogicalTypeID();
         if ((inputType0 != LogicalTypeID::STRING || inputType1 != LogicalTypeID::STRING) &&
             targetType0 == LogicalTypeID::STRING && targetType1 == LogicalTypeID::STRING) {
-            if (inputType0 != inputType1 && (inputType0 == LogicalTypeID::RDF_VARIANT ||
-                                                inputType1 == LogicalTypeID::RDF_VARIANT)) {
-                return;
-            }
             std::string supportedInputsString;
             for (auto& function : set) {
                 supportedInputsString += function->signatureToString() + "\n";

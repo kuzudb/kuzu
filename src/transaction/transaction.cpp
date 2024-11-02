@@ -86,8 +86,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     switch (newCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY:
-    case CatalogEntryType::REL_GROUP_ENTRY:
-    case CatalogEntryType::RDF_GRAPH_ENTRY: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry.isDeleted());
             auto& tableEntry = newCatalogEntry->constCast<TableCatalogEntry>();
@@ -127,8 +126,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
         // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_TABLE_ENTRY:
-        case CatalogEntryType::REL_GROUP_ENTRY:
-        case CatalogEntryType::RDF_GRAPH_ENTRY: {
+        case CatalogEntryType::REL_GROUP_ENTRY: {
             const auto tableCatalogEntry = catalogEntry.constPtrCast<TableCatalogEntry>();
             if (const auto alterInfo = tableCatalogEntry->getAlterInfo()) {
                 // Must be rename table

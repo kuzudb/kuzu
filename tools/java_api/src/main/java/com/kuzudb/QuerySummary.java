@@ -10,6 +10,7 @@ public class QuerySummary {
 
     /**
      * Construct a new query summary.
+     *
      * @param cmpTime: The compiling time of the query.
      * @param exeTime: The execution time of the query.
      */
@@ -20,6 +21,7 @@ public class QuerySummary {
 
     /**
      * Get the compiling time of the query.
+     *
      * @return The compiling time of the query.
      */
     public double getCompilingTime() {
@@ -28,6 +30,7 @@ public class QuerySummary {
 
     /**
      * Get the execution time of the query.
+     *
      * @return The execution time of the query.
      */
     public double getExecutionTime() {

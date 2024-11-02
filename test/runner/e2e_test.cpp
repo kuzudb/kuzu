@@ -124,8 +124,13 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                 __FILE__, __LINE__,
                 [datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
                     testStatements = std::move(testStatements)]() mutable -> DBTest* {
+                    decltype(testStatements) testStatementsCopy;
+                    for (const auto& testStatement : testStatements) {
+                        testStatementsCopy.emplace_back(
+                            std::make_unique<TestStatement>(*testStatement));
+                    }
                     return new EndToEndTest(datasetType, dataset, bufferPoolSize,
-                        checkpointWaitTimeout, connNames, std::move(testStatements));
+                        checkpointWaitTimeout, connNames, std::move(testStatementsCopy));
                 });
         }
     } else {

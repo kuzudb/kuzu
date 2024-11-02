@@ -10,7 +10,6 @@
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
-#include "function/cast/functions/cast_rdf_variant.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -183,10 +182,7 @@ static bool hasImplicitCastMap(const LogicalType& srcType, const LogicalType& ds
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
-    if ((LogicalTypeUtils::isNested(srcType) &&
-            srcType.getLogicalTypeID() != LogicalTypeID::RDF_VARIANT) &&
-        (LogicalTypeUtils::isNested(dstType) &&
-            dstType.getLogicalTypeID() != LogicalTypeID::RDF_VARIANT)) {
+    if (LogicalTypeUtils::isNested(srcType) && LogicalTypeUtils::isNested(dstType)) {
         if (srcType.getLogicalTypeID() == LogicalTypeID::ARRAY &&
             dstType.getLogicalTypeID() == LogicalTypeID::LIST) {
             return hasImplicitCastArrayToList(srcType, dstType);
@@ -360,100 +356,12 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(const std::str
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, union_entry_t,
             CastString, EXECUTOR>;
     } break;
-    case LogicalTypeID::RDF_VARIANT: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<ku_string_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
     default:
         throw ConversionException{
             stringFormat("Unsupported casting function from STRING to {}.", targetType.toString())};
     }
     return std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, targetType.getLogicalTypeID(), execFunc);
-}
-
-static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
-    const std::string& functionName, const LogicalType& targetType) {
-    scalar_func_exec_t execFunc;
-    switch (targetType.getLogicalTypeID()) {
-    case LogicalTypeID::DATE: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, date_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_NS:
-    case LogicalTypeID::TIMESTAMP_MS:
-    case LogicalTypeID::TIMESTAMP_SEC:
-    case LogicalTypeID::TIMESTAMP_TZ:
-    case LogicalTypeID::TIMESTAMP: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, timestamp_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, interval_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::BLOB: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, blob_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::STRING: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, ku_string_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::BOOL: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, bool,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, double,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, float,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int64_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INT32: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int32_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INT16: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int16_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INT8: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, int8_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT64: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint64_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT32: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint32_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT16: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint16_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT8: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<struct_entry_t, uint8_t,
-            CastFromRdfVariant, UnaryFunctionExecutor>;
-    } break;
-        // LCOV_EXCL_START
-    default:
-        throw ConversionException{stringFormat(
-            "Unsupported casting function from RDF_VARIANT to {}.", targetType.toString())};
-        // LCOV_EXCL_STOP
-    }
-    return std::make_unique<ScalarFunction>(functionName,
-        std::vector<LogicalTypeID>{LogicalTypeID::RDF_VARIANT}, targetType.getLogicalTypeID(),
-        execFunc);
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor>
@@ -586,90 +494,6 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
     }
     return std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, LogicalTypeID::STRING, func);
-}
-
-static std::unique_ptr<ScalarFunction> bindCastToRdfVariantFunction(const std::string& functionName,
-    const LogicalType& sourceType) {
-    scalar_func_exec_t execFunc;
-    switch (sourceType.getLogicalTypeID()) {
-    case LogicalTypeID::DATE: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<date_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::TIMESTAMP_NS:
-    case LogicalTypeID::TIMESTAMP_MS:
-    case LogicalTypeID::TIMESTAMP_SEC:
-    case LogicalTypeID::TIMESTAMP_TZ:
-    case LogicalTypeID::TIMESTAMP: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<timestamp_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<interval_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::BLOB: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<blob_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::STRING: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<ku_string_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::BOOL: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<bool, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<double, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<float, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int64_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INT32: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int32_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INT16: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int16_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::INT8: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<int8_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT64: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint64_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT32: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint32_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT16: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint16_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-    case LogicalTypeID::UINT8: {
-        execFunc = ScalarFunction::UnaryRdfVariantCastExecFunction<uint8_t, struct_entry_t,
-            CastToRdfVariant, UnaryFunctionExecutor>;
-    } break;
-        // LCOV_EXCL_START
-    default:
-        throw ConversionException{
-            stringFormat("Unsupported casting function from RDF_VARIANT to .")};
-        // LCOV_EXCL_STOP
-    }
-    return std::make_unique<ScalarFunction>(functionName,
-        std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, LogicalTypeID::RDF_VARIANT,
-        execFunc);
 }
 
 template<typename DST_TYPE>
@@ -926,15 +750,9 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
     if (sourceTypeID == LogicalTypeID::STRING) {
         return bindCastFromStringFunction<EXECUTOR>(functionName, targetType);
     }
-    if (sourceTypeID == LogicalTypeID::RDF_VARIANT) {
-        return bindCastFromRdfVariantFunction(functionName, targetType);
-    }
     switch (targetTypeID) {
     case LogicalTypeID::STRING: {
         return bindCastToStringFunction<EXECUTOR>(functionName, sourceType);
-    }
-    case LogicalTypeID::RDF_VARIANT: {
-        return bindCastToRdfVariantFunction(functionName, sourceType);
     }
     case LogicalTypeID::DOUBLE: {
         return bindCastToNumericFunction<double, CastToDouble, EXECUTOR>(functionName, sourceType,
@@ -1035,8 +853,6 @@ function_set CastToDateFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::DATE()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::DATE()));
     return result;
 }
 
@@ -1044,8 +860,6 @@ function_set CastToTimestampFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::TIMESTAMP()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::TIMESTAMP()));
     return result;
 }
 
@@ -1053,8 +867,6 @@ function_set CastToIntervalFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::INTERVAL()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::INTERVAL()));
     return result;
 }
 
@@ -1077,8 +889,6 @@ function_set CastToBlobFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::BLOB()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::BLOB()));
     return result;
 }
 
@@ -1093,8 +903,6 @@ function_set CastToBoolFunction::getFunctionSet() {
     function_set result;
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::BOOL()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::BOOL()));
     return result;
 }
 
@@ -1106,8 +914,6 @@ function_set CastToDoubleFunction::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::DOUBLE()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::DOUBLE()));
     return result;
 }
 
@@ -1119,8 +925,6 @@ function_set CastToFloatFunction::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::FLOAT()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::FLOAT()));
     return result;
 }
 
@@ -1143,8 +947,6 @@ function_set CastToSerialFunction::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::SERIAL()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::SERIAL()));
     return result;
 }
 
@@ -1156,8 +958,6 @@ function_set CastToInt64Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::INT64()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::INT64()));
     return result;
 }
 
@@ -1169,8 +969,6 @@ function_set CastToInt32Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::INT32()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::INT32()));
     return result;
 }
 
@@ -1182,8 +980,6 @@ function_set CastToInt16Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::INT16()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::INT16()));
     return result;
 }
 
@@ -1195,8 +991,6 @@ function_set CastToInt8Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::INT8()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::INT8()));
     return result;
 }
 
@@ -1208,8 +1002,6 @@ function_set CastToUInt64Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::UINT64()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::UINT64()));
     return result;
 }
 
@@ -1221,8 +1013,6 @@ function_set CastToUInt32Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::UINT32()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::UINT32()));
     return result;
 }
 
@@ -1234,8 +1024,6 @@ function_set CastToUInt16Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::UINT16()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::UINT16()));
     return result;
 }
 
@@ -1247,8 +1035,6 @@ function_set CastToUInt8Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::UINT8()));
-    result.push_back(
-        CastFunction::bindCastFunction(name, LogicalType::RDF_VARIANT(), LogicalType::UINT8()));
     return result;
 }
 

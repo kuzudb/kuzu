@@ -19,12 +19,13 @@ public:
     common::UniqLock lock() const { return common::UniqLock{mtx}; }
 
     void deserializeGroups(MemoryManager& memoryManager, common::Deserializer& deSer) {
-        lock();
+        auto lockGuard = lock();
         deSer.deserializeVectorOfPtrs<T>(groups,
             [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
     }
+
     void serializeGroups(common::Serializer& ser) {
-        lock();
+        auto lockGuard = lock();
         ser.serializeVectorOfPtrs<T>(groups);
     }
 

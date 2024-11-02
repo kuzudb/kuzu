@@ -158,13 +158,6 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
         printInfo->copy());
 }
 
-void IndexLookup::setBatchInsertSharedState(std::shared_ptr<BatchInsertSharedState> sharedState) {
-    for (auto& info : infos) {
-        KU_ASSERT(info->batchInsertSharedState == nullptr);
-        info->batchInsertSharedState = sharedState;
-    }
-}
-
 void IndexLookup::lookup(transaction::Transaction* transaction, const IndexLookupInfo& info) {
     auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
     auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();

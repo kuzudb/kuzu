@@ -127,10 +127,20 @@ public:
     uint64_t getNextQueryID();
 
 private:
+    using construct_bm_func_t =
+        std::function<std::unique_ptr<storage::BufferManager>(const Database&)>;
+
     struct QueryIDGenerator {
         uint64_t queryID = 0;
         std::mutex queryIDLock;
     };
+
+    static std::unique_ptr<storage::BufferManager> initBufferManager(const Database& db);
+    void initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc = initBufferManager);
+
+    // factory method only to be used for tests
+    static std::unique_ptr<Database> construct(std::string_view databasePath,
+        SystemConfig systemConfig, construct_bm_func_t constructFunc);
 
     void openLockFile();
     void initAndLockDBDir();

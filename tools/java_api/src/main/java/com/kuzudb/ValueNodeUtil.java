@@ -6,6 +6,7 @@ package com.kuzudb;
 public class ValueNodeUtil {
     /**
      * Get the internal ID of the node value.
+     *
      * @param value: The node value.
      * @return The internal ID of the node value.
      * @throws ObjectRefDestroyedException If the node value has been destroyed.
@@ -17,6 +18,7 @@ public class ValueNodeUtil {
 
     /**
      * Get the label name of the node value.
+     *
      * @param value: The node value.
      * @return The label name of the node value.
      * @throws ObjectRefDestroyedException If the node value has been destroyed.
@@ -28,6 +30,7 @@ public class ValueNodeUtil {
 
     /**
      * Get the property size of the node value.
+     *
      * @param value: The node value.
      * @return The property size of the node value.
      * @throws ObjectRefDestroyedException If the node value has been destroyed.
@@ -39,6 +42,7 @@ public class ValueNodeUtil {
 
     /**
      * Get the property name at the given index from the given node value.
+     *
      * @param value: The node value.
      * @param index: The index of the property.
      * @return The property name at the given index from the given node value.
@@ -51,6 +55,7 @@ public class ValueNodeUtil {
 
     /**
      * Get the property value at the given index from the given node value.
+     *
      * @param value: The node value.
      * @param index: The index of the property.
      * @return The property value at the given index from the given node value.
@@ -63,6 +68,7 @@ public class ValueNodeUtil {
 
     /**
      * Convert the node value to string.
+     *
      * @param value: The node value.
      * @return The node value in string format.
      * @throws ObjectRefDestroyedException If the node value has been destroyed.
