@@ -267,7 +267,7 @@ public:
 
     GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
-    bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
+    virtual bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
 
     // Note: If the implementing class stores 2 frontierPair, this function should swap them.
     virtual void beginNewIterationInternalNoLock() {}

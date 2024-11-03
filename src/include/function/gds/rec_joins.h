@@ -88,7 +88,10 @@ struct RJCompState {
     void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
         common::table_id_t nextFrontierTableID) const {
         frontierPair->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
-        outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
+        if (outputs != nullptr) {
+            outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
+        }
+
     }
 };
 
