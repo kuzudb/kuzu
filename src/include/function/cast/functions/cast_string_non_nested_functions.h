@@ -15,7 +15,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-bool isAny(std::string_view cpy);
+bool isAnyType(std::string_view cpy);
 
 LogicalType KUZU_API inferMinimalTypeFromString(const std::string& str);
 LogicalType KUZU_API inferMinimalTypeFromString(std::string_view str);
