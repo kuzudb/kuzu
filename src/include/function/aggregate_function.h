@@ -85,21 +85,10 @@ struct AggregateFunction final : public ScalarOrAggregateFunction {
     bool isFunctionDistinct() const { return isDistinct; }
 
 private:
-    AggregateFunction(const AggregateFunction& other)
-        : ScalarOrAggregateFunction{other.name, other.parameterTypeIDs, other.returnTypeID,
-              other.bindFunc} {
-        isDistinct = other.isDistinct;
-        initializeFunc = other.initializeFunc;
-        updateAllFunc = other.updateAllFunc;
-        updatePosFunc = other.updatePosFunc;
-        combineFunc = other.combineFunc;
-        finalizeFunc = other.finalizeFunc;
-        paramRewriteFunc = other.paramRewriteFunc;
-        initialNullAggregateState = createInitialNullAggregateState();
-    }
+    AggregateFunction(const AggregateFunction& other);
 };
 
-struct AggregateFunctionUtil {
+struct AggregateFunctionUtils {
     template<typename T>
     static std::unique_ptr<AggregateFunction> getAggFunc(std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct,
@@ -109,13 +98,10 @@ struct AggregateFunctionUtil {
             T::updatePos, T::combine, T::finalize, isDistinct, nullptr /* bindFunc */,
             paramRewriteFunc);
     }
-    static std::unique_ptr<AggregateFunction> getMinFunc(common::LogicalTypeID inputType,
-        bool isDistinct);
-    static std::unique_ptr<AggregateFunction> getMaxFunc(common::LogicalTypeID inputType,
-        bool isDistinct);
-    template<typename FUNC>
-    static std::unique_ptr<AggregateFunction> getMinMaxFunction(const std::string name,
-        common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
+
+    template<template<typename, typename> class FunctionType>
+    static void appendSumOrAvgFuncs(std::string name, common::LogicalTypeID inputType,
+        function_set& result);
 };
 
 struct AggregateSumFunction {
@@ -138,6 +124,12 @@ struct AggregateMinFunction {
 
 struct AggregateMaxFunction {
     static constexpr const char* name = "MAX";
+
+    static function_set getFunctionSet();
+};
+
+struct CollectFunction {
+    static constexpr const char* name = "COLLECT";
 
     static function_set getFunctionSet();
 };

@@ -43,7 +43,7 @@ function_set CountFunction::getFunctionSet() {
     function_set result;
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypeIDs()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
-            result.push_back(AggregateFunctionUtil::getAggFunc<CountFunction>(name, type,
+            result.push_back(AggregateFunctionUtils::getAggFunc<CountFunction>(name, type,
                 LogicalTypeID::INT64, isDistinct, paramRewriteFunc));
         }
     }
