@@ -14,7 +14,7 @@ class ProgressBarDisplay {
 public:
     ProgressBarDisplay() : pipelineProgress{0}, numPipelines{0}, numPipelinesFinished{0} {};
 
-                    virtual ~ProgressBarDisplay() = default;
+    virtual ~ProgressBarDisplay() = default;
 
     // Update the progress of the pipeline and the number of finished pipelines. queryID is used to
     // identify the query when we track progress of multiple queries asynchronously
