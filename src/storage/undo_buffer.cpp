@@ -174,10 +174,11 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
-void UndoBuffer::rollback() {
+void UndoBuffer::rollback(const transaction::Transaction* transaction) {
     UndoBufferIterator iterator{*this};
-    iterator.reverseIterate(
-        [&](UndoRecordType entryType, uint8_t const* entry) { rollbackRecord(entryType, entry); });
+    iterator.reverseIterate([&](UndoRecordType entryType, uint8_t const* entry) {
+        rollbackRecord(transaction, entryType, entry);
+    });
 }
 
 uint64_t UndoBuffer::getMemUsage() const {
@@ -246,7 +247,8 @@ void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t com
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
 
-void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* record) {
+void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
+    const UndoRecordType recordType, const uint8_t* record) {
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         rollbackCatalogEntryRecord(record);
@@ -256,7 +258,7 @@ void UndoBuffer::rollbackRecord(const UndoRecordType recordType, const uint8_t* 
     } break;
     case UndoRecordType::INSERT_INFO:
     case UndoRecordType::DELETE_INFO: {
-        rollbackVersionInfo(recordType, record);
+        rollbackVersionInfo(transaction, recordType, record);
     } break;
     case UndoRecordType::UPDATE_INFO: {
         rollbackVectorUpdateInfo(record);
@@ -303,15 +305,16 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
     sequenceEntry->rollbackVal(data.usageCount, data.currVal);
 }
 
-void UndoBuffer::rollbackVersionInfo(UndoRecordType recordType, const uint8_t* record) {
+void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction,
+    UndoRecordType recordType, const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
         std::visit(
-            [&undoRecord]<typename T>(T*) {
+            [&undoRecord, transaction]<typename T>(T*) {
                 if constexpr (std::is_same_v<T, NodeTable>) {
                     std::get<T*>(undoRecord.object)
-                        ->rollbackInsert(undoRecord.startRow, undoRecord.numRows);
+                        ->rollbackInsert(transaction, undoRecord.startRow, undoRecord.numRows);
                 } else {
                     std::get<T*>(undoRecord.object)
                         ->rollbackInsert(undoRecord.startRow, undoRecord.numRows,

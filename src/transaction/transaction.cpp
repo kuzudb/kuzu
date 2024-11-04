@@ -64,7 +64,7 @@ void Transaction::commit(storage::WAL* wal) const {
 
 void Transaction::rollback(storage::WAL* wal) const {
     localStorage->rollback();
-    undoBuffer->rollback();
+    undoBuffer->rollback(this);
     if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();

@@ -414,15 +414,17 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
 
 template<typename T>
 concept notIndexHashable = !IndexHashable<T>;
-static void indexRollback(ChunkedNodeGroup* chunkedGroup, common::row_idx_t startRow,
-    common::row_idx_t numRows_, PrimaryKeyIndex* pkIndex, column_id_t pkColumnId) {
+static void indexRollback(const transaction::Transaction* transaction,
+    ChunkedNodeGroup* chunkedGroup, common::row_idx_t startRow, common::row_idx_t numRows_,
+    PrimaryKeyIndex* pkIndex, column_id_t pkColumnId) {
     const auto& pkColumnChunk = chunkedGroup->getColumnChunk(pkColumnId).getData();
     auto rollbackFunc = [&]<IndexHashable T>(T) {
         for (row_idx_t i = startRow; i < std::min(startRow + numRows_, chunkedGroup->getNumRows());
              ++i) {
             T key = pkColumnChunk.getValue<T>(i);
-            // TODO fix
-            if (HashIndexUtils::getHashIndexPosition(key) == 0) {
+            static constexpr auto isVisible = [](offset_t) { return true; };
+            offset_t lookupOffset = 0;
+            if (pkIndex->lookup(transaction, key, lookupOffset, isVisible)) {
                 pkIndex->delete_(key);
             }
         }
@@ -431,7 +433,8 @@ static void indexRollback(ChunkedNodeGroup* chunkedGroup, common::row_idx_t star
         []<notIndexHashable T>(T) { KU_UNREACHABLE; });
 }
 
-void NodeTable::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_) {
+void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
+    common::row_idx_t startRow, common::row_idx_t numRows_) {
     {
         // const auto& pkType = columns[pkColumnID]->getDataType();
         // auto nodeIDVector =
@@ -461,8 +464,8 @@ void NodeTable::rollbackInsert(common::row_idx_t startRow, common::row_idx_t num
                 auto numRowsInChunk = nodeGroup->getNumRows() - startRowInChunk;
                 auto chunkedGroup =
                     nodeGroup->scanAll(*memoryManager, {pkColumnID}, {columns[pkColumnID].get()});
-                indexRollback(chunkedGroup.get(), startRowInChunk, numRowsInChunk, pkIndex.get(),
-                    pkColumnID);
+                indexRollback(transaction, chunkedGroup.get(), startRowInChunk, numRowsInChunk,
+                    pkIndex.get(), pkColumnID);
             }
 
             curRow += nodeGroup->getNumRows();

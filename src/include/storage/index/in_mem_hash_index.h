@@ -166,7 +166,6 @@ public:
                     iter.slot->header.fingerprints[entryPos] == fingerprint &&
                     equals(key, iter.slot->entries[entryPos].key)) {
                     deletedPos = entryPos;
-                    iter.slot->header.setEntryInvalid(entryPos);
                     break;
                 }
             }
@@ -177,17 +176,17 @@ public:
 
         if (deletedPos.has_value()) {
             // Find the last valid entry and move it into the deleted position
-            auto newIter = iter;
-            while (nextChainedSlot(newIter))
-                ;
-            if (newIter.slot->header.numEntries() > 0 &&
-                (newIter.slotInfo != iter.slotInfo ||
-                    *deletedPos != newIter.slot->header.numEntries() - 1)) {
+            auto newIter = getLastValidEntry(iter);
+            if (newIter.slotInfo != iter.slotInfo ||
+                *deletedPos != newIter.slot->header.numEntries() - 1) {
+                KU_ASSERT(newIter.slot->header.numEntries() > 0);
                 auto lastEntryPos = newIter.slot->header.numEntries() - 1;
                 iter.slot->entries[*deletedPos] = newIter.slot->entries[lastEntryPos];
                 iter.slot->header.setEntryValid(*deletedPos,
                     newIter.slot->header.fingerprints[lastEntryPos]);
                 newIter.slot->header.setEntryInvalid(lastEntryPos);
+            } else {
+                iter.slot->header.setEntryInvalid(*deletedPos);
             }
             return true;
         }
@@ -195,6 +194,22 @@ public:
     }
 
 private:
+    SlotIterator getLastValidEntry(const SlotIterator& startIter) {
+        auto curIter = startIter;
+        auto newIter = startIter;
+        while (nextChainedSlot(curIter)) {
+            if (curIter.slotInfo.slotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+                break;
+            }
+            if (curIter.slot->header.numEntries() == 0) {
+                // if the current overflow slot is empty if last valid entry is in the previous slot
+                break;
+            }
+            newIter = curIter;
+        }
+        return newIter;
+    }
+
     // Assumes that space has already been allocated for the entry
     bool appendInternal(Key key, common::offset_t value, common::hash_t hash,
         visible_func isVisible) {
