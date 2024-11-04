@@ -186,6 +186,9 @@ public:
         return currentRelOffset;
     }
 
+    void pushInsertInfo(transaction::Transaction* transaction, common::RelDataDirection direction,
+        const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source);
+
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
         NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
@@ -198,9 +201,9 @@ private:
     static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
         common::offset_t maxCommittedOffset);
 
-    void detachDeleteForCSRRels(transaction::Transaction* transaction,
-        const RelTableData* tableData, const RelTableData* reverseTableData,
-        RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
+    void detachDeleteForCSRRels(transaction::Transaction* transaction, RelTableData* tableData,
+        RelTableData* reverseTableData, RelTableScanState* relDataReadState,
+        RelTableDeleteState* deleteState);
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         const TableInsertState& state) const;

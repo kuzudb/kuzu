@@ -63,7 +63,7 @@ void Transaction::commit(storage::WAL* wal) const {
 
 void Transaction::rollback(storage::WAL* wal) const {
     localStorage->rollback();
-    undoBuffer->rollback();
+    undoBuffer->rollback(this);
     if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();
@@ -173,14 +173,28 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
     }
 }
 
-void Transaction::pushInsertInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
-    common::row_idx_t startRow, common::row_idx_t numRows) const {
-    undoBuffer->createInsertInfo(chunkedNodeGroup, startRow, numRows);
+void Transaction::pushInsertInfo(storage::RelTableData* relTableData,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    storage::CSRNodeGroupScanSource source) const {
+    undoBuffer->createInsertInfo(relTableData, nodeGroupIdx, startRow, numRows, source);
 }
 
-void Transaction::pushDeleteInfo(storage::ChunkedNodeGroup* chunkedNodeGroup,
-    common::row_idx_t startRow, common::row_idx_t numRows) const {
-    undoBuffer->createDeleteInfo(chunkedNodeGroup, startRow, numRows);
+void Transaction::pushInsertInfo(storage::NodeTable* nodeTable,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    undoBuffer->createInsertInfo(nodeTable, nodeGroupIdx, startRow, numRows);
+}
+
+void Transaction::pushDeleteInfo(storage::NodeTable* nodeTable,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    undoBuffer->createDeleteInfo(nodeTable, nodeGroupIdx, startRow, numRows);
+}
+
+void Transaction::pushDeleteInfo(storage::RelTableData* relTableData,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    storage::CSRNodeGroupScanSource source) const {
+    undoBuffer->createDeleteInfo(relTableData, nodeGroupIdx, startRow, numRows, source);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,

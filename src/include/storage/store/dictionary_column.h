@@ -12,12 +12,12 @@ public:
     DictionaryColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
         ShadowFile* shadowFile, bool enableCompression);
 
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk& dictChunk) const;
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
     // dictionary (as read from the index column) to the output index in the result vector to store
     // the string.
-    void scan(transaction::Transaction* transaction, const ChunkState& offsetState,
+    void scan(const transaction::Transaction* transaction, const ChunkState& offsetState,
         const ChunkState& dataState,
         std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
         common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const;
@@ -32,10 +32,10 @@ public:
     Column* getOffsetColumn() const { return offsetColumn.get(); }
 
 private:
-    void scanOffsets(transaction::Transaction* transaction, const ChunkState& state,
+    void scanOffsets(const transaction::Transaction* transaction, const ChunkState& state,
         DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
         uint64_t dataSize) const;
-    void scanValueToVector(transaction::Transaction* transaction, const ChunkState& dataState,
+    void scanValueToVector(const transaction::Transaction* transaction, const ChunkState& dataState,
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
         uint64_t offsetInVector) const;
 

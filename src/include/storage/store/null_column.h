@@ -21,10 +21,10 @@ public:
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* resultVector) const override;
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) const override;
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) const override;
 

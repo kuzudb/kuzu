@@ -156,6 +156,9 @@ public:
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
+    void rollbackInsert(const transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx);
+
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();
     }
@@ -171,6 +174,8 @@ public:
         return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
     }
 
+    NodeGroupCollection* getNodeGroups() { return nodeGroups.get(); }
+
     TableStats getStats(const transaction::Transaction* transaction) const;
 
 private:
@@ -180,6 +185,12 @@ private:
         common::ValueVector* pkVector);
 
     void serialize(common::Serializer& serializer) const override;
+
+    std::unique_ptr<NodeTableScanState> initPKScanState(common::DataChunk& dataChunk,
+        TableScanSource source) const;
+
+    visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
+    common::DataChunk constructDataChunkForPKColumn() const;
 
 private:
     std::vector<std::unique_ptr<Column>> columns;

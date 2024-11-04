@@ -1,5 +1,6 @@
 #include "storage/store/node_group_collection.h"
 
+#include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/csr_node_group.h"
@@ -14,9 +15,9 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer)
+    Deserializer* deSer, append_to_undo_buffer_func_t appendToUndoBufferFunc)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH} {
+      dataFH{dataFH}, appendToUndoBufferFunc(std::move(appendToUndoBufferFunc)) {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -52,21 +53,22 @@ void NodeGroupCollection::append(const Transaction* transaction,
         const auto numToAppendInNodeGroup =
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
+        appendToUndoBufferFunc(transaction, lastNodeGroup, numToAppendInNodeGroup);
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
+        numTotalRows += numToAppendInNodeGroup;
     }
-    numTotalRows += numRowsAppended;
     stats.incrementCardinality(numRowsAppended);
 }
 
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
     const auto otherLock = other.nodeGroups.lock();
     for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
-        appned(transaction, *nodeGroup);
+        append(transaction, *nodeGroup);
     }
 }
 
-void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& nodeGroup) {
+void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& nodeGroup) {
     const auto numRowsToAppend = nodeGroup.getNumRows();
     KU_ASSERT(nodeGroup.getDataTypes().size() == types.size());
     const auto lock = nodeGroups.lock();
@@ -77,8 +79,8 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
     const auto numChunkedGroupsToAppend = nodeGroup.getNumChunkedGroups();
     node_group_idx_t numChunkedGroupsAppended = 0;
     while (numChunkedGroupsAppended < numChunkedGroupsToAppend) {
-        const auto chunkedGrouoToAppend = nodeGroup.getChunkedNodeGroup(numChunkedGroupsAppended);
-        const auto numRowsToAppendInChunkedGroup = chunkedGrouoToAppend->getNumRows();
+        const auto chunkedGroupToAppend = nodeGroup.getChunkedNodeGroup(numChunkedGroupsAppended);
+        const auto numRowsToAppendInChunkedGroup = chunkedGroupToAppend->getNumRows();
         row_idx_t numRowsAppendedInChunkedGroup = 0;
         while (numRowsAppendedInChunkedGroup < numRowsToAppendInChunkedGroup) {
             auto lastNodeGroup = nodeGroups.getLastGroup(lock);
@@ -92,13 +94,14 @@ void NodeGroupCollection::appned(const Transaction* transaction, NodeGroup& node
                 std::min(numRowsToAppendInChunkedGroup - numRowsAppendedInChunkedGroup,
                     lastNodeGroup->getNumRowsLeftToAppend());
             lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
-            lastNodeGroup->append(transaction, *chunkedGrouoToAppend, numRowsAppendedInChunkedGroup,
+            appendToUndoBufferFunc(transaction, lastNodeGroup, numToAppendInBatch);
+            lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
                 numToAppendInBatch);
             numRowsAppendedInChunkedGroup += numToAppendInBatch;
+            numTotalRows += numToAppendInBatch;
         }
         numChunkedGroupsAppended++;
     }
-    numTotalRows += numRowsToAppend;
     stats.incrementCardinality(numRowsToAppend);
 }
 
@@ -128,12 +131,12 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         // If the node group is empty now and the chunked group is full, we can directly flush it.
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
+        appendToUndoBufferFunc(transaction, lastNodeGroup, chunkedGroup.getNumRows());
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
             lastNodeGroup->append(transaction, chunkedGroup, 0, numToAppend);
         }
-        numTotalRows += numToAppend;
     }
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
@@ -141,6 +144,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
+    numTotalRows += numToAppend;
     stats.incrementCardinality(numToAppend);
     return {startOffset, numToAppend};
 }
@@ -191,6 +195,58 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     }
 }
 
+static idx_t getNumEmptyTrailingGroups(const GroupCollection<NodeGroup>& nodeGroups,
+    const common::UniqLock& lock) {
+    const auto& nodeGroupVector = nodeGroups.getAllGroups(lock);
+    return safeIntegerConversion<idx_t>(
+        std::find_if(nodeGroupVector.rbegin(), nodeGroupVector.rend(),
+            [](const auto& nodeGroup) { return (nodeGroup->getNumRows() != 0); }) -
+        nodeGroupVector.rbegin());
+}
+
+void NodeGroupCollection::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+    common::node_group_idx_t nodeGroupIdx, CSRNodeGroupScanSource source) {
+    const auto lock = nodeGroups.lock();
+    auto numRowsToSubtract = numRows_;
+    // skip the rollback if all newly created node groups have already been deleted
+    if (!nodeGroups.isEmpty(lock) || nodeGroupIdx > 0) {
+        KU_ASSERT(nodeGroupIdx < nodeGroups.getNumGroups(lock));
+        auto* nodeGroup = nodeGroups.getGroup(lock, nodeGroupIdx);
+
+        KU_ASSERT(startRow <= nodeGroup->getNumRows());
+        numRowsToSubtract = std::min(numRowsToSubtract, nodeGroup->getNumRows() - startRow);
+        nodeGroup->rollbackInsert(startRow, numRows_, source);
+
+        // remove any empty trailing node groups after the rollback
+        const auto numGroupsToRemove = getNumEmptyTrailingGroups(nodeGroups, lock);
+        nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
+    }
+    KU_ASSERT(numRowsToSubtract <= numTotalRows);
+    numTotalRows -= numRowsToSubtract;
+}
+
+void NodeGroupCollection::rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
+    common::node_group_idx_t nodeGroupIdx, CSRNodeGroupScanSource source) {
+    const auto lock = nodeGroups.lock();
+    KU_ASSERT(nodeGroupIdx < nodeGroups.getNumGroups(lock));
+    nodeGroups.getGroup(lock, nodeGroupIdx)->rollbackDelete(startRow, numRows_, source);
+}
+
+void NodeGroupCollection::commitInsert(row_idx_t startRow, row_idx_t numRows_,
+    node_group_idx_t nodeGroupIdx, common::transaction_t commitTS, CSRNodeGroupScanSource source) {
+    if (numRows_ == 0) {
+        return;
+    }
+    const auto lock = nodeGroups.lock();
+    nodeGroups.getGroup(lock, nodeGroupIdx)->commitInsert(startRow, numRows_, commitTS, source);
+}
+
+void NodeGroupCollection::commitDelete(row_idx_t startRow, row_idx_t numRows_,
+    node_group_idx_t nodeGroupIdx, common::transaction_t commitTS, CSRNodeGroupScanSource source) {
+    const auto lock = nodeGroups.lock();
+    nodeGroups.getGroup(lock, nodeGroupIdx)->commitDelete(startRow, numRows_, commitTS, source);
+}
+
 void NodeGroupCollection::serialize(Serializer& ser) {
     ser.writeDebuggingInfo("node_groups");
     nodeGroups.serializeGroups(ser);
@@ -206,6 +262,9 @@ void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memory
     deSer.validateDebuggingInfo(key, "stats");
     stats.deserialize(deSer);
 }
+
+void NodeGroupCollection::defaultAppendToUndoBuffer(const transaction::Transaction*, NodeGroup*,
+    common::row_idx_t) {}
 
 } // namespace storage
 } // namespace kuzu

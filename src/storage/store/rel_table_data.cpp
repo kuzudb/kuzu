@@ -83,7 +83,7 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
 }
 
 bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVector,
-    const ValueVector& relIDVector) const {
+    const ValueVector& relIDVector) {
     const auto boundNodePos = boundNodeIDVector.state->getSelVector()[0];
     const auto relIDPos = relIDVector.state->getSelVector()[0];
     if (boundNodeIDVector.isNull(boundNodePos) || relIDVector.isNull(relIDPos)) {
@@ -96,7 +96,11 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     const auto boundNodeOffset = boundNodeIDVector.getValue<nodeID_t>(boundNodePos).offset;
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeOffset);
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
-    return csrNodeGroup.delete_(transaction, source, rowIdx);
+    bool isDeleted = csrNodeGroup.delete_(transaction, source, rowIdx);
+    if (isDeleted && transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushDeleteInfo(this, nodeGroupIdx, rowIdx, 1, source);
+    }
+    return isDeleted;
 }
 
 void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
@@ -184,6 +188,14 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
         }
     }
     return false;
+}
+
+void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
+    const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source) {
+    const auto startRow = (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
+                              nodeGroup.getNumPersistentRows() :
+                              nodeGroup.getNumRows();
+    transaction->pushInsertInfo(this, nodeGroup.getNodeGroupIdx(), startRow, numRows_, source);
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {

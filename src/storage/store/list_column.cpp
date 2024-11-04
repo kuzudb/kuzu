@@ -85,7 +85,7 @@ std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkDat
     return flushedChunk;
 }
 
-void ListColumn::scan(Transaction* transaction, const ChunkState& state,
+void ListColumn::scan(const Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) const {
     nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
@@ -126,7 +126,7 @@ void ListColumn::scan(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void ListColumn::scan(Transaction* transaction, const ChunkState& state,
+void ListColumn::scan(const Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
     if (columnChunk->getNumValues() == 0) {
@@ -190,7 +190,7 @@ void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void ListColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
+void ListColumn::lookupInternal(const Transaction* transaction, const ChunkState& state,
     offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     const auto listEndOffset = readOffset(transaction, state, offsetInChunk);
@@ -271,7 +271,7 @@ void ListColumn::scanFiltered(Transaction* transaction, const ChunkState& state,
     }
 }
 
-offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& readState,
+offset_t ListColumn::readOffset(const Transaction* transaction, const ChunkState& readState,
     offset_t offsetInNodeGroup) const {
     offset_t ret = INVALID_OFFSET;
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
@@ -280,7 +280,7 @@ offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& read
     return ret;
 }
 
-list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& readState,
+list_size_t ListColumn::readSize(const Transaction* transaction, const ChunkState& readState,
     offset_t offsetInNodeGroup) const {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
     offset_t value = INVALID_OFFSET;
@@ -289,7 +289,7 @@ list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& rea
     return value;
 }
 
-ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(Transaction* transaction,
+ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const Transaction* transaction,
     const ChunkState& state, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) const {
     const auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::INT64(),

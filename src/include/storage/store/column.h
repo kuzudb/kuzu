@@ -52,15 +52,15 @@ public:
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* resultVector) const;
-    virtual void lookupValue(transaction::Transaction* transaction, const ChunkState& state,
+    virtual void lookupValue(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector) const;
 
     // Scan from [startOffsetInGroup, endOffsetInGroup).
-    virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
+    virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) const;
     // Scan from [startOffsetInGroup, endOffsetInGroup).
-    virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
+    virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) const;
 
@@ -71,7 +71,7 @@ public:
 
     std::string getName() const { return name; }
 
-    virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
+    virtual void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
     // Batch write to a set of sequential pages.
@@ -99,8 +99,9 @@ protected:
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* resultVector) const;
 
-    virtual void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector) const;
+    virtual void lookupInternal(const transaction::Transaction* transaction,
+        const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* resultVector,
+        uint32_t posInVector) const;
 
     void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
         const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
@@ -162,7 +163,7 @@ public:
         populateCommonTableID(resultVector);
     }
 
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) const override {
         Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
@@ -170,7 +171,7 @@ public:
         populateCommonTableID(resultVector);
     }
 
-    void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
+    void lookupInternal(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) const override {
         Column::lookupInternal(transaction, state, nodeOffset, resultVector, posInVector);

@@ -196,8 +196,9 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
     scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
 }
 
-void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
-    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) const {
+void Column::scan(const Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+    uint64_t offsetInVector) const {
     if (nullColumn) {
         KU_ASSERT(state.nullState);
         nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
@@ -207,8 +208,8 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
         startOffsetInGroup, endOffsetInGroup, readToVectorFunc);
 }
 
-void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunkData* columnChunk,
-    offset_t startOffset, offset_t endOffset) const {
+void Column::scan(const Transaction* transaction, const ChunkState& state,
+    ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     if (nullColumn) {
         nullColumn->scan(transaction, *state.nullState, columnChunk->getNullData(), startOffset,
             endOffset);
@@ -233,8 +234,8 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
     columnChunk->setNumValues(numValuesScanned);
 }
 
-void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
-    offset_t endOffsetInGroup, uint8_t* result) {
+void Column::scan(const Transaction* transaction, const ChunkState& state,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, uint8_t* result) {
     columnReadWriter->readCompressedValuesToPage(transaction, state, result, 0, startOffsetInGroup,
         endOffsetInGroup, readToPageFunc);
 }
@@ -267,8 +268,8 @@ void Column::scanInternal(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void Column::lookupValue(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
-    ValueVector* resultVector, uint32_t posInVector) const {
+void Column::lookupValue(const Transaction* transaction, const ChunkState& state,
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     if (nullColumn) {
         nullColumn->lookupValue(transaction, *state.nullState, nodeOffset, resultVector,
             posInVector);
@@ -279,8 +280,8 @@ void Column::lookupValue(Transaction* transaction, const ChunkState& state, offs
     lookupInternal(transaction, state, nodeOffset, resultVector, posInVector);
 }
 
-void Column::lookupInternal(Transaction* transaction, const ChunkState& state, offset_t nodeOffset,
-    ValueVector* resultVector, uint32_t posInVector) const {
+void Column::lookupInternal(const Transaction* transaction, const ChunkState& state,
+    offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     columnReadWriter->readCompressedValueToVector(transaction, state, nodeOffset, resultVector,
         posInVector, readToVectorFunc);
 }

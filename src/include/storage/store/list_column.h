@@ -56,10 +56,10 @@ public:
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         FileHandle& dataFH);
 
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) const override;
-    void scan(transaction::Transaction* transaction, const ChunkState& state,
+    void scan(const transaction::Transaction* transaction, const ChunkState& state,
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) const override;
 
@@ -74,7 +74,7 @@ protected:
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
         common::ValueVector* resultVector) const override;
 
-    void lookupInternal(transaction::Transaction* transaction, const ChunkState& state,
+    void lookupInternal(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) const override;
 
@@ -85,12 +85,12 @@ private:
     void scanFiltered(transaction::Transaction* transaction, const ChunkState& state,
         common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage) const;
 
-    common::offset_t readOffset(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t offsetInNodeGroup) const;
-    common::list_size_t readSize(transaction::Transaction* transaction, const ChunkState& state,
-        common::offset_t offsetInNodeGroup) const;
+    common::offset_t readOffset(const transaction::Transaction* transaction,
+        const ChunkState& state, common::offset_t offsetInNodeGroup) const;
+    common::list_size_t readSize(const transaction::Transaction* transaction,
+        const ChunkState& state, common::offset_t offsetInNodeGroup) const;
 
-    ListOffsetSizeInfo getListOffsetSizeInfo(transaction::Transaction* transaction,
+    ListOffsetSizeInfo getListOffsetSizeInfo(const transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t startOffsetInNodeGroup,
         common::offset_t endOffsetInNodeGroup) const;
 

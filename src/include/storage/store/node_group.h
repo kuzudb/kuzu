@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "common/uniq_lock.h"
+#include "storage/enums/csr_node_group_scan_source.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/group_collection.h"
@@ -125,11 +126,11 @@ public:
     void merge(transaction::Transaction* transaction,
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
-    virtual void initializeScanState(transaction::Transaction* transaction,
+    virtual void initializeScanState(const transaction::Transaction* transaction,
         TableScanState& state) const;
-    void initializeScanState(transaction::Transaction* transaction, const common::UniqLock& lock,
-        TableScanState& state) const;
-    virtual NodeGroupScanResult scan(transaction::Transaction* transaction,
+    void initializeScanState(const transaction::Transaction* transaction,
+        const common::UniqLock& lock, TableScanState& state) const;
+    virtual NodeGroupScanResult scan(const transaction::Transaction* transaction,
         TableScanState& state) const;
 
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state,
@@ -148,6 +149,16 @@ public:
         TableAddColumnState& addColumnState, FileHandle* dataFH);
 
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
+
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS, CSRNodeGroupScanSource source);
+    void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS, CSRNodeGroupScanSource source);
+
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        CSRNodeGroupScanSource source);
+    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
+        CSRNodeGroupScanSource source);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
@@ -181,8 +192,21 @@ public:
     bool isDeleted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
+    common::node_group_idx_t getNodeGroupIdx() const { return nodeGroupIdx; }
+
+protected:
+    static constexpr auto INVALID_CHUNKED_GROUP_IDX = UINT32_MAX;
+    static constexpr auto INVALID_START_ROW_IDX = UINT64_MAX;
+
+    using chunked_group_transaction_operation_t = void (
+        ChunkedNodeGroup::*)(common::row_idx_t, common::row_idx_t, common::transaction_t);
+    virtual std::pair<common::idx_t, common::row_idx_t> actionOnChunkedGroups(
+        const common::UniqLock& lock, common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS, CSRNodeGroupScanSource source,
+        chunked_group_transaction_operation_t operation);
+
 private:
-    common::idx_t findChunkedGroupIdxFromRowIdx(const common::UniqLock& lock,
+    std::pair<common::idx_t, common::row_idx_t> findChunkedGroupIdxFromRowIdxNoLock(
         common::row_idx_t rowIdx) const;
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx) const;

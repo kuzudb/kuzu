@@ -2,6 +2,7 @@
 
 #include "common/enums/statement_type.h"
 #include "common/types/types.h"
+#include "storage/enums/csr_node_group_scan_source.h"
 
 namespace kuzu {
 namespace catalog {
@@ -20,10 +21,13 @@ class WAL;
 class VersionInfo;
 class UpdateInfo;
 struct VectorUpdateInfo;
+class RelTableData;
+class NodeTable;
 class ChunkedNodeGroup;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
+class Transaction;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
@@ -113,10 +117,16 @@ public:
         bool skipLoggingToWAL = false) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
-    void pushInsertInfo(storage::ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
-        common::row_idx_t numRows) const;
-    void pushDeleteInfo(storage::ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
-        common::row_idx_t numRows) const;
+    void pushInsertInfo(storage::RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows,
+        storage::CSRNodeGroupScanSource source) const;
+    void pushInsertInfo(storage::NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows) const;
+    void pushDeleteInfo(storage::RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows,
+        storage::CSRNodeGroupScanSource source) const;
+    void pushDeleteInfo(storage::NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 

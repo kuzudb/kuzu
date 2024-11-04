@@ -352,8 +352,8 @@ VectorVersionInfo* VersionInfo::getVectorVersionInfo(idx_t vectorIdx) const {
     return vectorsInfo[vectorIdx].get();
 }
 
-void VersionInfo::append(const transaction::Transaction* transaction,
-    ChunkedNodeGroup* chunkedNodeGroup, const row_idx_t startRow, const row_idx_t numRows) {
+void VersionInfo::append(const transaction::Transaction* transaction, const row_idx_t startRow,
+    const row_idx_t numRows) {
     if (numRows == 0) {
         return;
     }
@@ -369,13 +369,9 @@ void VersionInfo::append(const transaction::Transaction* transaction,
         const auto numRowsInVector = endRowIdx - startRowIdx + 1;
         vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
     }
-    if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushInsertInfo(chunkedNodeGroup, startRow, numRows);
-    }
 }
 
-bool VersionInfo::delete_(const transaction::Transaction* transaction,
-    ChunkedNodeGroup* chunkedNodeGroup, const row_idx_t rowIdx) {
+bool VersionInfo::delete_(const transaction::Transaction* transaction, const row_idx_t rowIdx) {
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
@@ -385,11 +381,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction,
         // ALWAYS_INSERTED to avoid checking the version in the future.
         vectorVersionInfo.insertionStatus = VectorVersionInfo::InsertionStatus::ALWAYS_INSERTED;
     }
-    const auto deleted = vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
-    if (deleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushDeleteInfo(chunkedNodeGroup, rowIdx, 1);
-    }
-    return deleted;
+    return vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
 }
 
 void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transaction_t transactionID,

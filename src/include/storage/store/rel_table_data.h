@@ -30,7 +30,7 @@ public:
         const common::ValueVector& relIDVector, common::column_id_t columnID,
         const common::ValueVector& dataVector) const;
     bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
-        const common::ValueVector& relIDVector) const;
+        const common::ValueVector& relIDVector);
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
@@ -57,20 +57,16 @@ public:
         return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
     }
 
-    common::row_idx_t getNumRows() const {
-        common::row_idx_t numRows = 0;
-        const auto numGroups = nodeGroups->getNumNodeGroups();
-        for (auto nodeGroupIdx = 0u; nodeGroupIdx < numGroups; nodeGroupIdx++) {
-            numRows += nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
-        }
-        return numRows;
-    }
+    NodeGroupCollection* getNodeGroups() { return nodeGroups.get(); }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
 
     TableStats getStats() const { return nodeGroups->getStats(); }
 
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);
+
+    void pushInsertInfo(transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
+        common::row_idx_t numRows_, CSRNodeGroupScanSource source);
 
     void serialize(common::Serializer& serializer) const;
 

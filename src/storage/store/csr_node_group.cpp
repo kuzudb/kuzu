@@ -55,7 +55,8 @@ bool CSRNodeGroupScanState::tryScanCachedTuples(RelTableScanState& tableScanStat
     return true;
 }
 
-void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) const {
+void CSRNodeGroup::initializeScanState(const Transaction* transaction,
+    TableScanState& state) const {
     auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
@@ -78,7 +79,7 @@ void CSRNodeGroup::initializeScanState(Transaction* transaction, TableScanState&
     }
 }
 
-void CSRNodeGroup::initScanForCommittedPersistent(Transaction* transaction,
+void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction,
     RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const {
     // Scan the csr header chunks from disk.
     ChunkState offsetState, lengthState;
@@ -115,7 +116,8 @@ void CSRNodeGroup::initScanForCommittedInMem(RelTableScanState& relScanState,
     nodeGroupScanState.inMemCSRList.clear();
 }
 
-NodeGroupScanResult CSRNodeGroup::scan(Transaction* transaction, TableScanState& state) const {
+NodeGroupScanResult CSRNodeGroup::scan(const Transaction* transaction,
+    TableScanState& state) const {
     auto& relScanState = state.cast<RelTableScanState>();
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
     while (true) {
@@ -220,7 +222,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWtihoutCache(
     return NodeGroupScanResult{startRow, numToScan};
 }
 
-NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(Transaction* transaction,
+NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(const Transaction* transaction,
     RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     while (true) {
         if (tableState.currBoundNodeIdx >= tableState.cachedBoundNodeSelVector.getSelSize()) {
@@ -276,7 +278,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
     return NodeGroupScanResult{startRow, numRows};
 }
 
-NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(Transaction* transaction,
+NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(const Transaction* transaction,
     const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     const auto numRows = std::min(nodeGroupScanState.inMemCSRList.rowIndices.size() -
                                       nodeGroupScanState.nextRowToScan,
@@ -951,6 +953,29 @@ void CSRNodeGroup::finalizeCheckpoint(const UniqLock& lock) {
     // Set `numRows` back to 0 is to reflect that the in mem part of the node group is empty.
     numRows = 0;
     csrIndex.reset();
+}
+
+std::pair<idx_t, row_idx_t> CSRNodeGroup::actionOnChunkedGroups(const common::UniqLock& lock,
+    common::row_idx_t startRow, common::row_idx_t numRows_, common::transaction_t commitTS,
+    CSRNodeGroupScanSource source, chunked_group_transaction_operation_t operation) {
+    if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+        KU_ASSERT(persistentChunkGroup || (numRows_ == 0));
+        if (persistentChunkGroup) {
+            std::invoke(operation, *persistentChunkGroup, startRow, numRows_, commitTS);
+        }
+        return {UINT32_MAX, UINT32_MAX};
+    } else {
+        KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
+        return NodeGroup::actionOnChunkedGroups(lock, startRow, numRows_, commitTS, source,
+            operation);
+    }
+}
+
+common::row_idx_t CSRNodeGroup::getNumPersistentRows() const {
+    if (!persistentChunkGroup) {
+        return 0;
+    }
+    return persistentChunkGroup->getNumRows();
 }
 
 } // namespace storage

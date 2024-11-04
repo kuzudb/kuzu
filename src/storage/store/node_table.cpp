@@ -43,6 +43,147 @@ bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset
     return true;
 }
 
+template<typename T>
+concept notIndexHashable = !IndexHashable<T>;
+
+namespace {
+struct PKColumnScanHelper {
+    explicit PKColumnScanHelper(common::node_group_idx_t numNodeGroups, PrimaryKeyIndex* pkIndex,
+        common::DataChunk dataChunk, table_id_t tableID)
+        : numNodeGroups(numNodeGroups), dataChunk(std::move(dataChunk)), tableID(tableID),
+          pkIndex(pkIndex) {}
+    virtual ~PKColumnScanHelper() = default;
+
+    virtual bool processScanOutput(const transaction::Transaction* transaction,
+        NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) = 0;
+    virtual NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const = 0;
+
+    common::node_group_idx_t numNodeGroups;
+    common::DataChunk dataChunk;
+    table_id_t tableID;
+    PrimaryKeyIndex* pkIndex;
+};
+
+struct CommittedPKColumnScanHelper : public PKColumnScanHelper {
+public:
+    CommittedPKColumnScanHelper(LocalNodeTable& localTable, row_idx_t startNodeOffset,
+        DataChunk dataChunk, table_id_t tableID, PrimaryKeyIndex* pkIndex, visible_func isVisible)
+        : PKColumnScanHelper(localTable.getNumNodeGroups(), pkIndex, std::move(dataChunk), tableID),
+          localTable(localTable), startNodeOffset(startNodeOffset),
+          nodeIDVector(LogicalType::INTERNAL_ID()), isVisible(std::move(isVisible)) {
+        nodeIDVector.setState(this->dataChunk.state);
+    }
+
+    bool processScanOutput(const transaction::Transaction* transaction,
+        NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) override;
+
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const override {
+        return localTable.getNodeGroup(nodeGroupIdx);
+    }
+
+    LocalNodeTable& localTable;
+    row_idx_t startNodeOffset;
+    ValueVector nodeIDVector;
+    visible_func isVisible;
+};
+
+struct RollbackPKColumnScanHelper : public PKColumnScanHelper {
+public:
+    RollbackPKColumnScanHelper(row_idx_t startNodeOffset, row_idx_t numRows,
+        NodeGroupCollection& nodeGroups, DataChunk dataChunk, table_id_t tableID,
+        PrimaryKeyIndex* pkIndex)
+        : PKColumnScanHelper(nodeGroups.getNumNodeGroups(), pkIndex, std::move(dataChunk), tableID),
+          semiMask(RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
+              startNodeOffset + numRows)),
+          nodeGroups(nodeGroups) {
+        for (row_idx_t i = 0; i < numRows; ++i) {
+            semiMask->mask(startNodeOffset + i);
+        }
+    }
+
+    bool processScanOutput(const transaction::Transaction* transaction,
+        NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) override;
+
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const override {
+        return nodeGroups.getNodeGroup(nodeGroupIdx);
+    }
+
+    std::unique_ptr<RoaringBitmapSemiMask> semiMask;
+    NodeGroupCollection& nodeGroups;
+};
+
+static void insertPKInternal(const Transaction* transaction, const ValueVector& nodeIDVector,
+    const ValueVector& pkVector, PrimaryKeyIndex* pkIndex, const visible_func& isVisible) {
+    for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
+        const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
+        const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
+        auto pkPos = pkVector.state->getSelVector()[i];
+        if (pkVector.isNull(pkPos)) {
+            throw RuntimeException(ExceptionMessage::nullPKException());
+        }
+        if (!pkIndex->insert(transaction, &pkVector, pkPos, offset, isVisible)) {
+            throw RuntimeException(
+                ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
+        }
+    }
+}
+
+void scanPKColumn(const Transaction* transaction, PKColumnScanHelper& scanHelper,
+    std::unique_ptr<NodeTableScanState> scanState) {
+
+    node_group_idx_t nodeGroupToScan = 0u;
+    while (nodeGroupToScan < scanHelper.numNodeGroups) {
+        // We need to scan from local storage here because some tuples in local node groups might
+        // have been deleted.
+        scanState->nodeGroup = scanHelper.getNodeGroup(nodeGroupToScan);
+        KU_ASSERT(scanState->nodeGroup);
+        scanState->nodeGroup->initializeScanState(transaction, *scanState);
+        while (true) {
+            auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
+            if (!scanHelper.processScanOutput(transaction, scanResult,
+                    *scanState->outputVectors[0])) {
+                break;
+            }
+        }
+        nodeGroupToScan++;
+    }
+}
+
+bool CommittedPKColumnScanHelper::processScanOutput(const transaction::Transaction* transaction,
+    NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) {
+    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        return false;
+    }
+    for (auto i = 0u; i < scanResult.numRows; i++) {
+        nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, tableID});
+    }
+    insertPKInternal(transaction, nodeIDVector, scannedVector, pkIndex, isVisible);
+    startNodeOffset += scanResult.numRows;
+    return true;
+}
+
+bool RollbackPKColumnScanHelper::processScanOutput(const transaction::Transaction* transaction,
+    NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) {
+    if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        return false;
+    }
+    const auto rollbackFunc = [&]<IndexHashable T>(T) {
+        for (idx_t i = 0; i < scannedVector.state->getSelSize(); ++i) {
+            const auto pos = scannedVector.state->getSelVector()[i];
+            T key = scannedVector.getValue<T>(pos);
+            static constexpr auto isVisible = [](offset_t) { return true; };
+            offset_t lookupOffset = 0;
+            if (pkIndex->lookup(transaction, key, lookupOffset, isVisible)) {
+                pkIndex->delete_(key);
+            }
+        }
+    };
+    TypeUtils::visit(scannedVector.dataType.getPhysicalType(), std::cref(rollbackFunc),
+        []<notIndexHashable T>(T) { KU_UNREACHABLE; });
+    return true;
+}
+} // namespace
+
 bool NodeTableScanState::scanNext(Transaction* transaction) {
     KU_ASSERT(columns.size() == outputVectors.size());
     if (source == TableScanSource::NONE) {
@@ -63,6 +204,16 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
     return true;
 }
 
+static decltype(auto) createAppendToUndoBufferFunc(NodeTable* nodeTable) {
+    return [nodeTable](const transaction::Transaction* transaction, NodeGroup* nodeGroup,
+               common::row_idx_t numRows) {
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushInsertInfo(nodeTable, nodeGroup->getNodeGroupIdx(),
+                nodeGroup->getNumRows(), numRows);
+        }
+    };
+}
+
 NodeTable::NodeTable(const StorageManager* storageManager,
     const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
     VirtualFileSystem* vfs, main::ClientContext* context, Deserializer* deSer)
@@ -78,8 +229,10 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
             dataFH, memoryManager, shadowFile, enableCompression);
     }
+
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
-        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer);
+        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer,
+        createAppendToUndoBufferFunc(this));
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -294,6 +447,9 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         const auto rowIdxInGroup =
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushDeleteInfo(this, nodeGroupIdx, rowIdxInGroup, 1);
+        }
     }
     if (isDeleted) {
         hasChanges = true;
@@ -329,6 +485,27 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
     return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, chunkedGroup);
 }
 
+std::unique_ptr<NodeTableScanState> NodeTable::initPKScanState(DataChunk& dataChunk,
+    TableScanSource source) const {
+    std::vector<column_id_t> columnIDs{getPKColumnID()};
+    auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs);
+    for (auto& vector : dataChunk.valueVectors) {
+        scanState->outputVectors.push_back(vector.get());
+    }
+    scanState->outState = dataChunk.state.get();
+    scanState->source = source;
+    for (const auto& column : columns) {
+        scanState->columns.push_back(column.get());
+    }
+    return scanState;
+}
+
+common::DataChunk NodeTable::constructDataChunkForPKColumn() const {
+    std::vector<LogicalType> types;
+    types.push_back(columns[pkColumnID]->getDataType().copy());
+    return constructDataChunk(std::move(types));
+}
+
 void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumTotalRows();
     transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
@@ -353,62 +530,37 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                     const auto rowIdxInGroup =
                         startNodeOffset + nodeOffset -
                         StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-                    nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
+                    [[maybe_unused]] const bool isDeleted =
+                        nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
+                    KU_ASSERT(isDeleted);
+                    if (transaction->shouldAppendToUndoBuffer()) {
+                        transaction->pushDeleteInfo(this, nodeGroupIdx, rowIdxInGroup, 1);
+                    }
                 }
             }
         }
         numLocalRows += localNodeGroup->getNumRows();
     }
+
     // 3. Scan pk column for newly inserted tuples that are not deleted and insert into pk index.
-    std::vector<column_id_t> columnIDs{getPKColumnID()};
-    auto types = std::vector<LogicalType>();
-    types.push_back(columns[pkColumnID]->getDataType().copy());
-    auto dataChunk = constructDataChunk(std::move(types));
-    ValueVector nodeIDVector(LogicalType::INTERNAL_ID());
-    nodeIDVector.setState(dataChunk.state);
-    const auto numNodeGroupsToScan = localNodeTable.getNumNodeGroups();
-    const auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs,
-        std::vector<const Column*>{}, dataChunk, &nodeIDVector);
-    scanState->source = TableScanSource::UNCOMMITTED;
-    node_group_idx_t nodeGroupToScan = 0u;
-    while (nodeGroupToScan < numNodeGroupsToScan) {
-        // We need to scan from local storage here because some tuples in local node groups might
-        // have been deleted.
-        scanState->nodeGroup = localNodeTable.getNodeGroup(nodeGroupToScan);
-        KU_ASSERT(scanState->nodeGroup);
-        scanState->nodeGroup->initializeScanState(transaction, *scanState);
-        while (true) {
-            auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-            if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-                break;
-            }
-            for (auto i = 0u; i < scanResult.numRows; i++) {
-                nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, tableID});
-            }
-            insertPK(transaction, nodeIDVector, *scanState->outputVectors[0]);
-            startNodeOffset += scanResult.numRows;
-        }
-        nodeGroupToScan++;
-    }
+    CommittedPKColumnScanHelper scanHelper{localNodeTable, startNodeOffset,
+        constructDataChunkForPKColumn(), tableID, pkIndex.get(), getVisibleFunc(transaction)};
+    scanPKColumn(transaction, scanHelper,
+        initPKScanState(scanHelper.dataChunk, TableScanSource::UNCOMMITTED));
+
     // 4. Clear local table.
     localTable->clear();
 }
 
+visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
+    return
+        [this, transaction](offset_t offset_) -> bool { return isVisible(transaction, offset_); };
+}
+
 void NodeTable::insertPK(const Transaction* transaction, const ValueVector& nodeIDVector,
     const ValueVector& pkVector) const {
-    for (auto i = 0u; i < nodeIDVector.state->getSelVector().getSelSize(); i++) {
-        const auto nodeIDPos = nodeIDVector.state->getSelVector()[i];
-        const auto offset = nodeIDVector.readNodeOffset(nodeIDPos);
-        auto pkPos = pkVector.state->getSelVector()[i];
-        if (pkVector.isNull(pkPos)) {
-            throw RuntimeException(ExceptionMessage::nullPKException());
-        }
-        if (!pkIndex->insert(transaction, const_cast<ValueVector*>(&pkVector), pkPos, offset,
-                [&](offset_t offset_) { return isVisible(transaction, offset_); })) {
-            throw RuntimeException(
-                ExceptionMessage::duplicatePKException(pkVector.getAsValue(pkPos)->toString()));
-        }
-    }
+    return insertPKInternal(transaction, nodeIDVector, pkVector, pkIndex.get(),
+        getVisibleFunc(transaction));
 }
 
 void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
@@ -438,6 +590,19 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     serialize(ser);
 }
 
+void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
+    common::row_idx_t startRow, common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx) {
+    row_idx_t startNodeOffset = startRow;
+    for (node_group_idx_t i = 0; i < nodeGroupIdx; ++i) {
+        startNodeOffset += nodeGroups->getNodeGroupNoLock(i)->getNumRows();
+    }
+
+    RollbackPKColumnScanHelper scanHelper{startNodeOffset, numRows_, *nodeGroups,
+        constructDataChunkForPKColumn(), tableID, pkIndex.get()};
+    scanPKColumn(transaction, scanHelper,
+        initPKScanState(scanHelper.dataChunk, TableScanSource::COMMITTED));
+}
+
 TableStats NodeTable::getStats(const Transaction* transaction) const {
     auto stats = nodeGroups->getStats();
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -462,6 +627,9 @@ bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const
 
 bool NodeTable::isVisibleNoLock(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    if (nodeGroupIdx >= nodeGroups->getNumNodeGroups()) {
+        return false;
+    }
     auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
     return nodeGroup->isVisibleNoLock(transaction, offsetInGroup);
 }

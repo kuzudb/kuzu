@@ -1,9 +1,11 @@
 #pragma once
 
+#include <functional>
 #include <mutex>
 
 #include "common/constants.h"
 #include "common/types/types.h"
+#include "storage/enums/csr_node_group_scan_source.h"
 
 namespace kuzu {
 namespace catalog {
@@ -20,6 +22,9 @@ namespace main {
 class ClientContext;
 }
 namespace storage {
+
+using pre_rollback_callback_t = std::function<void(const transaction::Transaction*,
+    common::row_idx_t, common::row_idx_t, common::node_group_idx_t)>;
 
 // TODO(Guodong): This should be reworked to use MemoryManager for memory allocaiton.
 //                For now, we use malloc to get around the limitation of 256KB from MM.
@@ -65,7 +70,9 @@ private:
 class UpdateInfo;
 class VersionInfo;
 struct VectorUpdateInfo;
-class ChunkedNodeGroup;
+class RelTableData;
+class NodeTable;
+class NodeGroupCollection;
 class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
@@ -85,27 +92,36 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
-        common::row_idx_t numRows);
-    void createDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
-        common::row_idx_t numRows);
+    void createInsertInfo(RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows,
+        storage::CSRNodeGroupScanSource source);
+    void createInsertInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows);
+    void createDeleteInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows);
+    void createDeleteInfo(RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows,
+        storage::CSRNodeGroupScanSource source);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS) const;
-    void rollback();
+    void rollback(const transaction::Transaction* transaction);
 
     uint64_t getMemUsage() const;
 
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVersionInfo(UndoRecordType recordType, ChunkedNodeGroup* chunkedNodeGroup,
-        common::row_idx_t startRow, common::row_idx_t numRows);
+    void createVersionInfo(UndoRecordType recordType, NodeGroupCollection* nodeGroupCollection,
+        pre_rollback_callback_t preRollbackCallback, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::node_group_idx_t nodeGroupIdx = 0,
+        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
-    void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
+    void rollbackRecord(const transaction::Transaction* transaction, UndoRecordType recordType,
+        const uint8_t* record);
 
     void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackCatalogEntryRecord(const uint8_t* record);
@@ -115,7 +131,8 @@ private:
 
     void commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
-    void rollbackVersionInfo(UndoRecordType recordType, const uint8_t* record);
+    void rollbackVersionInfo(const transaction::Transaction* transaction, UndoRecordType recordType,
+        const uint8_t* record);
 
     void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackVectorUpdateInfo(const uint8_t* record) const;
