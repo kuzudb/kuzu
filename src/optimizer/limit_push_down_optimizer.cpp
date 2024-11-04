@@ -1,33 +1,17 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
 #include "planner/operator/logical_distinct.h"
-#include "planner/operator/logical_hash_join.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
-using namespace kuzu::storage;
 
 namespace kuzu {
 namespace optimizer {
 
 void LimitPushDownOptimizer::rewrite(LogicalPlan* plan) {
     plan->setLastOperator(visitOperator(plan->getLastOperator()));
-}
-
-static LogicalScanNodeTable* isSimpleScanNode(const std::shared_ptr<LogicalOperator>& op) {
-    switch (op->getOperatorType()) {
-    case LogicalOperatorType::SCAN_NODE_TABLE: {
-        return &op->cast<LogicalScanNodeTable>();
-    }
-    case LogicalOperatorType::PROJECTION: {
-        return isSimpleScanNode(op->getChild(0));
-    }
-    default:
-        return nullptr;
-    }
 }
 
 std::shared_ptr<LogicalOperator> LimitPushDownOptimizer::finishPushDown(
@@ -79,48 +63,6 @@ std::shared_ptr<LogicalOperator> LimitPushDownOptimizer::visitOperator(
             op->setChild(i, optimizer.visitOperator(op->getChild(i)));
         }
         return op;
-    }
-    case LogicalOperatorType::HASH_JOIN: {
-        if (limitOperator == nullptr) {
-            return op;
-        }
-        auto& hashJoin = op->cast<LogicalHashJoin>();
-        // Push down limit to probe side
-        if (hashJoin.getJoinType() == JoinType::LEFT) {
-            // Add a limit to the probe side,and keep the original limit as well.
-            auto optimizer = LimitPushDownOptimizer(context);
-            optimizer.limitOperator = limitOperator;
-            auto newChild = optimizer.visitOperator(op->getChild(0));
-            op->setChild(0, newChild);
-        } else if (hashJoin.getJoinType() == JoinType::INNER) {
-            LogicalScanNodeTable* scanNode = isSimpleScanNode(hashJoin.getChild(0));
-            // If probe side is ScanNode and build side has semiMasker, we can push down limit to
-            // build side
-            if (scanNode) {
-                const auto& ops = findLogicalSemiMasker(hashJoin.getChild(1))->getTargetOperators();
-                if (std::find(ops.begin(), ops.end(), scanNode) != ops.end()) {
-                    auto optimizer = LimitPushDownOptimizer(context);
-                    optimizer.limitOperator = limitOperator;
-                    auto newChild = optimizer.visitOperator(op->getChild(1));
-                    op->setChild(1, newChild);
-                    limitOperator = nullptr;
-                    return op;
-                }
-            }
-            scanNode = isSimpleScanNode(hashJoin.getChild(1));
-            // If build side is ScanNode ,we can push down limit to probe side
-            if (scanNode) {
-                auto optimizer = LimitPushDownOptimizer(context);
-                optimizer.limitOperator = limitOperator;
-                auto newChild = optimizer.visitOperator(op->getChild(0));
-                op->setChild(0, newChild);
-                limitOperator = nullptr;
-                return op;
-            }
-        } else {
-            // subquery
-        }
-        return finishPushDown(op);
     }
     default: {
         return finishPushDown(op);
