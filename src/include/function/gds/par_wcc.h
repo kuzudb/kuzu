@@ -1,8 +1,13 @@
-// NOT USED
-
-#include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
+#include "binder/binder.h"
+#include "common/types/internal_id_util.h"
+#include "common/types/types.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds_function.h"
+#include "graph/graph.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;

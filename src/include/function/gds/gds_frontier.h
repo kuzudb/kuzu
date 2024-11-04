@@ -146,6 +146,21 @@ public:
         return initialActiveNodeCount;
     }
 
+    bool compareFrontiers() {
+        auto* curMask = curFrontierFixedMask.load(std::memory_order_relaxed);
+        auto* nextMask = nextFrontierFixedMask.load(std::memory_order_relaxed);
+        bool hasChanged = false;
+
+        for (size_t i = 0; i < getNumNodesInCurFrontierFixedNodeTable(); ++i) {
+            if (curMask[i].load(std::memory_order_relaxed) != nextMask[i].load(std::memory_order_relaxed)) {
+                hasChanged = true;
+                break;
+            }
+        }
+
+        return hasChanged;
+    }
+
     // This should be called to update node's componentID.
     // It takes the atomic pointer to the node in process, and updates atomically.
     void updateComponentID(const common::nodeID_t& node, uint16_t newComponentID) {
@@ -243,7 +258,7 @@ private:
     // Points to the memory buffer holding the current frontier
     std::atomic<std::atomic<uint64_t>*> curFrontierFixedMask;
 
-    // Points to the mmemory buffer where the updates for the next frontier is stored.
+    // Points to the memory buffer where the updates for the next frontier is stored.
     std::atomic<std::atomic<uint64_t>*> nextFrontierFixedMask;
 };
 
@@ -410,7 +425,7 @@ protected:
  * WCCFrontierPair keeps track of current and next frontiers for WCC algorithm
  * Used in componentID propagation
  */
-class WCCFrontierPair : public FrontierPair {
+class WCCFrontierPair final : public FrontierPair {
     friend class WCCEdgeCompute;
 
 public:
@@ -421,6 +436,14 @@ public:
           componentIDs{componentIDs}, morselDispatcher(maxThreadsForExec) {}
 
     void initRJFromSource(common::nodeID_t /* source */) override { return; }
+
+    bool compareFrontiers() {
+        return componentIDs->compareFrontiers();
+    }
+
+    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override {
+        return morselDispatcher.getNextRangeMorsel(frontierMorsel);
+    }
 
     void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
         common::table_id_t nextFrontierTableID) override;

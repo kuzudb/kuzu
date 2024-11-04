@@ -4,6 +4,7 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/rec_joins.h"
+#include "function/gds/par_wcc.h"
 #include "graph/graph.h"
 #include "main/settings.h"
 
@@ -32,6 +33,17 @@ static void scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
     // argument.
     clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
+}
+
+static void scheduleWCCFrontierTask(table_id_t relTableID, graph::Graph* graph, WCCCompState& wccCompState, processor::ExecutionContext* context) {
+    auto clientContext = context->clientContext;
+    auto frontierPair = wccCompState.frontierPair.get();
+    auto info = FrontierTaskInfo(relTableID, graph, common::ExtendDirection::BOTH, *wccCompState.edgeCompute);
+    auto maxThreads = clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
+    auto sharedState = std::make_shared<FrontierTaskSharedState>(*wccCompState.frontierPair);
+    auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
+
+    clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context, true);
 }
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context,
@@ -68,6 +80,24 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
                 KU_UNREACHABLE;
             }
         }
+    }
+}
+
+void GDSUtils::runWCCFrontiersUntilConvergence(processor::ExecutionContext* context, WCCCompState& wccCompState, graph::Graph* graph, uint64_t maxIters) {
+    auto frontierPair = wccCompState.frontierPair.get();
+    bool hasChanged = true;
+
+    while(hasChanged && frontierPair->getNextIter() <= maxIters) {
+        hasChanged = false;
+        frontierPair->beginNewIteration();
+
+        for (const auto& relTableIDInfo : graph->getRelTableIDInfos()) {
+            wccCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID);
+        
+            scheduleWCCFrontierTask(relTableIDInfo.relTableID, graph, wccCompState, context);
+        }
+
+        hasChanged = frontierPair->compareFrontiers();
     }
 }
 
