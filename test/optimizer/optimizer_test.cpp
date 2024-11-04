@@ -1,8 +1,6 @@
 #include "graph_test/graph_test.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_plan_util.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
 #include "test_runner/test_runner.h"
 
 namespace kuzu {
@@ -102,6 +100,21 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
               "HINT (a JOIN e) JOIN b "
               "RETURN e.date;";
     ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(b)S(a)");
+}
+
+TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
+    auto q1 = "MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person) WHERE b.ID=0 "
+              "RETURN a,b,c;";
+    ASSERT_STREQ(getEncodedPlan(q1).c_str(),
+        "HJ(c._ID){S(c)}{HJ(a._ID){S(a)}{E(c)E(a)Filter()S(b)}}");
+    auto q2 = "MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person) WHERE a.ID=0 "
+              "RETURN a,b,c;";
+    ASSERT_STREQ(getEncodedPlan(q2).c_str(),
+        "HJ(c._ID){S(c)}{HJ(b._ID){E(c)S(b)}{E(b)Filter()S(a)}}");
+    auto q3 = "MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person) WHERE c.ID=0 "
+              "RETURN a,b,c;";
+    ASSERT_STREQ(getEncodedPlan(q3).c_str(),
+        "HJ(a._ID){S(a)}{HJ(b._ID){E(a)S(b)}{E(b)Filter()S(c)}}");
 }
 
 } // namespace testing

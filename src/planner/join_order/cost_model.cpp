@@ -8,8 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
-    return childPlan.estCardinality;
+uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan, double extensionRate) {
+    return childPlan.getCost() + childPlan.estCardinality * extensionRate;
 }
 
 uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
