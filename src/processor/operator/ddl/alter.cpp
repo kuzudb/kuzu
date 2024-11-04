@@ -44,6 +44,15 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     auto transaction = context->clientContext->getTx();
     const auto storageManager = context->clientContext->getStorageManager();
+    auto dropColumnID = 0;
+    /* We need to record the column ID of the dropped column here */
+    if (info.alterType == common::AlterType::DROP_PROPERTY) {
+        auto& boundDropPropInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
+        auto& droppedPropName = boundDropPropInfo.propertyName;
+        auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
+        dropColumnID = entry->getColumnID(droppedPropName);
+    }
+    /* Now dropped the column in the catalog info */
     catalog->alterTableEntry(transaction, info);
     if (info.alterType == common::AlterType::ADD_PROPERTY) {
         auto& boundAddPropInfo = info.extraInfo->constCast<BoundExtraAddPropertyInfo>();
@@ -56,7 +65,7 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
     } else if (info.alterType == common::AlterType::DROP_PROPERTY) {
         const auto schema = context->clientContext->getCatalog()->getTableCatalogEntry(
             context->clientContext->getTx(), info.tableName);
-        storageManager->getTable(schema->getTableID())->dropColumn();
+        storageManager->getTable(schema->getTableID())->dropColumn(transaction, dropColumnID);
     }
 }
 

@@ -6,6 +6,7 @@
 #include "storage/index/hash_index.h"
 #include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
+#include "storage/store/free_chunk_map.h"
 
 namespace kuzu {
 namespace main {
@@ -43,6 +44,7 @@ public:
     FileHandle* getDataFH() const { return dataFH; }
     FileHandle* getMetadataFH() const { return metadataFH; }
     std::string getDatabasePath() const { return databasePath; }
+    FreeChunkMap& getFreeChunkMap() const;
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
 
@@ -62,6 +64,9 @@ private:
     void createRdfGraph(common::table_id_t tableID, catalog::RDFGraphCatalogEntry* tableSchema,
         const catalog::Catalog* catalog, main::ClientContext* context);
 
+    void loadFreeChunkMap(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
+        main::ClientContext* context);
+
 private:
     std::mutex mtx;
     std::string databasePath;
@@ -69,6 +74,7 @@ private:
     FileHandle* dataFH;
     FileHandle* metadataFH;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
+    std::unique_ptr<FreeChunkMap> freeChunkMap;
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
     std::unique_ptr<ShadowFile> shadowFile;

@@ -32,6 +32,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     metadataFH = initFileHandle(
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), vfs, context);
     loadTables(catalog, vfs, context);
+    loadFreeChunkMap(catalog, vfs, context);
 }
 
 FileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualFileSystem* vfs,
@@ -93,6 +94,16 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
         auto& relTable = tables.at(relTableEntry->getTableID()).get()->cast<RelTable>();
         setCommonTableIDToRdfRelTable(&relTable, rdfGraphSchemas);
     }
+}
+
+void StorageManager::loadFreeChunkMap(const Catalog& catalog, VirtualFileSystem* vfs,
+    main::ClientContext* context) {
+    freeChunkMap = std::make_unique<FreeChunkMap>();
+
+    /* ERICTODO: Dummy funciton now. We will need to add more logic here when loading FCM data back from disk */
+    (void)catalog;
+    (void)vfs;
+    (void)context;
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
@@ -205,6 +216,11 @@ WAL& StorageManager::getWAL() const {
 ShadowFile& StorageManager::getShadowFile() const {
     KU_ASSERT(shadowFile);
     return *shadowFile;
+}
+
+FreeChunkMap& StorageManager::getFreeChunkMap() const {
+    KU_ASSERT(freeChunkMap);
+    return *freeChunkMap;
 }
 
 void StorageManager::checkpoint(main::ClientContext& clientContext) {

@@ -280,6 +280,26 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     hasChanges = true;
 }
 
+void NodeTable::dropColumn(Transaction* transaction, column_id_t columnID) {
+
+    /* Get the latest time stamp here to mark when added FreeChunkEntry is ready to be reused */
+    auto reuseTS = Timestamp::getCurrentTimestamp().value;
+
+    /* Add column chunks of dropped column into FreeChunkMap */
+    auto& freeChunkMap = transaction->getClientContext()->getStorageManager()->getFreeChunkMap();
+    std::vector<std::pair<page_idx_t, page_idx_t>> chunkPhysicInfo = nodeGroups->getAllChunkPhysicInfoForColumn(columnID);
+    for(auto phyInfo : chunkPhysicInfo) {
+        page_idx_t pageIdx = phyInfo.first;
+        page_idx_t numPages = phyInfo.second;
+        freeChunkMap.AddFreeChunk(pageIdx, numPages, reuseTS);
+    }
+
+    /* ERICTODO: record unlink info somewhere using UnlinkInformation */
+
+    /* Finally, mark this table to be dirty */
+    setHasChanges();
+    return;
+}
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
     ChunkedNodeGroup& chunkedGroup) {
     hasChanges = true;
