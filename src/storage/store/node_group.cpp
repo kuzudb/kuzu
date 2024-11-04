@@ -284,6 +284,31 @@ void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
     chunkedGroups.resize(lock, 1);
 }
 
+void NodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_) {
+    const auto lock = chunkedGroups.lock();
+    const auto [startChunkedGroupIdx, startRowIdxInChunk] =
+        findChunkedGroupIdxFromRowIdx(lock, startRow);
+    KU_ASSERT(startChunkedGroupIdx < chunkedGroups.getNumGroups(lock));
+    const bool shouldRemoveStartChunk = (startRowIdxInChunk == 0);
+    const auto numChunksToRemove =
+        chunkedGroups.getNumGroups(lock) - startChunkedGroupIdx - (shouldRemoveStartChunk ? 0 : 1);
+
+    for (common::node_group_idx_t i = chunkedGroups.getNumGroups(lock) - numChunksToRemove;
+         i < chunkedGroups.getNumGroups(lock); ++i) {
+        auto* startChunkedGroup = chunkedGroups.getGroup(lock, i);
+        startChunkedGroup->rollbackInsert(0, startChunkedGroup->getNumRows());
+    }
+
+    chunkedGroups.removeTrailingGroups(numChunksToRemove, lock);
+
+    if (!shouldRemoveStartChunk) {
+        auto* startChunkedGroup = chunkedGroups.getGroup(lock, startChunkedGroupIdx);
+        startChunkedGroup->rollbackInsert(startRowIdxInChunk,
+            std::min(numRows_, startChunkedGroup->getNumRows() - startRowIdxInChunk));
+    }
+    numRows = startRow;
+}
+
 void NodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRows_,
     common::transaction_t commitTS) {
     const auto lock = chunkedGroups.lock();

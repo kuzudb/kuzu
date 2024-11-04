@@ -429,6 +429,20 @@ bool ChunkedNodeGroup::hasUpdates() const {
     return false;
 }
 
+void ChunkedNodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_) {
+    if (startRow == 0) {
+        setNumRows(0);
+        versionInfo.reset();
+        return;
+    }
+    if (startRow >= numRows) {
+        // Nothing to rollback.
+        return;
+    }
+    versionInfo->rollbackInsert(startRow, numRows_);
+    numRows = startRow;
+}
+
 void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommit,
     transaction_t commitTS) {
     versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);

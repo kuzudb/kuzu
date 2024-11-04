@@ -317,8 +317,7 @@ void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction
                         ->rollbackInsert(transaction, undoRecord.startRow, undoRecord.numRows);
                 } else {
                     std::get<T*>(undoRecord.object)
-                        ->rollbackInsert(undoRecord.startRow, undoRecord.numRows,
-                            [](ChunkedNodeGroup*, row_idx_t, row_idx_t) {});
+                        ->rollbackInsert(undoRecord.startRow, undoRecord.numRows);
                 }
             },
             undoRecord.object);

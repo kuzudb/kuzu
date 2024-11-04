@@ -471,12 +471,7 @@ void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
             curRow += nodeGroup->getNumRows();
         }
     }
-    auto indexRollbackFunc = [this](ChunkedNodeGroup* chunkedGroup,
-                                 common::row_idx_t startRowInChunk,
-                                 common::row_idx_t numRowsInChunk) {
-        // indexRollback(chunkedGroup, startRowInChunk, numRowsInChunk, pkIndex.get(), pkColumnID);
-    };
-    nodeGroups->rollbackInsert(startRow, numRows_, indexRollbackFunc);
+    nodeGroups->rollbackInsert(startRow, numRows_);
 }
 
 void NodeTable::commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,

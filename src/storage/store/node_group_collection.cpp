@@ -203,6 +203,32 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     }
 }
 
+void NodeGroupCollection::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_) {
+    const auto lock = nodeGroups.lock();
+    common::node_group_idx_t startNodeGroupIdx = 0;
+    auto rowIdx = startRow;
+    while (startNodeGroupIdx < nodeGroups.getNumGroups(lock) &&
+           nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows() > 0 &&
+           rowIdx >= nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows()) {
+        rowIdx -= nodeGroups.getGroup(lock, startNodeGroupIdx)->getNumRows();
+        ++startNodeGroupIdx;
+    }
+    const auto startRowInNodeGroup = rowIdx;
+    const bool shouldRemoveStartGroup = (startRowInNodeGroup == 0);
+    KU_ASSERT(startNodeGroupIdx < nodeGroups.getNumGroups(lock));
+    const auto numGroupsToRemove =
+        nodeGroups.getNumGroups(lock) - startNodeGroupIdx - (shouldRemoveStartGroup ? 0 : 1);
+    for (common::node_group_idx_t i = nodeGroups.getNumGroups(lock) - numGroupsToRemove;
+         i < nodeGroups.getNumGroups(lock); ++i) {
+        nodeGroups.getGroup(lock, i)->rollbackInsert(0, nodeGroups.getGroup(lock, i)->getNumRows());
+    }
+    nodeGroups.removeTrailingGroups(numGroupsToRemove, lock);
+    if (!shouldRemoveStartGroup) {
+        nodeGroups.getGroup(lock, startNodeGroupIdx)->rollbackInsert(startRowInNodeGroup, numRows_);
+    }
+    numTotalRows = startRow;
+}
+
 void NodeGroupCollection::commitInsert(row_idx_t startRow, row_idx_t numRows_,
     common::transaction_t commitTS) {
     const auto lock = nodeGroups.lock();

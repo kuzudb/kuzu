@@ -155,8 +155,7 @@ public:
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
 
-    template<typename Func>
-    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_, const Func& func);
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
@@ -229,33 +228,6 @@ protected:
     std::vector<common::LogicalType> dataTypes;
     GroupCollection<ChunkedNodeGroup> chunkedGroups;
 };
-
-template<typename Func>
-void NodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-    const Func& func) {
-    const auto lock = chunkedGroups.lock();
-    const auto [startChunkedGroupIdx, startRowIdxInChunk] =
-        findChunkedGroupIdxFromRowIdx(lock, startRow);
-    KU_ASSERT(startChunkedGroupIdx < chunkedGroups.getNumGroups(lock));
-    const bool shouldRemoveStartChunk = (startRowIdxInChunk == 0);
-    const auto numChunksToRemove =
-        chunkedGroups.getNumGroups(lock) - startChunkedGroupIdx - (shouldRemoveStartChunk ? 0 : 1);
-
-    for (common::node_group_idx_t i = chunkedGroups.getNumGroups(lock) - numChunksToRemove;
-         i < chunkedGroups.getNumGroups(lock); ++i) {
-        auto* startChunkedGroup = chunkedGroups.getGroup(lock, i);
-        startChunkedGroup->rollbackInsert(0, startChunkedGroup->getNumRows(), func);
-    }
-
-    chunkedGroups.removeTrailingGroups(numChunksToRemove, lock);
-
-    if (!shouldRemoveStartChunk) {
-        auto* startChunkedGroup = chunkedGroups.getGroup(lock, startChunkedGroupIdx);
-        startChunkedGroup->rollbackInsert(startRowIdxInChunk,
-            std::min(numRows_, startChunkedGroup->getNumRows() - startRowIdxInChunk), func);
-    }
-    numRows = startRow;
-}
 
 } // namespace storage
 } // namespace kuzu
