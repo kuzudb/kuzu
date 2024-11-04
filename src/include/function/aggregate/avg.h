@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types/int128_t.h"
-#include "common/types/types.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/add.h"
 
