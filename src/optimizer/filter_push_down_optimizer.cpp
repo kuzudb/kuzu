@@ -212,6 +212,16 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitTableFunctionCall
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
     const std::shared_ptr<LogicalOperator>& op) {
+    // Push child.
+    PredicateSet childPSet;
+    KU_ASSERT(op->getNumChildren() == 1);
+    for (auto& p : predicateSet.getAllPredicates()) {
+        if (op->getChild(0)->getSchema()->evaluable(*p)) {
+            childPSet.addPredicate(p);
+        }
+    }
+    auto childOptimizer = FilterPushDownOptimizer(context, std::move(childPSet));
+    op->setChild(0, childOptimizer.visitOperator(op->getChild(0)));
     if (op->ptrCast<BaseLogicalExtend>()->isRecursive() ||
         !context->getClientConfig()->enableZoneMap) {
         return finishPushDown(op);
@@ -235,25 +245,14 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::finishPushDown(
     return root;
 }
 
-std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendScanNodeTable(
-    std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
-    binder::expression_vector properties, std::shared_ptr<planner::LogicalOperator> child) {
-    if (properties.empty()) {
-        return child;
-    }
-    auto printInfo = std::make_unique<OPPrintInfo>();
-    auto scanNodeTable = std::make_shared<LogicalScanNodeTable>(std::move(nodeID),
-        std::move(nodeTableIDs), std::move(properties));
-    scanNodeTable->computeFlatSchema();
-    return scanNodeTable;
-}
-
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilters(
     const expression_vector& predicates, std::shared_ptr<LogicalOperator> child) {
     if (predicates.empty()) {
         return child;
     }
     auto root = child;
+    // TODO(Xiyang): Why do we append a Filter for each predicate here? Isn't this bloating the
+    // plan?
     for (auto& p : predicates) {
         root = appendFilter(p, root);
     }

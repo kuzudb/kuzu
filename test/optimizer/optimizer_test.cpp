@@ -1,8 +1,6 @@
 #include "graph_test/graph_test.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_plan_util.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
 #include "test_runner/test_runner.h"
 
 namespace kuzu {
@@ -83,6 +81,7 @@ TEST_F(OptimizerTest, CrossJoinWithFilterWithoutPushDownTest) {
     ASSERT_STREQ(getEncodedPlan(q3).c_str(), "HJ(a.fName=b.fName){Filter()S(a)}{S(b)}");
 }
 
+// TODO(Xiyang): Why do we have two filters instead of one filter in the plan?
 TEST_F(OptimizerTest, FilterPushDownTest) {
     auto q1 = "MATCH (a:person)-[e]->(b) "
               "WHERE a.ID < 0 AND a.fName='Alice' "
@@ -95,6 +94,13 @@ TEST_F(OptimizerTest, IndexScanTest) {
               "WHERE a.ID = 0 AND a.fName='Alice' "
               "RETURN a.gender;";
     ASSERT_STREQ(getEncodedPlan(q1).c_str(), "Filter()IndexScan(a)");
+}
+
+TEST_F(OptimizerTest, IndexScanWithExtendTest) {
+    auto q1 = "MATCH (a:person)-[e:knows]->(b:person) "
+              "WHERE a.ID = 0 "
+              "RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q1).c_str(), "HJ(b._ID){S(b)}{E(b)IndexScan(a)}");
 }
 
 TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
