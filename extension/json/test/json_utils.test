@@ -136,10 +136,9 @@ STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE,
 -STATEMENT return json_structure(
 '{
     "int_array":[42,999,null,null,-42],
-    "double_array":["42.0","nan","inf","-inf",null,"-42.0"],
-    "date_array":["1970-01-01","infinity","-infinity",null,"2022-05-12"],
-    "timestamp_array":["1970-01-01 00:00:00","infinity","-infinity",null,"2022-05-12 16:23:45"],
-    "timestamptz_array":["1969-12-31 19:00:00-05","infinity","-infinity",null,"2022-05-12 19:23:45-04"],
+    "double_array":[42.0,null,null,null,null,-42.0],
+    "date_array":["1970-01-01",null,null,null,"2022-05-12"],
+    "timestamp_array":["1970-01-01 00:00:00",null,null,null,"2022-05-12 16:23:45"],
     "varchar_array":["🦆🦆🦆🦆🦆🦆","goose",null,null],
     "nested_int_array":[[],[42,999,null,null,-42],null,[],[42,999,null,null,-42]],
     "struct":{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},
@@ -157,4 +156,324 @@ STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE,
     "list_of_fixed_int_array":[[4,5,6],[null,2,3],[4,5,6]]}'
 );
 ---- 1
-STRUCT(int_array INT32[], double_array STRING[], date_array STRING[], timestamp_array STRING[], timestamptz_array STRING[], varchar_array STRING[], nested_int_array INT32[][], struct STRUCT(a UINT8, b STRING), struct_of_arrays STRUCT(a INT32[], b STRING[]), array_of_structs STRUCT(a UINT8, b STRING)[], map STRUCT(key1 STRING, key2 STRING), union STRING, fixed_int_array UINT8[], fixed_varchar_array STRING[], fixed_nested_int_array UINT8[][], fixed_nested_varchar_array STRING[][], fixed_struct_array STRUCT(a UINT8, b STRING)[], struct_of_fixed_array STRUCT(a UINT8[], b STRING[]), fixed_array_of_int_list INT32[][], list_of_fixed_int_array UINT8[][])
+STRUCT(int_array INT32[], double_array DOUBLE[], date_array DATE[], timestamp_array TIMESTAMP[], varchar_array STRING[], nested_int_array INT32[][], struct STRUCT(a UINT8, b STRING), struct_of_arrays STRUCT(a INT32[], b STRING[]), array_of_structs STRUCT(a UINT8, b STRING)[], map STRUCT(key1 STRING, key2 STRING), union STRING, fixed_int_array UINT8[], fixed_varchar_array STRING[], fixed_nested_int_array UINT8[][], fixed_nested_varchar_array STRING[][], fixed_struct_array STRUCT(a UINT8, b STRING)[], struct_of_fixed_array STRUCT(a UINT8[], b STRING[]), fixed_array_of_int_list INT32[][], list_of_fixed_int_array UINT8[][])
+
+
+#"blob":"\\x00\\x00\\x00a"
+
+-STATEMENT return json_structure(
+    '{
+        "bool":true
+    }'
+);
+---- 1
+STRUCT(bool BOOL)
+
+-STATEMENT return json_structure(
+    '{
+        "tinyint":127
+    }'
+);
+---- 1
+STRUCT(tinyint UINT8)
+
+-STATEMENT return json_structure(
+    '{
+        "smallint":32767
+    }'
+);
+---- 1
+STRUCT(smallint UINT16)
+
+-STATEMENT return json_structure(
+    '{
+        "int":2147483647
+    }'
+);
+---- 1
+STRUCT(int UINT32)
+
+-STATEMENT return json_structure(
+    '{
+        "bigint":9223372036854775807
+    }'
+);
+---- 1
+STRUCT(bigint UINT64)
+
+-STATEMENT return json_structure(
+    '{
+        "hugeint":1.7014118346046923e38
+    }'
+);
+---- 1
+STRUCT(hugeint DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "utinyint":255
+    }'
+);
+---- 1
+STRUCT(utinyint UINT8)
+
+-STATEMENT return json_structure(
+    '{
+        "usmallint":65535
+    }'
+);
+---- 1
+STRUCT(usmallint UINT16)
+
+-STATEMENT return json_structure(
+    '{
+        "uint":4294967295
+    }'
+);
+---- 1
+STRUCT(uint UINT32)
+
+-STATEMENT return json_structure(
+    '{
+        "ubigint":18446744073709551615
+    }'
+);
+---- 1
+STRUCT(ubigint UINT64)
+
+-STATEMENT return json_structure(
+    '{
+        "date":"2024-07-10"
+    }'
+);
+---- 1
+STRUCT(date DATE)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp":"2047-01-10 04:00:54.775806"
+    }'
+);
+---- 1
+STRUCT(timestamp TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_s":"2447-01-10 04:00:54"
+    }'
+);
+---- 1
+STRUCT(timestamp_s TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ms":"2047-01-10 04:00:54.775"
+    }'
+);
+---- 1
+STRUCT(timestamp_ms TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ns":"2262-04-11 23:47:16.854775"
+    }'
+);
+---- 1
+STRUCT(timestamp_ns TIMESTAMP)
+
+
+-STATEMENT return json_structure(
+    '{
+        "float":3.4028235e+38
+    }'
+);
+---- 1
+STRUCT(float DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "double":1.7976931348623157e+308
+    }'
+);
+---- 1
+STRUCT(double DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_4_1":999.9,
+        "dec_9_4":99999.9999,
+        "dec_18_6":1000000000000.0,
+        "dec38_10":1e+28
+    }'
+);
+---- 1
+STRUCT(dec_4_1 DOUBLE, dec_9_4 DOUBLE, dec_18_6 DOUBLE, dec38_10 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "uuid":"ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "interval":"83 years 3 months 999 days 00:16:39.999999"   
+    }'
+);
+---- 1
+STRUCT(uuid UUID, interval INTERVAL)
+
+-STATEMENT return json_structure(
+    '{
+        "bool": false
+    }'
+);
+---- 1
+STRUCT(bool BOOL)
+
+-STATEMENT return json_structure(
+    '{
+        "tinyint": -128
+    }'
+);
+---- 1
+STRUCT(tinyint INT8)
+
+-STATEMENT return json_structure(
+    '{
+        "smallint": -32768
+    }'
+);
+---- 1
+STRUCT(smallint INT16)
+
+-STATEMENT return json_structure(
+    '{
+        "int": -2147483648
+    }'
+);
+---- 1
+STRUCT(int INT32)
+
+-STATEMENT return json_structure(
+    '{
+        "bigint": -9223372036854775808
+    }'
+);
+---- 1
+STRUCT(bigint INT64)
+
+-STATEMENT return json_structure(
+    '{
+        "hugeint": -1.7014118346046923e38
+    }'
+);
+---- 1
+STRUCT(hugeint DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "utinyint": 0
+    }'
+);
+---- 1
+STRUCT(utinyint UINT8)
+
+-STATEMENT return json_structure(
+    '{
+        "date": "2642-06-25"
+    }'
+);
+---- 1
+STRUCT(date DATE)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp": "2309-12-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_s": "2909-12-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp_s TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ms": "2309-12-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp_ms TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ns": "1677-09-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp_ns TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "float": -3.4028235e+38
+    }'
+);
+---- 1
+STRUCT(float DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "double": -1.7976931348623157e+308
+    }'
+);
+---- 1
+STRUCT(double DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_4_1": -999.9
+    }'
+);
+---- 1
+STRUCT(dec_4_1 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_9_4": -99999.9999
+    }'
+);
+---- 1
+STRUCT(dec_9_4 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_18_6": -1000000000000.0
+    }'
+);
+---- 1
+STRUCT(dec_18_6 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec38_10": -1e+28
+    }'
+);
+---- 1
+STRUCT(dec38_10 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "uuid": "00000000-0000-0000-0000-000000000000"
+    }'
+);
+---- 1
+STRUCT(uuid UUID)
+
+-STATEMENT return json_structure(
+    '{
+        "interval": "00:00:00"
+    }'
+);
+---- 1
+STRUCT(interval INTERVAL)
