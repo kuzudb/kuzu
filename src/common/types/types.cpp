@@ -1161,7 +1161,7 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerTypeIDs() {
         LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8};
 }
 
-static std::vector<LogicalTypeID> getFloatingPointTypeIDs() {
+std::vector<LogicalTypeID> LogicalTypeUtils::getFloatingPointTypeIDs() {
     return std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT};
 }
 

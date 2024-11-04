@@ -109,10 +109,6 @@ struct AggregateFunctionUtil {
             T::updatePos, T::combine, T::finalize, isDistinct, nullptr /* bindFunc */,
             paramRewriteFunc);
     }
-    static std::unique_ptr<AggregateFunction> getSumFunc(const std::string name,
-        common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
-    static std::unique_ptr<AggregateFunction> getAvgFunc(const std::string name,
-        common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getMinFunc(common::LogicalTypeID inputType,
         bool isDistinct);
     static std::unique_ptr<AggregateFunction> getMaxFunc(common::LogicalTypeID inputType,

@@ -1,5 +1,6 @@
 #include "function/aggregate_function.h"
 
+#include "common/type_utils.h"
 #include "common/types/interval_t.h"
 #include "function/aggregate/avg.h"
 #include "function/aggregate/min_max.h"
@@ -12,70 +13,41 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunc(std::string name,
-    common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct) {
-    switch (inputType) {
-    case common::LogicalTypeID::INT128:
-        return getAggFunc<SumFunction<int128_t>>(std::move(name), inputType, resultType,
-            isDistinct);
-    case common::LogicalTypeID::SERIAL:
-    case common::LogicalTypeID::INT64:
-        return getAggFunc<SumFunction<int64_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::INT32:
-        return getAggFunc<SumFunction<int32_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::INT16:
-        return getAggFunc<SumFunction<int16_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::INT8:
-        return getAggFunc<SumFunction<int8_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::UINT64:
-        return getAggFunc<SumFunction<uint64_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::UINT32:
-        return getAggFunc<SumFunction<uint32_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::UINT16:
-        return getAggFunc<SumFunction<uint16_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::UINT8:
-        return getAggFunc<SumFunction<uint8_t>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::DOUBLE:
-        return getAggFunc<SumFunction<double>>(name, inputType, resultType, isDistinct);
-    case common::LogicalTypeID::FLOAT:
-        return getAggFunc<SumFunction<float>>(name, inputType, resultType, isDistinct);
-    default:
-        KU_UNREACHABLE;
+static void appendSumFuncs(std::string name, common::LogicalTypeID inputType,
+    function_set& result) {
+    std::unique_ptr<AggregateFunction> aggFunc;
+    for (auto isDistinct : std::vector<bool>{true, false}) {
+        TypeUtils::visit(
+            LogicalType{inputType},
+            [&]<IntegerTypes T>(T) {
+                aggFunc = AggregateFunctionUtil::getAggFunc<SumFunction<T, int128_t>>(name,
+                    inputType, LogicalTypeID::INT128, isDistinct);
+            },
+            [&]<FloatingPointTypes T>(T) {
+                aggFunc = AggregateFunctionUtil::getAggFunc<SumFunction<T, double>>(name, inputType,
+                    LogicalTypeID::DOUBLE, isDistinct);
+            },
+            [](auto) { KU_UNREACHABLE; });
+        result.push_back(std::move(aggFunc));
     }
 }
 
-std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string name,
-    common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct) {
-    switch (inputType) {
-    case common::LogicalTypeID::INT128:
-        return getAggFunc<AvgFunction<int128_t>>(std::move(name), inputType, resultType,
-            isDistinct);
-    case common::LogicalTypeID::SERIAL:
-    case common::LogicalTypeID::INT64:
-        return getAggFunc<AvgFunction<int64_t>>(std::move(name), inputType, resultType, isDistinct);
-    case common::LogicalTypeID::INT32:
-        return getAggFunc<AvgFunction<int32_t>>(std::move(name), inputType, resultType, isDistinct);
-    case common::LogicalTypeID::INT16:
-        return getAggFunc<AvgFunction<int16_t>>(std::move(name), inputType, resultType, isDistinct);
-    case common::LogicalTypeID::INT8:
-        return getAggFunc<AvgFunction<int8_t>>(std::move(name), inputType, resultType, isDistinct);
-    case common::LogicalTypeID::UINT64:
-        return getAggFunc<AvgFunction<uint64_t>>(std::move(name), inputType, resultType,
-            isDistinct);
-    case common::LogicalTypeID::UINT32:
-        return getAggFunc<AvgFunction<uint32_t>>(std::move(name), inputType, resultType,
-            isDistinct);
-    case common::LogicalTypeID::UINT16:
-        return getAggFunc<AvgFunction<uint16_t>>(std::move(name), inputType, resultType,
-            isDistinct);
-    case common::LogicalTypeID::UINT8:
-        return getAggFunc<AvgFunction<uint8_t>>(std::move(name), inputType, resultType, isDistinct);
-    case common::LogicalTypeID::DOUBLE:
-        return getAggFunc<AvgFunction<double>>(std::move(name), inputType, resultType, isDistinct);
-    case common::LogicalTypeID::FLOAT:
-        return getAggFunc<AvgFunction<float>>(std::move(name), inputType, resultType, isDistinct);
-    default:
-        KU_UNREACHABLE;
+static void appendAvgFuncs(std::string name, common::LogicalTypeID inputType,
+    function_set& result) {
+    std::unique_ptr<AggregateFunction> aggFunc;
+    for (auto isDistinct : std::vector<bool>{true, false}) {
+        TypeUtils::visit(
+            LogicalType{inputType},
+            [&]<IntegerTypes T>(T) {
+                aggFunc = AggregateFunctionUtil::getAggFunc<AvgFunction<T, int128_t>>(name,
+                    inputType, LogicalTypeID::DOUBLE, isDistinct);
+            },
+            [&]<FloatingPointTypes T>(T) {
+                aggFunc = AggregateFunctionUtil::getAggFunc<AvgFunction<T, double>>(name, inputType,
+                    LogicalTypeID::DOUBLE, isDistinct);
+            },
+            [](auto) { KU_UNREACHABLE; });
+        result.push_back(std::move(aggFunc));
     }
 }
 
@@ -188,9 +160,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std:
 function_set AggregateSumFunction::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            result.push_back(AggregateFunctionUtil::getSumFunc(name, typeID, typeID, isDistinct));
-        }
+        appendSumFuncs(name, typeID, result);
     }
     return result;
 }
@@ -198,10 +168,7 @@ function_set AggregateSumFunction::getFunctionSet() {
 function_set AggregateAvgFunction::getFunctionSet() {
     function_set result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        for (auto isDistinct : std::vector<bool>{true, false}) {
-            result.push_back(
-                AggregateFunctionUtil::getAvgFunc(name, typeID, LogicalTypeID::DOUBLE, isDistinct));
-        }
+        appendAvgFuncs(name, typeID, result);
     }
     return result;
 }

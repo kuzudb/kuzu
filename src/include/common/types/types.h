@@ -135,6 +135,12 @@ concept IntegerTypes =
     std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, int128_t>;
 
 template<typename T>
+concept Int128Type = std::is_same_v<T, int128_t>;
+
+template<typename T>
+concept FloatingPointTypes = std::is_same_v<T, float> || std::is_same_v<T, double>;
+
+template<typename T>
 concept NumericTypes = IntegerTypes<T> || std::floating_point<T>;
 
 template<typename T>
@@ -592,6 +598,7 @@ struct KUZU_API LogicalTypeUtils {
     static std::vector<LogicalTypeID> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalTypeID> getIntegerTypeIDs();
+    static std::vector<LogicalTypeID> getFloatingPointTypeIDs();
     static std::vector<LogicalTypeID> getAllValidLogicTypeIDs();
     static std::vector<LogicalType> getAllValidLogicTypes();
     static bool tryGetMaxLogicalType(const LogicalType& left, const LogicalType& right,
