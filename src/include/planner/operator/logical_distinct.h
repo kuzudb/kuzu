@@ -13,7 +13,7 @@ public:
     LogicalDistinct(LogicalOperatorType type, binder::expression_vector keys,
         binder::expression_vector payloads, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type, std::move(child)}, keys{std::move(keys)},
-          payloads{std::move(payloads)} {}
+          payloads{std::move(payloads)}, skipNum{UINT64_MAX}, limitNum{UINT64_MAX} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -27,6 +27,13 @@ public:
     binder::expression_vector getPayloads() const { return payloads; }
     void setPayloads(binder::expression_vector expressions) { payloads = std::move(expressions); }
 
+    void setSkipNum(uint64_t num) { skipNum = num; }
+    bool hasSkipNum() const { return skipNum != UINT64_MAX; }
+    uint64_t getSkipNum() const { return skipNum; }
+    void setLimitNum(uint64_t num) { limitNum = num; }
+    bool hasLimitNum() const { return limitNum != UINT64_MAX; }
+    uint64_t getLimitNum() const { return limitNum; }
+
     std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDistinct>(operatorType, keys, payloads, children[0]->copy());
     }
@@ -38,6 +45,10 @@ protected:
     binder::expression_vector keys;
     // Payloads meaning additional keys that are functional dependent on the keys above.
     binder::expression_vector payloads;
+
+private:
+    uint64_t skipNum;
+    uint64_t limitNum;
 };
 
 } // namespace planner

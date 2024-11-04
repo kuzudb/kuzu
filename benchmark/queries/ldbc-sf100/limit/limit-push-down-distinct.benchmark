@@ -1,0 +1,4 @@
+-NAME push-down-limit-into-distinct
+-SKIP_COMPARE_RESULT
+-QUERY MATCH (a:Person {ID:24189255912498})-[f*2]-(b) RETURN DISTINCT b.ID as personId limit 10;
+---- 10

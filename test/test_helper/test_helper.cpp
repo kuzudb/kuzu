@@ -19,7 +19,7 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
     }
-    struct stat status {};
+    struct stat status{};
     stat(path.c_str(), &status);
     if (status.st_mode & S_IFDIR) {
         throw Exception("Test file is a directory. [" + path + "].");
@@ -39,15 +39,20 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
             currentConfig->numThreads = stoi(line.substr(13, line.length()));
         } else if (line.starts_with("-ENUMERATE")) {
             currentConfig->enumerate = true;
+        } else if (line.starts_with("-SKIP_COMPARE_RESULT")) {
+            currentConfig->compareResult = false;
         } else if (line.starts_with("----")) {
             uint64_t numTuples = stoi(line.substr(5, line.length()));
             currentConfig->expectedNumTuples = numTuples;
-            for (auto i = 0u; i < numTuples; i++) {
-                getline(ifs, line);
-                currentConfig->expectedTuples.push_back(line);
-            }
-            if (!checkOutputOrder) { // order is not important for result
-                sort(currentConfig->expectedTuples.begin(), currentConfig->expectedTuples.end());
+            if (currentConfig->compareResult) {
+                for (auto i = 0u; i < numTuples; i++) {
+                    getline(ifs, line);
+                    currentConfig->expectedTuples.push_back(line);
+                }
+                if (!checkOutputOrder) { // order is not important for result
+                    sort(currentConfig->expectedTuples.begin(),
+                        currentConfig->expectedTuples.end());
+                }
             }
         }
     }

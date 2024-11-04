@@ -26,6 +26,8 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
     encodedJoin = queryConfig->encodedJoin;
+    compareResult = queryConfig->compareResult;
+    expectedNumTuples = queryConfig->expectedNumTuples;
 }
 
 std::unique_ptr<QueryResult> Benchmark::run() const {
@@ -73,7 +75,11 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
 }
 
 void Benchmark::verify(std::vector<std::string>& actualOutput) const {
-    if (actualOutput != expectedOutput) {
+    bool matched = expectedNumTuples == actualOutput.size();
+    if (matched && compareResult) {
+        matched = actualOutput == expectedOutput;
+    }
+    if (!matched) {
         spdlog::error("Query: {}", query);
         spdlog::error("Result tuples are not matched");
         spdlog::error("RESULT:");

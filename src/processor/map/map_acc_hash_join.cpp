@@ -7,10 +7,10 @@ namespace processor {
 
 static PhysicalOperator* getTableScan(PhysicalOperator* joinRoot) {
     auto op = joinRoot->getChild(0);
-    while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
+    while (op->getOperatorType() != PhysicalOperatorType::TABLE_FUNCTION_CALL) {
+        KU_ASSERT(op->getNumChildren() != 0);
         op = op->getChild(0);
     }
-    KU_ASSERT(op->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     return op;
 }
 

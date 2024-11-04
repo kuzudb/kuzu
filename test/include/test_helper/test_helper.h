@@ -18,6 +18,7 @@ struct TestQueryConfig {
     std::vector<std::string> expectedTuples;
     bool enumerate = false;
     bool checkOutputOrder = false;
+    bool compareResult = true;
 };
 
 class TestHelper {

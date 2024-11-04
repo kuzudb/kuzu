@@ -1,5 +1,4 @@
 -NAME q33
--COMPARE_RESULT 1
 -QUERY MATCH (n:Person {ID: 933})-[r:knows]->(friend) RETURN friend.ID AS personId, friend.firstName AS firstName, friend.lastName AS lastName, r.creationDate AS friendshipCreationDate ORDER BY friendshipCreationDate DESC, personId ASC
 ---- 16
 10995116374509|Aleksander|Padar|2010-11-17 05:03:15.483

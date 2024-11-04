@@ -1,4 +1,5 @@
 #include "planner/operator/logical_distinct.h"
+#include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
@@ -13,8 +14,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(LogicalOperator* logic
     auto outSchema = distinct->getSchema();
     auto inSchema = child->getSchema();
     auto prevOperator = mapOperator(child);
-    return createDistinctHashAggregate(distinct->getKeys(), distinct->getPayloads(), inSchema,
+    uint64_t limitNum = 0;
+    if (distinct->hasLimitNum()) {
+        limitNum += distinct->getLimitNum();
+    }
+    if (distinct->hasSkipNum()) {
+        limitNum += distinct->getSkipNum();
+    }
+    if (limitNum == 0) {
+        limitNum = UINT64_MAX;
+    }
+    auto op = createDistinctHashAggregate(distinct->getKeys(), distinct->getPayloads(), inSchema,
         outSchema, std::move(prevOperator));
+    auto hashAggregate = op->getChild(0)->ptrCast<HashAggregate>();
+    hashAggregate->getSharedState()->setLimitNumber(limitNum);
+    auto printInfo = static_cast<const HashAggregatePrintInfo*>(hashAggregate->getPrintInfo());
+    const_cast<HashAggregatePrintInfo*>(printInfo)->limitNum = limitNum;
+    return op;
 }
 
 } // namespace processor
