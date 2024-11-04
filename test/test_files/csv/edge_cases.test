@@ -90,3 +90,8 @@ ghi|jkl
 -STATEMENT MATCH (u:`unquote-escape`) RETURN u.*
 ---- 1
 abc"def
+
+-CASE SpecialDoubleLiterals
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/all_types/inf_nan_null.csv" RETURN *
+----- 1
+[42,999,inf,-inf,-42]|[42.0,,inf,-inf,,-42.0]
