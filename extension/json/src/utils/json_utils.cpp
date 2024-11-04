@@ -8,8 +8,8 @@
 #include "common/types/value/value.h"
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
-#include "function/cast/functions/numeric_limits.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
+#include "function/cast/functions/numeric_limits.h"
 
 using namespace kuzu::common;
 
@@ -250,13 +250,14 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
     case YYJSON_TYPE_STR: {
         auto value = yyjson_get_str(val);
         LogicalType detectedType = function::inferMinimalTypeFromString(std::string_view(value));
-        // These are written inside quote in JSON standard, so we need to distinguish them from string
+        // These are written inside quote in JSON standard, so we need to distinguish them from
+        // string
         if (detectedType.getLogicalTypeID() == LogicalTypeID::TIMESTAMP ||
             detectedType.getLogicalTypeID() == LogicalTypeID::DATE ||
             detectedType.getLogicalTypeID() == LogicalTypeID::INTERVAL ||
             detectedType.getLogicalTypeID() == LogicalTypeID::UUID) {
-                return detectedType;
-        } 
+            return detectedType;
+        }
         // The other quoted variable will be actual string
         return LogicalType::STRING();
     }

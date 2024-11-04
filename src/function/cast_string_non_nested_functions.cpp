@@ -168,20 +168,14 @@ static RE2& realPattern() {
 bool isAny(std::string_view cpy) {
     std::string cpy_upper = std::string(cpy);
     StringUtils::toUpper(cpy_upper);
-    return cpy.size() == 0 ||
-        cpy_upper == "NULL" || 
-        cpy_upper == "NAN";
+    return cpy.size() == 0 || cpy_upper == "NULL" || cpy_upper == "NAN";
 }
 
 bool isINF(std::string_view cpy) {
     std::string cpy_upper = std::string(cpy);
     StringUtils::toUpper(cpy_upper);
-    return cpy_upper == "INF" || 
-        cpy_upper == "+INF"||
-        cpy_upper == "-INF"||
-        cpy_upper == "INFINITY" || 
-        cpy_upper == "+INFINITY"||
-        cpy_upper == "-INFINITY";
+    return cpy_upper == "INF" || cpy_upper == "+INF" || cpy_upper == "-INF" ||
+           cpy_upper == "INFINITY" || cpy_upper == "+INFINITY" || cpy_upper == "-INFINITY";
 }
 
 LogicalType inferMinimalTypeFromString(std::string_view str) {
@@ -192,7 +186,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
     if (isINF(cpy)) {
         return LogicalType::DOUBLE();
     }
-    // Any   
+    // Any
     if (isAny(cpy)) {
         return LogicalType::ANY();
     }
