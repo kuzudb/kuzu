@@ -41,15 +41,20 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitOperator(
         return visitTableFunctionCallReplace(op);
     }
     default: { // Stop current push down for unhandled operator.
-        for (auto i = 0u; i < op->getNumChildren(); ++i) {
-            // Start new push down for child.
-            auto optimizer = FilterPushDownOptimizer(context);
-            op->setChild(i, optimizer.visitOperator(op->getChild(i)));
-        }
-        op->computeFlatSchema();
-        return finishPushDown(op);
+        return visitChildren(op);
     }
     }
+}
+
+std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitChildren(
+    const std::shared_ptr<LogicalOperator>& op) {
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
+        // Start new push down for child.
+        auto optimizer = FilterPushDownOptimizer(context);
+        op->setChild(i, optimizer.visitOperator(op->getChild(i)));
+    }
+    op->computeFlatSchema();
+    return finishPushDown(op);
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
@@ -214,14 +219,14 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     if (op->ptrCast<BaseLogicalExtend>()->isRecursive() ||
         !context->getClientConfig()->enableZoneMap) {
-        return finishPushDown(op);
+        return visitChildren(op);
     }
     auto& extend = op->cast<LogicalExtend>();
     // Apply column predicates.
     auto columnPredicates =
         getColumnPredicateSets(extend.getProperties(), predicateSet.getAllPredicates());
     extend.setPropertyPredicates(std::move(columnPredicates));
-    return finishPushDown(op);
+    return visitChildren(op);
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::finishPushDown(

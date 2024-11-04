@@ -20,12 +20,10 @@ public:
 
     virtual bool isMasked(common::offset_t startNodeOffset) = 0;
 
-    virtual common::offset_t getNumMaskedNodes() = 0;
-
     // include&exclude
     virtual std::vector<common::offset_t> range(uint32_t start, uint32_t end) = 0;
 
-    virtual uint64_t size() const = 0;
+    virtual uint64_t getNumMaskedNodes() const = 0;
 
     common::table_id_t getTableID() const { return tableID; }
     common::offset_t getMaxOffset() const { return maxOffset; }
@@ -51,7 +49,7 @@ public:
         return roaring->contains(startNodeOffset);
     }
 
-    common::offset_t getNumMaskedNodes() override { return roaring->cardinality(); }
+    uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
 
     // include&exclude
     std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
@@ -68,8 +66,6 @@ public:
         return ans;
     };
 
-    uint64_t size() const override { return roaring->cardinality(); }
-
     std::shared_ptr<roaring::Roaring> roaring;
 };
 
@@ -85,7 +81,7 @@ public:
         return roaring->contains(startNodeOffset);
     }
 
-    common::offset_t getNumMaskedNodes() override { return roaring->cardinality(); }
+    uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
 
     // include&exclude
     std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
@@ -101,8 +97,6 @@ public:
         }
         return ans;
     };
-
-    uint64_t size() const override { return roaring->cardinality(); }
 
     std::shared_ptr<roaring::Roaring64Map> roaring;
 };

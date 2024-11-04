@@ -81,6 +81,9 @@ private:
         std::shared_ptr<binder::Expression> predicate,
         std::shared_ptr<planner::LogicalOperator> child);
 
+    std::shared_ptr<planner::LogicalOperator> visitChildren(
+        const std::shared_ptr<planner::LogicalOperator>& op);
+
 private:
     PredicateSet predicateSet;
     main::ClientContext* context;
