@@ -165,7 +165,7 @@ static RE2& realPattern() {
     return retval;
 }
 
-bool isAny(std::string_view cpy) {
+bool isAnyType(std::string_view cpy) {
     std::string cpy_upper = std::string(cpy);
     StringUtils::toUpper(cpy_upper);
     return cpy.size() == 0 || cpy_upper == "NULL" || cpy_upper == "NAN";
@@ -187,7 +187,7 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
         return LogicalType::DOUBLE();
     }
     // Any
-    if (isAny(cpy)) {
+    if (isAnyType(cpy)) {
         return LogicalType::ANY();
     }
     // Boolean
