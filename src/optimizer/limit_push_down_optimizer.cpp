@@ -1,11 +1,7 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
-#include "binder/expression/literal_expression.h"
-#include "binder/expression/property_expression.h"
-#include "binder/expression/scalar_function_expression.h"
 #include "planner/operator/logical_distinct.h"
 #include "planner/operator/logical_hash_join.h"
-#include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/planner.h"
 
