@@ -135,9 +135,6 @@ concept IntegerTypes =
     std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, int128_t>;
 
 template<typename T>
-concept Int128Type = std::is_same_v<T, int128_t>;
-
-template<typename T>
 concept FloatingPointTypes = std::is_same_v<T, float> || std::is_same_v<T, double>;
 
 template<typename T>
