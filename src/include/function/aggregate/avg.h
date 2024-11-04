@@ -98,8 +98,8 @@ struct AvgFunction {
         state->count = state->count + otherState->count;
     }
 
-    static void finalize(const uint8_t* state_) {
-        auto state = reinterpret_cast<AvgState<RESULT_TYPE>*>(state_);
+    static void finalize(uint8_t* state_) {
+        auto* state = reinterpret_cast<AvgState<RESULT_TYPE>*>(state_);
         state->finalize();
     }
 };
