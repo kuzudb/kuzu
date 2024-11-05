@@ -143,3 +143,15 @@ Greg
 ---- 2
 [Alice,Dan,Alice]|[2021-06-30,2021-06-30]
 [Alice,Dan,Carol]|[2021-06-30,2000-01-01]
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) WITH properties(nodes(p), 'fName') AS x LIMIT 3 RETURN COUNT(*)
+---- 1
+3
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) WITH properties(nodes(p), 'fName') AS x SKIP 3 LIMIT 3 RETURN COUNT(*)
+---- 1
+3
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) WITH b.fName AS x LIMIT 1 RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) WITH b.fName AS x SKIP 6 LIMIT 2 RETURN COUNT(*)
+---- 1
+2

@@ -199,13 +199,14 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     pathPropertyProbe->computeFactorizedSchema();
     probePlan.setLastOperator(pathPropertyProbe);
-    auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     probePlan.setCost(plan.getCardinality());
-    probePlan.setCardinality(plan.getCardinality() * extensionRate);
+    auto cardinality = UINT32_MAX;
+    probePlan.setCardinality(cardinality);
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
+    // Hash join above should not change the cardinality of probe plan.
+    plan.setCardinality(probePlan.getCardinality());
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,

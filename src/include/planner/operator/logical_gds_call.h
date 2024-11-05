@@ -11,11 +11,11 @@ class LogicalGDSCall final : public LogicalOperator {
 
 public:
     explicit LogicalGDSCall(binder::BoundGDSCallInfo info)
-        : LogicalOperator{operatorType_}, info{std::move(info)} {}
+        : LogicalOperator{operatorType_}, info{std::move(info)}, limitNum{common::INVALID_LIMIT} {}
     LogicalGDSCall(binder::BoundGDSCallInfo info, common::table_id_set_t nbrTableIDSet,
         std::shared_ptr<LogicalOperator> nodePredicateRoot)
         : LogicalOperator{operatorType_}, info{std::move(info)}, nbrTableIDSet{nbrTableIDSet},
-          nodePredicateRoot{std::move(nodePredicateRoot)} {}
+          nodePredicateRoot{std::move(nodePredicateRoot)}, limitNum{common::INVALID_LIMIT} {}
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
@@ -33,6 +33,9 @@ public:
     bool hasNodePredicate() const { return nodePredicateRoot != nullptr; }
     std::shared_ptr<LogicalOperator> getNodePredicateRoot() const { return nodePredicateRoot; }
 
+    void setLimitNum(common::offset_t num) { limitNum = num; }
+    common::offset_t getLimitNum() const { return limitNum; }
+
     std::string getExpressionsForPrinting() const override { return info.func.name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
@@ -43,6 +46,7 @@ private:
     binder::BoundGDSCallInfo info;
     common::table_id_set_t nbrTableIDSet;
     std::shared_ptr<LogicalOperator> nodePredicateRoot;
+    common::offset_t limitNum;
 };
 
 } // namespace planner
