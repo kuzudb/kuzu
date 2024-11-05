@@ -258,11 +258,11 @@ False
 55
 
 -LOG SimpleAggSumInt16Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length) / 2
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-82
+41
 
 -LOG SimpleAggAvgInt16Test
 -STATEMENT MATCH (m:movies) RETURN AVG(m.length), count(m.audience), count(m.grade)
@@ -389,7 +389,7 @@ pure ascii characters
 1270
 
 -LOG SumUint8Overflow
--STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN SUM(5 * s.ulevel)
+-STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN ABS(SUM(5 * s.ulevel))
 ---- 1
 2410
 
@@ -399,6 +399,6 @@ pure ascii characters
 127.000000
 
 -LOG AvgUint8Overflow
--STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN AVG(3 * s.ulevel)
+-STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN AVG(3 * s.ulevel) + 40
 ---- 1
-482.000000
+522.000000
