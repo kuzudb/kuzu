@@ -233,7 +233,9 @@ std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfoF
         ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(columnID).getData();
         if (chunkData.getResidencyState() == ResidencyState::ON_DISK) {
             ColumnChunkMetadata& metadata = chunkData.getMetadata();
-            chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
+            if (metadata.pageIdx != INVALID_PAGE_IDX && metadata.numPages != 0) {
+                chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
+            }
         }
     }
 

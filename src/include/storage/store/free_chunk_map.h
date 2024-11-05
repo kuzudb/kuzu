@@ -45,11 +45,13 @@ const common::page_idx_t FreeChunkLevelPageNumLimit[MAX_FREE_CHUNK_LEVEL] = {
  *   numPages indicates how many *consecutive* free pages this data chunk owns
  *   reuseTS is the latest TS when this entry is created. This is to make sure the data of corresponding
  *     data chunk is not recycled until no one keeps TS that is old enough to see it.
+ * Note that reuseTS is removed in the 2nd version since flushing only happens when checkpoint and checkpoint will
+ * wait all other transactions to finish before proceeding and writting data to disk; with that saying, we are safe
+ * to reuse any recycled column chunk here.
  */
 typedef struct FreeChunkEntry {
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;
-    int64_t reuseTS;
     FreeChunkEntry *nextEntry = nullptr;
 } FreeChunkEntry;
 
@@ -62,8 +64,8 @@ public:
     FreeChunkMap();
     ~FreeChunkMap();
 
-    FreeChunkEntry *GetFreeChunk(common::page_idx_t numPages, int64_t reuseTS);
-    void AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t numPages, int64_t reuseTS);
+    FreeChunkEntry *GetFreeChunk(common::page_idx_t numPages);
+    void AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t numPages);
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<FreeChunkMap> deserialize(common::Deserializer& deserializer,

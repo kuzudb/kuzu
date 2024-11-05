@@ -61,8 +61,13 @@ FreeChunkLevel FreeChunkMap::GetChunkLevel(common::page_idx_t numPages)
  * Note: Any caller of this function need to add the entry back to FreeChunkMap after use so that the rest
  * of its unused space will be reused
  */
-FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages, int64_t reuseTS)
+FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages)
 {
+    /* return immediately if it does not want any pages */
+    if (numPages == 0) {
+        return nullptr;
+    }
+
     /* 1. Get the corresponding ChunkLevel numPages belongs to */
     FreeChunkLevel curLevel = GetChunkLevel(numPages);
     KU_ASSERT(curLevel < MAX_FREE_CHUNK_LEVEL);
@@ -85,7 +90,7 @@ FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages, int64_t 
         FreeChunkEntry *curEntry = freeChunkList[curLevel];
         FreeChunkEntry *lastSearchEntry = nullptr;
         while (curEntry != nullptr) {
-            if (curEntry->numPages >= numPages && curEntry->reuseTS <= reuseTS) {
+            if (curEntry->numPages >= numPages) {
                 /* found a valid entry to reuse. Remove it from current linked list */
                 if (lastSearchEntry == nullptr) {
                     /* the valid entry is the first entry in the L.L. */
@@ -122,8 +127,10 @@ FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages, int64_t 
     return nullptr;
 }
 
-void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t numPages, int64_t reuseTS)
+void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t numPages)
 {
+    KU_ASSERT(pageIdx != INVALID_PAGE_IDX && numPages != 0);
+
     /* 1. Get the corresponding ChunkLevel numPages belongs to */
     FreeChunkLevel curLevel = GetChunkLevel(numPages);
     KU_ASSERT(curLevel < MAX_FREE_CHUNK_LEVEL);
@@ -132,7 +139,6 @@ void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t n
     FreeChunkEntry *entry = (FreeChunkEntry *)malloc(sizeof(FreeChunkEntry));
     entry->pageIdx = pageIdx;
     entry->numPages = numPages;
-    entry->reuseTS = reuseTS;
 
     /* 3. Insert it into the L.L. */
     if (freeChunkList[curLevel] == nullptr) {

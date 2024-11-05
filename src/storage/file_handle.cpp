@@ -44,12 +44,20 @@ void FileHandle::constructExistingFileHandle(const std::string& path, VirtualFil
     while (pageCapacity < numPages) {
         pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
     }
+    loadFreeChunkMap();
 }
 
 void FileHandle::constructNewFileHandle(const std::string& path) {
     fileInfo = std::make_unique<FileInfo>(path, nullptr);
     numPages = 0;
     pageCapacity = 0;
+    loadFreeChunkMap();
+}
+
+void FileHandle::loadFreeChunkMap() {
+    freeChunkMap = std::make_unique<FreeChunkMap>();
+
+    /* ERICTODO: Dummy funciton now. We will need to add more logic here when loading FCM data back from disk */
 }
 
 page_idx_t FileHandle::addNewPage() {
