@@ -1,7 +1,6 @@
 #include "function/aggregate/min_max.h"
 
 #include "common/type_utils.h"
-#include "common/types/int128_t.h"
 #include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
