@@ -17,8 +17,8 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     main::ClientContext& clientContext, TransactionType type) {
     // We obtain the lock for starting new transactions. In case this cannot be obtained this
     // ensures calls to other public functions is not restricted.
-    std::unique_lock<std::mutex> newTransactionLck{mtxForStartingNewTransactions};
     std::unique_lock<std::mutex> publicFunctionLck{mtxForSerializingPublicFunctionCalls};
+    std::unique_lock<std::mutex> newTransactionLck{mtxForStartingNewTransactions};
     std::unique_ptr<Transaction> transaction;
     switch (type) {
     case TransactionType::READ_ONLY: {
