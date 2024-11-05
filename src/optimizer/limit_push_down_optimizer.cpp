@@ -1,7 +1,7 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
 #include "planner/operator/logical_distinct.h"
-#include "planner/planner.h"
+#include "planner/operator/logical_limit.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -11,62 +11,44 @@ namespace kuzu {
 namespace optimizer {
 
 void LimitPushDownOptimizer::rewrite(LogicalPlan* plan) {
-    plan->setLastOperator(visitOperator(plan->getLastOperator()));
+    visitOperator(plan->getLastOperator().get());
 }
 
-std::shared_ptr<LogicalOperator> LimitPushDownOptimizer::finishPushDown(
-    std::shared_ptr<LogicalOperator> op) {
-    if (limitOperator == nullptr) {
-        return op;
-    }
-    LogicalPlan plan;
-    plan.setLastOperator(op);
-    planner::Planner planner(context);
-    planner.appendMultiplicityReducer(plan);
-    planner.appendLimit(limitOperator->getSkipNum(), limitOperator->getLimitNum(), plan);
-    limitOperator = nullptr;
-    return plan.getLastOperator();
-}
-
-std::shared_ptr<LogicalOperator> LimitPushDownOptimizer::visitOperator(
-    std::shared_ptr<LogicalOperator> op) {
+void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::LIMIT: {
-        KU_ASSERT(this->limitOperator == nullptr);
-        this->limitOperator = &op->cast<LogicalLimit>();
-        KU_ASSERT(op->getChild(0)->getOperatorType() == LogicalOperatorType::MULTIPLICITY_REDUCER);
-        // Remove limit
-        return visitOperator(op->getChild(0)->getChild(0));
+        auto& limit = op->constCast<LogicalLimit>();
+        skipNumber = limit.getSkipNum();
+        limitNumber = limit.getLimitNum();
+        visitOperator(limit.getChild(0).get());
+        return;
     }
+    case LogicalOperatorType::MULTIPLICITY_REDUCER:
     case LogicalOperatorType::EXPLAIN:
-    case LogicalOperatorType::SEMI_MASKER:
     case LogicalOperatorType::ACCUMULATE:
     case LogicalOperatorType::PATH_PROPERTY_PROBE:
     case LogicalOperatorType::PROJECTION: {
-        op->setChild(0, visitOperator(op->getChild(0)));
-        return op;
+        visitOperator(op->getChild(0).get());
+        return;
     }
     case LogicalOperatorType::DISTINCT: {
-        if (limitOperator == nullptr) {
-            return op;
+        if (limitNumber == INVALID_LIMIT && skipNumber == 0) {
+            return;
         }
-        // AGGREGATE's limit is task-level restrictions
         auto& distinctOp = op->cast<LogicalDistinct>();
-        distinctOp.setLimitNum(limitOperator->getLimitNum());
-        distinctOp.setSkipNum(limitOperator->getSkipNum());
-        // We can't remove this limit, because there can be multiple tasks performing AGGREGATE
-        return finishPushDown(op);
+        distinctOp.setLimitNum(limitNumber);
+        distinctOp.setSkipNum(skipNumber);
+        return;
     }
     case LogicalOperatorType::UNION_ALL: {
         for (auto i = 0u; i < op->getNumChildren(); ++i) {
-            auto optimizer = LimitPushDownOptimizer(context);
-            op->setChild(i, optimizer.visitOperator(op->getChild(i)));
+            auto optimizer = LimitPushDownOptimizer();
+            optimizer.visitOperator(op->getChild(i).get());
         }
-        return op;
+        return;
     }
-    default: {
-        return finishPushDown(op);
-    }
+    default:
+        return;
     }
 }
 

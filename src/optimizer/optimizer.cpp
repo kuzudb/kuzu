@@ -39,7 +39,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
         hashJoinSIPOptimizer.rewrite(plan);
     }
 
-    auto limitPushDownOptimizer = LimitPushDownOptimizer(context);
+    auto limitPushDownOptimizer = LimitPushDownOptimizer();
     limitPushDownOptimizer.rewrite(plan);
 
     auto topKOptimizer = TopKOptimizer();

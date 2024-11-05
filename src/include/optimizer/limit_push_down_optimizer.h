@@ -1,6 +1,5 @@
 #pragma once
 
-#include "planner/operator/logical_limit.h"
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu {
@@ -11,21 +10,16 @@ namespace optimizer {
 
 class LimitPushDownOptimizer {
 public:
-    explicit LimitPushDownOptimizer(main::ClientContext* context)
-        : limitOperator{nullptr}, context{context} {}
+    LimitPushDownOptimizer() : skipNumber{0}, limitNumber{common::INVALID_LIMIT} {}
 
     void rewrite(planner::LogicalPlan* plan);
 
 private:
-    std::shared_ptr<planner::LogicalOperator> visitOperator(
-        std::shared_ptr<planner::LogicalOperator> op);
-
-    std::shared_ptr<planner::LogicalOperator> finishPushDown(
-        std::shared_ptr<planner::LogicalOperator> op);
+    void visitOperator(planner::LogicalOperator* op);
 
 private:
-    planner::LogicalLimit* limitOperator;
-    main::ClientContext* context;
+    common::offset_t skipNumber;
+    common::offset_t limitNumber;
 };
 
 } // namespace optimizer
