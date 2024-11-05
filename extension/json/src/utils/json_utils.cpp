@@ -10,6 +10,7 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
 
 using namespace kuzu::common;
 
@@ -34,6 +35,19 @@ yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVect
     uint64_t pos) {
     auto strVal = vec.getAsValue(pos)->toString();
     return yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
+}
+
+yyjson_mut_val* jsonifyAsStruct(JsonMutWrapper& wrapper, const common::ValueVector& vec,
+    uint64_t pos) {
+    yyjson_mut_val* result = yyjson_mut_obj(wrapper.ptr);
+    const auto& fieldVectors = StructVector::getFieldVectors(&vec);
+    const auto& fieldNames = StructType::getFieldNames(vec.dataType);
+    for (auto i = 0u; i < fieldVectors.size(); i++) {
+        auto key = yyjson_mut_strcpy(wrapper.ptr, fieldNames[i].c_str());
+        auto val = jsonify(wrapper, *fieldVectors[i], pos);
+        yyjson_mut_obj_add(result, key, val);
+    }
+    return result;
 }
 
 yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos) {
@@ -81,8 +95,15 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
         case LogicalTypeID::STRING: {
             auto strVal = vec.getValue<ku_string_t>(pos);
             // check one more time in case this string a struct
-            LogicalType detectedType = inferMinimalTypeFromString(strVal.getAsStringView()); 
-            result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
+            LogicalType detectedType = function::inferMinimalTypeFromString(strVal.getAsStringView()); 
+            if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+                ValueVector structValueVec(std::move(detectedType));
+                Value inferedStruct(std::move(detectedType), strVal.getAsString());
+                structValueVec.copyFromValue(0, inferedStruct);
+                jsonify(wrapper, structValueVec, pos);
+            } else {
+                result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
+            }
         } break;
         case LogicalTypeID::LIST:
         case LogicalTypeID::ARRAY: {
