@@ -95,15 +95,16 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
         case LogicalTypeID::STRING: {
             auto strVal = vec.getValue<ku_string_t>(pos);
             // check one more time in case this string a struct
-            LogicalType detectedType = function::inferMinimalTypeFromString(strVal.getAsStringView()); 
-            if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-                ValueVector structValueVec(std::move(detectedType),);
-                Value inferedStruct(std::move(detectedType), strVal.getAsString());
-                structValueVec.copyFromValue(0, inferedStruct);
-                jsonify(wrapper, structValueVec, pos);
-            } else {
-                result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
-            }
+            // auto strContent = strVal.getAsStringView();
+            // LogicalType detectedType = function::inferMinimalTypeFromString(strContent); 
+            // if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+            //     ValueVector structValueVec(std::move(detectedType));
+            //     Value inferedStruct(std::move(detectedType), strVal.getAsString());
+            //     structValueVec.copyFromValue(0, inferedStruct);
+            //     jsonify(wrapper, structValueVec, pos);
+            // } else {
+            result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
+            // }
         } break;
         case LogicalTypeID::LIST:
         case LogicalTypeID::ARRAY: {
@@ -154,6 +155,17 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
 
 JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
     JsonMutWrapper result; // mutability necessary for manual construction
+    if (!vec.isNull(pos) && vec.dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+        auto strVal = vec.getValue<ku_string_t>(pos);
+        // check one more time in case this string a struct
+        auto strContent = strVal.getAsStringView();
+        LogicalType detectedType = function::inferMinimalTypeFromString(strContent);
+        if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+            auto strVal = vec.getValue<ku_string_t>(pos);
+            auto strContent = strVal.getAsStringView();
+            return stringToJson(std::string(strContent));
+        }
+    }
     yyjson_mut_val* root = jsonify(result, vec, pos);
     yyjson_mut_doc_set_root(result.ptr, root);
     return JsonWrapper(yyjson_mut_doc_imut_copy(result.ptr, nullptr));
