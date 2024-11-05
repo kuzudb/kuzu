@@ -166,18 +166,20 @@ public:
     void updateComponentID(const common::nodeID_t& node, uint16_t newComponentID) {
         // Get a reference to the component ID of the node
         std::atomic<uint64_t>& currentComponentID = getCurFrontierFixedMask()[node.offset];
+        std::atomic<uint64_t>& nextComponentID = getNextFrontierFixedMask()[node.offset];
 
         // Update the component ID to newComponentID if it is smaller than the current ID
         uint64_t expectedComponentID = currentComponentID.load(std::memory_order_relaxed);
         while (expectedComponentID > newComponentID &&
-               !currentComponentID.compare_exchange_weak(expectedComponentID, newComponentID,
+               !currentComponentID.compare_exchange_strong(expectedComponentID, newComponentID,
                    std::memory_order_relaxed)) {
             // If compare_exchange_weak fails, expectedComponentID is updated with the current value
         }
+        while (expectedComponentID > )
     }
 
     // Gets the componentID of the node in the current Frontier
-    uint64_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
+    uint64_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) const {
         return getCurFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
     }
 
@@ -227,7 +229,7 @@ public:
     uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
 
 private:
-    std::atomic<uint64_t>* getCurFrontierFixedMask() {
+    std::atomic<uint64_t>* getCurFrontierFixedMask() const {
         auto retVal = curFrontierFixedMask.load(std::memory_order_relaxed);
         KU_ASSERT(retVal != nullptr);
         return retVal;
@@ -430,7 +432,7 @@ class WCCFrontierPair final : public FrontierPair {
 
 public:
     // Constructor
-    WCCFrontierPair(std::shared_ptr<ComponentIDs> componentIDs, uint64_t maxThreadsForExec)
+    WCCFrontierPair(std::shared_ptr<ComponentIDs> componentIDs, common::offset_t numNodes, uint64_t maxThreadsForExec)
         : FrontierPair(componentIDs /* curFrontier */, componentIDs /* nextFrontier */,
               componentIDs->getInitialActiveNodeCount(), maxThreadsForExec),
           componentIDs{componentIDs}, morselDispatcher(maxThreadsForExec) {}

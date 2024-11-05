@@ -9,6 +9,8 @@
 #include "processor/result/factorized_table.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds/gds_utils.h"
+#include "function/gds/wcc.h"
+#include <iostream>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -39,56 +41,29 @@ public:
 
 class WCCOutputWriter {
 public:
-    explicit WCCOutputWriter(main::ClientContext* context, WCCOutputs* wccOutputs, processor::NodeOffsetMaskMap* outputNodeMask) 
-    : context{context}, wccOutputs{wccOutputs}, outputNodeMask{outputNodeMask} {
-        auto mm = context->getMemoryManager();
-        nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-        groupVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
-        nodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-        groupVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(nodeIDVector.get());
-        vectors.push_back(groupVector.get());
+    explicit WCCOutputWriter(storage::MemoryManager* mm) {
+        nodeIDVector = getVector(LogicalType::INTERNAL_ID(), mm);
+        componentIDVector = getVector(LogicalType::UINT64(), mm);
     }
 
-    void materialize(main::ClientContext* context, graph::Graph* graph,
-        const common::node_id_map_t<int64_t>& visitedMap, FactorizedTable& table) const {
-        for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(context->getTx(), tableID);
-                 ++offset) {
-                auto nodeID = nodeID_t{offset, tableID};
-                nodeIDVector->setValue<nodeID_t>(0, nodeID);
-                groupVector->setValue<int64_t>(0, visitedMap.at(nodeID));
-                table.append(vectors);
-            }
-        }
-    }
-
-    void beginWritingForDstNodesInTable(common::table_id_t tableID) {
-        wccOutputs->beginWritingOutputsForDstNodesInTable(tableID);
-    }
-
-    bool skip(common::nodeID_t dstNodeID) {
-        return false;
-    }
-
-    void writeComponentID(processor::FactorizedTable& localFT, nodeID_t nodeID) {
-        uint16_t componentID = wccOutputs->componentIDs->getMaskValueFromCurFrontierFixedMask(nodeID.offset);
-
-        std::vector<uint64_t> row = {nodeID.offset, componentID};
-        localFT.append(vectors);
-    }
-
-    std::unique_ptr<WCCOutputWriter> copy() const {
-        return std::make_unique<WCCOutputWriter>(*this);
+    void materialize(nodeID_t nodeID, const ComponentIDs& frontier, FactorizedTable& table) const {
+        nodeIDVector->setValue<nodeID_t>(0, nodeID);
+        componentIDVector->setValue<uint64_t>(0, frontier.getMaskValueFromCurFrontierFixedMask(nodeID.offset));
+        table.append(vectors);
     }
 
 private:
-    main::ClientContext* context;
-    WCCOutputs* wccOutputs;
-    processor::NodeOffsetMaskMap* outputNodeMask;
+    std::unique_ptr<ValueVector> getVector(const LogicalType& type, storage::MemoryManager* mm) {
+        auto vector = std::make_unique<ValueVector>(type.copy(), mm);
+        vector->state = DataChunkState::getSingleValueDataChunkState();
+        vectors.push_back(vector.get());
+        return vector;
+    }
 
+private:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> groupVector;
+    std::unique_ptr<ValueVector> componentIDVector;
     std::vector<ValueVector*> vectors;
 };
 
@@ -109,6 +84,7 @@ public:
                 nbrNodeIDs[i].offset);
             if (nbrComponentID > boundComponentID) {
                 frontierPair->componentIDs->updateComponentID(nbrNodeIDs[i], boundComponentID);
+                std::cout << "pinetree a component is updated: " << nbrComponentID << " and " << boundComponentID << std::endl;
                 mask.getMutableBuffer()[activeCount++] = i;
             }
         });
@@ -125,19 +101,15 @@ private:
 
 class WCCVertexCompute : public VertexCompute {
 public:
-    explicit WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, std::unique_ptr<WCCOutputWriter> writer)
-    : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
+    explicit WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, const ComponentIDs& frontier)
+    : mm{mm}, sharedState{sharedState}, frontier{frontier}, writer{mm} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~WCCVertexCompute() override { sharedState->returnLocalTable(localFT);}
-    void beginOnTable(table_id_t tableID) override {
-        writer->beginWritingForDstNodesInTable(tableID);
-    }
+    void beginOnTable(table_id_t tableID) override {}
 
     void vertexCompute(nodeID_t nodeID) override {
-        if (writer->skip(nodeID)) {
-            return;
-        }
+        writer.materialize(nodeID, frontier, *localFT);
     }
 
     void finalizeWorkerThread() override {
@@ -145,35 +117,15 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WCCVertexCompute>(mm, sharedState, writer->copy());
+        return std::make_unique<WCCVertexCompute>(mm, sharedState, frontier);
     }
 
 private:
     storage::MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
     processor::FactorizedTable* localFT;
-    std::unique_ptr<WCCOutputWriter> writer;
-};
-
-struct WCCCompState {
-    std::unique_ptr<WCCFrontierPair> frontierPair;
-    std::unique_ptr<WCCEdgeCompute> edgeCompute;
-    std::unique_ptr<WCCOutputs> outputs;
-    std::unique_ptr<WCCOutputWriter> outputWriter;
-
-    WCCCompState(std::unique_ptr<WCCFrontierPair> frontierPair,
-                std::unique_ptr<WCCEdgeCompute> edgeCompute,
-                std::unique_ptr<WCCOutputs> outputs,
-                std::unique_ptr<WCCOutputWriter> outputWriter) :
-                frontierPair{std::move(frontierPair)},
-                edgeCompute{std::move(edgeCompute)},
-                outputs{std::move(outputs)},
-                outputWriter{std::move(outputWriter)} {}
-
-    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID, common::table_id_t nextFrontierTableID) const {
-        frontierPair->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
-        outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
-    }
+    const ComponentIDs& frontier;
+    WCCOutputWriter writer;
 };
 
 struct WCCBindData final : public GDSBindData {
@@ -242,41 +194,65 @@ public:
 
     void exec(processor::ExecutionContext* executionContext) override {
         auto clientContext = executionContext->clientContext;
-        auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
-
-        for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
-            if (!inputNodeMaskMap->containsTableID(tableID)) {
-                continue;
-            }
-            auto calcFun = [tableID, executionContext, clientContext, this](offset_t offset) {
-                auto sourceNodeID = nodeID_t{offset, tableID};
-                WCCCompState wccCompState = getWCCCompState(executionContext, sourceNodeID);
-                auto wccBindData = bindData->ptrCast<WCCBindData>();
-
-                GDSUtils::runWCCFrontiersUntilConvergence(executionContext, wccCompState, sharedState->graph.get(), 10);
-            
-                auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
-                                                                        sharedState.get(),
-                                                                        wccCompState.outputWriter->copy());
-                GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(), *vertexCompute);
-            };
-
-            auto numNodes = sharedState->graph->getNumNodes(clientContext->getTx(), tableID);
-            auto mask = inputNodeMaskMap->getOffsetMask(tableID);
-
-            if (mask->isEnabled()) {
-                for (const auto& offset : mask->range(0, numNodes)) {
-                    calcFun(offset);
-                }
-            } else {
-                for (auto offset = 0u; offset < numNodes; ++offset) {
-                    calcFun(offset);
-                }
-            }
-        }
-
+        auto graph = sharedState->graph.get();
+        auto nodeTableIDs = graph->getNodeTableIDs();
+        auto nodeTableID = nodeTableIDs[0];
+        auto numNodes = graph->getNumNodes(clientContext->getTx(), nodeTableID);
+        auto frontier = std::make_shared<ComponentIDs>(graph->getNumNodesMap(clientContext->getTx()), clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, numNodes, clientContext->getMaxNumThreadForExec());
+        auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
+        auto computeState = WCCCompState(std::move(frontierPair), std::move(edgeCompute));
+        GDSUtils::runWCCFrontiersUntilConvergence(executionContext, computeState, graph, ExtendDirection::FWD,
+            60 /* upperBound */);
+        auto vertexCompute =
+            WCCVertexCompute(clientContext->getMemoryManager(), sharedState.get(), *frontier);
+        GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(), vertexCompute);
         sharedState->mergeLocalTables();
     }
+
+    // void exec(processor::ExecutionContext* executionContext) override {
+    //     std::cout << "pinetree beginning of exec run" << std::endl;
+    //     auto clientContext = executionContext->clientContext;
+    //     auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
+    //     if (!inputNodeMaskMap) {
+    //         std::cout << "pinetree inputNodeMaskMap not initiated" << std::endl;
+    //     }
+    //     for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
+    //         std::cout << "pinetree within for loop of exec" << std::endl;
+    //         if (!inputNodeMaskMap->containsTableID(tableID)) {
+    //             continue;
+    //         }
+    //         std::cout << "pinetree checked input Node Mask" << std::endl;
+    //         auto calcFun = [tableID, executionContext, clientContext, this](offset_t offset) {
+    //             auto sourceNodeID = nodeID_t{offset, tableID};
+    //             WCCCompState wccCompState = getWCCCompState(executionContext, sourceNodeID);
+    //             auto wccBindData = bindData->ptrCast<WCCBindData>();
+
+    //             GDSUtils::runWCCFrontiersUntilConvergence(executionContext, wccCompState, sharedState->graph.get(), 10);
+            
+    //             auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
+    //                                                                     sharedState.get(),
+    //                                                                     nullptr);
+    //             GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(), *vertexCompute);
+    //         };
+
+    //         auto numNodes = sharedState->graph->getNumNodes(clientContext->getTx(), tableID);
+    //         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
+    //         std::cout << "get numNodes and mask" << std::endl;
+    //         if (mask->isEnabled()) {
+    //             for (const auto& offset : mask->range(0, numNodes)) {
+    //                 calcFun(offset);
+    //             }
+    //         } else {
+    //             for (auto offset = 0u; offset < numNodes; ++offset) {
+    //                 calcFun(offset);
+    //             }
+    //         }
+    //     }
+
+    //     sharedState->mergeLocalTables();
+    //     std::cout << "pinetree end of exec run" << std::endl;
+    // }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<WeaklyConnectedComponent>(*this);
@@ -300,10 +276,9 @@ private:
         auto output = std::make_unique<WCCOutputs>(
             sharedState->graph->getNumNodesMap(clientContext->getTx()),
             clientContext->getMemoryManager());
-        auto outputWriter = std::make_unique<WCCOutputWriter>(clientContext, output.get(), sharedState->getOutputNodeMaskMap());
-        auto frontierPair = std::make_unique<WCCFrontierPair>(output->componentIDs, clientContext->getMaxNumThreadForExec());
+        auto frontierPair = std::make_unique<WCCFrontierPair>(output->componentIDs, 0, clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
-        return WCCCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output), std::move(outputWriter));
+        return WCCCompState(std::move(frontierPair), std::move(edgeCompute));
     }
 
 private:

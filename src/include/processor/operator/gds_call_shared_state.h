@@ -5,6 +5,7 @@
 #include "common/mask.h"
 #include "graph/graph.h"
 #include "processor/result/factorized_table.h"
+#include <iostream>
 
 namespace kuzu {
 namespace processor {
@@ -24,7 +25,9 @@ public:
         return masks;
     }
 
-    bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
+    bool containsTableID(common::table_id_t tableID) const { 
+        std::cout << "pinetree within gds call state, is it possible that maskMap was not initalized correctly?" << std::endl;
+        return maskMap.contains(tableID); }
     common::RoaringBitmapSemiMask* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));
         return maskMap.at(tableID).get();
