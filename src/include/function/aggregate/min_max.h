@@ -9,12 +9,12 @@ template<typename T>
 struct MinMaxFunction {
 
     struct MinMaxState : public AggregateState {
-        inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+        uint32_t getStateSize() const override { return sizeof(*this); }
+        void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
             outputVector->setValue(pos, val);
             overflowBuffer.reset();
         }
-        inline void setVal(T& val_, storage::MemoryManager* /*memoryManager*/) { val = val_; }
+        void setVal(T& val_, storage::MemoryManager* /*memoryManager*/) { val = val_; }
 
         std::unique_ptr<common::InMemOverflowBuffer> overflowBuffer;
         T val{};

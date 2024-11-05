@@ -5,7 +5,6 @@
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
-#include "function/aggregate/collect.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/vector_cast_functions.h"
 #include "function/rewrite_function.h"

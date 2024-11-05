@@ -18,7 +18,7 @@
 -CHECK_ORDER
 -STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
-37.25|4.8625
+37.250000|4.8625
 
 -LOG SimpleAvgFloatTest
 -STATEMENT MATCH (a:person) RETURN AVG(a.height) + 5
@@ -53,7 +53,7 @@ False
 -LOG SimpleSumTest4
 -STATEMENT MATCH (a:person) RETURN sum(a.height) + 2.2
 ---- 1
-13.117001
+13.117000
 
 -LOG SimpleAvgTest
 -STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
@@ -258,11 +258,11 @@ False
 55
 
 -LOG SimpleAggSumInt16Test
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length) / 2
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-82
+41
 
 -LOG SimpleAggAvgInt16Test
 -STATEMENT MATCH (m:movies) RETURN AVG(m.length), count(m.audience), count(m.grade)
@@ -382,3 +382,23 @@ pure ascii characters
 -STATEMENT MATCH (a:person) WITH COUNT(*) AS x RETURN SUM(x);
 ---- 1
 8
+
+-LOG SumInt8Overflow
+-STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN SUM(10 * s.level)
+---- 1
+1270
+
+-LOG SumUint8Overflow
+-STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN ABS(SUM(5 * s.ulevel))
+---- 1
+2410
+
+-LOG AvgInt8Overflow
+-STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN AVG(3 * s.level)
+---- 1
+127.000000
+
+-LOG AvgUint8Overflow
+-STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN AVG(3 * s.ulevel) + 40
+---- 1
+522.000000

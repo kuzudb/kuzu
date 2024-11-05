@@ -1,6 +1,5 @@
 #include "function/function_collection.h"
 
-#include "function/aggregate/collect.h"
 #include "function/aggregate/count.h"
 #include "function/aggregate/count_star.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
