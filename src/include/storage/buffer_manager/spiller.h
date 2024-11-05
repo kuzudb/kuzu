@@ -13,10 +13,11 @@ class ChunkedNodeGroup;
 
 class BufferManager;
 class ColumnChunkData;
+
+// This should only be used with a LocalFileSystem
 class Spiller {
 public:
-    Spiller(const std::string& tmpFilePath, BufferManager& bufferManager,
-        common::VirtualFileSystem* vfs);
+    Spiller(std::string tmpFilePath, BufferManager& bufferManager, common::VirtualFileSystem* vfs);
     void addUnusedChunk(ChunkedNodeGroup* nodeGroup);
     void clearUnusedChunk(ChunkedNodeGroup* nodeGroup);
     uint64_t spillToDisk(ColumnChunkData& chunk) const;
@@ -30,9 +31,16 @@ public:
     ~Spiller();
 
 private:
-    std::mutex partitionerGroupsMtx;
+    FileHandle* getDataFH() const;
+
+private:
+    std::string tmpFilePath;
+    BufferManager& bufferManager;
+    common::VirtualFileSystem* vfs;
     std::unordered_set<ChunkedNodeGroup*> fullPartitionerGroups;
     FileHandle* dataFH;
+    std::mutex partitionerGroupsMtx;
+    mutable std::mutex fileCreationMutex;
 };
 
 } // namespace storage
