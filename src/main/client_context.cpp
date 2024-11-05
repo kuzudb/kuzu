@@ -557,38 +557,6 @@ bool ClientContext::canExecuteWriteQuery() {
     return true;
 }
 
-void ClientContext::runQuery(std::string query) {
-    // TODO(Jimain): this is special for "Import database". Should refactor after we support
-    // multiple query statements in one Tx.
-    // Currently, we split multiple query statements into single query and execute them one by one,
-    // each with an auto transaction. The correct way is to execute them in one transaction. But we
-    // do not support DDL and copy in one Tx.
-    if (transactionContext->hasActiveTransaction()) {
-        transactionContext->commit();
-    }
-    auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
-    try {
-        parsedStatements = Parser::parseQuery(query, this);
-    } catch (std::exception& exception) {
-        throw ConnectionException(exception.what());
-    }
-    if (parsedStatements.empty()) {
-        throw ConnectionException("Connection Exception: Query is empty.");
-    }
-    try {
-        for (auto& statement : parsedStatements) {
-            auto preparedStatement = prepareNoLock(statement, false, "", false);
-            auto currentQueryResult = executeNoLock(preparedStatement.get(), 0u);
-            if (!currentQueryResult->isSuccess()) {
-                throw ConnectionException(currentQueryResult->errMsg);
-            }
-        }
-    } catch (std::exception& exception) {
-        throw ConnectionException(exception.what());
-    }
-    return;
-}
-
 processor::WarningContext& ClientContext::getWarningContextUnsafe() {
     return warningContext;
 }

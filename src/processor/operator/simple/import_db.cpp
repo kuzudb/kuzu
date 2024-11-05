@@ -13,7 +13,14 @@ void ImportDB::executeInternal(ExecutionContext* context) {
     if (query.empty()) { // Export empty database.
         return;
     }
-    context->clientContext->runQuery(query);
+    // TODO(Guodong): this is special for "Import database". Should refactor after we support
+    // multiple DDL and COPY statements in a single transaction.
+    // Currently, we split multiple query statements into single query and execute them one by one,
+    // each with an auto transaction.
+    if (context->clientContext->getTransactionContext()->hasActiveTransaction()) {
+        context->clientContext->getTransactionContext()->commit();
+    }
+    context->clientContext->query(query);
 }
 
 std::string ImportDB::getOutputMsg() {
