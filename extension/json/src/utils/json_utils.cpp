@@ -97,7 +97,7 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
             // check one more time in case this string a struct
             LogicalType detectedType = function::inferMinimalTypeFromString(strVal.getAsStringView()); 
             if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-                ValueVector structValueVec(std::move(detectedType));
+                ValueVector structValueVec(std::move(detectedType),);
                 Value inferedStruct(std::move(detectedType), strVal.getAsString());
                 structValueVec.copyFromValue(0, inferedStruct);
                 jsonify(wrapper, structValueVec, pos);
