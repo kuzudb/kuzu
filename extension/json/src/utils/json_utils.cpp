@@ -80,6 +80,8 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
             break;
         case LogicalTypeID::STRING: {
             auto strVal = vec.getValue<ku_string_t>(pos);
+            // check one more time in case this string a struct
+            LogicalType detectedType = inferMinimalTypeFromString(strVal.getAsStringView()); 
             result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
         } break;
         case LogicalTypeID::LIST:
