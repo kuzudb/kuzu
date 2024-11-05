@@ -94,17 +94,7 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
             break;
         case LogicalTypeID::STRING: {
             auto strVal = vec.getValue<ku_string_t>(pos);
-            // check one more time in case this string a struct
-            // auto strContent = strVal.getAsStringView();
-            // LogicalType detectedType = function::inferMinimalTypeFromString(strContent); 
-            // if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-            //     ValueVector structValueVec(std::move(detectedType));
-            //     Value inferedStruct(std::move(detectedType), strVal.getAsString());
-            //     structValueVec.copyFromValue(0, inferedStruct);
-            //     jsonify(wrapper, structValueVec, pos);
-            // } else {
             result = yyjson_mut_strncpy(wrapper.ptr, (const char*)strVal.getData(), strVal.len);
-            // }
         } break;
         case LogicalTypeID::LIST:
         case LogicalTypeID::ARRAY: {
