@@ -1,4 +1,0 @@
--NAME push-down-limit-under-join
--SKIP_COMPARE_RESULT
--QUERY MATCH p=(a:Person {ID:24189255912498})-[f*3]->(b:Person) RETURN p limit 10;
----- 10

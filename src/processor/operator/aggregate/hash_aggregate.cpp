@@ -47,6 +47,14 @@ void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& /*memory
     }
 }
 
+bool HashAggregateSharedState::increaseAndCheckLimitCount(uint64_t num) {
+    if (limitNumber == common::INVALID_LIMIT) {
+        return false;
+    } else {
+        return limitCounter.fetch_add(num) >= limitNumber;
+    }
+}
+
 void HashAggregateSharedState::finalizeAggregateHashTable() {
     std::unique_lock lck{mtx};
     globalAggregateHashTable->finalizeAggregateStates();
@@ -122,6 +130,7 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         const auto numAppendedFlatTuples = localState.append(aggInputs, resultSet->multiplicity);
         metrics->numOutputTuple.increase(numAppendedFlatTuples);
+        // Note: The limit count check here is only applicable to the distinct limit case.
         if (sharedState->increaseAndCheckLimitCount(numAppendedFlatTuples)) {
             break;
         }

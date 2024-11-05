@@ -30,13 +30,7 @@ public:
     uint64_t getCurrentOffset() const { return currentOffset; }
 
     // return whether limitNumber is exceeded
-    bool increaseAndCheckLimitCount(uint64_t num) {
-        if (limitNumber == common::INVALID_LIMIT) {
-            return false;
-        } else {
-            return limitCounter.fetch_add(num) >= limitNumber;
-        }
-    }
+    bool increaseAndCheckLimitCount(uint64_t num);
 
     void setLimitNumber(uint64_t num) { limitNumber = num; }
 
