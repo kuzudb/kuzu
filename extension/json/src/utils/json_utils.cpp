@@ -10,7 +10,6 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "function/cast/functions/numeric_limits.h"
-#include "function/cast/functions/cast_string_non_nested_functions.h"
 
 using namespace kuzu::common;
 
