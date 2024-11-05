@@ -4,6 +4,10 @@
 
 -CASE ProjectionSkipLimit
 
+-STATEMENT UNWIND [1,2] AS x MATCH (a:person) RETURN DISTINCT a.fName LIMIT 1
+---- 1
+Alice
+
 -LOG BasicSkipTest1
 -STATEMENT MATCH (a:person) RETURN a.fName Skip 5
 ---- 3
