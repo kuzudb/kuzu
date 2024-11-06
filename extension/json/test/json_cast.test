@@ -36,4 +36,6 @@
 
 -STATEMENT RETURN cast(cast('{"int_array":[42,999,null,null,-42]}' as json) as struct (int_array INT64[]));
 ---- 1
-{int_array: [42,999,,,-42]}  
+{int_array: [42,999,,,-42]}
+
+
