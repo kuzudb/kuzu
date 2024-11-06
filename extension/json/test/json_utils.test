@@ -111,8 +111,6 @@ True
 "ab"
 
 -CASE JsonStructureTest2
-#-SKIP
-#TODO(Ziyi): We should fix our sniffing before enabling the test.
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT return json_structure(
