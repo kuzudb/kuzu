@@ -149,8 +149,7 @@ JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
         // check one more time in case this string a struct
         auto strContent = strVal.getAsStringView();
         LogicalType detectedType = function::inferMinimalTypeFromString(strContent);
-        if (detectedType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-            auto strVal = vec.getValue<ku_string_t>(pos);
+        if (detectedType.getLogicalTypeID() != LogicalTypeID::STRING) {
             auto strContent = strVal.getAsStringView();
             return stringToJson(std::string(strContent));
         }
