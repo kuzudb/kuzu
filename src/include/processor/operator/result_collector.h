@@ -70,19 +70,21 @@ public:
         : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    void executeInternal(ExecutionContext* context) final;
+    void executeInternal(ExecutionContext* context) override final;
 
-    void finalizeInternal(ExecutionContext* context) final;
+    void finalizeInternal(ExecutionContext* context) override final;
 
     std::shared_ptr<FactorizedTable> getResultFactorizedTable() { return sharedState->getTable(); }
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() override final {
         return make_unique<ResultCollector>(resultSetDescriptor->copy(), info.copy(), sharedState,
             children[0]->clone(), id, printInfo->copy());
     }
 
 private:
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override final;
+
+    void initOptionalLocalState(ResultSet* resultSet, ExecutionContext* context);
 
 private:
     ResultCollectorInfo info;
