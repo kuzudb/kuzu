@@ -1,0 +1,594 @@
+-DATASET CSV empty
+
+--
+
+-CASE JsonValidTestFromDuckDB
+
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+
+-STATEMENT RETURN json_valid('{"a":55,"b":72,}');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('{"a":55,"b":72}');
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('["a",55,"b",72,]');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('["a",55,"b",72]');
+---- 1
+True
+
+-STATEMENT RETURN json_valid('{"x":01}')
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('{"x":-01}')
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('{"x":0}')
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('{"x":-0}')
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('{"x":0.1}')
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('{"x":-0.1}')
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('{"x":0.0000}')
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('{"x":-0.0000}')
+---- 1
+True
+
+
+-STATEMENT RETURN json_valid('{"x":01.5}')
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('{"x":-01.5}')
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('{"x":00}')
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('{"x":-00}')
+---- 1
+False
+
+-CASE JsonValidWithSingleChar
+-SKIP
+# our parser cannot recognize them
+
+-STATEMENT RETURN json_valid('" \  "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \! "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \" "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \# "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \$ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \% "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \& "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \'' "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \( "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \) "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \* "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \+ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \, "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \- "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \. "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \/ "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \0 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \1 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \2 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \3 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \4 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \5 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \6 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \7 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \8 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \9 "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \: "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \; "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \< "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \= "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \> "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \? "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \@ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \A "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \B "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \C "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \D "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \E "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \F "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \G "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \H "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \I "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \J "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \K "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \L "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \M "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \N "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \O "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \P "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \Q "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \R "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \S "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \T "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \U "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \V "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \W "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \X "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \Y "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \Z "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \[ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \\ "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \] "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \^ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \_ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \` "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \a "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \b "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \c "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \d "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \e "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \f "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \g "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \h "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \i "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \j "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \k "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \l "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \m "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \n "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \o "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \p "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \q "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \r "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \s "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \t "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \u "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \ua "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \uab "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \uabc "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \uabcd "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \uFEDC "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \u1234 "');
+---- 1
+1
+
+
+-STATEMENT RETURN json_valid('" \v "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \w "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \x "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \y "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \z "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \{ "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \| "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \} "');
+---- 1
+False
+
+
+-STATEMENT RETURN json_valid('" \~ "');
+---- 1
+False

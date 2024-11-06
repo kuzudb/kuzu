@@ -16,11 +16,12 @@ null
 -STATEMENT RETURN json_extract('{"foo": null}', '$.foo.bar')
 ---- ok
 
--STATEMENT RETURN json_extract(null, '$')
+-STATEMENT RETURN json_extract(null, '0')
 ---- ok
 
--STATEMENT RETURN json_extract('[null]', '$[0]')
----- ok
+-STATEMENT RETURN json_extract('[null]', '0')
+---- 1
+null
 
 -STATEMENT RETURN json_extract('{"my_field": {"my_nested_field": ["goose", "kuzu"]}}', 'my_field/my_nested_field/1')
 ---- 1
