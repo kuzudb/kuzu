@@ -139,8 +139,12 @@ public:
     }
     ~RJVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
-    void beginOnTable(table_id_t tableID) override {
+    bool beginOnTable(table_id_t tableID) override {
+        if (!sharedState->inNbrTableIDs(tableID)) {
+            return false;
+        }
         writer->beginWritingForDstNodesInTable(tableID);
+        return true;
     }
 
     void vertexCompute(nodeID_t nodeID) override {
