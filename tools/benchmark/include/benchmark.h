@@ -30,7 +30,6 @@ public:
     std::string name;
     std::string query;
     std::vector<std::string> expectedOutput;
-    std::string encodedJoin;
     bool compareResult;
     uint64_t expectedNumTuples;
 };

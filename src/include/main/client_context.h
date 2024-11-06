@@ -139,23 +139,27 @@ public:
 
     void cleanUP();
 
-    std::unique_ptr<QueryResult> queryInternal(std::string_view query, std::string_view encodedJoin,
-        bool enumerateAllPlans = true, std::optional<uint64_t> queryID = std::nullopt);
+    std::unique_ptr<QueryResult> queryInternal(std::string_view query,
+        std::optional<uint64_t> queryID = std::nullopt);
 
 private:
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
 
+    std::unique_ptr<PreparedStatement> prepareInternal(std::string_view query);
     // when we do prepare, we will start a transaction for the query
     // when we execute after prepare in a same context, we set requireNewTx to false and will not
     // commit the transaction in prepare when we only prepare a query statement, we set requireNewTx
     // to true and will commit the transaction in prepare
     std::unique_ptr<PreparedStatement> prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
-        std::string_view joinOrder = std::string_view(), bool requireNewTx = true,
+        std::shared_ptr<parser::Statement> parsedStatement,
         std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
             std::nullopt);
+    void validateStatementExecutable(PreparedStatement& statement);
+    // Return true if we started a new transaction.
+    bool validateManualOrBeginAutoTransaction(PreparedStatement& statement);
+    void commitNewlyBeginnedAutoTransaction(bool requireNewTx);
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,

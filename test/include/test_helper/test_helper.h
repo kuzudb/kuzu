@@ -13,10 +13,8 @@ struct TestQueryConfig {
     std::string name;
     std::string query;
     uint64_t numThreads = 4;
-    std::string encodedJoin;
     uint64_t expectedNumTuples = 0;
     std::vector<std::string> expectedTuples;
-    bool enumerate = false;
     bool checkOutputOrder = false;
     bool compareResult = true;
 };

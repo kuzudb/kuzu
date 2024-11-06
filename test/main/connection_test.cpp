@@ -98,6 +98,7 @@ TEST_F(ApiTest, Profile) {
 
 TEST_F(ApiTest, TimeOut) {
     conn->setQueryTimeOut(1000 /* timeoutInMS */);
+    ASSERT_EQ(1000, conn->getQueryTimeOut());
     auto result = conn->query(
         "UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);");
     ASSERT_FALSE(result->isSuccess());

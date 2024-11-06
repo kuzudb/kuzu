@@ -25,17 +25,16 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     query = queryConfig->query;
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
-    encodedJoin = queryConfig->encodedJoin;
     compareResult = queryConfig->compareResult;
     expectedNumTuples = queryConfig->expectedNumTuples;
 }
 
 std::unique_ptr<QueryResult> Benchmark::run() const {
-    return conn->query(query, encodedJoin);
+    return conn->query(query);
 }
 
 std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
-    return conn->query("PROFILE " + query, encodedJoin);
+    return conn->query("PROFILE " + query);
 }
 
 void Benchmark::logQueryInfo(std::ofstream& log, uint32_t runNum,

@@ -19,7 +19,7 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
     }
-    struct stat status {};
+    struct stat status{};
     stat(path.c_str(), &status);
     if (status.st_mode & S_IFDIR) {
         throw Exception("Test file is a directory. [" + path + "].");
@@ -37,8 +37,6 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
             currentConfig->query = line.substr(7, line.length());
         } else if (line.starts_with("-PARALLELISM")) {
             currentConfig->numThreads = stoi(line.substr(13, line.length()));
-        } else if (line.starts_with("-ENUMERATE")) {
-            currentConfig->enumerate = true;
         } else if (line.starts_with("-SKIP_COMPARE_RESULT")) {
             currentConfig->compareResult = false;
         } else if (line.starts_with("----")) {

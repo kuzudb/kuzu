@@ -36,6 +36,9 @@ public:
     void rollback(main::ClientContext& clientContext, const Transaction* transaction);
     void checkpoint(main::ClientContext& clientContext);
 
+    void setTransactionToWrite(main::ClientContext& clientContext,
+        transaction::Transaction* transaction);
+
 private:
     bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
     bool canCheckpointNoLock() const;

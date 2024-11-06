@@ -23,6 +23,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 #if defined(_WIN32)
 #include "common/windows_utils.h"
@@ -242,40 +243,33 @@ std::string ClientContext::getEnvVariable(const std::string& name) {
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query) {
-    std::unique_lock<std::mutex> lck{mtx};
-    auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
-    try {
-        parsedStatements = parseQuery(query);
-    } catch (std::exception& exception) {
-        return preparedStatementWithError(exception.what());
-    }
-    if (parsedStatements.size() > 1) {
-        return preparedStatementWithError(
-            "Connection Exception: We do not support prepare multiple statements.");
-    }
-    return prepareNoLock(parsedStatements[0]);
+    return prepareInternal(query);
 }
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement,
     std::optional<uint64_t> queryID) {
-    lock_t lck{mtx};
-    return queryInternal(queryStatement, std::string_view() /*encodedJoin*/,
-        false /*enumerateAllPlans */, queryID);
+    return queryInternal(queryStatement, queryID);
 }
 
 std::unique_ptr<QueryResult> ClientContext::queryInternal(std::string_view query,
-    std::string_view encodedJoin, bool enumerateAllPlans, std::optional<uint64_t> queryID) {
+    std::optional<uint64_t> queryID) {
+    lock_t lck{mtx};
+    if (!transactionContext->hasActiveTransaction()) {
+        // Start a read only transaction here, which is needed for parsing, until we figure out if
+        // the statemt is read_only or read_write during prepare.
+        transactionContext->beginAutoTransaction(true /*readOnlyStatement*/);
+    }
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
     } catch (std::exception& exception) {
+        transactionContext->rollback();
         return queryResultWithError(exception.what());
     }
     std::unique_ptr<QueryResult> queryResult;
     QueryResult* lastResult = nullptr;
     for (auto& statement : parsedStatements) {
-        auto preparedStatement = prepareNoLock(statement,
-            enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
+        auto preparedStatement = prepareNoLock(statement);
         auto currentQueryResult = executeNoLock(preparedStatement.get(), 0u, queryID);
         if (!lastResult) {
             // first result of the query
@@ -306,9 +300,27 @@ std::unique_ptr<PreparedStatement> ClientContext::preparedStatementWithError(
     return preparedStatement;
 }
 
+std::unique_ptr<PreparedStatement> ClientContext::prepareInternal(std::string_view query) {
+    std::unique_lock lck{mtx};
+    auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
+    if (!transactionContext->hasActiveTransaction()) {
+        transactionContext->beginAutoTransaction(true);
+    }
+    try {
+        parsedStatements = parseQuery(query);
+    } catch (std::exception& exception) {
+        transactionContext->rollback();
+        return preparedStatementWithError(exception.what());
+    }
+    if (parsedStatements.size() > 1) {
+        return preparedStatementWithError(
+            "Connection Exception: We do not support prepare multiple statements.");
+    }
+    return prepareNoLock(parsedStatements[0]);
+}
+
 std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
-    std::shared_ptr<Statement> parsedStatement, bool enumerateAllPlans,
-    std::string_view encodedJoin, bool requireNewTx,
+    std::shared_ptr<Statement> parsedStatement,
     std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     auto compilingTimer = TimeMetric(true /* enable */);
@@ -316,23 +328,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     try {
         preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
         preparedStatement->readOnly = StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
-        if (!canExecuteWriteQuery() && !preparedStatement->isReadOnly()) {
-            throw ConnectionException("Cannot execute write operations in a read-only database!");
-        }
         preparedStatement->parsedStatement = parsedStatement;
-        // TODO(Guodong): Remove this check after we support COPY FROM in manual transactions.
-        if (preparedStatement->getStatementType() == StatementType::COPY_FROM &&
-            !transactionContext->isAutoTransaction()) {
-            throw ConnectionException("COPY FROM is only supported in auto transaction mode.");
-        }
-        if (parsedStatement->requireTx()) {
-            if (!transactionContext->hasActiveTransaction() &&
-                transactionContext->isAutoTransaction()) {
-                transactionContext->beginAutoTransaction(preparedStatement->readOnly);
-            } else {
-                transactionContext->validateManualTransaction(preparedStatement->readOnly);
-            }
-        }
+        validateStatementExecutable(*preparedStatement);
+        auto startedNewAutoTransaction = validateManualOrBeginAutoTransaction(*preparedStatement);
         // binding
         auto binder = Binder(this);
         if (inputParams) {
@@ -345,33 +343,13 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         // planning
         auto planner = Planner(this);
         std::vector<std::unique_ptr<LogicalPlan>> plans;
-        if (enumerateAllPlans) {
-            plans = planner.getAllPlans(*boundStatement);
-        } else {
-            plans.push_back(planner.getBestPlan(*boundStatement));
-        }
+        plans.push_back(planner.getBestPlan(*boundStatement));
         // optimizing
         for (auto& plan : plans) {
             optimizer::Optimizer::optimize(plan.get(), this, planner.getCardinalityEstimator());
         }
-        if (!encodedJoin.empty()) {
-            std::unique_ptr<LogicalPlan> match;
-            for (auto& plan : plans) {
-                if (LogicalPlanUtil::encodeJoin(*plan) == encodedJoin) {
-                    match = std::move(plan);
-                }
-            }
-            if (match == nullptr) {
-                throw ConnectionException(
-                    stringFormat("Cannot find a plan matching {}", encodedJoin));
-            }
-            preparedStatement->logicalPlans.push_back(std::move(match));
-        } else {
-            preparedStatement->logicalPlans = std::move(plans);
-        }
-        if (transactionContext->isAutoTransaction() && requireNewTx) {
-            this->transactionContext->commit();
-        }
+        preparedStatement->logicalPlans = std::move(plans);
+        commitNewlyBeginnedAutoTransaction(startedNewAutoTransaction);
     } catch (std::exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
@@ -380,6 +358,42 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     compilingTimer.stop();
     preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
     return preparedStatement;
+}
+
+void ClientContext::validateStatementExecutable(PreparedStatement& statement) {
+    if (!canExecuteWriteQuery() && !statement.isReadOnly()) {
+        throw ConnectionException("Cannot execute write operations in a read-only database!");
+    }
+    // TODO(Guodong): Remove this check after we support COPY FROM in manual transactions.
+    if (statement.getStatementType() == StatementType::COPY_FROM &&
+        !transactionContext->isAutoTransaction()) {
+        throw ConnectionException("COPY FROM is only supported in auto transaction mode.");
+    }
+}
+
+bool ClientContext::validateManualOrBeginAutoTransaction(PreparedStatement& statement) {
+    if (!statement.parsedStatement->requireTx()) {
+        return false;
+    }
+    bool startedNewAutoTransaction = false;
+    if (transactionContext->isAutoTransaction()) {
+        if (!transactionContext->hasActiveTransaction()) {
+            transactionContext->beginAutoTransaction(statement.readOnly);
+            startedNewAutoTransaction = true;
+        } else if (!statement.readOnly) {
+            transactionContext->setAutoReadTransactionToWrite();
+        }
+    } else {
+        transactionContext->validateManualTransaction(statement.readOnly);
+    }
+    return startedNewAutoTransaction;
+}
+
+void ClientContext::commitNewlyBeginnedAutoTransaction(bool startedNewAutoTransaction) {
+    if (startedNewAutoTransaction) {
+        KU_ASSERT(transactionContext->isAutoTransaction());
+        this->transactionContext->commit();
+    }
 }
 
 std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_view query) {
@@ -443,8 +457,8 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     }
     // rebind
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
-    auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement, false, "",
-        false, preparedStatement->parameterMap);
+    auto rebindPreparedStatement =
+        prepareNoLock(preparedStatement->parsedStatement, preparedStatement->parameterMap);
     return executeNoLock(rebindPreparedStatement.get(), 0u, queryID);
 }
 

@@ -154,10 +154,6 @@ Quoted newlines are not supported in parallel CSV reader. Please specify PARALLE
 Conversion exception: Cast failed. Could not convert "10a" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|1|7,7,10a...
 neither QUOTE nor ESCAPE is proceeded by ESCAPE.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|4|6,7,"ab~a...
 Quoted newlines are not supported in parallel CSV reader. Please specify PARALLEL=FALSE in the options.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eLikes.csv|6|0,1,0,"unquoted
----- 3
-0|3|8|good
-4|9|11|vgood
-6|1|1|vbad
 
 -CASE ParallelSkipInvalidRelMissingPK
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson-valid.csv"(AUTO_DETECT=false)

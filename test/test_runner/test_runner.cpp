@@ -51,7 +51,7 @@ void replaceEnv(std::string& queryToReplace, const std::string& env) {
 }
 
 void TestRunner::testStatement(TestStatement* statement, Connection& conn,
-    std::string& databasePath) {
+    const std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
@@ -60,59 +60,14 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "RUN_ID");
-    auto parsedStatements = std::vector<std::shared_ptr<parser::Statement>>();
-    try {
-        parsedStatements = conn.getClientContext()->parseQuery(statement->query);
-    } catch (std::exception& exception) {
-        auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
-        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
-    }
-    if (parsedStatements.empty()) {
-        auto errorPreparedStatement =
-            conn.preparedStatementWithError("Connection Exception: Query is empty.");
-        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
-    }
-
-    size_t numParsed = parsedStatements.size();
-    for (size_t i = 0; i < numParsed; i++) {
-        auto parsedStatement = std::move(parsedStatements[i]);
-        if (statement->encodedJoin.empty()) {
-            preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
-        } else {
-            preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
-        }
-        // Check for wrong statements
-        ResultType resultType = statement->result[std::min(i, statement->result.size() - 1)].type;
-        if (resultType != ResultType::ERROR_MSG && resultType != ResultType::ERROR_REGEX) {
-            ASSERT_TRUE(preparedStatement->isSuccess()) << preparedStatement->getErrorMessage();
-        }
-        checkLogicalPlans(preparedStatement, statement, i, conn);
-    }
+    checkLogicalPlan(statement, conn);
 }
 
-void TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, size_t resultIdx, Connection& conn) {
-    auto numPlans = preparedStatement->logicalPlans.size();
-    if (numPlans == 0) {
-        return checkLogicalPlan(preparedStatement, statement, resultIdx, conn, 0);
-    }
-    for (auto i = 0u; i < numPlans; ++i) {
-        try {
-            checkLogicalPlan(preparedStatement, statement, resultIdx, conn, i);
-        } catch (std::exception& ex) {
-            spdlog::error("PLAN {} FAILED.", i);
-            throw;
-        }
-    }
-}
-
-void TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, size_t resultIdx, Connection& conn, uint32_t planIdx) {
-    auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
+void TestRunner::checkLogicalPlan(TestStatement* statement, Connection& conn) {
+    auto result = conn.query(statement->query);
     // TODO(Ziyi): Our current testing framework is not able to handle multi-statements in a single
     // query.
-    TestQueryResult& testAnswer =
-        statement->result[std::min(resultIdx, statement->result.size() - 1)];
+    const TestQueryResult& testAnswer = statement->result[0];
     std::string actualError;
     switch (testAnswer.type) {
     case ResultType::OK: {
@@ -121,7 +76,7 @@ void TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
         break;
     }
     case ResultType::ERROR_MSG: {
-        std::string expectedError = StringUtils::rtrim(testAnswer.expectedResult[0]);
+        const std::string expectedError = StringUtils::rtrim(testAnswer.expectedResult[0]);
         EXPECT_FALSE(result->isSuccess());
         actualError = StringUtils::rtrim(result->getErrorMessage());
         ASSERT_EQ(actualError, expectedError);
@@ -135,12 +90,9 @@ void TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
         break;
     }
     default: {
-        ASSERT_TRUE(preparedStatement->success)
-            << "Query compilation failed with error: " << preparedStatement->getErrorMessage();
         ASSERT_TRUE(result->isSuccess())
             << "Unexpected error for query: " << result->getErrorMessage();
-        auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        checkPlanResult(result, statement, resultIdx, planStr, planIdx);
+        checkPlanResult(result, statement, 0, "", 0);
         break;
     }
     }
