@@ -509,6 +509,9 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
     ignore_error:
         // we skip the current row then restart the state machine to continue parsing
         skipCurrentLine();
+        if (driver.done(curRowIdx)) {
+            return curRowIdx;
+        }
         continue;
     }
     KU_UNREACHABLE;
