@@ -4,6 +4,7 @@
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
+#include "s3_download_options.h"
 
 namespace kuzu {
 namespace duckdb_extension {
@@ -74,11 +75,11 @@ void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& ca
         TYPE S3
     );)";
     std::string options = "";
-    options += getDuckDBExtensionOptions(context, "s3_access_key_id");
-    options += getDuckDBExtensionOptions(context, "s3_secret_access_key");
-    options += getDuckDBExtensionOptions(context, "s3_region");
-    options += getDuckDBExtensionOptions(context, "s3_url_style");
-    options += getDuckDBExtensionOptions(context, "s3_endpoint");
+    options += getDuckDBExtensionOptions(context, httpfs::S3AccessKeyID::NAME);
+    options += getDuckDBExtensionOptions(context, httpfs::S3SecretAccessKey::NAME);
+    options += getDuckDBExtensionOptions(context, httpfs::S3Region::NAME);
+    options += getDuckDBExtensionOptions(context, httpfs::S3Region::NAME);
+    options += getDuckDBExtensionOptions(context, httpfs::S3EndPoint::NAME);
     templateQuery = common::stringFormat(templateQuery, options);
     executeQuery(templateQuery);
     executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));
