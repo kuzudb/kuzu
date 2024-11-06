@@ -36,19 +36,6 @@ yyjson_mut_val* jsonifyAsString(JsonMutWrapper& wrapper, const common::ValueVect
     return yyjson_mut_strcpy(wrapper.ptr, strVal.c_str());
 }
 
-yyjson_mut_val* jsonifyAsStruct(JsonMutWrapper& wrapper, const common::ValueVector& vec,
-    uint64_t pos) {
-    yyjson_mut_val* result = yyjson_mut_obj(wrapper.ptr);
-    const auto& fieldVectors = StructVector::getFieldVectors(&vec);
-    const auto& fieldNames = StructType::getFieldNames(vec.dataType);
-    for (auto i = 0u; i < fieldVectors.size(); i++) {
-        auto key = yyjson_mut_strcpy(wrapper.ptr, fieldNames[i].c_str());
-        auto val = jsonify(wrapper, *fieldVectors[i], pos);
-        yyjson_mut_obj_add(result, key, val);
-    }
-    return result;
-}
-
 yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec, uint64_t pos) {
     // creates a mutable value linked to wrapper.ptr, but the responsibility to integrate it into
     // wrapper is placed upon the caller
