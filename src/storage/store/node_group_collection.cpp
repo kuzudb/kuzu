@@ -177,6 +177,21 @@ void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnStat
     types.push_back(addColumnState.propertyDefinition.getType().copy());
 }
 
+std::vector<std::pair<page_idx_t, page_idx_t>>
+    NodeGroupCollection::getAllChunkPhysicInfoForColumn(column_id_t columnID)
+{
+    std::vector<std::pair<page_idx_t, page_idx_t>> allChunkPhysicInfo;
+    const auto lock = nodeGroups.lock();
+    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        std::vector<std::pair<page_idx_t, page_idx_t>> nodeGroupInfo = nodeGroup->getAllChunkPhysicInfoForColumn(columnID);
+        if (nodeGroupInfo.size() != 0) {
+            allChunkPhysicInfo.insert(allChunkPhysicInfo.end(), nodeGroupInfo.begin(), nodeGroupInfo.end());
+        }
+    }
+
+    return allChunkPhysicInfo;
+}
+
 uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
     auto estimatedMemUsage = 0u;
     const auto lock = nodeGroups.lock();

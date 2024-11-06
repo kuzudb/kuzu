@@ -54,6 +54,9 @@ public:
         nodeGroups.clear(lock);
     }
 
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>>
+        getAllChunkPhysicInfoForColumn(common::column_id_t columnID);
+
     common::column_id_t getNumColumns() const { return types.size(); }
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);

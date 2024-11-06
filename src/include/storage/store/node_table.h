@@ -114,6 +114,7 @@ public:
 
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
+    void dropColumn(transaction::Transaction* transaction, common::column_id_t columnID) override;
     bool isVisible(const transaction::Transaction* transaction, common::offset_t offset) const;
     bool isVisibleNoLock(const transaction::Transaction* transaction,
         common::offset_t offset) const;

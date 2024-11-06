@@ -166,7 +166,11 @@ public:
 
     virtual void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) = 0;
-    void dropColumn() { setHasChanges(); }
+    virtual void dropColumn(transaction::Transaction* transaction, common::column_id_t columnID) {
+        (void) transaction;
+        (void) columnID;
+        setHasChanges();
+    }
 
     virtual void commit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) = 0;

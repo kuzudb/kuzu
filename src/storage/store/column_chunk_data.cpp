@@ -215,7 +215,27 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 
 void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
-    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
+    /* Check if we have any free chunk to reuse */
+    auto startPageIdx = INVALID_PAGE_IDX;
+    if (preScanMetadata.numPages != 0) {
+        auto& freeChunkMap = dataFH.getFreeChunkMap();
+        auto* freeChunkEntry = freeChunkMap.GetFreeChunk(preScanMetadata.numPages);
+        if (freeChunkEntry != nullptr) {
+            KU_ASSERT(freeChunkEntry->numPages >= preScanMetadata.numPages);
+            startPageIdx = freeChunkEntry->pageIdx;
+            freeChunkEntry->numPages -= preScanMetadata.numPages;
+            if (freeChunkEntry->numPages != 0) {
+                freeChunkMap.AddFreeChunk(freeChunkEntry->pageIdx + preScanMetadata.numPages, freeChunkEntry->numPages);
+            }
+            free(freeChunkEntry);
+        }
+    }
+
+    /* if no recycled pages to use or given chunk has no physical storage, just allocate new ones here if needed */
+    if (startPageIdx == INVALID_PAGE_IDX) {
+        startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
+    }
+
     const auto metadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
     setToOnDisk(metadata);
     if (nullData) {

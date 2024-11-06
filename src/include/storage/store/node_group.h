@@ -148,6 +148,8 @@ public:
     virtual void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState, FileHandle* dataFH);
 
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>>
+        getAllChunkPhysicInfoForColumn(common::column_id_t columnID);
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);

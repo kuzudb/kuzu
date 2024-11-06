@@ -225,6 +225,23 @@ void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColu
     }
 }
 
+std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfoForColumn(column_id_t columnID)
+{
+    std::vector<std::pair<page_idx_t, page_idx_t>> chunkInfo;
+    const auto lock = chunkedGroups.lock();
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(columnID).getData();
+        if (chunkData.getResidencyState() == ResidencyState::ON_DISK) {
+            ColumnChunkMetadata& metadata = chunkData.getMetadata();
+            if (metadata.pageIdx != INVALID_PAGE_IDX && metadata.numPages != 0) {
+                chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
+            }
+        }
+    }
+
+    return chunkInfo;
+}
+
 void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.getNumGroups(lock) == 1) {
