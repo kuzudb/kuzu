@@ -614,6 +614,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         }
         auto valEnd = input;
         trimRightWhitespace(valStart, valEnd);
+        trimQuotes(valStart, valEnd);
         skipWhitespace(++input, end);
 
         auto fieldVector = StructVector::getFieldVector(vector, fieldIdx).get();

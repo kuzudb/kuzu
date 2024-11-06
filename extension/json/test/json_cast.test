@@ -39,3 +39,48 @@
 {int_array: [42,999,,,-42]}
 
 
+-STATEMENT return cast(cast(
+    '{
+        "float":3.4028235e+38
+    }'
+as json) as STRUCT(float DOUBLE));
+---- 1
+{float: 340282349999999991754788743781432688640.000000}
+
+-STATEMENT return cast(cast(
+    '{"uuid":"ffffffff-ffff-ffff-ffff-ffffffffffff"}'
+as json) as STRUCT(uuid UUID));
+---- 1
+{uuid: ffffffff-ffff-ffff-ffff-ffffffffffff}
+
+-STATEMENT return cast(cast(
+    '{
+        "timestamp":"2047-01-10 04:00:54.775806"
+    }'
+as json) as STRUCT(timestamp TIMESTAMP));
+---- 1
+{timestamp: 2047-01-10 04:00:54.775806}
+
+-STATEMENT return cast(cast(
+    '{
+        "bool": false
+    }'
+as json) as STRUCT(bool BOOL));
+---- 1
+{bool: False}
+
+-STATEMENT return cast(cast(
+    '{
+        "date":"2047-01-10"
+    }'
+as json) as STRUCT(date DATE));
+---- 1
+{date: 2047-01-10}
+
+-STATEMENT return cast(cast(
+    '{
+        "interval":"83 years 3 months 999 days 00:16:39.999999"
+    }'
+as json) as STRUCT(interval INTERVAL));
+---- 1
+{interval: 83 years 3 months 999 days 00:16:39.999999}

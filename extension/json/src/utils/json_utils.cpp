@@ -137,7 +137,6 @@ JsonWrapper jsonify(const common::ValueVector& vec, uint64_t pos) {
         auto strContent = strVal.getAsStringView();
         LogicalType detectedType = function::inferMinimalTypeFromString(strContent);
         if (detectedType.getLogicalTypeID() != LogicalTypeID::STRING) {
-            auto strContent = strVal.getAsStringView();
             return stringToJson(std::string(strContent));
         }
     }
