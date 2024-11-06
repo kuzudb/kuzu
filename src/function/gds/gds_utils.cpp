@@ -108,6 +108,7 @@ void GDSUtils::runWCCFrontiersUntilConvergence(processor::ExecutionContext* cont
     WCCCompState& wccCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
     auto frontierPair = wccCompState.frontierPair.get();
+    std::cout << "pinetree causing fatal signal " << std::endl; 
     while (frontierPair->hasActiveNodesForNextLevel() && frontierPair->getNextIter() <= maxIters) {
         std::cout << "pinetree how many iterations will it take " << frontierPair->getNextIter() << std::endl;
         frontierPair->beginNewIteration();

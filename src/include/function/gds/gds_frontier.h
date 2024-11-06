@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <iostream>
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
@@ -163,19 +164,31 @@ public:
 
     // This should be called to update node's componentID.
     // It takes the atomic pointer to the node in process, and updates atomically.
-    void updateComponentID(const common::nodeID_t& node, uint16_t newComponentID) {
+    void updateComponentID(const common::nodeID_t& node, uint64_t newComponentID) {
         // Get a reference to the component ID of the node
         std::atomic<uint64_t>& currentComponentID = getCurFrontierFixedMask()[node.offset];
         std::atomic<uint64_t>& nextComponentID = getNextFrontierFixedMask()[node.offset];
-
         // Update the component ID to newComponentID if it is smaller than the current ID
         uint64_t expectedComponentID = currentComponentID.load(std::memory_order_relaxed);
+        std::cout << "pinetree currentComponentID pre " << expectedComponentID << std::endl;
         while (expectedComponentID > newComponentID &&
                !currentComponentID.compare_exchange_strong(expectedComponentID, newComponentID,
                    std::memory_order_relaxed)) {
             // If compare_exchange_weak fails, expectedComponentID is updated with the current value
         }
-        while (expectedComponentID > )
+        uint64_t expectedPostComponentID = currentComponentID.load(std::memory_order_relaxed);
+        std::cout << "pinetree currentComponentID post " << expectedPostComponentID << std::endl;
+        if (expectedComponentID != expectedPostComponentID) {
+            frontierAltered = true;
+        }
+        expectedComponentID = nextComponentID.load(std::memory_order_relaxed);
+        while (expectedComponentID > newComponentID &&
+               !currentComponentID.compare_exchange_strong(expectedComponentID, newComponentID,
+                   std::memory_order_relaxed)) {
+            // If compare_exchange_weak fails, expectedComponentID is updated with the current value
+        }
+        // auto memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(masks.find(node.tableID)->second.get());
+        // memBufferPtr[node.offset].store(newComponentID, std::memory_order_relaxed);
     }
 
     // Gets the componentID of the node in the current Frontier
@@ -206,6 +219,13 @@ public:
         });
     }
 
+    uint64_t getComponentID(common::nodeID_t nodeID) const {
+        auto& memBuffer = masks.find(nodeID.tableID)->second;
+        const std::atomic<uint64_t>* memBufferPtr = 
+        reinterpret_cast<const std::atomic<uint64_t>*>(memBuffer->getData());
+        return memBufferPtr[nodeID.offset].load(std::memory_order_relaxed);
+    }
+
     void setActive(common::nodeID_t nodeID) override {
         auto frontierMask = getNextFrontierFixedMask();
         frontierMask[nodeID.offset].store(
@@ -215,7 +235,13 @@ public:
     }
 
     // Increment counter to keep track of Algorithm's iterations
-    void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
+    void incrementCurIter() { 
+        frontierAltered = false;
+        curIter.fetch_add(1, std::memory_order_relaxed); }
+
+    bool getFrontierAltered() {
+        return frontierAltered;
+    }
 
     void fixCurFrontierNodeTable(common::table_id_t tableID);
 
@@ -262,6 +288,8 @@ private:
 
     // Points to the memory buffer where the updates for the next frontier is stored.
     std::atomic<std::atomic<uint64_t>*> nextFrontierFixedMask;
+
+    bool frontierAltered;
 };
 
 /**
@@ -401,7 +429,7 @@ public:
 
     GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
-    bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
+    virtual bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
 
     // Note: If the implementing class stores 2 frontierPair, this function should swap them.
     virtual void beginNewIterationInternalNoLock() {}
@@ -427,7 +455,7 @@ protected:
  * WCCFrontierPair keeps track of current and next frontiers for WCC algorithm
  * Used in componentID propagation
  */
-class WCCFrontierPair final : public FrontierPair {
+class WCCFrontierPair : public FrontierPair {
     friend class WCCEdgeCompute;
 
 public:
@@ -452,6 +480,9 @@ public:
 
     void beginNewIterationInternalNoLock() override { componentIDs->incrementCurIter(); }
 
+    bool hasActiveNodesForNextLevel() override {
+        return componentIDs->getFrontierAltered();
+    }
 private:
     // Pointer to the ComponentIDs instance
     std::shared_ptr<ComponentIDs> componentIDs;

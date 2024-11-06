@@ -51,15 +51,20 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
 ComponentIDs::ComponentIDs(const common::table_id_map_t<common::offset_t>& numNodesMap_,
     storage::MemoryManager* mm) {
     curIter.store(0);
+    uint64_t componentIDCounter = 0;
+    frontierAltered = true;
     for (const auto& [tableID, numNodes] : numNodesMap_) {
         numNodesMap[tableID] = numNodes;
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint64_t>));
-        std::atomic<uint16_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
-
+        std::atomic<uint64_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint64_t>*>(memBuffer.get()->getData());
+        std::cout << "pinetree the table of size " << numNodes << std::endl;
         // Cast a unique number to each node
+        std::cout << "Buffer for table " << tableID << " is at address " << memBufferPtr << std::endl;
         for (uint64_t i = 0; i < numNodes; ++i) {
-            memBufferPtr[i].store(static_cast<uint64_t>(i), std::memory_order_relaxed);
+            std::cout << componentIDCounter << " is stored" << std::endl;
+            memBufferPtr[i].store(static_cast<uint64_t>(componentIDCounter), std::memory_order_relaxed);
+            componentIDCounter++;
         }
         masks.insert({tableID, std::move(memBuffer)});
     }

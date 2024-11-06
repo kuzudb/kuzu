@@ -11,6 +11,7 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/wcc.h"
 #include <iostream>
+#include <span>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -48,7 +49,7 @@ public:
 
     void materialize(nodeID_t nodeID, const ComponentIDs& frontier, FactorizedTable& table) const {
         nodeIDVector->setValue<nodeID_t>(0, nodeID);
-        componentIDVector->setValue<uint64_t>(0, frontier.getMaskValueFromCurFrontierFixedMask(nodeID.offset));
+        componentIDVector->setValue<uint64_t>(0, frontier.getComponentID(nodeID));
         table.append(vectors);
     }
 
@@ -76,18 +77,39 @@ public:
     void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
         std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
         size_t activeCount = 0;
-        auto boundComponentID =
-            frontierPair->componentIDs->getMaskValueFromCurFrontierFixedMask(boundNodeID.offset);
-        // If the neighbouring node's componentID is larger, it needs to be updated.
-        mask.forEach([&](auto i) {
-            auto nbrComponentID = frontierPair->componentIDs->getMaskValueFromCurFrontierFixedMask(
-                nbrNodeIDs[i].offset);
+        for (const auto& nbrNodeID : nbrNodeIDs) {
+            auto boundComponentID = frontierPair->componentIDs->getComponentID(boundNodeID);
+            auto nbrComponentID = frontierPair->componentIDs->getComponentID(nbrNodeID);
             if (nbrComponentID > boundComponentID) {
-                frontierPair->componentIDs->updateComponentID(nbrNodeIDs[i], boundComponentID);
+                frontierPair->componentIDs->updateComponentID(nbrNodeID, boundComponentID);
                 std::cout << "pinetree a component is updated: " << nbrComponentID << " and " << boundComponentID << std::endl;
-                mask.getMutableBuffer()[activeCount++] = i;
+                mask.getMutableBuffer()[activeCount++] = 1;
             }
-        });
+            else if (boundComponentID > nbrComponentID) {
+                frontierPair->componentIDs->updateComponentID(boundNodeID, nbrComponentID);
+                mask.getMutableBuffer()[activeCount++] = 1;
+            }
+        }        
+        // auto boundComponentID =
+        //     frontierPair->componentIDs->getMaskValueFromCurFrontierFixedMask(boundNodeID.offset);
+        // If the neighbouring node's componentID is larger, it needs to be updated.
+        // mask.forEach([&](auto i) {
+        //     std::cout << "pinetree edge compute is ran" << std::endl;
+        //     auto nbrComponentID = frontierPair->componentIDs->getMaskValueFromCurFrontierFixedMask(
+        //         nbrNodeIDs[i].offset);
+        //     std::cout << "nbr component is " << nbrComponentID << std::endl;
+        //     std::cout << "bound component is " << boundComponentID << std::endl;
+        //     if (nbrComponentID > boundComponentID) {
+        //         frontierPair->componentIDs->updateComponentID(nbrNodeIDs[i], boundComponentID);
+        //         std::cout << "pinetree a component is updated: " << nbrComponentID << " and " << boundComponentID << std::endl;
+        //         mask.getMutableBuffer()[activeCount++] = i;
+        //     }
+        //     else if (boundComponentID > nbrComponentID) {
+        //         frontierPair->componentIDs->updateComponentID(boundNodeID, nbrComponentID);
+        //         mask.getMutableBuffer()[activeCount++] = i;
+        //     }
+        // });
+
         mask.setToFiltered(activeCount);
     }
 
@@ -203,7 +225,7 @@ public:
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
         auto computeState = WCCCompState(std::move(frontierPair), std::move(edgeCompute));
         GDSUtils::runWCCFrontiersUntilConvergence(executionContext, computeState, graph, ExtendDirection::FWD,
-            60 /* upperBound */);
+            5 /* upperBound */);
         auto vertexCompute =
             WCCVertexCompute(clientContext->getMemoryManager(), sharedState.get(), *frontier);
         GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(), vertexCompute);
