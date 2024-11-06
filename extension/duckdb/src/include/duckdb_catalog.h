@@ -2,7 +2,7 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "common/vector/value_vector.h"
-#include "duckdb_connector.h"
+#include "connector/duckdb_connector.h"
 #include "extension/catalog_extension.h"
 
 namespace kuzu {

@@ -31,7 +31,7 @@ void HttpfsExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     registerFileSystem(db);
     registerExtensionOptions(db);
-    S3EnvironmentCredentialsProvider::setOptionValue(context);
+    S3DownloadOptions::setEnvValue(context);
     HTTPConfigEnvProvider::setOptionValue(context);
 }
 

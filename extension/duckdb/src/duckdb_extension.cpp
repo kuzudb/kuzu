@@ -11,7 +11,7 @@ void DuckDBExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     db->registerStorageExtension(EXTENSION_NAME, std::make_unique<DuckDBStorageExtension>(db));
     httpfs::S3DownloadOptions::registerExtensionOptions(db);
-    httpfs::S3EnvironmentCredentialsProvider::setOptionValue(context);
+    httpfs::S3DownloadOptions::setEnvValue(context);
 }
 
 } // namespace duckdb_extension

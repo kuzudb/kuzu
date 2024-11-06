@@ -1,6 +1,6 @@
 #pragma once
 
-#include "duckdb_connector.h"
+#include "connector/duckdb_connector.h"
 
 namespace kuzu {
 namespace sqlite_extension {

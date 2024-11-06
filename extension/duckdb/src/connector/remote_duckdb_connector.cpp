@@ -1,44 +1,11 @@
-#include "duckdb_connector.h"
+#include "connector/remote_duckdb_connector.h"
 
 #include "common/case_insensitive_map.h"
-#include "common/exception/runtime.h"
-#include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "s3_download_options.h"
 
 namespace kuzu {
 namespace duckdb_extension {
-
-static DuckDBConnectionType getConnectionType(const std::string& path) {
-    if (path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0) {
-        return DuckDBConnectionType::HTTP;
-    } else if (path.rfind("s3://", 0) == 0) {
-        return DuckDBConnectionType::S3;
-    } else {
-        return DuckDBConnectionType::LOCAL;
-    }
-}
-
-std::unique_ptr<duckdb::MaterializedQueryResult> DuckDBConnector::executeQuery(
-    std::string query) const {
-    KU_ASSERT(instance != nullptr && connection != nullptr);
-    auto result = connection->Query(query);
-    if (result->HasError()) {
-        throw common::Exception{result->GetError()};
-    }
-    return result;
-}
-
-void LocalDuckDBConnector::connect(const std::string& dbPath, const std::string& /*catalogName*/,
-    main::ClientContext* context) {
-    if (!context->getVFSUnsafe()->fileOrPathExists(dbPath, context)) {
-        throw common::RuntimeException{
-            common::stringFormat("Given duckdb database path {} does not exist.", dbPath)};
-    }
-    duckdb::DBConfig dbConfig{true /* isReadOnly */};
-    instance = std::make_unique<duckdb::DuckDB>(dbPath, &dbConfig);
-    connection = std::make_unique<duckdb::Connection>(*instance);
-}
 
 void HTTPDuckDBConnector::connect(const std::string& dbPath, const std::string& catalogName,
     main::ClientContext* /*context*/) {
@@ -78,26 +45,11 @@ void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& ca
     options += getDuckDBExtensionOptions(context, httpfs::S3AccessKeyID::NAME);
     options += getDuckDBExtensionOptions(context, httpfs::S3SecretAccessKey::NAME);
     options += getDuckDBExtensionOptions(context, httpfs::S3Region::NAME);
-    options += getDuckDBExtensionOptions(context, httpfs::S3Region::NAME);
+    options += getDuckDBExtensionOptions(context, httpfs::S3URLStyle::NAME);
     options += getDuckDBExtensionOptions(context, httpfs::S3EndPoint::NAME);
     templateQuery = common::stringFormat(templateQuery, options);
     executeQuery(templateQuery);
     executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));
-}
-
-std::unique_ptr<DuckDBConnector> DuckDBConnectorFactory::getDuckDBConnector(
-    const std::string& dbPath) {
-    auto type = getConnectionType(dbPath);
-    switch (type) {
-    case DuckDBConnectionType::LOCAL:
-        return std::make_unique<LocalDuckDBConnector>();
-    case DuckDBConnectionType::HTTP:
-        return std::make_unique<HTTPDuckDBConnector>();
-    case DuckDBConnectionType::S3:
-        return std::make_unique<S3DuckDBConnector>();
-    default:
-        KU_UNREACHABLE;
-    }
 }
 
 } // namespace duckdb_extension

@@ -19,26 +19,26 @@ void S3DownloadOptions::registerExtensionOptions(main::Database* db) {
     ADD_EXTENSION_OPTION(S3Region);
 }
 
-void S3EnvironmentCredentialsProvider::setOptionValue(main::ClientContext* context) {
-    auto accessKeyID = context->getEnvVariable(S3_ACCESS_KEY_ENV_VAR);
-    auto secretAccessKey = context->getEnvVariable(S3_SECRET_KEY_ENV_VAR);
-    auto endpoint = context->getEnvVariable(S3_ENDPOINT_ENV_VAR);
-    auto urlStyle = context->getEnvVariable(S3_URL_STYLE_ENV_VAR);
-    auto region = context->getEnvVariable(S3_REGION_ENV_VAR);
+void S3DownloadOptions::setEnvValue(main::ClientContext* context) {
+    auto accessKeyID = context->getEnvVariable(S3AccessKeyID::NAME);
+    auto secretAccessKey = context->getEnvVariable(S3SecretAccessKey::NAME);
+    auto endpoint = context->getEnvVariable(S3EndPoint::NAME);
+    auto urlStyle = context->getEnvVariable(S3URLStyle::NAME);
+    auto region = context->getEnvVariable(S3Region::NAME);
     if (accessKeyID != "") {
-        context->setExtensionOption("s3_access_key_id", Value::createValue(accessKeyID));
+        context->setExtensionOption(S3AccessKeyID::NAME, Value::createValue(accessKeyID));
     }
     if (secretAccessKey != "") {
-        context->setExtensionOption("s3_secret_access_key", Value::createValue(secretAccessKey));
+        context->setExtensionOption(S3SecretAccessKey::NAME, Value::createValue(secretAccessKey));
     }
     if (endpoint != "") {
-        context->setExtensionOption("s3_endpoint", Value::createValue(endpoint));
+        context->setExtensionOption(S3EndPoint::NAME, Value::createValue(endpoint));
     }
     if (urlStyle != "") {
-        context->setExtensionOption("s3_url_style", Value::createValue(urlStyle));
+        context->setExtensionOption(S3URLStyle::NAME, Value::createValue(urlStyle));
     }
     if (region != "") {
-        context->setExtensionOption("s3_region", Value::createValue(region));
+        context->setExtensionOption(S3Region::NAME, Value::createValue(region));
     }
 }
 
