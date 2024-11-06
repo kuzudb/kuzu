@@ -50,7 +50,7 @@ std::vector<std::string_view> StringUtils::smartSplit(std::string_view input, ch
     for (auto i = 0u; i < input.size(); i++) {
         char c = input[i];
 
-        if (c == '\'' && (stk.size() == 0u || stk.back() != '\'')) {
+        if (c == '\'' && (stk.size() == 0 || stk.back() != '\'')) {
             // Entering/Exiting a single-quoted block.
             insideSingleQuote = !insideSingleQuote;
         } else if (c == splitChar && stk.size() == 0u && !insideSingleQuote) {
@@ -63,7 +63,7 @@ std::vector<std::string_view> StringUtils::smartSplit(std::string_view input, ch
             }
         } else if (c == '{' || c == '(' || c == '[' || (c == '\"' && (stk.size() == 0u || stk.back() != '\"'))) {
             stk.push_back(c);
-        } else if (stk.size() > 0u && openingBracket(c) == stk.back()) {
+        } else if (stk.size() > 0 && openingBracket(c) == stk.back()) {
             stk.pop_back();
         }
     }
