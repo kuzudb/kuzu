@@ -7,9 +7,9 @@
 ---- ok
 -STATEMENT UNWIND ['1', '2', '3'] AS STR RETURN to_json(STR)
 ---- 3
-"1"
-"2"
-"3"
+1
+2
+3
 
 -STATEMENT UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN to_json(NSTD)
 ---- 3

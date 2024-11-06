@@ -1,0 +1,70 @@
+-DATASET CSV empty
+
+--
+
+-CASE JsonExtractTestFromDuckDB
+
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+
+# should go to our NULL
+
+-STATEMENT RETURN json_extract('{"foo": null}', '$.foo')
+---- 1
+null
+
+-STATEMENT RETURN json_extract('{"foo": null}', '$.foo.bar')
+---- ok
+
+-STATEMENT RETURN json_extract(null, '0')
+---- ok
+
+-STATEMENT RETURN json_extract('[null]', '0')
+---- 1
+null
+
+-STATEMENT RETURN json_extract('{"my_field": {"my_nested_field": ["goose", "kuzu"]}}', 'my_field/my_nested_field/1')
+---- 1
+"kuzu"
+
+-STATEMENT RETURN json_extract('{"my_field": {"my_nested_field": ["goose", "kuzukuzukuzukuzu"]}}', 'my_field/my_nested_field/1')
+---- 1
+"kuzukuzukuzukuzu"
+
+-STATEMENT RETURN json_extract('[1, 2, 42]', 2)
+---- 1
+42
+
+# some sqlite tests
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5,{"f":7}]}', '$');
+---- 1
+{"a":2,"c":[4,5,{"f":7}]}
+
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5,{"f":7}]}', '$.c');
+---- 1
+[4,5,{"f":7}]
+
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5,{"f":7}]}', '$.c/2');
+---- 1
+{"f":7}
+
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5,{"f":7}]}', '$.c/2/f');
+---- 1
+7
+
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5,{"f":7}]}', '$.x');
+---- ok
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5],"f":7}', ['$.c','$.a']);
+---- 1
+[[4,5],2]
+
+
+-STATEMENT RETURN json_extract('{"a":2,"c":[4,5,{"f":7}]}', ['$.x', '$.a']);
+---- 1
+[,2]

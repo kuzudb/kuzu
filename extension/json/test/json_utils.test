@@ -109,10 +109,13 @@ True
 [{"a":[1],"b":2,"c":1},1,5,9]
 [1,2,3]
 "ab"
+-STATEMENT UNWIND ['[        {"a":  [1],     "b": 2,"c": 1}, 1,    5, 9]', '[1, 2, 3]', '"ab"'] AS ARR RETURN json_array_length(json(ARR));
+---- 3
+4
+3
+0
 
 -CASE JsonStructureTest2
-#-SKIP
-#TODO(Ziyi): We should fix our sniffing before enabling the test.
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT return json_structure(
@@ -133,6 +136,7 @@ STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE,
 #TODO(sterling): the INF may be need to be supported by database.
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
+
 -STATEMENT return json_structure(
 '{
     "int_array":[42,999,null,null,-42],
@@ -158,6 +162,30 @@ STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE,
 ---- 1
 STRUCT(int_array INT32[], double_array DOUBLE[], date_array DATE[], timestamp_array TIMESTAMP[], varchar_array STRING[], nested_int_array INT32[][], struct STRUCT(a UINT8, b STRING), struct_of_arrays STRUCT(a INT32[], b STRING[]), array_of_structs STRUCT(a UINT8, b STRING)[], map STRUCT(key1 STRING, key2 STRING), union STRING, fixed_int_array UINT8[], fixed_varchar_array STRING[], fixed_nested_int_array UINT8[][], fixed_nested_varchar_array STRING[][], fixed_struct_array STRUCT(a UINT8, b STRING)[], struct_of_fixed_array STRUCT(a UINT8[], b STRING[]), fixed_array_of_int_list INT32[][], list_of_fixed_int_array UINT8[][])
 
+-STATEMENT return json_keys('{
+    "int_array":[42,999,null,null,-42],
+    "double_array":[42.0,null,null,null,null,-42.0],
+    "date_array":["1970-01-01",null,null,null,"2022-05-12"],
+    "timestamp_array":["1970-01-01 00:00:00",null,null,null,"2022-05-12 16:23:45"],
+    "varchar_array":["🦆🦆🦆🦆🦆🦆","goose",null,null],
+    "nested_int_array":[[],[42,999,null,null,-42],null,[],[42,999,null,null,-42]],
+    "struct":{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},
+    "struct_of_arrays":{"a":[42,999,null,null,-42],"b":["🦆🦆🦆🦆🦆🦆","goose",null,null]},
+    "array_of_structs":[{"a":null,"b":null},{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},null],
+    "map":{"key1":"🦆🦆🦆🦆🦆🦆","key2":"goose"},
+    "union":"5",
+    "fixed_int_array":[4,5,6],
+    "fixed_varchar_array":["d","e","f"],
+    "fixed_nested_int_array":[[4,5,6],[null,2,3],[4,5,6]],
+    "fixed_nested_varchar_array":[["d","e","f"],["a",null,"c"],["d","e","f"]],
+    "fixed_struct_array":[{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},{"a":null,"b":null},{"a":42,"b":"🦆🦆🦆🦆🦆🦆"}],
+    "struct_of_fixed_array":{"a":[4,5,6],"b":["d","e","f"]},
+    "fixed_array_of_int_list":[[42,999,null,null,-42],[],[42,999,null,null,-42]],
+    "list_of_fixed_int_array":[[4,5,6],[null,2,3],[4,5,6]]
+    }'
+);
+---- 1
+[int_array,double_array,date_array,timestamp_array,varchar_array,nested_int_array,struct,struct_of_arrays,array_of_structs,map,union,fixed_int_array,fixed_varchar_array,fixed_nested_int_array,fixed_nested_varchar_array,fixed_struct_array,struct_of_fixed_array,fixed_array_of_int_list,list_of_fixed_int_array]
 
 #"blob":"\\x00\\x00\\x00a"
 
