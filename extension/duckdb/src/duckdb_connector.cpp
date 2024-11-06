@@ -1,5 +1,6 @@
 #include "duckdb_connector.h"
 
+#include "common/case_insensitive_map.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
@@ -48,15 +49,17 @@ void HTTPDuckDBConnector::connect(const std::string& dbPath, const std::string& 
     executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));
 }
 
-static void setDuckDBExtensionOptions(const DuckDBConnector& connector,
-    main::ClientContext* context, std::string optionName) {
-    auto optionNameInKuzu = common::stringFormat("duckdb_{}", optionName);
-    if (!context->isOptionSet(optionNameInKuzu)) {
-        return;
+static std::string getDuckDBExtensionOptions(main::ClientContext* context, std::string optionName) {
+    static common::case_insensitive_map_t<std::string> DUCKDB_OPTION_NAMES = {
+        {httpfs::S3AccessKeyID::NAME, "KEY_ID"}, {httpfs::S3SecretAccessKey::NAME, "SECRET"},
+        {httpfs::S3EndPoint::NAME, "ENDPOINT"}, {httpfs::S3URLStyle::NAME, "URL_STYLE"},
+        {httpfs::S3Region::NAME, "REGION"}};
+    auto optionNameInDuckDB = DUCKDB_OPTION_NAMES.at(optionName);
+    if (!context->isOptionSet(optionName)) {
+        return "";
     }
-    auto optionValueInKuzu = context->getCurrentSetting(optionNameInKuzu).toString();
-    connector.executeQuery(
-        common::stringFormat("set {}='{}';", std::move(optionName), std::move(optionValueInKuzu)));
+    auto optionValueInKuzu = context->getCurrentSetting(optionName).toString();
+    return common::stringFormat("{} '{}',", optionNameInDuckDB, optionValueInKuzu);
 }
 
 void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& catalogName,
@@ -66,11 +69,18 @@ void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& ca
     connection = std::make_unique<duckdb::Connection>(*instance);
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
-    setDuckDBExtensionOptions(*this, context, "s3_access_key_id");
-    setDuckDBExtensionOptions(*this, context, "s3_secret_access_key");
-    setDuckDBExtensionOptions(*this, context, "s3_endpoint");
-    setDuckDBExtensionOptions(*this, context, "s3_url_style");
-    setDuckDBExtensionOptions(*this, context, "s3_region");
+    std::string templateQuery = R"(CREATE SECRET s3_secret (
+        {}
+        TYPE S3
+    );)";
+    std::string options = "";
+    options += getDuckDBExtensionOptions(context, "s3_access_key_id");
+    options += getDuckDBExtensionOptions(context, "s3_secret_access_key");
+    options += getDuckDBExtensionOptions(context, "s3_region");
+    options += getDuckDBExtensionOptions(context, "s3_url_style");
+    options += getDuckDBExtensionOptions(context, "s3_endpoint");
+    templateQuery = common::stringFormat(templateQuery, options);
+    executeQuery(templateQuery);
     executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));
 }
 

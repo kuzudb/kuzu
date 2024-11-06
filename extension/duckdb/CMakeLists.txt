@@ -5,13 +5,9 @@ else ()
 endif ()
 find_package(DuckDB REQUIRED)
 
-include_directories(
-        ${PROJECT_SOURCE_DIR}/src/include
-        src/include
-        ${DuckDB_INCLUDE_DIRS})
-
 add_library(duckdb_extension
         SHARED
+        src/duckdb_connector.cpp
         src/duckdb_extension.cpp
         src/duckdb_storage.cpp
         src/duckdb_scan.cpp
@@ -19,8 +15,15 @@ add_library(duckdb_extension
         src/duckdb_catalog.cpp
         src/duckdb_table_catalog_entry.cpp
         src/duckdb_functions.cpp
-        src/duckdb_s3_auth.cpp
-        src/duckdb_connector.cpp)
+        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp)
+
+target_include_directories(
+        duckdb_extension
+        PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        src/include
+        ${DuckDB_INCLUDE_DIRS}
+        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include)
 
 set_extension_properties(duckdb_extension duckdb)
 
