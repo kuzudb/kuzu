@@ -11,6 +11,9 @@
 #include "storage/file_handle.h"
 
 namespace kuzu {
+namespace main {
+struct DBConfig;
+};
 namespace common {
 class VirtualFileSystem;
 };
@@ -203,6 +206,8 @@ public:
             return func(*spiller);
         }
     }
+
+    void resetSpiller(const main::DBConfig& dbConfig);
 
 protected:
     // Reclaims used memory until the given size to reserve is available

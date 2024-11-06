@@ -458,6 +458,19 @@ uint64_t BufferManager::freeUsedMemory(uint64_t size) {
     return usedMemory.fetch_sub(size);
 }
 
+void BufferManager::resetSpiller(const main::DBConfig& dbConfig) {
+    KU_ASSERT(dbConfig.spillToDiskTmpFile.has_value());
+    if (dbConfig.readOnly) {
+        throw BufferManagerException("Cannot set spill_to_disk_tmp_file for a read only database!");
+    }
+    if (dbConfig.spillToDiskTmpFile->empty()) {
+        // Disable spilling to disk when the string is empty
+        spiller = nullptr;
+    } else {
+        spiller = std::make_unique<Spiller>(*dbConfig.spillToDiskTmpFile, *this, vfs);
+    }
+}
+
 BufferManager::~BufferManager() = default;
 
 } // namespace storage
