@@ -10,7 +10,6 @@
 #endif
 
 #include "common/exception/exception.h"
-#include "common/exception/extension.h"
 #include "common/file_system/virtual_file_system.h"
 #include "extension/extension.h"
 #include "main/db_config.h"
