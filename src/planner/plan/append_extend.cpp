@@ -133,7 +133,8 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
     auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, recursiveInfo->lowerBound,
         recursiveInfo->upperBound, semantic, direction);
-    bindData->extendFromSource = *boundNode == *rel->getSrcNode();
+    // If we extend from right to left, we need to print path in reverse direction.
+    bindData->flipPath = *boundNode == *rel->getRightNode();
     if (direction == common::ExtendDirection::BOTH) {
         bindData->directionExpr = recursiveInfo->pathEdgeDirectionsExpr;
     }
@@ -193,7 +194,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         std::make_shared<LogicalPathPropertyProbe>(rel, probePlan.getLastOperator(),
             pathNodePropertyScanRoot, pathRelPropertyScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->direction = direction;
-    pathPropertyProbe->extendFromSource_ = *boundNode == *rel->getSrcNode();
+    pathPropertyProbe->extendFromLeft = *boundNode == *rel->getLeftNode();
     pathPropertyProbe->pathNodeIDs = recursiveInfo->pathNodeIDsExpr;
     pathPropertyProbe->pathEdgeIDs = recursiveInfo->pathEdgeIDsExpr;
     pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;

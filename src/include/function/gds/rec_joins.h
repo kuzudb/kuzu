@@ -28,7 +28,7 @@ struct RJBindData final : public GDSBindData {
 
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
-    bool extendFromSource = true;
+    bool flipPath = false; // See PathsOutputWriterInfo::flipPath for comments.
     bool writePath = true;
 
     std::shared_ptr<binder::Expression> directionExpr = nullptr;

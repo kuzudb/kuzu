@@ -33,9 +33,9 @@ void PathPropertyProbe::initLocalStateInternal(ResultSet* /*resultSet_*/,
         pathRelsPropertyDataVectors.push_back(
             StructVector::getFieldVector(relsDataVector, fieldIdx).get());
     }
-    if (info.srcNodeIDPos.isValid()) {
-        inputSrcNodeIDVector = resultSet->getValueVector(info.srcNodeIDPos).get();
-        inputDstNodeIDVector = resultSet->getValueVector(info.dstNodeIDPos).get();
+    if (info.leftNodeIDPos.isValid()) {
+        inputLeftNodeIDVector = resultSet->getValueVector(info.leftNodeIDPos).get();
+        inputRightNodeIDVector = resultSet->getValueVector(info.rightNodeIDPos).get();
         inputNodeIDsVector = resultSet->getValueVector(info.inputNodeIDsPos).get();
         inputRelIDsVector = resultSet->getValueVector(info.inputEdgeIDsPos).get();
         if (info.directionPos.isValid()) {
@@ -141,50 +141,111 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
     auto& selVector = inputNodeIDsVector->state->getSelVector();
     auto inputNodeIDsDataVector = ListVector::getDataVector(inputNodeIDsVector);
     // Copy rel src&dst IDs
-    switch (info.pathSrcDstComputeInfo) {
-    case PathSrcDstComputeInfo::ORDERED: {
-        for (auto i = 0u; i < selVector.getSelSize(); ++i) {
-            auto srcNodeID = inputSrcNodeIDVector->getValue<nodeID_t>(i);
-            auto dstNodeID = inputDstNodeIDVector->getValue<nodeID_t>(i);
-            auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
-            auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
-            if (relListEntry.size == 0) {
-                continue;
+
+    switch (info.extendDirection) {
+    case ExtendDirection::FWD: {
+        if (info.extendFromLeft) {
+            // Example graph src->1->2->3->dst
+            // Input: src, dst, [1, 2, 3]
+            // Output:
+            // - srcIDs [src, 1, 2, 3]
+            // - dstIDs [1, 2, 3, dst]
+            for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                auto leftNodeID = inputLeftNodeIDVector->getValue<nodeID_t>(i);
+                auto rightNodeID = inputRightNodeIDVector->getValue<nodeID_t>(i);
+                auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
+                auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
+                if (relListEntry.size == 0) {
+                    continue;
+                }
+                for (auto j = 0u; j < nodeListEntry.size; ++j) {
+                    auto id = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
+                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
+                    pathDstNodeIDsDataVector->setValue(relListEntry.offset + j, id);
+                }
+                pathSrcNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
+                pathDstNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
+                    rightNodeID);
             }
-            for (auto j = 0u; j < nodeListEntry.size; ++j) {
-                auto id = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
-                pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
-                pathDstNodeIDsDataVector->setValue(relListEntry.offset + j, id);
+        } else {
+            // Example graph src<-1<-2<-3<-dst
+            // Input: src, dst, [1, 2, 3]
+            // Output:
+            // - srcIDs [1, 2, 3, dst]
+            // - dstIDs [src, 1, 2, 3]
+            for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                auto leftNodeID = inputLeftNodeIDVector->getValue<nodeID_t>(i);
+                auto rightNodeID = inputRightNodeIDVector->getValue<nodeID_t>(i);
+                auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
+                auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
+                if (relListEntry.size == 0) {
+                    continue;
+                }
+                for (auto j = 0u; j < nodeListEntry.size; ++j) {
+                    auto id = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
+                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j, id);
+                    pathDstNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
+                }
+                pathSrcNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
+                    rightNodeID);
+                pathDstNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
             }
-            pathSrcNodeIDsDataVector->setValue(relListEntry.offset, srcNodeID);
-            pathDstNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
-                dstNodeID);
         }
     } break;
-    case PathSrcDstComputeInfo::FLIP: {
-        for (auto i = 0u; i < selVector.getSelSize(); ++i) {
-            auto srcNodeID = inputSrcNodeIDVector->getValue<nodeID_t>(i);
-            auto dstNodeID = inputDstNodeIDVector->getValue<nodeID_t>(i);
-            auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
-            auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
-            if (relListEntry.size == 0) {
-                continue;
+    case common::ExtendDirection::BWD: {
+        if (info.extendFromLeft) {
+            // Example graph src<-1<-2<-3<-dst
+            // Input: src, dst, [1, 2, 3]
+            // Output:
+            // - srcIDs [1, 2, 3, dst]
+            // - dstIDs [src, 1, 2, 3]
+            for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                auto leftNodeID = inputLeftNodeIDVector->getValue<nodeID_t>(i);
+                auto rightNodeID = inputRightNodeIDVector->getValue<nodeID_t>(i);
+                auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
+                auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
+                if (relListEntry.size == 0) {
+                    continue;
+                }
+                for (auto j = 0u; j < nodeListEntry.size; ++j) {
+                    auto id = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
+                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j, id);
+                    pathDstNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
+                }
+                pathSrcNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
+                    rightNodeID);
+                pathDstNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
             }
-            for (auto j = 0u; j < nodeListEntry.size; ++j) {
-                auto id = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
-                pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
-                pathDstNodeIDsDataVector->setValue(relListEntry.offset + j, id);
+        } else {
+            // Example graph src->1->2->3->dst
+            // Input: src, dst, [1, 2, 3]
+            // Output:
+            // - srcIDs [src, 1, 2, 3]
+            // - dstIDs [1, 2, 3, dst]
+            for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+                auto leftNodeID = inputLeftNodeIDVector->getValue<nodeID_t>(i);
+                auto rightNodeID = inputRightNodeIDVector->getValue<nodeID_t>(i);
+                auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
+                auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
+                if (relListEntry.size == 0) {
+                    continue;
+                }
+                for (auto j = 0u; j < nodeListEntry.size; ++j) {
+                    auto id = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
+                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
+                    pathDstNodeIDsDataVector->setValue(relListEntry.offset + j, id);
+                }
+                pathSrcNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
+                pathDstNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
+                    rightNodeID);
             }
-            pathSrcNodeIDsDataVector->setValue(relListEntry.offset, srcNodeID);
-            pathDstNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
-                dstNodeID);
         }
     } break;
-    case PathSrcDstComputeInfo::RUNTIME_CHECK: {
+    case common::ExtendDirection::BOTH: {
         auto directionDataVector = ListVector::getDataVector(inputDirectionVector);
         for (auto i = 0u; i < selVector.getSelSize(); ++i) {
-            auto srcNodeID = inputSrcNodeIDVector->getValue<nodeID_t>(i);
-            auto dstNodeID = inputDstNodeIDVector->getValue<nodeID_t>(i);
+            auto leftNodeID = inputLeftNodeIDVector->getValue<nodeID_t>(i);
+            auto rightNodeID = inputRightNodeIDVector->getValue<nodeID_t>(i);
             auto nodeListEntry = inputNodeIDsVector->getValue<list_entry_t>(i);
             auto relListEntry = inputRelIDsVector->getValue<list_entry_t>(i);
             if (relListEntry.size == 0) {
@@ -192,13 +253,12 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
             }
             if (nodeListEntry.size == 0) {
                 KU_ASSERT(relListEntry.size == 1);
-                if (isCorrectOrder(directionDataVector, relListEntry.offset,
-                        info.extendFromSource)) {
-                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset, srcNodeID);
-                    pathDstNodeIDsDataVector->setValue(relListEntry.offset, dstNodeID);
+                if (isCorrectOrder(directionDataVector, relListEntry.offset, info.extendFromLeft)) {
+                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
+                    pathDstNodeIDsDataVector->setValue(relListEntry.offset, rightNodeID);
                 } else {
-                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset, dstNodeID);
-                    pathDstNodeIDsDataVector->setValue(relListEntry.offset, srcNodeID);
+                    pathSrcNodeIDsDataVector->setValue(relListEntry.offset, rightNodeID);
+                    pathDstNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
                 }
                 continue;
             }
@@ -206,16 +266,17 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
                 auto from = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j);
                 auto to = inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset + j + 1);
                 writeSrcDstNodeIDs(from, to, directionDataVector, pathSrcNodeIDsDataVector,
-                    pathDstNodeIDsDataVector, relListEntry.offset + j + 1, info.extendFromSource);
+                    pathDstNodeIDsDataVector, relListEntry.offset + j + 1, info.extendFromLeft);
             }
-            writeSrcDstNodeIDs(srcNodeID,
+            writeSrcDstNodeIDs(leftNodeID,
                 inputNodeIDsDataVector->getValue<nodeID_t>(nodeListEntry.offset),
                 directionDataVector, pathSrcNodeIDsDataVector, pathDstNodeIDsDataVector,
-                relListEntry.offset, info.extendFromSource);
+                relListEntry.offset, info.extendFromLeft);
             writeSrcDstNodeIDs(inputNodeIDsDataVector->getValue<nodeID_t>(
                                    nodeListEntry.offset + nodeListEntry.size - 1),
-                dstNodeID, directionDataVector, pathSrcNodeIDsDataVector, pathDstNodeIDsDataVector,
-                relListEntry.offset + relListEntry.size - 1, info.extendFromSource);
+                rightNodeID, directionDataVector, pathSrcNodeIDsDataVector,
+                pathDstNodeIDsDataVector, relListEntry.offset + relListEntry.size - 1,
+                info.extendFromLeft);
         }
     } break;
     default:
