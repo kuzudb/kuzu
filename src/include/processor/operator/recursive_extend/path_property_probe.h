@@ -29,27 +29,11 @@ struct PathPropertyProbeLocalState {
     }
 };
 
-// The input to PathPropertyProbe is a list of node ids and rel ids. We need to reconstruct src
-//  & dst node ids from input node ids.
-// e.g. given input src, [1, 2, 3], dst
-// If all rels are in forward direction, i.e. ORDERED
-// the src_ids should be [src, 1, 2, 3] and dst_ids should be [1, 2, 3, dst]
-// If all rels are in backward direction, i.e. FLIP
-// the src_ids should be [1, 2, 3, dst] and dst_ids should be [src, 1, 2, 3]
-// If rels direction is not known at compile time, then we need to check the direction vector
-// at runtime.
-//enum class PathSrcDstComputeInfo : uint8_t {
-//    ORDERED = 0,
-//    FLIP = 1,
-//    RUNTIME_CHECK = 2,
-//    UNKNOWN = 3,
-//};
-
 struct PathPropertyProbeInfo {
     DataPos pathPos = DataPos();
 
-    DataPos srcNodeIDPos = DataPos();
-    DataPos dstNodeIDPos = DataPos();
+    DataPos leftNodeIDPos = DataPos();
+    DataPos rightNodeIDPos = DataPos();
     DataPos inputNodeIDsPos = DataPos();
     DataPos inputEdgeIDsPos = DataPos();
     DataPos directionPos = DataPos();
@@ -70,8 +54,8 @@ struct PathPropertyProbeInfo {
 private:
     PathPropertyProbeInfo(const PathPropertyProbeInfo& other) {
         pathPos = other.pathPos;
-        srcNodeIDPos = other.srcNodeIDPos;
-        dstNodeIDPos = other.dstNodeIDPos;
+        leftNodeIDPos = other.leftNodeIDPos;
+        rightNodeIDPos = other.rightNodeIDPos;
         inputNodeIDsPos = other.inputNodeIDsPos;
         inputEdgeIDsPos = other.inputEdgeIDsPos;
         directionPos = other.directionPos;
@@ -133,8 +117,8 @@ private:
     std::vector<common::ValueVector*> pathNodesPropertyDataVectors;
     std::vector<common::ValueVector*> pathRelsPropertyDataVectors;
 
-    common::ValueVector* inputSrcNodeIDVector = nullptr;
-    common::ValueVector* inputDstNodeIDVector = nullptr;
+    common::ValueVector* inputLeftNodeIDVector = nullptr;
+    common::ValueVector* inputRightNodeIDVector = nullptr;
     common::ValueVector* inputNodeIDsVector = nullptr;
     common::ValueVector* inputRelIDsVector = nullptr;
     common::ValueVector* inputDirectionVector = nullptr;

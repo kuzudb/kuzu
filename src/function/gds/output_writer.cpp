@@ -229,7 +229,7 @@ void PathsOutputWriter::writePath(const std::vector<ParentList*>& path) const {
     }
     beginWritePath(path.size());
     if (!info.flipPath) {
-        // Write path in reverse direction because we append ParentList from dst to src.
+        // By default, write path in reverse direction because we append ParentList from dst to src.
         writePathBwd(path);
     } else {
         // Write path in original direction because computation started from dst node.
