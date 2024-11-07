@@ -280,7 +280,9 @@ std::string Catalog::genSerialName(const std::string& tableName, const std::stri
 }
 
 void Catalog::createType(Transaction* transaction, std::string name, LogicalType type) {
-    KU_ASSERT(!types->containsEntry(transaction, name));
+    if (types->containsEntry(transaction, name)) {
+        return;
+    }
     auto entry = std::make_unique<TypeCatalogEntry>(std::move(name), std::move(type));
     types->createEntry(transaction, std::move(entry));
 }

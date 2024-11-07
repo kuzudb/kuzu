@@ -126,12 +126,16 @@ void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
 
 void Database::registerStorageExtension(std::string name,
     std::unique_ptr<StorageExtension> storageExtension) {
+    if (storageExtensions.contains(name)) {
+        return;
+    }
     storageExtensions.emplace(std::move(name), std::move(storageExtension));
 }
 
 void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue) {
     if (extensionOptions->getExtensionOption(name) != nullptr) {
-        throw ExtensionException{stringFormat("Extension option {} already exists.", name)};
+        // One extension option can be shared by multiple extensions.
+        return;
     }
     extensionOptions->addExtensionOption(name, type, std::move(defaultValue));
 }
