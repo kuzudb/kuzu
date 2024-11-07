@@ -23,15 +23,9 @@ public:
     const binder::BoundGDSCallInfo& getInfo() const { return info; }
     binder::BoundGDSCallInfo& getInfoUnsafe() { return info; }
 
-    void setNbrTableIDSet(common::table_id_set_t set) {
-        nbrTableIDSet = set;
-    }
-    bool hasNbrTableIDSet() const {
-        return !nbrTableIDSet.empty();
-    }
-    common::table_id_set_t getNbrTableIDSet() const {
-        return nbrTableIDSet;
-    }
+    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = set; }
+    bool hasNbrTableIDSet() const { return !nbrTableIDSet.empty(); }
+    common::table_id_set_t getNbrTableIDSet() const { return nbrTableIDSet; }
 
     void setNodePredicateRoot(std::shared_ptr<LogicalOperator> op) {
         nodePredicateRoot = std::move(op);

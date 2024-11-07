@@ -103,9 +103,7 @@ struct GDSCallSharedState {
     void returnLocalTable(FactorizedTable* table);
     void mergeLocalTables();
 
-    void setNbrTableIDSet(common::table_id_set_t set) {
-        nbrTableIDSet = set;
-    }
+    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = set; }
     bool inNbrTableIDs(common::table_id_t tableID) const {
         if (nbrTableIDSet.empty()) {
             return true;
