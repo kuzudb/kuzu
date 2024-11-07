@@ -19,7 +19,7 @@ std::string ResultCollectorPrintInfo::toString() const {
     return result;
 }
 
-void ResultCollector::initOptionalLocalState(ResultSet* resultSet, ExecutionContext* context) {
+void ResultCollector::initNecessaryLocalState(ResultSet* resultSet, ExecutionContext* context) {
     payloadVectors.reserve(info.payloadPositions.size());
     for (auto& pos : info.payloadPositions) {
         auto vec = resultSet->getValueVector(pos).get();
@@ -36,7 +36,7 @@ void ResultCollector::initOptionalLocalState(ResultSet* resultSet, ExecutionCont
 }
 
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    initOptionalLocalState(resultSet, context);
+    initNecessaryLocalState(resultSet, context);
     localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
         info.tableSchema.copy());
 }
@@ -60,7 +60,7 @@ void ResultCollector::finalizeInternal(ExecutionContext* context) {
     case AccumulateType::OPTIONAL_: {
         auto localResultSet = processor::ProcessorTask::populateResultSet(this,
             context->clientContext->getMemoryManager());
-        initOptionalLocalState(localResultSet.get(), context);
+        initNecessaryLocalState(localResultSet.get(), context);
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to
         // check if the state if unFlat or not. This should no longer be necessary.
         // TODO(Ziyi): add an interface in factorized table

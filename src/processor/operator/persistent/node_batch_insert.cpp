@@ -168,7 +168,6 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler) const {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
-    //    const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
     auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
 
@@ -219,6 +218,8 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
 
 void NodeBatchInsert::finalize(ExecutionContext* context) {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
+    const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
+    KU_ASSERT(!nodeLocalState->errorHandler.has_value());
     auto errorHandler = createErrorHandler(context);
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
