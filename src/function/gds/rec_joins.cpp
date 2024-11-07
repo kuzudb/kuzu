@@ -2,7 +2,9 @@
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/exception/interrupt.h"
 #include "common/exception/runtime.h"
+#include "common/task_system/progress_bar.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
@@ -166,39 +168,61 @@ private:
     std::unique_ptr<RJOutputWriter> writer;
 };
 
+static double getRJProgress(common::offset_t totalNumNodes, common::offset_t completedNumNodes) {
+    if (totalNumNodes == 0) {
+        return 0;
+    }
+    return (double)completedNumNodes / totalNumNodes;
+}
+
 void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto clientContext = executionContext->clientContext;
+    auto graph = sharedState->graph.get();
     auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
-    for (auto& tableID : sharedState->graph->getNodeTableIDs()) {
+    common::offset_t totalNumNodes = 0;
+    if (inputNodeMaskMap->enabled()) {
+        totalNumNodes = inputNodeMaskMap->getNumMaskedNode();
+    } else {
+        for (auto& tableID : graph->getNodeTableIDs()) {
+            totalNumNodes += graph->getNumNodes(executionContext->clientContext->getTx(), tableID);
+        }
+    }
+    common::offset_t completedNumNodes = 0;
+    for (auto& tableID : graph->getNodeTableIDs()) {
         if (!inputNodeMaskMap->containsTableID(tableID)) {
             continue;
         }
-        auto calcFun = [tableID, executionContext, clientContext, this](offset_t offset) {
+        auto calcFunc = [tableID, graph, executionContext, clientContext, this](offset_t offset) {
+            if (clientContext->interrupted()) {
+                throw InterruptException{};
+            }
             auto sourceNodeID = nodeID_t{offset, tableID};
             RJCompState rjCompState = getRJCompState(executionContext, sourceNodeID);
             rjCompState.initSource(sourceNodeID);
             auto rjBindData = bindData->ptrCast<RJBindData>();
-            GDSUtils::runFrontiersUntilConvergence(executionContext, rjCompState,
-                sharedState->graph.get(), rjBindData->extendDirection, rjBindData->upperBound);
+            GDSUtils::runFrontiersUntilConvergence(executionContext, rjCompState, graph,
+                rjBindData->extendDirection, rjBindData->upperBound);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());
-            GDSUtils::runVertexComputeIteration(executionContext, sharedState->graph.get(),
-                *vertexCompute);
+            GDSUtils::runVertexComputeIteration(executionContext, graph, *vertexCompute);
         };
-        auto numNodes =
-            sharedState->graph->getNumNodes(executionContext->clientContext->getTx(), tableID);
+        auto numNodes = graph->getNumNodes(executionContext->clientContext->getTx(), tableID);
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         if (mask->isEnabled()) {
             for (const auto& offset : mask->range(0, numNodes)) {
-                calcFun(offset);
+                calcFunc(offset);
+                clientContext->getProgressBar()->updateProgress(executionContext->queryID,
+                    getRJProgress(totalNumNodes, completedNumNodes++));
                 if (sharedState->exceedLimit()) {
                     break;
                 }
             }
         } else {
             for (auto offset = 0u; offset < numNodes; ++offset) {
-                calcFun(offset);
+                calcFunc(offset);
+                clientContext->getProgressBar()->updateProgress(executionContext->queryID,
+                    getRJProgress(totalNumNodes, completedNumNodes++));
                 if (sharedState->exceedLimit()) {
                     break;
                 }
