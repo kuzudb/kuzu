@@ -38,6 +38,7 @@ static void scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
 static void scheduleWCCFrontierTask(table_id_t relTableID, graph::Graph* graph,
     ExtendDirection extendDirection, WCCCompState& wccCompState,
     processor::ExecutionContext* context) {
+    std::cout << "pinetree FrontierTask calls edgeCompute " << std::endl;
     auto clientContext = context->clientContext;
     auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *wccCompState.edgeCompute);
     auto sharedState = std::make_shared<FrontierTaskSharedState>(*wccCompState.frontierPair);
@@ -115,6 +116,8 @@ void GDSUtils::runWCCFrontiersUntilConvergence(processor::ExecutionContext* cont
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {
+                std::cout << "pinetree ran???" << std::endl;
+                std::cout << "pinetree from nodeTable " << relTableIDInfo.fromNodeTableID << " to " << relTableIDInfo.toNodeTableID << std::endl;
                 wccCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
                 scheduleWCCFrontierTask(relTableIDInfo.relTableID, graph, common::ExtendDirection::FWD,

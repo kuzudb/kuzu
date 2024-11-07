@@ -162,7 +162,9 @@ public:
 
     // This should be called to update node's componentID.
     // It takes the atomic pointer to the node in process, and updates atomically.
-    void updateComponentID(const common::nodeID_t& node, uint64_t newComponentID) {
+    bool updateComponentID(const common::nodeID_t& node, common::nodeID_t& newComponent) {
+        uint64_t newComponentID = getComponentID(newComponent);
+        bool return_val = false;
         // Get a reference to the component ID of the node
         std::atomic<uint64_t>& currentComponentID = getCurFrontierFixedMask()[node.offset];
         std::atomic<uint64_t>& nextComponentID = getNextFrontierFixedMask()[node.offset];
@@ -177,6 +179,7 @@ public:
         uint64_t expectedPostComponentID = currentComponentID.load(std::memory_order_relaxed);
         std::cout << "pinetree currentComponentID post " << expectedPostComponentID << std::endl;
         if (expectedComponentID != expectedPostComponentID) {
+            return_val = true;
             frontierAltered = true;
         }
         expectedComponentID = nextComponentID.load(std::memory_order_relaxed);
@@ -187,6 +190,7 @@ public:
         }
         // auto memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(masks.find(node.tableID)->second.get());
         // memBufferPtr[node.offset].store(newComponentID, std::memory_order_relaxed);
+        return return_val;
     }
 
     // Gets the componentID of the node in the current Frontier
@@ -206,15 +210,8 @@ public:
     }
 
     // Functions to set nodes as active
-    void setActive(const common::SelectionVector& mask,
-        std::span<const common::nodeID_t> nodeIDs) override {
-        auto frontierMask = getNextFrontierFixedMask();
-        mask.forEach([&](auto i) {
-            frontierMask[nodeIDs[i].offset].store(
-                std::min(frontierMask[nodeIDs[i].offset].load(std::memory_order_relaxed),
-                    (nodeIDs[i].offset)),
-                std::memory_order_relaxed);
-        });
+    void setActive(std::span<const common::nodeID_t> nodeIDs) override {
+        return;
     }
 
     uint64_t getComponentID(common::nodeID_t nodeID) const {

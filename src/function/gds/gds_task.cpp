@@ -1,5 +1,5 @@
 #include "function/gds/gds_task.h"
-
+#include <iostream>
 #include "graph/graph.h"
 
 using namespace kuzu::common;
@@ -9,6 +9,7 @@ namespace function {
 
 static uint64_t computeScanResult(nodeID_t sourceNodeID, graph::GraphScanState::Chunk& chunk,
     EdgeCompute& ec, FrontierPair& frontierPair, bool isFwd) {
+    std::cout << "pinetree computeScanResult calls edgeCompute" << std::endl;
     auto activeNodes = ec.edgeCompute(sourceNodeID, chunk, isFwd);
     frontierPair.getNextFrontierUnsafe().setActive(activeNodes);
     return chunk.size();
@@ -26,6 +27,7 @@ void FrontierTask::run() {
             if (sharedState->frontierPair.curFrontier->isActive(nodeID)) {
                 switch (info.direction) {
                 case ExtendDirection::FWD: {
+                    std::cout << "pinetree run" << std::endl;
                     for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
                         numApproxActiveNodesForNextIter += computeScanResult(nodeID, chunk,
                             *localEc, sharedState->frontierPair, true);

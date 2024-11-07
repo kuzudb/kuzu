@@ -74,22 +74,18 @@ class WCCEdgeCompute : public EdgeCompute {
 public:
     WCCEdgeCompute(WCCFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    void edgeCompute(nodeID_t boundNodeID, std::span<const nodeID_t> nbrNodeIDs,
-        std::span<const relID_t> edgeIDs, SelectionVector& mask, bool isFwd) override {
-        size_t activeCount = 0;
-        for (const auto& nbrNodeID : nbrNodeIDs) {
-            auto boundComponentID = frontierPair->componentIDs->getComponentID(boundNodeID);
-            auto nbrComponentID = frontierPair->componentIDs->getComponentID(nbrNodeID);
-            if (nbrComponentID > boundComponentID) {
-                frontierPair->componentIDs->updateComponentID(nbrNodeID, boundComponentID);
-                std::cout << "pinetree a component is updated: " << nbrComponentID << " and " << boundComponentID << std::endl;
-                mask.getMutableBuffer()[activeCount++] = 1;
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::GraphScanState::Chunk& chunk, bool isFwd) override {
+        std::cout << "pinetree called by edgeCompute" << std::endl;
+        std::cout << "pinetree chunk size" << chunk.size() << std::endl;
+        std::vector<nodeID_t> result;
+        chunk.forEach([&](auto nbrNodeID, auto) {
+            std::cout << "pinetree nbrNodeID is " << frontierPair->componentIDs->getComponentID(nbrNodeID) << std::endl;
+            if (frontierPair->componentIDs->updateComponentID(boundNodeID, nbrNodeID)) {
+                result.push_back(nbrNodeID);
             }
-            else if (boundComponentID > nbrComponentID) {
-                frontierPair->componentIDs->updateComponentID(boundNodeID, nbrComponentID);
-                mask.getMutableBuffer()[activeCount++] = 1;
-            }
-        }        
+        });
+        return result;  
+    }   
         // auto boundComponentID =
         //     frontierPair->componentIDs->getMaskValueFromCurFrontierFixedMask(boundNodeID.offset);
         // If the neighbouring node's componentID is larger, it needs to be updated.
@@ -109,9 +105,6 @@ public:
         //         mask.getMutableBuffer()[activeCount++] = i;
         //     }
         // });
-
-        mask.setToFiltered(activeCount);
-    }
 
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<WCCEdgeCompute>(frontierPair);

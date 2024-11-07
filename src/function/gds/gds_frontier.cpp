@@ -144,7 +144,7 @@ void WCCFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTa
     componentIDs->fixCurFrontierNodeTable(curFrontierTableID);
     componentIDs->fixNextFrontierNodeTable(nextFrontierTableID);
     morselDispatcher.init(curFrontierTableID,
-        componentIDs->getNumNodesInCurFrontierFixedNodeTable());
+        componentIDs->getInitialActiveNodeCount());
 }
 
 void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
