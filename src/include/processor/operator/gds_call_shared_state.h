@@ -103,6 +103,14 @@ struct GDSCallSharedState {
     void returnLocalTable(FactorizedTable* table);
     void mergeLocalTables();
 
+    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = set; }
+    bool inNbrTableIDs(common::table_id_t tableID) const {
+        if (nbrTableIDSet.empty()) {
+            return true;
+        }
+        return nbrTableIDSet.contains(tableID);
+    }
+
 private:
     std::unique_ptr<NodeOffsetMaskMap> inputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> outputNodeMask = nullptr;
@@ -112,6 +120,8 @@ private:
     // minimized. Or we optimize ftable to be more memory efficient when number of tuples is small.
     std::stack<FactorizedTable*> availableLocalTables;
     std::vector<std::shared_ptr<FactorizedTable>> localTables;
+
+    common::table_id_set_t nbrTableIDSet;
 };
 
 } // namespace processor
