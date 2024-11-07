@@ -45,10 +45,8 @@ void SharedFileErrorHandler::handleError(CopyFromFileError error) {
     }
     ++linesPerBlock[blockIdx].invalidLines;
 
-    // we only cache an error in the shared handler if we cannot throw right now but we want to
-    // do it later
-    // for the sake of reporting warnings, errors are sent directly to
-    // WarningContext
+    // throwing of the error is not done when in the middle of parsing blocks
+    // so we cache the error to be thrown later
     tryCacheError(std::move(error), lockGuard);
 }
 
@@ -211,6 +209,8 @@ void LocalFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
 }
 
 LocalFileErrorHandler::~LocalFileErrorHandler() {
+    // we don't want to throw in the destructor
+    // so we leave throwing for later in the parsing stage or during finalize
     flushCachedErrors(false);
 }
 

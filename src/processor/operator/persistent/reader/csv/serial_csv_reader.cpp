@@ -115,8 +115,7 @@ void SerialCSVScanSharedState::finalizeReader(main::ClientContext* context) cons
         localErrorHandler->finalize();
     }
     if (sharedErrorHandler) {
-        // We don't need to throw cached errors in the finalize state
-        // as we only cache errors to throw when reading CSV files in parallel
+        sharedErrorHandler->throwCachedErrorsIfNeeded();
         context->getWarningContextUnsafe().populateWarnings(queryID, populateErrorFunc,
             BaseCSVReader::getFileIdxFunc);
     }
@@ -159,6 +158,7 @@ static void bindColumnsFromFile(const ScanTableFuncBindInput* bindInput, uint32_
                 &csvReader, bindInput->config.filePaths[fileIdx]);
         });
     auto sniffedColumns = csvReader.sniffCSV(detectedDialect, detectedHeader);
+    sharedErrorHandler.throwCachedErrorsIfNeeded();
     for (auto& [name, type] : sniffedColumns) {
         columnNames.push_back(name);
         columnTypes.push_back(type.copy());
