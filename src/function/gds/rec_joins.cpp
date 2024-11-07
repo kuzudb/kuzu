@@ -132,7 +132,7 @@ void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
 // result (could be dst, length or path) from a dst node ID to given source node ID.
 class RJVertexCompute : public VertexCompute {
 public:
-    explicit RJVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+    RJVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
         std::unique_ptr<RJOutputWriter> writer)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
         localFT = sharedState->claimLocalTable(mm);
@@ -148,14 +148,10 @@ public:
     }
 
     void vertexCompute(nodeID_t nodeID) override {
-        if (writer->skip(nodeID)) {
+        if (sharedState->exceedLimit() || writer->skip(nodeID)) {
             return;
         }
-        writer->write(*localFT, nodeID);
-    }
-
-    void finalizeWorkerThread() override {
-        // Do nothing.
+        writer->write(*localFT, nodeID, sharedState->counter.get());
     }
 
     std::unique_ptr<VertexCompute> copy() override {
@@ -196,10 +192,16 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
         if (mask->isEnabled()) {
             for (const auto& offset : mask->range(0, numNodes)) {
                 calcFun(offset);
+                if (sharedState->exceedLimit()) {
+                    break;
+                }
             }
         } else {
             for (auto offset = 0u; offset < numNodes; ++offset) {
                 calcFun(offset);
+                if (sharedState->exceedLimit()) {
+                    break;
+                }
             }
         }
     }

@@ -54,10 +54,6 @@ public:
     // the function on each node in a graph.
     virtual void vertexCompute(common::nodeID_t curNodeID) = 0;
 
-    // This function is called by each worker thread T once at the end of
-    // GDSUtils::runVertexComputeIteration().
-    virtual void finalizeWorkerThread() {}
-
     virtual std::unique_ptr<VertexCompute> copy() = 0;
 };
 

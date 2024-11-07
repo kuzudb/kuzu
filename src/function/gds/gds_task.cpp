@@ -56,7 +56,6 @@ void VertexComputeTask::run() {
             localVc->vertexCompute(nodeID);
         }
     }
-    localVc->finalizeWorkerThread();
 }
 } // namespace function
 } // namespace kuzu

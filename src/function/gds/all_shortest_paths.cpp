@@ -124,19 +124,23 @@ public:
         processor::NodeOffsetMaskMap* outputNodeMask)
         : DestinationsOutputWriter{context, rjOutputs, outputNodeMask} {}
 
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
-    }
-
-protected:
-    void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
-        uint16_t) const override {
-        auto multiplicity =
-            rjOutputs->ptrCast<AllSPDestinationsOutputs>()->multiplicities.getTargetMultiplicity(
-                dstNodeID.offset);
-        for (uint64_t i = 0; i < multiplicity; ++i) {
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID,
+        processor::GDSOutputCounter* counter) override {
+        auto outputs = rjOutputs->ptrCast<AllSPDestinationsOutputs>();
+        auto length = outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
+        dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+        lengthVector->setValue<uint16_t>(0, length);
+        auto multiplicity = outputs->multiplicities.getTargetMultiplicity(dstNodeID.offset);
+        for (auto i = 0u; i < multiplicity; ++i) {
             fTable.append(vectors);
         }
+        if (counter != nullptr) {
+            counter->increase(multiplicity);
+        }
+    }
+
+    std::unique_ptr<RJOutputWriter> copy() override {
+        return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
     }
 };
 
