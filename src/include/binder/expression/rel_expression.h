@@ -79,14 +79,9 @@ public:
     std::string getDstNodeName() const { return dstNode->getUniqueName(); }
 
     void setLeftNode(std::shared_ptr<NodeExpression> node) { leftNode = std::move(node); }
-    std::shared_ptr<NodeExpression> getLeftNode() const {
-        return leftNode;
-    }
+    std::shared_ptr<NodeExpression> getLeftNode() const { return leftNode; }
     void setRightNode(std::shared_ptr<NodeExpression> node) { rightNode = std::move(node); }
-    std::shared_ptr<NodeExpression> getRightNode() const {
-        return rightNode;
-    }
-
+    std::shared_ptr<NodeExpression> getRightNode() const { return rightNode; }
 
     common::QueryRelType getRelType() const { return relType; }
 

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/enums/extend_direction.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/physical_operator.h"
-#include "common/enums/extend_direction.h"
 
 namespace kuzu {
 namespace processor {

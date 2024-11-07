@@ -186,7 +186,8 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
                     pathSrcNodeIDsDataVector->setValue(relListEntry.offset + j, id);
                     pathDstNodeIDsDataVector->setValue(relListEntry.offset + j + 1, id);
                 }
-                pathSrcNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1, rightNodeID);
+                pathSrcNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
+                    rightNodeID);
                 pathDstNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
             }
         }
@@ -235,7 +236,8 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
                     pathDstNodeIDsDataVector->setValue(relListEntry.offset + j, id);
                 }
                 pathSrcNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
-                pathDstNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1, rightNodeID);
+                pathDstNodeIDsDataVector->setValue(relListEntry.offset + relListEntry.size - 1,
+                    rightNodeID);
             }
         }
     } break;
@@ -251,8 +253,7 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
             }
             if (nodeListEntry.size == 0) {
                 KU_ASSERT(relListEntry.size == 1);
-                if (isCorrectOrder(directionDataVector, relListEntry.offset,
-                        info.extendFromLeft)) {
+                if (isCorrectOrder(directionDataVector, relListEntry.offset, info.extendFromLeft)) {
                     pathSrcNodeIDsDataVector->setValue(relListEntry.offset, leftNodeID);
                     pathDstNodeIDsDataVector->setValue(relListEntry.offset, rightNodeID);
                 } else {
@@ -273,8 +274,9 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
                 relListEntry.offset, info.extendFromLeft);
             writeSrcDstNodeIDs(inputNodeIDsDataVector->getValue<nodeID_t>(
                                    nodeListEntry.offset + nodeListEntry.size - 1),
-                rightNodeID, directionDataVector, pathSrcNodeIDsDataVector, pathDstNodeIDsDataVector,
-                relListEntry.offset + relListEntry.size - 1, info.extendFromLeft);
+                rightNodeID, directionDataVector, pathSrcNodeIDsDataVector,
+                pathDstNodeIDsDataVector, relListEntry.offset + relListEntry.size - 1,
+                info.extendFromLeft);
         }
     } break;
     default:
