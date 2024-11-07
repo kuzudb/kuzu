@@ -343,7 +343,7 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
         uint64_t memoryClaimed = 0;
         // Avoid reducing the evictable memory below 1/2 at first to reduce thrashing if most of the
         // memory is non-evictable
-        if (usedMemory - nonEvictableMemory > bufferPoolSize / 2) {
+        if (!spiller || usedMemory - nonEvictableMemory > bufferPoolSize / 2) {
             memoryClaimed = evictPages();
         } else {
             memoryClaimed = spiller->claimNextGroup();
