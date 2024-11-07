@@ -115,7 +115,7 @@ struct PathsOutputWriterInfo {
     // Range
     uint16_t lowerBound = 0;
     // Direction
-    bool extendFromSource = false;
+    bool flipPath = false; // we print from left to right, if extend is
     bool writeEdgeDirection = false;
     bool writePath = false;
     // Node predicate mask

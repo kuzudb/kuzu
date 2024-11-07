@@ -2,6 +2,7 @@
 
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/physical_operator.h"
+#include "common/enums/extend_direction.h"
 
 namespace kuzu {
 namespace processor {
@@ -37,12 +38,12 @@ struct PathPropertyProbeLocalState {
 // the src_ids should be [1, 2, 3, dst] and dst_ids should be [src, 1, 2, 3]
 // If rels direction is not known at compile time, then we need to check the direction vector
 // at runtime.
-enum class PathSrcDstComputeInfo : uint8_t {
-    ORDERED = 0,
-    FLIP = 1,
-    RUNTIME_CHECK = 2,
-    UNKNOWN = 3,
-};
+//enum class PathSrcDstComputeInfo : uint8_t {
+//    ORDERED = 0,
+//    FLIP = 1,
+//    RUNTIME_CHECK = 2,
+//    UNKNOWN = 3,
+//};
 
 struct PathPropertyProbeInfo {
     DataPos pathPos = DataPos();
@@ -53,8 +54,6 @@ struct PathPropertyProbeInfo {
     DataPos inputEdgeIDsPos = DataPos();
     DataPos directionPos = DataPos();
 
-    PathSrcDstComputeInfo pathSrcDstComputeInfo = PathSrcDstComputeInfo::UNKNOWN;
-
     std::unordered_map<common::table_id_t, std::string> tableIDToName;
 
     std::vector<common::struct_field_idx_t> nodeFieldIndices;
@@ -62,7 +61,8 @@ struct PathPropertyProbeInfo {
     std::vector<ft_col_idx_t> nodeTableColumnIndices;
     std::vector<ft_col_idx_t> relTableColumnIndices;
 
-    bool extendFromSource = false;
+    common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
+    bool extendFromLeft = false;
 
     PathPropertyProbeInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(PathPropertyProbeInfo);
@@ -75,13 +75,13 @@ private:
         inputNodeIDsPos = other.inputNodeIDsPos;
         inputEdgeIDsPos = other.inputEdgeIDsPos;
         directionPos = other.directionPos;
-        pathSrcDstComputeInfo = other.pathSrcDstComputeInfo;
         tableIDToName = other.tableIDToName;
         nodeFieldIndices = other.nodeFieldIndices;
         relFieldIndices = other.relFieldIndices;
         nodeTableColumnIndices = other.nodeTableColumnIndices;
         relTableColumnIndices = other.relTableColumnIndices;
-        extendFromSource = other.extendFromSource;
+        extendDirection = other.extendDirection;
+        extendFromLeft = other.extendFromLeft;
     }
 };
 

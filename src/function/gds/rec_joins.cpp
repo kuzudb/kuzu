@@ -24,7 +24,7 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     upperBound = other.upperBound;
     semantic = other.semantic;
     extendDirection = other.extendDirection;
-    extendFromSource = other.extendFromSource;
+    flipPath = other.flipPath;
     writePath = other.writePath;
     directionExpr = other.directionExpr;
     lengthExpr = other.lengthExpr;
@@ -36,7 +36,7 @@ PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     auto info = PathsOutputWriterInfo();
     info.semantic = semantic;
     info.lowerBound = lowerBound;
-    info.extendFromSource = extendFromSource;
+    info.flipPath = flipPath;
     info.writeEdgeDirection = writePath && extendDirection == ExtendDirection::BOTH;
     info.writePath = writePath;
     return info;

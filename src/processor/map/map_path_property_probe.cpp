@@ -104,27 +104,33 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto schema = logicalProbe.getSchema();
     pathProbeInfo.pathPos = getDataPos(*rel, *schema);
     if (logicalProbe.getPathEdgeIDs() != nullptr) {
-        pathProbeInfo.srcNodeIDPos = getDataPos(*rel->getSrcNode()->getInternalID(), *schema);
-        pathProbeInfo.dstNodeIDPos = getDataPos(*rel->getDstNode()->getInternalID(), *schema);
+        pathProbeInfo.srcNodeIDPos = getDataPos(*rel->getLeftNode()->getInternalID(), *schema);
+        pathProbeInfo.dstNodeIDPos = getDataPos(*rel->getRightNode()->getInternalID(), *schema);
         pathProbeInfo.inputNodeIDsPos = getDataPos(*logicalProbe.getPathNodeIDs(), *schema);
         pathProbeInfo.inputEdgeIDsPos = getDataPos(*logicalProbe.getPathEdgeIDs(), *schema);
+//        if (logicalProbe.direction == common::ExtendDirection::BOTH) {
+//            pathProbeInfo.directionPos =
+//                getDataPos(*recursiveInfo->pathEdgeDirectionsExpr, *schema);
+//            pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::RUNTIME_CHECK;
+//        } else if (logicalProbe.direction == common::ExtendDirection::FWD) {
+//            if (logicalProbe.extendFromLeft) {
+//                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::ORDERED;
+//            } else {
+//                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::FLIP;
+//            }
+//        } else {
+//            KU_ASSERT(logicalProbe.direction == ExtendDirection::BWD);
+//            if (logicalProbe.extendFromLeft) {
+//                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::FLIP;
+//            } else {
+//                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::ORDERED;
+//            }
+//        }
+        pathProbeInfo.extendFromLeft = logicalProbe.extendFromLeft;
+        pathProbeInfo.extendDirection = logicalProbe.direction;
         if (logicalProbe.direction == common::ExtendDirection::BOTH) {
             pathProbeInfo.directionPos =
                 getDataPos(*recursiveInfo->pathEdgeDirectionsExpr, *schema);
-            pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::RUNTIME_CHECK;
-        } else if (logicalProbe.direction == common::ExtendDirection::FWD) {
-            if (logicalProbe.extendFromSource_) {
-                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::ORDERED;
-            } else {
-                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::FLIP;
-            }
-        } else {
-            KU_ASSERT(logicalProbe.direction == ExtendDirection::BWD);
-            if (logicalProbe.extendFromSource_) {
-                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::FLIP;
-            } else {
-                pathProbeInfo.pathSrcDstComputeInfo = PathSrcDstComputeInfo::ORDERED;
-            }
         }
         for (auto entry : recursiveInfo->node->getEntries()) {
             pathProbeInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
@@ -137,7 +143,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     pathProbeInfo.relFieldIndices = relFieldIndices;
     pathProbeInfo.nodeTableColumnIndices = nodeTableColumnIndices;
     pathProbeInfo.relTableColumnIndices = relTableColumnIndices;
-    pathProbeInfo.extendFromSource = logicalProbe.extendFromSource_;
+    pathProbeInfo.extendFromLeft = logicalProbe.extendFromLeft;
     auto pathProbeSharedState =
         std::make_shared<PathPropertyProbeSharedState>(nodeBuildSharedState, relBuildSharedState);
     std::vector<std::unique_ptr<PhysicalOperator>> children;

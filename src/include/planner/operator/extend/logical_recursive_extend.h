@@ -77,7 +77,7 @@ private:
 
 public:
     common::ExtendDirection direction = common::ExtendDirection::FWD;
-    bool extendFromSource_ = true;
+    bool extendFromLeft = true;
     std::shared_ptr<binder::Expression> pathNodeIDs;
     std::shared_ptr<binder::Expression> pathEdgeIDs;
 };
