@@ -65,18 +65,13 @@ private:
 
 class GDSOutputCounter {
 public:
-    explicit GDSOutputCounter(common::offset_t limitNumber)
-        : limitNumber{limitNumber} {
+    explicit GDSOutputCounter(common::offset_t limitNumber) : limitNumber{limitNumber} {
         counter.store(0);
     }
 
-    void increase(common::offset_t number) {
-        counter.fetch_add(number);
-    }
+    void increase(common::offset_t number) { counter.fetch_add(number); }
 
-    bool exceedLimit() const {
-        return counter.load() >= limitNumber;
-    }
+    bool exceedLimit() const { return counter.load() >= limitNumber; }
 
 private:
     common::offset_t limitNumber;
@@ -89,7 +84,8 @@ struct GDSCallSharedState {
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<GDSOutputCounter> counter = nullptr;
 
-    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph, common::offset_t limitNumber)
+    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
+        common::offset_t limitNumber)
         : fTable{fTable}, graph{std::move(graph)} {
         if (limitNumber != common::INVALID_LIMIT) {
             counter = std::make_unique<GDSOutputCounter>(limitNumber);
@@ -127,9 +123,7 @@ struct GDSCallSharedState {
     FactorizedTable* claimLocalTable(storage::MemoryManager* mm);
     void returnLocalTable(FactorizedTable* table);
     void mergeLocalTables();
-    bool exceedLimit() const {
-        return !(counter == nullptr) && counter->exceedLimit();
-    }
+    bool exceedLimit() const { return !(counter == nullptr) && counter->exceedLimit(); }
 
     void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = set; }
     bool inNbrTableIDs(common::table_id_t tableID) const {

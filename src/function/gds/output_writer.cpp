@@ -81,7 +81,8 @@ static void setLength(ValueVector* vector, uint16_t length) {
     vector->setValue<uint16_t>(0, length);
 }
 
-void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) {
+void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+    GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
     auto& bfsGraph = output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
@@ -276,7 +277,8 @@ DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
     lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
 }
 
-void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) {
+void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+    GDSOutputCounter* counter) {
     auto length =
         rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
             dstNodeID.offset);

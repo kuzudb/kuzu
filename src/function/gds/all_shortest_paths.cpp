@@ -124,10 +124,10 @@ public:
         processor::NodeOffsetMaskMap* outputNodeMask)
         : DestinationsOutputWriter{context, rjOutputs, outputNodeMask} {}
 
-    void write(FactorizedTable &fTable, nodeID_t dstNodeID, processor::GDSOutputCounter* counter) override {
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID,
+        processor::GDSOutputCounter* counter) override {
         auto outputs = rjOutputs->ptrCast<AllSPDestinationsOutputs>();
-        auto length = outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(
-                dstNodeID.offset);
+        auto length = outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
         auto multiplicity = outputs->multiplicities.getTargetMultiplicity(dstNodeID.offset);

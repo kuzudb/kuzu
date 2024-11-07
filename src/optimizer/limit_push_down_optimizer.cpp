@@ -1,7 +1,8 @@
 #include "optimizer/limit_push_down_optimizer.h"
+
 #include "planner/operator/logical_distinct.h"
-#include "planner/operator/logical_limit.h"
 #include "planner/operator/logical_gds_call.h"
+#include "planner/operator/logical_limit.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -52,7 +53,8 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
             op = op->getChild(0).get();
         }
         if (op->getChild(0)->getOperatorType() == LogicalOperatorType::PATH_PROPERTY_PROBE) {
-            KU_ASSERT(op->getChild(0)->getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
+            KU_ASSERT(
+                op->getChild(0)->getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
             auto& gds = op->getChild(0)->getChild(0)->cast<LogicalGDSCall>();
             gds.setLimitNum(skipNumber + limitNumber);
         }
