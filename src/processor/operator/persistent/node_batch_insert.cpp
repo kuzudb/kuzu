@@ -216,9 +216,8 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
 }
 
 void NodeBatchInsert::finalize(ExecutionContext* context) {
+    KU_ASSERT(localState == nullptr);
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
-    const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
-    KU_ASSERT(!nodeLocalState->errorHandler.has_value());
     auto errorHandler = createErrorHandler(context);
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
