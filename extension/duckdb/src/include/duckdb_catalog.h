@@ -35,7 +35,7 @@ public:
         main::ClientContext* context, const DuckDBConnector& connector,
         const binder::AttachOption& attachOption);
 
-    void init() override;
+    void init(main::ClientContext* clientContext) override;
 
 protected:
     bool bindPropertyDefinitions(const std::string& tableName,
@@ -46,7 +46,7 @@ private:
         const std::string& tableName);
 
 private:
-    void createForeignTable(const std::string& tableName);
+    void createForeignTable(const std::string& tableName, main::ClientContext* clientContext);
 
 protected:
     std::string dbPath;

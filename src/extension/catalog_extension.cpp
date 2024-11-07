@@ -5,7 +5,7 @@ namespace extension {
 
 void CatalogExtension::invalidateCache() {
     tables = std::make_unique<catalog::CatalogSet>();
-    init();
+    init(nullptr);
 }
 
 } // namespace extension

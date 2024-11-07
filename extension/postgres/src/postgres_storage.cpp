@@ -32,7 +32,7 @@ std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::
     connector->connect(dbPath, catalogName, clientContext);
     auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, catalogName,
         PostgresStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
-    catalog->init();
+    catalog->init(clientContext);
     return std::make_unique<duckdb_extension::AttachedDuckDBDatabase>(dbName,
         PostgresStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }

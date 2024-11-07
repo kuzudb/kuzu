@@ -30,7 +30,7 @@ DuckDBCatalog::DuckDBCatalog(std::string dbPath, std::string catalogName,
     }
 }
 
-void DuckDBCatalog::init() {
+void DuckDBCatalog::init(main::ClientContext* clientContext) {
     auto query = common::stringFormat(
         "select table_name from information_schema.tables where table_catalog = '{}' and "
         "table_schema = '{}' order by table_name;",
@@ -50,7 +50,7 @@ void DuckDBCatalog::init() {
     conversionFunc(resultChunk->data[0], tableNamesVector, resultChunk->size());
     for (auto i = 0u; i < resultChunk->size(); i++) {
         auto tableName = tableNamesVector.getValue<common::ku_string_t>(i).getAsString();
-        createForeignTable(tableName);
+        createForeignTable(tableName, clientContext);
     }
 }
 
@@ -60,7 +60,8 @@ static std::string getQuery(const binder::BoundCreateTableInfo& info) {
                               extraInfo->schemaName, info.tableName);
 }
 
-void DuckDBCatalog::createForeignTable(const std::string& tableName) {
+void DuckDBCatalog::createForeignTable(const std::string& tableName,
+    main::ClientContext* clientContext) {
     auto info = bindCreateTableInfo(tableName);
     if (info == nullptr) {
         return;
@@ -80,7 +81,7 @@ void DuckDBCatalog::createForeignTable(const std::string& tableName) {
     for (auto& definition : extraInfo->propertyDefinitions) {
         tableEntry->addProperty(definition);
     }
-    tables->createEntry(&transaction::DUMMY_TRANSACTION, std::move(tableEntry));
+    tables->createEntry(clientContext->getTx(), std::move(tableEntry));
 }
 
 static bool getTableInfo(const DuckDBConnector& connector, const std::string& tableName,
