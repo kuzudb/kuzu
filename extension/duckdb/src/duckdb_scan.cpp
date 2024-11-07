@@ -3,7 +3,7 @@
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
-#include "duckdb_connector.h"
+#include "connector/duckdb_connector.h"
 #include "function/table/bind_input.h"
 
 using namespace kuzu::function;
