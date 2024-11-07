@@ -75,7 +75,6 @@ JsonScanConfig::JsonScanConfig(const std::unordered_map<std::string, Value>& opt
             }
             depth = i.second.val.int64Val;
         } else if (i.first == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
-            // JSON reader currently doesn't do anything with IGNORE_ERRORS parameter
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
                 throw BinderException("IGNORE_ERRORS parameter must be a bool.");
             }
