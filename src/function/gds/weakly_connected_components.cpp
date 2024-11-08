@@ -290,6 +290,9 @@ public:
         auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, totalNumNodes,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
+        // GDS::Utils::RunUntilConvergence shouldn't explicitly call RJCompState since other
+        // algorithms can also use RunUntilConvergence. A solution could be to have a general
+        // CompState class which RJCompState derives from.
         auto computeState =
             RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
