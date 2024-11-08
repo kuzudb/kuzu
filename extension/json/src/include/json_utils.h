@@ -78,6 +78,13 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path);
 
 uint32_t jsonArraySize(const JsonWrapper& wrapper);
 
+bool jsonContainsScalar(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContainsObjObjAtCurrentLevel(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContains(yyjson_val* haystack, yyjson_val* needle);
 bool jsonContains(const JsonWrapper& haystack, const JsonWrapper& needle);
 
 std::vector<std::string> jsonGetKeys(const JsonWrapper& wrapper);
