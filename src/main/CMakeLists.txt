@@ -11,7 +11,8 @@ add_library(kuzu_main
         query_summary.cpp
         storage_driver.cpp
         version.cpp
-        db_config.cpp)
+        db_config.cpp
+        settings.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_main>

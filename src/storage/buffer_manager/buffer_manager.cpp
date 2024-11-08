@@ -343,7 +343,7 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
         uint64_t memoryClaimed = 0;
         // Avoid reducing the evictable memory below 1/2 at first to reduce thrashing if most of the
         // memory is non-evictable
-        if (usedMemory - nonEvictableMemory > bufferPoolSize / 2) {
+        if (!spiller || usedMemory - nonEvictableMemory > bufferPoolSize / 2) {
             memoryClaimed = evictPages();
         } else {
             memoryClaimed = spiller->claimNextGroup();
@@ -456,6 +456,19 @@ void BufferManager::removePageFromFrame(FileHandle& fileHandle, page_idx_t pageI
 uint64_t BufferManager::freeUsedMemory(uint64_t size) {
     KU_ASSERT(usedMemory.load() >= size);
     return usedMemory.fetch_sub(size);
+}
+
+void BufferManager::resetSpiller(const main::DBConfig& dbConfig) {
+    KU_ASSERT(dbConfig.spillToDiskTmpFile.has_value());
+    if (dbConfig.readOnly) {
+        throw BufferManagerException("Cannot set spill_to_disk_tmp_file for a read only database!");
+    }
+    if (dbConfig.spillToDiskTmpFile->empty()) {
+        // Disable spilling to disk when the string is empty
+        spiller = nullptr;
+    } else {
+        spiller = std::make_unique<Spiller>(*dbConfig.spillToDiskTmpFile, *this, vfs);
+    }
 }
 
 BufferManager::~BufferManager() = default;

@@ -35,6 +35,11 @@ TEST_F(SystemConfigTest, testAccessMode) {
     EXPECT_NO_THROW(con2 = std::make_unique<Connection>(db2.get()));
     ASSERT_FALSE(con2->query("DROP TABLE Person")->isSuccess());
     EXPECT_NO_THROW(con2->query("MATCH (:Person) RETURN COUNT(*)"));
+
+    auto result = con2->query("CALL spill_to_disk_tmp_file='/tmp/foo';");
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->toString(),
+        "Buffer manager exception: Cannot set spill_to_disk_tmp_file for a read only database!");
 }
 
 TEST_F(SystemConfigTest, testMaxDBSize) {
