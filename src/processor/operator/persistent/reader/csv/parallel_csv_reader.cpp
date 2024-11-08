@@ -129,7 +129,7 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(common::ReaderConfig read
         errorHandlers.emplace_back(i, &lock);
     }
     auto populateFunc = constructPopulateFunc();
-    for (auto &errorHandler: errorHandlers){
+    for (auto& errorHandler : errorHandlers) {
         errorHandler.setPopulateErrorFunc(populateFunc);
     }
 }
