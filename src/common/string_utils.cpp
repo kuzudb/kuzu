@@ -61,7 +61,8 @@ std::vector<std::string_view> StringUtils::smartSplit(std::string_view input, ch
                 result.push_back(input.substr(currentItem, i - currentItem));
                 currentItem = i + 1;
             }
-        } else if (c == '{' || c == '(' || c == '[' || (c == '\"' && (stk.size() == 0u || stk.back() != '\"'))) {
+        } else if (c == '{' || c == '(' || c == '[' ||
+                   (c == '\"' && (stk.size() == 0u || stk.back() != '\"'))) {
             stk.push_back(c);
         } else if (stk.size() > 0 && openingBracket(c) == stk.back()) {
             stk.pop_back();

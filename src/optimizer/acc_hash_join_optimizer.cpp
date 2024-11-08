@@ -164,10 +164,20 @@ static bool subPlanContainsFilter(LogicalOperator* root) {
     return true;
 }
 
+static bool subPlanContainsGDSCall(LogicalOperator* root) {
+    auto collector = LogicalGDSCallCollector();
+    collector.collect(root);
+    return collector.hasOperators();
+}
+
 // Probe side is qualified if it is selective.
 static bool isProbeSideQualified(LogicalOperator* probeRoot) {
     if (probeRoot->getOperatorType() == LogicalOperatorType::ACCUMULATE) {
         // No Acc hash join if probe side has already been accumulated. This can be solved.
+        return false;
+    }
+    if (subPlanContainsGDSCall(probeRoot)) {
+        // We assume GDS always output large result set and we don't want to materialize it.
         return false;
     }
     // Probe side is not selective. So we don't apply acc hash join.

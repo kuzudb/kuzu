@@ -5,6 +5,7 @@
 #include "main/client_context.h"
 
 using namespace kuzu::common;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace function {
@@ -80,7 +81,8 @@ static void setLength(ValueVector* vector, uint16_t length) {
     vector->setValue<uint16_t>(0, length);
 }
 
-void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {
+void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+    GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
     auto& bfsGraph = output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
@@ -96,6 +98,10 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
                 beginWritePath(0);
             }
             fTable.append(vectors);
+            // No need to check against limit number since this is the first output.
+            if (counter != nullptr) {
+                counter->increase(1);
+            }
         }
         return;
     }
@@ -111,6 +117,12 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             if (checkPathNodeMask(curPath) && checkSemantic(curPath)) {
                 writePath(curPath);
                 fTable.append(vectors);
+                if (counter != nullptr) {
+                    counter->increase(1);
+                    if (counter->exceedLimit()) {
+                        return;
+                    }
+                }
             }
             backtracking = true;
         }
@@ -148,6 +160,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             backtracking = false;
         }
     }
+    return;
 }
 
 bool PathsOutputWriter::checkPathNodeMask(const std::vector<ParentList*>& path) const {
@@ -215,8 +228,8 @@ void PathsOutputWriter::writePath(const std::vector<ParentList*>& path) const {
         return;
     }
     beginWritePath(path.size());
-    if (info.extendFromSource) {
-        // Write path in reverse direction because we append ParentList from dst to src.
+    if (!info.flipPath) {
+        // By default, write path in reverse direction because we append ParentList from dst to src.
         writePathBwd(path);
     } else {
         // Write path in original direction because computation started from dst node.
@@ -264,13 +277,18 @@ DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
     lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
 }
 
-void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID) const {
+void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+    GDSOutputCounter* counter) {
     auto length =
         rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
             dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     setLength(lengthVector.get(), length);
-    writeMoreAndAppend(fTable, dstNodeID, length);
+    fTable.append(vectors);
+    if (counter != nullptr) {
+        counter->increase(1);
+    }
+    return;
 }
 
 bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
@@ -278,11 +296,6 @@ bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
     return dstNodeID == outputs->sourceNodeID ||
            PathLengths::UNVISITED ==
                outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
-}
-
-void DestinationsOutputWriter::writeMoreAndAppend(processor::FactorizedTable& fTable, nodeID_t,
-    uint16_t) const {
-    fTable.append(vectors);
 }
 
 } // namespace function

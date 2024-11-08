@@ -63,13 +63,34 @@ private:
     bool enabled_;
 };
 
+class GDSOutputCounter {
+public:
+    explicit GDSOutputCounter(common::offset_t limitNumber) : limitNumber{limitNumber} {
+        counter.store(0);
+    }
+
+    void increase(common::offset_t number) { counter.fetch_add(number); }
+
+    bool exceedLimit() const { return counter.load() >= limitNumber; }
+
+private:
+    common::offset_t limitNumber;
+    std::atomic<common::offset_t> counter;
+};
+
 struct GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
+    std::unique_ptr<GDSOutputCounter> counter = nullptr;
 
-    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph)
-        : fTable{fTable}, graph{std::move(graph)} {}
+    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
+        common::offset_t limitNumber)
+        : fTable{fTable}, graph{std::move(graph)} {
+        if (limitNumber != common::INVALID_LIMIT) {
+            counter = std::make_unique<GDSOutputCounter>(limitNumber);
+        }
+    }
     DELETE_COPY_AND_MOVE(GDSCallSharedState);
 
     void setInputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
@@ -102,6 +123,15 @@ struct GDSCallSharedState {
     FactorizedTable* claimLocalTable(storage::MemoryManager* mm);
     void returnLocalTable(FactorizedTable* table);
     void mergeLocalTables();
+    bool exceedLimit() const { return !(counter == nullptr) && counter->exceedLimit(); }
+
+    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = set; }
+    bool inNbrTableIDs(common::table_id_t tableID) const {
+        if (nbrTableIDSet.empty()) {
+            return true;
+        }
+        return nbrTableIDSet.contains(tableID);
+    }
 
 private:
     std::unique_ptr<NodeOffsetMaskMap> inputNodeMask = nullptr;
@@ -112,6 +142,8 @@ private:
     // minimized. Or we optimize ftable to be more memory efficient when number of tuples is small.
     std::stack<FactorizedTable*> availableLocalTables;
     std::vector<std::shared_ptr<FactorizedTable>> localTables;
+
+    common::table_id_set_t nbrTableIDSet;
 };
 
 } // namespace processor

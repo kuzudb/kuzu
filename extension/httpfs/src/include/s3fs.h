@@ -17,16 +17,6 @@ struct S3UploadParams {
     uint64_t maxUploadThreads = 0;
 };
 
-struct AWSEnvironmentCredentialsProvider {
-    static constexpr const char* S3_ACCESS_KEY_ENV_VAR = "S3_ACCESS_KEY_ID";
-    static constexpr const char* S3_SECRET_KEY_ENV_VAR = "S3_SECRET_ACCESS_KEY";
-    static constexpr const char* S3_ENDPOINT_ENV_VAR = "S3_ENDPOINT";
-    static constexpr const char* S3_URL_STYLE_ENV_VAR = "S3_URL_STYLE";
-    static constexpr const char* S3_REGION_ENV_VAR = "S3_REGION";
-
-    static void setOptionValue(main::ClientContext* context);
-};
-
 struct S3WriteBuffer {
     S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t size);
 

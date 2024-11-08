@@ -88,7 +88,7 @@ std::unique_ptr<LogicalOperator> LogicalPathPropertyProbe::copy() {
         std::move(nodeChildCopy), std::move(relChildCopy), joinType);
     op->sipInfo = sipInfo;
     op->direction = direction;
-    op->extendFromSource_ = extendFromSource_;
+    op->extendFromLeft = extendFromLeft;
     op->pathNodeIDs = pathNodeIDs;
     op->pathEdgeIDs = pathEdgeIDs;
     return op;

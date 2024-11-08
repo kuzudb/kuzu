@@ -13,7 +13,7 @@ add_library(postgres_extension
         ../duckdb/src/duckdb_table_catalog_entry.cpp
         ../duckdb/src/duckdb_type_converter.cpp
         ../duckdb/src/duckdb_functions.cpp
-        ../duckdb/src/duckdb_connector.cpp
+        ../duckdb/src/connector/duckdb_connector.cpp
         src/postgres_extension.cpp
         src/postgres_storage.cpp
         src/postgres_connector.cpp)
@@ -43,22 +43,7 @@ if (NOT WIN32)
 endif ()
 
 if (WIN32)
-    # On windows, there is no dynamic lookup available, so it's not
-    # possible to generically look for symbols on library load. There are
-    # two main alternatives to statically linking kuzu, neither of which is
-    # appealing:
-    #       1. Link against the shared library. This works well assuming
-    #       the DLL is locatable, but this assumption isn't valid for users
-    #       of kuzu.exe.
-    #       2. Link against the executable (kuzu.exe). This is
-    #       strange but works well for kuzu.exe. However, it forces
-    #       users who are embedding kuzu in their application to recompile
-    #       the extension _and_ export the symbols for the extension to
-    #       locate on load.
-    # We choose the simplest option. Windows isn't known
-    # for its small libraries anyways...
-    # Future work could make it possible to embed extension into kuzu,
-    # which would help fix this problem.
+    # See comments in extension/httpfs/CMakeLists.txt.
     target_link_libraries(postgres_extension PRIVATE kuzu)
 endif ()
 

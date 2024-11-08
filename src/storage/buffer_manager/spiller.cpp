@@ -1,6 +1,7 @@
 #include "storage/buffer_manager/spiller.h"
 
 #include <cstdint>
+#include <mutex>
 
 #include "common/assert.h"
 #include "common/exception/io.h"
@@ -13,14 +14,26 @@
 namespace kuzu {
 namespace storage {
 
-Spiller::Spiller(const std::string& tmpFilePath, BufferManager& bufferManager,
+Spiller::Spiller(std::string tmpFilePath, BufferManager& bufferManager,
     common::VirtualFileSystem* vfs)
-    // This should only be used with a LocalFileSystem
-    : dataFH{bufferManager.getFileHandle(tmpFilePath,
-          FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, nullptr)} {
+    : tmpFilePath{std::move(tmpFilePath)}, bufferManager{bufferManager}, vfs{vfs}, dataFH{nullptr} {
     // Clear the file if it already existed (e.g. from a previous run which
     // failed to clean up).
-    dataFH->getFileInfo()->truncate(0);
+    vfs->removeFileIfExists(this->tmpFilePath);
+}
+
+FileHandle* Spiller::getDataFH() const {
+    if (dataFH) {
+        return dataFH;
+    }
+    std::unique_lock lock(fileCreationMutex);
+    // Another thread may have created the file while the lock was being acquired
+    if (dataFH) {
+        return dataFH;
+    }
+    const_cast<Spiller*>(this)->dataFH = bufferManager.getFileHandle(tmpFilePath,
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS, vfs, nullptr);
+    return dataFH;
 }
 
 void Spiller::addUnusedChunk(ChunkedNodeGroup* nodeGroup) {
@@ -40,13 +53,14 @@ Spiller::~Spiller() {
     // This should be safe as long as the VFS is always using a local file system and the VFS is
     // destroyed after the buffer manager
     try {
-        dataFH->getFileInfo()->truncate(0);
+        vfs->removeFileIfExists(this->tmpFilePath);
     } catch (common::IOException&) {} // NOLINT
 }
 
 uint64_t Spiller::spillToDisk(ColumnChunkData& chunk) const {
     auto& buffer = *chunk.buffer;
     KU_ASSERT(!buffer.evicted);
+    auto dataFH = getDataFH();
     auto pageSize = dataFH->getPageSize();
     auto numPages = (buffer.buffer.size_bytes() + pageSize - 1) / pageSize;
     auto startPage = dataFH->addNewPages(numPages);
@@ -82,7 +96,9 @@ uint64_t Spiller::claimNextGroup() {
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Function shouldn't be re-ordered
 void Spiller::clearFile() {
-    dataFH->getFileInfo()->truncate(0);
+    if (dataFH) {
+        dataFH->getFileInfo()->truncate(0);
+    }
 }
 } // namespace storage
 } // namespace kuzu

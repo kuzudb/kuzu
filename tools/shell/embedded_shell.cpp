@@ -1257,13 +1257,25 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
         printString += tableDrawingCharacters->Vertical;
         for (auto i = 0u; i < k; i++) {
             std::string columnName = queryResult.getColumnNames()[i];
-            if (columnName.length() > colsWidth[i] - 2) {
-                columnName =
-                    columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
+            uint32_t chrIter = 0;
+            uint32_t fieldLen = 0;
+            while (chrIter < columnName.length()) {
+                fieldLen += Utf8Proc::renderWidth(columnName.c_str(), chrIter);
+                chrIter = utf8proc_next_grapheme(columnName.c_str(), columnName.length(), chrIter);
+            }
+            uint32_t truncationLen = fieldLen;
+            if (truncationLen > colsWidth[i] - 2) {
+                while (truncationLen > colsWidth[i] - 5) {
+                    chrIter = Utf8Proc::previousGraphemeCluster(columnName.c_str(),
+                        columnName.length(), chrIter);
+                    truncationLen -= Utf8Proc::renderWidth(columnName.c_str(), chrIter);
+                }
+                columnName = columnName.substr(0, chrIter) + tableDrawingCharacters->Truncation;
+                truncationLen += strlen(tableDrawingCharacters->Truncation);
             }
             printString += " ";
             printString += columnName;
-            printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+            printString += std::string(colsWidth[i] - truncationLen - 1, ' ');
             if (i != k - 1) {
                 printString += tableDrawingCharacters->Vertical;
             }
@@ -1275,15 +1287,27 @@ void EmbeddedShell::printTruncatedExecutionResult(QueryResult& queryResult) cons
             printString += " ";
         }
         for (auto i = j + 1; i < colsWidth.size(); i++) {
-            std::string columnName = queryResult.getColumnNames()[i];
-            if (columnName.length() > colsWidth[i] - 2) {
-                columnName =
-                    columnName.substr(0, colsWidth[i] - 5) + tableDrawingCharacters->Truncation;
-            }
             printString += tableDrawingCharacters->Vertical;
+            std::string columnName = queryResult.getColumnNames()[i];
+            uint32_t chrIter = 0;
+            uint32_t fieldLen = 0;
+            while (chrIter < columnName.length()) {
+                fieldLen += Utf8Proc::renderWidth(columnName.c_str(), chrIter);
+                chrIter = utf8proc_next_grapheme(columnName.c_str(), columnName.length(), chrIter);
+            }
+            uint32_t truncationLen = fieldLen;
+            if (truncationLen > colsWidth[i] - 2) {
+                while (truncationLen > colsWidth[i] - 5) {
+                    chrIter = Utf8Proc::previousGraphemeCluster(columnName.c_str(),
+                        columnName.length(), chrIter);
+                    truncationLen -= Utf8Proc::renderWidth(columnName.c_str(), chrIter);
+                }
+                columnName = columnName.substr(0, chrIter) + tableDrawingCharacters->Truncation;
+                truncationLen += strlen(tableDrawingCharacters->Truncation);
+            }
             printString += " ";
             printString += columnName;
-            printString += std::string(colsWidth[i] - columnName.length() - 1, ' ');
+            printString += std::string(colsWidth[i] - truncationLen - 1, ' ');
         }
         printString += tableDrawingCharacters->Vertical;
         if (tableDrawingCharacters->Types) {

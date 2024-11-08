@@ -41,7 +41,7 @@ public:
 
     bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) override {
+    void initLocalStateInternal(ResultSet*, ExecutionContext*) override {
         gds->setSharedState(sharedState);
     }
 

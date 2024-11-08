@@ -229,6 +229,8 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
             queryRel->addPropertyDataExpr(propertyName, std::move(boundRhs));
         }
     }
+    queryRel->setLeftNode(leftNode);
+    queryRel->setRightNode(rightNode);
     queryRel->setAlias(parsedName);
     if (!parsedName.empty()) {
         addToScope(parsedName, queryRel);

@@ -43,7 +43,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
     auto graph = std::make_unique<OnDiskGraph>(clientContext, logicalInfo.graphEntry);
     auto storageManager = clientContext->getStorageManager();
-    auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph));
+    auto sharedState =
+        std::make_shared<GDSCallSharedState>(table, std::move(graph), call.getLimitNum());
+    if (call.hasNbrTableIDSet()) {
+        sharedState->setNbrTableIDSet(call.getNbrTableIDSet());
+    }
     auto bindData = call.getInfo().getBindData();
     if (bindData->hasNodeInput()) {
         auto& node = bindData->getNodeInput()->constCast<NodeExpression>();

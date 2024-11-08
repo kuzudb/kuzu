@@ -43,7 +43,7 @@ public:
     // GDSUtils::runVertexComputeIteration function. runVertexComputeIteration loops through
     // each node table T on the graph on which vertexCompute should run and then before
     // parallelizing the computation on T calls this function.
-    virtual void beginOnTable(common::table_id_t) {}
+    virtual bool beginOnTable(common::table_id_t) { return true; }
 
     // This function is called by each worker thread T on each node in the morsel that T grabs.
     // Does any vertex-centric work that is needed while running on the curNodeID. This function
@@ -53,10 +53,6 @@ public:
     // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
     // the function on each node in a graph.
     virtual void vertexCompute(common::nodeID_t curNodeID) = 0;
-
-    // This function is called by each worker thread T once at the end of
-    // GDSUtils::runVertexComputeIteration().
-    virtual void finalizeWorkerThread() {}
 
     virtual std::unique_ptr<VertexCompute> copy() = 0;
 };

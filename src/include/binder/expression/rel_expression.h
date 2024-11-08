@@ -78,6 +78,11 @@ public:
     std::shared_ptr<NodeExpression> getDstNode() const { return dstNode; }
     std::string getDstNodeName() const { return dstNode->getUniqueName(); }
 
+    void setLeftNode(std::shared_ptr<NodeExpression> node) { leftNode = std::move(node); }
+    std::shared_ptr<NodeExpression> getLeftNode() const { return leftNode; }
+    void setRightNode(std::shared_ptr<NodeExpression> node) { rightNode = std::move(node); }
+    std::shared_ptr<NodeExpression> getRightNode() const { return rightNode; }
+
     common::QueryRelType getRelType() const { return relType; }
 
     void setDirectionExpr(std::shared_ptr<Expression> expr) { directionExpr = std::move(expr); }
@@ -108,6 +113,8 @@ private:
     std::shared_ptr<NodeExpression> srcNode;
     // End node if a directed arrow is given. Right node otherwise.
     std::shared_ptr<NodeExpression> dstNode;
+    std::shared_ptr<NodeExpression> leftNode;
+    std::shared_ptr<NodeExpression> rightNode;
     // Whether relationship is directed.
     RelDirectionType directionType;
     // Direction expr is nullptr when direction type is SINGLE

@@ -75,7 +75,6 @@ JsonScanConfig::JsonScanConfig(const std::unordered_map<std::string, Value>& opt
             }
             depth = i.second.val.int64Val;
         } else if (i.first == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
-            // JSON reader currently doesn't do anything with IGNORE_ERRORS parameter
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
                 throw BinderException("IGNORE_ERRORS parameter must be a bool.");
             }
@@ -164,7 +163,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
     bool readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone);
     void skipOverArrayStart();
     void parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
-    void parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining, idx_t numLinesInJson,
+    bool parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining, idx_t numLinesInJson,
         const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool reconstructFirstObject();
 
@@ -372,13 +371,14 @@ void JSONScanLocalState::handleParseError(yyjson_read_err& err, bool completedPa
         errorHandler.get(), extra);
 }
 
-void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining,
+bool JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining,
     idx_t numLinesInJson, const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     yyjson_doc* doc = nullptr;
     yyjson_read_err err;
     doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG, &err);
     if (err.code != YYJSON_READ_SUCCESS) {
         handleParseError(err, false);
+        return false;
     }
 
     idx_t numBytesRead = yyjson_doc_get_read_size(doc);
@@ -397,6 +397,7 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
         err.msg = "unexpected end of data";
         err.pos = size;
         handleParseError(err, "Try auto-detecting the JSON format");
+        return false;
     } else if (numBytesRead < size) {
         auto off = numBytesRead;
         auto rem = size;
@@ -406,14 +407,16 @@ void JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
             err.msg = "unexpected content after document";
             err.pos = numBytesRead;
             handleParseError(err, "Try auto-detecting the JSON format");
+            return false;
         }
     }
 
     if (!doc) {
         replaceDoc(numValuesToOutput, nullptr);
-        return;
+        return false;
     }
     replaceDoc(numValuesToOutput, doc);
+    return true;
 }
 
 void JSONScanLocalState::addValuesToWarningDataVectors(processor::WarningSourceData warningData,
@@ -436,7 +439,7 @@ static uint8_t* nextNewLine(uint8_t* ptr, idx_t size) {
 void JSONScanLocalState::parseNextChunk(
     const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     auto format = currentReader->getFormat();
-    for (; numValuesToOutput < DEFAULT_VECTOR_CAPACITY; numValuesToOutput++) {
+    while (numValuesToOutput < DEFAULT_VECTOR_CAPACITY) {
         skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
         auto jsonStart = bufferPtr + bufferOffset;
         auto remaining = bufferSize - bufferOffset;
@@ -460,7 +463,8 @@ void JSONScanLocalState::parseNextChunk(
             jsonEnd = jsonStart + remaining;
         }
         auto jsonSize = jsonEnd - jsonStart;
-        parseJson(jsonStart, jsonSize, remaining, lineCountInJson, warningDataVectors);
+        bool parseSuccess =
+            parseJson(jsonStart, jsonSize, remaining, lineCountInJson, warningDataVectors);
         bufferOffset += jsonSize;
         lineCountInBuffer += lineCountInJson;
 
@@ -474,9 +478,12 @@ void JSONScanLocalState::parseNextChunk(
                 err.msg = "unexpected character";
                 err.pos = jsonSize;
                 handleParseError(err);
+                parseSuccess = false;
             }
         }
         skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
+
+        numValuesToOutput += parseSuccess;
     }
 }
 
@@ -648,9 +655,9 @@ bool JSONScanLocalState::reconstructFirstObject() {
         bufferOffset += secondPartSize;
     }
 
-    parseJson(reconstructBufferPtr, lineSize, lineSize, linesInJson);
+    bool parseSuccess = parseJson(reconstructBufferPtr, lineSize, lineSize, linesInJson);
     lineCountInBuffer += linesInJson;
-    return true;
+    return parseSuccess;
 }
 
 uint64_t JSONScanLocalState::readNext(

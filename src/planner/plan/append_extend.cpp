@@ -133,7 +133,8 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
     auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, recursiveInfo->lowerBound,
         recursiveInfo->upperBound, semantic, direction);
-    bindData->extendFromSource = *boundNode == *rel->getSrcNode();
+    // If we extend from right to left, we need to print path in reverse direction.
+    bindData->flipPath = *boundNode == *rel->getRightNode();
     if (direction == common::ExtendDirection::BOTH) {
         bindData->directionExpr = recursiveInfo->pathEdgeDirectionsExpr;
     }
@@ -151,6 +152,21 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         auto p = LogicalPlan();
         createPathNodeFilterPlan(recursiveInfo->node, recursiveInfo->originalNodePredicate, p);
         gdsCall->ptrCast<LogicalGDSCall>()->setNodePredicateRoot(p.getLastOperator());
+    }
+    // E.g. Given schema person-knows->person & person-knows->animal
+    // And query MATCH (a:person:animal)-[e*]->(b:person)
+    // The destination node b after GDS will contain both person & animal label. We need to prune
+    // the animal out.
+    common::table_id_set_t nbrTableIDSet;
+    auto targetNbrTableIDSet = nbrNode->getTableIDsSet();
+    auto recursiveNbrTableIDSet = recursiveInfo->node->getTableIDsSet();
+    for (auto& tableID : recursiveNbrTableIDSet) {
+        if (targetNbrTableIDSet.contains(tableID)) {
+            nbrTableIDSet.insert(tableID);
+        }
+    }
+    if (nbrTableIDSet.size() < recursiveNbrTableIDSet.size()) {
+        gdsCall->ptrCast<LogicalGDSCall>()->setNbrTableIDSet(nbrTableIDSet);
     }
     probePlan.setLastOperator(std::move(gdsCall));
     // Scan path node property pipeline
@@ -178,27 +194,20 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         std::make_shared<LogicalPathPropertyProbe>(rel, probePlan.getLastOperator(),
             pathNodePropertyScanRoot, pathRelPropertyScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->direction = direction;
-    pathPropertyProbe->extendFromSource_ = *boundNode == *rel->getSrcNode();
+    pathPropertyProbe->extendFromLeft = *boundNode == *rel->getLeftNode();
     pathPropertyProbe->pathNodeIDs = recursiveInfo->pathNodeIDsExpr;
     pathPropertyProbe->pathEdgeIDs = recursiveInfo->pathEdgeIDsExpr;
     pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     pathPropertyProbe->computeFactorizedSchema();
     probePlan.setLastOperator(pathPropertyProbe);
-    // E.g. Given schema person-knows->person & person-knows->animal
-    // And query MATCH (a:person:animal)-[e*]->(b:person)
-    // The destination node b after GDS will contain both person & animal label. We need to prune
-    // the animal out. Using operator makes more sense because we can vectorize this filter.
-    if (nbrNode->getTableIDsSet().size() < recursiveInfo->node->getTableIDsSet().size()) {
-        appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), probePlan);
-    }
-    auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     probePlan.setCost(plan.getCardinality());
-    probePlan.setCardinality(plan.getCardinality() * extensionRate);
-
+    auto cardinality = UINT32_MAX;
+    probePlan.setCardinality(cardinality);
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
+    // Hash join above should not change the cardinality of probe plan.
+    plan.setCardinality(probePlan.getCardinality());
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,

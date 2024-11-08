@@ -36,28 +36,5 @@ protected:
     std::unique_ptr<duckdb::Connection> connection;
 };
 
-class LocalDuckDBConnector : public DuckDBConnector {
-public:
-    void connect(const std::string& dbPath, const std::string& catalogName,
-        main::ClientContext* context) override;
-};
-
-class HTTPDuckDBConnector : public DuckDBConnector {
-public:
-    void connect(const std::string& dbPath, const std::string& catalogName,
-        main::ClientContext* context) override;
-};
-
-class S3DuckDBConnector : public DuckDBConnector {
-public:
-    void connect(const std::string& dbPath, const std::string& catalogName,
-        main::ClientContext* context) override;
-};
-
-class DuckDBConnectorFactory {
-public:
-    static std::unique_ptr<DuckDBConnector> getDuckDBConnector(const std::string& dbPath);
-};
-
 } // namespace duckdb_extension
 } // namespace kuzu

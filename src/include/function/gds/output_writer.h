@@ -70,7 +70,8 @@ public:
 
     bool skip(common::nodeID_t dstNodeID) const;
 
-    virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const = 0;
+    virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        processor::GDSOutputCounter* counter) = 0;
 
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
@@ -94,7 +95,8 @@ public:
     DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
         processor::NodeOffsetMaskMap* outputNodeMask);
 
-    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
+    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        processor::GDSOutputCounter* counter) override;
 
     std::unique_ptr<RJOutputWriter> copy() override {
         return std::make_unique<DestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
@@ -102,8 +104,6 @@ public:
 
 protected:
     bool skipInternal(common::nodeID_t dstNodeID) const override;
-    virtual void writeMoreAndAppend(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
-        uint16_t length) const;
 
 protected:
     std::unique_ptr<common::ValueVector> lengthVector;
@@ -115,7 +115,7 @@ struct PathsOutputWriterInfo {
     // Range
     uint16_t lowerBound = 0;
     // Direction
-    bool extendFromSource = false;
+    bool flipPath = false;
     bool writeEdgeDirection = false;
     bool writePath = false;
     // Node predicate mask
@@ -129,7 +129,8 @@ public:
     PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
         processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info);
 
-    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID) const override;
+    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        processor::GDSOutputCounter* counter) override;
 
 private:
     bool checkPathNodeMask(const std::vector<ParentList*>& path) const;
