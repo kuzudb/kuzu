@@ -123,14 +123,11 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(common::ReaderConfig read
     uint64_t numRows, main::ClientContext* context, common::CSVOption csvOption,
     CSVColumnInfo columnInfo)
     : ScanFileSharedState{std::move(readerConfig), numRows, context},
-      csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, numBlocksReadByFiles{0} {
+      csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, numBlocksReadByFiles{0},
+      populateErrorFunc(constructPopulateFunc()) {
     errorHandlers.reserve(this->readerConfig.getNumFiles());
     for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
-        errorHandlers.emplace_back(i, &lock);
-    }
-    auto populateFunc = constructPopulateFunc();
-    for (auto& errorHandler : errorHandlers) {
-        errorHandler.setPopulateErrorFunc(populateFunc);
+        errorHandlers.emplace_back(i, &lock, populateErrorFunc);
     }
 }
 
