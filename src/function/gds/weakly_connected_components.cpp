@@ -297,13 +297,17 @@ public:
         auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, totalNumNodes,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
-        // GDS::Utils::RunUntilConvergence shouldn't explicitly call RJCompState since other algorithms can also use RunUntilConvergence.
-        // A solution could be to have a general CompState class which RJCompState derives from.
-        auto computeState = RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD, 10);
-        auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(), sharedState.get(), *frontier);
-        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);        
-        sharedState->mergeLocalTables();        
+        // GDS::Utils::RunUntilConvergence shouldn't explicitly call RJCompState since other
+        // algorithms can also use RunUntilConvergence. A solution could be to have a general
+        // CompState class which RJCompState derives from.
+        auto computeState =
+            RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
+            10);
+        auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
+            sharedState.get(), *frontier);
+        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
+        sharedState->mergeLocalTables();
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
