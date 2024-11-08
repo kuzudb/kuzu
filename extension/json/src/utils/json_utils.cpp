@@ -653,12 +653,12 @@ bool jsonContainsScalar(yyjson_val* haystack, yyjson_val* needle) {
 
 // Function to check if a needle array is contained within a haystack array
 bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx, needleMax;
-    yyjson_val* needleChild;
+    uint32_t needleIdx = 0, needleMax = 0;
+    yyjson_val* needleChild = nullptr;
     yyjson_arr_foreach(needle, needleIdx, needleMax, needleChild) {
         bool found = false;
-        uint32_t haystackIdx, haystackMax;
-        yyjson_val* haystackChild;
+        uint32_t haystackIdx = 0, haystackMax = 0;
+        yyjson_val* haystackChild = nullptr;
         yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
             if (jsonContains(haystackChild, needleChild)) {
                 found = true;
@@ -674,8 +674,8 @@ bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
 
 // Function to check if any element in a haystack array matches the needle
 bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t haystackIdx, haystackMax;
-    yyjson_val* haystackChild;
+    uint32_t haystackIdx = 0, haystackMax = 0;
+    yyjson_val* haystackChild = nullptr;
     yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
         if (jsonContains(haystackChild, needle)) {
             return true;
@@ -686,8 +686,8 @@ bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
 
 // Helper function to check if the current level of a haystack object matches the needle object
 bool jsonContainsObjObjAtCurrentLevel(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx, needleMax;
-    yyjson_val *key, *needleChild;
+    uint32_t needleIdx = 0, needleMax = 0;
+    yyjson_val *key = nullptr, *needleChild = nullptr;
     yyjson_obj_foreach(needle, needleIdx, needleMax, key, needleChild) {
         yyjson_val* haystackChild = yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
         if (!haystackChild) {
@@ -716,8 +716,8 @@ bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle) {
 
 // Function to search recursively through all values in a haystack object
 bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t haystackIdx, haystackMax;
-    yyjson_val *key, *haystackChild;
+    uint32_t haystackIdx = 0, haystackMax = 0;
+    yyjson_val *key = nullptr, *haystackChild = nullptr;
     yyjson_obj_foreach(haystack, haystackIdx, haystackMax, key, haystackChild) {
         if (jsonContains(haystackChild, needle)) {
             return true;
@@ -759,7 +759,6 @@ bool jsonContains(yyjson_val* haystack, yyjson_val* needle) {
 bool jsonContains(const JsonWrapper& haystack, const JsonWrapper& needle) {
     return jsonContains(yyjson_doc_get_root(haystack.ptr), yyjson_doc_get_root(needle.ptr));
 }
-
 
 std::vector<std::string> jsonGetKeys(const JsonWrapper& wrapper) {
     std::vector<std::string> result;

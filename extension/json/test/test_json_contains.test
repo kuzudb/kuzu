@@ -86,7 +86,6 @@ True
 False
 
 # Check if the recursion properly stops
-# TODO: fix this bug
 -STATEMENT RETURN json_contains('{"a": {"b": 42}}', '{"a": 42}')
 ---- 1
 False
