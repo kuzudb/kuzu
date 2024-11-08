@@ -685,7 +685,8 @@ bool jsonContainsObjObjAtCurrentLevel(yyjson_val* haystack, yyjson_val* needle) 
     uint32_t needleIdx = 0, needleMax = 0;
     yyjson_val *key = nullptr, *needleChild = nullptr;
     yyjson_obj_foreach(needle, needleIdx, needleMax, key, needleChild) {
-        yyjson_val* haystackChild = yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
+        yyjson_val* haystackChild =
+            yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
         if (!haystackChild) {
             return false; // Key not found at this level
         }
