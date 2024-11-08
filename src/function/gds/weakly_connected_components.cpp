@@ -20,8 +20,8 @@ namespace function {
 
 class WCCFrontier : public GDSFrontier {
 public:
-    WCCFrontier(const table_id_map_t<offset_t>& numNodesMap_, storage::MemoryManager* mm) :
-    GDSFrontier{numNodesMap_} {
+    WCCFrontier(const table_id_map_t<offset_t>& numNodesMap_, storage::MemoryManager* mm)
+        : GDSFrontier{numNodesMap_} {
         curIter = 0;
         activeNodesInNextFrontier = 1;
         numNodes = 0;
@@ -30,33 +30,33 @@ public:
             numNodesMap[tableID] = curNumNodes;
             numNodes += curNumNodes;
             auto memBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<uint64_t>));
-            auto curActiveMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
-            auto nextActiveMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
-        std::atomic<uint64_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint64_t>*>(memBuffer.get()->getData());
-        std::atomic<bool>* curActiveMemBufferPtr = 
-            reinterpret_cast<std::atomic<bool>*>(curActiveMemBuffer.get()->getData());
-        std::atomic<bool>* nextActiveMemBufferPtr =
-            reinterpret_cast<std::atomic<bool>*>(nextActiveMemBuffer.get()->getData());
-        // Cast a unique number to each node
-        for (uint64_t i = 0; i < curNumNodes; ++i) {
-            memBufferPtr[i].store(componentIDCounter, std::memory_order_relaxed);
-            curActiveMemBufferPtr[i].store(true, std::memory_order_relaxed);
-            nextActiveMemBufferPtr[i].store(false, std::memory_order_relaxed);
-            componentIDCounter++;
-        }
-        vertexValues.insert({tableID, std::move(memBuffer)});
-        curActiveNodes.insert({tableID, std::move(curActiveMemBuffer)});
-        nextActiveNodes.insert({tableID, std::move(nextActiveMemBuffer)});
+            auto curActiveMemBuffer =
+                mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
+            auto nextActiveMemBuffer =
+                mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
+            std::atomic<uint64_t>* memBufferPtr =
+                reinterpret_cast<std::atomic<uint64_t>*>(memBuffer.get()->getData());
+            std::atomic<bool>* curActiveMemBufferPtr =
+                reinterpret_cast<std::atomic<bool>*>(curActiveMemBuffer.get()->getData());
+            std::atomic<bool>* nextActiveMemBufferPtr =
+                reinterpret_cast<std::atomic<bool>*>(nextActiveMemBuffer.get()->getData());
+            // Cast a unique number to each node
+            for (uint64_t i = 0; i < curNumNodes; ++i) {
+                memBufferPtr[i].store(componentIDCounter, std::memory_order_relaxed);
+                curActiveMemBufferPtr[i].store(true, std::memory_order_relaxed);
+                nextActiveMemBufferPtr[i].store(false, std::memory_order_relaxed);
+                componentIDCounter++;
+            }
+            vertexValues.insert({tableID, std::move(memBuffer)});
+            curActiveNodes.insert({tableID, std::move(curActiveMemBuffer)});
+            nextActiveNodes.insert({tableID, std::move(nextActiveMemBuffer)});
         }
     }
 
-    uint64_t getCurIter() const {
-        return curIter;
-    }
+    uint64_t getCurIter() const { return curIter; }
 
     uint64_t getNumNodes() const { return numNodes; }
-    
+
     uint64_t getComponentID(common::nodeID_t nodeID) const {
         return getComponentIDAtomic(nodeID).load(std::memory_order_relaxed);
     }
@@ -67,19 +67,13 @@ public:
         }
     }
 
-    void setActive(common::nodeID_t nodeID) {
-        setNextActive(nodeID);
-    }
+    void setActive(common::nodeID_t nodeID) { setNextActive(nodeID); }
 
     // pinTableID and isActive is not used, most likely needs refactoring
     void pinTableID(table_id_t) override {}
-    bool isActive(offset_t) override {
-        return true;
-    }
+    bool isActive(offset_t) override { return true; }
 
-    bool hasNextActive() {
-        return activeNodesInNextFrontier > 0;
-    }
+    bool hasNextActive() { return activeNodesInNextFrontier > 0; }
 
     bool update(nodeID_t boundNodeID, nodeID_t nbrNodeID) {
         auto& boundComponentID = getComponentIDAtomic(boundNodeID);
@@ -92,7 +86,8 @@ public:
         if (expectedComponentID < actualComponentID) {
             activeNodesInNextFrontier++;
             setNextActive(nbrNodeID);
-            while(!nbrComponentID.compare_exchange_weak(actualComponentID, expectedComponentID, std::memory_order_relaxed, std::memory_order_relaxed)) {
+            while (!nbrComponentID.compare_exchange_weak(actualComponentID, expectedComponentID,
+                std::memory_order_relaxed, std::memory_order_relaxed)) {
                 actualComponentID = nbrComponentID.load(std::memory_order_relaxed);
             }
             return true;
@@ -106,12 +101,14 @@ public:
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             auto& curMemBuffer = curActiveNodes.find(tableID)->second;
             auto& nextMemBuffer = nextActiveNodes.find(tableID)->second;
-            std::atomic<bool>* curActiveMemBufferPtr = 
+            std::atomic<bool>* curActiveMemBufferPtr =
                 reinterpret_cast<std::atomic<bool>*>(curMemBuffer.get()->getData());
             std::atomic<bool>* nextActiveMemBufferPtr =
                 reinterpret_cast<std::atomic<bool>*>(nextMemBuffer.get()->getData());
             for (auto i = 0u; i < curNumNodes; ++i) {
-                curActiveMemBufferPtr[i].store(nextActiveMemBufferPtr[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+                curActiveMemBufferPtr[i].store(
+                    nextActiveMemBufferPtr[i].load(std::memory_order_relaxed),
+                    std::memory_order_relaxed);
                 nextActiveMemBufferPtr[i].store(false, std::memory_order_relaxed);
             }
         }
@@ -121,28 +118,33 @@ private:
     void setNextActive(common::nodeID_t nodeID) {
         activeNodesInNextFrontier++;
         auto& memBuffer = nextActiveNodes.find(nodeID.tableID)->second;
-        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+        std::atomic<bool>* memBufferPtr =
+            reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
         memBufferPtr[nodeID.offset].store(static_cast<bool>(true), std::memory_order_relaxed);
     }
     std::atomic<uint64_t>& getComponentIDAtomic(common::nodeID_t nodeID) const {
         auto& memBuffer = vertexValues.find(nodeID.tableID)->second;
-        std::atomic<uint64_t>* memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
+        std::atomic<uint64_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
         return memBufferPtr[nodeID.offset];
     }
+
 private:
-uint16_t curIter;
-uint64_t activeNodesInNextFrontier;
-uint64_t numNodes;
-common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> vertexValues;
-common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curActiveNodes;
-common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> nextActiveNodes;
+    uint16_t curIter;
+    uint64_t activeNodesInNextFrontier;
+    uint64_t numNodes;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> vertexValues;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curActiveNodes;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> nextActiveNodes;
 };
 
 class WCCFrontierPair : public FrontierPair {
 public:
-    // FrontierPair might also need refactoring - a lot of Algorithms are not using FrontierPair as intended
-    WCCFrontierPair(std::shared_ptr<WCCFrontier> frontier, uint64_t numNodes, uint64_t numThreads) :
-    FrontierPair{frontier, frontier, numNodes, numThreads}, frontier{frontier}, morselDispatcher{numThreads} {}
+    // FrontierPair might also need refactoring - a lot of Algorithms are not using FrontierPair as
+    // intended
+    WCCFrontierPair(std::shared_ptr<WCCFrontier> frontier, uint64_t numNodes, uint64_t numThreads)
+        : FrontierPair{frontier, frontier, numNodes, numThreads}, frontier{frontier},
+          morselDispatcher{numThreads} {}
 
     bool getNextRangeMorsel(FrontierMorsel& morsel) override {
         return morselDispatcher.getNextRangeMorsel(morsel);
@@ -154,15 +156,12 @@ public:
         morselDispatcher.init(curTableID, frontier->getNumNodes());
     }
 
-    bool hasActiveNodesForNextLevel() override {
-        return frontier->hasNextActive();
-    }
+    bool hasActiveNodesForNextLevel() override { return frontier->hasNextActive(); }
 
-    void beginNewIterationInternalNoLock() override {
-        frontier->swapActiveNodes();
-    }
+    void beginNewIterationInternalNoLock() override { frontier->swapActiveNodes(); }
+
 public:
-std::shared_ptr<WCCFrontier> frontier;
+    std::shared_ptr<WCCFrontier> frontier;
 
 private:
     FrontierMorselDispatcher morselDispatcher;
@@ -171,10 +170,10 @@ private:
 struct WCCEdgeCompute : public EdgeCompute {
     WCCFrontierPair* frontierPair;
 
-    explicit WCCEdgeCompute(WCCFrontierPair* frontierPair) :
-    frontierPair{frontierPair} {}
+    explicit WCCEdgeCompute(WCCFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::GraphScanState::Chunk& chunk, bool) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::GraphScanState::Chunk& chunk,
+        bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
             if (frontierPair->frontier->update(boundNodeID, nbrNodeID)) {
@@ -286,14 +285,19 @@ public:
         for (auto& nodeTableID : nodeTableIDs) {
             totalNumNodes += graph->getNumNodes(clientContext->getTx(), nodeTableID);
         }
-        auto frontier = std::make_shared<WCCFrontier>(graph->getNumNodesMap(clientContext->getTx()), clientContext->getMemoryManager());
-        auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, totalNumNodes, clientContext->getMaxNumThreadForExec());
+        auto frontier = std::make_shared<WCCFrontier>(graph->getNumNodesMap(clientContext->getTx()),
+            clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, totalNumNodes,
+            clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
-        auto computeState = RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD, 10);
-        auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(), sharedState.get(), *frontier);
-        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);        
-        sharedState->mergeLocalTables();        
+        auto computeState =
+            RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
+            10);
+        auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
+            sharedState.get(), *frontier);
+        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
+        sharedState->mergeLocalTables();
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

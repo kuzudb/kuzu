@@ -55,7 +55,8 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     rjCompState.edgeCompute->resetSingleThreadState();
     while (frontierPair->hasActiveNodesForNextIter() && frontierPair->getNextIter() <= maxIters) {
         frontierPair->beginNewIteration();
-        if (outputNodeMask != nullptr && outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
+        if (outputNodeMask != nullptr && outputNodeMask->enabled() &&
+            rjCompState.edgeCompute->terminate(*outputNodeMask)) {
             break;
         }
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
