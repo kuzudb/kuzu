@@ -27,6 +27,7 @@ SharedFileErrorHandler::SharedFileErrorHandler(common::idx_t fileIdx, std::mutex
     : mtx(sharedMtx), fileIdx(fileIdx), populateErrorFunc(populateErrorFunc), headerNumRows(0) {}
 
 uint64_t SharedFileErrorHandler::getNumCachedErrors() {
+    auto lockGuard = lock();
     return cachedErrors.size();
 }
 
