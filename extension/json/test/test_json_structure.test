@@ -1,0 +1,157 @@
+-DATASET CSV empty
+
+--
+
+-CASE JsonStructureTestFromDuckDB
+
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+
+
+-STATEMENT RETURN json_structure('42')
+---- 1
+UINT8
+
+
+-STATEMENT RETURN json_structure('4.2')
+---- 1
+DOUBLE
+
+
+-STATEMENT RETURN json_structure('null')
+---- 1
+ANY
+
+
+-STATEMENT RETURN json_structure('true')
+---- 1
+BOOL
+
+
+-STATEMENT RETURN json_structure('"duck"')
+---- 1
+STRING
+
+# simple values
+
+-STATEMENT RETURN json_structure('{"a": 42}')
+---- 1
+STRUCT(a UINT8)
+
+
+-STATEMENT RETURN json_structure('{"a": 4.2}')
+---- 1
+STRUCT(a DOUBLE)
+
+
+-STATEMENT RETURN json_structure('{"a": "42"}')
+---- 1
+STRUCT(a STRING)
+
+
+-STATEMENT RETURN json_structure('{"a": "looooooooooooooooong"}')
+---- 1
+STRUCT(a STRING)
+
+
+-STATEMENT RETURN json_structure('{"a": null}')
+---- 1
+STRUCT(a ANY)
+
+
+-STATEMENT RETURN json_structure('{"a": true}')
+---- 1
+STRUCT(a BOOL)
+
+
+-STATEMENT RETURN json_structure('{"a": []}')
+---- 1
+STRUCT(a ANY[])
+
+
+-STATEMENT RETURN json_structure('{"a": [42]}')
+---- 1
+STRUCT(a UINT8[])
+
+
+-STATEMENT RETURN json_structure('{"a": {"b": 42}}')
+---- 1
+STRUCT(a STRUCT(b UINT8))
+
+-STATEMENT RETURN json_structure('[null,null]')
+---- 1
+ANY[]
+
+
+-STATEMENT RETURN json_structure('[true,null,false]')
+---- 1
+BOOL[]
+
+
+-STATEMENT RETURN json_structure('[true,null,false,1]')
+---- 1
+STRING[]
+
+
+-STATEMENT RETURN json_structure('[true,null,false,1,-1]')
+---- 1
+STRING[]
+
+
+-STATEMENT RETURN json_structure('[true,null,false,1,-1,0.42]')
+---- 1
+STRING[]
+
+
+-STATEMENT RETURN json_structure('[true,null,false,1,-1,0.42,"42"]')
+---- 1
+STRING[]
+
+# nested stuff
+
+-STATEMENT RETURN json_structure('[{"a": 42}, {"a": null}]')
+---- 1
+STRUCT(a UINT8)[]
+
+
+-STATEMENT RETURN json_structure('[{"a": 42}, {"b": 4.2}]')
+---- 1
+STRUCT(a UINT8, b DOUBLE)[]
+
+
+-STATEMENT RETURN json_structure('[{"a": [42, null]}, {"a": [7]}]')
+---- 1
+STRUCT(a UINT8[])[]
+
+
+-STATEMENT RETURN json_structure('[{"a": [{"b": 42}, {"b": null}]}, {"a": [{"b": 7}]}]')
+---- 1
+STRUCT(a STRUCT(b UINT8)[])[]
+
+
+-STATEMENT RETURN json_structure('[{"a": [{"b": 42}, {"b": null}]}, {"a": [{"c": 7}]}]')
+---- 1
+STRUCT(a STRUCT(b UINT8, c UINT8)[])[]
+
+# inconsistent types
+
+-STATEMENT RETURN json_structure('[1, [1]]')
+---- 1
+STRING[]
+
+
+-STATEMENT RETURN json_structure('[1, {"a": 1}]')
+---- 1
+STRING[]
+
+-STATEMENT RETURN json_structure('[[1], {"a": 1}]')
+---- 1
+STRING[]
+
+-STATEMENT RETURN json_structure('{"a": 42, "a": 7}')
+---- 1
+STRUCT(a UINT8, a UINT8)
+
+-STATEMENT RETURN json_structure('{"a": 1, "A": 1}');
+---- 1
+STRUCT(a UINT8, A UINT8)
