@@ -163,11 +163,8 @@ public:
     // Get all possible "forward" (fromNodeTableID, relTableID, toNodeTableID) combinations.
     virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
 
-    // Prepares scan on the specified relationship table
-    virtual std::unique_ptr<GraphScanState> prepareScanFwd(common::table_id_t relTableID,
-        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
-    // Prepares scan on the specified relationship table
-    virtual std::unique_ptr<GraphScanState> prepareScanBwd(common::table_id_t relTableID,
+    // Prepares scan on the specified relationship table (works for backwards and forwards scans)
+    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
         std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
     // Prepares scan on all connected relationship tables using forward adjList.
     virtual std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(

@@ -32,12 +32,13 @@ struct FrontierTaskSharedState {
 class FrontierTask : public common::Task {
 public:
     FrontierTask(uint64_t maxNumThreads, const FrontierTaskInfo& info,
-        std::shared_ptr<FrontierTaskSharedState> sharedState);
+        std::shared_ptr<FrontierTaskSharedState> sharedState)
+        : common::Task{maxNumThreads}, info{info}, sharedState{std::move(sharedState)} {}
 
     void run() override;
 
 private:
-    const FrontierTaskInfo& info;
+    FrontierTaskInfo info;
     std::shared_ptr<FrontierTaskSharedState> sharedState;
 };
 

@@ -1,8 +1,6 @@
 #include "function/gds/gds_utils.h"
 
-#include "common/enums/extend_direction.h"
 #include "common/task_system/task_scheduler.h"
-#include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/rec_joins.h"
@@ -15,9 +13,15 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace function {
 
-static void scheduleFrontierTask(std::shared_ptr<FrontierTask> task,
+static void scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
+    ExtendDirection extendDirection, RJCompState& rjCompState,
     processor::ExecutionContext* context) {
     auto clientContext = context->clientContext;
+    auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *rjCompState.edgeCompute);
+    auto sharedState = std::make_shared<FrontierTaskSharedState>(*rjCompState.frontierPair);
+    auto maxThreads =
+        clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
+    auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to
@@ -26,7 +30,6 @@ static void scheduleFrontierTask(std::shared_ptr<FrontierTask> task,
     // more generally decrease the number of worker threads by 1. Therefore, we instruct
     // scheduleTaskAndWaitOrError to start a new thread by passing true as the last
     // argument.
-    task->resetState();
     clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
@@ -34,12 +37,6 @@ static void scheduleFrontierTask(std::shared_ptr<FrontierTask> task,
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context,
     RJCompState& rjCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
-    auto maxThreads =
-        context->clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
-    auto info =
-        FrontierTaskInfo(INVALID_TABLE_ID, graph, extendDirection, *rjCompState.edgeCompute);
-    auto sharedState = std::make_shared<FrontierTaskSharedState>(*rjCompState.frontierPair);
-    auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
     auto frontierPair = rjCompState.frontierPair.get();
     auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
     rjCompState.edgeCompute->resetSingleThreadState();
@@ -49,30 +46,28 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             break;
         }
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
-            info.relTableIDToScan = relTableIDInfo.relTableID;
-
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                info.direction = ExtendDirection::FWD;
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
-                scheduleFrontierTask(task, context);
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
+                    rjCompState, context);
             } break;
             case ExtendDirection::BWD: {
-                info.direction = ExtendDirection::BWD;
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
                     relTableIDInfo.fromNodeTableID);
-                scheduleFrontierTask(task, context);
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD,
+                    rjCompState, context);
             } break;
             case ExtendDirection::BOTH: {
-                info.direction = ExtendDirection::FWD;
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
-                scheduleFrontierTask(task, context);
-                info.direction = ExtendDirection::BWD;
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
+                    rjCompState, context);
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
                     relTableIDInfo.fromNodeTableID);
-                scheduleFrontierTask(task, context);
+                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD,
+                    rjCompState, context);
             } break;
             default:
                 KU_UNREACHABLE;
