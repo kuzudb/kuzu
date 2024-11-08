@@ -21,59 +21,45 @@ class MemoryManager;
 namespace graph {
 
 struct OnDiskGraphScanState {
-    class InnerIterator {
-    public:
-        InnerIterator(const main::ClientContext* context, storage::RelTable* relTable,
-            std::unique_ptr<storage::RelTableScanState> tableScanState);
+public:
+    OnDiskGraphScanState(const main::ClientContext* context, storage::RelTable* relTable,
+        std::unique_ptr<storage::RelTableScanState> tableScanState);
 
-        DELETE_COPY_DEFAULT_MOVE(InnerIterator);
+    DELETE_COPY_DEFAULT_MOVE(OnDiskGraphScanState);
 
-        std::span<const common::nodeID_t> getNbrNodes() const {
-            RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
-                KU_ASSERT(
-                    getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
-            });
-            return std::span<const common::nodeID_t>(
-                &dstVector().getValue<const common::nodeID_t>(0), common::DEFAULT_VECTOR_CAPACITY);
-        }
-        std::span<const common::nodeID_t> getEdges() const {
-            RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
-                KU_ASSERT(
-                    getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
-            });
-            return std::span<const common::nodeID_t>(
-                &relIDVector().getValue<const common::nodeID_t>(0),
-                common::DEFAULT_VECTOR_CAPACITY);
-        }
+    std::span<const common::nodeID_t> getNbrNodes() const {
+        RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
+            KU_ASSERT(getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
+        });
+        return std::span<const common::nodeID_t>(&dstVector().getValue<const common::nodeID_t>(0),
+            common::DEFAULT_VECTOR_CAPACITY);
+    }
+    std::span<const common::nodeID_t> getEdges() const {
+        RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
+            KU_ASSERT(getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
+        });
+        return std::span<const common::nodeID_t>(&relIDVector().getValue<const common::nodeID_t>(0),
+            common::DEFAULT_VECTOR_CAPACITY);
+    }
 
-        common::SelectionVector& getSelVectorUnsafe() {
-            return tableScanState->outState->getSelVectorUnsafe();
-        }
+    common::SelectionVector& getSelVectorUnsafe() {
+        return tableScanState->outState->getSelVectorUnsafe();
+    }
 
-        const common::SelectionVector& getSelVector() const {
-            return tableScanState->outState->getSelVector();
-        }
+    const common::SelectionVector& getSelVector() const {
+        return tableScanState->outState->getSelVector();
+    }
 
-        bool next(evaluator::ExpressionEvaluator* predicate);
-        void initScan();
+    bool next(evaluator::ExpressionEvaluator* predicate);
+    void initScan();
 
-    private:
-        common::ValueVector& dstVector() const { return *tableScanState->outputVectors[0]; }
-        common::ValueVector& relIDVector() const { return *tableScanState->outputVectors[1]; }
+private:
+    common::ValueVector& dstVector() const { return *tableScanState->outputVectors[0]; }
+    common::ValueVector& relIDVector() const { return *tableScanState->outputVectors[1]; }
 
-        const main::ClientContext* context;
-        storage::RelTable* relTable;
-        std::unique_ptr<storage::RelTableScanState> tableScanState;
-    };
-
-    InnerIterator fwdIterator;
-    InnerIterator bwdIterator;
-
-    OnDiskGraphScanState(main::ClientContext* context, storage::RelTable& table,
-        std::unique_ptr<storage::RelTableScanState> fwdState,
-        std::unique_ptr<storage::RelTableScanState> bwdState)
-        : fwdIterator{context, &table, std::move(fwdState)},
-          bwdIterator{context, &table, std::move(bwdState)} {}
+    const main::ClientContext* context;
+    storage::RelTable* relTable;
+    std::unique_ptr<storage::RelTableScanState> tableScanState;
 };
 
 class OnDiskGraphScanStates : public GraphScanState {
@@ -81,8 +67,8 @@ class OnDiskGraphScanStates : public GraphScanState {
 
 public:
     GraphScanState::Chunk getChunk() override {
-        auto& iter = getInnerIterator();
-        return createChunk(iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe(),
+        auto& state = getCurrentScanState();
+        return createChunk(state.getNbrNodes(), state.getEdges(), state.getSelVectorUnsafe(),
             propertyVector.get());
     }
     bool next() override;
@@ -93,18 +79,14 @@ public:
     }
 
 private:
-    const OnDiskGraphScanState::InnerIterator& getInnerIterator() const {
+    const OnDiskGraphScanState& getCurrentScanState() const {
         KU_ASSERT(iteratorIndex < scanStates.size());
-        if (direction == common::RelDataDirection::FWD) {
-            return scanStates[iteratorIndex].second.fwdIterator;
-        } else {
-            return scanStates[iteratorIndex].second.bwdIterator;
-        }
+        return scanStates[iteratorIndex].second;
     }
 
-    OnDiskGraphScanState::InnerIterator& getInnerIterator() {
-        return const_cast<OnDiskGraphScanState::InnerIterator&>(
-            const_cast<const OnDiskGraphScanStates*>(this)->getInnerIterator());
+    OnDiskGraphScanState& getCurrentScanState() {
+        return const_cast<OnDiskGraphScanState&>(
+            const_cast<const OnDiskGraphScanStates*>(this)->getCurrentScanState());
     }
 
 private:
@@ -119,7 +101,7 @@ private:
 
     explicit OnDiskGraphScanStates(main::ClientContext* context,
         std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry,
-        std::optional<common::idx_t> edgePropertyIndex = std::nullopt);
+        std::optional<common::idx_t> edgePropertyIndex, common::RelDataDirection direction);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
 };
 
@@ -139,7 +121,9 @@ public:
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
-    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
+    std::unique_ptr<GraphScanState> prepareScanFwd(common::table_id_t relTableID,
+        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) override;
+    std::unique_ptr<GraphScanState> prepareScanBwd(common::table_id_t relTableID,
         std::optional<common::idx_t> edgePropertyIndex = std::nullopt) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) override;
