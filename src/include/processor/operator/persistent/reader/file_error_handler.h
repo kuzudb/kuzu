@@ -23,8 +23,7 @@ class SharedFileErrorHandler;
 
 class KUZU_API SharedFileErrorHandler {
 public:
-    explicit SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx,
-        populate_func_t populateErrorFunc = {});
+    explicit SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx);
 
     void handleError(CopyFromFileError error);
     void throwCachedErrorsIfNeeded();
