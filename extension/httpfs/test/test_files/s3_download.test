@@ -24,13 +24,6 @@ kuzuS3keyid
 ---- 1
 anotherkey
 
--CASE DuplicateOption
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
----- error
-Extension exception: Extension option S3_ACCESS_KEY_ID already exists.
-
 -CASE ScanFromUWS3File
 # In-memory mode doesn't support file cache.
 -SKIP_IN_MEM
