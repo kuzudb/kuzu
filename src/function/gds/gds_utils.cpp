@@ -48,11 +48,14 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     RJCompState& rjCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
     auto frontierPair = rjCompState.frontierPair.get();
-    auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
+    processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
+    if (rjCompState.outputWriter != nullptr) {
+        outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
+    }
     rjCompState.edgeCompute->resetSingleThreadState();
     while (frontierPair->hasActiveNodesForNextIter() && frontierPair->getNextIter() <= maxIters) {
         frontierPair->beginNewIteration();
-        if (outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
+        if (outputNodeMask != nullptr && outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
             break;
         }
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
