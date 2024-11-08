@@ -45,15 +45,9 @@ void SharedFileErrorHandler::handleError(CopyFromFileError error) {
     }
     ++linesPerBlock[blockIdx].invalidLines;
 
-    if (error.mustThrow || canGetLineNumber(blockIdx)) {
-        throwError(std::move(error));
-    } else {
-        // we only cache an error in the shared handler if we cannot throw right now but we want to
-        // do it later
-        // for the sake of reporting warnings, errors are sent directly to
-        // WarningContext
-        tryCacheError(std::move(error), lockGuard);
-    }
+    // throwing of the error is not done when in the middle of parsing blocks
+    // so we cache the error to be thrown later
+    tryCacheError(std::move(error), lockGuard);
 }
 
 void SharedFileErrorHandler::throwCachedErrorsIfNeeded() {
@@ -154,7 +148,7 @@ void SharedFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
 }
 
 void SharedFileErrorHandler::updateLineNumberInfo(
-    const std::map<uint64_t, LinesPerBlock>& newLinesPerBlock) {
+    const std::map<uint64_t, LinesPerBlock>& newLinesPerBlock, bool canThrowCachedError) {
     const auto lockGuard = lock();
 
     if (!newLinesPerBlock.empty()) {
@@ -170,6 +164,10 @@ void SharedFileErrorHandler::updateLineNumberInfo(
             currentBlock.doneParsingBlock =
                 currentBlock.doneParsingBlock || linesInBlock.doneParsingBlock;
         }
+    }
+
+    if (canThrowCachedError) {
+        tryThrowFirstCachedError();
     }
 }
 
@@ -201,6 +199,9 @@ void LocalFileErrorHandler::handleError(CopyFromFileError error) {
 void LocalFileErrorHandler::reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead) {
     linesPerBlock[blockIdx].validLines += numRowsRead;
     linesPerBlock[blockIdx].doneParsingBlock = true;
+    if (linesPerBlock.size() >= maxCachedErrorCount) {
+        flushCachedErrors();
+    }
 }
 
 void LocalFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
@@ -208,16 +209,18 @@ void LocalFileErrorHandler::setHeaderNumRows(uint64_t numRows) {
 }
 
 LocalFileErrorHandler::~LocalFileErrorHandler() {
-    finalize();
+    // we don't want to throw in the destructor
+    // so we leave throwing for later in the parsing stage or during finalize
+    flushCachedErrors(false);
 }
 
-void LocalFileErrorHandler::finalize() {
-    flushCachedErrors();
+void LocalFileErrorHandler::finalize(bool canThrowCachedError) {
+    flushCachedErrors(canThrowCachedError);
 }
 
-void LocalFileErrorHandler::flushCachedErrors() {
+void LocalFileErrorHandler::flushCachedErrors(bool canThrowCachedError) {
     if (!linesPerBlock.empty()) {
-        sharedErrorHandler->updateLineNumberInfo(linesPerBlock);
+        sharedErrorHandler->updateLineNumberInfo(linesPerBlock, canThrowCachedError);
         linesPerBlock.clear();
     }
 

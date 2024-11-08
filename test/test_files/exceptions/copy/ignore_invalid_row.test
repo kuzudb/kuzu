@@ -2,6 +2,17 @@
 
 --
 
+-CASE ParallelIgnoreErrorOnBlockEdge
+-STATEMENT create node table animal(id INT64, val DOUBLE, name STRING, nums DOUBLE[3], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY animal FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/error-on-block-edge.csv" (ignore_errors=true, header=false);
+---- 2
+191 tuples have been copied to the animal table.
+59 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 6
+-STATEMENT CALL show_warnings() RETURN COUNT(*)
+---- 1
+59
+
 -CASE ParallelSkipInvalidLoadFrom
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", AUTO_DETECT=false) RETURN COUNT(*)
 ---- 1

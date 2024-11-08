@@ -31,7 +31,8 @@ public:
 
     void setHeaderNumRows(uint64_t numRows);
 
-    void updateLineNumberInfo(const std::map<uint64_t, LinesPerBlock>& linesPerBlock);
+    void updateLineNumberInfo(const std::map<uint64_t, LinesPerBlock>& linesPerBlock,
+        bool canThrowCachedError);
     uint64_t getNumCachedErrors();
     uint64_t getLineNumber(uint64_t blockIdx, uint64_t numRowsReadInBlock) const;
 
@@ -68,11 +69,11 @@ public:
     void handleError(CopyFromFileError error);
     void reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead);
     void setHeaderNumRows(uint64_t numRows);
-    void finalize();
+    void finalize(bool canThrowCachedError = true);
 
 private:
     static constexpr uint64_t LOCAL_WARNING_LIMIT = 256;
-    void flushCachedErrors();
+    void flushCachedErrors(bool canThrowCachedError = true);
 
     std::map<uint64_t, LinesPerBlock> linesPerBlock;
     std::vector<CopyFromFileError> cachedErrors;
