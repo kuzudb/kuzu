@@ -123,8 +123,8 @@ void SerialCSVScanSharedState::finalizeReader(main::ClientContext* context) cons
 
 void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
     if (fileIdx < readerConfig.getNumFiles()) {
-        sharedErrorHandler = std::make_unique<SharedFileErrorHandler>(fileIdx, nullptr);
-        sharedErrorHandler->setPopulateErrorFunc(populateErrorFunc);
+        sharedErrorHandler =
+            std::make_unique<SharedFileErrorHandler>(fileIdx, nullptr, populateErrorFunc);
         localErrorHandler = std::make_unique<LocalFileErrorHandler>(sharedErrorHandler.get(),
             csvOption.ignoreErrors, context);
         reader = std::make_unique<SerialCSVReader>(readerConfig.filePaths[fileIdx], fileIdx,

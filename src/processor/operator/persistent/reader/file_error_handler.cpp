@@ -22,8 +22,9 @@ void LineContext::setEndOfLine(uint64_t end) {
     isCompleteLine = true;
 }
 
-SharedFileErrorHandler::SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx)
-    : mtx(sharedMtx), fileIdx(fileIdx), headerNumRows(0) {}
+SharedFileErrorHandler::SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx,
+    populate_func_t populateErrorFunc)
+    : mtx(sharedMtx), fileIdx(fileIdx), populateErrorFunc(populateErrorFunc), headerNumRows(0) {}
 
 uint64_t SharedFileErrorHandler::getNumCachedErrors() {
     auto lockGuard = lock();
