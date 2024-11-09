@@ -227,7 +227,7 @@ void ColumnChunkData::flush(FileHandle& dataFH) {
             if (freeChunkEntry->numPages != 0) {
                 freeChunkMap.AddFreeChunk(freeChunkEntry->pageIdx + preScanMetadata.numPages, freeChunkEntry->numPages);
             }
-            free(freeChunkEntry);
+            delete freeChunkEntry;
         }
     }
 

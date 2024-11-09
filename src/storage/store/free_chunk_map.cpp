@@ -18,7 +18,6 @@ FreeChunkMap::FreeChunkMap()
     for (int i = 0; i < MAX_FREE_CHUNK_LEVEL; i++) {
         freeChunkList.push_back(nullptr);
     }
-    maxAvailLevel = INVALID_FREE_CHUNK_LEVEL;
 };
 
 FreeChunkMap::~FreeChunkMap() {
@@ -136,7 +135,7 @@ void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t n
     KU_ASSERT(curLevel < MAX_FREE_CHUNK_LEVEL);
 
     /* 2. Create a new FreeChunkEntry */
-    FreeChunkEntry *entry = (FreeChunkEntry *)malloc(sizeof(FreeChunkEntry));
+    FreeChunkEntry *entry = new FreeChunkEntry;
     entry->pageIdx = pageIdx;
     entry->numPages = numPages;
 
