@@ -29,7 +29,7 @@ std::string FileSystem::expandPath(main::ClientContext* /*context*/,
 }
 
 std::string FileSystem::joinPath(const std::string& base, const std::string& part) {
-    return (std::filesystem::path{base} / part).string();
+    return base + "/" + part;
 }
 
 std::string FileSystem::getFileExtension(const std::filesystem::path& path) {

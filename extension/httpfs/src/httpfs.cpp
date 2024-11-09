@@ -264,8 +264,9 @@ std::unique_ptr<httplib::Client> HTTPFileSystem::getClient(const std::string& ho
     auto client = std::make_unique<httplib::Client>(host);
     client->set_follow_location(true);
     client->set_keep_alive(HTTPParams::DEFAULT_KEEP_ALIVE);
-    // TODO(Ziyi): This option is needed for https connection
-    // client->enable_server_certificate_verification(false);
+    // TODO(Chang): Windows CI is missing some certificates, which causes tests to fail. Enable the
+    // certificate verification after fixing the certificate issue.
+    client->enable_server_certificate_verification(false);
     client->set_write_timeout(HTTPParams::DEFAULT_TIMEOUT);
     client->set_read_timeout(HTTPParams::DEFAULT_TIMEOUT);
     client->set_connection_timeout(HTTPParams::DEFAULT_TIMEOUT);
