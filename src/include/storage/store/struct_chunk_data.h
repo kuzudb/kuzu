@@ -36,6 +36,8 @@ public:
         metadata.numValues = numValues;
     }
 
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfo() override;
+
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 

@@ -87,6 +87,8 @@ public:
         offsetColumnChunk->resize(newCapacity);
     }
 
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfo() override;
+
     common::offset_t getListStartOffset(common::offset_t offset) const;
 
     common::offset_t getListEndOffset(common::offset_t offset) const;

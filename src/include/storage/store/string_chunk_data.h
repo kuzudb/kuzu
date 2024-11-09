@@ -75,6 +75,8 @@ public:
     void resize(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfo() override;
+
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 

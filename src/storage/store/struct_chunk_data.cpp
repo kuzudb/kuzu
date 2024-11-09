@@ -65,6 +65,23 @@ void StructChunkData::resetToAllNull() {
     }
 }
 
+std::vector<struct std::pair<page_idx_t, page_idx_t>> StructChunkData::getAllChunkPhysicInfo()
+{
+    std::vector<struct std::pair<page_idx_t, page_idx_t>> chunkInfo;
+    if (getResidencyState() == ResidencyState::ON_DISK) {
+        for (common::idx_t index = 0; index < getNumChildren(); index++) {
+            auto *childChunk = getChild(index);
+            std::vector<struct std::pair<page_idx_t, page_idx_t>> curInfo;
+            curInfo = childChunk->getAllChunkPhysicInfo();
+            if (curInfo.size() != 0) {
+                chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+            }
+        }
+    }
+
+    return chunkInfo;
+}
+
 void StructChunkData::serialize(Serializer& serializer) const {
     ColumnChunkData::serialize(serializer);
     serializer.writeDebuggingInfo("struct_children");

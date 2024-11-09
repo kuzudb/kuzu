@@ -235,29 +235,13 @@ std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfoF
         if (columnID == INVALID_COLUMN_ID) {
             for (common::idx_t i = 0; i < chunkedGroup->getNumColumns(); i++) {
                 ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(i).getData();
-                if (chunkData.getResidencyState() == ResidencyState::ON_DISK) {
-                    ColumnChunkMetadata& metadata = chunkData.getMetadata();
-                    /*
-                     * It is possible for an ON_DISK chunk to have no storage assigned (i.e. min_val = max_val)
-                     * Ignore such case here since no corresponding disk space information
-                     */
-                    if (metadata.pageIdx != INVALID_PAGE_IDX && metadata.numPages != 0) {
-                        chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
-                    }
-                }
+                std::vector<std::pair<page_idx_t, page_idx_t>> curInfo = chunkData.getAllChunkPhysicInfo();
+                chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             }
         } else {
             ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(columnID).getData();
-            if (chunkData.getResidencyState() == ResidencyState::ON_DISK) {
-                ColumnChunkMetadata& metadata = chunkData.getMetadata();
-                /*
-                 * It is possible for an ON_DISK chunk to have no storage assigned (i.e. min_val = max_val)
-                 * Ignore such case here since no corresponding disk space information
-                 */
-                if (metadata.pageIdx != INVALID_PAGE_IDX && metadata.numPages != 0) {
-                    chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
-                }
-            }
+            std::vector<std::pair<page_idx_t, page_idx_t>> curInfo = chunkData.getAllChunkPhysicInfo();
+            chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
         }
     }
 
