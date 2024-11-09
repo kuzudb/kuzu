@@ -165,6 +165,10 @@ public:
         return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
     }
 
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfoForColumn(common::column_id_t columnID) {
+        return nodeGroups->getAllChunkPhysicInfoForColumn(columnID);
+    }
+
 private:
     void insertPK(const transaction::Transaction* transaction,
         const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector) const;
