@@ -18,7 +18,7 @@ struct ClientConfigDefault {
     static constexpr bool ENABLE_PROGRESS_BAR = false;
     static constexpr uint64_t SHOW_PROGRESS_AFTER = 1000;
     static constexpr common::PathSemantic RECURSIVE_PATTERN_SEMANTIC = common::PathSemantic::WALK;
-    static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 1;
+    static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 100;
     static constexpr bool DISABLE_MAP_KEY_CHECK = true;
     static constexpr uint64_t WARNING_LIMIT = 8 * 1024;
 };

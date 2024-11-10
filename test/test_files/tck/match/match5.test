@@ -406,6 +406,7 @@ n01111
 
 # Handling mixed relationship patterns 1
 -CASE Scenario28
+-SKIP_WASM
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})

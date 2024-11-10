@@ -18,10 +18,9 @@ SemiMaskerLocalState* SemiMaskerSharedState::appendLocalState() {
         }
         localInfo->localMasksPerTable.insert({tableID, std::move(newOne)});
     }
-    auto result = localInfo.get();
     std::unique_lock lock{mtx};
     localInfos.push_back(std::move(localInfo));
-    return result;
+    return localInfos[localInfos.size() - 1].get();
 }
 
 void SemiMaskerSharedState::mergeToGlobal() {
@@ -89,7 +88,7 @@ bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
-        localState->singleTableRef->mask(nodeID.offset);
+        localState->maskSingleTable(nodeID.offset);
     }
     metrics->numOutputTuple.increase(selVector.getSelSize());
     return true;
@@ -103,9 +102,55 @@ bool MultiTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto pos = selVector[i];
         auto nodeID = keyVector->getValue<nodeID_t>(pos);
-        localState->localMasksPerTable[nodeID.tableID]->mask(nodeID.offset);
+        localState->maskMultiTable(nodeID);
     }
     metrics->numOutputTuple.increase(selVector.getSelSize());
+    return true;
+}
+
+void NodeIDsSemiMask::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseSemiMasker::initLocalStateInternal(resultSet, context);
+    srcNodeIDVector = resultSet->getValueVector(srcNodeIDPos).get();
+    dstNodeIDVector = resultSet->getValueVector(dstNodeIDPos).get();
+}
+
+bool NodeIDsSingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
+        return false;
+    }
+    auto& selVector = keyVector->state->getSelVector();
+    KU_ASSERT(keyVector->state == srcNodeIDVector->state);
+    KU_ASSERT(keyVector->state == dstNodeIDVector->state);
+    auto keyDataVector = ListVector::getDataVector(keyVector);
+    for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        auto pos = selVector[i];
+        localState->maskSingleTable(srcNodeIDVector->getValue<nodeID_t>(pos).offset);
+        localState->maskSingleTable(dstNodeIDVector->getValue<nodeID_t>(pos).offset);
+        auto [offset, size] = keyVector->getValue<list_entry_t>(pos);
+        for (auto j = 0u; j < size; ++j) {
+            localState->maskSingleTable(keyDataVector->getValue<nodeID_t>(offset + j).offset);
+        }
+    }
+    return true;
+}
+
+bool NodeIDsMultipleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
+        return false;
+    }
+    auto& selVector = keyVector->state->getSelVector();
+    KU_ASSERT(keyVector->state == srcNodeIDVector->state);
+    KU_ASSERT(keyVector->state == dstNodeIDVector->state);
+    auto keyDataVector = ListVector::getDataVector(keyVector);
+    for (auto i = 0u; i < selVector.getSelSize(); ++i) {
+        auto pos = selVector[i];
+        localState->maskMultiTable(srcNodeIDVector->getValue<nodeID_t>(pos));
+        localState->maskMultiTable(dstNodeIDVector->getValue<nodeID_t>(pos));
+        auto [offset, size] = keyVector->getValue<list_entry_t>(pos);
+        for (auto j = 0u; j < size; ++j) {
+            localState->maskMultiTable(keyDataVector->getValue<nodeID_t>(offset + j));
+        }
+    }
     return true;
 }
 
@@ -130,22 +175,20 @@ bool PathSingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context)
     }
     auto& selVector = keyVector->state->getSelVector();
     // for both direction, we should deal with direction based on the actual direction of the edge
-    auto masker = localState->singleTableRef;
     for (auto i = 0u; i < selVector.getSelSize(); i++) {
         auto [offset, size] = pathRelsVector->getValue<list_entry_t>(selVector[i]);
         for (auto j = 0u; j < size; ++j) {
             auto pos = offset + j;
             if (direction == ExtendDirection::FWD || direction == ExtendDirection::BOTH) {
                 auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(pos);
-                masker->mask(srcNodeID.offset);
+                localState->maskSingleTable(srcNodeID.offset);
             }
             if (direction == ExtendDirection::BWD || direction == ExtendDirection::BOTH) {
                 auto dstNodeID = pathRelsDstIDDataVector->getValue<nodeID_t>(pos);
-                masker->mask(dstNodeID.offset);
+                localState->maskSingleTable(dstNodeID.offset);
             }
         }
     }
-    metrics->numOutputTuple.increase(masker->getNumMaskedNodes());
     return true;
 }
 
@@ -160,19 +203,14 @@ bool PathMultipleTableSemiMasker::getNextTuplesInternal(ExecutionContext* contex
             auto pos = offset + j;
             if (direction == ExtendDirection::FWD || direction == ExtendDirection::BOTH) {
                 auto srcNodeID = pathRelsSrcIDDataVector->getValue<nodeID_t>(pos);
-                localState->localMasksPerTable.at(srcNodeID.tableID)->mask(srcNodeID.offset);
+                localState->maskMultiTable(srcNodeID);
             }
             if (direction == ExtendDirection::BWD || direction == ExtendDirection::BOTH) {
                 auto dstNodeID = pathRelsDstIDDataVector->getValue<nodeID_t>(pos);
-                localState->localMasksPerTable.at(dstNodeID.tableID)->mask(dstNodeID.offset);
+                localState->maskMultiTable(dstNodeID);
             }
         }
     }
-    uint64_t num = 0;
-    for (const auto& [_, masker] : localState->localMasksPerTable) {
-        num += masker->getNumMaskedNodes();
-    }
-    metrics->numOutputTuple.increase(num);
     return true;
 }
 

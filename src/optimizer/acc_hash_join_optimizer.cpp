@@ -112,7 +112,7 @@ bool sanityCheckCandidates(const std::vector<LogicalOperator*>& ops,
     return true;
 }
 
-static std::shared_ptr<LogicalOperator> appendSemiMasker(SemiMaskKeyType keyType,
+static std::shared_ptr<LogicalSemiMasker> appendSemiMasker(SemiMaskKeyType keyType,
     SemiMaskTargetType targetType, std::shared_ptr<Expression> key,
     std::vector<LogicalOperator*> candidates, std::shared_ptr<LogicalOperator> child) {
     auto tableIDs = getTableIDs(candidates[0], targetType);
@@ -305,16 +305,26 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     if (opsToApplySemiMask.empty()) {
         return;
     }
-    auto semiMask = appendSemiMasker(SemiMaskKeyType::PATH, SemiMaskTargetType::SCAN_NODE,
-        recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
-    KU_ASSERT(op->getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
-    semiMask->cast<LogicalSemiMasker>().setDirection(
-        op->getChild(0)->cast<LogicalRecursiveExtend>().getDirection());
+    std::shared_ptr<LogicalSemiMasker> semiMasker;
+    if (pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND) {
+        semiMasker = appendSemiMasker(SemiMaskKeyType::PATH, SemiMaskTargetType::SCAN_NODE,
+            recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
+        auto direction =  op->getChild(0)->cast<LogicalRecursiveExtend>().getDirection();
+        semiMasker->setExtraKeyInfo(std::make_unique<ExtraPathKeyInfo>(direction));
+        pathPropertyProbe.setChild(0, appendAccumulate(semiMasker));
+    } else {
+        KU_ASSERT(pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
+        semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
+            recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask, pathPropertyProbe.getChild(0));
+        auto srcNodeID = recursiveRel->getSrcNode()->getInternalID();
+        auto dstNodeID = recursiveRel->getDstNode()->getInternalID();
+        semiMasker->setExtraKeyInfo(std::make_unique<ExtraNodeIDListKeyInfo>(srcNodeID, dstNodeID));
+        pathPropertyProbe.setChild(0, semiMasker);
+    }
     auto& sipInfo = pathPropertyProbe.getSIPInfoUnsafe();
     sipInfo.position = SemiMaskPosition::ON_PROBE;
     sipInfo.dependency = SIPDependency::PROBE_DEPENDS_ON_BUILD;
     sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
-    pathPropertyProbe.setChild(0, appendAccumulate(semiMask));
 }
 
 std::shared_ptr<LogicalOperator> HashJoinSIPOptimizer::tryApplySemiMask(

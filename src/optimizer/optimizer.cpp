@@ -33,14 +33,14 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
         ProjectionPushDownOptimizer(context->getClientConfig()->recursivePatternSemantic);
     projectionPushDownOptimizer.rewrite(plan);
 
+    auto limitPushDownOptimizer = LimitPushDownOptimizer();
+    limitPushDownOptimizer.rewrite(plan);
+
     if (context->getClientConfig()->enableSemiMask) {
         // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
         auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
         hashJoinSIPOptimizer.rewrite(plan);
     }
-
-    auto limitPushDownOptimizer = LimitPushDownOptimizer();
-    limitPushDownOptimizer.rewrite(plan);
 
     auto topKOptimizer = TopKOptimizer();
     topKOptimizer.rewrite(plan);
