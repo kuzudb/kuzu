@@ -89,13 +89,13 @@ public:
         std::vector<common::LogicalType> dataTypes,
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
-        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression}, isAllDeleted{false},
           numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)} {}
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
-        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
+        : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression}, isAllDeleted{false},
           numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
@@ -187,6 +187,7 @@ public:
     bool isDeleted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
+    bool isAllRowDeleted() { return isAllDeleted; }
 private:
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx);
@@ -216,6 +217,7 @@ protected:
     common::node_group_idx_t nodeGroupIdx;
     NodeGroupDataFormat format;
     bool enableCompression;
+    bool isAllDeleted;
     std::atomic<common::row_idx_t> numRows;
     // `nextRowToAppend` is a cursor to allow us to pre-reserve a set of rows to append before
     // acutally appending data. This is an optimization to reduce lock-contention when appending in

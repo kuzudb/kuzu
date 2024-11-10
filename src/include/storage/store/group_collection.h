@@ -90,6 +90,14 @@ public:
         KU_UNUSED(lock);
         return std::move(groups[groupIdx]);
     }
+    std::unique_ptr<T> removeGroup(const common::UniqLock& lock, common::idx_t groupIdx) {
+        KU_ASSERT(groupIdx < groups.size());
+        KU_ASSERT(lock.isLocked());
+        KU_UNUSED(lock);
+        std::unique_ptr<T> newPtr = std::move(groups[groupIdx]);
+        groups.erase(groups.begin() + groupIdx);
+        return newPtr;
+    }
     T* getFirstGroup(const common::UniqLock& lock) {
         KU_ASSERT(lock.isLocked());
         KU_UNUSED(lock);

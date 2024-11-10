@@ -219,8 +219,19 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     NodeGroupCheckpointState& state) {
     KU_ASSERT(dataFH);
     const auto lock = nodeGroups.lock();
-    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+    for (idx_t i = 0; i < nodeGroups.getNumGroups(lock);) {
+        const auto& nodeGroup = nodeGroups.getGroup(lock, i);
         nodeGroup->checkpoint(memoryManager, state);
+        if (nodeGroup->isAllRowDeleted()) {
+            /* remove this node group if it is all deleted */
+            auto groupPtr = nodeGroups.removeGroup(lock, i);
+
+            /* since we removed one entry, just keep the index unchanged here */
+            KU_ASSERT(i <= nodeGroups.getNumGroups(lock));
+        } else {
+            /* move to next NodeGroup */
+            i++;
+        }
     }
 }
 

@@ -73,21 +73,13 @@ public:
 
 private:
     FreeChunkLevel GetChunkLevel(common::page_idx_t numPages);
+    void UpdateMaxAvailLevel();
 
     /*No need for locks here since only checkpoint will need free chunks when all other transactions are blocked */
     std::vector<FreeChunkEntry *> freeChunkList;
     std::set<common::page_idx_t> existingFreeChunks;
     FreeChunkLevel maxAvailLevel;
 };
-
-/*
- * TableUnlinkInfo means to keep track of what information we need to update in the meta info during checkpoint
- * So that an recycled data chunk is unlinked from its original table
- */
-class UnlinkInformation {
-    // ERICTODO: Implement this
-};
-
 
 } // namespace storage
 } // namespace kuzu
