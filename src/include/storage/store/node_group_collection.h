@@ -54,8 +54,11 @@ public:
         nodeGroups.clear(lock);
     }
 
+    /* This function retrieve the physical info of all column chunk datas of the given column */
     std::vector<std::pair<common::page_idx_t, common::page_idx_t>>
         getAllChunkPhysicInfoForColumn(common::column_id_t columnID);
+    /* This function retrieve the physical info of all column chunk datas of ALL columns */
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfo();
 
     common::column_id_t getNumColumns() const { return types.size(); }
 

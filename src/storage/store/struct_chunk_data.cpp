@@ -73,7 +73,7 @@ std::vector<struct std::pair<page_idx_t, page_idx_t>> StructChunkData::getAllChu
             auto *childChunk = getChild(index);
             std::vector<struct std::pair<page_idx_t, page_idx_t>> curInfo;
             curInfo = childChunk->getAllChunkPhysicInfo();
-            if (curInfo.size() != 0) {
+            if (!curInfo.empty()) {
                 chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             }
         }

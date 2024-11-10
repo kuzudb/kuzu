@@ -276,17 +276,17 @@ std::vector<struct std::pair<page_idx_t, page_idx_t>> StringChunkData::getAllChu
     if (getResidencyState() == ResidencyState::ON_DISK) {
         std::vector<struct std::pair<page_idx_t, page_idx_t>> curInfo;
         curInfo = indexColumnChunk->getAllChunkPhysicInfo();
-        if (curInfo.size() != 0) {
+        if (!curInfo.empty()) {
             chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             curInfo.clear();
         }
         curInfo = dictionaryChunk->getStringDataChunk()->getAllChunkPhysicInfo();
-        if (curInfo.size() != 0) {
+        if (!curInfo.empty()) {
             chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             curInfo.clear();
         }
         curInfo = dictionaryChunk->getOffsetChunk()->getAllChunkPhysicInfo();
-        if (curInfo.size() != 0) {
+        if (!curInfo.empty()) {
             chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             curInfo.clear();
         }

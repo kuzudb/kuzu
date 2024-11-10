@@ -148,8 +148,12 @@ public:
     virtual void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState, FileHandle* dataFH);
 
+    /* This function retrieve the physical info of all column chunk datas of the given column */
     std::vector<std::pair<common::page_idx_t, common::page_idx_t>>
         getAllChunkPhysicInfoForColumn(common::column_id_t columnID);
+    /* This function retrieve the physical info of all column chunk datas of ALL columns */
+    std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfo();
+
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
@@ -204,6 +208,9 @@ private:
 
     static void populateNodeID(common::ValueVector& nodeIDVector, common::table_id_t tableID,
         common::offset_t startNodeOffset, common::row_idx_t numRows);
+
+    void addChunkDataForColumn(common::column_id_t columnID, ChunkedNodeGroup &chunkedGroup,
+        std::vector<std::pair<common::page_idx_t, common::page_idx_t>> &chunkInfo);
 
 protected:
     common::node_group_idx_t nodeGroupIdx;

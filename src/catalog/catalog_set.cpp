@@ -164,7 +164,7 @@ void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oi
     /* For now, we only take care of node table */
     if (table->getTableType() == TableType::NODE) {
         auto *nodeTable = table->ptrCast<storage::NodeTable>();
-        std::vector<std::pair<page_idx_t, page_idx_t>> chunkPhysicInfo = nodeTable->getAllChunkPhysicInfoForColumn(INVALID_COLUMN_ID);
+        std::vector<std::pair<page_idx_t, page_idx_t>> chunkPhysicInfo = nodeTable->getAllChunkPhysicInfo();
         for(auto phyInfo : chunkPhysicInfo) {
             page_idx_t pageIdx = phyInfo.first;
             page_idx_t numPages = phyInfo.second;

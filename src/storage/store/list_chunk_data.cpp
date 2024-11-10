@@ -423,17 +423,17 @@ std::vector<struct std::pair<page_idx_t, page_idx_t>> ListChunkData::getAllChunk
     if (getResidencyState() == ResidencyState::ON_DISK) {
         std::vector<struct std::pair<page_idx_t, page_idx_t>> curInfo;
         curInfo = offsetColumnChunk->getAllChunkPhysicInfo();
-        if (curInfo.size() != 0) {
+        if (!curInfo.empty()) {
             chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             curInfo.clear();
         }
         curInfo = sizeColumnChunk->getAllChunkPhysicInfo();
-        if (curInfo.size() != 0) {
+        if (!curInfo.empty()) {
             chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             curInfo.clear();
         }
         curInfo = dataColumnChunk->getAllChunkPhysicInfo();
-        if (curInfo.size() != 0) {
+        if (!curInfo.empty()) {
             chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
             curInfo.clear();
         }

@@ -184,7 +184,21 @@ std::vector<std::pair<page_idx_t, page_idx_t>>
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         std::vector<std::pair<page_idx_t, page_idx_t>> nodeGroupInfo = nodeGroup->getAllChunkPhysicInfoForColumn(columnID);
-        if (nodeGroupInfo.size() != 0) {
+        if (!nodeGroupInfo.empty()) {
+            allChunkPhysicInfo.insert(allChunkPhysicInfo.end(), nodeGroupInfo.begin(), nodeGroupInfo.end());
+        }
+    }
+
+    return allChunkPhysicInfo;
+}
+
+std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroupCollection::getAllChunkPhysicInfo()
+{
+    std::vector<std::pair<page_idx_t, page_idx_t>> allChunkPhysicInfo;
+    const auto lock = nodeGroups.lock();
+    for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        std::vector<std::pair<page_idx_t, page_idx_t>> nodeGroupInfo = nodeGroup->getAllChunkPhysicInfo();
+        if (!nodeGroupInfo.empty()) {
             allChunkPhysicInfo.insert(allChunkPhysicInfo.end(), nodeGroupInfo.begin(), nodeGroupInfo.end());
         }
     }

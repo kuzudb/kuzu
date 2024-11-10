@@ -231,21 +231,34 @@ std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfoF
     const auto lock = chunkedGroups.lock();
 
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        /* If no columnID is specified, we need to return information of all columns */
-        if (columnID == INVALID_COLUMN_ID) {
-            for (common::idx_t i = 0; i < chunkedGroup->getNumColumns(); i++) {
-                ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(i).getData();
-                std::vector<std::pair<page_idx_t, page_idx_t>> curInfo = chunkData.getAllChunkPhysicInfo();
-                chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
-            }
-        } else {
-            ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(columnID).getData();
-            std::vector<std::pair<page_idx_t, page_idx_t>> curInfo = chunkData.getAllChunkPhysicInfo();
-            chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+            addChunkDataForColumn(columnID, *chunkedGroup, chunkInfo);
+    }
+
+    return chunkInfo;
+}
+
+std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfo()
+{
+    std::vector<std::pair<page_idx_t, page_idx_t>> chunkInfo;
+    const auto lock = chunkedGroups.lock();
+
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        for (common::idx_t i = 0; i < chunkedGroup->getNumColumns(); i++) {
+            addChunkDataForColumn(i, *chunkedGroup, chunkInfo);
         }
     }
 
     return chunkInfo;
+}
+
+void NodeGroup::addChunkDataForColumn(common::column_id_t columnID, ChunkedNodeGroup &chunkedGroup,
+    std::vector<std::pair<page_idx_t, page_idx_t>> &chunkInfo)
+{
+    ColumnChunkData &chunkData = chunkedGroup.getColumnChunk(columnID).getData();
+    std::vector<std::pair<page_idx_t, page_idx_t>> curInfo = chunkData.getAllChunkPhysicInfo();
+    if (!curInfo.empty()) {
+        chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+    }
 }
 
 void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
