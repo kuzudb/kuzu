@@ -171,6 +171,8 @@ public:
                                                             bwdRelTableData->getColumn(columnID);
     }
 
+    NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx,
+        common::RelDataDirection direction) const;
     NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
         common::RelDataDirection direction) const;
 
@@ -190,6 +192,9 @@ public:
         nextRelOffset += numRels;
         return currentRelOffset;
     }
+
+    void pushInsertInfo(transaction::Transaction* transaction, common::RelDataDirection direction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t numRows_);
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,

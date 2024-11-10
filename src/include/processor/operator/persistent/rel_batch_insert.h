@@ -108,7 +108,7 @@ public:
 
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
-        storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
+        const RelBatchInsertInfo& relInfo, storage::RelTable& relTable,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
         const PartitionerSharedState& partitionerSharedState);
 

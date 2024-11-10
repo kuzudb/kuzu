@@ -152,6 +152,11 @@ public:
 
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
+
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_);
+
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
     uint64_t getEstimatedMemoryUsage();
@@ -184,7 +189,13 @@ public:
     bool isDeleted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
+    std::unique_ptr<ChunkedNodeGroup> scanAll(MemoryManager& memoryManager,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<const Column*>& columns);
+
 private:
+    std::pair<common::idx_t, common::row_idx_t> findChunkedGroupIdxFromRowIdx(
+        const common::UniqLock& lock, common::row_idx_t rowIdx);
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx);
     ChunkedNodeGroup* findChunkedGroupFromRowIdxNoLock(common::row_idx_t rowIdx);

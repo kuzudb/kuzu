@@ -137,7 +137,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction, this, numRows, numRowsToAppendInChunk);
+        versionInfo->append(transaction, numRows, numRowsToAppendInChunk);
     }
     numRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
@@ -168,7 +168,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction, this, numRows, numToAppendInChunkedGroup);
+        versionInfo->append(transaction, numRows, numToAppendInChunkedGroup);
     }
     numRows += numToAppendInChunkedGroup;
     return numToAppendInChunkedGroup;
@@ -396,7 +396,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(flushedChunkedGroup->getNumRows() == numRows);
-    flushedChunkedGroup->versionInfo->append(transaction, flushedChunkedGroup.get(), 0, numRows);
+    flushedChunkedGroup->versionInfo->append(transaction, 0, numRows);
     return flushedChunkedGroup;
 }
 
@@ -429,12 +429,7 @@ bool ChunkedNodeGroup::hasUpdates() const {
     return false;
 }
 
-void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommit,
-    transaction_t commitTS) {
-    versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);
-}
-
-void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_) {
+void ChunkedNodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_) {
     if (startRow == 0) {
         setNumRows(0);
         versionInfo.reset();
@@ -446,6 +441,11 @@ void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_) {
     }
     versionInfo->rollbackInsert(startRow, numRows_);
     numRows = startRow;
+}
+
+void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommit,
+    transaction_t commitTS) {
+    versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);
 }
 
 void ChunkedNodeGroup::commitDelete(row_idx_t startRow, row_idx_t numRows_,

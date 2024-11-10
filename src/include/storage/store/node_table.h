@@ -143,6 +143,10 @@ public:
         transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void rollbackInsert(const transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::row_idx_t numRows_);
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {

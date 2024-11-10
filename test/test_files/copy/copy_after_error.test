@@ -13,6 +13,20 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_
 ---- 1
 92.39.58.88
 
+-CASE CopyNodeAfterPKErrorRollbackFlushedGroups
+-STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+# COPY will trigger duplicate PK once the 2nd file is hit
+-STATEMENT COPY Comment FROM ['${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv', '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv'] (delim="|", header=true, parallel=false);
+---- error(regex)
+Copy exception: Found duplicated primary key value \w+, which violates the uniqueness constraint of the primary key column.
+# The failed COPY should revert all of its insertions and the 2nd COPY should succeed
+-STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv' (DELIM="|", header=true);
+---- ok
+-STATEMENT MATCH (c:Comment) WHERE c.ID = 962073046352 RETURN c.locationIP
+---- 1
+36.95.74.186
+
 -CASE CopyRelAfterNodeCopyError
 -STATEMENT CREATE NODE TABLE Comment(ID INT64, creationDate TIMESTAMP, locationIP STRING, browserUsed STRING, content STRING, length INT64, PRIMARY KEY(ID));
 ---- ok

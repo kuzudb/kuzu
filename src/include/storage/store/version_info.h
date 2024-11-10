@@ -86,8 +86,8 @@ class VersionInfo {
 public:
     VersionInfo() {}
 
-    void append(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
-        common::row_idx_t startRow, common::row_idx_t numRows);
+    void append(const transaction::Transaction* transaction, common::row_idx_t startRow,
+        common::row_idx_t numRows);
     bool delete_(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
         common::row_idx_t rowIdx);
 

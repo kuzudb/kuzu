@@ -20,7 +20,7 @@ public:
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
     void append(const transaction::Transaction* transaction, NodeGroupCollection& other);
-    void appned(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
+    void append(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
 
     // This function only tries to append data into the last node group, and if the last node group
     // is not enough to hold all the data, it will append partially and return the number of rows
@@ -53,6 +53,11 @@ public:
         const auto lock = nodeGroups.lock();
         nodeGroups.replaceGroup(lock, nodeGroupIdx, std::move(group));
     }
+
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
+
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_);
 
     void clear() {
         const auto lock = nodeGroups.lock();

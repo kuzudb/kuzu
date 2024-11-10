@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <variant>
 
 #include "common/constants.h"
 #include "common/types/types.h"
@@ -65,6 +66,8 @@ private:
 class UpdateInfo;
 class VersionInfo;
 struct VectorUpdateInfo;
+class NodeGroupCollection;
+class NodeTable;
 class ChunkedNodeGroup;
 class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
@@ -85,27 +88,33 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createInsertInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void createInsertInfo(NodeGroupCollection* nodeGroupCollection, common::row_idx_t startRow,
         common::row_idx_t numRows);
-    void createDeleteInfo(ChunkedNodeGroup* chunkedNodeGroup, common::row_idx_t startRow,
+    void createInsertInfo(NodeTable* nodeTable, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    void createInsertInfo(ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    void createDeleteInfo(ChunkedNodeGroup* nodeGroup, common::row_idx_t startRow,
         common::row_idx_t numRows);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS) const;
-    void rollback();
+    void rollback(const transaction::Transaction* transaction);
 
     uint64_t getMemUsage() const;
 
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVersionInfo(UndoRecordType recordType, ChunkedNodeGroup* chunkedNodeGroup,
+    void createVersionInfo(UndoRecordType recordType,
+        std::variant<NodeTable*, NodeGroupCollection*, ChunkedNodeGroup*> object,
         common::row_idx_t startRow, common::row_idx_t numRows);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
-    void rollbackRecord(UndoRecordType recordType, const uint8_t* record);
+    void rollbackRecord(const transaction::Transaction* transaction, UndoRecordType recordType,
+        const uint8_t* record);
 
     void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackCatalogEntryRecord(const uint8_t* record);
@@ -115,7 +124,8 @@ private:
 
     void commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;
-    void rollbackVersionInfo(UndoRecordType recordType, const uint8_t* record);
+    void rollbackVersionInfo(const transaction::Transaction* transaction, UndoRecordType recordType,
+        const uint8_t* record);
 
     void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
     void rollbackVectorUpdateInfo(const uint8_t* record) const;
