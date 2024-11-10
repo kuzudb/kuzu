@@ -18,7 +18,6 @@ FreeChunkMap::FreeChunkMap()
     for (int i = 0; i < MAX_FREE_CHUNK_LEVEL; i++) {
         freeChunkList.push_back(nullptr);
     }
-    maxAvailLevel = INVALID_FREE_CHUNK_LEVEL;
 };
 
 FreeChunkMap::~FreeChunkMap() {
@@ -31,6 +30,7 @@ FreeChunkMap::~FreeChunkMap() {
     }
 
     freeChunkList.clear();
+    existingFreeChunks.clear();
     maxAvailLevel = INVALID_FREE_CHUNK_LEVEL;
 }
 
@@ -63,7 +63,7 @@ FreeChunkLevel FreeChunkMap::GetChunkLevel(common::page_idx_t numPages)
  */
 FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages)
 {
-    /* return immediately if it does not want any pages */
+    /* 0. return immediately if it does not want any pages */
     if (numPages == 0) {
         return nullptr;
     }
@@ -112,8 +112,9 @@ FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages)
                     /* need to unlink it from its parent */
                     lastSearchEntry->nextEntry = curEntry->nextEntry;
                 }
-
                 curEntry->nextEntry = nullptr;
+                existingFreeChunks.erase(curEntry->pageIdx);
+
                 return curEntry;
             }
 
@@ -131,12 +132,18 @@ void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t n
 {
     KU_ASSERT(pageIdx != INVALID_PAGE_IDX && numPages != 0);
 
+    /* 0. Make sure we do not have duplicate entry here */
+    if (existingFreeChunks.find(pageIdx) != existingFreeChunks.end()) {
+        KU_ASSERT(0);
+        return;
+    }
+
     /* 1. Get the corresponding ChunkLevel numPages belongs to */
     FreeChunkLevel curLevel = GetChunkLevel(numPages);
     KU_ASSERT(curLevel < MAX_FREE_CHUNK_LEVEL);
 
     /* 2. Create a new FreeChunkEntry */
-    FreeChunkEntry *entry = (FreeChunkEntry *)malloc(sizeof(FreeChunkEntry));
+    FreeChunkEntry *entry = new FreeChunkEntry;
     entry->pageIdx = pageIdx;
     entry->numPages = numPages;
 
@@ -155,6 +162,7 @@ void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t n
         KU_ASSERT(curEntryInList != nullptr);
         curEntryInList->nextEntry = entry;
     }
+    existingFreeChunks.insert(pageIdx);
 }
 
 /* ERICTODO: Implement this for data persistency */

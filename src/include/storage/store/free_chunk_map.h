@@ -1,7 +1,7 @@
 #pragma once
 
-#include <unordered_map>
 #include <vector>
+#include <set>
 
 #include "common/constants.h"
 #include "common/types/types.h"
@@ -74,8 +74,9 @@ public:
 private:
     FreeChunkLevel GetChunkLevel(common::page_idx_t numPages);
 
-    /* ERICTODO: Need partitioned locks here to protect each LInked list */
+    /*No need for locks here since only checkpoint will need free chunks when all other transactions are blocked */
     std::vector<FreeChunkEntry *> freeChunkList;
+    std::set<common::page_idx_t> existingFreeChunks;
     FreeChunkLevel maxAvailLevel;
 };
 

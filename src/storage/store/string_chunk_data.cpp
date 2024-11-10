@@ -270,6 +270,31 @@ uint64_t StringChunkData::getEstimatedMemoryUsage() const {
     return ColumnChunkData::getEstimatedMemoryUsage() + dictionaryChunk->getEstimatedMemoryUsage();
 }
 
+std::vector<struct std::pair<page_idx_t, page_idx_t>> StringChunkData::getAllChunkPhysicInfo()
+{
+    std::vector<struct std::pair<page_idx_t, page_idx_t>> chunkInfo;
+    if (getResidencyState() == ResidencyState::ON_DISK) {
+        std::vector<struct std::pair<page_idx_t, page_idx_t>> curInfo;
+        curInfo = indexColumnChunk->getAllChunkPhysicInfo();
+        if (!curInfo.empty()) {
+            chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+            curInfo.clear();
+        }
+        curInfo = dictionaryChunk->getStringDataChunk()->getAllChunkPhysicInfo();
+        if (!curInfo.empty()) {
+            chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+            curInfo.clear();
+        }
+        curInfo = dictionaryChunk->getOffsetChunk()->getAllChunkPhysicInfo();
+        if (!curInfo.empty()) {
+            chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+            curInfo.clear();
+        }
+    }
+
+    return chunkInfo;
+}
+
 void StringChunkData::serialize(Serializer& serializer) const {
     ColumnChunkData::serialize(serializer);
     serializer.writeDebuggingInfo("index_column_chunk");

@@ -229,17 +229,36 @@ std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfoF
 {
     std::vector<std::pair<page_idx_t, page_idx_t>> chunkInfo;
     const auto lock = chunkedGroups.lock();
+
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        ColumnChunkData &chunkData = chunkedGroup->getColumnChunk(columnID).getData();
-        if (chunkData.getResidencyState() == ResidencyState::ON_DISK) {
-            ColumnChunkMetadata& metadata = chunkData.getMetadata();
-            if (metadata.pageIdx != INVALID_PAGE_IDX && metadata.numPages != 0) {
-                chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
-            }
+            addChunkDataForColumn(columnID, *chunkedGroup, chunkInfo);
+    }
+
+    return chunkInfo;
+}
+
+std::vector<std::pair<page_idx_t, page_idx_t>> NodeGroup::getAllChunkPhysicInfo()
+{
+    std::vector<std::pair<page_idx_t, page_idx_t>> chunkInfo;
+    const auto lock = chunkedGroups.lock();
+
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        for (common::idx_t i = 0; i < chunkedGroup->getNumColumns(); i++) {
+            addChunkDataForColumn(i, *chunkedGroup, chunkInfo);
         }
     }
 
     return chunkInfo;
+}
+
+void NodeGroup::addChunkDataForColumn(common::column_id_t columnID, ChunkedNodeGroup &chunkedGroup,
+    std::vector<std::pair<page_idx_t, page_idx_t>> &chunkInfo)
+{
+    ColumnChunkData &chunkData = chunkedGroup.getColumnChunk(columnID).getData();
+    std::vector<std::pair<page_idx_t, page_idx_t>> curInfo = chunkData.getAllChunkPhysicInfo();
+    if (!curInfo.empty()) {
+        chunkInfo.insert(chunkInfo.end(), curInfo.begin(), curInfo.end());
+    }
 }
 
 void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {

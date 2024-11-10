@@ -160,6 +160,8 @@ public:
 
     virtual void flush(FileHandle& dataFH);
 
+    virtual std::vector<std::pair<common::page_idx_t, common::page_idx_t>> getAllChunkPhysicInfo();
+
     ColumnChunkMetadata flushBuffer(FileHandle* dataFH, common::page_idx_t startPageIdx,
         const ColumnChunkMetadata& metadata) const;
 

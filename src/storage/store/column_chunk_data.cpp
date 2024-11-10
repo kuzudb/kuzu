@@ -227,7 +227,7 @@ void ColumnChunkData::flush(FileHandle& dataFH) {
             if (freeChunkEntry->numPages != 0) {
                 freeChunkMap.AddFreeChunk(freeChunkEntry->pageIdx + preScanMetadata.numPages, freeChunkEntry->numPages);
             }
-            free(freeChunkEntry);
+            delete freeChunkEntry;
         }
     }
 
@@ -241,6 +241,23 @@ void ColumnChunkData::flush(FileHandle& dataFH) {
     if (nullData) {
         nullData->flush(dataFH);
     }
+}
+
+std::vector<std::pair<page_idx_t, page_idx_t>> ColumnChunkData::getAllChunkPhysicInfo()
+{
+    std::vector<std::pair<page_idx_t, page_idx_t>> chunkInfo;
+    if (getResidencyState() == ResidencyState::ON_DISK) {
+        ColumnChunkMetadata& metadata = getMetadata();
+        /*
+         * It is possible for an ON_DISK chunk to have no storage assigned (i.e. min_val = max_val)
+         * Ignore such case here since no corresponding disk space information
+         */
+        if (metadata.pageIdx != INVALID_PAGE_IDX && metadata.numPages != 0) {
+            chunkInfo.push_back({metadata.pageIdx, metadata.numPages});
+        }
+    }
+
+    return chunkInfo;
 }
 
 // Note: This function is not setting child/null chunk data recursively.

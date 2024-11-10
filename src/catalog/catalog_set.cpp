@@ -1,5 +1,7 @@
 #include "catalog/catalog_set.h"
 
+#include <vector>
+
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
@@ -7,6 +9,11 @@
 #include "common/exception/catalog.h"
 #include "common/serializer/deserializer.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
+#include "storage/file_handle.h"
+#include "storage/store/table.h"
+#include "storage/store/node_table.h"
+#include "storage/storage_manager.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -149,6 +156,25 @@ void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oi
         entryPtr = dropEntryNoLock(transaction, name, oid);
     }
     KU_ASSERT(entryPtr);
+
+    /* Now, register information of dropped column chunk data into FreeChunkMap */
+    auto* storageManager = transaction->getClientContext()->getStorageManager();
+    auto& freeChunkMap = storageManager->getDataFH()->getFreeChunkMap();
+    auto* table = storageManager->getTable(entryPtr->getOID());
+    /* For now, we only take care of node table */
+    if (table->getTableType() == TableType::NODE) {
+        auto *nodeTable = table->ptrCast<storage::NodeTable>();
+        std::vector<std::pair<page_idx_t, page_idx_t>> chunkPhysicInfo = nodeTable->getAllChunkPhysicInfo();
+        for(auto phyInfo : chunkPhysicInfo) {
+            page_idx_t pageIdx = phyInfo.first;
+            page_idx_t numPages = phyInfo.second;
+            /* Skip column chunk data that has no physical storage */
+            if (pageIdx != INVALID_PAGE_IDX && numPages != 0) {
+                freeChunkMap.AddFreeChunk(pageIdx, numPages);
+            }
+        }
+    }
+
     logEntryForTrx(transaction, *this, *entryPtr);
 }
 
