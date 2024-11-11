@@ -144,7 +144,8 @@ double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     }
     case QueryRelType::SHORTEST:
     case QueryRelType::ALL_SHORTEST: {
-        auto rate = std::min<double>(oneHopExtensionRate * std::max<uint16_t>(rel.getUpperBound(), 1), numRels);
+        auto rate = std::min<double>(
+            oneHopExtensionRate * std::max<uint16_t>(rel.getUpperBound(), 1), numRels);
         return rate * context->getClientConfig()->recursivePatternCardinalityScaleFactor;
     }
     default:

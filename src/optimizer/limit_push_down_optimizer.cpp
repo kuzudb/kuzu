@@ -1,9 +1,9 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
+#include "common/exception/runtime.h"
 #include "planner/operator/logical_distinct.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_limit.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -56,7 +56,8 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
         if (op->getChild(0)->getOperatorType() == LogicalOperatorType::PATH_PROPERTY_PROBE) {
             // LCOV_EXCL_START
             if (op->getChild(0)->getChild(0)->getOperatorType() != LogicalOperatorType::GDS_CALL) {
-                throw RuntimeException("Trying to push limit to a non-GDS operator. This should never happen.");
+                throw RuntimeException(
+                    "Trying to push limit to a non-GDS operator. This should never happen.");
             }
             // LCOV_EXCL_STOP
             auto& gds = op->getChild(0)->getChild(0)->cast<LogicalGDSCall>();

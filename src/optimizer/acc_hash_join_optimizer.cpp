@@ -309,13 +309,15 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     if (pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND) {
         semiMasker = appendSemiMasker(SemiMaskKeyType::PATH, SemiMaskTargetType::SCAN_NODE,
             recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
-        auto direction =  op->getChild(0)->cast<LogicalRecursiveExtend>().getDirection();
+        auto direction = op->getChild(0)->cast<LogicalRecursiveExtend>().getDirection();
         semiMasker->setExtraKeyInfo(std::make_unique<ExtraPathKeyInfo>(direction));
         pathPropertyProbe.setChild(0, appendAccumulate(semiMasker));
     } else {
-        KU_ASSERT(pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
+        KU_ASSERT(
+            pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
         semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
-            recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask, pathPropertyProbe.getChild(0));
+            recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask,
+            pathPropertyProbe.getChild(0));
         auto srcNodeID = recursiveRel->getSrcNode()->getInternalID();
         auto dstNodeID = recursiveRel->getDstNode()->getInternalID();
         semiMasker->setExtraKeyInfo(std::make_unique<ExtraNodeIDListKeyInfo>(srcNodeID, dstNodeID));

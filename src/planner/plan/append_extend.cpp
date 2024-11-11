@@ -200,7 +200,8 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->computeFactorizedSchema();
     probePlan.setLastOperator(pathPropertyProbe);
     probePlan.setCost(plan.getCardinality());
-    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     probePlan.setCardinality(plan.getCardinality() * extensionRate);
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};

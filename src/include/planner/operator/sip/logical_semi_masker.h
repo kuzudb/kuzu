@@ -55,7 +55,8 @@ struct ExtraNodeIDListKeyInfo : public ExtraKeyInfo {
     std::shared_ptr<binder::Expression> srcNodeID;
     std::shared_ptr<binder::Expression> dstNodeID;
 
-    ExtraNodeIDListKeyInfo(std::shared_ptr<binder::Expression> srcNodeID, std::shared_ptr<binder::Expression> dstNodeID)
+    ExtraNodeIDListKeyInfo(std::shared_ptr<binder::Expression> srcNodeID,
+        std::shared_ptr<binder::Expression> dstNodeID)
         : srcNodeID{srcNodeID}, dstNodeID{dstNodeID} {}
 
     std::unique_ptr<ExtraKeyInfo> copy() const override {
@@ -93,9 +94,7 @@ public:
     void setExtraKeyInfo(std::unique_ptr<ExtraKeyInfo> extraInfo) {
         extraKeyInfo = std::move(extraInfo);
     }
-    ExtraKeyInfo* getExtraKeyInfo() const {
-        return extraKeyInfo.get();
-    }
+    ExtraKeyInfo* getExtraKeyInfo() const { return extraKeyInfo.get(); }
 
     std::vector<common::table_id_t> getNodeTableIDs() const { return nodeTableIDs; }
 

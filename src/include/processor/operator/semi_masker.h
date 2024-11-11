@@ -15,9 +15,7 @@ struct SemiMaskerLocalState {
     common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>> localMasksPerTable;
     common::RoaringBitmapSemiMask* singleTableRef = nullptr;
 
-    void maskSingleTable(common::offset_t offset) const {
-        singleTableRef->mask(offset);
-    }
+    void maskSingleTable(common::offset_t offset) const { singleTableRef->mask(offset); }
     void maskMultiTable(common::nodeID_t nodeID) const {
         KU_ASSERT(localMasksPerTable.contains(nodeID.tableID));
         localMasksPerTable.at(nodeID.tableID)->mask(nodeID.offset);
@@ -110,7 +108,8 @@ public:
 
 class NodeIDsSemiMask : public BaseSemiMasker {
 protected:
-    NodeIDsSemiMask(DataPos keyPos, DataPos srcNodeIDPos, DataPos dstNodeIDPos, std::shared_ptr<SemiMaskerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
+    NodeIDsSemiMask(DataPos keyPos, DataPos srcNodeIDPos, DataPos dstNodeIDPos,
+        std::shared_ptr<SemiMaskerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : BaseSemiMasker{keyPos, sharedState, std::move(child), id, std::move(printInfo)},
           srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos} {}
@@ -127,31 +126,33 @@ protected:
 
 class NodeIDsSingleTableSemiMasker : public NodeIDsSemiMask {
 public:
-    NodeIDsSingleTableSemiMasker(DataPos keyPos, DataPos srcNodeIDPos, DataPos dstNodeIDPos, std::shared_ptr<SemiMaskerSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : NodeIDsSemiMask{keyPos, srcNodeIDPos, dstNodeIDPos, sharedState, std::move(child), id, std::move(printInfo)} {}
+    NodeIDsSingleTableSemiMasker(DataPos keyPos, DataPos srcNodeIDPos, DataPos dstNodeIDPos,
+        std::shared_ptr<SemiMaskerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : NodeIDsSemiMask{keyPos, srcNodeIDPos, dstNodeIDPos, sharedState, std::move(child), id,
+              std::move(printInfo)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<NodeIDsSingleTableSemiMasker>(keyPos, srcNodeIDPos, dstNodeIDPos, sharedState, children[0]->clone(), id,
-            printInfo->copy());
+        return std::make_unique<NodeIDsSingleTableSemiMasker>(keyPos, srcNodeIDPos, dstNodeIDPos,
+            sharedState, children[0]->clone(), id, printInfo->copy());
     }
 };
 
 class NodeIDsMultipleTableSemiMasker : public NodeIDsSemiMask {
 public:
-    NodeIDsMultipleTableSemiMasker(DataPos keyPos, DataPos srcNodeIDPos, DataPos dstNodeIDPos, std::shared_ptr<SemiMaskerSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : NodeIDsSemiMask{keyPos, srcNodeIDPos, dstNodeIDPos, sharedState, std::move(child), id, std::move(printInfo)} {}
+    NodeIDsMultipleTableSemiMasker(DataPos keyPos, DataPos srcNodeIDPos, DataPos dstNodeIDPos,
+        std::shared_ptr<SemiMaskerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
+        : NodeIDsSemiMask{keyPos, srcNodeIDPos, dstNodeIDPos, sharedState, std::move(child), id,
+              std::move(printInfo)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<NodeIDsMultipleTableSemiMasker>(keyPos, srcNodeIDPos, dstNodeIDPos, sharedState, children[0]->clone(), id,
-            printInfo->copy());
+        return std::make_unique<NodeIDsMultipleTableSemiMasker>(keyPos, srcNodeIDPos, dstNodeIDPos,
+            sharedState, children[0]->clone(), id, printInfo->copy());
     }
 };
 

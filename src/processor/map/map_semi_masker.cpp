@@ -82,10 +82,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         auto& extraInfo = semiMasker.getExtraKeyInfo()->constCast<ExtraPathKeyInfo>();
         if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(keyPos, sharedState,
-                std::move(prevOperator), getOperatorID(), std::move(printInfo), extraInfo.direction);
+                std::move(prevOperator), getOperatorID(), std::move(printInfo),
+                extraInfo.direction);
         } else {
             return std::make_unique<PathSingleTableSemiMasker>(keyPos, sharedState,
-                std::move(prevOperator), getOperatorID(), std::move(printInfo), extraInfo.direction);
+                std::move(prevOperator), getOperatorID(), std::move(printInfo),
+                extraInfo.direction);
         }
     }
     case SemiMaskKeyType::NODE_ID_LIST: {
@@ -93,11 +95,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         auto srcIDPos = getDataPos(*extraInfo.srcNodeID, *inSchema);
         auto dstIDPos = getDataPos(*extraInfo.dstNodeID, *inSchema);
         if (tableIDs.size() > 1) {
-            return std::make_unique<NodeIDsMultipleTableSemiMasker>(keyPos, srcIDPos, dstIDPos, sharedState,
-                std::move(prevOperator), getOperatorID(), std::move(printInfo));
+            return std::make_unique<NodeIDsMultipleTableSemiMasker>(keyPos, srcIDPos, dstIDPos,
+                sharedState, std::move(prevOperator), getOperatorID(), std::move(printInfo));
         } else {
-            return std::make_unique<NodeIDsSingleTableSemiMasker>(keyPos, srcIDPos, dstIDPos, sharedState,
-                std::move(prevOperator), getOperatorID(), std::move(printInfo));
+            return std::make_unique<NodeIDsSingleTableSemiMasker>(keyPos, srcIDPos, dstIDPos,
+                sharedState, std::move(prevOperator), getOperatorID(), std::move(printInfo));
         }
     }
     default:
