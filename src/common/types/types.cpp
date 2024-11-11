@@ -754,7 +754,7 @@ LogicalType LogicalType::deserialize(Deserializer& deserializer) {
             extraTypeInfo = nullptr;
         }
     }
-    TypeInfo info;
+    TypeInfo info{};
     deserializer.deserializeValue(info);
     auto result = LogicalType();
     result.typeID = typeID;
