@@ -72,6 +72,12 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     return definitions;
 }
 
+static void validateNotUDT(const common::LogicalType& type) {
+    if (!type.isInternalType()) {
+        throw BinderException(ExceptionMessage::invalidPKType(type.toString()));
+    }
+}
+
 static void validatePrimaryKey(const std::string& pkColName,
     const std::vector<PropertyDefinition>& definitions) {
     uint32_t primaryKeyIdx = UINT32_MAX;
@@ -85,6 +91,7 @@ static void validatePrimaryKey(const std::string& pkColName,
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
     const auto& pkType = definitions[primaryKeyIdx].getType();
+    validateNotUDT(pkType);
     switch (pkType.getPhysicalType()) {
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::UINT16:

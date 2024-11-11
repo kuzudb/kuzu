@@ -31,3 +31,10 @@ Binder exception: When auto-detect is set to false, Kuzu requires the user to pr
 ---- error
 Expected top-level JSON array with format='array', but first character is '{' in file "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies_unstructured.json".
 Try setting format='auto' or format='newline_delimited'.
+
+-CASE JsonTypeInvalidUsage
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT CREATE NODE TABLE PERSON (ID INT64, NAME JSON, PRIMARY KEY(NAME));
+---- error
+Binder exception: Invalid primary key column type json. Primary keys must be either STRING or a numeric type.

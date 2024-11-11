@@ -7,6 +7,7 @@
 #include "json_extract_functions.h"
 #include "json_scalar_functions.h"
 #include "json_scan.h"
+#include "json_type.h"
 #include "main/client_context.h"
 #include "main/database.h"
 
@@ -40,7 +41,7 @@ static void addJsonScalarFunction(main::Database& db) {
 void JsonExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     db.getCatalog()->createType(&transaction::DUMMY_TRANSACTION, JSON_TYPE_NAME,
-        common::LogicalType::STRING());
+        JsonType::getJsonType());
     addJsonCreationFunction(db);
     addJsonExtractFunction(db);
     addJsonScalarFunction(db);
