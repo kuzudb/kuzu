@@ -80,6 +80,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
         logicalOpToPhysicalOpMap.erase(logicalOperator);
     }
 
+    logicalOpToPhysicalOpMap.insert({logicalOperator, gdsCall.get()});
     physical_op_vector_t children;
     children.push_back(std::move(gdsCall));
     return createFTableScanAligned(columns, outSchema, table, DEFAULT_VECTOR_CAPACITY,

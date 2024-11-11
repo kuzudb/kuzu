@@ -177,7 +177,7 @@ public:
     void planBaseTableScans(const QueryGraphPlanningInfo& info);
     void planCorrelatedExpressionsScan(const QueryGraphPlanningInfo& info);
     void planNodeScan(uint32_t nodePos);
-    void planNodeIDScan(uint32_t nodePos);
+    void planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& info);
     void planRelScan(uint32_t relPos);
     void appendExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,

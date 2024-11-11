@@ -43,9 +43,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
             initMask(masksPerTable, recursiveJoin.getSemiMask());
         } break;
-        case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
-            KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::GDS_CALL);
-            auto sharedState = physicalOp->getChild(0)->ptrCast<GDSCall>()->getSharedState();
+        case PhysicalOperatorType::GDS_CALL: {
+            auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
             switch (semiMasker.getTargetType()) {
             case SemiMaskTargetType::GDS_INPUT_NODE: {
                 initMask(masksPerTable, sharedState->getInputNodeMasks());
@@ -55,14 +54,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
                 initMask(masksPerTable, sharedState->getOutputNodeMasks());
                 sharedState->enableOutputNodeMask();
             } break;
+            case SemiMaskTargetType::GDS_PATH_NODE: {
+                initMask(masksPerTable, sharedState->getPathNodeMasks());
+            } break;
             default:
                 KU_UNREACHABLE;
             }
-        } break;
-        case PhysicalOperatorType::GDS_CALL: {
-            KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::GDS_PATH_NODE);
-            auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
-            initMask(masksPerTable, sharedState->getPathNodeMasks());
         } break;
         default:
             KU_UNREACHABLE;
@@ -82,14 +79,27 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         }
     }
     case SemiMaskKeyType::PATH: {
+        auto& extraInfo = semiMasker.getExtraKeyInfo()->constCast<ExtraPathKeyInfo>();
         if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(keyPos, sharedState,
                 std::move(prevOperator), getOperatorID(), std::move(printInfo),
-                semiMasker.getDirection());
+                extraInfo.direction);
         } else {
             return std::make_unique<PathSingleTableSemiMasker>(keyPos, sharedState,
                 std::move(prevOperator), getOperatorID(), std::move(printInfo),
-                semiMasker.getDirection());
+                extraInfo.direction);
+        }
+    }
+    case SemiMaskKeyType::NODE_ID_LIST: {
+        auto& extraInfo = semiMasker.getExtraKeyInfo()->constCast<ExtraNodeIDListKeyInfo>();
+        auto srcIDPos = getDataPos(*extraInfo.srcNodeID, *inSchema);
+        auto dstIDPos = getDataPos(*extraInfo.dstNodeID, *inSchema);
+        if (tableIDs.size() > 1) {
+            return std::make_unique<NodeIDsMultipleTableSemiMasker>(keyPos, srcIDPos, dstIDPos,
+                sharedState, std::move(prevOperator), getOperatorID(), std::move(printInfo));
+        } else {
+            return std::make_unique<NodeIDsSingleTableSemiMasker>(keyPos, srcIDPos, dstIDPos,
+                sharedState, std::move(prevOperator), getOperatorID(), std::move(printInfo));
         }
     }
     default:

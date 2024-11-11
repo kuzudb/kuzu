@@ -197,12 +197,12 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->extendFromLeft = *boundNode == *rel->getLeftNode();
     pathPropertyProbe->pathNodeIDs = recursiveInfo->pathNodeIDsExpr;
     pathPropertyProbe->pathEdgeIDs = recursiveInfo->pathEdgeIDsExpr;
-    pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     pathPropertyProbe->computeFactorizedSchema();
     probePlan.setLastOperator(pathPropertyProbe);
     probePlan.setCost(plan.getCardinality());
-    auto cardinality = UINT32_MAX;
-    probePlan.setCardinality(cardinality);
+    auto extensionRate =
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    probePlan.setCardinality(plan.getCardinality() * extensionRate);
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);

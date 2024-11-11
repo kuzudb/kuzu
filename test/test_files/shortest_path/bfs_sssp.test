@@ -78,7 +78,10 @@ Farooq|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
 Alice|Bob|Elizabeth
 
 -LOG MultiPart
--STATEMENT MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.ID > 6 AND a.fName = 'Alice' WITH a, b, r MATCH (c:person)<-[:knows]-(a:person) RETURN b.fName, length(r), COUNT(*)
+-STATEMENT MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person)
+        WHERE b.ID > 6 AND a.fName = 'Alice'
+        WITH a, b, r
+        MATCH (c:person)<-[:knows]-(a:person) RETURN b.fName, length(r), COUNT(*)
 ---- 4
 Elizabeth|2|3
 Farooq|3|3

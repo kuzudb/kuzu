@@ -19,8 +19,7 @@ namespace planner {
 enum class SemiMaskKeyType : uint8_t {
     NODE = 0,
     PATH = 1,
-    GDS_INPUT_NODE = 2,
-    GDS_PATH_NODE = 3,
+    NODE_ID_LIST = 2,
 };
 
 enum class SemiMaskTargetType : uint8_t {
@@ -29,6 +28,40 @@ enum class SemiMaskTargetType : uint8_t {
     GDS_INPUT_NODE = 2,
     GDS_PATH_NODE = 3,
     GDS_OUTPUT_NODE = 4,
+};
+
+struct ExtraKeyInfo {
+    virtual ~ExtraKeyInfo() = default;
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
+
+    virtual std::unique_ptr<ExtraKeyInfo> copy() const = 0;
+};
+
+struct ExtraPathKeyInfo : public ExtraKeyInfo {
+    common::ExtendDirection direction;
+
+    explicit ExtraPathKeyInfo(common::ExtendDirection direction) : direction{direction} {}
+
+    std::unique_ptr<ExtraKeyInfo> copy() const override {
+        return std::make_unique<ExtraPathKeyInfo>(direction);
+    }
+};
+
+struct ExtraNodeIDListKeyInfo : public ExtraKeyInfo {
+    std::shared_ptr<binder::Expression> srcNodeID;
+    std::shared_ptr<binder::Expression> dstNodeID;
+
+    ExtraNodeIDListKeyInfo(std::shared_ptr<binder::Expression> srcNodeID,
+        std::shared_ptr<binder::Expression> dstNodeID)
+        : srcNodeID{srcNodeID}, dstNodeID{dstNodeID} {}
+
+    std::unique_ptr<ExtraKeyInfo> copy() const override {
+        return std::make_unique<ExtraNodeIDListKeyInfo>(srcNodeID, dstNodeID);
+    }
 };
 
 class LogicalSemiMasker : public LogicalOperator {
@@ -46,8 +79,7 @@ public:
         std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
         std::vector<LogicalOperator*> ops, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child)}, keyType{keyType}, targetType{targetType},
-          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, targetOps{std::move(ops)},
-          direction{common::ExtendDirection::BOTH} {}
+          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, targetOps{std::move(ops)} {}
 
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }
@@ -59,38 +91,38 @@ public:
     SemiMaskTargetType getTargetType() const { return targetType; }
 
     std::shared_ptr<binder::Expression> getKey() const { return key; }
+    void setExtraKeyInfo(std::unique_ptr<ExtraKeyInfo> extraInfo) {
+        extraKeyInfo = std::move(extraInfo);
+    }
+    ExtraKeyInfo* getExtraKeyInfo() const { return extraKeyInfo.get(); }
 
     std::vector<common::table_id_t> getNodeTableIDs() const { return nodeTableIDs; }
 
     void addTarget(LogicalOperator* op) { targetOps.push_back(op); }
     std::vector<LogicalOperator*> getTargetOperators() const { return targetOps; }
 
-    void setDirection(common::ExtendDirection extendDirection) {
-        KU_ASSERT(keyType == SemiMaskKeyType::PATH);
-        direction = extendDirection;
-    }
-    common::ExtendDirection getDirection() const { return direction; }
     std::unique_ptr<LogicalOperator> copy() override {
         if (!targetOps.empty()) {
             throw common::RuntimeException(
                 "LogicalSemiMasker::copy() should not be called when ops "
                 "is not empty. Raw pointers will be point to corrupted object after copy.");
         }
-        auto copy = std::make_unique<LogicalSemiMasker>(keyType, targetType, key, nodeTableIDs,
+        auto result = std::make_unique<LogicalSemiMasker>(keyType, targetType, key, nodeTableIDs,
             children[0]->copy());
-        copy->direction = this->direction;
-        return copy;
+        if (extraKeyInfo != nullptr) {
+            result->setExtraKeyInfo(extraKeyInfo->copy());
+        }
+        return result;
     }
 
 private:
     SemiMaskKeyType keyType;
     SemiMaskTargetType targetType;
     std::shared_ptr<binder::Expression> key;
+    std::unique_ptr<ExtraKeyInfo> extraKeyInfo = nullptr;
     std::vector<common::table_id_t> nodeTableIDs;
     // Operators accepting semi masker
     std::vector<LogicalOperator*> targetOps;
-    // For path semi masker marking src or dst nodes
-    common::ExtendDirection direction;
 };
 
 } // namespace planner

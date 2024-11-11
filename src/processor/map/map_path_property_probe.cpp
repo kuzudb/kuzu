@@ -3,6 +3,8 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_utils.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_gds_call.h"
+#include "processor/operator/gds_call.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/recursive_extend/path_property_probe.h"
 #include "processor/plan_mapper.h"
@@ -98,7 +100,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         relTableColumnIndices = std::move(columnIndices);
     }
     // Map child
-    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    auto logicalChild = logicalOperator->getChild(0).get();
+    auto prevOperator = mapOperator(logicalChild);
+    if (logicalChild->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
+        // Create a pipeline to populate semi mask. Pipeline source is the scan of GDS result, and
+        // pipeline sink is a dummy operator that does not materialize anything.
+        prevOperator = std::make_unique<DummySink>(
+            std::make_unique<ResultSetDescriptor>(logicalChild->getSchema()),
+            std::move(prevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
+        auto call = logicalChild->getChild(0)->ptrCast<LogicalGDSCall>();
+        auto columns = call->getInfo().outExprs;
+        auto physicalCall = logicalOpToPhysicalOpMap.at(call)->ptrCast<GDSCall>();
+        physical_op_vector_t children;
+        children.push_back(std::move(prevOperator));
+        prevOperator = createFTableScanAligned(columns, call->getSchema(),
+            physicalCall->getSharedState()->fTable, DEFAULT_VECTOR_CAPACITY, std::move(children));
+    }
     // Map probe
     auto pathProbeInfo = PathPropertyProbeInfo();
     auto schema = logicalProbe.getSchema();

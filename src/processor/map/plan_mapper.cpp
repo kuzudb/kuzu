@@ -175,7 +175,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     default:
         KU_UNREACHABLE;
     }
-    logicalOpToPhysicalOpMap.insert({logicalOperator, physicalOperator.get()});
+    if (!logicalOpToPhysicalOpMap.contains(logicalOperator)) {
+        logicalOpToPhysicalOpMap.insert({logicalOperator, physicalOperator.get()});
+    }
     return physicalOperator;
 }
 

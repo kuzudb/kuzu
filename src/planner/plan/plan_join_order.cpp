@@ -197,7 +197,7 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
                 // query ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer
                 // query (a). To avoid scanning storage twice, we keep track of node table "a" and
                 // make sure when planning inner query, we only scan internal ID of "a".
-                planNodeIDScan(nodePos);
+                planNodeIDScan(nodePos, info);
             } else {
                 planNodeScan(nodePos);
             }
@@ -255,12 +255,18 @@ void Planner::planNodeScan(uint32_t nodePos) {
     context.addPlan(newSubgraph, std::move(plan));
 }
 
-void Planner::planNodeIDScan(uint32_t nodePos) {
+void Planner::planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& info) {
     auto node = context.queryGraph->getQueryNode(nodePos);
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = std::make_unique<LogicalPlan>();
     appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, *plan);
+    // NodeID will be a join condition with outer plan so very likely we will apply a semi mask
+    // later in the optimization stage. So we can assume the cardinality will not exceed outer
+    // plan cardinality.
+    if (plan->getCardinality() > info.corrExprsCard) {
+        plan->setCardinality(info.corrExprsCard);
+    }
     context.addPlan(newSubgraph, std::move(plan));
 }
 
