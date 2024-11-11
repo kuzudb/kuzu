@@ -642,9 +642,35 @@ uint32_t jsonArraySize(const JsonWrapper& wrapper) {
     return yyjson_arr_size(yyjson_doc_get_root(wrapper.ptr));
 }
 
-static bool jsonContains(yyjson_val* haystack, yyjson_val* needle);
+bool jsonContainsScalar(yyjson_val* haystack, yyjson_val* needle) {
+    // Only return true if types and values are equal
+    if (yyjson_get_type(haystack) != yyjson_get_type(needle)) {
+        return false;
+    }
+    return yyjson_equals(haystack, needle);
+}
 
-static bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
+bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
+    uint32_t needleIdx = 0, needleMax = 0;
+    yyjson_val* needleChild = nullptr;
+    yyjson_arr_foreach(needle, needleIdx, needleMax, needleChild) {
+        bool found = false;
+        uint32_t haystackIdx = 0, haystackMax = 0;
+        yyjson_val* haystackChild = nullptr;
+        yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
+            if (jsonContains(haystackChild, needleChild)) {
+                found = true;
+                break; // Stop searching once a match is found
+            }
+        }
+        if (!found) {
+            return false; // Return false if any needle element is missing
+        }
+    }
+    return true;
+}
+
+bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
     uint32_t haystackIdx = 0, haystackMax = 0;
     yyjson_val* haystackChild = nullptr;
     yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
@@ -655,24 +681,36 @@ static bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
     return false;
 }
 
-static bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx = 0, needleMax = 0, haystackIdx = 0, haystackMax = 0;
-    yyjson_val *needleChild = nullptr, *haystackChild = nullptr;
-    yyjson_arr_foreach(needle, needleIdx, needleMax, needleChild) {
-        bool found = false;
-        yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
-            if (jsonContains(haystackChild, needleChild)) {
-                found = true;
-            }
+bool jsonContainsObjObjAtCurrentLevel(yyjson_val* haystack, yyjson_val* needle) {
+    uint32_t needleIdx = 0, needleMax = 0;
+    yyjson_val *key = nullptr, *needleChild = nullptr;
+    yyjson_obj_foreach(needle, needleIdx, needleMax, key, needleChild) {
+        yyjson_val* haystackChild =
+            yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
+        if (!haystackChild) {
+            return false; // Key not found at this level
         }
-        if (!found) {
-            return jsonContainsArr(haystack, needle);
+        // Enforce type compatibility
+        if (yyjson_get_type(haystackChild) != yyjson_get_type(needleChild)) {
+            return false; // Types don't match
+        }
+        if (!jsonContains(haystackChild, needleChild)) {
+            return false; // Values don't match
         }
     }
-    return true;
+    return true; // All key-value pairs match at this level
 }
 
-static bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
+bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle) {
+    // First, check if the needle matches the haystack at the current level
+    if (jsonContainsObjObjAtCurrentLevel(haystack, needle)) {
+        return true;
+    }
+    // If not, search recursively in all child values
+    return jsonContainsObj(haystack, needle);
+}
+
+bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
     uint32_t haystackIdx = 0, haystackMax = 0;
     yyjson_val *key = nullptr, *haystackChild = nullptr;
     yyjson_obj_foreach(haystack, haystackIdx, haystackMax, key, haystackChild) {
@@ -683,19 +721,11 @@ static bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
     return false;
 }
 
-static bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx = 0, needleMax = 0;
-    yyjson_val *key = nullptr, *needleChild = nullptr;
-    yyjson_obj_foreach(needle, needleIdx, needleMax, key, needleChild) {
-        auto haystackChild = yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
-        if (!haystackChild || !jsonContains(haystackChild, needleChild)) {
-            return jsonContainsObj(haystack, needle);
-        }
+bool jsonContains(yyjson_val* haystack, yyjson_val* needle) {
+    // Check for direct equality first
+    if (yyjson_equals(haystack, needle)) {
+        return true;
     }
-    return true;
-}
-
-static bool jsonContains(yyjson_val* haystack, yyjson_val* needle) {
     switch (yyjson_get_type(haystack)) {
     case YYJSON_TYPE_ARR:
         if (yyjson_get_type(needle) == YYJSON_TYPE_ARR) {
@@ -709,11 +739,11 @@ static bool jsonContains(yyjson_val* haystack, yyjson_val* needle) {
         } else {
             return jsonContainsObj(haystack, needle);
         }
-    case YYJSON_TYPE_NULL:
-    case YYJSON_TYPE_BOOL:
     case YYJSON_TYPE_NUM:
     case YYJSON_TYPE_STR:
-        return yyjson_equals(haystack, needle);
+    case YYJSON_TYPE_BOOL:
+    case YYJSON_TYPE_NULL:
+        return jsonContainsScalar(haystack, needle);
     default:
         return false;
     }
