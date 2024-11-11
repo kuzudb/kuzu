@@ -294,8 +294,6 @@ void NodeTable::dropColumn(Transaction* transaction, column_id_t columnID) {
         }
     }
 
-    /* ERICTODO: record unlink info somewhere using UnlinkInformation */
-
     /* Finally, mark this table to be dirty */
     setHasChanges();
     return;

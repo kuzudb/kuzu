@@ -57,6 +57,18 @@ FreeChunkLevel FreeChunkMap::GetChunkLevel(common::page_idx_t numPages)
     return MAX_FREE_CHUNK_LEVEL;
 }
 
+void FreeChunkMap::UpdateMaxAvailLevel()
+{
+    FreeChunkLevel nextAvailLevel = INVALID_FREE_CHUNK_LEVEL;
+    for (int i = maxAvailLevel; i >= FREE_CHUNK_LEVEL_0; i--) {
+        if (freeChunkList[i] != nullptr) {
+            nextAvailLevel = static_cast<FreeChunkLevel>(i);
+            break;
+        }
+    }
+    maxAvailLevel = nextAvailLevel;
+}
+
 /*
  * Note: Any caller of this function need to add the entry back to FreeChunkMap after use so that the rest
  * of its unused space will be reused
@@ -96,17 +108,9 @@ FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages)
                     /* the valid entry is the first entry in the L.L. */
                     freeChunkList[curLevel] = curEntry->nextEntry;
 
-                    /* update maxAvailLevel if needed */
-                    /* ERICTODO: Change this to be a helper function */
+                    /* update maxAvailLevel if we have removed the last entry of the max available Level */
                     if (curLevel == maxAvailLevel && freeChunkList[curLevel] == nullptr) {
-                        FreeChunkLevel nextAvailLevel = INVALID_FREE_CHUNK_LEVEL;
-                        for (int i = curLevel; i >= FREE_CHUNK_LEVEL_0; i--) {
-                            if (freeChunkList[i] != nullptr) {
-                                nextAvailLevel = static_cast<FreeChunkLevel>(i);
-                                break;
-                            }
-                        }
-                        maxAvailLevel = nextAvailLevel;
+                        UpdateMaxAvailLevel();
                     }
                 } else {
                     /* need to unlink it from its parent */

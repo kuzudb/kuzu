@@ -291,15 +291,49 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
     const auto hasPersistentData = firstGroup->getResidencyState() == ResidencyState::ON_DISK;
     // Re-populate version info here first.
     auto checkpointedVersionInfo = checkpointVersionInfo(lock, &DUMMY_CHECKPOINT_TRANSACTION);
+    isAllDeleted = (checkpointedVersionInfo->getNumDeletions(&DUMMY_CHECKPOINT_TRANSACTION, 0, DEFAULT_VECTOR_CAPACITY) == getNumRows());
     std::unique_ptr<ChunkedNodeGroup> checkpointedChunkedGroup;
-    if (hasPersistentData) {
-        checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+    if (!isAllDeleted) {
+        /* if given chunk group has non-deleted data, flush it to disk here */
+        if (hasPersistentData) {
+            checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
+        } else {
+            checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        }
+        checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
+        chunkedGroups.clear(lock);
+        chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
     } else {
-        checkpointedChunkedGroup = checkpointInMemOnly(memoryManager, lock, state);
+        /*
+         * Otherwise, we do not flush it to disk but recycle any on-disk chunk here
+         * Note that if we are not calling appendGroup, chunkedGroups will not have this all-deleted chunk group
+         * Therefore, in the updated meta info of corresponding table, such group will also be removed compared
+         * to the old version.
+         */
+        if (hasPersistentData) {
+            std::vector<std::pair<page_idx_t, page_idx_t>> chunkInfo;
+            auto& freeChunkMap = state.dataFH.getFreeChunkMap();
+            const auto firstGroup = chunkedGroups.getFirstGroup(lock);
+            KU_ASSERT(firstGroup && firstGroup->getResidencyState() == ResidencyState::ON_DISK);
+
+            /* First, collect physical info of all column chunk data of ALL columns */
+            for (common::idx_t i = 0; i < firstGroup->getNumColumns(); i++) {
+                addChunkDataForColumn(i, *firstGroup, chunkInfo);
+            }
+
+            /* Second, add it to our FreeChunkMap here */
+            for(auto phyInfo : chunkInfo) {
+                page_idx_t pageIdx = phyInfo.first;
+                page_idx_t numPages = phyInfo.second;
+                /* Skip column chunk data that has no physical storage */
+                if (pageIdx != INVALID_PAGE_IDX && numPages != 0) {
+                    freeChunkMap.AddFreeChunk(pageIdx, numPages);
+                }
+            }
+        }
+        /* After all, clear all node groups here since they only contains deleted data */
+        chunkedGroups.clear(lock);
     }
-    checkpointedChunkedGroup->setVersionInfo(std::move(checkpointedVersionInfo));
-    chunkedGroups.clear(lock);
-    chunkedGroups.appendGroup(lock, std::move(checkpointedChunkedGroup));
 }
 
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryManager& memoryManager,
@@ -409,20 +443,28 @@ uint64_t NodeGroup::getEstimatedMemoryUsage() {
 
 void NodeGroup::serialize(Serializer& serializer) {
     // Serialize checkpointed chunks.
-    serializer.writeDebuggingInfo("node_group_idx");
-    serializer.write<node_group_idx_t>(nodeGroupIdx);
-    serializer.writeDebuggingInfo("enable_compression");
-    serializer.write<bool>(enableCompression);
-    serializer.writeDebuggingInfo("format");
-    serializer.write<NodeGroupDataFormat>(format);
     const auto lock = chunkedGroups.lock();
-    KU_ASSERT(chunkedGroups.getNumGroups(lock) == 1);
-    const auto chunkedGroup = chunkedGroups.getFirstGroup(lock);
-    serializer.writeDebuggingInfo("has_checkpointed_data");
-    serializer.write<bool>(chunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
-    if (chunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
-        serializer.writeDebuggingInfo("checkpointed_data");
-        chunkedGroup->serialize(serializer);
+    auto numGroups = chunkedGroups.getNumGroups(lock);
+    /*
+     * If numGroups is 0, this means all data in this NodeGroup are deleted before this checkpoint.
+     * Also, if it contains any on-disk ColumnChunkData, they are recycled and recorded in FreeChunkMap
+     * Check function NodeGroup::checkpoint for detail. Therefore, no need to flush this NodeGroup.
+     */
+    if (numGroups != 0) {
+        KU_ASSERT(numGroups == 1);
+        serializer.writeDebuggingInfo("node_group_idx");
+        serializer.write<node_group_idx_t>(nodeGroupIdx);
+        serializer.writeDebuggingInfo("enable_compression");
+        serializer.write<bool>(enableCompression);
+        serializer.writeDebuggingInfo("format");
+        serializer.write<NodeGroupDataFormat>(format);
+        const auto chunkedGroup = chunkedGroups.getFirstGroup(lock);
+        serializer.writeDebuggingInfo("has_checkpointed_data");
+        serializer.write<bool>(chunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
+        if (chunkedGroup->getResidencyState() == ResidencyState::ON_DISK) {
+            serializer.writeDebuggingInfo("checkpointed_data");
+            chunkedGroup->serialize(serializer);
+        }
     }
 }
 
