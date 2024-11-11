@@ -243,35 +243,35 @@ class StructTypeInfo;
 
 enum class TypeInfo : uint8_t { INTERNAL = 0, UDT = 1 };
 
-class KUZU_API LogicalType {
+class LogicalType {
     friend struct LogicalTypeUtils;
     friend struct DecimalType;
     friend struct StructType;
     friend struct ListType;
     friend struct ArrayType;
 
-    LogicalType(const LogicalType& other);
+    KUZU_API LogicalType(const LogicalType& other);
 
 public:
-    LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
+    KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
         physicalType = getPhysicalType(this->typeID);
     };
-    explicit LogicalType(LogicalTypeID typeID, TypeInfo info = TypeInfo::INTERNAL);
+    explicit KUZU_API LogicalType(LogicalTypeID typeID, TypeInfo info = TypeInfo::INTERNAL);
     EXPLICIT_COPY_DEFAULT_MOVE(LogicalType);
 
-    bool operator==(const LogicalType& other) const;
-    bool operator!=(const LogicalType& other) const;
+    KUZU_API bool operator==(const LogicalType& other) const;
+    KUZU_API bool operator!=(const LogicalType& other) const;
 
-    std::string toString() const;
+    KUZU_API std::string toString() const;
     static bool isBuiltInType(const std::string& str);
     static LogicalType convertFromString(const std::string& str, main::ClientContext* context);
 
-    LogicalTypeID getLogicalTypeID() const { return typeID; }
+    KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
     bool containsAny() const;
     bool isInternalType() const { return info == TypeInfo::INTERNAL; }
 
-    PhysicalTypeID getPhysicalType() const { return physicalType; }
-    static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
+    KUZU_API PhysicalTypeID getPhysicalType() const { return physicalType; }
+    KUZU_API static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
         const std::unique_ptr<ExtraTypeInfo>& extraTypeInfo = nullptr);
 
     void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
@@ -284,8 +284,8 @@ public:
 
     static LogicalType deserialize(Deserializer& deserializer);
 
-    static std::vector<LogicalType> copy(const std::vector<LogicalType>& types);
-    static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
+    KUZU_API static std::vector<LogicalType> copy(const std::vector<LogicalType>& types);
+    KUZU_API static std::vector<LogicalType> copy(const std::vector<LogicalType*>& types);
 
     static LogicalType ANY() { return LogicalType(LogicalTypeID::ANY); }
 
@@ -318,30 +318,30 @@ public:
     static LogicalType TIMESTAMP_TZ() { return LogicalType(LogicalTypeID::TIMESTAMP_TZ); }
     static LogicalType TIMESTAMP() { return LogicalType(LogicalTypeID::TIMESTAMP); }
     static LogicalType INTERVAL() { return LogicalType(LogicalTypeID::INTERVAL); }
-    static LogicalType DECIMAL(uint32_t precision, uint32_t scale);
+    static KUZU_API LogicalType DECIMAL(uint32_t precision, uint32_t scale);
     static LogicalType INTERNAL_ID() { return LogicalType(LogicalTypeID::INTERNAL_ID); }
     static LogicalType SERIAL() { return LogicalType(LogicalTypeID::SERIAL); }
     static LogicalType STRING() { return LogicalType(LogicalTypeID::STRING); }
     static LogicalType BLOB() { return LogicalType(LogicalTypeID::BLOB); }
     static LogicalType UUID() { return LogicalType(LogicalTypeID::UUID); }
     static LogicalType POINTER() { return LogicalType(LogicalTypeID::POINTER); }
-    static LogicalType STRUCT(std::vector<StructField>&& fields);
+    static KUZU_API LogicalType STRUCT(std::vector<StructField>&& fields);
 
-    static LogicalType RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static LogicalType NODE(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType NODE(std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static LogicalType REL(std::unique_ptr<StructTypeInfo> typeInfo);
+    static KUZU_API LogicalType REL(std::unique_ptr<StructTypeInfo> typeInfo);
 
-    static LogicalType UNION(std::vector<StructField>&& fields);
+    static KUZU_API LogicalType UNION(std::vector<StructField>&& fields);
 
-    static LogicalType LIST(LogicalType childType);
+    static KUZU_API LogicalType LIST(LogicalType childType);
     template<class T>
     static inline LogicalType LIST(T&& childType) {
         return LogicalType::LIST(LogicalType(std::forward<T>(childType)));
     }
 
-    static LogicalType MAP(LogicalType keyType, LogicalType valueType);
+    static KUZU_API LogicalType MAP(LogicalType keyType, LogicalType valueType);
     template<class T>
     static LogicalType MAP(T&& keyType, T&& valueType) {
         return LogicalType::MAP(LogicalType(std::forward<T>(keyType)),
