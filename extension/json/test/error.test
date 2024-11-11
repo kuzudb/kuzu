@@ -38,3 +38,10 @@ Try setting format='auto' or format='newline_delimited'.
 -STATEMENT CREATE NODE TABLE PERSON (ID INT64, NAME JSON, PRIMARY KEY(NAME));
 ---- error
 Binder exception: Invalid primary key column type json. Primary keys must be either STRING or a numeric type.
+-STATEMENT CREATE NODE TABLE PERSON (ID INT64, NAME JSON, description STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CALL TABLE_INFO('person') RETURN *;
+---- 3
+0|ID|INT64|NULL|True
+1|NAME|json|NULL|False
+2|description|STRING|NULL|False
