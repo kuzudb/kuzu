@@ -3,8 +3,8 @@
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_distinct.h"
 #include "planner/operator/logical_gds_call.h"
-#include "planner/operator/logical_limit.h"
 #include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_limit.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
