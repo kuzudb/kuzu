@@ -2,11 +2,25 @@
 
 --
 
+-CASE JsonMergeTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD RETURN json_merge_patch(to_json(MP), to_json(NSTD))
+---- 9
+{"1":"a","2":"b","3":"c","a":1,"b":{"x":"a"}}
+{"1":"a","2":"b","3":"c","a":2,"b":{"x":"b"}}
+{"1":"a","2":"b","3":"c","a":3,"b":{"x":"c"}}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh","a":1,"b":{"x":"a"}}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh","a":2,"b":{"x":"b"}}
+{"3":"asdfasdfadsf","2":"sdfgsdfgsdfg","0":"dfghdfghdgh","a":3,"b":{"x":"c"}}
+{"0":"","a":1,"b":{"x":"a"}}
+{"0":"","a":2,"b":{"x":"b"}}
+{"0":"","a":3,"b":{"x":"c"}}
 
 -CASE JsonExtractTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
--STATEMENT CREATE NODE TABLE jsontab(name serial, id JSON, primary key(name))
+-STATEMENT CREATE NODE TABLE jsontab(id JSON, primary key(id))
 ---- ok
 -STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD CREATE (:jsontab {id:json_merge_patch(to_json(MP), to_json(NSTD))})
 ---- ok
@@ -26,3 +40,468 @@
 {"x":[5,["a"],"y"]}
 ["a"]
 "a"
+
+-CASE JsonArrayLengthTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[1, 2, {"x": [5, ["a"], "y"]}, 3]', '[]'] AS ARR RETURN json_array_length(ARR)
+---- 2
+4
+0
+
+-CASE JsonContainsTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, [-10]]'] AS HAYSTACK UNWIND ['1', '[1, 2]', '"1"', '"a"', '[-10]', '{"a": 1}', '{"a": "2"}'] AS NEEDLE RETURN JSON_CONTAINS(HAYSTACK, NEEDLE)
+---- 14
+True
+True
+False
+False
+False
+True
+True
+True
+True
+False
+False
+True
+False
+False
+
+-CASE JsonKeysTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[]', '{}', '{"a":null,"1":null}', '{"ffffffffffff": [], "json_array_length": [1, 2, 3]}'] AS ARR RETURN json_keys(ARR)
+---- 4
+[]
+[]
+[a,1]
+[ffffffffffff,json_array_length]
+
+-CASE JsonStructureTest1
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, -10]', '[{"1": [1, 2, 3]}, {"2": [1, 2, 3]}, {"1": ["-1"]}]'] AS ARR RETURN JSON_STRUCTURE(ARR);
+---- 3
+STRUCT(a UINT8, b UINT8[], c STRUCT(a STRING))
+INT16[]
+STRUCT(1 STRING[], 2 UINT8[])[]
+
+-CASE JsonValidTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['', '{}', '[]', '11', '[11]', '{"a"}', '{"a": 1}'] AS ARR RETURN JSON_VALID(ARR);
+---- 7
+False
+True
+True
+True
+False
+True
+True
+
+-CASE MinifyJsonTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['[        {"a":  [1],     "b": 2,"c": 1}, 1,    5, 9]', '[1, 2, 3]', '"ab"'] AS ARR RETURN json(ARR);
+---- 3
+[{"a":[1],"b":2,"c":1},1,5,9]
+[1,2,3]
+"ab"
+-STATEMENT UNWIND ['[        {"a":  [1],     "b": 2,"c": 1}, 1,    5, 9]', '[1, 2, 3]', '"ab"'] AS ARR RETURN json_array_length(json(ARR));
+---- 3
+4
+3
+0
+
+-CASE JsonStructureTest2
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT return json_structure(
+          '{
+            "name": "Sóló cón tu párejâ",
+            "length": 126,
+            "note": "this is a very very good movie",
+            "description": {"rating": 5.3, "stars":2, "views": 152, "release": "2011-08-20 11:25:30", "release_ns": "2011-08-20 11:25:30.1234567", "release_ms": "2011-08-20 11:25:30.1234567", "release_sec": "2011-08-20 11:25:30.1234567", "release_tz": "2011-08-20 11:25:30.1234567", "film": "2012-05-11", "u8": 220, "u16": 20, "u32": 1, "u64": 180, "hugedata": 114514},
+            "content": "",
+            "audience": {"audience1": 52, "audience53": 42},
+            "grade": true
+          }');
+---- 1
+STRUCT(name STRING, length UINT8, note STRING, description STRUCT(rating DOUBLE, stars UINT8, views UINT8, release TIMESTAMP, release_ns TIMESTAMP, release_ms TIMESTAMP, release_sec TIMESTAMP, release_tz TIMESTAMP, film DATE, u8 UINT8, u16 UINT8, u32 UINT8, u64 UINT8, hugedata UINT32), content STRING, audience STRUCT(audience1 UINT8, audience53 UINT8), grade BOOL)
+
+-CASE JsonDataType
+
+#TODO(sterling): the INF may be need to be supported by database.
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+
+-STATEMENT return json_structure(
+'{
+    "int_array":[42,999,null,null,-42],
+    "double_array":[42.0,null,null,null,null,-42.0],
+    "date_array":["1970-01-01",null,null,null,"2022-05-12"],
+    "timestamp_array":["1970-01-01 00:00:00",null,null,null,"2022-05-12 16:23:45"],
+    "varchar_array":["🦆🦆🦆🦆🦆🦆","goose",null,null],
+    "nested_int_array":[[],[42,999,null,null,-42],null,[],[42,999,null,null,-42]],
+    "struct":{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},
+    "struct_of_arrays":{"a":[42,999,null,null,-42],"b":["🦆🦆🦆🦆🦆🦆","goose",null,null]},
+    "array_of_structs":[{"a":null,"b":null},{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},null],
+    "map":{"key1":"🦆🦆🦆🦆🦆🦆","key2":"goose"},
+    "union":"5",
+    "fixed_int_array":[4,5,6],
+    "fixed_varchar_array":["d","e","f"],
+    "fixed_nested_int_array":[[4,5,6],[null,2,3],[4,5,6]],
+    "fixed_nested_varchar_array":[["d","e","f"],["a",null,"c"],["d","e","f"]],
+    "fixed_struct_array":[{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},{"a":null,"b":null},{"a":42,"b":"🦆🦆🦆🦆🦆🦆"}],
+    "struct_of_fixed_array":{"a":[4,5,6],"b":["d","e","f"]},
+    "fixed_array_of_int_list":[[42,999,null,null,-42],[],[42,999,null,null,-42]],
+    "list_of_fixed_int_array":[[4,5,6],[null,2,3],[4,5,6]]}'
+);
+---- 1
+STRUCT(int_array INT32[], double_array DOUBLE[], date_array DATE[], timestamp_array TIMESTAMP[], varchar_array STRING[], nested_int_array INT32[][], struct STRUCT(a UINT8, b STRING), struct_of_arrays STRUCT(a INT32[], b STRING[]), array_of_structs STRUCT(a UINT8, b STRING)[], map STRUCT(key1 STRING, key2 STRING), union STRING, fixed_int_array UINT8[], fixed_varchar_array STRING[], fixed_nested_int_array UINT8[][], fixed_nested_varchar_array STRING[][], fixed_struct_array STRUCT(a UINT8, b STRING)[], struct_of_fixed_array STRUCT(a UINT8[], b STRING[]), fixed_array_of_int_list INT32[][], list_of_fixed_int_array UINT8[][])
+
+-STATEMENT return json_keys('{
+    "int_array":[42,999,null,null,-42],
+    "double_array":[42.0,null,null,null,null,-42.0],
+    "date_array":["1970-01-01",null,null,null,"2022-05-12"],
+    "timestamp_array":["1970-01-01 00:00:00",null,null,null,"2022-05-12 16:23:45"],
+    "varchar_array":["🦆🦆🦆🦆🦆🦆","goose",null,null],
+    "nested_int_array":[[],[42,999,null,null,-42],null,[],[42,999,null,null,-42]],
+    "struct":{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},
+    "struct_of_arrays":{"a":[42,999,null,null,-42],"b":["🦆🦆🦆🦆🦆🦆","goose",null,null]},
+    "array_of_structs":[{"a":null,"b":null},{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},null],
+    "map":{"key1":"🦆🦆🦆🦆🦆🦆","key2":"goose"},
+    "union":"5",
+    "fixed_int_array":[4,5,6],
+    "fixed_varchar_array":["d","e","f"],
+    "fixed_nested_int_array":[[4,5,6],[null,2,3],[4,5,6]],
+    "fixed_nested_varchar_array":[["d","e","f"],["a",null,"c"],["d","e","f"]],
+    "fixed_struct_array":[{"a":42,"b":"🦆🦆🦆🦆🦆🦆"},{"a":null,"b":null},{"a":42,"b":"🦆🦆🦆🦆🦆🦆"}],
+    "struct_of_fixed_array":{"a":[4,5,6],"b":["d","e","f"]},
+    "fixed_array_of_int_list":[[42,999,null,null,-42],[],[42,999,null,null,-42]],
+    "list_of_fixed_int_array":[[4,5,6],[null,2,3],[4,5,6]]
+    }'
+);
+---- 1
+[int_array,double_array,date_array,timestamp_array,varchar_array,nested_int_array,struct,struct_of_arrays,array_of_structs,map,union,fixed_int_array,fixed_varchar_array,fixed_nested_int_array,fixed_nested_varchar_array,fixed_struct_array,struct_of_fixed_array,fixed_array_of_int_list,list_of_fixed_int_array]
+
+#"blob":"\\x00\\x00\\x00a"
+
+-STATEMENT return json_structure(
+    '{
+        "bool":true
+    }'
+);
+---- 1
+STRUCT(bool BOOL)
+
+-STATEMENT return json_structure(
+    '{
+        "tinyint":127
+    }'
+);
+---- 1
+STRUCT(tinyint UINT8)
+
+-STATEMENT return json_structure(
+    '{
+        "smallint":32767
+    }'
+);
+---- 1
+STRUCT(smallint UINT16)
+
+-STATEMENT return json_structure(
+    '{
+        "int":2147483647
+    }'
+);
+---- 1
+STRUCT(int UINT32)
+
+-STATEMENT return json_structure(
+    '{
+        "bigint":9223372036854775807
+    }'
+);
+---- 1
+STRUCT(bigint UINT64)
+
+-STATEMENT return json_structure(
+    '{
+        "hugeint":1.7014118346046923e38
+    }'
+);
+---- 1
+STRUCT(hugeint DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "utinyint":255
+    }'
+);
+---- 1
+STRUCT(utinyint UINT8)
+
+-STATEMENT return json_structure(
+    '{
+        "usmallint":65535
+    }'
+);
+---- 1
+STRUCT(usmallint UINT16)
+
+-STATEMENT return json_structure(
+    '{
+        "uint":4294967295
+    }'
+);
+---- 1
+STRUCT(uint UINT32)
+
+-STATEMENT return json_structure(
+    '{
+        "ubigint":18446744073709551615
+    }'
+);
+---- 1
+STRUCT(ubigint UINT64)
+
+-STATEMENT return json_structure(
+    '{
+        "date":"2024-07-10"
+    }'
+);
+---- 1
+STRUCT(date DATE)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp":"2047-01-10 04:00:54.775806"
+    }'
+);
+---- 1
+STRUCT(timestamp TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_s":"2447-01-10 04:00:54"
+    }'
+);
+---- 1
+STRUCT(timestamp_s TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ms":"2047-01-10 04:00:54.775"
+    }'
+);
+---- 1
+STRUCT(timestamp_ms TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ns":"2262-04-11 23:47:16.854775"
+    }'
+);
+---- 1
+STRUCT(timestamp_ns TIMESTAMP)
+
+
+-STATEMENT return json_structure(
+    '{
+        "float":3.4028235e+38
+    }'
+);
+---- 1
+STRUCT(float DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "double":1.7976931348623157e+308
+    }'
+);
+---- 1
+STRUCT(double DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_4_1":999.9,
+        "dec_9_4":99999.9999,
+        "dec_18_6":1000000000000.0,
+        "dec38_10":1e+28
+    }'
+);
+---- 1
+STRUCT(dec_4_1 DOUBLE, dec_9_4 DOUBLE, dec_18_6 DOUBLE, dec38_10 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "uuid":"ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "interval":"83 years 3 months 999 days 00:16:39.999999"   
+    }'
+);
+---- 1
+STRUCT(uuid UUID, interval INTERVAL)
+
+-STATEMENT return json_structure(
+    '{
+        "bool": false
+    }'
+);
+---- 1
+STRUCT(bool BOOL)
+
+-STATEMENT return json_structure(
+    '{
+        "tinyint": -128
+    }'
+);
+---- 1
+STRUCT(tinyint INT8)
+
+-STATEMENT return json_structure(
+    '{
+        "smallint": -32768
+    }'
+);
+---- 1
+STRUCT(smallint INT16)
+
+-STATEMENT return json_structure(
+    '{
+        "int": -2147483648
+    }'
+);
+---- 1
+STRUCT(int INT32)
+
+-STATEMENT return json_structure(
+    '{
+        "bigint": -9223372036854775808
+    }'
+);
+---- 1
+STRUCT(bigint INT64)
+
+-STATEMENT return json_structure(
+    '{
+        "hugeint": -1.7014118346046923e38
+    }'
+);
+---- 1
+STRUCT(hugeint DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "utinyint": 0
+    }'
+);
+---- 1
+STRUCT(utinyint UINT8)
+
+-STATEMENT return json_structure(
+    '{
+        "date": "2642-06-25"
+    }'
+);
+---- 1
+STRUCT(date DATE)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp": "2309-12-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_s": "2909-12-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp_s TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ms": "2309-12-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp_ms TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "timestamp_ns": "1677-09-22 00:00:00"
+    }'
+);
+---- 1
+STRUCT(timestamp_ns TIMESTAMP)
+
+-STATEMENT return json_structure(
+    '{
+        "float": -3.4028235e+38
+    }'
+);
+---- 1
+STRUCT(float DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "double": -1.7976931348623157e+308
+    }'
+);
+---- 1
+STRUCT(double DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_4_1": -999.9
+    }'
+);
+---- 1
+STRUCT(dec_4_1 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_9_4": -99999.9999
+    }'
+);
+---- 1
+STRUCT(dec_9_4 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec_18_6": -1000000000000.0
+    }'
+);
+---- 1
+STRUCT(dec_18_6 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "dec38_10": -1e+28
+    }'
+);
+---- 1
+STRUCT(dec38_10 DOUBLE)
+
+-STATEMENT return json_structure(
+    '{
+        "uuid": "00000000-0000-0000-0000-000000000000"
+    }'
+);
+---- 1
+STRUCT(uuid UUID)
+
+-STATEMENT return json_structure(
+    '{
+        "interval": "00:00:00"
+    }'
+);
+---- 1
+STRUCT(interval INTERVAL)
