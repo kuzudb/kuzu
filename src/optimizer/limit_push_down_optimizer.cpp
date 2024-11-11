@@ -3,6 +3,7 @@
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_distinct.h"
 #include "planner/operator/logical_gds_call.h"
+#include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_limit.h"
 
 using namespace kuzu::binder;
@@ -50,6 +51,7 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
             return;
         }
         if (op->getChild(0)->getOperatorType() == LogicalOperatorType::HASH_JOIN) {
+            op->ptrCast<LogicalHashJoin>()->getSIPInfoUnsafe().position = SemiMaskPosition::NONE;
             // OP is the hash join reading destination node property. Continue push limit down.
             op = op->getChild(0).get();
         }
