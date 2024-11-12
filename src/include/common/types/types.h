@@ -241,6 +241,8 @@ class ExtraTypeInfo;
 class StructField;
 class StructTypeInfo;
 
+enum class TypeCategory : uint8_t { INTERNAL = 0, UDT = 1 };
+
 class LogicalType {
     friend struct LogicalTypeUtils;
     friend struct DecimalType;
@@ -254,7 +256,7 @@ public:
     KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
         physicalType = getPhysicalType(this->typeID);
     };
-    explicit KUZU_API LogicalType(LogicalTypeID typeID);
+    explicit KUZU_API LogicalType(LogicalTypeID typeID, TypeCategory info = TypeCategory::INTERNAL);
     EXPLICIT_COPY_DEFAULT_MOVE(LogicalType);
 
     KUZU_API bool operator==(const LogicalType& other) const;
@@ -266,6 +268,7 @@ public:
 
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
     bool containsAny() const;
+    bool isInternalType() const { return category == TypeCategory::INTERNAL; }
 
     KUZU_API PhysicalTypeID getPhysicalType() const { return physicalType; }
     KUZU_API static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
@@ -274,6 +277,8 @@ public:
     void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
     }
+
+    const ExtraTypeInfo* getExtraTypeInfo() const { return extraTypeInfo.get(); }
 
     void serialize(Serializer& serializer) const;
 
@@ -359,6 +364,7 @@ private:
     LogicalTypeID typeID;
     PhysicalTypeID physicalType;
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
+    TypeCategory category = TypeCategory::INTERNAL;
 };
 
 class ExtraTypeInfo {
@@ -380,6 +386,27 @@ public:
 
 protected:
     virtual void serializeInternal(Serializer& serializer) const = 0;
+};
+
+class KUZU_API UDTTypeInfo : public ExtraTypeInfo {
+public:
+    explicit UDTTypeInfo(std::string typeName) : typeName{std::move(typeName)} {}
+
+    std::string getTypeName() const { return typeName; }
+
+    bool containsAny() const override { return false; }
+
+    bool operator==(const ExtraTypeInfo& other) const override;
+
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
+
+private:
+    void serializeInternal(Serializer& serializer) const override;
+
+private:
+    std::string typeName;
 };
 
 class DecimalTypeInfo final : public ExtraTypeInfo {

@@ -109,9 +109,20 @@ static std::string unsupportedImplicitCastException(const Expression& expression
         expression.toString(), expression.dataType.toString(), targetTypeStr);
 }
 
+static bool checkUDTCast(const LogicalType& type, const LogicalType& target) {
+    if (type.isInternalType() && target.isInternalType()) {
+        return false;
+    }
+    return type.getLogicalTypeID() == target.getLogicalTypeID();
+}
+
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
-    if (expression->dataType == targetType || targetType.containsAny()) { // No need to cast.
+    auto& type = expression->dataType;
+    if (checkUDTCast(type, targetType)) {
+        return expression;
+    }
+    if (type == targetType || targetType.containsAny()) { // No need to cast.
         return expression;
     }
     if (ExpressionUtil::canCastStatically(*expression, targetType)) {

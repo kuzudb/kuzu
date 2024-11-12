@@ -78,6 +78,24 @@ std::string DecimalType::insertDecimalPoint(const std::string& value, uint32_t p
     return retval;
 }
 
+bool UDTTypeInfo::operator==(const kuzu::common::ExtraTypeInfo& other) const {
+    return typeName == other.constPtrCast<UDTTypeInfo>()->typeName;
+}
+
+std::unique_ptr<ExtraTypeInfo> UDTTypeInfo::copy() const {
+    return std::make_unique<UDTTypeInfo>(typeName);
+}
+
+std::unique_ptr<ExtraTypeInfo> UDTTypeInfo::deserialize(Deserializer& deserializer) {
+    std::string typeName;
+    deserializer.deserializeValue(typeName);
+    return std::make_unique<UDTTypeInfo>(std::move(typeName));
+}
+
+void UDTTypeInfo::serializeInternal(Serializer& serializer) const {
+    serializer.serializeValue(typeName);
+}
+
 uint32_t DecimalType::getPrecision(const LogicalType& type) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::DECIMAL);
     auto decimalTypeInfo = type.extraTypeInfo->constPtrCast<DecimalTypeInfo>();
@@ -497,7 +515,8 @@ static std::string getIncompleteTypeErrMsg(LogicalTypeID id) {
            " without child information.";
 }
 
-LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
+LogicalType::LogicalType(LogicalTypeID typeID, TypeCategory info)
+    : typeID{typeID}, extraTypeInfo{nullptr}, category{info} {
     // LCOV_EXCL_START
     switch (typeID) {
     case LogicalTypeID::DECIMAL:
@@ -525,6 +544,7 @@ LogicalType::LogicalType(const LogicalType& other) {
     if (other.extraTypeInfo != nullptr) {
         extraTypeInfo = other.extraTypeInfo->copy();
     }
+    category = other.category;
 }
 
 bool LogicalType::containsAny() const {
@@ -535,7 +555,7 @@ bool LogicalType::containsAny() const {
 }
 
 bool LogicalType::operator==(const LogicalType& other) const {
-    if (typeID != other.typeID) {
+    if (typeID != other.typeID || category != other.category) {
         return false;
     }
     if (extraTypeInfo) {
@@ -549,6 +569,9 @@ bool LogicalType::operator!=(const LogicalType& other) const {
 }
 
 std::string LogicalType::toString() const {
+    if (!isInternalType()) {
+        return extraTypeInfo->constPtrCast<UDTTypeInfo>()->getTypeName();
+    }
     switch (typeID) {
     case LogicalTypeID::MAP: {
         auto structType = ku_dynamic_cast<ListTypeInfo*>(extraTypeInfo.get())->getChildType();
@@ -705,6 +728,7 @@ void LogicalType::serialize(Serializer& serializer) const {
     if (extraTypeInfo != nullptr) {
         extraTypeInfo->serialize(serializer);
     }
+    serializer.serializeValue(category);
 }
 
 LogicalType LogicalType::deserialize(Deserializer& deserializer) {
@@ -730,10 +754,13 @@ LogicalType LogicalType::deserialize(Deserializer& deserializer) {
             extraTypeInfo = nullptr;
         }
     }
+    TypeCategory info{};
+    deserializer.deserializeValue(info);
     auto result = LogicalType();
     result.typeID = typeID;
     result.physicalType = physicalType;
     result.extraTypeInfo = std::move(extraTypeInfo);
+    result.category = info;
     return result;
 }
 

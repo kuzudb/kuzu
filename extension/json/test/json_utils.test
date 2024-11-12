@@ -20,7 +20,7 @@
 -CASE JsonExtractTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
--STATEMENT CREATE NODE TABLE jsontab(id JSON, primary key(id))
+-STATEMENT CREATE NODE TABLE jsontab(uid serial, id JSON, primary key(uid))
 ---- ok
 -STATEMENT UNWIND [map([1, 2, 3], ["a", "b", "c"]), map([3, 2, 0], ["asdfasdfadsf", "sdfgsdfgsdfg", "dfghdfghdgh"]), map([0], [""])] AS MP UNWIND [{a: 1, b: {x: "a"}}, {a: 2, b: {x: "b"}}, {a: 3, b: {x: "c"}}] AS NSTD CREATE (:jsontab {id:json_merge_patch(to_json(MP), to_json(NSTD))})
 ---- ok
