@@ -40,8 +40,26 @@ Try setting format='auto' or format='newline_delimited'.
 Binder exception: Invalid primary key column type json. Primary keys must be either STRING or a numeric type.
 -STATEMENT CREATE NODE TABLE PERSON (ID INT64, NAME JSON, description STRING, PRIMARY KEY(ID));
 ---- ok
+-STATEMENT CREATE (p:PERSON {ID: 52, NAME: 'KUZU', DESCRIPTION: 'good'});
+---- ok
+-STATEMENT CREATE (p:PERSON {ID: 22, NAME: 'neo', DESCRIPTION: 'ok'});
+---- ok
 -STATEMENT CALL TABLE_INFO('person') RETURN *;
 ---- 3
 0|ID|INT64|NULL|True
 1|NAME|json|NULL|False
 2|description|STRING|NULL|False
+-STATEMENT MATCH (p:person) RETURN p.*;
+---- 2
+22|neo|ok
+52|KUZU|good
+-RELOADDB
+-STATEMENT CALL TABLE_INFO('person') RETURN *;
+---- 3
+0|ID|INT64|NULL|True
+1|NAME|json|NULL|False
+2|description|STRING|NULL|False
+-STATEMENT MATCH (p:person) RETURN p.*;
+---- 2
+22|neo|ok
+52|KUZU|good
