@@ -725,10 +725,10 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
 void LogicalType::serialize(Serializer& serializer) const {
     serializer.serializeValue(typeID);
     serializer.serializeValue(physicalType);
+    serializer.serializeValue(category);
     if (extraTypeInfo != nullptr) {
         extraTypeInfo->serialize(serializer);
     }
-    serializer.serializeValue(category);
 }
 
 LogicalType LogicalType::deserialize(Deserializer& deserializer) {
@@ -736,31 +736,35 @@ LogicalType LogicalType::deserialize(Deserializer& deserializer) {
     deserializer.deserializeValue(typeID);
     auto physicalType = PhysicalTypeID::ANY;
     deserializer.deserializeValue(physicalType);
+    TypeCategory typeCategory{};
+    deserializer.deserializeValue(typeCategory);
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
-    switch (physicalType) {
-    case PhysicalTypeID::LIST: {
-        extraTypeInfo = ListTypeInfo::deserialize(deserializer);
-    } break;
-    case PhysicalTypeID::ARRAY: {
-        extraTypeInfo = ArrayTypeInfo::deserialize(deserializer);
-    } break;
-    case PhysicalTypeID::STRUCT: {
-        extraTypeInfo = StructTypeInfo::deserialize(deserializer);
-    } break;
-    default:
-        if (typeID == LogicalTypeID::DECIMAL) {
-            extraTypeInfo = DecimalTypeInfo::deserialize(deserializer);
-        } else {
-            extraTypeInfo = nullptr;
+    if (typeCategory == TypeCategory::UDT) {
+        extraTypeInfo = UDTTypeInfo::deserialize(deserializer);
+    } else {
+        switch (physicalType) {
+        case PhysicalTypeID::LIST: {
+            extraTypeInfo = ListTypeInfo::deserialize(deserializer);
+        } break;
+        case PhysicalTypeID::ARRAY: {
+            extraTypeInfo = ArrayTypeInfo::deserialize(deserializer);
+        } break;
+        case PhysicalTypeID::STRUCT: {
+            extraTypeInfo = StructTypeInfo::deserialize(deserializer);
+        } break;
+        default:
+            if (typeID == LogicalTypeID::DECIMAL) {
+                extraTypeInfo = DecimalTypeInfo::deserialize(deserializer);
+            } else {
+                extraTypeInfo = nullptr;
+            }
         }
     }
-    TypeCategory info{};
-    deserializer.deserializeValue(info);
     auto result = LogicalType();
     result.typeID = typeID;
     result.physicalType = physicalType;
     result.extraTypeInfo = std::move(extraTypeInfo);
-    result.category = info;
+    result.category = typeCategory;
     return result;
 }
 
