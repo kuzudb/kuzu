@@ -427,10 +427,10 @@ std::string decodeEscapeSequences(const std::string& input) {
                     codepoint = 0x10000 + ((codepoint - 0xD800) << 10) + (nextCodepoint - 0xDC00);
                     result.replace(match.position() + match.length(), nextMatch.length(), "");
                 } else {
-                    throw std::runtime_error("Error: Invalid surrogate pair");
+                    throw std::runtime_error("Invalid surrogate pair");
                 }
             } else {
-                throw std::runtime_error("Error: Unmatched high surrogate");
+                throw std::runtime_error("Unmatched high surrogate");
             }
         }
 
@@ -438,7 +438,7 @@ std::string decodeEscapeSequences(const std::string& input) {
         char utf8Char[5] = {0}; // UTF-8 characters can be up to 4 bytes + null terminator
         int size = 0;
         if (!Utf8Proc::codepointToUtf8(codepoint, size, utf8Char)) {
-            throw std::runtime_error("Error: Failed to convert codepoint to UTF-8");
+            throw std::runtime_error("Failed to convert codepoint to UTF-8");
         }
 
         // Replace the escape sequence with the actual UTF-8 character
