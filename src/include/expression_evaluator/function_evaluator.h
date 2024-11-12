@@ -27,7 +27,7 @@ protected:
 
 private:
     std::vector<std::shared_ptr<common::ValueVector>> parameters;
-    function::ScalarFunction function;
+    std::unique_ptr<function::ScalarFunction> function;
     std::unique_ptr<function::FunctionBindData> bindData;
 };
 

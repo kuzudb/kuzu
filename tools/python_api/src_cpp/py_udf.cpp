@@ -14,6 +14,38 @@ using namespace kuzu::common;
 using namespace kuzu;
 using namespace kuzu::function;
 
+struct PyUDFScalarFunction : public ScalarFunction {
+    PyUDFScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(execFunc), std::move(bindFunc)} {}
+
+    PyUDFScalarFunction(const PyUDFScalarFunction& other);
+
+    ~PyUDFScalarFunction() override;
+
+    std::unique_ptr<ScalarFunction> copy() const override {
+        return std::make_unique<PyUDFScalarFunction>(*this);
+    }
+};
+
+PyUDFScalarFunction::PyUDFScalarFunction(const PyUDFScalarFunction& other) {
+    py::gil_scoped_acquire acquire;
+    this->execFunc = other.execFunc;
+    this->selectFunc = other.selectFunc;
+    this->compileFunc = other.compileFunc;
+    this->returnTypeID = other.returnTypeID;
+    this->bindFunc = other.bindFunc;
+    this->name = other.name;
+    this->parameterTypeIDs = other.parameterTypeIDs;
+}
+
+PyUDFScalarFunction::~PyUDFScalarFunction() {
+    py::gil_scoped_acquire acquire;
+    // Destroy the execFunc which requires the GIL to be held.
+    this->execFunc = nullptr;
+}
+
 struct PyUDFSignature {
     std::vector<LogicalType> paramTypes;
     LogicalType resultType;
@@ -204,7 +236,7 @@ function_set PyUDF::toFunctionSet(const std::string& name, const py::function& u
     }
 
     function_set definitions;
-    definitions.push_back(std::make_unique<ScalarFunction>(name, paramIDTypes,
+    definitions.push_back(std::make_unique<PyUDFScalarFunction>(name, paramIDTypes,
         pySignature.resultType.getLogicalTypeID(),
         getUDFExecFunc(udf, defaultNull, catchExceptions), getUDFBindFunc(pySignature)));
     return definitions;

@@ -21,7 +21,7 @@ using scalar_func_exec_t = std::function<void(
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 
-struct ScalarFunction final : public ScalarOrAggregateFunction {
+struct ScalarFunction : public ScalarOrAggregateFunction {
     scalar_func_exec_t execFunc = nullptr;
     scalar_func_select_t selectFunc = nullptr;
     scalar_func_compile_exec_t compileFunc = nullptr;
@@ -62,7 +62,6 @@ struct ScalarFunction final : public ScalarOrAggregateFunction {
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
         : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID, execFunc,
               nullptr /* selectFunc */, bindFunc} {}
-    EXPLICIT_COPY_DEFAULT_MOVE(ScalarFunction);
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
@@ -224,8 +223,9 @@ struct ScalarFunction final : public ScalarOrAggregateFunction {
             *params[0], *params[1], result, dataPtr);
     }
 
-private:
-    ScalarFunction(const ScalarFunction& other) = default;
+    virtual std::unique_ptr<ScalarFunction> copy() const {
+        return std::make_unique<ScalarFunction>(*this);
+    }
 };
 
 } // namespace function

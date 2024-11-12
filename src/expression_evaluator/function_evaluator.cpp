@@ -25,10 +25,10 @@ void FunctionExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    if (function.execFunc != nullptr) {
+    if (function->execFunc != nullptr) {
         bindData->clientContext = ctx;
         bindData->count = cnt;
-        function.execFunc(parameters, *resultVector, bindData.get());
+        function->execFunc(parameters, *resultVector, bindData.get());
     }
 }
 
@@ -38,9 +38,9 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     }
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.
-    if (function.selectFunc == nullptr) {
+    if (function->selectFunc == nullptr) {
         KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
-        function.execFunc(parameters, *resultVector, nullptr);
+        function->execFunc(parameters, *resultVector, nullptr);
         auto numSelectedValues = 0u;
         for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); ++i) {
             auto pos = resultVector->state->getSelVector()[i];
@@ -51,7 +51,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
         selVector.setSelSize(numSelectedValues);
         return numSelectedValues > 0;
     }
-    return function.selectFunc(parameters, selVector);
+    return function->selectFunc(parameters, selVector);
 }
 
 void FunctionExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/,
@@ -64,8 +64,8 @@ void FunctionExpressionEvaluator::resolveResultVector(const ResultSet& /*resultS
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
-    if (function.compileFunc != nullptr) {
-        function.compileFunc(bindData.get(), parameters, resultVector);
+    if (function->compileFunc != nullptr) {
+        function->compileFunc(bindData.get(), parameters, resultVector);
     }
 }
 
