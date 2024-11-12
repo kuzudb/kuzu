@@ -90,6 +90,21 @@ ColumnChunkMetadata ColumnChunkMetadata::deserialize(common::Deserializer& deser
     return ret;
 }
 
+page_idx_t ColumnChunkMetadata::getNumDataPages(PhysicalTypeID dataType) const {
+    switch (compMeta.compression) {
+    case CompressionType::ALP: {
+        return TypeUtils::visit(
+            dataType,
+            [this]<std::floating_point T>(T) -> page_idx_t {
+                return FloatCompression<T>::getNumDataPages(numPages, compMeta);
+            },
+            [](auto) -> page_idx_t { KU_UNREACHABLE; });
+    }
+    default:
+        return numPages;
+    }
+}
+
 ColumnChunkMetadata GetBitpackingMetadata::operator()(std::span<const uint8_t> /*buffer*/,
     uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
     // For supported types, min and max may be null if all values are null
@@ -128,9 +143,8 @@ ColumnChunkMetadata getConstantFloatMetadata(PhysicalTypeID physicalType, uint64
 template<std::floating_point T>
 alp::state getAlpMetadata(const T* buffer, uint64_t numValues) {
     alp::state alpMetadata;
-    std::vector<uint8_t> sampleBuffer(alp::config::SAMPLES_PER_ROWGROUP);
-    alp::AlpEncode<T>::init(buffer, 0, numValues, reinterpret_cast<T*>(sampleBuffer.data()),
-        alpMetadata);
+    std::vector<T> sampleBuffer(alp::config::SAMPLES_PER_ROWGROUP);
+    alp::AlpEncode<T>::init(buffer, 0, numValues, sampleBuffer.data(), alpMetadata);
 
     if (alpMetadata.scheme == alp::SCHEME::ALP) {
         if (alpMetadata.k_combinations > 1) {
@@ -151,9 +165,11 @@ template<std::floating_point T>
 CompressionMetadata createFloatMetadata(CompressionType compressionType,
     PhysicalTypeID physicalType, std::span<const T> src, alp::state& alpMetadata, StorageValue min,
     StorageValue max) {
+    using EncodedType = typename FloatCompression<T>::EncodedType;
+
     std::vector<offset_t> unsuccessfulEncodeIdxes;
-    std::vector<typename FloatCompression<T>::EncodedType> floatEncodedValues(src.size());
-    std::optional<typename FloatCompression<T>::EncodedType> firstSuccessfulEncode;
+    std::vector<EncodedType> floatEncodedValues(src.size());
+    std::optional<EncodedType> firstSuccessfulEncode;
     size_t exceptionCount = 0;
     for (offset_t i = 0; i < src.size(); ++i) {
         const T& val = src[i];

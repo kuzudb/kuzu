@@ -71,7 +71,7 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
     std::byte* exceptionBufferCursor = reinterpret_cast<std::byte*>(exceptionBuffer.get());
 
     const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+    KU_ASSERT(numValuesPerPage * metadata.getNumDataPages(dataType) >= metadata.numValues);
 
     const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     const uint8_t* bufferCursor = buffer.data();

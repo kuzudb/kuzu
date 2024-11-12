@@ -10,6 +10,11 @@ struct ColumnChunkMetadata {
     uint64_t numValues;
     CompressionMetadata compMeta;
 
+    // Returns the number of pages used to store data
+    // In the case of ALP compression, this does not include the number of pages used to store
+    // exceptions
+    common::page_idx_t getNumDataPages(common::PhysicalTypeID dataType) const;
+
     void serialize(common::Serializer& serializer) const;
     static ColumnChunkMetadata deserialize(common::Deserializer& deserializer);
 

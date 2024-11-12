@@ -2,6 +2,7 @@
 #define ALP_CONSTANTS_HPP
 
 #include "alp/config.hpp"
+#include <concepts>
 #include <cstdint>
 
 namespace alp {
@@ -24,13 +25,16 @@ struct FloatingToExact<float> {
 	typedef uint32_t type;
 };
 
+template <std::floating_point T>
+using FloatingToEncodedType = std::conditional_t<std::same_as<T, double>, int64_t, int32_t>;
+
 inline constexpr uint8_t SAMPLING_EARLY_EXIT_THRESHOLD    = 2;
 inline constexpr double  ENCODING_UPPER_LIMIT             = 9223372036854774784;
 inline constexpr double  ENCODING_LOWER_LIMIT             = -9223372036854774784;
 inline constexpr uint8_t DICTIONARY_ELEMENT_SIZE_BYTES    = 2;
 inline constexpr uint8_t RD_EXCEPTION_POSITION_SIZE       = 16;
 inline constexpr uint8_t RD_EXCEPTION_POSITION_SIZE_BYTES = RD_EXCEPTION_POSITION_SIZE / 8;
-inline constexpr uint8_t EXCEPTION_POSITION_SIZE          = 16;
+inline constexpr uint8_t EXCEPTION_POSITION_SIZE          = 32;
 inline constexpr uint8_t EXCEPTION_POSITION_SIZE_BYTES    = EXCEPTION_POSITION_SIZE / 8;
 inline constexpr uint8_t RD_EXCEPTION_SIZE                = 16;
 inline constexpr uint8_t RD_EXCEPTION_SIZE_BYTES          = RD_EXCEPTION_SIZE / 8;

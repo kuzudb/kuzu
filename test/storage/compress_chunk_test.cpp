@@ -557,7 +557,10 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
     if (!inMemMode) {
         std::vector<double> src(4 * 1024, 5.6);
         src[1] = 123456789012.56;
-        src[3] = 1;
+        // ALP doesn't sample every value when tuning parameters
+        // so we set multiple to 1 just to make sure that at least one is detected
+        // this will make sure we aren't using constant compression for the bitpacked values
+        std::fill(src.begin() + 2, src.begin() + 11, 0);
         for (size_t i = 11; i < src.size(); i += 10) {
             src[i] = src[i - 10] + 7890123.567;
         }
