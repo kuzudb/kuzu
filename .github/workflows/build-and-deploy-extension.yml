@@ -85,12 +85,6 @@ jobs:
           name: kuzu-extensions_linux-aarch64
           path: extension-artifacts/linux_arm64
 
-      - name: Download built artifacts for linux-x86
-        uses: actions/download-artifact@v4
-        with:
-          name: kuzu-extensions_linux-x86
-          path: extension-artifacts/linux_x86
-
       - name: Download built artifacts for osx-x86_64
         uses: actions/download-artifact@v4
         with:

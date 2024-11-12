@@ -41,43 +41,6 @@ jobs:
           name: kuzu-extensions_linux-aarch64
           path: extension-artifacts
 
-  build-linux-extensions-x86:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Start Docker container
-        run: |
-          docker run -d --name kuzu-x86 \
-                     -v $PWD:/kuzu -w /kuzu \
-                     -e NUM_THREADS=$(nproc) -e CC=gcc -e CXX=g++ \
-                     i386/debian:stable tail -f /dev/null
-
-      - name: Install dependencies
-        run: |
-          docker exec kuzu-x86 apt-get update
-          docker exec kuzu-x86 apt-get install -y git python3 ninja-build build-essential cmake libssl-dev
-
-      - name: Build precompiled extensions
-        run: |
-          docker exec kuzu-x86 make extension-release NUM_THREADS=$(nproc)
-
-      - name: Collect built artifacts
-        run: |
-          python3 scripts/collect-extensions.py
-          sudo chown -R $USER:$USER extension-artifacts
-          sudo chmod -R 755 extension-artifacts
-
-      - name: Upload built artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: kuzu-extensions_linux-x86
-          path: extension-artifacts
-
-      - name: Stop Docker container
-        run: docker stop kuzu-x86
-
   build-mac-extensions-arm64:
     runs-on: self-hosted-mac-arm
     steps:
