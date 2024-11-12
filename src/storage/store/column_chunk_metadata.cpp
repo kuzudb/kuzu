@@ -143,9 +143,8 @@ ColumnChunkMetadata getConstantFloatMetadata(PhysicalTypeID physicalType, uint64
 template<std::floating_point T>
 alp::state getAlpMetadata(const T* buffer, uint64_t numValues) {
     alp::state alpMetadata;
-    std::vector<uint8_t> sampleBuffer(alp::config::SAMPLES_PER_ROWGROUP * sizeof(T));
-    alp::AlpEncode<T>::init(buffer, 0, numValues, reinterpret_cast<T*>(sampleBuffer.data()),
-        alpMetadata);
+    std::vector<T> sampleBuffer(alp::config::SAMPLES_PER_ROWGROUP);
+    alp::AlpEncode<T>::init(buffer, 0, numValues, sampleBuffer.data(), alpMetadata);
 
     if (alpMetadata.scheme == alp::SCHEME::ALP) {
         if (alpMetadata.k_combinations > 1) {
