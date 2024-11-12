@@ -29,7 +29,7 @@ struct PyUDFScalarFunction : public ScalarFunction {
     }
 };
 
-PyUDFScalarFunction::PyUDFScalarFunction(const PyUDFScalarFunction& other) {
+PyUDFScalarFunction::PyUDFScalarFunction(const PyUDFScalarFunction& other) : ScalarFunction{} {
     py::gil_scoped_acquire acquire;
     this->execFunc = other.execFunc;
     this->selectFunc = other.selectFunc;
