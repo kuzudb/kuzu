@@ -45,7 +45,7 @@ std::unique_ptr<QueryResult> Connection::queryWithID(std::string_view queryState
 
 std::unique_ptr<QueryResult> Connection::query(std::string_view query, std::string_view encodedJoin,
     bool enumerateAllPlans) {
-    return clientContext->query(query, encodedJoin, enumerateAllPlans);
+    return clientContext->queryInternal(query, encodedJoin, enumerateAllPlans);
 }
 
 std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string_view errMsg) {

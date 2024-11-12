@@ -257,13 +257,13 @@ std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement,
     std::optional<uint64_t> queryID) {
-    return query(queryStatement, std::string_view() /*encodedJoin*/, false /*enumerateAllPlans */,
-        queryID);
+    lock_t lck{mtx};
+    return queryInternal(queryStatement, std::string_view() /*encodedJoin*/,
+        false /*enumerateAllPlans */, queryID);
 }
 
-std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
+std::unique_ptr<QueryResult> ClientContext::queryInternal(std::string_view query,
     std::string_view encodedJoin, bool enumerateAllPlans, std::optional<uint64_t> queryID) {
-    lock_t lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
