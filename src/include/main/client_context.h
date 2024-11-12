@@ -31,6 +31,10 @@ namespace extension {
 struct ExtensionOptions;
 }
 
+namespace processor {
+class ImportDB;
+}
+
 namespace main {
 struct DBConfig;
 class Database;
@@ -53,6 +57,7 @@ class KUZU_API ClientContext {
     friend class Connection;
     friend class binder::Binder;
     friend class binder::ExpressionBinder;
+    friend class processor::ImportDB;
 
 public:
     explicit ClientContext(Database* database);
@@ -133,7 +138,7 @@ public:
     void cleanUP();
 
 private:
-    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
+    std::unique_ptr<QueryResult> queryInternal(std::string_view query, std::string_view encodedJoin,
         bool enumerateAllPlans = true, std::optional<uint64_t> queryID = std::nullopt);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
