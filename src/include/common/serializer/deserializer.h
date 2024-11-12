@@ -78,6 +78,16 @@ public:
     }
 
     template<typename T>
+    void deserializeVectorOfRawPtrs(std::vector<T*>& values) {
+        uint64_t vectorSize = 0;
+        deserializeValue(vectorSize);
+        values.resize(vectorSize);
+        for (auto i = 0u; i < vectorSize; i++) {
+            values[i] = T::deserialize(*this);
+        }
+    }
+
+    template<typename T>
     void deserializeVectorOfPtrs(std::vector<std::unique_ptr<T>>& values) {
         uint64_t vectorSize = 0;
         deserializeValue(vectorSize);

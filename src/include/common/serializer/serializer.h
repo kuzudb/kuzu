@@ -86,6 +86,15 @@ public:
     }
 
     template<typename T>
+    void serializeVectorOfRawPtrs(const std::vector<T*>& values) {
+        uint64_t vectorSize = values.size();
+        serializeValue<uint64_t>(vectorSize);
+        for (auto& value : values) {
+            value->serialize(*this);
+        }
+    }
+
+    template<typename T>
     void serializeUnorderedSet(const std::unordered_set<T>& values) {
         uint64_t setSize = values.size();
         serializeValue(setSize);

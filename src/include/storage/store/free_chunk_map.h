@@ -40,19 +40,23 @@ const common::page_idx_t FreeChunkLevelPageNumLimit[MAX_FREE_CHUNK_LEVEL] = {
 };
 
 /*
- * FreeChunkEntry is the main structure to mainain free space information of each chunk:
+ * FreeChunkEntry is the main structure to maintain free space information of each chunk:
  *   pageIdx indicates the start page of a given data chunk
  *   numPages indicates how many *consecutive* free pages this data chunk owns
  *   reuseTS is the latest TS when this entry is created. This is to make sure the data of corresponding
  *     data chunk is not recycled until no one keeps TS that is old enough to see it.
  * Note that reuseTS is removed in the 2nd version since flushing only happens when checkpoint and checkpoint will
- * wait all other transactions to finish before proceeding and writting data to disk; with that saying, we are safe
+ * wait all other transactions to finish before proceeding and writing data to disk; with that saying, we are safe
  * to reuse any recycled column chunk here.
  */
 typedef struct FreeChunkEntry {
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;
     FreeChunkEntry *nextEntry = nullptr;
+
+    void serialize(common::Serializer& serializer);
+    static FreeChunkEntry* deserialize(common::Deserializer &deserializer);
+
 } FreeChunkEntry;
 
 /*
@@ -68,8 +72,7 @@ public:
     void AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t numPages);
 
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<FreeChunkMap> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+    static std::unique_ptr<FreeChunkMap> deserialize(common::Deserializer& deserializer);
 
 private:
     FreeChunkLevel GetChunkLevel(common::page_idx_t numPages);
@@ -77,7 +80,7 @@ private:
 
     /*No need for locks here since only checkpoint will need free chunks when all other transactions are blocked */
     std::vector<FreeChunkEntry *> freeChunkList;
-    std::set<common::page_idx_t> existingFreeChunks;
+    std::unordered_set<common::page_idx_t> existingFreeChunks;
     FreeChunkLevel maxAvailLevel;
 };
 

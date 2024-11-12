@@ -43,7 +43,7 @@ FreeChunkMap::~FreeChunkMap() {
  *     numPages <= 2048 -> FREE_CHUNK_LEVEL_1024
  *     ...
  */
-FreeChunkLevel FreeChunkMap::GetChunkLevel(common::page_idx_t numPages)
+FreeChunkLevel FreeChunkMap::GetChunkLevel(page_idx_t numPages)
 {
     /* if numPage <= ith FreeChunkLevelPageNumLimit, we put it at FREE_CHUNK_LEVEL_i */
     for (int i = FREE_CHUNK_LEVEL_0; i < MAX_FREE_CHUNK_LEVEL; i++) {
@@ -73,7 +73,7 @@ void FreeChunkMap::UpdateMaxAvailLevel()
  * Note: Any caller of this function need to add the entry back to FreeChunkMap after use so that the rest
  * of its unused space will be reused
  */
-FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages)
+FreeChunkEntry *FreeChunkMap::GetFreeChunk(page_idx_t numPages)
 {
     /* 0. return immediately if it does not want any pages */
     if (numPages == 0) {
@@ -132,7 +132,7 @@ FreeChunkEntry *FreeChunkMap::GetFreeChunk(common::page_idx_t numPages)
     return nullptr;
 }
 
-void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t numPages)
+void FreeChunkMap::AddFreeChunk(page_idx_t pageIdx, page_idx_t numPages)
 {
     KU_ASSERT(pageIdx != INVALID_PAGE_IDX && numPages != 0);
 
@@ -169,20 +169,90 @@ void FreeChunkMap::AddFreeChunk(common::page_idx_t pageIdx, common::page_idx_t n
     existingFreeChunks.insert(pageIdx);
 }
 
-/* ERICTODO: Implement this for data persistency */
-void FreeChunkMap::serialize(Serializer& serializer) const
-{
-    (void) serializer;
-    return;
+/*
+ * Serializes free chunk entry for persistence. Called from serializeVector within serialize of
+ * free chunk map.
+ */
+void FreeChunkEntry::serialize(Serializer& serializer) {
+    serializer.writeDebuggingInfo("pageIdx");
+    serializer.write<page_idx_t>(pageIdx);
+    serializer.writeDebuggingInfo("numPages");
+    serializer.write<page_idx_t>(numPages);
+    serializer.writeDebuggingInfo("nextEntryPresent");
+    // NOTE: serializeOptionalValue requires std::unique_ptr. If our implementation will work with
+    // that, we can replace all of this with one function call
+    if (nextEntry) {
+        // Record that next entry is present
+        serializer.write<bool>(true);
+        // traverse the pointer and serialize it as well. This will recursively serialize the list
+        serializer.writeDebuggingInfo("nextEntry");
+        nextEntry->serialize(serializer);
+    } else {
+        // Record that next entry is not present
+        serializer.write<bool>(false);
+    }
 }
 
-/* ERICTODO: Implement this for data persistency */
-static std::unique_ptr<FreeChunkMap> deserialize(Deserializer& deserializer,
-        main::ClientContext& clientContext)
+/*
+ * Deserializes free chunk entry when restoring from checkpoint
+ */
+FreeChunkEntry* FreeChunkEntry::deserialize(Deserializer& deserializer) {
+    std::string str;
+    page_idx_t pageIdx = INVALID_PAGE_IDX;
+    page_idx_t numPages = INVALID_PAGE_IDX;
+    bool nextEntryPresent = false;
+    FreeChunkEntry* nextEntry = nullptr;
+    deserializer.validateDebuggingInfo(str, "freeChunkLevel");
+    deserializer.deserializeValue<page_idx_t>(pageIdx);
+    deserializer.validateDebuggingInfo(str, "numPages");
+    deserializer.deserializeValue<page_idx_t>(numPages);
+    deserializer.validateDebuggingInfo(str, "nextEntryPresent");
+    deserializer.deserializeValue<bool>(nextEntryPresent);
+    if (nextEntryPresent) {
+        deserializer.validateDebuggingInfo(str, "nextEntry");
+        nextEntry = FreeChunkEntry::deserialize(deserializer);
+    }
+    FreeChunkEntry* currentEntry = new FreeChunkEntry;
+    currentEntry->pageIdx = std::move(pageIdx);
+    currentEntry->numPages = std::move(numPages);
+    currentEntry->nextEntry = std::move(nextEntry);
+    return currentEntry;
+}
+
+
+/*
+ * Serializes free chunk map for persistence.
+ */
+void FreeChunkMap::serialize(Serializer& serializer) const
 {
-    (void) deserializer;
-    (void) clientContext;
-    return nullptr;
+    serializer.writeDebuggingInfo("freeChunkLevel");
+    serializer.write<FreeChunkLevel>(maxAvailLevel);
+    serializer.writeDebuggingInfo("freeChunkList");
+    serializer.serializeVectorOfRawPtrs(freeChunkList);
+    serializer.writeDebuggingInfo("existingFreeChunks");
+    serializer.serializeUnorderedSet(existingFreeChunks);
+}
+
+/*
+ * Deserializes free chunk map when restoring from checkpoint.
+ */
+std::unique_ptr<FreeChunkMap> FreeChunkMap::deserialize(Deserializer& deserializer)
+{
+    std::string str;
+    std::vector<FreeChunkEntry *> freeChunkList;
+    std::unordered_set<page_idx_t> existingFreeChunks;
+    FreeChunkLevel maxAvailLevel = INVALID_FREE_CHUNK_LEVEL;
+    deserializer.validateDebuggingInfo(str, "maxAvailLevel");
+    deserializer.deserializeValue<FreeChunkLevel>(maxAvailLevel);
+    deserializer.validateDebuggingInfo(str, "freeChunkList");
+    deserializer.deserializeVectorOfRawPtrs(freeChunkList);
+    deserializer.validateDebuggingInfo(str, "existingFreeChunks");
+    deserializer.deserializeUnorderedSet(existingFreeChunks);
+    std::unique_ptr<FreeChunkMap> freeChunkMap = std::make_unique<FreeChunkMap>();
+    freeChunkMap->maxAvailLevel = std::move(maxAvailLevel);
+    freeChunkMap->freeChunkList = std::move(freeChunkList);
+    freeChunkMap->existingFreeChunks = std::move(existingFreeChunks);
+    return freeChunkMap;
 }
 
 } // namespace storage
