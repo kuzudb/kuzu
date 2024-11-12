@@ -79,6 +79,11 @@ public:
 
     static BitpackInfo<EncodedType> getBitpackInfo(const CompressionMetadata& metadata);
 
+    // Returns number of pages for storing bitpacked ALP values (excluding pages reserved for
+    // exceptions)
+    static common::page_idx_t getNumDataPages(common::page_idx_t numTotalPages,
+        const CompressionMetadata& compMeta);
+
 private:
     const CompressionAlg& getEncodedFloatBitpacker(const CompressionMetadata& metadata) const;
 

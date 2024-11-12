@@ -228,6 +228,13 @@ bool FloatCompression<T>::canUpdateInPlace(std::span<const T> value,
                    localUpdateState);
 }
 
+template<std::floating_point T>
+common::page_idx_t FloatCompression<T>::getNumDataPages(common::page_idx_t numTotalPages,
+    const CompressionMetadata& compMeta) {
+    return numTotalPages -
+           EncodeException<T>::numPagesFromExceptions(compMeta.floatMetadata()->exceptionCapacity);
+}
+
 template class FloatCompression<double>;
 template class FloatCompression<float>;
 

@@ -90,6 +90,21 @@ ColumnChunkMetadata ColumnChunkMetadata::deserialize(common::Deserializer& deser
     return ret;
 }
 
+page_idx_t ColumnChunkMetadata::getNumDataPages(PhysicalTypeID dataType) const {
+    switch (compMeta.compression) {
+    case CompressionType::ALP: {
+        return TypeUtils::visit(
+            dataType,
+            [this]<std::floating_point T>(T) -> page_idx_t {
+                return FloatCompression<T>::getNumDataPages(numPages, compMeta);
+            },
+            [](auto) -> page_idx_t { KU_UNREACHABLE; });
+    }
+    default:
+        return numPages;
+    }
+}
+
 ColumnChunkMetadata GetBitpackingMetadata::operator()(std::span<const uint8_t> /*buffer*/,
     uint64_t capacity, uint64_t numValues, StorageValue min, StorageValue max) {
     // For supported types, min and max may be null if all values are null
