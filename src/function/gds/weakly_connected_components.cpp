@@ -296,7 +296,7 @@ public:
         auto computeState =
             RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
-            10);
+            UINT16_MAX);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
             sharedState.get(), *frontier);
         GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
