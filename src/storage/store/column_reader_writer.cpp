@@ -375,7 +375,7 @@ private:
 
             const T newValue = writeToPageBufferHelper.getValue(readOffset);
             const auto* floatMetadata = metadata.compMeta.floatMetadata();
-            const int64_t encodedValue =
+            const auto encodedValue =
                 alp::AlpEncode<T>::encode_value(newValue, floatMetadata->fac, floatMetadata->exp);
             const T decodedValue = alp::AlpDecode<T>::decode_value(encodedValue, floatMetadata->fac,
                 floatMetadata->exp);

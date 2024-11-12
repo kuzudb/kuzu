@@ -2,6 +2,7 @@
 #define ALP_CONSTANTS_HPP
 
 #include "alp/config.hpp"
+#include <concepts>
 #include <cstdint>
 
 namespace alp {
@@ -23,6 +24,9 @@ template <>
 struct FloatingToExact<float> {
 	typedef uint32_t type;
 };
+
+template <std::floating_point T>
+using FloatingToEncodedType = std::conditional_t<std::same_as<T, double>, int64_t, int32_t>;
 
 inline constexpr uint8_t SAMPLING_EARLY_EXIT_THRESHOLD    = 2;
 inline constexpr double  ENCODING_UPPER_LIMIT             = 9223372036854774784;

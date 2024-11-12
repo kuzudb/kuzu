@@ -30,6 +30,7 @@ template <class T>
 struct AlpEncode {
 
 	using EXACT_TYPE                            = typename FloatingToExact<T>::type;
+	using ENCODED_TYPE                          = FloatingToEncodedType<T>;
 	static constexpr uint8_t EXACT_TYPE_BITSIZE = sizeof(EXACT_TYPE) * 8;
 
 	/*
@@ -43,13 +44,13 @@ struct AlpEncode {
 
 	//! Scalar encoding a single value with ALP
 	template <bool SAFE = true>
-	static int64_t encode_value(const T value, const factor_idx_t factor_idx, const exponent_idx_t exponent_idx) {
+	static ENCODED_TYPE encode_value(const T value, const factor_idx_t factor_idx, const exponent_idx_t exponent_idx) {
 		T tmp_encoded_value = value * Constants<T>::EXP_ARR[exponent_idx] * Constants<T>::FRAC_ARR[factor_idx];
 		if constexpr (SAFE) {
-			if (is_impossible_to_encode(tmp_encoded_value)) { return ENCODING_UPPER_LIMIT; }
+			if (is_impossible_to_encode(tmp_encoded_value)) { return static_cast<ENCODED_TYPE>(ENCODING_UPPER_LIMIT); }
 		}
 		tmp_encoded_value = tmp_encoded_value + Constants<T>::MAGIC_NUMBER - Constants<T>::MAGIC_NUMBER;
-		return static_cast<int64_t>(tmp_encoded_value);
+		return static_cast<ENCODED_TYPE>(tmp_encoded_value);
 	}
 
 	//! Analyze FFOR to obtain bitwidth and frame-of-reference value
@@ -111,13 +112,14 @@ struct AlpEncode {
 					uint32_t non_exceptions_count       = {0};
 					uint32_t estimated_bits_per_value   = {0};
 					uint64_t estimated_compression_size = {0};
-					int64_t  max_encoded_value          = {std::numeric_limits<int64_t>::min()};
-					int64_t  min_encoded_value          = {std::numeric_limits<int64_t>::max()};
+
+					ENCODED_TYPE max_encoded_value = {std::numeric_limits<ENCODED_TYPE>::min()};
+					ENCODED_TYPE min_encoded_value = {std::numeric_limits<ENCODED_TYPE>::max()};
 
 					for (size_t i = 0; i < samples_size; i++) {
-						const T       actual_value  = smp_arr[smp_offset + i];
-						const int64_t encoded_value = encode_value(actual_value, factor_idx, exp_ref);
-						const T       decoded_value = AlpDecode<T>::decode_value(encoded_value, factor_idx, exp_ref);
+						const T            actual_value  = smp_arr[smp_offset + i];
+						const ENCODED_TYPE encoded_value = encode_value(actual_value, factor_idx, exp_ref);
+						const T decoded_value = AlpDecode<T>::decode_value(encoded_value, factor_idx, exp_ref);
 						if (decoded_value == actual_value) {
 							non_exceptions_count++;
 							if (encoded_value > max_encoded_value) { max_encoded_value = encoded_value; }
@@ -206,18 +208,18 @@ struct AlpEncode {
 
 		// We try each K combination in search for the one which minimize the compression size in the vector
 		for (size_t k {0}; k < top_k; k++) {
-			const int exp_idx    = top_combinations[k].first;
-			const int factor_idx = top_combinations[k].second;
-			uint32_t  exception_count {0};
-			uint32_t  estimated_bits_per_value {0};
-			uint64_t  estimated_compression_size {0};
-			int64_t   max_encoded_value {std::numeric_limits<int64_t>::min()};
-			int64_t   min_encoded_value {std::numeric_limits<int64_t>::max()};
+			const int    exp_idx    = top_combinations[k].first;
+			const int    factor_idx = top_combinations[k].second;
+			uint32_t     exception_count {0};
+			uint32_t     estimated_bits_per_value {0};
+			uint64_t     estimated_compression_size {0};
+			ENCODED_TYPE max_encoded_value {std::numeric_limits<ENCODED_TYPE>::min()};
+			ENCODED_TYPE min_encoded_value {std::numeric_limits<ENCODED_TYPE>::max()};
 
 			for (size_t sample_idx = 0; sample_idx < input_vector_size; sample_idx += sample_increments) {
-				const T       actual_value  = input_vector[sample_idx];
-				const int64_t encoded_value = encode_value(actual_value, factor_idx, exp_idx);
-				const T       decoded_value = AlpDecode<T>::decode_value(encoded_value, factor_idx, exp_idx);
+				const T            actual_value  = input_vector[sample_idx];
+				const ENCODED_TYPE encoded_value = encode_value(actual_value, factor_idx, exp_idx);
+				const T            decoded_value = AlpDecode<T>::decode_value(encoded_value, factor_idx, exp_idx);
 				if (decoded_value == actual_value) {
 					if (encoded_value > max_encoded_value) { max_encoded_value = encoded_value; }
 					if (encoded_value < min_encoded_value) { min_encoded_value = encoded_value; }

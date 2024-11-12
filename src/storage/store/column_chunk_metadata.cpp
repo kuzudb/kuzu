@@ -166,9 +166,11 @@ template<std::floating_point T>
 CompressionMetadata createFloatMetadata(CompressionType compressionType,
     PhysicalTypeID physicalType, std::span<const T> src, alp::state& alpMetadata, StorageValue min,
     StorageValue max) {
+    using EncodedType = typename FloatCompression<T>::EncodedType;
+
     std::vector<offset_t> unsuccessfulEncodeIdxes;
-    std::vector<typename FloatCompression<T>::EncodedType> floatEncodedValues(src.size());
-    std::optional<typename FloatCompression<T>::EncodedType> firstSuccessfulEncode;
+    std::vector<EncodedType> floatEncodedValues(src.size());
+    std::optional<EncodedType> firstSuccessfulEncode;
     size_t exceptionCount = 0;
     for (offset_t i = 0; i < src.size(); ++i) {
         const T& val = src[i];
