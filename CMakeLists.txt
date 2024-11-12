@@ -300,7 +300,7 @@ add_subdirectory(third_party)
 if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.5")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.5.2.6")
 add_definitions(-DKUZU_PAGE_SIZE_LOG2=${PAGE_SIZE_LOG2})
 add_definitions(-DKUZU_VECTOR_CAPACITY_LOG2=${VECTOR_CAPACITY_LOG2})
 
