@@ -241,8 +241,8 @@ def test_shell_unicode_input(temp_db) -> None:
     test = (
         ShellTest()
         .add_argument(temp_db)
-        .statement('CREATE NODE TABLE IF NOT EXISTS `B\\u00fccher` (title STRING, price INT64, PRIMARY KEY (title));\n') # Bücher
-        .statement("CREATE (n:`B\\u00fccher` {title: 'Der Thron der Sieben Königreiche'}) SET n.price = 20;\n") # Bücher
+        .statement('CREATE NODE TABLE IF NOT EXISTS `B\\u00fccher` (title STRING, price INT64, PRIMARY KEY (title));\n') 
+        .statement("CREATE (n:`B\\u00fccher` {title: 'Der Thron der Sieben K\\00f6nigreiche'}) SET n.price = 20;\n")
         .statement('MATCH (n:B\\u00fccher) RETURN label(n);\n')
         .statement('return "\\uD83D\\uDE01";\n') # surrogate pair for grinning face emoji
         .statement('return "\\U0001F601";\n') # grinning face emoji
