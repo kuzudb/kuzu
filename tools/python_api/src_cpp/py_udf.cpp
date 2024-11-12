@@ -20,25 +20,16 @@ struct PyUDFScalarFunction : public ScalarFunction {
         : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc), std::move(bindFunc)} {}
 
-    PyUDFScalarFunction(const PyUDFScalarFunction& other);
+    DELETE_COPY_DEFAULT_MOVE(PyUDFScalarFunction);
 
     ~PyUDFScalarFunction() override;
 
     std::unique_ptr<ScalarFunction> copy() const override {
-        return std::make_unique<PyUDFScalarFunction>(*this);
+        py::gil_scoped_acquire acquire;
+        return std::make_unique<PyUDFScalarFunction>(this->name, this->parameterTypeIDs,
+            this->returnTypeID, this->execFunc, this->bindFunc);
     }
 };
-
-PyUDFScalarFunction::PyUDFScalarFunction(const PyUDFScalarFunction& other) : ScalarFunction{} {
-    py::gil_scoped_acquire acquire;
-    this->execFunc = other.execFunc;
-    this->selectFunc = other.selectFunc;
-    this->compileFunc = other.compileFunc;
-    this->returnTypeID = other.returnTypeID;
-    this->bindFunc = other.bindFunc;
-    this->name = other.name;
-    this->parameterTypeIDs = other.parameterTypeIDs;
-}
 
 PyUDFScalarFunction::~PyUDFScalarFunction() {
     py::gil_scoped_acquire acquire;
