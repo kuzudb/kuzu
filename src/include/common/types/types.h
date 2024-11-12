@@ -241,7 +241,7 @@ class ExtraTypeInfo;
 class StructField;
 class StructTypeInfo;
 
-enum class TypeInfo : uint8_t { INTERNAL = 0, UDT = 1 };
+enum class TypeCategory : uint8_t { INTERNAL = 0, UDT = 1 };
 
 class LogicalType {
     friend struct LogicalTypeUtils;
@@ -256,7 +256,7 @@ public:
     KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
         physicalType = getPhysicalType(this->typeID);
     };
-    explicit KUZU_API LogicalType(LogicalTypeID typeID, TypeInfo info = TypeInfo::INTERNAL);
+    explicit KUZU_API LogicalType(LogicalTypeID typeID, TypeCategory info = TypeCategory::INTERNAL);
     EXPLICIT_COPY_DEFAULT_MOVE(LogicalType);
 
     KUZU_API bool operator==(const LogicalType& other) const;
@@ -268,7 +268,7 @@ public:
 
     KUZU_API LogicalTypeID getLogicalTypeID() const { return typeID; }
     bool containsAny() const;
-    bool isInternalType() const { return info == TypeInfo::INTERNAL; }
+    bool isInternalType() const { return category == TypeCategory::INTERNAL; }
 
     KUZU_API PhysicalTypeID getPhysicalType() const { return physicalType; }
     KUZU_API static PhysicalTypeID getPhysicalType(LogicalTypeID logicalType,
@@ -364,7 +364,7 @@ private:
     LogicalTypeID typeID;
     PhysicalTypeID physicalType;
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
-    TypeInfo info = TypeInfo::INTERNAL;
+    TypeCategory category = TypeCategory::INTERNAL;
 };
 
 class ExtraTypeInfo {

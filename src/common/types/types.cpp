@@ -515,8 +515,8 @@ static std::string getIncompleteTypeErrMsg(LogicalTypeID id) {
            " without child information.";
 }
 
-LogicalType::LogicalType(LogicalTypeID typeID, TypeInfo info)
-    : typeID{typeID}, extraTypeInfo{nullptr}, info{info} {
+LogicalType::LogicalType(LogicalTypeID typeID, TypeCategory info)
+    : typeID{typeID}, extraTypeInfo{nullptr}, category{info} {
     // LCOV_EXCL_START
     switch (typeID) {
     case LogicalTypeID::DECIMAL:
@@ -544,7 +544,7 @@ LogicalType::LogicalType(const LogicalType& other) {
     if (other.extraTypeInfo != nullptr) {
         extraTypeInfo = other.extraTypeInfo->copy();
     }
-    info = other.info;
+    category = other.category;
 }
 
 bool LogicalType::containsAny() const {
@@ -555,7 +555,7 @@ bool LogicalType::containsAny() const {
 }
 
 bool LogicalType::operator==(const LogicalType& other) const {
-    if (typeID != other.typeID || info != other.info) {
+    if (typeID != other.typeID || category != other.category) {
         return false;
     }
     if (extraTypeInfo) {
@@ -728,7 +728,7 @@ void LogicalType::serialize(Serializer& serializer) const {
     if (extraTypeInfo != nullptr) {
         extraTypeInfo->serialize(serializer);
     }
-    serializer.serializeValue(info);
+    serializer.serializeValue(category);
 }
 
 LogicalType LogicalType::deserialize(Deserializer& deserializer) {
@@ -754,13 +754,13 @@ LogicalType LogicalType::deserialize(Deserializer& deserializer) {
             extraTypeInfo = nullptr;
         }
     }
-    TypeInfo info{};
+    TypeCategory info{};
     deserializer.deserializeValue(info);
     auto result = LogicalType();
     result.typeID = typeID;
     result.physicalType = physicalType;
     result.extraTypeInfo = std::move(extraTypeInfo);
-    result.info = info;
+    result.category = info;
     return result;
 }
 
