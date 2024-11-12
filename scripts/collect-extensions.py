@@ -24,12 +24,22 @@ def collect_exts():
 
 
 def find_duckdb():
-    if platform.system() == 'Darwin':
-        candidates = ["/usr/local/lib/libduckdb.dylib", "/opt/homebrew/lib/libduckdb.dylib"]
-    elif platform.system() == 'Linux':
-        candidates = ["/usr/local/lib/libduckdb.so", "/usr/lib/libduckdb.so", "/usr/lib64/libduckdb.so"]
-    elif platform.system() == 'Windows':
-        candidates = ["C:\\Program Files\\duckdb\\build\\release\\src\\Release\\duckdb.lib"]
+    if platform.system() == "Darwin":
+        candidates = [
+            "/usr/local/lib/libduckdb.dylib",
+            "/opt/homebrew/lib/libduckdb.dylib",
+        ]
+    elif platform.system() == "Linux":
+        candidates = [
+            "/usr/local/lib/libduckdb.so",
+            "/usr/local/lib64/libduckdb.so",
+            "/usr/lib/libduckdb.so",
+            "/usr/lib64/libduckdb.so",
+        ]
+    elif platform.system() == "Windows":
+        candidates = [
+            "C:\\Program Files\\duckdb\\build\\release\\src\\Release\\duckdb.lib"
+        ]
     for candidate in candidates:
         if os.path.exists(candidate):
             return os.path.abspath(candidate)
