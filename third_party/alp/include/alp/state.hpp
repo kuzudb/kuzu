@@ -10,7 +10,7 @@
 namespace alp {
 struct state {
 	SCHEME   scheme {SCHEME::ALP};
-	uint16_t vector_size {config::VECTOR_SIZE};
+	uint32_t vector_size {config::VECTOR_SIZE};
 	uint32_t exceptions_count {0};
 	size_t   sampled_values_n {0};
 

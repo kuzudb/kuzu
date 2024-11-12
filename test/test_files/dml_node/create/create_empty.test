@@ -355,21 +355,22 @@ UNCOMPRESSED
 -STATEMENT UNWIND RANGE(10001,20000) AS i CREATE (t:test {id:0.5 * i});
 ---- ok
 # create some (potential) ALP exceptions
--STATEMENT UNWIND RANGE(2,1000) AS i CREATE (t:test {id:50000 + 12345.6789 / i});
+-STATEMENT UNWIND RANGE(2,2000) AS i CREATE (t:test {id:50000 + 12345.6789 / i});
 ---- ok
--STATEMENT CHECKPOINT;
----- ok
+# reload db to force data to be flushed to disk
+-RELOADDB
 # add more non-exceptions
--STATEMENT UNWIND RANGE(20001,30000) AS i CREATE (t:test {id:0.5 * i});
+-STATEMENT UNWIND RANGE(20001,21500) AS i CREATE (t:test {id:0.5 * i});
 ---- ok
 -STATEMENT CHECKPOINT;
+---- ok
 # the exceptions shouldn't overwrite the non-exceptions
 -STATEMENT MATCH (t:test) WHERE t.id < 50000 RETURN COUNT(*);
 ---- 1
-30000
+21500
 -STATEMENT MATCH (t:test) WHERE t.id < 50000 RETURN CAST(SUM(t.id), "UINT64");
 ---- 1
-225007500
+115567875
 
 
 -CASE CreateFloatPK

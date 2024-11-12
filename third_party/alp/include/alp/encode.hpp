@@ -107,8 +107,8 @@ struct AlpEncode {
 			// We try all combinations in search for the one which minimize the compression size
 			for (int8_t exp_ref = Constants<T>::MAX_EXPONENT; exp_ref >= 0; exp_ref--) {
 				for (int8_t factor_idx = exp_ref; factor_idx >= 0; factor_idx--) {
-					uint16_t exceptions_count           = {0};
-					uint16_t non_exceptions_count       = {0};
+					uint32_t exceptions_count           = {0};
+					uint32_t non_exceptions_count       = {0};
 					uint32_t estimated_bits_per_value   = {0};
 					uint64_t estimated_compression_size = {0};
 					int64_t  max_encoded_value          = {std::numeric_limits<int64_t>::min()};
@@ -418,8 +418,8 @@ struct AlpEncode {
 
 	static inline void encode(const T*  input_vector,
 	                          T*        exceptions,
-	                          uint16_t* exceptions_positions,
-	                          uint16_t* exceptions_count,
+	                          uint32_t* exceptions_positions,
+	                          uint32_t* exceptions_count,
 	                          int64_t*  encoded_integers,
 	                          state&    stt) {
 

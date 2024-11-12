@@ -34,8 +34,8 @@ struct AlpApiUtils {
 
 	static void fill_incomplete_alp_vector(T*        input_vector,
 	                                       T*        exceptions,
-	                                       uint16_t* exceptions_positions,
-	                                       uint16_t* exceptions_count,
+	                                       uint32_t* exceptions_positions,
+	                                       uint32_t* exceptions_count,
 	                                       int64_t*  encoded_integers,
 	                                       state&    stt) {
 
