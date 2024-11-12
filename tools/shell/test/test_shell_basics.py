@@ -250,6 +250,8 @@ def test_shell_unicode_input(temp_db) -> None:
         .statement('return "\\uDE01";\n') # unmatched surrogate pair
         .statement('return "\\uD83D\\uDBFF";\n') # bad lower surrogate
         .statement('return "\\u000";\n') # bad unicode codepoint
+        .statement('return "\\u0000";\n') # Null character
+        .statement('return "\\U00110000";\n') # Invalid codepoint
     )
     result = test.run()
     result.check_stdout("\u2502 B\u00fccher")
@@ -259,3 +261,5 @@ def test_shell_unicode_input(temp_db) -> None:
     result.check_stdout("Error: Failed to convert codepoint to UTF-8")
     result.check_stdout("Error: Invalid surrogate pair")
     result.check_stdout("Error: Parser exception: Invalid input <return \">: expected rule oC_RegularQuery (line: 1, offset: 7)")
+    result.check_stdout("Error: Null character not allowed")
+    result.check_stdout("Error: Invalid Unicode codepoint")

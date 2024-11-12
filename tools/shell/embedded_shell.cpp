@@ -412,8 +412,13 @@ std::string decodeEscapeSequences(const std::string& input) {
         } else if (match[2].matched) {
             codepointStr = match[2].str();
         }
-        int codepoint = std::stoi(codepointStr, nullptr, 16);
-
+        uint32_t codepoint = static_cast<uint32_t>(std::stoull(codepointStr, nullptr, 16));
+        if (codepoint > 0x10FFFF) {
+            throw std::runtime_error("Invalid Unicode codepoint");
+        }
+        if (codepoint == 0) {
+            throw std::runtime_error("Null character not allowed");
+        }
         // Check for surrogate pairs
         if (0xD800 <= codepoint && codepoint <= 0xDBFF) {
             // High surrogate, look for the next low surrogate
