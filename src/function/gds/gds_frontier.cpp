@@ -46,9 +46,8 @@ PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNode
     : GDSFrontier{numNodesMap_} {
     curIter.store(0);
     for (const auto& [tableID, numNodes] : numNodesMap_) {
-        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<uint16_t>));
-        std::atomic<uint16_t>* memBufferPtr =
-            reinterpret_cast<std::atomic<uint16_t>*>(memBuffer.get()->getData());
+        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(frontier_entry_t));
+        auto memBufferPtr = reinterpret_cast<frontier_entry_t*>(memBuffer.get()->getData());
         for (uint64_t i = 0; i < numNodes; ++i) {
             memBufferPtr[i].store(UNVISITED, std::memory_order_relaxed);
         }
@@ -56,82 +55,57 @@ PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNode
     }
 }
 
-void PathLengths::fixCurFrontierNodeTable(common::table_id_t tableID) {
-    KU_ASSERT(masks.contains(tableID));
+void PathLengths::pinCurFrontierTableID(common::table_id_t tableID) {
+    curFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
     curTableID.store(tableID, std::memory_order_relaxed);
-    curFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->getData()),
-        std::memory_order_relaxed);
-    maxNodesInCurFrontierFixedMask.store(numNodesMap[curTableID.load(std::memory_order_relaxed)],
-        std::memory_order_relaxed);
 }
 
-void PathLengths::fixNextFrontierNodeTable(common::table_id_t tableID) {
-    KU_ASSERT(masks.contains(tableID));
-    nextFrontierFixedMask.store(
-        reinterpret_cast<std::atomic<uint16_t>*>(masks.at(tableID).get()->getData()),
-        std::memory_order_relaxed);
+void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
+    nextFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
 }
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
-    uint64_t maxThreadsForExec)
-    : curFrontier{curFrontier}, nextFrontier{nextFrontier}, maxThreadsForExec{maxThreadsForExec} {
-    numApproxActiveNodesForCurIter.store(UINT64_MAX);
-    numApproxActiveNodesForNextIter.store(initialActiveNodes);
+    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec)
+    : curFrontier{curFrontier}, nextFrontier{nextFrontier}, morselDispatcher{maxThreadsForExec} {
+    hasActiveNodesForNextIter_.store(true);
     curIter.store(0u);
 }
 
 void FrontierPair::beginNewIteration() {
     std::unique_lock<std::mutex> lck{mtx};
     curIter.fetch_add(1u);
-    numApproxActiveNodesForCurIter.store(numApproxActiveNodesForNextIter.load());
-    numApproxActiveNodesForNextIter.store(0u);
-    std::swap(curFrontier, nextFrontier);
+    hasActiveNodesForNextIter_.store(false);
     beginNewIterationInternalNoLock();
 }
 
-void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-    table_id_t nextFrontierTableID) {
-    pathLengths->fixCurFrontierNodeTable(curFrontierTableID);
-    pathLengths->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselDispatcher.init(curFrontierTableID,
-        pathLengths->getNumNodesInCurFrontierFixedNodeTable());
-}
-
-bool SinglePathLengthsFrontierPair::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselDispatcher.getNextRangeMorsel(frontierMorsel);
+void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
+    table_id_t nextTableID) {
+    pathLengths->pinCurFrontierTableID(curTableID);
+    pathLengths->pinNextFrontierTableID(nextTableID);
+    morselDispatcher.init(curTableID, curFrontier->getNumNodes(curTableID));
 }
 
 void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
-    pathLengths->fixNextFrontierNodeTable(source.tableID);
+    pathLengths->pinNextFrontierTableID(source.tableID);
     pathLengths->setActive(source);
 }
 
-DoublePathLengthsFrontierPair::DoublePathLengthsFrontierPair(
-    common::table_id_map_t<common::offset_t> numNodesMap, uint64_t maxThreadsForExec,
-    storage::MemoryManager* mm)
-    : FrontierPair(std::make_shared<PathLengths>(numNodesMap, mm),
-          std::make_shared<PathLengths>(numNodesMap, mm), 1 /* initial num active nodes */,
-          maxThreadsForExec) {
-    morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExec);
-}
-
-bool DoublePathLengthsFrontierPair::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselDispatcher->getNextRangeMorsel(frontierMorsel);
-}
-
-void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-    table_id_t nextFrontierTableID) {
-    curFrontier->ptrCast<PathLengths>()->fixCurFrontierNodeTable(curFrontierTableID);
-    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselDispatcher->init(curFrontierTableID,
-        curFrontier->ptrCast<PathLengths>()->getNumNodesInCurFrontierFixedNodeTable());
+void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
+    table_id_t nextTableID) {
+    curFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(curTableID);
+    nextFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(nextTableID);
+    morselDispatcher.init(curTableID, curFrontier->getNumNodes(curTableID));
 }
 
 void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
-    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(source.tableID);
+    nextFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(source.tableID);
     nextFrontier->ptrCast<PathLengths>()->setActive(source);
+}
+
+void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
+    std::swap(curFrontier, nextFrontier);
+    curFrontier->ptrCast<PathLengths>()->incrementCurIter();
+    nextFrontier->ptrCast<PathLengths>()->incrementCurIter();
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;

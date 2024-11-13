@@ -17,7 +17,7 @@ SPOutputs::SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, nodeI
 }
 
 void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) {
-    pathLengths->fixCurFrontierNodeTable(tableID);
+    pathLengths->pinCurFrontierTableID(tableID);
     bfsGraph.pinNodeTable(tableID);
 }
 
@@ -87,8 +87,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     auto& bfsGraph = output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
     dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
-    auto firstParent =
-        bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(std::memory_order_relaxed);
+    auto firstParent = bfsGraph.getParentListHead(dstNodeID.offset);
     if (firstParent == nullptr) {
         if (sourceNodeID == dstNodeID) {
             // We still output a path from src to src if required path length is 0.
@@ -152,7 +151,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
                 curPath.pop_back();
             }
         } else {
-            auto parent = bfsGraph.getInitialParentAndNextPtr(topNodeID);
+            auto parent = bfsGraph.getParentListHead(topNodeID);
             while (parent->getIter() != top->getIter() - 1) {
                 parent = parent->getNextPtr();
             }
@@ -279,8 +278,7 @@ DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
 
 void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
-    auto length =
-        rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontierFixedMask(
+    auto length = rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontier(
             dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     setLength(lengthVector.get(), length);
@@ -293,9 +291,7 @@ void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_
 
 bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
     auto outputs = rjOutputs->ptrCast<SPOutputs>();
-    return dstNodeID == outputs->sourceNodeID ||
-           PathLengths::UNVISITED ==
-               outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
+    return dstNodeID == outputs->sourceNodeID || outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
 }
 
 } // namespace function

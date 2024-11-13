@@ -26,7 +26,7 @@ struct SingleSPDestinationsOutputs : public SPOutputs {
     void beginFrontierComputeBetweenTables(table_id_t, table_id_t) override{};
 
     void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
-        pathLengths->fixCurFrontierNodeTable(tableID);
+        pathLengths->pinCurFrontierTableID(tableID);
     }
 };
 
@@ -39,8 +39,7 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNode.offset) ==
-                PathLengths::UNVISITED) {
+            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
@@ -63,13 +62,11 @@ public:
         bool isFwd) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
-            auto shouldUpdate = frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(
-                                    nbrNodeID.offset) == PathLengths::UNVISITED;
-            if (shouldUpdate) {
+            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset) == PathLengths::UNVISITED) {
                 if (!parentListBlock->hasSpace()) {
                     parentListBlock = bfsGraph->addNewBlock();
                 }
-                bfsGraph->tryAddSingleParent(frontierPair->curIter.load(std::memory_order_relaxed),
+                bfsGraph->tryAddSingleParent(frontierPair->getCurrentIter(),
                     parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID,
                     isFwd);
                 activeNodes.push_back(nbrNodeID);

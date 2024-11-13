@@ -16,7 +16,7 @@ static uint64_t computeScanResult(nodeID_t sourceNodeID, graph::GraphScanState::
 
 void FrontierTask::run() {
     FrontierMorsel frontierMorsel;
-    auto numApproxActiveNodesForNextIter = 0u;
+    auto numActiveNodes = 0u;
     auto graph = info.graph;
     auto scanState = graph->prepareScan(info.relTableIDToScan);
     auto localEc = info.edgeCompute.copy();
@@ -27,13 +27,13 @@ void FrontierTask::run() {
                 switch (info.direction) {
                 case ExtendDirection::FWD: {
                     for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, chunk,
+                        numActiveNodes += computeScanResult(nodeID, chunk,
                             *localEc, sharedState->frontierPair, true);
                     }
                 } break;
                 case ExtendDirection::BWD: {
                     for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
-                        numApproxActiveNodesForNextIter += computeScanResult(nodeID, chunk,
+                        numActiveNodes += computeScanResult(nodeID, chunk,
                             *localEc, sharedState->frontierPair, false);
                     }
                 } break;
@@ -43,8 +43,9 @@ void FrontierTask::run() {
             }
         }
     }
-    sharedState->frontierPair.incrementApproxActiveNodesForNextIter(
-        numApproxActiveNodesForNextIter);
+    if (numActiveNodes) {
+        sharedState->frontierPair.setActiveNodesForNextIter();
+    }
 }
 
 void VertexComputeTask::run() {

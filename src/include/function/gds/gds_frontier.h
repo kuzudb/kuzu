@@ -120,11 +120,15 @@ public:
     virtual ~GDSFrontier() = default;
     virtual void pinTableID(common::table_id_t tableID) = 0;
     // isActive assumes a tableID has been pinned.
-    virtual bool isActive(common::offset_t nodeID) = 0;
+    virtual bool isActive(common::offset_t offset) = 0;
     virtual void setActive(std::span<const common::nodeID_t> nodeIDs) = 0;
     virtual void setActive(common::nodeID_t nodeID) = 0;
 
     const common::table_id_map_t<common::offset_t>& getNumNodesMap() const { return numNodesMap; }
+    common::offset_t getNumNodes(common::table_id_t tableID) const {
+        KU_ASSERT(numNodesMap.contains(tableID));
+        return numNodesMap.at(tableID);
+    }
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -160,6 +164,7 @@ protected:
  */
 class PathLengths : public GDSFrontier {
     friend class SingleSPDestinationsEdgeCompute;
+    using frontier_entry_t = std::atomic<uint16_t>;
 
 public:
     static constexpr uint16_t UNVISITED = UINT16_MAX;
@@ -167,57 +172,51 @@ public:
     PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap,
         storage::MemoryManager* mm);
 
-    uint16_t getMaskValueFromCurFrontierFixedMask(common::offset_t nodeOffset) {
-        return getCurFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
+    uint16_t getMaskValueFromCurFrontier(common::offset_t offset) {
+        return getCurFrontier()[offset].load(std::memory_order_relaxed);
     }
-
-    uint16_t getMaskValueFromNextFrontierFixedMask(common::offset_t nodeOffset) {
-        return getNextFrontierFixedMask()[nodeOffset].load(std::memory_order_relaxed);
+    uint16_t getMaskValueFromNextFrontier(common::offset_t offset) {
+        return getNextFrontier()[offset].load(std::memory_order_relaxed);
     }
-
-    void pinTableID(common::table_id_t tableID) override { fixCurFrontierNodeTable(tableID); }
 
     bool isActive(common::offset_t offset) override {
-        return getCurFrontierFixedMask()[offset] == curIter.load(std::memory_order_relaxed) - 1;
+        return getCurFrontier()[offset] == curIter.load(std::memory_order_relaxed) - 1;
     }
 
     void setActive(const std::span<const common::nodeID_t> nodeIDs) override {
-        auto frontierMask = getNextFrontierFixedMask();
+        auto frontierMask = getNextFrontier();
         for (const auto nodeID : nodeIDs) {
-            frontierMask[nodeID.offset].store(curIter.load(std::memory_order_relaxed),
-                std::memory_order_relaxed);
+            frontierMask[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
         }
     }
-
     void setActive(common::nodeID_t nodeID) override {
-        getNextFrontierFixedMask()[nodeID.offset].store(curIter.load(std::memory_order_relaxed),
-            std::memory_order_relaxed);
+        getNextFrontier()[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
     }
 
     void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
 
-    void fixCurFrontierNodeTable(common::table_id_t tableID);
-
-    void fixNextFrontierNodeTable(common::table_id_t tableID);
-
-    uint64_t getNumNodesInCurFrontierFixedNodeTable() {
-        KU_ASSERT(curFrontierFixedMask.load(std::memory_order_relaxed) != nullptr);
-        return maxNodesInCurFrontierFixedMask.load(std::memory_order_relaxed);
-    }
-
-    uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
+    void pinTableID(common::table_id_t tableID) override { pinCurFrontierTableID(tableID); }
+    void pinCurFrontierTableID(common::table_id_t tableID);
+    void pinNextFrontierTableID(common::table_id_t tableID);
 
 private:
-    std::atomic<uint16_t>* getCurFrontierFixedMask() {
-        auto retVal = curFrontierFixedMask.load(std::memory_order_relaxed);
+    uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
+
+    frontier_entry_t* getCurFrontier() {
+        auto retVal = curFrontier.load(std::memory_order_relaxed);
         KU_ASSERT(retVal != nullptr);
         return retVal;
     }
 
-    std::atomic<uint16_t>* getNextFrontierFixedMask() {
-        auto retVal = nextFrontierFixedMask.load(std::memory_order_relaxed);
+    frontier_entry_t* getNextFrontier() {
+        auto retVal = nextFrontier.load(std::memory_order_relaxed);
         KU_ASSERT(retVal != nullptr);
         return retVal;
+    }
+
+    frontier_entry_t* getMaskData(common::table_id_t tableID) {
+        KU_ASSERT(masks.contains(tableID));
+        return reinterpret_cast<frontier_entry_t*>(masks.at(tableID)->getData());
     }
 
 private:
@@ -226,9 +225,8 @@ private:
     // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
     std::atomic<uint16_t> curIter;
     std::atomic<common::table_id_t> curTableID;
-    std::atomic<uint64_t> maxNodesInCurFrontierFixedMask;
-    std::atomic<std::atomic<uint16_t>*> curFrontierFixedMask;
-    std::atomic<std::atomic<uint16_t>*> nextFrontierFixedMask;
+    std::atomic<frontier_entry_t*> curFrontier;
+    std::atomic<frontier_entry_t*> nextFrontier;
 };
 
 /**
@@ -244,16 +242,18 @@ class FrontierPair {
 
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
-        uint64_t maxThreadsForExec);
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec);
 
     virtual ~FrontierPair() = default;
 
-    virtual bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) = 0;
-
-    void incrementApproxActiveNodesForNextIter(uint64_t i) {
-        numApproxActiveNodesForNextIter.fetch_add(i);
+    bool getNextRangeMorsel(FrontierMorsel& morsel) {
+        return morselDispatcher.getNextRangeMorsel(morsel);
     }
+
+    void setActiveNodesForNextIter() {
+        hasActiveNodesForNextIter_.store(true);
+    }
+    bool hasActiveNodesForNextIter() { return hasActiveNodesForNextIter_.load(); }
     void beginNewIteration();
 
     virtual void initRJFromSource(common::nodeID_t source) = 0;
@@ -263,78 +263,54 @@ public:
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
     uint16_t getNextIter() { return curIter.load() + 1u; }
-    GDSFrontier& getCurrentFrontierUnsafe() const { return *curFrontier; }
 
+    GDSFrontier& getCurrentFrontierUnsafe() const { return *curFrontier; }
     GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
-    bool hasActiveNodesForNextLevel() { return numApproxActiveNodesForNextIter.load() > 0; }
-
-    // Note: If the implementing class stores 2 frontierPair, this function should swap them.
+protected:
     virtual void beginNewIterationInternalNoLock() {}
 
 protected:
     std::mutex mtx;
     // curIter is the iteration number of the algorithm and starts from 0.
     std::atomic<uint16_t> curIter;
-    std::atomic<uint64_t> numApproxActiveNodesForCurIter;
-    // Note: This number is not guaranteed to be accurate. However, if it is > 0, then there is at
-    // least one active node for the next frontier. It may not be accurate because there can be
-    // double counting. Each thread will locally increment this number based on the number of times
-    // they set a node active for the next frontier. But both within a single thread's counting and
-    // across threads, the same node can be set active. So do not make any reliance on the accuracy
-    // of this value.
-    std::atomic<uint64_t> numApproxActiveNodesForNextIter;
+    std::atomic<bool> hasActiveNodesForNextIter_;
     std::shared_ptr<GDSFrontier> curFrontier;
     std::shared_ptr<GDSFrontier> nextFrontier;
-    uint64_t maxThreadsForExec;
+
+    FrontierMorselDispatcher morselDispatcher;
 };
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
-    friend class AllSPDestinationsEdgeCompute;
-    friend class AllSPPathsEdgeCompute;
-    friend class SingleSPDestinationsEdgeCompute;
-    friend class SingleSPPathsEdgeCompute;
-
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
-        uint64_t maxThreadsForExec)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              1 /* initial num active nodes */, maxThreadsForExec),
-          pathLengths{pathLengths}, morselDispatcher(maxThreadsForExec) {}
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t maxThreadsForExec)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, maxThreadsForExec),
+          pathLengths{pathLengths} {}
 
-    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
+    PathLengths* getPathLengths() const { return pathLengths.get(); }
 
     void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
-        common::table_id_t nextFrontierTableID) override;
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t nextTableID) override;
 
     void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
 
 private:
     std::shared_ptr<PathLengths> pathLengths;
-    FrontierMorselDispatcher morselDispatcher;
 };
 
 class DoublePathLengthsFrontierPair : public FrontierPair {
 public:
-    DoublePathLengthsFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
-        uint64_t maxThreadsForExec, storage::MemoryManager* mm);
-
-    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
+    DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier, std::shared_ptr<PathLengths> nextFrontier,
+        uint64_t maxThreadsForExec) : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
-        common::table_id_t nextFrontierTableID) override;
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t nextTableID) override;
 
-    void beginNewIterationInternalNoLock() override {
-        curFrontier->ptrCast<PathLengths>()->incrementCurIter();
-        nextFrontier->ptrCast<PathLengths>()->incrementCurIter();
-    }
-
-private:
-    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
+    void beginNewIterationInternalNoLock() override;
 };
 
 class SPEdgeCompute : public EdgeCompute {

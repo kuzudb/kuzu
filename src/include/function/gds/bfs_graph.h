@@ -81,8 +81,12 @@ public:
         return blocks[blocks.size() - 1].get();
     }
 
-    ParentList* getInitialParentAndNextPtr(common::nodeID_t nodeID) {
+    ParentList* getParentListHead(common::nodeID_t nodeID) {
         return parentArray.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
+    }
+    ParentList* getParentListHead(common::offset_t offset) {
+        KU_ASSERT(currParentPtrs.load(std::memory_order_relaxed) != nullptr);
+        return currParentPtrs.load(std::memory_order_relaxed)[offset].load(std::memory_order_relaxed);
     }
 
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
@@ -115,10 +119,6 @@ public:
             // Do NOT add parent and revert reserved slot.
             parentListBlock->revertLast();
         }
-    }
-
-    parent_entry_t* getCurFixedParentPtrs() {
-        return currParentPtrs.load(std::memory_order_relaxed);
     }
 
     void pinNodeTable(common::table_id_t tableID) {
