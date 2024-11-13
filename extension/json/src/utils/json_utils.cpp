@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 
-#include "json_type.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -11,6 +10,7 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "json_type.h"
 
 using namespace kuzu::common;
 
@@ -55,8 +55,10 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
             return yyjson_mut_null(wrapper.ptr);
         }
 
-        // Create a new mutable document in the wrapper and copy the root from the immutable document
-        yyjson_mut_val* mut_root = yyjson_val_mut_copy(wrapper.ptr, yyjson_doc_get_root(immutable_doc));
+        // Create a new mutable document in the wrapper and copy the root from the immutable
+        // document
+        yyjson_mut_val* mut_root =
+            yyjson_val_mut_copy(wrapper.ptr, yyjson_doc_get_root(immutable_doc));
 
         return mut_root;
     } else {
