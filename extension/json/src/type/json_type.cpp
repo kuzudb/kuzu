@@ -12,5 +12,12 @@ common::LogicalType JsonType::getJsonType() {
     return type;
 }
 
+bool JsonType::isJson(const common::LogicalType& type) {
+    if (!type.isInternalType() && type.getExtraTypeInfo()->constPtrCast<common::UDTTypeInfo>()->getTypeName() == JsonExtension::JSON_TYPE_NAME) {
+        return true;
+    }
+    return false;
+}
+
 } // namespace json_extension
 } // namespace kuzu
