@@ -79,7 +79,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             ->ptrCast<ScalarFunction>()
             ->copy();
     if (children.size() == 2 && children[1]->expressionType == ExpressionType::LAMBDA) {
-        if (!function.isListLambda) {
+        if (!function->isListLambda) {
             throw BinderException(stringFormat("{} does not support lambda input.", functionName));
         }
         bindLambdaExpression(*children[0], *children[1]);
@@ -87,7 +87,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     if (functionName == CastAnyFunction::name) {
-        bindData = function.bindFunc({children, &function, context});
+        bindData = function->bindFunc({children, function.get(), context});
         if (bindData == nullptr) { // No need to cast.
             // TODO(Xiyang): We should return a deep copy otherwise the same expression might
             // appear in the final projection list repeatedly.
@@ -100,10 +100,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         }
         childrenAfterCast.push_back(std::move(childAfterCast));
     } else {
-        if (function.bindFunc) {
-            bindData = function.bindFunc({children, &function, context});
+        if (function->bindFunc) {
+            bindData = function->bindFunc({children, function.get(), context});
         } else {
-            bindData = std::make_unique<FunctionBindData>(LogicalType(function.returnTypeID));
+            bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));
         }
         if (!bindData->paramTypes.empty()) {
             for (auto i = 0u; i < children.size(); ++i) {
@@ -112,15 +112,15 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             }
         } else {
             for (auto i = 0u; i < children.size(); ++i) {
-                auto id = function.isVarLength ? function.parameterTypeIDs[0] :
-                                                 function.parameterTypeIDs[i];
+                auto id = function->isVarLength ? function->parameterTypeIDs[0] :
+                                                  function->parameterTypeIDs[i];
                 auto type = LogicalType(id);
                 childrenAfterCast.push_back(implicitCastIfNecessary(children[i], type));
             }
         }
     }
     auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(function.name, childrenAfterCast);
+        ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return std::make_shared<ScalarFunctionExpression>(ExpressionType::FUNCTION, std::move(function),
         std::move(bindData), std::move(childrenAfterCast), uniqueExpressionName);
 }
@@ -296,7 +296,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     default:
         KU_UNREACHABLE;
     }
-    auto function = ScalarFunction(LabelFunction::name,
+    auto function = std::make_unique<ScalarFunction>(LabelFunction::name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING, LabelFunction::execFunction);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::STRING());

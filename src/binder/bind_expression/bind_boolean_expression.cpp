@@ -35,8 +35,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(ExpressionTy
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
-    auto func =
-        ScalarFunction(functionName, inputTypeIDs, LogicalTypeID::BOOL, execFunc, selectFunc);
+    auto func = std::make_unique<ScalarFunction>(functionName, inputTypeIDs, LogicalTypeID::BOOL,
+        execFunc, selectFunc);
     return std::make_shared<ScalarFunctionExpression>(expressionType, std::move(func),
         std::move(bindData), std::move(childrenAfterCast), uniqueExpressionName);
 }

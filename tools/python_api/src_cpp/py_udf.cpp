@@ -14,6 +14,29 @@ using namespace kuzu::common;
 using namespace kuzu;
 using namespace kuzu::function;
 
+struct PyUDFScalarFunction : public ScalarFunction {
+    PyUDFScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(execFunc), std::move(bindFunc)} {}
+
+    DELETE_COPY_DEFAULT_MOVE(PyUDFScalarFunction);
+
+    ~PyUDFScalarFunction() override;
+
+    std::unique_ptr<ScalarFunction> copy() const override {
+        py::gil_scoped_acquire acquire;
+        return std::make_unique<PyUDFScalarFunction>(this->name, this->parameterTypeIDs,
+            this->returnTypeID, this->execFunc, this->bindFunc);
+    }
+};
+
+PyUDFScalarFunction::~PyUDFScalarFunction() {
+    py::gil_scoped_acquire acquire;
+    // Destroy the execFunc which requires the GIL to be held.
+    this->execFunc = nullptr;
+}
+
 struct PyUDFSignature {
     std::vector<LogicalType> paramTypes;
     LogicalType resultType;
@@ -204,7 +227,7 @@ function_set PyUDF::toFunctionSet(const std::string& name, const py::function& u
     }
 
     function_set definitions;
-    definitions.push_back(std::make_unique<ScalarFunction>(name, paramIDTypes,
+    definitions.push_back(std::make_unique<PyUDFScalarFunction>(name, paramIDTypes,
         pySignature.resultType.getLogicalTypeID(),
         getUDFExecFunc(udf, defaultNull, catchExceptions), getUDFBindFunc(pySignature)));
     return definitions;
