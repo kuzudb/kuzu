@@ -119,8 +119,8 @@ False
 
 -STATEMENT RETURN json_contains(to_json({entry: to_json({foo: 31})}), to_json({foo: 31}));
 ---- 1
-
+True
 
 -STATEMENT RETURN json_contains(to_json({entry: to_json({value: 51})}), 51);
 ---- 1
-
+True
