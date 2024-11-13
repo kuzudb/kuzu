@@ -54,5 +54,5 @@ false
 -STATEMENT RETURN row_to_json(null)
 ---- ok
 
-RETURN array_to_json(null)
+-STATEMENT RETURN array_to_json(null)
 ---- ok
