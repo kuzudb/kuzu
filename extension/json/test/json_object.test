@@ -43,3 +43,7 @@
 {"Dan":5,"Carol":3}
 {"Elizabeth":7,"Farooq":8}
 {"Elizabeth":7,"Greg":9}
+
+-STATEMENT RETURN typeof(json_object("name","Alicia"));
+---- 1
+json

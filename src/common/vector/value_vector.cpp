@@ -222,10 +222,12 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
 }
 
 std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) const {
+    auto value = Value::createNullValue(dataType).copy();
     if (isNull(pos)) {
-        return Value::createNullValue(dataType).copy();
+        return value;
     }
-    auto value = Value::createDefaultValue(dataType).copy();
+    value->setNull(false);
+    value->dataType = dataType.copy();
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::INT64: {
         value->val.int64Val = getValue<int64_t>(pos);

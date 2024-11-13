@@ -84,3 +84,7 @@ as json) as STRUCT(date DATE));
 as json) as STRUCT(interval INTERVAL));
 ---- 1
 {interval: 83 years 3 months 999 days 00:16:39.999999}
+
+-STATEMENT RETURN typeof(cast('{"name": "Alicia", "age": 28}' AS JSON));
+---- 1
+json

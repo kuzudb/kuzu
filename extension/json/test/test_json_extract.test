@@ -14,10 +14,10 @@
 null
 
 -STATEMENT RETURN json_extract('{"foo": null}', '$.foo.bar')
----- ok
+---- 1
 
 -STATEMENT RETURN json_extract(null, '0')
----- ok
+---- 1
 
 -STATEMENT RETURN json_extract('[null]', '0')
 ---- 1

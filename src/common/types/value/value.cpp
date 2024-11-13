@@ -572,6 +572,7 @@ std::string Value::toString() const {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return TypeUtils::toString(val.booleanVal);
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return TypeUtils::toString(val.int64Val);
     case LogicalTypeID::INT32:
@@ -908,7 +909,7 @@ bool Value::hasNoneNullChildren() const {
 
 // Handle the case of casting empty list to a different type.
 bool Value::allowTypeChange() const {
-    if (isNull_) {
+    if (isNull_ || !dataType.isInternalType()) {
         return true;
     }
     switch (dataType.getLogicalTypeID()) {

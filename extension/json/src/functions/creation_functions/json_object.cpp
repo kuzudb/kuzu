@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "function/scalar_function.h"
 #include "json_creation_functions.h"
+#include "json_type.h"
 #include "json_utils.h"
 
 namespace kuzu {
@@ -36,7 +37,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     if (input.arguments.size() % 2 != 0) {
         throw common::BinderException{"json_object() requires an even number of arguments"};
     }
-    auto bindData = std::make_unique<FunctionBindData>(LogicalType::STRING());
+    auto bindData = std::make_unique<FunctionBindData>(JsonType::getJsonType());
     for (auto& arg : input.arguments) {
         LogicalType type = arg->dataType.copy();
         if (type.getLogicalTypeID() == LogicalTypeID::ANY) {

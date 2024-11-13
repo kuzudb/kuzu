@@ -1,5 +1,6 @@
 #include "function/scalar_function.h"
 #include "json_creation_functions.h"
+#include "json_type.h"
 #include "json_utils.h"
 
 namespace kuzu {
@@ -8,7 +9,7 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void toJsonExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/) {
     KU_ASSERT(parameters.size() == 1);
     result.resetAuxiliaryBuffer();
@@ -23,10 +24,14 @@ static void toJsonExecFunc(const std::vector<std::shared_ptr<ValueVector>>& para
     }
 }
 
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    return FunctionBindData::getSimpleBindData(input.arguments, JsonType::getJsonType());
+}
+
 function_set ToJsonFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRING, toJsonExecFunc));
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRING, execFunc, bindFunc));
     return result;
 }
 
