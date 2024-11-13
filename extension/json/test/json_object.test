@@ -43,3 +43,7 @@
 {"Dan":5,"Carol":3}
 {"Elizabeth":7,"Farooq":8}
 {"Elizabeth":7,"Greg":9}
+
+-STATEMENT RETURN json_object(null, null)
+---- 1
+{}

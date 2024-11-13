@@ -89,3 +89,11 @@ False
 -STATEMENT RETURN json_contains('{"a": {"b": 42}}', '{"a": 42}')
 ---- 1
 False
+
+-STATEMENT RETURN json_contains(to_json({entry: to_json({foo: 31})}), to_json({foo: 31}))
+---- 1
+True
+
+-STATEMENT RETURN RETURN json_contains(to_json({entry: to_json({value: 51})}), 51)
+---- 1
+True

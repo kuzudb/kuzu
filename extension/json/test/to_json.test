@@ -43,3 +43,16 @@ false
 -STATEMENT RETURN row_to_json('kuzu')
 ---- 1
 "kuzu"
+
+-STATEMENT RETURN to_json({age: 55, foo: to_json({ scores: [1, 32], tee : "New York" }) , name: 'dan'})
+---- 1
+{"age":55,"foo":{"scores":[1,32],"tee":"New York"},"name":"dan"}
+
+-STATEMENT RETURN to_json(null)
+---- ok
+
+-STATEMENT RETURN row_to_json(null)
+---- ok
+
+RETURN array_to_json(null)
+---- ok
