@@ -15,7 +15,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     const auto& param1 = parameters[0];
     const auto& param2 = parameters[1];
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-        ++selectedPos) {
+         ++selectedPos) {
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
         auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
