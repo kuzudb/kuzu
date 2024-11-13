@@ -1,6 +1,7 @@
 #include "common/json_common.h"
 #include "function/scalar_function.h"
 #include "json_scalar_functions.h"
+#include "json_utils.h"
 
 namespace kuzu {
 namespace json_extension {
@@ -17,22 +18,21 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     size_t idx = 0, max = 0;
     yyjson_val *key = nullptr, *childVal = nullptr;
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
         auto isNull = parameters[0]->isNull(paramPos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
             auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
-            auto doc = JSONCommon::readDocument(paramStr, JSONCommon::READ_FLAG);
-            auto numKeys = yyjson_obj_size(yyjson_doc_get_root(doc));
+            auto doc = JsonWrapper{JSONCommon::readDocument(paramStr, JSONCommon::READ_FLAG)};
+            auto numKeys = yyjson_obj_size(yyjson_doc_get_root(doc.ptr));
             auto resultList = ListVector::addList(&result, numKeys);
             result.setValue<list_entry_t>(resultPos, resultList);
-            yyjson_obj_foreach(yyjson_doc_get_root(doc), idx, max, key, childVal) {
+            yyjson_obj_foreach(yyjson_doc_get_root(doc.ptr), idx, max, key, childVal) {
                 StringVector::addString(resultDataVector, resultList.offset + idx,
                     std::string(unsafe_yyjson_get_str(key), unsafe_yyjson_get_len(key)));
             }
-            yyjson_doc_free(doc);
         }
     }
 }

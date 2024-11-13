@@ -1,6 +1,7 @@
 #include "common/json_common.h"
 #include "function/scalar_function.h"
 #include "json_scalar_functions.h"
+#include "json_utils.h"
 
 namespace kuzu {
 namespace json_extension {
@@ -120,7 +121,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     const auto& param1 = parameters[0];
     const auto& param2 = parameters[1];
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
         auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
@@ -129,11 +130,12 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
         if (!isNull) {
             auto haystackStr = param1->getValue<ku_string_t>(param1Pos).getAsString();
             auto needleStr = param2->getValue<ku_string_t>(param2Pos).getAsString();
-            auto haystackDoc = JSONCommon::readDocument(haystackStr, JSONCommon::READ_FLAG);
-            auto needleDoc = JSONCommon::readDocument(needleStr, JSONCommon::READ_FLAG);
-            result.setValue<bool>(resultPos, jsonContains(haystackDoc->root, needleDoc->root));
-            yyjson_doc_free(haystackDoc);
-            yyjson_doc_free(needleDoc);
+            auto haystackDoc =
+                JsonWrapper{JSONCommon::readDocument(haystackStr, JSONCommon::READ_FLAG)};
+            auto needleDoc =
+                JsonWrapper{JSONCommon::readDocument(needleStr, JSONCommon::READ_FLAG)};
+            result.setValue<bool>(resultPos,
+                jsonContains(haystackDoc.ptr->root, needleDoc.ptr->root));
         }
     }
 }
