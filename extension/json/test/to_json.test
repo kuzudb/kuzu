@@ -43,3 +43,27 @@ false
 -STATEMENT RETURN row_to_json('kuzu')
 ---- 1
 "kuzu"
+
+-STATEMENT RETURN typeof(to_json('kuzu'));
+---- 1
+json
+
+-STATEMENT RETURN typeof(cast('{"name": "Alicia", "age": 28}' AS JSON));
+---- 1
+json
+
+-STATEMENT RETURN row_to_json(NULL)
+---- 1
+
+
+-STATEMENT RETURN array_to_json(NULL)
+---- 1
+
+
+-STATEMENT RETURN to_json(NULL)
+---- 1
+
+
+-STATEMENT RETURN cast(NULL as json)
+---- 1
+

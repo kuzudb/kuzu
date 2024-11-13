@@ -1,5 +1,6 @@
 #include "function/scalar_function.h"
 #include "json_creation_functions.h"
+#include "json_type.h"
 #include "json_utils.h"
 
 namespace kuzu {
@@ -29,11 +30,18 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     }
 }
 
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+    std::vector<LogicalType> types;
+    types.emplace_back(input.definition->parameterTypeIDs[0]);
+    types.emplace_back(input.definition->parameterTypeIDs[1]);
+    return std::make_unique<FunctionBindData>(std::move(types), JsonType::getJsonType());
+}
+
 function_set JsonMergePatchFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING, execFunc));
+        LogicalTypeID::STRING, execFunc, bindFunc));
     return result;
 }
 

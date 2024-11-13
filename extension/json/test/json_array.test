@@ -43,3 +43,11 @@
 ["Dan",5,"Carol",5]
 ["Elizabeth",7,"Farooq",5]
 ["Elizabeth",7,"Greg",5]
+
+-STATEMENT RETURN typeof(json_array(42, 'kuzu', NULL));
+---- 1
+json
+
+-STATEMENT RETURN json_array(NULL, NULL);
+---- 1
+[null,null]

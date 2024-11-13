@@ -114,6 +114,9 @@ True
 4
 3
 0
+-STATEMENT RETURN typeof(JSON('{"species": [ "duck", "goose", "swan", null ]}'))
+---- 1
+json
 
 -CASE JsonStructureTest2
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
@@ -505,3 +508,7 @@ STRUCT(uuid UUID)
 );
 ---- 1
 STRUCT(interval INTERVAL)
+
+-STATEMENT return json_structure(null);
+---- 1
+

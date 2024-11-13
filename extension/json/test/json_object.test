@@ -43,3 +43,19 @@
 {"Dan":5,"Carol":3}
 {"Elizabeth":7,"Farooq":8}
 {"Elizabeth":7,"Greg":9}
+
+-STATEMENT RETURN typeof(json_object("name","Alicia"));
+---- 1
+json
+
+-STATEMENT RETURN json_object(NULL, NULL);
+---- 1
+{}
+
+-STATEMENT RETURN json_object(NULL, NULL, 2, 3, '5', '4');
+---- 1
+{"2":3,"5":"4"}
+
+-STATEMENT RETURN json_object(NULL, NULL, 2, 3, '5', '4', NULL, NULL);
+---- 1
+{"2":3,"5":"4"}

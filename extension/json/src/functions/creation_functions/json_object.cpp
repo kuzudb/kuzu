@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "function/scalar_function.h"
 #include "json_creation_functions.h"
+#include "json_type.h"
 #include "json_utils.h"
 
 namespace kuzu {
@@ -19,6 +20,9 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
         auto obj = yyjson_mut_obj(wrapper.ptr);
         for (auto j = 0u; j < parameters.size() / 2; j++) {
             auto keyParam = parameters[j * 2];
+            if (keyParam->isNull(keyParam->state->isFlat() ? 0 : i)) {
+                continue;
+            }
             auto valParam = parameters[j * 2 + 1];
             yyjson_mut_obj_add(obj,
                 jsonifyAsString(wrapper, *keyParam,
@@ -36,7 +40,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     if (input.arguments.size() % 2 != 0) {
         throw common::BinderException{"json_object() requires an even number of arguments"};
     }
-    auto bindData = std::make_unique<FunctionBindData>(LogicalType::STRING());
+    auto bindData = std::make_unique<FunctionBindData>(JsonType::getJsonType());
     for (auto& arg : input.arguments) {
         LogicalType type = arg->dataType.copy();
         if (type.getLogicalTypeID() == LogicalTypeID::ANY) {

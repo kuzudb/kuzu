@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "function/scalar_function.h"
 #include "json_extract_functions.h"
+#include "json_type.h"
 #include "json_utils.h"
 
 namespace kuzu {
@@ -36,6 +37,14 @@ static void jsonExtractSinglePath(const std::vector<std::shared_ptr<ValueVector>
             StringVector::addString(&result, resultPos, output);
         }
     }
+}
+
+static std::unique_ptr<FunctionBindData> bindJsonExtractSinglePath(ScalarBindFuncInput input) {
+    KU_ASSERT(input.arguments.size() == 2);
+    std::vector<LogicalType> types;
+    types.emplace_back(input.definition->parameterTypeIDs[0]);
+    types.emplace_back(input.definition->parameterTypeIDs[1]);
+    return std::make_unique<FunctionBindData>(std::move(types), JsonType::getJsonType());
 }
 
 static void jsonExtractMultiPath(const std::vector<std::shared_ptr<ValueVector>>& parameters,
@@ -75,20 +84,20 @@ static std::unique_ptr<FunctionBindData> bindJsonExtractMultiPath(ScalarBindFunc
         throw BinderException("List passed to json_extract must contain type STRING");
     }
     return FunctionBindData::getSimpleBindData(input.arguments,
-        LogicalType::LIST(LogicalType::STRING()));
+        common::LogicalType::LIST(JsonType::getJsonType()));
 }
 
 function_set JsonExtractFunction::getFunctionSet() {
     function_set result;
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING, jsonExtractSinglePath));
+        LogicalTypeID::STRING, jsonExtractSinglePath, bindJsonExtractSinglePath));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
-        LogicalTypeID::STRING, jsonExtractSinglePath));
+        LogicalTypeID::STRING, jsonExtractSinglePath, bindJsonExtractSinglePath));
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::LIST}, LogicalTypeID::LIST,
-        jsonExtractMultiPath, nullptr, bindJsonExtractMultiPath));
+        jsonExtractMultiPath, bindJsonExtractMultiPath));
     return result;
 }
 

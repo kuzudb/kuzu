@@ -10,8 +10,13 @@ using namespace common;
 
 static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     KU_ASSERT(input.arguments.size() == 1);
-    return FunctionBindData::getSimpleBindData(input.arguments,
-        LogicalType::LIST(LogicalType::STRING()));
+    auto type = input.arguments[0]->dataType.copy();
+    if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
+        type = LogicalType::INT64();
+    }
+    auto bindData = std::make_unique<FunctionBindData>(LogicalType::LIST(LogicalType::STRING()));
+    bindData->paramTypes.push_back(std::move(type));
+    return bindData;
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
