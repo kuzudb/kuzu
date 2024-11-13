@@ -10,6 +10,7 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "json_type.h"
 
 using namespace kuzu::common;
 
@@ -42,6 +43,24 @@ yyjson_mut_val* jsonify(JsonMutWrapper& wrapper, const common::ValueVector& vec,
     yyjson_mut_val* result = nullptr;
     if (vec.isNull(pos)) {
         result = yyjson_mut_null(wrapper.ptr);
+    } else if (JsonType::isJson(vec.dataType)) {
+        auto strVal = vec.getValue<ku_string_t>(pos);
+        auto strContent = strVal.getAsStringView();
+
+        // Convert JSON string to an immutable JSON document using stringToJson
+        JsonWrapper immutable_json_wrapper = stringToJson(std::string(strContent));
+        yyjson_doc* immutable_doc = immutable_json_wrapper.ptr;
+        if (!immutable_doc) {
+            // Handle error if parsing fails
+            return yyjson_mut_null(wrapper.ptr);
+        }
+
+        // Create a new mutable document in the wrapper and copy the root from the immutable
+        // document
+        yyjson_mut_val* mut_root =
+            yyjson_val_mut_copy(wrapper.ptr, yyjson_doc_get_root(immutable_doc));
+
+        return mut_root;
     } else {
         switch (vec.dataType.getLogicalTypeID()) {
         case LogicalTypeID::BOOL:
