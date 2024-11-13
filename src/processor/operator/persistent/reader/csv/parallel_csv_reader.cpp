@@ -218,11 +218,6 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     ScanTableFuncBindInput* scanInput) {
-    if (scanInput->expectedColumnTypes.size() > 0) {
-        scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
-            Value((int64_t)0)); // only scan headers
-    }
-
     bool detectedHeader = false;
 
     DialectOption detectedDialect;
