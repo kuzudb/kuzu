@@ -13,7 +13,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     ValueVector& result, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto isNull = parameters[0]->isNull(inputPos);
@@ -27,7 +27,13 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
-    return FunctionBindData::getSimpleBindData(input.arguments, JsonType::getJsonType());
+    auto type = input.arguments[0]->dataType.copy();
+    if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
+        type = LogicalType::INT64();
+    }
+    auto bindData = std::make_unique<FunctionBindData>(JsonType::getJsonType());
+    bindData->paramTypes.push_back(std::move(type));
+    return bindData;
 }
 
 function_set MinifyJsonFunction::getFunctionSet() {

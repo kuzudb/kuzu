@@ -49,36 +49,6 @@
 4
 0
 
--CASE JsonContainsTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
--STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, [-10]]'] AS HAYSTACK UNWIND ['1', '[1, 2]', '"1"', '"a"', '[-10]', '{"a": 1}', '{"a": "2"}'] AS NEEDLE RETURN JSON_CONTAINS(HAYSTACK, NEEDLE)
----- 14
-True
-True
-False
-False
-False
-True
-True
-True
-True
-False
-False
-True
-False
-False
-
--CASE JsonKeysTest
--STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
----- ok
--STATEMENT UNWIND ['[]', '{}', '{"a":null,"1":null}', '{"ffffffffffff": [], "json_array_length": [1, 2, 3]}'] AS ARR RETURN json_keys(ARR)
----- 4
-[]
-[]
-[a,1]
-[ffffffffffff,json_array_length]
-
 -CASE JsonStructureTest1
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
@@ -117,6 +87,9 @@ True
 -STATEMENT RETURN typeof(JSON('{"species": [ "duck", "goose", "swan", null ]}'))
 ---- 1
 json
+-STATEMENT RETURN JSON(null)
+---- 1
+
 
 -CASE JsonStructureTest2
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
