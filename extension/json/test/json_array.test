@@ -24,7 +24,7 @@
 -LOG NestedJsonArray
 -STATEMENT RETURN JSON_ARRAY(JSON_ARRAY(2,4, 'TEST'), 'kuzu', [2,5,1], null, [null])
 ---- 1
-["[2,4,\"TEST\"]","kuzu",[2,5,1],null,[null]]
+[[2,4,"TEST"],"kuzu",[2,5,1],null,[null]]
 
 -LOG UnflatFlatJsonArray
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) RETURN JSON_ARRAY(p.fName, p.ID, p1.fName, 5)
