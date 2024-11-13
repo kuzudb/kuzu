@@ -508,3 +508,7 @@ STRUCT(uuid UUID)
 );
 ---- 1
 STRUCT(interval INTERVAL)
+
+-STATEMENT return json_structure(null);
+---- 1
+

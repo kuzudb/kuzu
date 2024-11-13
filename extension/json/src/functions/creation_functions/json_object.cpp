@@ -20,6 +20,9 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
         auto obj = yyjson_mut_obj(wrapper.ptr);
         for (auto j = 0u; j < parameters.size() / 2; j++) {
             auto keyParam = parameters[j * 2];
+            if (keyParam->isNull(keyParam->state->isFlat() ? 0 : i)) {
+                continue;
+            }
             auto valParam = parameters[j * 2 + 1];
             yyjson_mut_obj_add(obj,
                 jsonifyAsString(wrapper, *keyParam,

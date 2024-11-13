@@ -89,3 +89,11 @@ False
 -STATEMENT RETURN json_contains('{"a": {"b": 42}}', '{"a": 42}')
 ---- 1
 False
+
+-STATEMENT RETURN json_contains(NULL, NULL)
+---- 1
+
+
+-STATEMENT RETURN json_contains(NULL, '{"a": 42}')
+---- 1
+

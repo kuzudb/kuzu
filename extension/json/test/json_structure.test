@@ -155,3 +155,7 @@ STRUCT(a UINT8, a UINT8)
 -STATEMENT RETURN json_structure('{"a": 1, "A": 1}');
 ---- 1
 STRUCT(a UINT8, A UINT8)
+
+-STATEMENT RETURN json_structure(NULL);
+---- 1
+

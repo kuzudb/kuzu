@@ -21,12 +21,11 @@
 ---- 1
 []
 
-
-#-STATEMENT RETURN json_keys(NULL)
-#---- 1
-#NULL
-
 # We not yet support this
 #-STATEMENT RETURN json_keys('{"duck": {"key1": 42}, "goose": {"key1": 42, "key2": 43}}', ['duck', 'goose'])
 #---- 1
 #[[key1], [key1, key2]]
+
+-STATEMENT RETURN json_keys(NULL)
+---- 1
+

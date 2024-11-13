@@ -592,3 +592,7 @@ False
 -STATEMENT RETURN json_valid('" \~ "');
 ---- 1
 False
+
+-STATEMENT RETURN json_valid(NULL);
+---- 1
+False

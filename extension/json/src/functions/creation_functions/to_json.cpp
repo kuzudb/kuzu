@@ -25,7 +25,13 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
-    return FunctionBindData::getSimpleBindData(input.arguments, JsonType::getJsonType());
+    LogicalType type = input.arguments[0]->getDataType().copy();
+    if (type.getLogicalTypeID() == LogicalTypeID::ANY) {
+        type = LogicalType::INT64();
+    }
+    auto bindData = std::make_unique<FunctionBindData>(JsonType::getJsonType());
+    bindData->paramTypes.push_back(std::move(type));
+    return bindData;
 }
 
 function_set ToJsonFunction::getFunctionSet() {

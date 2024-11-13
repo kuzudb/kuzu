@@ -47,3 +47,7 @@
 -STATEMENT RETURN typeof(json_array(42, 'kuzu', NULL));
 ---- 1
 json
+
+-STATEMENT RETURN json_array(NULL, NULL);
+---- 1
+[null,null]

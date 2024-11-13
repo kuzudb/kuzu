@@ -88,3 +88,7 @@ as json) as STRUCT(interval INTERVAL));
 -STATEMENT RETURN typeof(cast('{"name": "Alicia", "age": 28}' AS JSON));
 ---- 1
 json
+
+-STATEMENT RETURN cast(null as json);
+---- 1
+

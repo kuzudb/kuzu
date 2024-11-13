@@ -13,7 +13,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
     result.resetAuxiliaryBuffer();
     const auto& param = parameters[0];
     for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
+        ++selectedPos) {
         auto resultPos = result.state->getSelVector()[selectedPos];
         auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
         auto isNull = parameters[0]->isNull(paramPos);
