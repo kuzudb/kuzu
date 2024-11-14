@@ -278,8 +278,8 @@ DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
 
 void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
-    auto length = rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontier(
-            dstNodeID.offset);
+    auto length =
+        rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     setLength(lengthVector.get(), length);
     fTable.append(vectors);
@@ -291,7 +291,8 @@ void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_
 
 bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
     auto outputs = rjOutputs->ptrCast<SPOutputs>();
-    return dstNodeID == outputs->sourceNodeID || outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
+    return dstNodeID == outputs->sourceNodeID || outputs->pathLengths->getMaskValueFromCurFrontier(
+                                                     dstNodeID.offset) == PathLengths::UNVISITED;
 }
 
 } // namespace function

@@ -135,8 +135,8 @@ private:
             sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
         auto currentFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
         auto nextFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
-        auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier,
-            clientContext->getMaxNumThreadForExec());
+        auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
+            nextFrontier, clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), &output->bfsGraph);
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),

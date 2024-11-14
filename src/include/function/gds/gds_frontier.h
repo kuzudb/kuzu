@@ -250,9 +250,7 @@ public:
         return morselDispatcher.getNextRangeMorsel(morsel);
     }
 
-    void setActiveNodesForNextIter() {
-        hasActiveNodesForNextIter_.store(true);
-    }
+    void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }
     bool hasActiveNodesForNextIter() { return hasActiveNodesForNextIter_.load(); }
     void beginNewIteration();
 
@@ -283,8 +281,10 @@ protected:
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t maxThreadsForExec)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, maxThreadsForExec),
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
+        uint64_t maxThreadsForExec)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
+              maxThreadsForExec),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
@@ -302,8 +302,9 @@ private:
 
 class DoublePathLengthsFrontierPair : public FrontierPair {
 public:
-    DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier, std::shared_ptr<PathLengths> nextFrontier,
-        uint64_t maxThreadsForExec) : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
+    DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
+        std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
+        : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 

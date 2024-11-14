@@ -39,7 +39,8 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) == PathLengths::UNVISITED) {
+            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) ==
+                PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
@@ -62,13 +63,13 @@ public:
         bool isFwd) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
-            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset) == PathLengths::UNVISITED) {
+            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset) ==
+                PathLengths::UNVISITED) {
                 if (!parentListBlock->hasSpace()) {
                     parentListBlock = bfsGraph->addNewBlock();
                 }
-                bfsGraph->tryAddSingleParent(frontierPair->getCurrentIter(),
-                    parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID,
-                    isFwd);
+                bfsGraph->tryAddSingleParent(frontierPair->getCurrentIter(), parentListBlock,
+                    nbrNodeID /* child */, boundNodeID /* parent */, edgeID, isFwd);
                 activeNodes.push_back(nbrNodeID);
             }
         });

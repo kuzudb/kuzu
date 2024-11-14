@@ -27,14 +27,14 @@ void FrontierTask::run() {
                 switch (info.direction) {
                 case ExtendDirection::FWD: {
                     for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
-                        numActiveNodes += computeScanResult(nodeID, chunk,
-                            *localEc, sharedState->frontierPair, true);
+                        numActiveNodes += computeScanResult(nodeID, chunk, *localEc,
+                            sharedState->frontierPair, true);
                     }
                 } break;
                 case ExtendDirection::BWD: {
                     for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
-                        numActiveNodes += computeScanResult(nodeID, chunk,
-                            *localEc, sharedState->frontierPair, false);
+                        numActiveNodes += computeScanResult(nodeID, chunk, *localEc,
+                            sharedState->frontierPair, false);
                     }
                 } break;
                 default:

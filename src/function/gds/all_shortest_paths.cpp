@@ -160,8 +160,8 @@ public:
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
-            auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                                nbrVal == frontierPair->getCurrentIter();
+            auto shouldUpdate =
+                nbrVal == PathLengths::UNVISITED || nbrVal == frontierPair->getCurrentIter();
             if (shouldUpdate) {
                 // Note: This is safe because curNodeID is in the current frontier, so its
                 // shortest paths multiplicity is guaranteed to not change in the current iteration.
@@ -200,15 +200,14 @@ public:
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
-            auto shouldUpdate = nbrLen == PathLengths::UNVISITED ||
-                                nbrLen == frontierPair->getCurrentIter();
+            auto shouldUpdate =
+                nbrLen == PathLengths::UNVISITED || nbrLen == frontierPair->getCurrentIter();
             if (shouldUpdate) {
                 if (!parentListBlock->hasSpace()) {
                     parentListBlock = bfsGraph->addNewBlock();
                 }
-                bfsGraph->addParent(frontierPair->getCurrentIter(),
-                    parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID,
-                    fwdEdge);
+                bfsGraph->addParent(frontierPair->getCurrentIter(), parentListBlock,
+                    nbrNodeID /* child */, boundNodeID /* parent */, edgeID, fwdEdge);
             }
             if (nbrLen == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNodeID);

@@ -86,7 +86,8 @@ public:
     }
     ParentList* getParentListHead(common::offset_t offset) {
         KU_ASSERT(currParentPtrs.load(std::memory_order_relaxed) != nullptr);
-        return currParentPtrs.load(std::memory_order_relaxed)[offset].load(std::memory_order_relaxed);
+        return currParentPtrs.load(std::memory_order_relaxed)[offset].load(
+            std::memory_order_relaxed);
     }
 
     // Warning: Make sure hasSpace has returned true on parentPtrBlock already before calling this
