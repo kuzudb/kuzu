@@ -10,32 +10,24 @@ namespace kuzu {
 namespace function {
 
 class FrontierMorsel {
-    friend class FrontierMorselDispatcher;
-
 public:
-    FrontierMorsel() {}
+    FrontierMorsel() = default;
 
-    bool hasNextOffset() const { return nextOffset < endOffsetExclusive; }
-
-    common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
-
+    common::table_id_t getTableID() const { return tableID; }
     common::offset_t getBeginOffset() const { return beginOffset; }
-    common::offset_t getEndOffsetExclusive() const { return endOffsetExclusive; }
+    common::offset_t getEndOffset() const { return endOffsetExclusive; }
 
-protected:
-    void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
+    void init(common::table_id_t _tableID, common::offset_t _beginOffset,
         common::offset_t _endOffsetExclusive) {
         tableID = _tableID;
         beginOffset = _beginOffset;
         endOffsetExclusive = _endOffsetExclusive;
-        nextOffset = beginOffset;
     }
 
 private:
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     common::offset_t beginOffset = common::INVALID_OFFSET;
     common::offset_t endOffsetExclusive = common::INVALID_OFFSET;
-    common::offset_t nextOffset = common::INVALID_OFFSET;
 };
 
 class KUZU_API FrontierMorselDispatcher {
@@ -46,19 +38,19 @@ class KUZU_API FrontierMorselDispatcher {
     static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
-    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec);
+    explicit FrontierMorselDispatcher(uint64_t maxThreads);
 
-    void init(common::table_id_t _tableID, common::offset_t _numOffsets);
+    void init(common::table_id_t _tableID, common::offset_t _maxOffset);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
 
     common::table_id_t getTableID() const { return tableID; }
 
 private:
-    std::atomic<uint64_t> maxThreadsForExec;
-    std::atomic<common::table_id_t> tableID;
-    std::atomic<common::offset_t> numOffsets;
+    common::table_id_t tableID;
+    common::offset_t maxOffset;
     std::atomic<common::offset_t> nextOffset;
+    uint64_t maxThreads;
     uint64_t morselSize;
 };
 
@@ -97,6 +89,53 @@ protected:
     // be accessed by functions that are called by the "master GDS thread" (so not accessed inside
     // the parallel functions in GDSUtils, which are called by other "worker threads").
     common::table_id_map_t<common::offset_t> numNodesMap;
+};
+
+/*
+ * Sparse frontier keeps a small frontier.
+ * If enabled, this frontier represents a complete frontier.
+ * Otherwise, complete frontier is larger than this sparse frontier.
+ * */
+class KUZU_API SparseFrontier  {
+public:
+    SparseFrontier() : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
+
+    void disable() {
+        enabled_ = false;
+    }
+    void resetState() {
+        enabled_ = true;
+        curOffsetSet = nullptr;
+        tableIDToOffsetMap.clear();
+    }
+    bool enabled() const {
+        return enabled_;
+    }
+
+    void pinTableID(common::table_id_t tableID);
+
+    common::table_id_t getTableID() const {
+        return curTableID;
+    }
+    const std::unordered_set<common::offset_t>& getOffsetSet() const {
+        return *curOffsetSet;
+    }
+
+    void addNode(common::nodeID_t nodeID);
+    void addNodes(const std::vector<common::nodeID_t> nodeIDs);
+    void checkSampleSize();
+
+    void mergeLocalFrontier(const SparseFrontier& localFrontier);
+    void mergeSparseFrontier(const SparseFrontier& other);
+
+private:
+    static constexpr uint16_t SAMPLE_SIZE = 20;
+
+    std::mutex mtx;
+    bool enabled_;
+    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t >> tableIDToOffsetMap;
+    common::table_id_t curTableID;
+    std::unordered_set<common::offset_t>* curOffsetSet;
 };
 
 /**
@@ -212,8 +251,6 @@ private:
  * All functions supported in this base interface are thread-safe.
  */
 class KUZU_API FrontierPair {
-    friend class FrontierTask;
-
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec);
@@ -225,19 +262,33 @@ public:
     }
 
     void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }
-    bool hasActiveNodesForNextIter() { return hasActiveNodesForNextIter_.load(); }
+
     void beginNewIteration();
 
     virtual void initRJFromSource(common::nodeID_t source) = 0;
 
-    virtual void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
-        common::table_id_t nextFrontierTableID) = 0;
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t nextTableID);
+
+    virtual void pinCurrFrontier(common::table_id_t tableID) = 0;
+    virtual void pinNextFrontier(common::table_id_t tableID) = 0;
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
-    uint16_t getNextIter() { return curIter.load() + 1u; }
 
-    GDSFrontier& getCurrentFrontierUnsafe() const { return *curFrontier; }
-    GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
+    GDSFrontier& getCurDenseFrontier() const { return *curDenseFrontier; }
+    GDSFrontier& getNextDenseFrontier() const { return *nextDenseFrontier; }
+    SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
+    SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
+    SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
+
+    bool continueNextIter(uint16_t maxIter);
+
+    void addNodeToNextDenseFrontier(common::nodeID_t nodeID);
+    void addNodesToNextDenseFrontier(const std::vector<common::nodeID_t>& nodeIDs);
+
+    void mergeLocalFrontier(const SparseFrontier& localFrontier);
+
+    bool isCurFrontierSparse();
 
 protected:
     virtual void beginNewIterationInternalNoLock() {}
@@ -247,8 +298,14 @@ protected:
     // curIter is the iteration number of the algorithm and starts from 0.
     std::atomic<uint16_t> curIter;
     std::atomic<bool> hasActiveNodesForNextIter_;
-    std::shared_ptr<GDSFrontier> curFrontier;
-    std::shared_ptr<GDSFrontier> nextFrontier;
+
+    // Dense frontiers are always updated.
+    std::shared_ptr<GDSFrontier> curDenseFrontier;
+    std::shared_ptr<GDSFrontier> nextDenseFrontier;
+    // Sparse frontiers
+    std::shared_ptr<SparseFrontier> curSparseFrontier;
+    std::shared_ptr<SparseFrontier> nextSparseFrontier;
+    std::shared_ptr<SparseFrontier> vertexComputeCandidates;
 
     FrontierMorselDispatcher morselDispatcher;
 };
@@ -265,8 +322,14 @@ public:
 
     void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
-        common::table_id_t nextTableID) override;
+    void pinCurrFrontier(common::table_id_t tableID) override {
+        pathLengths->pinCurFrontierTableID(tableID);
+        curSparseFrontier->pinTableID(tableID);
+    }
+    void pinNextFrontier(common::table_id_t tableID) override {
+        pathLengths->pinNextFrontierTableID(tableID);
+        nextSparseFrontier->pinTableID(tableID);
+    }
 
     void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
 
@@ -282,8 +345,14 @@ public:
 
     void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
-        common::table_id_t nextTableID) override;
+    void pinCurrFrontier(common::table_id_t tableID) override {
+        curDenseFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(tableID);
+        curSparseFrontier->pinTableID(tableID);
+    }
+    void pinNextFrontier(common::table_id_t tableID) override {
+        nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(tableID);
+        nextSparseFrontier->pinTableID(tableID);
+    }
 
     void beginNewIterationInternalNoLock() override;
 };

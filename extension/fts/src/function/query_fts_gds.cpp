@@ -117,8 +117,7 @@ struct QFTSState : public function::GDSComputeState {
 QFTSState::QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, common::table_id_t termsTableID)
     : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute)} {
-    this->frontierPair->getNextFrontierUnsafe().ptrCast<PathLengths>()->pinNextFrontierTableID(
-        termsTableID);
+    this->frontierPair->pinNextFrontier(termsTableID);
 }
 
 void QFTSState::initFirstFrontierWithTerms(processor::GDSCallSharedState& sharedState,
@@ -126,13 +125,18 @@ void QFTSState::initFirstFrontierWithTerms(processor::GDSCallSharedState& shared
     common::table_id_t termsTableID) const {
     auto termNodeID = nodeID_t{INVALID_OFFSET, termsTableID};
     auto numTerms = sharedState.graph->getNumNodes(tx, termsTableID);
+    SparseFrontier sparseFrontier;
+    sparseFrontier.pinTableID(termsTableID);
     for (auto offset = 0u; offset < numTerms; ++offset) {
         if (!termsMask.isMasked(offset)) {
             continue;
         }
         termNodeID.offset = offset;
-        frontierPair->getNextFrontierUnsafe().ptrCast<PathLengths>()->setActive(termNodeID);
+        frontierPair->addNodeToNextDenseFrontier(termNodeID);
+        sparseFrontier.addNode(termNodeID);
+        sparseFrontier.checkSampleSize();
     }
+    frontierPair->mergeLocalFrontier(sparseFrontier);
 }
 
 void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& qFtsState,
@@ -143,7 +147,7 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
     auto& appearsInTableInfo = relTableIDInfos[0];
     frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
         appearsInTableInfo.toNodeTableID);
-    GDSUtils::scheduleFrontierTask(appearsInTableInfo.relTableID, graph, ExtendDirection::FWD,
+    GDSUtils::scheduleFrontierTask(appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID, graph, ExtendDirection::FWD,
         qFtsState, executionContext, 1 /* numThreads */, tfPropertyIdx);
 }
 

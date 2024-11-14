@@ -5,40 +5,85 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t _maxThreadsForExec)
-    : morselSize(UINT64_MAX) {
-    maxThreadsForExec.store(_maxThreadsForExec);
-    tableID.store(INVALID_TABLE_ID);
-    numOffsets.store(INVALID_OFFSET);
+FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t maxThreads)
+    : tableID{INVALID_TABLE_ID}, maxOffset{INVALID_OFFSET}, maxThreads{maxThreads}, morselSize(UINT64_MAX) {
     nextOffset.store(INVALID_OFFSET);
 }
 
-void FrontierMorselDispatcher::init(common::table_id_t _tableID, common::offset_t _numOffsets) {
-    tableID.store(_tableID);
-    numOffsets.store(_numOffsets);
+void FrontierMorselDispatcher::init(common::table_id_t _tableID, common::offset_t _maxOffset) {
+    tableID = _tableID;
+    maxOffset = _maxOffset;
     nextOffset.store(0u);
     // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
-    // the number of maximum threads that could be working on this frontier. However if
+    // the number of maximum threads that could be working on this frontier. However, if
     // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
-    auto idealMorselSize = numOffsets.load(std::memory_order_relaxed) /
-                           (std::max(MIN_NUMBER_OF_FRONTIER_MORSELS,
-                               maxThreadsForExec.load(std::memory_order_relaxed) *
-                                   maxThreadsForExec.load(std::memory_order_relaxed)));
+    auto idealMorselSize = maxOffset /
+                           std::max(MIN_NUMBER_OF_FRONTIER_MORSELS, maxThreads * maxThreads);
     morselSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealMorselSize);
 }
 
 bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
     auto beginOffset = nextOffset.fetch_add(morselSize, std::memory_order_acq_rel);
-    if (beginOffset >= numOffsets.load(std::memory_order_relaxed)) {
+    if (beginOffset >= maxOffset) {
         return false;
     }
-    auto endOffsetExclusive =
-        beginOffset + morselSize > numOffsets.load(std::memory_order_relaxed) ?
-            numOffsets.load(std::memory_order_relaxed) :
-            beginOffset + morselSize;
-    frontierMorsel.initMorsel(tableID.load(std::memory_order_relaxed), beginOffset,
-        endOffsetExclusive);
+    auto endOffset = beginOffset + morselSize > maxOffset ?  maxOffset : beginOffset + morselSize;
+    frontierMorsel.init(tableID, beginOffset,endOffset);
     return true;
+}
+
+void SparseFrontier::pinTableID(common::table_id_t tableID) {
+    curTableID = tableID;
+    if (!tableIDToOffsetMap.contains(tableID)) {
+        tableIDToOffsetMap.insert({tableID, std::unordered_set<common::offset_t>{}});
+    }
+    curOffsetSet = &tableIDToOffsetMap.at(tableID);
+}
+
+void SparseFrontier::addNode(common::nodeID_t nodeID) {
+    std::unique_lock<std::mutex> lck{mtx};
+    pinTableID(nodeID.tableID);
+    curOffsetSet->insert(nodeID.offset);
+}
+
+void SparseFrontier::addNodes(const std::vector<common::nodeID_t> nodeIDs) {
+    if (!enabled_) {
+        return;
+    }
+    KU_ASSERT(tableIDToOffsetMap.size() == 1);
+    for (auto nodeID : nodeIDs) {
+        curOffsetSet->insert(nodeID.offset);
+    }
+}
+
+void SparseFrontier::checkSampleSize() {
+    if (!enabled_) {
+        return;
+    }
+    enabled_ = curOffsetSet->size() < SAMPLE_SIZE;
+}
+
+void SparseFrontier::mergeLocalFrontier(const SparseFrontier& localFrontier) {
+    std::unique_lock<std::mutex> lck{mtx};
+    KU_ASSERT(localFrontier.enabled());
+    for (auto& offset : localFrontier.getOffsetSet()) {
+        curOffsetSet->insert(offset);
+    }
+}
+
+void SparseFrontier::mergeSparseFrontier(const SparseFrontier& other) {
+    std::unique_lock<std::mutex> lck{mtx};
+    if (!enabled()) {
+        return;
+    }
+    if (!other.enabled()) {
+        disable();
+        return;
+    }
+    for (auto [tableID, offsetSet] : other.tableIDToOffsetMap) {
+        pinTableID(tableID);
+        curOffsetSet->insert(offsetSet.begin(), offsetSet.end());
+    }
 }
 
 PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap_,
@@ -75,8 +120,11 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
     std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec)
-    : curFrontier{curFrontier}, nextFrontier{nextFrontier}, morselDispatcher{maxThreadsForExec} {
-    hasActiveNodesForNextIter_.store(true);
+    : curDenseFrontier{curFrontier}, nextDenseFrontier{nextFrontier}, morselDispatcher{maxThreadsForExec} {
+    curSparseFrontier = std::make_shared<SparseFrontier>();
+    nextSparseFrontier = std::make_shared<SparseFrontier>();
+    vertexComputeCandidates = std::make_shared<SparseFrontier>();
+    hasActiveNodesForNextIter_.store(false);
     curIter.store(0u);
 }
 
@@ -84,37 +132,64 @@ void FrontierPair::beginNewIteration() {
     std::unique_lock<std::mutex> lck{mtx};
     curIter.fetch_add(1u);
     hasActiveNodesForNextIter_.store(false);
+    vertexComputeCandidates->mergeSparseFrontier(*nextSparseFrontier);
+    std::swap(curSparseFrontier, nextSparseFrontier);
+    nextSparseFrontier->resetState();
     beginNewIterationInternalNoLock();
 }
 
-void SinglePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
-    table_id_t nextTableID) {
-    pathLengths->pinCurFrontierTableID(curTableID);
-    pathLengths->pinNextFrontierTableID(nextTableID);
-    morselDispatcher.init(curTableID, curFrontier->getNumNodes(curTableID));
+void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTableID, common::table_id_t nextTableID) {
+    pinCurrFrontier(curTableID);
+    pinNextFrontier(nextTableID);
+    morselDispatcher.init(curTableID, curDenseFrontier->getNumNodes(curTableID));
+}
+
+bool FrontierPair::continueNextIter(uint16_t maxIter) {
+    return hasActiveNodesForNextIter_.load(std::memory_order_relaxed) && getCurrentIter() < maxIter;
+}
+
+void FrontierPair::addNodeToNextDenseFrontier(common::nodeID_t nodeID) {
+    nextDenseFrontier->setActive(nodeID);
+}
+
+void FrontierPair::addNodesToNextDenseFrontier(const std::vector<common::nodeID_t>& nodeIDs) {
+    nextDenseFrontier->setActive(nodeIDs);
+}
+
+void FrontierPair::mergeLocalFrontier(const SparseFrontier& localFrontier) {
+    std::unique_lock<std::mutex> lck{mtx};
+    if (!nextSparseFrontier->enabled()) {
+        return;
+    }
+    if (!localFrontier.enabled()) {
+        nextSparseFrontier->disable();
+        return;
+    }
+    nextSparseFrontier->mergeLocalFrontier(localFrontier);
+}
+
+bool FrontierPair::isCurFrontierSparse() {
+    return curSparseFrontier->enabled();
 }
 
 void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     pathLengths->pinNextFrontierTableID(source.tableID);
     pathLengths->setActive(source);
-}
-
-void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
-    table_id_t nextTableID) {
-    curFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(curTableID);
-    nextFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(nextTableID);
-    morselDispatcher.init(curTableID, curFrontier->getNumNodes(curTableID));
+    nextSparseFrontier->addNode(source);
+    hasActiveNodesForNextIter_.store(true);
 }
 
 void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
-    nextFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(source.tableID);
-    nextFrontier->ptrCast<PathLengths>()->setActive(source);
+    nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(source.tableID);
+    nextDenseFrontier->ptrCast<PathLengths>()->setActive(source);
+    nextSparseFrontier->addNode(source);
+    hasActiveNodesForNextIter_.store(true);
 }
 
 void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
-    std::swap(curFrontier, nextFrontier);
-    curFrontier->ptrCast<PathLengths>()->incrementCurIter();
-    nextFrontier->ptrCast<PathLengths>()->incrementCurIter();
+    std::swap(curDenseFrontier, nextDenseFrontier);
+    curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
+    nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
@@ -125,7 +200,8 @@ bool SPEdgeCompute::terminate(processor::NodeOffsetMaskMap& maskMap) {
         // Skip checking if it's unlikely to early terminate.
         return false;
     }
-    auto& frontier = frontierPair->getCurrentFrontierUnsafe();
+
+    auto& frontier = frontierPair->getCurDenseFrontier();
     for (auto& [tableID, maxNumNodes] : frontier.getNumNodesMap()) {
         frontier.pinTableID(tableID);
         if (!maskMap.containsTableID(tableID)) {
