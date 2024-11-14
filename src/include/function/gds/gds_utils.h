@@ -20,6 +20,7 @@ struct RJCompState;
 class VertexCompute;
 class EdgeCompute;
 class FrontierPair;
+class SparseFrontier;
 struct VertexComputeTaskSharedState;
 struct VertexComputeTaskInfo;
 
@@ -45,7 +46,8 @@ public:
         std::shared_ptr<VertexComputeTaskSharedState> sharedState,
         const VertexComputeTaskInfo& info, processor::ExecutionContext& context);
     static void runVertexComputeIteration(processor::ExecutionContext* executionContext,
-        graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan = {});
+        graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan=std::vector<std::string>{});
+    static void runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph, VertexCompute& vc);
 };
 
 } // namespace function

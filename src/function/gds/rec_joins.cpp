@@ -211,7 +211,13 @@ void RJAlgorithm::exec(processor::ExecutionContext* executionContext) {
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());
-            GDSUtils::runVertexComputeIteration(executionContext, graph, *vertexCompute);
+            auto& candidates = rjCompState.frontierPair->getVertexComputeCandidates();
+            candidates.mergeSparseFrontier(rjCompState.frontierPair->getNextSparseFrontier());
+            if (candidates.enabled()) {
+                GDSUtils::runVertexComputeSparse(candidates, graph, *vertexCompute);
+            } else {
+                GDSUtils::runVertexComputeIteration(executionContext, graph, *vertexCompute);
+            }
         };
         auto numNodes = graph->getNumNodes(executionContext->clientContext->getTx(), tableID);
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);

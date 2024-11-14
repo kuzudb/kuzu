@@ -40,6 +40,8 @@ public:
 
     void run() override;
 
+    void runSparse();
+
 private:
     FrontierTaskInfo info;
     std::shared_ptr<FrontierTaskSharedState> sharedState;
