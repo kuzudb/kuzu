@@ -225,7 +225,7 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
             }
         }
         return LogicalType::LIST(std::move(childType));
-    } break;
+    }
     case YYJSON_TYPE_OBJ: {
         std::vector<StructField> fields;
         yyjson_val *key = nullptr, *ele = nullptr;
@@ -239,7 +239,7 @@ common::LogicalType jsonSchema(yyjson_val* val, int64_t depth, int64_t breadth) 
             }
         }
         return LogicalType::STRUCT(std::move(fields));
-    } break;
+    }
     case YYJSON_TYPE_NULL:
         return LogicalType::ANY();
     case YYJSON_TYPE_BOOL:
@@ -659,127 +659,6 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path) {
 
 uint32_t jsonArraySize(const JsonWrapper& wrapper) {
     return yyjson_arr_size(yyjson_doc_get_root(wrapper.ptr));
-}
-
-bool jsonContainsScalar(yyjson_val* haystack, yyjson_val* needle) {
-    // Only return true if types and values are equal
-    if (yyjson_get_type(haystack) != yyjson_get_type(needle)) {
-        return false;
-    }
-    return yyjson_equals(haystack, needle);
-}
-
-bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx = 0, needleMax = 0;
-    yyjson_val* needleChild = nullptr;
-    yyjson_arr_foreach(needle, needleIdx, needleMax, needleChild) {
-        bool found = false;
-        uint32_t haystackIdx = 0, haystackMax = 0;
-        yyjson_val* haystackChild = nullptr;
-        yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
-            if (jsonContains(haystackChild, needleChild)) {
-                found = true;
-                break; // Stop searching once a match is found
-            }
-        }
-        if (!found) {
-            return false; // Return false if any needle element is missing
-        }
-    }
-    return true;
-}
-
-bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t haystackIdx = 0, haystackMax = 0;
-    yyjson_val* haystackChild = nullptr;
-    yyjson_arr_foreach(haystack, haystackIdx, haystackMax, haystackChild) {
-        if (jsonContains(haystackChild, needle)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool jsonContainsObjObjAtCurrentLevel(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t needleIdx = 0, needleMax = 0;
-    yyjson_val *key = nullptr, *needleChild = nullptr;
-    yyjson_obj_foreach(needle, needleIdx, needleMax, key, needleChild) {
-        yyjson_val* haystackChild =
-            yyjson_obj_getn(haystack, yyjson_get_str(key), yyjson_get_len(key));
-        if (!haystackChild) {
-            return false; // Key not found at this level
-        }
-        // Enforce type compatibility
-        if (yyjson_get_type(haystackChild) != yyjson_get_type(needleChild)) {
-            return false; // Types don't match
-        }
-        if (!jsonContains(haystackChild, needleChild)) {
-            return false; // Values don't match
-        }
-    }
-    return true; // All key-value pairs match at this level
-}
-
-bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle) {
-    // First, check if the needle matches the haystack at the current level
-    if (jsonContainsObjObjAtCurrentLevel(haystack, needle)) {
-        return true;
-    }
-    // If not, search recursively in all child values
-    return jsonContainsObj(haystack, needle);
-}
-
-bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle) {
-    uint32_t haystackIdx = 0, haystackMax = 0;
-    yyjson_val *key = nullptr, *haystackChild = nullptr;
-    yyjson_obj_foreach(haystack, haystackIdx, haystackMax, key, haystackChild) {
-        if (jsonContains(haystackChild, needle)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool jsonContains(yyjson_val* haystack, yyjson_val* needle) {
-    // Check for direct equality first
-    if (yyjson_equals(haystack, needle)) {
-        return true;
-    }
-    switch (yyjson_get_type(haystack)) {
-    case YYJSON_TYPE_ARR:
-        if (yyjson_get_type(needle) == YYJSON_TYPE_ARR) {
-            return jsonContainsArrArr(haystack, needle);
-        } else {
-            return jsonContainsArr(haystack, needle);
-        }
-    case YYJSON_TYPE_OBJ:
-        if (yyjson_get_type(needle) == YYJSON_TYPE_OBJ) {
-            return jsonContainsObjObj(haystack, needle);
-        } else {
-            return jsonContainsObj(haystack, needle);
-        }
-    case YYJSON_TYPE_NUM:
-    case YYJSON_TYPE_STR:
-    case YYJSON_TYPE_BOOL:
-    case YYJSON_TYPE_NULL:
-        return jsonContainsScalar(haystack, needle);
-    default:
-        return false;
-    }
-}
-
-bool jsonContains(const JsonWrapper& haystack, const JsonWrapper& needle) {
-    return jsonContains(yyjson_doc_get_root(haystack.ptr), yyjson_doc_get_root(needle.ptr));
-}
-
-std::vector<std::string> jsonGetKeys(const JsonWrapper& wrapper) {
-    std::vector<std::string> result;
-    yyjson_val* key = nullptr;
-    auto iter = yyjson_obj_iter_with(yyjson_doc_get_root(wrapper.ptr));
-    while ((key = yyjson_obj_iter_next(&iter))) {
-        result.emplace_back(yyjson_get_str(key));
-    }
-    return result;
 }
 
 } // namespace json_extension

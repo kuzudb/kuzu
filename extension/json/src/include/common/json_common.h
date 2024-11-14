@@ -23,6 +23,12 @@ public:
         yyjson_read_err* err = nullptr) {
         return yyjson_read_opts((char*)data, size, flg, nullptr /* alc */, err);
     }
+
+    static yyjson_doc* readDocument(uint8_t* data, uint64_t size, const yyjson_read_flag flg);
+
+    static yyjson_doc* readDocument(const std::string& str, const yyjson_read_flag flg);
+
+    static void throwParseError(const char* data, size_t length, yyjson_read_err& err);
 };
 
 struct JsonConstant {

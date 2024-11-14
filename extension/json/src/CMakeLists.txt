@@ -6,6 +6,7 @@ add_subdirectory(functions/table_functions)
 add_subdirectory(utils)
 add_subdirectory(reader)
 add_subdirectory(type)
+add_subdirectory(common)
 
 add_library(kuzu_json_extension_src
         OBJECT

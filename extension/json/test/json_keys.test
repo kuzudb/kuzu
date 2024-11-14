@@ -29,3 +29,9 @@
 -STATEMENT RETURN json_keys(NULL)
 ---- 1
 
+-STATEMENT UNWIND ['[]', '{}', '{"a":null,"1":null}', '{"ffffffffffff": [], "json_array_length": [1, 2, 3]}'] AS ARR RETURN json_keys(ARR)
+---- 4
+[]
+[]
+[a,1]
+[ffffffffffff,json_array_length]

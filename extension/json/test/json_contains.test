@@ -90,6 +90,25 @@ False
 ---- 1
 False
 
+-CASE JsonContainsTest
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT UNWIND ['{"a": 1, "b": [1, 2, 3], "c": {"a": "2"}}', '[-1, 0, 1, 2, [-10]]'] AS HAYSTACK UNWIND ['1', '[1, 2]', '"1"', '"a"', '[-10]', '{"a": 1}', '{"a": "2"}'] AS NEEDLE RETURN JSON_CONTAINS(HAYSTACK, NEEDLE)
+---- 14
+True
+True
+False
+False
+False
+True
+True
+True
+True
+False
+False
+True
+False
+False
 -STATEMENT RETURN json_contains(NULL, NULL)
 ---- 1
 
@@ -97,3 +116,11 @@ False
 -STATEMENT RETURN json_contains(NULL, '{"a": 42}')
 ---- 1
 
+
+-STATEMENT RETURN json_contains(to_json({entry: to_json({foo: 31})}), to_json({foo: 31}));
+---- 1
+True
+
+-STATEMENT RETURN json_contains(to_json({entry: to_json({value: 51})}), 51);
+---- 1
+True

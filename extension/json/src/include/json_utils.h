@@ -78,25 +78,5 @@ std::string jsonExtractToString(const JsonWrapper& wrapper, std::string path);
 
 uint32_t jsonArraySize(const JsonWrapper& wrapper);
 
-// Recursive functions for json_contain:
-// Helper function to check scalar values for strict equality
-bool jsonContainsScalar(yyjson_val* haystack, yyjson_val* needle);
-// Function to check if a needle array is contained within a haystack array
-bool jsonContainsArrArr(yyjson_val* haystack, yyjson_val* needle);
-// Function to check if any element in a haystack array matches the needle
-bool jsonContainsArr(yyjson_val* haystack, yyjson_val* needle);
-// Helper function to check if the current level of a haystack object matches the needle object
-bool jsonContainsObjObjAtCurrentLevel(yyjson_val* haystack, yyjson_val* needle);
-// Function to search recursively for a needle object within a haystack object
-bool jsonContainsObjObj(yyjson_val* haystack, yyjson_val* needle);
-// Function to search recursively through all values in a haystack object
-bool jsonContainsObj(yyjson_val* haystack, yyjson_val* needle);
-// Main jsonContains function that delegates to specific functions based on type
-bool jsonContains(yyjson_val* haystack, yyjson_val* needle);
-// Wrapper function for use with JsonWrapper objects
-bool jsonContains(const JsonWrapper& haystack, const JsonWrapper& needle);
-
-std::vector<std::string> jsonGetKeys(const JsonWrapper& wrapper);
-
 } // namespace json_extension
 } // namespace kuzu
