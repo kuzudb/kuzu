@@ -91,7 +91,6 @@ struct RJCompState {
         if (outputs != nullptr) {
             outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
         }
-
     }
 };
 

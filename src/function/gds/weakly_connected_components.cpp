@@ -1,13 +1,13 @@
 #include "binder/binder.h"
 #include "common/types/types.h"
+#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
+#include "function/gds/gds_utils.h"
+#include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "function/gds/gds_frontier.h"
-#include "function/gds/rec_joins.h"
-#include "function/gds/gds_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -22,11 +22,13 @@ class WCCFrontier : public GDSFrontier {
     using vertex_value_t = uint64_t;
 
 public:
-    WCCFrontier(const table_id_map_t<offset_t>& numNodesMap, storage::MemoryManager* mm) : GDSFrontier{numNodesMap} {
+    WCCFrontier(const table_id_map_t<offset_t>& numNodesMap, storage::MemoryManager* mm)
+        : GDSFrontier{numNodesMap} {
         KU_ASSERT(numNodesMap.size() == 1);
         numNodes = numNodesMap.begin()->second;
-        vertexValueBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<vertex_value_t>));
-        vertexValues =reinterpret_cast<std::atomic<vertex_value_t>*>(vertexValueBuffer->getData());
+        vertexValueBuffer =
+            mm->allocateBuffer(false, numNodes * sizeof(std::atomic<vertex_value_t>));
+        vertexValues = reinterpret_cast<std::atomic<vertex_value_t>*>(vertexValueBuffer->getData());
         curActiveNodesBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<bool>));
         curActiveNodes = reinterpret_cast<std::atomic<bool>*>(curActiveNodesBuffer->getData());
         nextActiveNodesBuffer = mm->allocateBuffer(false, numNodes * sizeof(std::atomic<bool>));
@@ -92,14 +94,14 @@ private:
     std::atomic<bool>* curActiveNodes;
 
 public:
-
     std::atomic<bool>* nextActiveNodes;
 };
 
 class WCCFrontierPair : public FrontierPair {
 public:
     WCCFrontierPair(std::shared_ptr<WCCFrontier> frontier, offset_t numNodes, uint64_t numThreads)
-        : FrontierPair{frontier, frontier, numNodes, numThreads}, frontier{frontier}, morselDispatcher{numThreads} {}
+        : FrontierPair{frontier, frontier, numNodes, numThreads}, frontier{frontier},
+          morselDispatcher{numThreads} {}
 
     bool getNextRangeMorsel(FrontierMorsel& morsel) override {
         return morselDispatcher.getNextRangeMorsel(morsel);
@@ -111,13 +113,9 @@ public:
         morselDispatcher.init(curTableID, frontier->getNumNodes());
     }
 
-    bool hasActiveNodesForNextLevel() override {
-        return frontier->hasActiveNodes();
-    }
+    bool hasActiveNodesForNextLevel() override { return frontier->hasActiveNodes(); }
 
-    void beginNewIterationInternalNoLock() override {
-        frontier->swapActiveNodes();
-    }
+    void beginNewIterationInternalNoLock() override { frontier->swapActiveNodes(); }
 
     std::shared_ptr<WCCFrontier> frontier;
 
@@ -130,7 +128,8 @@ struct WCCEdgeCompute : public EdgeCompute {
 
     explicit WCCEdgeCompute(WCCFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::GraphScanState::Chunk &chunk, bool) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::GraphScanState::Chunk& chunk,
+        bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
             if (frontierPair->frontier->update(boundNodeID, nbrNodeID)) {
@@ -174,15 +173,14 @@ private:
 
 class WCCVertexCompute : public VertexCompute {
 public:
-    WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, const WCCFrontier& frontier)
+    WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        const WCCFrontier& frontier)
         : mm{mm}, sharedState{sharedState}, frontier{frontier}, outputWriter{mm} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~WCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
-    bool beginOnTable(table_id_t) override {
-        return true;
-    }
+    bool beginOnTable(table_id_t) override { return true; }
 
     void vertexCompute(common::nodeID_t curNodeID) override {
         outputWriter.materialize(curNodeID, frontier, *localFT);
@@ -242,15 +240,19 @@ public:
         KU_ASSERT(nodeTableIDs.size() == 1);
         auto nodeTableID = nodeTableIDs[0];
         auto numNodes = graph->getNumNodes(clientContext->getTx(), nodeTableID);
-        auto frontier = std::make_shared<WCCFrontier>(graph->getNumNodesMap(clientContext->getTx()), clientContext->getMemoryManager());
-        auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, numNodes, clientContext->getMaxNumThreadForExec());
+        auto frontier = std::make_shared<WCCFrontier>(graph->getNumNodesMap(clientContext->getTx()),
+            clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<WCCFrontierPair>(frontier, numNodes,
+            clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
-        auto computeState = RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
+        auto computeState =
+            RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
         // TODO(Xiyang): fix upper Bound
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD, 100 /* upperBound */);
-        auto vertexCompute = WCCVertexCompute(clientContext->getMemoryManager(), sharedState.get(), *frontier);
-        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(),
-            vertexCompute);
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
+            100 /* upperBound */);
+        auto vertexCompute =
+            WCCVertexCompute(clientContext->getMemoryManager(), sharedState.get(), *frontier);
+        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), vertexCompute);
         sharedState->mergeLocalTables();
     }
 
