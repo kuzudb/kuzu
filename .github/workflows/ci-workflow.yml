@@ -990,6 +990,7 @@ jobs:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
         run: |
+          cd scripts/ && start /b python http-server.py && cd ..
           make extension-test
 
       - name: Clean
