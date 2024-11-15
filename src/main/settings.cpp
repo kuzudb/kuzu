@@ -19,7 +19,7 @@ void SpillToDiskSetting::setContext(ClientContext* context, const common::Value&
             throw common::RuntimeException(
                 "Cannot set enable_spilling_to_disk to true for an in-memory database!");
         }
-        if (dbConfig.readOnly) {
+        if (!context->canExecuteWriteQuery()) {
             throw common::RuntimeException(
                 "Cannot set enable_spilling_to_disk to true for a read only database!");
         }
