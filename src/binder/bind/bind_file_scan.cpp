@@ -99,12 +99,16 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
         LogicalType::copy(columnTypes), clientContext, &func);
     auto bindData = func.bindFunc(clientContext, bindInput.get());
-    expression_vector inputColumns;
-    for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        inputColumns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+    expression_vector columns;
+    auto i = 0u;
+    for (; i < bindData->columnTypes.size() - bindData->numWarningDataColumns; ++i) {
+        columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
     }
-
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(inputColumns));
+    // Warning columns are not available to user so we don't insert them into scope.
+    for (; i < bindData->columnTypes.size(); ++i) {
+        columns.push_back(expressionBinder.createVariableExpression(bindData->columnTypes[i].copy(), bindData->columnNames[i]));
+    }
+    auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(columns));
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 
