@@ -29,27 +29,26 @@
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured', sample_size=1) RETURN * ORDER BY id DESC;
 ---- 3
 2|Gregory
-1|Bob
+1|Bobtgyhj
 0|Alice
 
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured', sample_size=2) RETURN *;
----- 3
+---- 2
 2│Gregory│
-1│Bob│{"height":1.81,"age":71,"previousUsernames":["theBuilder","theMinion"]}│
-0│Alice│{"height":1.68,"age":45,"previousUsernames":["obviouslyAlice","definitelyNotAlice"]}│2024-07-31
+1│Bob│{"height":1.81,"age":71,"pnames":["obviouslyAlice","definitelyNotAlice"]}│2024-07-31
 
 -CASE CopyFromTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
--STATEMENT CREATE NODE TABLE Person (id SERIAL, name STRING, info STRUCT(height DOUBLE, age INT64, registryDate DATE previousUsernames STRING[]), PRIMARY KEY(id));
+-STATEMENT CREATE NODE TABLE Person (id SERIAL, name STRING, registryDate DATE, info STRUCT(height DOUBLE, age INT64, previousUsernames STRING[]), PRIMARY KEY(id));
 ---- ok
 -STATEMENT COPY Person FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people.json';
 ---- ok
 -STATEMENT MATCH (p:Person) return p.* ORDER BY p.id DESC;
 ---- 3
-2│Gregory││
-1│Bob││{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}
-0│Alice│2024-07-31│{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
+0|Gregory||
+1|Bob||{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}
+2|Alice|2024-07-31|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
 -STATEMENT DROP TABLE Person;
 ---- ok
 -STATEMENT CREATE NODE TABLE Person (id SERIAL, name STRING, info STRUCT(height DOUBLE, age INT64, previousUsernames STRING[]), PRIMARY KEY(id));
@@ -64,9 +63,9 @@
 ---- ok
 -STATEMENT LOAD FROM '${DATABASE_PATH}/people-output.json' RETURN *;
 ---- 3
-0│Alice│{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
-1│Bob│{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}
-2│Gregory│{height: 1.730000, age: 22, previousUsernames: [gregory7]}
+0|Alice|{height: 1.680000, age: 45, previousUsernames: [obviouslyAlice,definitelyNotAlice]}
+1|Bob|{height: 1.810000, age: 71, previousUsernames: [theBuilder,theMinion]}
+2|Gregory|{height: 1.730000, age: 22, previousUsernames: [gregory7]}
 
 -CASE JsonTypeDoc
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
