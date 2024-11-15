@@ -106,7 +106,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     }
     // Warning columns are not available to user so we don't insert them into scope.
     for (; i < bindData->columnTypes.size(); ++i) {
-        columns.push_back(expressionBinder.createVariableExpression(bindData->columnTypes[i].copy(), bindData->columnNames[i]));
+        columns.push_back(expressionBinder.createVariableExpression(bindData->columnTypes[i].copy(),
+            bindData->columnNames[i]));
     }
     auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(columns));
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
