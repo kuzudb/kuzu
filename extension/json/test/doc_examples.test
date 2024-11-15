@@ -39,6 +39,7 @@
 0|Alice|{height: 1.680000, age: 45}
 
 -CASE CopyFromTest
+-SKIP_IN_MEM
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
 -STATEMENT CREATE NODE TABLE Person (id SERIAL, name STRING, registryDate DATE, info STRUCT(height DOUBLE, age INT64, previousUsernames STRING[]), PRIMARY KEY(id));
