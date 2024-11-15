@@ -81,7 +81,7 @@ Database::Database(std::string_view databasePath, SystemConfig systemConfig)
 
 std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Database& db) {
     return std::make_unique<BufferManager>(db.databasePath,
-        db.dbConfig.spillToDiskTmpFile.value_or(db.vfs->joinPath(db.databasePath, "copy.tmp")),
+        db.vfs->joinPath(db.databasePath, StorageConstants::TEMP_SPILLING_FILE_NAME),
         db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
 }
 

@@ -35,11 +35,32 @@ TEST_F(SystemConfigTest, testAccessMode) {
     EXPECT_NO_THROW(con2 = std::make_unique<Connection>(db2.get()));
     ASSERT_FALSE(con2->query("DROP TABLE Person")->isSuccess());
     EXPECT_NO_THROW(con2->query("MATCH (:Person) RETURN COUNT(*)"));
+}
 
-    auto result = con2->query("CALL spill_to_disk_tmp_file='/tmp/foo';");
+TEST_F(SystemConfigTest, testSpillToDisk) {
+    systemConfig->readOnly = false;
+    auto db = std::make_unique<Database>(databasePath, *systemConfig);
+    auto con = std::make_unique<Connection>(db.get());
+    if (databasePath == "" || databasePath == ":memory:") {
+        EXPECT_THROW(con->query("CALL spill_to_disk=true;"), Exception);
+    }
+    ASSERT_TRUE(con->query("CALL spill_to_disk=true;"));
+    ASSERT_TRUE(con->query("CALL spill_to_disk=false;"));
+
+    systemConfig->readOnly = true;
+    if (databasePath == "" || databasePath == ":memory:") {
+        EXPECT_THROW(auto db2 = std::make_unique<Database>("", *systemConfig), Exception);
+        EXPECT_THROW(auto db2 = std::make_unique<Database>(":memory:", *systemConfig), Exception);
+        return;
+    }
+    std::unique_ptr<Database> db2;
+    std::unique_ptr<Connection> con2;
+    EXPECT_NO_THROW(db2 = std::make_unique<Database>(databasePath, *systemConfig));
+    EXPECT_NO_THROW(con2 = std::make_unique<Connection>(db2.get()));
+    auto result = con2->query("CALL spill_to_disk=true;");
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->toString(),
-        "Buffer manager exception: Cannot set spill_to_disk_tmp_file for a read only database!");
+        "Runtime exception: Cannot set enable_spilling_to_disk to true for a read only database!");
 }
 
 TEST_F(SystemConfigTest, testMaxDBSize) {

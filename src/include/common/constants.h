@@ -116,6 +116,8 @@ struct StorageConstants {
                                                      << CSR_LEAF_REGION_SIZE_LOG2;
 
     static constexpr uint64_t MAX_NUM_ROWS_IN_TABLE = static_cast<uint64_t>(1) << 62;
+
+    static constexpr char TEMP_SPILLING_FILE_NAME[] = ".tmp";
 };
 
 // Hash Index Configurations

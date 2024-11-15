@@ -496,6 +496,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         }
     } catch (std::exception& e) {
         transactionContext->rollback();
+        getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+            [](auto& spiller) { spiller.clearFile(); });
         progressBar->endProgress(executionContext->queryID);
         return queryResultWithError(e.what());
     }

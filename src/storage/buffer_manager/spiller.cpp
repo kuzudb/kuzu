@@ -100,5 +100,6 @@ void Spiller::clearFile() {
         dataFH->getFileInfo()->truncate(0);
     }
 }
+
 } // namespace storage
 } // namespace kuzu

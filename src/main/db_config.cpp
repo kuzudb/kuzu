@@ -21,7 +21,7 @@ static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(RecursivePatternSemanticSetting),
     GET_CONFIGURATION(RecursivePatternFactorSetting), GET_CONFIGURATION(EnableMVCCSetting),
     GET_CONFIGURATION(CheckpointThresholdSetting), GET_CONFIGURATION(AutoCheckpointSetting),
-    GET_CONFIGURATION(ForceCheckpointClosingDBSetting), GET_CONFIGURATION(SpillToDiskFileSetting),
+    GET_CONFIGURATION(ForceCheckpointClosingDBSetting), GET_CONFIGURATION(SpillToDiskSetting),
     GET_CONFIGURATION(EnableGDSSetting)};
 
 DBConfig::DBConfig(const SystemConfig& systemConfig)
@@ -29,7 +29,8 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       enableCompression{systemConfig.enableCompression}, readOnly{systemConfig.readOnly},
       maxDBSize{systemConfig.maxDBSize}, enableMultiWrites{false},
       autoCheckpoint{systemConfig.autoCheckpoint},
-      checkpointThreshold{systemConfig.checkpointThreshold}, forceCheckpointOnClose{true} {}
+      checkpointThreshold{systemConfig.checkpointThreshold}, forceCheckpointOnClose{true},
+      enableSpillingToDisk{true} {}
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;
