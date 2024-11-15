@@ -17,11 +17,11 @@ void SpillToDiskSetting::setContext(ClientContext* context, const common::Value&
     if (dbConfig.enableSpillingToDisk) {
         if (dbConfig.isDBPathInMemory(context->getDatabasePath())) {
             throw common::RuntimeException(
-                "Cannot set enable_spilling_to_disk to true for an in-memory database!");
+                "Cannot set spill_to_disk to true for an in-memory database!");
         }
         if (!context->canExecuteWriteQuery()) {
             throw common::RuntimeException(
-                "Cannot set enable_spilling_to_disk to true for a read only database!");
+                "Cannot set spill_to_disk to true for a read only database!");
         }
         spillPath = context->getVFSUnsafe()->joinPath(context->getDatabasePath(),
             common::StorageConstants::TEMP_SPILLING_FILE_NAME);

@@ -42,11 +42,15 @@ TEST_F(SystemConfigTest, testSpillToDisk) {
     auto db = std::make_unique<Database>(databasePath, *systemConfig);
     auto con = std::make_unique<Connection>(db.get());
     if (databasePath == "" || databasePath == ":memory:") {
-        EXPECT_THROW(con->query("CALL spill_to_disk=true;"), Exception);
+        auto res = con->query("CALL spill_to_disk=true;");
+        ASSERT_FALSE(res->isSuccess());
+        ASSERT_EQ(res->toString(),
+            "Runtime exception: Cannot set spill_to_disk to true for an in-memory database!");
+    } else {
+        ASSERT_TRUE(con->query("CALL spill_to_disk=true;"));
+        ASSERT_TRUE(con->query("CALL spill_to_disk=false;"));
     }
-    ASSERT_TRUE(con->query("CALL spill_to_disk=true;"));
-    ASSERT_TRUE(con->query("CALL spill_to_disk=false;"));
-
+    db.reset();
     systemConfig->readOnly = true;
     if (databasePath == "" || databasePath == ":memory:") {
         EXPECT_THROW(auto db2 = std::make_unique<Database>("", *systemConfig), Exception);
@@ -60,7 +64,7 @@ TEST_F(SystemConfigTest, testSpillToDisk) {
     auto result = con2->query("CALL spill_to_disk=true;");
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->toString(),
-        "Runtime exception: Cannot set enable_spilling_to_disk to true for a read only database!");
+        "Runtime exception: Cannot set spill_to_disk to true for a read only database!");
 }
 
 TEST_F(SystemConfigTest, testMaxDBSize) {

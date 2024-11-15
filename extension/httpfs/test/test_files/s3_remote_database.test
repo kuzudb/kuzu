@@ -66,3 +66,6 @@ Attached database successfully.
 5|3
 7|8
 7|9
+-STATEMENT CALL spill_to_disk=true
+---- error(regex)
+^Runtime exception: Cannot set spill_to_disk to true .*$
