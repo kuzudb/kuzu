@@ -129,7 +129,7 @@ std::unique_ptr<FileInfo> LocalFileSystem::openFile(const std::string& path, int
         throw IOException(stringFormat("Cannot open file {}: {}", fullPath, posixErrMessage()));
     }
     if (lock_type != FileLockType::NO_LOCK) {
-        struct flock fl {};
+        struct flock fl{};
         memset(&fl, 0, sizeof fl);
         fl.l_type = lock_type == FileLockType::READ_LOCK ? F_RDLCK : F_WRLCK;
         fl.l_whence = SEEK_SET;
@@ -251,16 +251,11 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path))
         return;
     std::error_code errCode;
-    bool success = false;
-    if (std::filesystem::is_directory(path)) {
-        success = std::filesystem::remove_all(path, errCode);
-    } else {
-        success = std::filesystem::remove(path, errCode);
-    }
+    bool success = std::filesystem::remove(path, errCode);
     if (!success) {
         // LCOV_EXCL_START
-        throw IOException(stringFormat("Error removing directory or file {}.  Error Message: {}",
-            path, errCode.message()));
+        throw IOException(
+            stringFormat("Error removing file {}. Error Message: {}", path, errCode.message()));
         // LCOV_EXCL_STOP
     }
 }
@@ -440,7 +435,7 @@ uint64_t LocalFileSystem::getFileSize(const FileInfo& fileInfo) const {
     }
     return size.QuadPart;
 #else
-    struct stat s {};
+    struct stat s{};
     if (fstat(localFileInfo->fd, &s) == -1) {
         throw IOException(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
             fileInfo.path, errno, posixErrMessage()));
