@@ -91,6 +91,10 @@ public:
 
     ExtraScanNodeTableInfo* getExtraInfo() const { return extraInfo.get(); }
 
+    std::unique_ptr<ExtraScanNodeTableInfo> getExtraInfoCopy() const {
+        return extraInfo->copy();
+    }
+
     common::node_group_idx_t getStartNodeGroupId() const { return startNodeGroupId; }
 
     common::node_group_idx_t getEndNodeGroupId() const { return endNodeGroupId; }

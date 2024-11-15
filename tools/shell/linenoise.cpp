@@ -197,7 +197,7 @@
 using namespace kuzu::utf8proc;
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 1000
-#define LINENOISE_MAX_LINE 16384
+#define LINENOISE_MAX_LINE 26384
 #define LINENOISE_HISTORY_NEXT 0
 #define LINENOISE_HISTORY_PREV 1
 static const char* unsupported_term[] = {"dumb", "cons25", "emacs", NULL};

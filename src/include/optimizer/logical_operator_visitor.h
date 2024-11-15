@@ -170,6 +170,12 @@ protected:
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
+
+    virtual void visitSemiMasker(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitSemiMaskerReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
 };
 
 } // namespace optimizer

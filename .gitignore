@@ -64,3 +64,4 @@ scripts/generate-cpp-docs/c/docs
 # Generated datasets
 dataset/binary-demo
 dataset/databases/tinysnb
+dataset/complex-vector-index

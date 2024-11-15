@@ -85,6 +85,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::GDS_CALL: {
         visitGDSCall(op);
     } break;
+    case LogicalOperatorType::SEMI_MASKER: {
+        visitSemiMasker(op);
+    } break;
     default:
         return;
     }
@@ -170,6 +173,9 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::GDS_CALL: {
         return visitGDSCallReplace(op);
+    }
+    case LogicalOperatorType::SEMI_MASKER: {
+        return visitSemiMaskerReplace(op);
     }
     default:
         return op;

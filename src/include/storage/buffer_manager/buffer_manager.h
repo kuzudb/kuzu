@@ -215,6 +215,9 @@ private:
     bool reserve(uint64_t sizeToReserve);
     bool claimAFrame(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy);
+
+    // Experiment batch
+
     // Return number of bytes freed.
     uint64_t tryEvictPage(std::atomic<EvictionCandidate>& candidate);
 

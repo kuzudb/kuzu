@@ -22,7 +22,7 @@ namespace kuzu {
         void BulkVectorIndexing::initLocalStateInternal(ResultSet *resultSet, ExecutionContext *context) {
             localState->offsetVector = resultSet->getValueVector(localState->offsetPos).get();
             localState->embeddingVector = resultSet->getValueVector(localState->embeddingPos).get();
-            localState->dc = std::make_unique<L2DistanceComputer>(sharedState->tempStorage->vectors,
+            localState->dc = std::make_unique<CosineDistanceComputer>(sharedState->tempStorage->vectors,
                                                                       sharedState->header->getDim(),
                                                                       sharedState->tempStorage->numVectors);
             localState->visited = std::make_unique<VisitedTable>(sharedState->tempStorage->numVectors);
@@ -77,6 +77,7 @@ namespace kuzu {
                 // TODO: FIX this!!!
 //                quantizer->batch_train(numVectors, vectors);
             }
+            printf("Finished indexing %d!!\n", sharedState->partitionId);
             // Wait for all threads to finish indexing
 //            sharedState->compressionLatch.arrive_and_wait();
 //            printf("Running quantization!!\n");

@@ -359,6 +359,7 @@ void BufferManager::cachePageIntoFrame(BMFileHandle& fileHandle, page_idx_t page
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->clearDirty();
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
+        // TODO(gaurav): Maybe batch pin pages to reduce the number of blocking sys calls.
         fileHandle.getFileInfo()->readFromFile((void*)getFrame(fileHandle, pageIdx),
             fileHandle.getPageSize(), pageIdx * fileHandle.getPageSize());
     }

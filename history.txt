@@ -1,6 +1,0 @@
-EXPLAIN UPDATE VECTOR INDEX ON dataset.embedding;
-exit;
-CREATE NODE TABLE dataset (id INT64, embedding FLOAT[960], PRIMARY KEY (id));
-COPY dataset FROM "/Users/gauravsehgal/work/orangedb/data/gist_10k/embeddings.csv" (deLim=',');
-CREATE VECTOR INDEX ON dataset.embedding (samplingProbability=0.05, alpha=1.0, numVectorsPerPartition=6000);
-EXPLAIN UPDATE VECTOR INDEX ON dataset.embedding;
