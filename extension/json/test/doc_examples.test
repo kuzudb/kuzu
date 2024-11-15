@@ -29,13 +29,14 @@
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured', sample_size=1) RETURN * ORDER BY id DESC;
 ---- 3
 2|Gregory
-1|Bobtgyhj
+1|Bob
 0|Alice
 
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/doc-examples-json/people-unstructured.json' (format='unstructured', sample_size=2) RETURN *;
----- 2
+---- 3
 2│Gregory│
-1│Bob│{"height":1.81,"age":71,"pnames":["obviouslyAlice","definitelyNotAlice"]}│2024-07-31
+1│Bob│{"height":1.81,"age":71,"previousUsernames":["theBuilder","theMinion"]}│
+0│Alice│{"height":1.68,"age":45,"previousUsernames":["obviouslyAlice","definitelyNotAlice"]}│2024-07-31
 
 -CASE CopyFromTest
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
