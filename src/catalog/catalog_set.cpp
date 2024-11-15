@@ -23,7 +23,7 @@ static bool checkWWConflict(const Transaction* transaction, const CatalogEntry* 
 }
 
 bool CatalogSet::containsEntry(const Transaction* transaction, const std::string& name) {
-    std::lock_guard lck{mtx};
+    std::shared_lock lck{mtx};
     return containsEntryNoLock(transaction, name);
 }
 
@@ -39,7 +39,7 @@ bool CatalogSet::containsEntryNoLock(const Transaction* transaction,
 }
 
 CatalogEntry* CatalogSet::getEntry(const Transaction* transaction, const std::string& name) {
-    std::lock_guard lck{mtx};
+    std::shared_lock lck{mtx};
     return getEntryNoLock(transaction, name);
 }
 
@@ -66,7 +66,7 @@ oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogE
     CatalogEntry* entryPtr = nullptr;
     oid_t oid = INVALID_OID;
     {
-        std::lock_guard lck{mtx};
+        std::unique_lock lck{mtx};
         oid = nextOID++;
         entry->setOID(oid);
         entryPtr = createEntryNoLock(transaction, std::move(entry));
@@ -145,7 +145,7 @@ CatalogEntry* CatalogSet::getCommittedEntryNoLock(CatalogEntry* entry) {
 void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oid_t oid) {
     CatalogEntry* entryPtr = nullptr;
     {
-        std::lock_guard lck{mtx};
+        std::unique_lock lck{mtx};
         entryPtr = dropEntryNoLock(transaction, name, oid);
     }
     KU_ASSERT(entryPtr);
@@ -168,7 +168,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
     CatalogEntry* createdEntry = nullptr;
     CatalogEntry* entry = nullptr;
     {
-        std::lock_guard lck{mtx};
+        std::unique_lock lck{mtx};
         // LCOV_EXCL_START
         validateExistNoLock(transaction, alterInfo.tableName);
         // LCOV_EXCL_STOP
@@ -198,7 +198,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
 
 CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {
     CatalogEntrySet result;
-    std::lock_guard lck{mtx};
+    std::shared_lock lck{mtx};
     for (auto& [name, entry] : entries) {
         auto currentEntry = traverseVersionChainsForTransactionNoLock(transaction, entry.get());
         if (currentEntry->isDeleted()) {
@@ -211,7 +211,7 @@ CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {
 
 void CatalogSet::iterateEntriesOfType(const Transaction* transaction, CatalogEntryType type,
     const std::function<void(CatalogEntry*)>& func) {
-    std::lock_guard lck{mtx};
+    std::shared_lock lck{mtx};
     for (auto& [_, entry] : entries) {
         if (entry->getType() != CatalogEntryType::DUMMY_ENTRY && entry->getType() != type) {
             continue;
@@ -226,7 +226,7 @@ void CatalogSet::iterateEntriesOfType(const Transaction* transaction, CatalogEnt
 }
 
 CatalogEntry* CatalogSet::getEntryOfOID(const Transaction* transaction, oid_t oid) {
-    std::lock_guard lck{mtx};
+    std::shared_lock lck{mtx};
     for (auto& [_, entry] : entries) {
         if (entry->getOID() != oid) {
             continue;

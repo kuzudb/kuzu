@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <mutex>
+#include <shared_mutex>
 
 #include "catalog_entry/catalog_entry.h"
 #include "common/case_insensitive_map.h"
@@ -68,7 +68,7 @@ private:
     static CatalogEntry* getCommittedEntryNoLock(CatalogEntry* entry);
 
 private:
-    std::mutex mtx;
+    std::shared_mutex mtx;
     common::oid_t nextOID = 0;
     common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>> entries;
 };
