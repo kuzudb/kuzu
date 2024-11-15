@@ -40,6 +40,7 @@ struct DBConfig;
 class Database;
 class DatabaseManager;
 class AttachedKuzuDatabase;
+struct SpillToDiskSetting;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -58,6 +59,7 @@ class KUZU_API ClientContext {
     friend class binder::Binder;
     friend class binder::ExpressionBinder;
     friend class processor::ImportDB;
+    friend struct main::SpillToDiskSetting;
 
 public:
     explicit ClientContext(Database* database);

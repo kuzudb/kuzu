@@ -9,21 +9,8 @@
 ---- ok
 -STATEMENT COPY account FROM "${KUZU_ROOT_DIRECTORY}/dataset/snap/twitter/csv/twitter-nodes.csv";
 ---- ok
--STATEMENT CALL spill_to_disk_tmp_file="";
+-STATEMENT CALL spill_to_disk=false;
 ---- ok
 -STATEMENT COPY follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/snap/twitter/csv/twitter-edges.csv" (DELIM=' ');
 ---- error
 Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
-
--CASE CustomSpillToDiskPath
--SKIP_IN_MEM
--STATEMENT CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE REL TABLE follows(FROM account TO account);
----- ok
--STATEMENT COPY account FROM "${KUZU_ROOT_DIRECTORY}/dataset/snap/twitter/csv/twitter-nodes.csv";
----- ok
--STATEMENT CALL spill_to_disk_tmp_file="${DATABASE_PATH}/foo.tmp";
----- ok
--STATEMENT COPY follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/snap/twitter/csv/twitter-edges.csv" (DELIM=' ');
----- ok

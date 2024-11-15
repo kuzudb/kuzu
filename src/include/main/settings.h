@@ -220,12 +220,12 @@ struct ForceCheckpointClosingDBSetting {
     }
 };
 
-struct SpillToDiskFileSetting {
-    static constexpr auto name = "spill_to_disk_tmp_file";
-    static constexpr auto inputType = common::LogicalTypeID::STRING;
+struct SpillToDiskSetting {
+    static constexpr auto name = "spill_to_disk";
+    static constexpr auto inputType = common::LogicalTypeID::BOOL;
     static void setContext(ClientContext* context, const common::Value& parameter);
     static common::Value getSetting(const ClientContext* context) {
-        return common::Value::createValue(context->getDBConfig()->spillToDiskTmpFile);
+        return common::Value::createValue(context->getDBConfig()->enableSpillingToDisk);
     }
 };
 

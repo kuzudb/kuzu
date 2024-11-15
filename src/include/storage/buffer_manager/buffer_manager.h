@@ -207,7 +207,7 @@ public:
         }
     }
 
-    void resetSpiller(const main::DBConfig& dbConfig);
+    void resetSpiller(std::string spillPath);
 
 protected:
     // Reclaims used memory until the given size to reserve is available
