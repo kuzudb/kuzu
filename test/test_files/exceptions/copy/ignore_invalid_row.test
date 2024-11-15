@@ -3,6 +3,7 @@
 --
 
 -CASE ParallelIgnoreErrorOnBlockEdge
+
 -STATEMENT create node table animal(id INT64, val DOUBLE, name STRING, nums DOUBLE[3], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY animal FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/error-on-block-edge.csv" (ignore_errors=true, header=false);
@@ -12,6 +13,10 @@
 -STATEMENT CALL show_warnings() RETURN COUNT(*)
 ---- 1
 59
+-LOG LoadWithIgnore
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/error-on-block-edge.csv" (ignore_errors=true) RETURN * ORDER BY column0 LIMIT 1;
+---- 1
+0|0.0000000000000000|0|[0.0,0.0,0.0]
 
 -CASE ParallelSkipInvalidLoadFrom
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie.csv" (IGNORE_ERRORS=true, HEADER=true, ESCAPE="~", AUTO_DETECT=false) RETURN COUNT(*)
