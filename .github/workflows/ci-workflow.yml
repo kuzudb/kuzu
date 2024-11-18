@@ -796,6 +796,7 @@ jobs:
       - name: Java test
         run: |
           ulimit -n 10240
+          export JAVA_HOME=`/usr/libexec/java_home`
           make javatest
 
       - name: Rust test
