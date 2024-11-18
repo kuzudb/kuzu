@@ -208,6 +208,8 @@ private:
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         const TableInsertState& state) const;
 
+    RelTableData* getRelTableData(common::RelDataDirection direction) const;
+
 private:
     common::table_id_t fromNodeTableID;
     common::table_id_t toNodeTableID;

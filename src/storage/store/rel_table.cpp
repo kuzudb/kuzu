@@ -153,9 +153,7 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
         if (relScanState.nodeGroupIdx != nodeGroupIdx) {
             // We need to re-initialize the node group scan state.
-            nodeGroup = relScanState.direction == RelDataDirection::FWD ?
-                            fwdRelTableData->getNodeGroup(nodeGroupIdx) :
-                            bwdRelTableData->getNodeGroup(nodeGroupIdx);
+            nodeGroup = getRelTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
         } else {
             nodeGroup = relScanState.nodeGroup;
         }
@@ -319,9 +317,8 @@ bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
         hasRels = hasRels ||
                   localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
     }
-    hasRels = hasRels || ((direction == RelDataDirection::FWD) ?
-                                 fwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector) :
-                                 bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector));
+    hasRels =
+        hasRels || (getRelTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector));
     return hasRels;
 }
 
@@ -378,18 +375,18 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     hasChanges = true;
 }
 
+RelTableData* RelTable::getRelTableData(common::RelDataDirection direction) const {
+    return direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
+}
+
 NodeGroup* RelTable::getOrCreateNodeGroup(transaction::Transaction* transaction,
     node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
-    return direction == RelDataDirection::FWD ?
-               fwdRelTableData->getOrCreateNodeGroup(transaction, nodeGroupIdx) :
-               bwdRelTableData->getOrCreateNodeGroup(transaction, nodeGroupIdx);
+    return getRelTableData(direction)->getOrCreateNodeGroup(transaction, nodeGroupIdx);
 }
 
 void RelTable::pushInsertInfo(Transaction* transaction, RelDataDirection direction,
     const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) {
-    auto& relTableData =
-        (direction == common::RelDataDirection::FWD) ? fwdRelTableData : bwdRelTableData;
-    relTableData->pushInsertInfo(transaction, nodeGroup, numRows_, source);
+    getRelTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
 }
 
 void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
