@@ -96,7 +96,8 @@ using options_t = std::unordered_map<std::string, std::unique_ptr<parser::Parsed
 
 struct KUZU_API ParsedExpressionUtils {
     static std::unique_ptr<ParsedExpression> getSerialDefaultExpr(const std::string& sequenceName);
-    static void validateExpressionType(const kuzu::parser::ParsedExpression& expr, common::ExpressionType type);
+    static void validateExpressionType(const kuzu::parser::ParsedExpression& expr,
+        common::ExpressionType type);
     static void validateDataType(const ParsedExpression& expr, const common::LogicalType& type);
     static std::string getStringLiteralValue(const kuzu::parser::ParsedExpression& expr);
 };
