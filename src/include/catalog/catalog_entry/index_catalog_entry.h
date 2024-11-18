@@ -40,7 +40,7 @@ public:
     }
 
 protected:
-    common::table_id_t tableID;
+    common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
 };
 

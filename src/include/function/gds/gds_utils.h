@@ -29,7 +29,7 @@ struct KUZU_API GDSComputeState {
 
     GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute);
-    ~GDSComputeState() = default;
+    ~GDSComputeState();
 };
 
 class KUZU_API GDSUtils {

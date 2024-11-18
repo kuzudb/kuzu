@@ -17,6 +17,8 @@ GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontie
     std::unique_ptr<function::EdgeCompute> edgeCompute)
     : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)} {}
 
+GDSComputeState::~GDSComputeState() = default;
+
 void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
     ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
     processor::ExecutionContext* context, std::optional<uint64_t> numThreads,

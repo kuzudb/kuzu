@@ -2,7 +2,7 @@
 
 --
 
--CASE stem-function
+-CASE stem_function
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT RETURN STEM('knows', 'english')

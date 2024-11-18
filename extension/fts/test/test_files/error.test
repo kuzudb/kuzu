@@ -2,7 +2,7 @@
 
 --
 
--CASE FTSInvalidInput
+-CASE fts_invalid_test
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 
