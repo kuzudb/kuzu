@@ -95,7 +95,7 @@ public:
         common::row_idx_t numRows, storage::CSRNodeGroupScanSource source);
 
 private:
-    void appendToUndoBuffer(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
+    void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
         common::row_idx_t numRows, CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
 
     bool enableCompression;

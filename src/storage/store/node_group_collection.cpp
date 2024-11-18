@@ -53,8 +53,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         const auto numToAppendInNodeGroup =
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
-        appendToUndoBuffer(transaction, lastNodeGroup, numToAppendInNodeGroup);
-        numTotalRows += numToAppendInNodeGroup;
+        pushInsertInfo(transaction, lastNodeGroup, numToAppendInNodeGroup);
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
     }
@@ -94,8 +93,7 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
                 std::min(numRowsToAppendInChunkedGroup - numRowsAppendedInChunkedGroup,
                     lastNodeGroup->getNumRowsLeftToAppend());
             lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
-            appendToUndoBuffer(transaction, lastNodeGroup, numToAppendInBatch);
-            numTotalRows += numToAppendInBatch;
+            pushInsertInfo(transaction, lastNodeGroup, numToAppendInBatch);
             lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
                 numToAppendInBatch);
             numRowsAppendedInChunkedGroup += numToAppendInBatch;
@@ -131,8 +129,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         // If the node group is empty now and the chunked group is full, we can directly flush it.
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
-        appendToUndoBuffer(transaction, lastNodeGroup, numToAppend);
-        numTotalRows += numToAppend;
+        pushInsertInfo(transaction, lastNodeGroup, numToAppend);
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
@@ -166,7 +163,7 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* t
                                              enableCompression, LogicalType::copy(types)));
         // push an insert of size 0 so that we can rollback the creation of this node group if
         // needed
-        appendToUndoBuffer(transaction, nodeGroups.getLastGroup(lock), 0,
+        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0,
             CSRNodeGroupScanSource::COMMITTED_PERSISTENT);
     }
     KU_ASSERT(groupIdx < nodeGroups.getNumGroups(lock));
@@ -253,7 +250,7 @@ void NodeGroupCollection::commitDelete(row_idx_t startRow, row_idx_t numRows_,
     nodeGroups.getGroup(lock, nodeGroupIdx)->commitDelete(startRow, numRows_, commitTS, source);
 }
 
-void NodeGroupCollection::appendToUndoBuffer(const transaction::Transaction* transaction,
+void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     NodeGroup* nodeGroup, common::row_idx_t numRows, CSRNodeGroupScanSource source) {
     pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
         source);
@@ -262,11 +259,12 @@ void NodeGroupCollection::appendToUndoBuffer(const transaction::Transaction* tra
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
     storage::CSRNodeGroupScanSource source) {
-    if (transaction->shouldAppendToUndoBuffer()) {
+    // we only append to the undo buffer if the node group collection is persistent
+    if (dataFH && transaction->shouldAppendToUndoBuffer()) {
         transaction->pushInsertInfo(this, nodeGroupIdx, startRow, numRows, source);
-        if (source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY) {
-            numTotalRows += numRows;
-        }
+    }
+    if (source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+        numTotalRows += numRows;
     }
 }
 
