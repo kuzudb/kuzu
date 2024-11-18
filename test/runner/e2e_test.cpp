@@ -103,6 +103,11 @@ private:
 };
 
 void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = false) {
+    // Check for invalid characters in the file name (see ISSUE 4510)
+    auto filename = std::filesystem::path(path).filename().string();
+    if (filename.find('-') != std::string::npos) {
+        throw TestException("Invalid test file name containing '-': " + filename);
+    }
     auto testParser = std::make_unique<TestParser>(path);
     auto testGroup = testParser->parseTestFile();
     if (testGroup->isValid() && testGroup->hasStatements()) {
