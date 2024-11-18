@@ -47,7 +47,7 @@ void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context,
     RJCompState& rjCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
-    auto frontierPair = rjCompState.frontierPair.get();
+    auto& frontierPair = rjCompState.frontierPair;
     processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
     if (rjCompState.outputWriter != nullptr) {
         outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
@@ -65,7 +65,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
                 scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
-                    rjCompState, context);
+                    rjCompState, context);          
             } break;
             case ExtendDirection::BWD: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,

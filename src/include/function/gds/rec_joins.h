@@ -64,7 +64,7 @@ struct RJCompState : public GDSComputeState {
     std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<RJOutputWriter> outputWriter;
 
-    RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
+    RJCompState(FrontierPair* frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter)
         : GDSComputeState{std::move(frontierPair), std::move(edgeCompute)},
