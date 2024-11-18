@@ -713,10 +713,10 @@ jobs:
       - name: Run clang-tidy analyzer
         run: make tidy-analyzer
 
-  macos-build-test-x86_64:
+  macos-build-test:
     name: apple clang build & test (x86_64)
     needs: [sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets]
-    runs-on: self-hosted-mac-x64
+    runs-on: self-hosted-mac-arm
     env:
       NUM_THREADS: 32
       CMAKE_BUILD_PARALLEL_LEVEL: 32
@@ -882,8 +882,8 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    needs: [macos-build-test-x86_64]
-    runs-on: self-hosted-mac-x64
+    needs: [macos-build-test]
+    runs-on: self-hosted-mac-arm
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
