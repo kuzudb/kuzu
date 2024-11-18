@@ -734,6 +734,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determine NUM_THREADS
+        run: |
+          export NUM_THREADS=$(($(sysctl -n hw.logicalcpu) * 2 / 3))
+          if [ $NUM_THREADS -lt 12 ]; then
+            export NUM_THREADS=12
+          fi
+          echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
+          echo "NUM_THREADS=$NUM_THREADS"
+
       - name: Download binary-demo
         uses: actions/download-artifact@v4
         with:
