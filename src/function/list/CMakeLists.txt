@@ -24,7 +24,8 @@ add_library(kuzu_list_function
         list_none.cpp
         list_single.cpp
         size_function.cpp
-        quantifier_functions.cpp)
+        quantifier_functions.cpp
+        list_has_all.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_list_function>
