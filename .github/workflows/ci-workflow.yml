@@ -812,7 +812,6 @@ jobs:
           source /Users/runner/.cargo/env
           cargo build --locked --features arrow
 
-
       # TODO(bmwinger): rust pre-built library test for macos
       # When last tried it had issues finding libkuzu.dylib when running the tests
       # Using LD_LIBRARY_PATH (and similar variables) did not work for some reason
