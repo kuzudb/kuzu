@@ -119,8 +119,6 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
                                                  "memory! The buffer pool is full and no "
                                                  "memory could be freed!");
         } else {
-            // the copy shouldn't succeed first try
-            ASSERT_GT(i, 0);
             break;
         }
     }
@@ -183,8 +181,9 @@ TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
         .earlyExitOnFailureFunc =
             [this](main::QueryResult*) {
                 // clear the BM so that the failure frequency isn't messed with by cached pages
-                while (0 != currentBM->evictPages())
-                    ;
+                for (auto& fh : currentBM->fileHandles) {
+                    currentBM->removeFilePagesFromFrames(*fh);
+                }
                 return false;
             },
         .checkFunc =

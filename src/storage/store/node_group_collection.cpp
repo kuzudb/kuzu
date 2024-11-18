@@ -54,9 +54,9 @@ void NodeGroupCollection::append(const Transaction* transaction,
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
         appendToUndoBufferFunc(transaction, lastNodeGroup, numToAppendInNodeGroup);
+        numTotalRows += numToAppendInNodeGroup;
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
-        numTotalRows += numToAppendInNodeGroup;
     }
     stats.incrementCardinality(numRowsAppended);
 }
@@ -95,10 +95,10 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
                     lastNodeGroup->getNumRowsLeftToAppend());
             lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
             appendToUndoBufferFunc(transaction, lastNodeGroup, numToAppendInBatch);
+            numTotalRows += numToAppendInBatch;
             lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
                 numToAppendInBatch);
             numRowsAppendedInChunkedGroup += numToAppendInBatch;
-            numTotalRows += numToAppendInBatch;
         }
         numChunkedGroupsAppended++;
     }
@@ -132,6 +132,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
         appendToUndoBufferFunc(transaction, lastNodeGroup, chunkedGroup.getNumRows());
+        numTotalRows += numToAppend;
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
@@ -144,7 +145,6 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
         lastNodeGroup->merge(transaction, std::move(flushedGroup));
     }
-    numTotalRows += numToAppend;
     stats.incrementCardinality(numToAppend);
     return {startOffset, numToAppend};
 }
@@ -207,22 +207,21 @@ static idx_t getNumEmptyTrailingGroups(const GroupCollection<NodeGroup>& nodeGro
 void NodeGroupCollection::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
     common::node_group_idx_t nodeGroupIdx, CSRNodeGroupScanSource source) {
     const auto lock = nodeGroups.lock();
-    auto numRowsToSubtract = numRows_;
     // skip the rollback if all newly created node groups have already been deleted
     if (!nodeGroups.isEmpty(lock) || nodeGroupIdx > 0) {
         KU_ASSERT(nodeGroupIdx < nodeGroups.getNumGroups(lock));
         auto* nodeGroup = nodeGroups.getGroup(lock, nodeGroupIdx);
+        if (nodeGroup) {
+            KU_ASSERT(startRow <= nodeGroup->getNumRows());
+            nodeGroup->rollbackInsert(startRow, numRows_, source);
 
-        KU_ASSERT(startRow <= nodeGroup->getNumRows());
-        numRowsToSubtract = std::min(numRowsToSubtract, nodeGroup->getNumRows() - startRow);
-        nodeGroup->rollbackInsert(startRow, numRows_, source);
-
-        // remove any empty trailing node groups after the rollback
-        const auto numGroupsToRemove = getNumEmptyTrailingGroups(nodeGroups, lock);
-        nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
+            // remove any empty trailing node groups after the rollback
+            const auto numGroupsToRemove = getNumEmptyTrailingGroups(nodeGroups, lock);
+            nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
+        }
     }
-    KU_ASSERT(numRowsToSubtract <= numTotalRows);
-    numTotalRows -= numRowsToSubtract;
+    KU_ASSERT(numRows_ <= numTotalRows);
+    numTotalRows -= numRows_;
 }
 
 void NodeGroupCollection::rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
