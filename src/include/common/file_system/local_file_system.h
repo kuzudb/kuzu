@@ -29,7 +29,7 @@ class KUZU_API LocalFileSystem final : public FileSystem {
 public:
     LocalFileSystem() : homeDir("") {}
 
-    LocalFileSystem(std::string homeDir) : homeDir(std::move(homeDir)) {}
+    explicit LocalFileSystem(std::string homeDir) : homeDir(std::move(homeDir)) {}
 
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,

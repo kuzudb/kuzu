@@ -20,7 +20,7 @@ class KUZU_API VirtualFileSystem final : public FileSystem {
 
 public:
     VirtualFileSystem();
-    VirtualFileSystem(std::string homeDir);
+    explicit VirtualFileSystem(std::string homeDir);
 
     ~VirtualFileSystem() override;
 
