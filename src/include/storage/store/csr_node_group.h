@@ -127,34 +127,22 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     common::row_idx_t nextCachedRowToScan;
 
     // States at the csr list level. Cached during scan over a single csr list.
-    common::row_idx_t nextRowToScan;
     NodeCSRIndex inMemCSRList;
 
     CSRNodeGroupScanSource source;
 
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
         : NodeGroupScanState{numChunks}, header{nullptr}, numTotalRows{0}, numCachedRows{0},
-          nextCachedRowToScan{0}, nextRowToScan{0},
-          source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
+          nextCachedRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
     CSRNodeGroupScanState(MemoryManager& mm, common::idx_t numChunks)
         : NodeGroupScanState{numChunks}, numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
-          nextRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
+          source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
         header = std::make_unique<ChunkedCSRHeader>(mm, false,
             common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
         cachedScannedVectorsSelBitset.set();
     }
 
     bool tryScanCachedTuples(RelTableScanState& tableScanState);
-
-    void resetState() override {
-        NodeGroupScanState::resetState();
-        numTotalRows = 0;
-        numCachedRows = 0;
-        nextCachedRowToScan = 0;
-        nextRowToScan = 0;
-        inMemCSRList = NodeCSRIndex{};
-        source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
-    }
 };
 
 struct CSRNodeGroupCheckpointState final : NodeGroupCheckpointState {

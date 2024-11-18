@@ -26,10 +26,10 @@ struct RelTableIDInfo {
     common::table_id_t toNodeTableID;
 };
 
-class GraphScanState {
+class NbrScanState {
 public:
     struct Chunk {
-        friend class GraphScanState;
+        friend class NbrScanState;
 
         // Any neighbour for which the given function returns false
         // will be omitted from future iterations
@@ -69,7 +69,7 @@ public:
         const common::ValueVector* propertyVector;
     };
 
-    virtual ~GraphScanState() = default;
+    virtual ~NbrScanState() = default;
     virtual Chunk getChunk() = 0;
 
     // Returns true if there are more values after the current batch
@@ -83,6 +83,44 @@ protected:
     }
 };
 
+class VertexScanState {
+public:
+    struct Chunk {
+        friend class VertexScanState;
+
+        size_t size() const { return nodeIDs.size(); }
+        std::span<const common::nodeID_t> getNodeIDs() const { return nodeIDs; }
+        template<typename T>
+        std::span<const T> getProperties(size_t propertyIndex) const {
+            return std::span(reinterpret_cast<const T*>(propertyVectors[propertyIndex]->getData()),
+                nodeIDs.size());
+        }
+
+    private:
+        Chunk(std::span<const common::nodeID_t> nodeIDs,
+            std::span<const std::shared_ptr<common::ValueVector>> propertyVectors)
+            : nodeIDs{nodeIDs}, propertyVectors{propertyVectors} {
+            KU_ASSERT(nodeIDs.size() <= common::DEFAULT_VECTOR_CAPACITY);
+        }
+
+    private:
+        std::span<const common::nodeID_t> nodeIDs;
+        std::span<const std::shared_ptr<common::ValueVector>> propertyVectors;
+    };
+    virtual Chunk getChunk() = 0;
+
+    // Returns true if there are more values after the current batch
+    virtual bool next() = 0;
+
+    virtual ~VertexScanState() = default;
+
+protected:
+    Chunk createChunk(std::span<const common::nodeID_t> nodeIDs,
+        std::span<const std::shared_ptr<common::ValueVector>> propertyVectors) const {
+        return Chunk{nodeIDs, propertyVectors};
+    }
+};
+
 /**
  * Graph interface to be use by GDS algorithms to get neighbors of nodes.
  *
@@ -93,25 +131,24 @@ protected:
  */
 class Graph {
 public:
-    class Iterator {
+    class EdgeIterator {
     public:
-        explicit constexpr Iterator(GraphScanState* scanState) : scanState{scanState} {}
-        DEFAULT_BOTH_MOVE(Iterator);
-        Iterator(const Iterator& other) = default;
-        Iterator() : scanState{nullptr} {}
-        using iterator_category = std::input_iterator_tag;
+        explicit constexpr EdgeIterator(NbrScanState* scanState) : scanState{scanState} {}
+        DEFAULT_BOTH_MOVE(EdgeIterator);
+        EdgeIterator(const EdgeIterator& other) = default;
+        EdgeIterator() : scanState{nullptr} {}
         using difference_type = std::ptrdiff_t;
-        using value_type = GraphScanState::Chunk;
+        using value_type = NbrScanState::Chunk;
 
         value_type operator*() const { return scanState->getChunk(); }
-        Iterator& operator++() {
+        EdgeIterator& operator++() {
             if (!scanState->next()) {
                 scanState = nullptr;
             }
             return *this;
         }
         void operator++(int) { ++*this; }
-        bool operator==(const Iterator& other) const {
+        bool operator==(const EdgeIterator& other) const {
             // Only needed for comparing to the end, so they are equal if and only if both are null
             return scanState == nullptr && other.scanState == nullptr;
         }
@@ -135,13 +172,13 @@ public:
             return nbrNodes;
         }
 
-        Iterator& begin() noexcept { return *this; }
-        static constexpr Iterator end() noexcept { return Iterator(nullptr); }
+        EdgeIterator& begin() noexcept { return *this; }
+        static constexpr EdgeIterator end() noexcept { return EdgeIterator(nullptr); }
 
     private:
-        GraphScanState* scanState;
+        NbrScanState* scanState;
     };
-    static_assert(std::input_iterator<Iterator>);
+    static_assert(std::input_iterator<EdgeIterator>);
 
     Graph() = default;
     virtual ~Graph() = default;
@@ -164,28 +201,63 @@ public:
     virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID,
+    virtual std::unique_ptr<NbrScanState> prepareScan(common::table_id_t relTableID,
         std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
     // Prepares scan on all connected relationship tables using forward adjList.
-    virtual std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
+    virtual std::unique_ptr<NbrScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) = 0;
 
     // scanFwd an scanBwd scan a single source node under the assumption that many nodes in the same
     // group will be scanned at once.
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
-    virtual Iterator scanFwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
+    virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;
 
     // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
     // Also, algorithm may only need adjList index in single direction so we should make double
     // indexing optional.
 
     // Prepares scan on all connected relationship tables using backward adjList.
-    virtual std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(
+    virtual std::unique_ptr<NbrScanState> prepareMultiTableScanBwd(
         std::span<common::table_id_t> nodeTableIDs) = 0;
 
     // Get dst nodeIDs for given src nodeID tables using backward adjList.
-    virtual Iterator scanBwd(common::nodeID_t nodeID, GraphScanState& state) = 0;
+    virtual EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) = 0;
+
+    class VertexIterator {
+    public:
+        explicit constexpr VertexIterator(VertexScanState* scanState) : scanState{scanState} {}
+        DEFAULT_BOTH_MOVE(VertexIterator);
+        VertexIterator(const VertexIterator& other) = default;
+        VertexIterator() : scanState{nullptr} {}
+        using difference_type = std::ptrdiff_t;
+        using value_type = VertexScanState::Chunk;
+
+        value_type operator*() const { return scanState->getChunk(); }
+        VertexIterator& operator++() {
+            if (!scanState->next()) {
+                scanState = nullptr;
+            }
+            return *this;
+        }
+        void operator++(int) { ++*this; }
+        bool operator==(const VertexIterator& other) const {
+            // Only needed for comparing to the end, so they are equal if and only if both are null
+            return scanState == nullptr && other.scanState == nullptr;
+        }
+
+        VertexIterator& begin() noexcept { return *this; }
+        static constexpr VertexIterator end() noexcept { return VertexIterator(nullptr); }
+
+    private:
+        VertexScanState* scanState;
+    };
+    static_assert(std::input_iterator<EdgeIterator>);
+
+    virtual std::unique_ptr<VertexScanState> prepareVertexScan(common::table_id_t tableID,
+        const std::vector<std::string>& propertiesToScan) = 0;
+    virtual VertexIterator scanVertices(common::offset_t startNodeOffset,
+        common::offset_t endNodeOffsetExclusive, VertexScanState& scanState) = 0;
 };
 
 } // namespace graph

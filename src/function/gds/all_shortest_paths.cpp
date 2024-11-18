@@ -150,7 +150,7 @@ public:
         PathMultiplicities* multiplicities)
         : SPEdgeCompute{frontierPair}, multiplicities{multiplicities} {};
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, GraphScanState::Chunk& resultChunk,
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
@@ -190,7 +190,7 @@ public:
         parentListBlock = bfsGraph->addNewBlock();
     }
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, GraphScanState::Chunk& resultChunk,
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
         bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
