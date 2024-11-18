@@ -17,7 +17,7 @@ class ReturnClause;
 
 class StatementVisitor {
 public:
-    StatementVisitor() {}
+    StatementVisitor() = default;
     virtual ~StatementVisitor() = default;
 
     void visit(const Statement& statement);
