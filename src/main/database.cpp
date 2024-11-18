@@ -1,7 +1,8 @@
 #include "main/database.h"
+
 #include "main/client_context.h"
-#include "main/settings.h"
 #include "main/database_manager.h"
+#include "main/settings.h"
 #include "storage/buffer_manager/buffer_manager.h"
 
 #if defined(_WIN32)
@@ -86,8 +87,7 @@ std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Databa
         db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
 }
 
-std::string expandPath(main::ClientContext* context,
-    const std::string& path) {
+std::string expandPath(main::ClientContext* context, const std::string& path) {
     auto fullPath = path;
     if (path.starts_with('~')) {
         fullPath =
@@ -105,7 +105,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     databasePath = expandPath(&clientContext, dbPathStr);
 
     vfs = std::make_unique<VirtualFileSystem>(databasePath);
-    
+
     initAndLockDBDir();
     bufferManager = initBmFunc(*this);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get(), vfs.get());

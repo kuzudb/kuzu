@@ -252,7 +252,8 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
         return;
 
     if (path.find(homeDir) != 0) {
-        throw IOException(stringFormat("Error: Path {} is not within the allowed home directory {}", path, homeDir));
+        throw IOException(stringFormat("Error: Path {} is not within the allowed home directory {}",
+            path, homeDir));
     }
     std::error_code errCode;
     bool success = false;
