@@ -1,5 +1,4 @@
 #pragma once
-
 #include "common/enums/extend_direction.h"
 
 namespace kuzu {
