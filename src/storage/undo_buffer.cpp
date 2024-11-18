@@ -42,7 +42,7 @@ struct VersionRecord {
     row_idx_t startRow;
     row_idx_t numRows;
     node_group_idx_t nodeGroupIdx;
-    pre_rollback_callback_t preRollbackCallback;
+    const pre_rollback_insert_func_t* preRollbackCallback;
     CSRNodeGroupScanSource source;
 };
 
@@ -113,48 +113,40 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
-static void noPreRollbackFunc(const transaction::Transaction*, common::row_idx_t, common::row_idx_t,
-    common::node_group_idx_t) {}
+void UndoBuffer::createInsertInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
+    row_idx_t startRow, row_idx_t numRows) {
+    createVersionInfo(UndoRecordType::INSERT_INFO, nodeTable->getNodeGroups(), startRow, numRows,
+        nodeGroupIdx, CSRNodeGroupScanSource::NONE, &nodeTable->getPreRollbackInsertFunc());
+}
 
 void UndoBuffer::createInsertInfo(RelTableData* relTableData, node_group_idx_t nodeGroupIdx,
     row_idx_t startRow, row_idx_t numRows, storage::CSRNodeGroupScanSource source) {
-    createVersionInfo(UndoRecordType::INSERT_INFO, relTableData->getNodeGroups(), noPreRollbackFunc,
-        startRow, numRows, nodeGroupIdx, source);
-}
-
-void UndoBuffer::createInsertInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
-    row_idx_t startRow, row_idx_t numRows) {
-    createVersionInfo(
-        UndoRecordType::INSERT_INFO, nodeTable->getNodeGroups(),
-        [nodeTable](const transaction::Transaction* transaction, common::row_idx_t startRow,
-            common::row_idx_t numRows, common::node_group_idx_t nodeGroupIdx) {
-            nodeTable->rollbackInsert(transaction, startRow, numRows, nodeGroupIdx);
-        },
-        startRow, numRows, nodeGroupIdx);
+    createVersionInfo(UndoRecordType::INSERT_INFO, relTableData->getNodeGroups(), startRow, numRows,
+        nodeGroupIdx, source);
 }
 
 void UndoBuffer::createDeleteInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
     common::row_idx_t startRow, common::row_idx_t numRows) {
-    createVersionInfo(UndoRecordType::DELETE_INFO, nodeTable->getNodeGroups(), noPreRollbackFunc,
-        startRow, numRows, nodeGroupIdx);
+    createVersionInfo(UndoRecordType::DELETE_INFO, nodeTable->getNodeGroups(), startRow, numRows,
+        nodeGroupIdx);
 }
 
 void UndoBuffer::createDeleteInfo(RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
     common::row_idx_t startRow, common::row_idx_t numRows, storage::CSRNodeGroupScanSource source) {
-    createVersionInfo(UndoRecordType::DELETE_INFO, relTableData->getNodeGroups(), noPreRollbackFunc,
-        startRow, numRows, nodeGroupIdx, source);
+    createVersionInfo(UndoRecordType::DELETE_INFO, relTableData->getNodeGroups(), startRow, numRows,
+        nodeGroupIdx, source);
 }
 
 void UndoBuffer::createVersionInfo(const UndoRecordType recordType,
-    NodeGroupCollection* nodeGroupCollection, pre_rollback_callback_t callback, row_idx_t startRow,
-    row_idx_t numRows, node_group_idx_t nodeGroupIdx, storage::CSRNodeGroupScanSource source) {
+    NodeGroupCollection* nodeGroupCollection, row_idx_t startRow, row_idx_t numRows,
+    node_group_idx_t nodeGroupIdx, storage::CSRNodeGroupScanSource source,
+    const pre_rollback_insert_func_t* callback) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VersionRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    const VersionRecord vectorVersionRecord{nodeGroupCollection, startRow, numRows, nodeGroupIdx,
-        callback, source};
-    *reinterpret_cast<VersionRecord*>(buffer) = vectorVersionRecord;
+    *reinterpret_cast<VersionRecord*>(buffer) =
+        VersionRecord{nodeGroupCollection, startRow, numRows, nodeGroupIdx, callback, source};
 }
 
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
@@ -320,8 +312,10 @@ void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        undoRecord.preRollbackCallback(transaction, undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx);
+        if (undoRecord.preRollbackCallback) {
+            (*undoRecord.preRollbackCallback)(transaction, undoRecord.startRow, undoRecord.numRows,
+                undoRecord.nodeGroupIdx);
+        }
         undoRecord.nodeGroupCollection->rollbackInsert(undoRecord.startRow, undoRecord.numRows,
             undoRecord.nodeGroupIdx, undoRecord.source);
     } break;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <functional>
 #include <mutex>
 
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/enums/csr_node_group_scan_source.h"
+#include "storage/store/table.h"
 
 namespace kuzu {
 namespace catalog {
@@ -22,9 +22,6 @@ namespace main {
 class ClientContext;
 }
 namespace storage {
-
-using pre_rollback_callback_t = std::function<void(const transaction::Transaction*,
-    common::row_idx_t, common::row_idx_t, common::node_group_idx_t)>;
 
 // TODO(Guodong): This should be reworked to use MemoryManager for memory allocaiton.
 //                For now, we use malloc to get around the limitation of 256KB from MM.
@@ -114,9 +111,10 @@ private:
     uint8_t* createUndoRecord(uint64_t size);
 
     void createVersionInfo(UndoRecordType recordType, NodeGroupCollection* nodeGroupCollection,
-        pre_rollback_callback_t preRollbackCallback, common::row_idx_t startRow,
-        common::row_idx_t numRows, common::node_group_idx_t nodeGroupIdx = 0,
-        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
+        common::row_idx_t startRow, common::row_idx_t numRows,
+        common::node_group_idx_t nodeGroupIdx = 0,
+        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE,
+        const pre_rollback_insert_func_t* preRollbackCallback = nullptr);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;

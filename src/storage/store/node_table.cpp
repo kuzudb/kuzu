@@ -235,6 +235,12 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         createAppendToUndoBufferFunc(this));
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
+
+    preRollbackInsertFunc = [this](const transaction::Transaction* transaction,
+                                common::row_idx_t startRow, common::row_idx_t numRows_,
+                                common::node_group_idx_t nodeGroupIdx_) {
+        return rollbackInsert(transaction, startRow, numRows_, nodeGroupIdx_);
+    };
 }
 
 std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
@@ -591,9 +597,10 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
 }
 
 void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
-    common::row_idx_t startRow, common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx) {
+    common::row_idx_t startRow, common::row_idx_t numRows_,
+    common::node_group_idx_t nodeGroupIdx_) {
     row_idx_t startNodeOffset = startRow;
-    for (node_group_idx_t i = 0; i < nodeGroupIdx; ++i) {
+    for (node_group_idx_t i = 0; i < nodeGroupIdx_; ++i) {
         startNodeOffset += nodeGroups->getNodeGroupNoLock(i)->getNumRows();
     }
 
