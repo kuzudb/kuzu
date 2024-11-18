@@ -255,9 +255,9 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
 }
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
-    if (!fileOrPathExists(path))
+    if (!fileOrPathExists(path) || homeDir == "") {
         return;
-
+    }
     if (isSubdirectory(homeDir, path)) {
         throw IOException(stringFormat("Error: Path {} is not within the allowed home directory {}",
             path, homeDir));
