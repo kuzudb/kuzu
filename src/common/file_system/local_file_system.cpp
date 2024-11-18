@@ -248,11 +248,10 @@ void LocalFileSystem::createDir(const std::string& dir) const {
 }
 
 bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::path& sub) {
-    auto basePath = std::filesystem::canonical(base);
-    auto subPath = std::filesystem::canonical(sub);
+    auto basePath = std::filesystem::weakly_canonical(base);
+    auto subPath = std::filesystem::weakly_canonical(sub);
 
-    // Compare the base path with the prefix of the sub path
-    return std::mismatch(basePath.begin(), basePath.end(), subPath.begin()).first == basePath.end();
+    return std::search(subPath.begin(), subPath.end(), basePath.begin(), basePath.end()) == subPath.begin();
 }
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
