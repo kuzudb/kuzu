@@ -9,7 +9,6 @@ import zipfile
 BASE_PATH = os.path.dirname(FILE_PATH)
 CSV_ZIP_PATH = os.path.join(BASE_PATH, "csv.zip")
 CSV_PATH = os.path.join(BASE_PATH, "csv")
-print(CSV_PATH)
 if os.path.exists(CSV_PATH):
     sys.exit(0)
 
