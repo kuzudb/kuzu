@@ -57,8 +57,6 @@ public:
         return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
     }
 
-    NodeGroupCollection* getNodeGroups() { return nodeGroups.get(); }
-
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
 
     TableStats getStats() const { return nodeGroups->getStats(); }

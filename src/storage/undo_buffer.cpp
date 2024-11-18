@@ -113,28 +113,17 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
-void UndoBuffer::createInsertInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
-    row_idx_t startRow, row_idx_t numRows) {
-    createVersionInfo(UndoRecordType::INSERT_INFO, nodeTable->getNodeGroups(), startRow, numRows,
-        nodeGroupIdx, CSRNodeGroupScanSource::NONE, &nodeTable->getPreRollbackInsertFunc());
-}
-
-void UndoBuffer::createInsertInfo(RelTableData* relTableData, node_group_idx_t nodeGroupIdx,
+void UndoBuffer::createInsertInfo(NodeGroupCollection* nodeGroups, node_group_idx_t nodeGroupIdx,
     row_idx_t startRow, row_idx_t numRows, storage::CSRNodeGroupScanSource source) {
-    createVersionInfo(UndoRecordType::INSERT_INFO, relTableData->getNodeGroups(), startRow, numRows,
-        nodeGroupIdx, source);
+    createVersionInfo(UndoRecordType::INSERT_INFO, nodeGroups, startRow, numRows, nodeGroupIdx,
+        source);
 }
 
-void UndoBuffer::createDeleteInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
-    common::row_idx_t startRow, common::row_idx_t numRows) {
-    createVersionInfo(UndoRecordType::DELETE_INFO, nodeTable->getNodeGroups(), startRow, numRows,
-        nodeGroupIdx);
-}
-
-void UndoBuffer::createDeleteInfo(RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
-    common::row_idx_t startRow, common::row_idx_t numRows, storage::CSRNodeGroupScanSource source) {
-    createVersionInfo(UndoRecordType::DELETE_INFO, relTableData->getNodeGroups(), startRow, numRows,
-        nodeGroupIdx, source);
+void UndoBuffer::createDeleteInfo(NodeGroupCollection* nodeGroups,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    storage::CSRNodeGroupScanSource source) {
+    createVersionInfo(UndoRecordType::DELETE_INFO, nodeGroups, startRow, numRows, nodeGroupIdx,
+        source);
 }
 
 void UndoBuffer::createVersionInfo(const UndoRecordType recordType,

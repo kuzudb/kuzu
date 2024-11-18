@@ -174,8 +174,6 @@ public:
         return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
     }
 
-    NodeGroupCollection* getNodeGroups() { return nodeGroups.get(); }
-
     TableStats getStats(const transaction::Transaction* transaction) const;
 
     const pre_rollback_insert_func_t& getPreRollbackInsertFunc() const {

@@ -204,11 +204,11 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
     return true;
 }
 
-static decltype(auto) createAppendToUndoBufferFunc(NodeTable* nodeTable) {
-    return [nodeTable](const transaction::Transaction* transaction, NodeGroup* nodeGroup,
+static decltype(auto) createAppendToUndoBufferFunc(NodeGroupCollection* nodeGroups) {
+    return [nodeGroups](const transaction::Transaction* transaction, NodeGroup* nodeGroup,
                common::row_idx_t numRows) {
         if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushInsertInfo(nodeTable, nodeGroup->getNodeGroupIdx(),
+            transaction->pushInsertInfo(nodeGroups, nodeGroup->getNodeGroupIdx(),
                 nodeGroup->getNumRows(), numRows);
         }
     };
@@ -232,7 +232,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
         getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer,
-        createAppendToUndoBufferFunc(this));
+        createAppendToUndoBufferFunc(nodeGroups.get()));
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 
@@ -454,7 +454,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
         if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushDeleteInfo(this, nodeGroupIdx, rowIdxInGroup, 1);
+            transaction->pushDeleteInfo(nodeGroups.get(), nodeGroupIdx, rowIdxInGroup, 1);
         }
     }
     if (isDeleted) {
@@ -540,7 +540,8 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                         nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
                     KU_ASSERT(isDeleted);
                     if (transaction->shouldAppendToUndoBuffer()) {
-                        transaction->pushDeleteInfo(this, nodeGroupIdx, rowIdxInGroup, 1);
+                        transaction->pushDeleteInfo(nodeGroups.get(), nodeGroupIdx, rowIdxInGroup,
+                            1);
                     }
                 }
             }

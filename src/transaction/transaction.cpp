@@ -173,28 +173,16 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
     }
 }
 
-void Transaction::pushInsertInfo(storage::RelTableData* relTableData,
+void Transaction::pushInsertInfo(storage::NodeGroupCollection* nodeGroups,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
     storage::CSRNodeGroupScanSource source) const {
-    undoBuffer->createInsertInfo(relTableData, nodeGroupIdx, startRow, numRows, source);
+    undoBuffer->createInsertInfo(nodeGroups, nodeGroupIdx, startRow, numRows, source);
 }
 
-void Transaction::pushInsertInfo(storage::NodeTable* nodeTable,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-    common::row_idx_t numRows) const {
-    undoBuffer->createInsertInfo(nodeTable, nodeGroupIdx, startRow, numRows);
-}
-
-void Transaction::pushDeleteInfo(storage::NodeTable* nodeTable,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-    common::row_idx_t numRows) const {
-    undoBuffer->createDeleteInfo(nodeTable, nodeGroupIdx, startRow, numRows);
-}
-
-void Transaction::pushDeleteInfo(storage::RelTableData* relTableData,
+void Transaction::pushDeleteInfo(storage::NodeGroupCollection* nodeGroups,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
     storage::CSRNodeGroupScanSource source) const {
-    undoBuffer->createDeleteInfo(relTableData, nodeGroupIdx, startRow, numRows, source);
+    undoBuffer->createDeleteInfo(nodeGroups, nodeGroupIdx, startRow, numRows, source);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,

@@ -98,7 +98,7 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
     bool isDeleted = csrNodeGroup.delete_(transaction, source, rowIdx);
     if (isDeleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushDeleteInfo(this, nodeGroupIdx, rowIdx, 1, source);
+        transaction->pushDeleteInfo(nodeGroups.get(), nodeGroupIdx, rowIdx, 1, source);
     }
     return isDeleted;
 }
@@ -195,7 +195,8 @@ void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
     const auto startRow = (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
                               nodeGroup.getNumPersistentRows() :
                               nodeGroup.getNumRows();
-    transaction->pushInsertInfo(this, nodeGroup.getNodeGroupIdx(), startRow, numRows_, source);
+    transaction->pushInsertInfo(nodeGroups.get(), nodeGroup.getNodeGroupIdx(), startRow, numRows_,
+        source);
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {

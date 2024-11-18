@@ -89,14 +89,12 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createInsertInfo(RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
+    void createInsertInfo(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
         common::row_idx_t startRow, common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source);
+        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
     void createInsertInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
         common::row_idx_t startRow, common::row_idx_t numRows);
-    void createDeleteInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
-        common::row_idx_t startRow, common::row_idx_t numRows);
-    void createDeleteInfo(RelTableData* relTableData, common::node_group_idx_t nodeGroupIdx,
+    void createDeleteInfo(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
         common::row_idx_t startRow, common::row_idx_t numRows,
         storage::CSRNodeGroupScanSource source);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
