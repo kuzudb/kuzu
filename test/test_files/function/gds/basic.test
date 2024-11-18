@@ -4,6 +4,20 @@
 
 -CASE BasicAlgorithm
 
+-STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK) RETURN _node.fName, group_id;
+---- 8
+Alice|0
+Bob|0
+Carol|0
+Dan|0
+Elizabeth|1
+Farooq|1
+Greg|1
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
+
+-CASE X
+-SKIP
+
 -STATEMENT PROJECT GRAPH PK (person, knows)
            MATCH (a:person) WHERE a.ID < 6
            CALL VAR_LEN_JOINS(PK, a, 1, 2, "FWD")
