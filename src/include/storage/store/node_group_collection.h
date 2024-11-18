@@ -12,14 +12,11 @@ class Transaction;
 namespace storage {
 class MemoryManager;
 
-using append_to_undo_buffer_func_t =
-    std::function<void(const transaction::Transaction*, NodeGroup*, common::row_idx_t)>;
-
 class NodeGroupCollection {
 public:
     NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
-        bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
-        append_to_undo_buffer_func_t appendToUndoBufferFunc = defaultAppendToUndoBuffer);
+        bool enableCompression, FileHandle* dataFH = nullptr,
+        common::Deserializer* deSer = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -52,7 +49,8 @@ public:
         KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroup(lock, groupIdx);
     }
-    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
+    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
 
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
@@ -92,9 +90,13 @@ public:
     void serialize(common::Serializer& ser);
     void deserialize(common::Deserializer& deSer, MemoryManager& memoryManager);
 
+    void pushInsertInfo(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, storage::CSRNodeGroupScanSource source);
+
 private:
-    static void defaultAppendToUndoBuffer(const transaction::Transaction*, NodeGroup*,
-        common::row_idx_t);
+    void appendToUndoBuffer(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
+        common::row_idx_t numRows, CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
 
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
@@ -103,7 +105,6 @@ private:
     GroupCollection<NodeGroup> nodeGroups;
     FileHandle* dataFH;
     TableStats stats;
-    append_to_undo_buffer_func_t appendToUndoBufferFunc;
 };
 
 } // namespace storage

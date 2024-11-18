@@ -204,16 +204,6 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
     return true;
 }
 
-static decltype(auto) createAppendToUndoBufferFunc(NodeGroupCollection* nodeGroups) {
-    return [nodeGroups](const transaction::Transaction* transaction, NodeGroup* nodeGroup,
-               common::row_idx_t numRows) {
-        if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushInsertInfo(nodeGroups, nodeGroup->getNodeGroupIdx(),
-                nodeGroup->getNumRows(), numRows);
-        }
-    };
-}
-
 NodeTable::NodeTable(const StorageManager* storageManager,
     const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
     VirtualFileSystem* vfs, main::ClientContext* context, Deserializer* deSer)
@@ -231,8 +221,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     }
 
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
-        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer,
-        createAppendToUndoBufferFunc(nodeGroups.get()));
+        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 

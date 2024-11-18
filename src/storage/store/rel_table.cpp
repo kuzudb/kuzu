@@ -378,20 +378,18 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     hasChanges = true;
 }
 
-NodeGroup* RelTable::getOrCreateNodeGroup(node_group_idx_t nodeGroupIdx,
-    RelDataDirection direction) const {
+NodeGroup* RelTable::getOrCreateNodeGroup(transaction::Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
     return direction == RelDataDirection::FWD ?
-               fwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx) :
-               bwdRelTableData->getOrCreateNodeGroup(nodeGroupIdx);
+               fwdRelTableData->getOrCreateNodeGroup(transaction, nodeGroupIdx) :
+               bwdRelTableData->getOrCreateNodeGroup(transaction, nodeGroupIdx);
 }
 
 void RelTable::pushInsertInfo(Transaction* transaction, RelDataDirection direction,
     const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) {
-    if (transaction->shouldAppendToUndoBuffer()) {
-        auto& relTableData =
-            (direction == common::RelDataDirection::FWD) ? fwdRelTableData : bwdRelTableData;
-        relTableData->pushInsertInfo(transaction, nodeGroup, numRows_, source);
-    }
+    auto& relTableData =
+        (direction == common::RelDataDirection::FWD) ? fwdRelTableData : bwdRelTableData;
+    relTableData->pushInsertInfo(transaction, nodeGroup, numRows_, source);
 }
 
 void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
@@ -421,7 +419,7 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
             auto [nodeGroupIdx, boundOffsetInGroup] = StorageUtils::getQuotientRemainder(
                 boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
             auto& nodeGroup =
-                relTableData->getOrCreateNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
+                relTableData->getOrCreateNodeGroup(transaction, nodeGroupIdx)->cast<CSRNodeGroup>();
             pushInsertInfo(transaction, direction, nodeGroup, rowIndices.size(),
                 CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
             prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,

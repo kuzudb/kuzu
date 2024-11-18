@@ -195,7 +195,7 @@ void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
     const auto startRow = (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
                               nodeGroup.getNumPersistentRows() :
                               nodeGroup.getNumRows();
-    transaction->pushInsertInfo(nodeGroups.get(), nodeGroup.getNodeGroupIdx(), startRow, numRows_,
+    nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
         source);
 }
 

@@ -15,9 +15,9 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer, append_to_undo_buffer_func_t appendToUndoBufferFunc)
+    Deserializer* deSer)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH}, appendToUndoBufferFunc(std::move(appendToUndoBufferFunc)) {
+      dataFH{dataFH} {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -53,7 +53,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         const auto numToAppendInNodeGroup =
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
-        appendToUndoBufferFunc(transaction, lastNodeGroup, numToAppendInNodeGroup);
+        appendToUndoBuffer(transaction, lastNodeGroup, numToAppendInNodeGroup);
         numTotalRows += numToAppendInNodeGroup;
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
@@ -94,7 +94,7 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
                 std::min(numRowsToAppendInChunkedGroup - numRowsAppendedInChunkedGroup,
                     lastNodeGroup->getNumRowsLeftToAppend());
             lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
-            appendToUndoBufferFunc(transaction, lastNodeGroup, numToAppendInBatch);
+            appendToUndoBuffer(transaction, lastNodeGroup, numToAppendInBatch);
             numTotalRows += numToAppendInBatch;
             lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
                 numToAppendInBatch);
@@ -131,7 +131,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         // If the node group is empty now and the chunked group is full, we can directly flush it.
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
-        appendToUndoBufferFunc(transaction, lastNodeGroup, chunkedGroup.getNumRows());
+        appendToUndoBuffer(transaction, lastNodeGroup, numToAppend);
         numTotalRows += numToAppend;
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
@@ -154,8 +154,8 @@ row_idx_t NodeGroupCollection::getNumTotalRows() {
     return numTotalRows;
 }
 
-NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(node_group_idx_t groupIdx,
-    NodeGroupDataFormat format) {
+NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* transaction,
+    node_group_idx_t groupIdx, NodeGroupDataFormat format) {
     const auto lock = nodeGroups.lock();
     while (groupIdx >= nodeGroups.getNumGroups(lock)) {
         const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
@@ -164,6 +164,10 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(node_group_idx_t groupIdx,
                                              enableCompression, LogicalType::copy(types)) :
                                          std::make_unique<CSRNodeGroup>(currentGroupIdx,
                                              enableCompression, LogicalType::copy(types)));
+        // push an insert of size 0 so that we can rollback the creation of this node group if
+        // needed
+        appendToUndoBuffer(transaction, nodeGroups.getLastGroup(lock), 0,
+            CSRNodeGroupScanSource::COMMITTED_PERSISTENT);
     }
     KU_ASSERT(groupIdx < nodeGroups.getNumGroups(lock));
     return nodeGroups.getGroup(lock, groupIdx);
@@ -220,8 +224,11 @@ void NodeGroupCollection::rollbackInsert(common::row_idx_t startRow, common::row
             nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
         }
     }
-    KU_ASSERT(numRows_ <= numTotalRows);
-    numTotalRows -= numRows_;
+
+    if (source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+        KU_ASSERT(numRows_ <= numTotalRows);
+        numTotalRows -= numRows_;
+    }
 }
 
 void NodeGroupCollection::rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
@@ -246,6 +253,23 @@ void NodeGroupCollection::commitDelete(row_idx_t startRow, row_idx_t numRows_,
     nodeGroups.getGroup(lock, nodeGroupIdx)->commitDelete(startRow, numRows_, commitTS, source);
 }
 
+void NodeGroupCollection::appendToUndoBuffer(const transaction::Transaction* transaction,
+    NodeGroup* nodeGroup, common::row_idx_t numRows, CSRNodeGroupScanSource source) {
+    pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
+        source);
+};
+
+void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    storage::CSRNodeGroupScanSource source) {
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushInsertInfo(this, nodeGroupIdx, startRow, numRows, source);
+        if (source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY) {
+            numTotalRows += numRows;
+        }
+    }
+}
+
 void NodeGroupCollection::serialize(Serializer& ser) {
     ser.writeDebuggingInfo("node_groups");
     nodeGroups.serializeGroups(ser);
@@ -261,9 +285,6 @@ void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memory
     deSer.validateDebuggingInfo(key, "stats");
     stats.deserialize(deSer);
 }
-
-void NodeGroupCollection::defaultAppendToUndoBuffer(const transaction::Transaction*, NodeGroup*,
-    common::row_idx_t) {}
 
 } // namespace storage
 } // namespace kuzu

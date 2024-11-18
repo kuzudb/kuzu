@@ -166,8 +166,8 @@ public:
                                                             bwdRelTableData->getColumn(columnID);
     }
 
-    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx,
-        common::RelDataDirection direction) const;
+    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const;
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;

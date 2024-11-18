@@ -53,8 +53,10 @@ public:
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx, true /*mayOutOfBound*/);
     }
-    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
+    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx,
+            NodeGroupDataFormat::CSR);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
