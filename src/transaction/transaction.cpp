@@ -175,8 +175,10 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
 
 void Transaction::pushInsertInfo(storage::NodeGroupCollection* nodeGroups,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    storage::CSRNodeGroupScanSource source) const {
-    undoBuffer->createInsertInfo(nodeGroups, nodeGroupIdx, startRow, numRows, source);
+    storage::CSRNodeGroupScanSource source,
+    const transaction::rollback_insert_func_t* rollbackInsertCallback) const {
+    undoBuffer->createInsertInfo(nodeGroups, nodeGroupIdx, startRow, numRows, source,
+        rollbackInsertCallback);
 }
 
 void Transaction::pushDeleteInfo(storage::NodeGroupCollection* nodeGroups,

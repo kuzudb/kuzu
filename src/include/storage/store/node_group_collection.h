@@ -4,6 +4,7 @@
 #include "storage/stats/table_stats.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace transaction {

@@ -963,7 +963,7 @@ std::pair<idx_t, row_idx_t> CSRNodeGroup::actionOnChunkedGroups(const common::Un
         if (persistentChunkGroup) {
             std::invoke(operation, *persistentChunkGroup, startRow, numRows_, commitTS);
         }
-        return {UINT32_MAX, UINT32_MAX};
+        return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
     } else {
         KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
         return NodeGroup::actionOnChunkedGroups(lock, startRow, numRows_, commitTS, source,

@@ -5,7 +5,7 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/enums/csr_node_group_scan_source.h"
-#include "storage/store/table.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace catalog {
@@ -69,7 +69,6 @@ class VersionInfo;
 struct VectorUpdateInfo;
 class RelTableData;
 class NodeTable;
-class NodeGroupCollection;
 class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {
@@ -91,9 +90,8 @@ public:
         const catalog::SequenceRollbackData& data);
     void createInsertInfo(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
         common::row_idx_t startRow, common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
-    void createInsertInfo(NodeTable* nodeTable, common::node_group_idx_t nodeGroupIdx,
-        common::row_idx_t startRow, common::row_idx_t numRows);
+        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE,
+        const transaction::rollback_insert_func_t* rollbackInsertFunc = nullptr);
     void createDeleteInfo(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
         common::row_idx_t startRow, common::row_idx_t numRows,
         storage::CSRNodeGroupScanSource source);
@@ -112,7 +110,7 @@ private:
         common::row_idx_t startRow, common::row_idx_t numRows,
         common::node_group_idx_t nodeGroupIdx = 0,
         storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE,
-        const pre_rollback_insert_func_t* preRollbackCallback = nullptr);
+        const transaction::rollback_insert_func_t* rollbackInsertFunc = nullptr);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;

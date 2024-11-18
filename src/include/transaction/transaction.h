@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "common/enums/statement_type.h"
 #include "common/types/types.h"
 #include "storage/enums/csr_node_group_scan_source.h"
@@ -27,6 +29,10 @@ class ChunkedNodeGroup;
 namespace transaction {
 class TransactionManager;
 class Transaction;
+
+using rollback_insert_func_t =
+    std::function<void(const transaction::Transaction*, common::row_idx_t, common::row_idx_t,
+        common::node_group_idx_t, storage::CSRNodeGroupScanSource)>;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
@@ -119,7 +125,8 @@ public:
     void pushInsertInfo(storage::NodeGroupCollection* nodeGroups,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source = storage::CSRNodeGroupScanSource::NONE) const;
+        storage::CSRNodeGroupScanSource source = storage::CSRNodeGroupScanSource::NONE,
+        const transaction::rollback_insert_func_t* rollbackInsertCallback = nullptr) const;
     void pushDeleteInfo(storage::NodeGroupCollection* nodeGroups,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,

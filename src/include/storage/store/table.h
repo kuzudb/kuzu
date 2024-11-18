@@ -13,9 +13,6 @@ class ExpressionEvaluator;
 namespace storage {
 class MemoryManager;
 
-using pre_rollback_insert_func_t = std::function<void(const transaction::Transaction*,
-    common::row_idx_t, common::row_idx_t, common::node_group_idx_t)>;
-
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = UINT8_MAX };
 
 struct TableScanState {

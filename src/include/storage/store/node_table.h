@@ -176,8 +176,8 @@ public:
 
     TableStats getStats(const transaction::Transaction* transaction) const;
 
-    const pre_rollback_insert_func_t& getPreRollbackInsertFunc() const {
-        return preRollbackInsertFunc;
+    const transaction::rollback_insert_func_t& getRollbackInsertFunc() const {
+        return rollbackInsertFunc;
     }
 
 private:
@@ -199,7 +199,7 @@ private:
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
-    pre_rollback_insert_func_t preRollbackInsertFunc;
+    transaction::rollback_insert_func_t rollbackInsertFunc;
 };
 
 } // namespace storage

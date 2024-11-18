@@ -220,16 +220,16 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, memoryManager, shadowFile, enableCompression);
     }
 
+    rollbackInsertFunc = [this](const transaction::Transaction* transaction,
+                             common::row_idx_t startRow, common::row_idx_t numRows_,
+                             common::node_group_idx_t nodeGroupIdx_, CSRNodeGroupScanSource) {
+        return rollbackInsert(transaction, startRow, numRows_, nodeGroupIdx_);
+    };
+
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
         getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
-
-    preRollbackInsertFunc = [this](const transaction::Transaction* transaction,
-                                common::row_idx_t startRow, common::row_idx_t numRows_,
-                                common::node_group_idx_t nodeGroupIdx_) {
-        return rollbackInsert(transaction, startRow, numRows_, nodeGroupIdx_);
-    };
 }
 
 std::unique_ptr<NodeTable> NodeTable::loadTable(Deserializer& deSer, const Catalog& catalog,
