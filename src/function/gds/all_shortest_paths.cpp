@@ -255,7 +255,7 @@ private:
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(),
             &output->multiplicities);
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
+        return RJCompState(frontierPair.get(), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
 };
@@ -292,7 +292,7 @@ private:
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
             std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), &output->bfsGraph);
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
+        return RJCompState(frontierPair.get(), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
 };
