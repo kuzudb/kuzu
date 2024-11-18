@@ -128,12 +128,10 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
 void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offset_t* offsets,
     size_t size, uint8_t* result) {
     // Create scan state.
-    auto columnIDs = std::vector<column_id_t>{columnID};
     auto nodeTable = table->ptrCast<NodeTable>();
     auto column = &nodeTable->getColumn(columnID);
-    std::vector<const Column*> columns;
-    columns.push_back(column);
-    auto scanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns);
+    auto scanState = std::make_unique<NodeTableScanState>(table->getTableID(),
+        std::vector<column_id_t>{columnID}, std::vector<const Column*>{column});
     // Create value vectors
     auto idVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
     auto columnVector = std::make_unique<ValueVector>(column->getDataType().copy(),

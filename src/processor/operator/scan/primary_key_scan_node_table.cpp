@@ -79,15 +79,8 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
     nodeInfo.localScanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
-    if (transaction->isUnCommitted(nodeID.tableID, nodeOffset)) {
-        nodeInfo.localScanState->source = TableScanSource::UNCOMMITTED;
-        nodeInfo.localScanState->nodeGroupIdx =
-            StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(nodeID.tableID, nodeOffset));
-    } else {
-        nodeInfo.localScanState->source = TableScanSource::COMMITTED;
-        nodeInfo.localScanState->nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    }
-    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState);
+    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState, nodeID.tableID,
+        nodeOffset);
     metrics->numOutputTuple.incrementByOne();
     return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
 }

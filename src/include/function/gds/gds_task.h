@@ -44,9 +44,10 @@ private:
 
 struct VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
+    graph::Graph* graph;
 
-    explicit VertexComputeTaskSharedState(uint64_t maxThreadsForExecution)
-        : morselDispatcher{maxThreadsForExecution} {}
+    explicit VertexComputeTaskSharedState(uint64_t maxThreadsForExecution, graph::Graph* graph)
+        : morselDispatcher{maxThreadsForExecution}, graph{graph} {}
 };
 
 struct VertexComputeTaskInfo {

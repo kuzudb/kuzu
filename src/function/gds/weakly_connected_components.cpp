@@ -112,8 +112,7 @@ public:
     }
 
 private:
-    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID,
-        GraphScanState& scanState) {
+    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID, NbrScanState& scanState) {
         KU_ASSERT(!visitedMap.contains(nodeID));
         visitedMap.insert({nodeID, groupID});
         // Collect the nodes so that the recursive scan doesn't begin until this scan is done

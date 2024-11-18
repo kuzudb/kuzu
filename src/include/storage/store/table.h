@@ -35,13 +35,9 @@ struct TableScanState {
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
 
-    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs)
-        : TableScanState{tableID, std::move(columnIDs), {}} {}
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns)
-        : TableScanState{tableID, std::move(columnIDs), std::move(columns), {}} {}
-    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns, std::vector<ColumnPredicateSet> columnPredicateSets)
+        std::vector<const Column*> columns = {},
+        std::vector<ColumnPredicateSet> columnPredicateSets = {})
         : tableID{tableID}, nodeIDVector(nullptr), outState{nullptr},
           columnIDs{std::move(columnIDs)}, semiMask{nullptr}, columns{std::move(columns)},
           columnPredicateSets{std::move(columnPredicateSets)} {
@@ -60,13 +56,6 @@ struct TableScanState {
     virtual bool scanNext(transaction::Transaction*) { KU_UNREACHABLE; }
 
     void resetOutVectors();
-
-    virtual void resetState() {
-        source = TableScanSource::NONE;
-        nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-        nodeGroup = nullptr;
-        nodeGroupScanState->resetState();
-    }
 
     template<class TARGET>
     TARGET& cast() {
@@ -187,13 +176,12 @@ public:
 
     MemoryManager& getMemoryManager() const { return *memoryManager; }
 
+    common::DataChunk constructDataChunk(std::vector<common::LogicalType> types) const;
+
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;
 
     virtual void serialize(common::Serializer& serializer) const;
-
-    std::unique_ptr<common::DataChunk> constructDataChunk(
-        const std::vector<common::LogicalType>& types);
 
 protected:
     common::TableType tableType;
