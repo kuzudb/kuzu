@@ -11,6 +11,10 @@ VirtualFileSystem::VirtualFileSystem() {
     defaultFS = std::make_unique<LocalFileSystem>();
 }
 
+VirtualFileSystem::VirtualFileSystem(std::string homeDir) {
+    defaultFS = std::make_unique<LocalFileSystem>(homeDir);
+}
+
 VirtualFileSystem::~VirtualFileSystem() = default;
 
 void VirtualFileSystem::registerFileSystem(std::unique_ptr<FileSystem> fileSystem) {

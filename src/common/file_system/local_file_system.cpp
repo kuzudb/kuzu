@@ -250,6 +250,10 @@ void LocalFileSystem::createDir(const std::string& dir) const {
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path))
         return;
+
+    if (path.find(homeDir) != 0) {
+        throw IOException(stringFormat("Error: Path {} is not within the allowed home directory {}", path, homeDir));
+    }
     std::error_code errCode;
     bool success = false;
     if (std::filesystem::is_directory(path)) {

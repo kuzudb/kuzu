@@ -27,6 +27,10 @@ struct LocalFileInfo : public FileInfo {
 
 class KUZU_API LocalFileSystem final : public FileSystem {
 public:
+    LocalFileSystem() : homeDir("") {}
+
+    LocalFileSystem(std::string homeDir) : homeDir(std::move(homeDir)) {}
+
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
         FileLockType lock_type = FileLockType::NO_LOCK) override;
@@ -64,6 +68,9 @@ protected:
     void truncate(FileInfo& fileInfo, uint64_t size) const override;
 
     uint64_t getFileSize(const FileInfo& fileInfo) const override;
+
+private:
+    std::string homeDir;
 };
 
 } // namespace common
