@@ -718,7 +718,6 @@ jobs:
     needs: [sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets]
     runs-on: self-hosted-mac-arm
     env:
-      NUM_THREADS: 32
       CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       GEN: Ninja
@@ -894,7 +893,6 @@ jobs:
     needs: [macos-build-test]
     runs-on: self-hosted-mac-arm
     env:
-      NUM_THREADS: 32
       TEST_JOBS: 16
       GEN: Ninja
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
@@ -908,6 +906,15 @@ jobs:
       HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine NUM_THREADS
+        run: |
+          export NUM_THREADS=$(($(sysctl -n hw.logicalcpu) * 2 / 3))
+          if [ $NUM_THREADS -lt 12 ]; then
+            export NUM_THREADS=12
+          fi
+          echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
+          echo "NUM_THREADS=$NUM_THREADS"
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
