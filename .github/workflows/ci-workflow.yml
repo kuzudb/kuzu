@@ -739,6 +739,7 @@ jobs:
             export NUM_THREADS=12
           fi
           echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=$NUM_THREADS" >> $GITHUB_ENV
           echo "NUM_THREADS=$NUM_THREADS"
 
       - name: Download binary-demo
