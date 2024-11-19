@@ -1,6 +1,5 @@
 #include "storage/store/node_group_collection.h"
 
-#include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/csr_node_group.h"
@@ -199,20 +198,11 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     }
 }
 
-static idx_t getNumEmptyTrailingGroups(const GroupCollection<NodeGroup>& nodeGroups,
-    const common::UniqLock& lock) {
-    const auto& nodeGroupVector = nodeGroups.getAllGroups(lock);
-    return safeIntegerConversion<idx_t>(
-        std::find_if(nodeGroupVector.rbegin(), nodeGroupVector.rend(),
-            [](const auto& nodeGroup) { return (nodeGroup->getNumRows() != 0); }) -
-        nodeGroupVector.rbegin());
-}
-
 void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool updateNumRows) {
     const auto lock = nodeGroups.lock();
 
     // remove any empty trailing node groups after the rollback
-    const auto numGroupsToRemove = getNumEmptyTrailingGroups(nodeGroups, lock);
+    const auto numGroupsToRemove = nodeGroups.getNumEmptyTrailingGroups(lock);
     nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
 
     if (updateNumRows) {

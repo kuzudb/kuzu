@@ -6,6 +6,7 @@
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -114,6 +115,14 @@ public:
         KU_ASSERT(lock.isLocked());
         KU_UNUSED(lock);
         groups.clear();
+    }
+
+    common::idx_t getNumEmptyTrailingGroups(const common::UniqLock& lock) {
+        const auto& groupsVector = getAllGroups(lock);
+        return common::safeIntegerConversion<common::idx_t>(
+            std::find_if(groupsVector.rbegin(), groupsVector.rend(),
+                [](const auto& group) { return (group->getNumRows() != 0); }) -
+            groupsVector.rbegin());
     }
 
 private:

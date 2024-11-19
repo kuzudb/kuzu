@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "common/uniq_lock.h"
-#include "storage/enums/csr_node_group_scan_source.h"
 #include "storage/enums/residency_state.h"
 #include "storage/store/chunked_group_undo_iterator.h"
 #include "storage/store/chunked_node_group.h"
@@ -93,6 +92,7 @@ public:
 
     protected:
         NodeGroup* nodeGroup;
+        common::row_idx_t numRowsToRollback;
     };
 
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,

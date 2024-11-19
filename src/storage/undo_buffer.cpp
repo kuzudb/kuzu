@@ -4,8 +4,6 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
-#include "storage/store/node_table.h"
-#include "storage/store/rel_table_data.h"
 #include "storage/store/update_info.h"
 
 using namespace kuzu::catalog;
