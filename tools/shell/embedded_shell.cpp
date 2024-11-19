@@ -401,6 +401,57 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     }
 }
 
+std::string decodeEscapeSequences(const std::string& input) {
+    std::regex unicodeRegex(R"(\\u([0-9A-Fa-f]{4})|\\U([0-9A-Fa-f]{8}))");
+    std::string result = input;
+    std::smatch match;
+    while (std::regex_search(result, match, unicodeRegex)) {
+        std::string codepointStr;
+        if (match[1].matched) {
+            codepointStr = match[1].str();
+        } else if (match[2].matched) {
+            codepointStr = match[2].str();
+        }
+        uint32_t codepoint = static_cast<uint32_t>(std::stoull(codepointStr, nullptr, 16));
+        if (codepoint > 0x10FFFF) {
+            throw std::runtime_error("Invalid Unicode codepoint");
+        }
+        if (codepoint == 0) {
+            throw std::runtime_error("Null character not allowed");
+        }
+        // Check for surrogate pairs
+        if (0xD800 <= codepoint && codepoint <= 0xDBFF) {
+            // High surrogate, look for the next low surrogate
+            std::smatch nextMatch;
+            std::string remainingString = result.substr(match.position() + match.length());
+            if (std::regex_search(remainingString, nextMatch, unicodeRegex)) {
+                std::string nextCodepointStr = nextMatch[1].str();
+                int nextCodepoint = std::stoi(nextCodepointStr, nullptr, 16);
+                if (0xDC00 <= nextCodepoint && nextCodepoint <= 0xDFFF) {
+                    // Valid surrogate pair
+                    codepoint = 0x10000 + ((codepoint - 0xD800) << 10) + (nextCodepoint - 0xDC00);
+                    result.replace(match.position() + match.length(), nextMatch.length(), "");
+                } else {
+                    throw std::runtime_error("Invalid surrogate pair");
+                }
+            } else {
+                throw std::runtime_error("Unmatched high surrogate");
+            }
+        }
+
+        // Convert codepoint to UTF-8
+        char utf8Char[5] = {0}; // UTF-8 characters can be up to 4 bytes + null terminator
+        int size = 0;
+        if (!Utf8Proc::codepointToUtf8(codepoint, size, utf8Char)) {
+            throw std::runtime_error("Failed to convert codepoint to UTF-8");
+        }
+
+        // Replace the escape sequence with the actual UTF-8 character
+        result.replace(match.position(), match.length(), std::string(utf8Char, size));
+    }
+    return result;
+}
+
 std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
     std::string query;
     std::stringstream ss;
@@ -413,13 +464,22 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         continueLine = false;
     }
     input = input.erase(input.find_last_not_of(" \t\n\r\f\v") + 1);
+    // Decode escape sequences
+    std::string unicodeInput;
+    try {
+        unicodeInput = decodeEscapeSequences(input);
+    } catch (std::exception& e) {
+        printf("Error: %s\n", e.what());
+        historyLine = input;
+        return queryResults;
+    }
     // process shell commands
-    if (!continueLine && input[0] == ':') {
-        processShellCommands(input);
+    if (!continueLine && unicodeInput[0] == ':') {
+        processShellCommands(unicodeInput);
         // process queries
-    } else if (!input.empty() && cypherComplete((char*)input.c_str())) {
+    } else if (!unicodeInput.empty() && cypherComplete((char*)unicodeInput.c_str())) {
         ss.clear();
-        ss.str(input);
+        ss.str(unicodeInput);
         while (getline(ss, query, ';')) {
             queryResults.push_back(conn->query(query));
         }

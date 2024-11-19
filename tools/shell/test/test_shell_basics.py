@@ -235,3 +235,31 @@ def test_shell_auto_completion(temp_db) -> None:
     test.send_statement("() ret\t")
     test.send_finished_statement(" *;\n")
     assert test.shell_process.expect_exact(["\u2502 coolTable \u2502", pexpect.EOF]) == 0
+
+
+def test_shell_unicode_input(temp_db) -> None:
+    test = (
+        ShellTest()
+        .add_argument(temp_db)
+        .statement('CREATE NODE TABLE IF NOT EXISTS `B\\u00fccher` (title STRING, price INT64, PRIMARY KEY (title));\n') 
+        .statement("CREATE (n:`B\\u00fccher` {title: 'Der Thron der Sieben K\\00f6nigreiche'}) SET n.price = 20;\n")
+        .statement('MATCH (n:B\\u00fccher) RETURN label(n);\n')
+        .statement('return "\\uD83D\\uDE01";\n') # surrogate pair for grinning face emoji
+        .statement('return "\\U0001F601";\n') # grinning face emoji
+        .statement('return "\\uD83D";\n') #  unmatched surrogate pair
+        .statement('return "\\uDE01";\n') # unmatched surrogate pair
+        .statement('return "\\uD83D\\uDBFF";\n') # bad lower surrogate
+        .statement('return "\\u000";\n') # bad unicode codepoint
+        .statement('return "\\u0000";\n') # Null character
+        .statement('return "\\U00110000";\n') # Invalid codepoint
+    )
+    result = test.run()
+    result.check_stdout("\u2502 B\u00fccher")
+    result.check_stdout("\u2502 \U0001F601") # grinning face emoji
+    result.check_stdout("\u2502 \U0001F601") # grinning face emoji
+    result.check_stdout("Error: Unmatched high surrogate")
+    result.check_stdout("Error: Failed to convert codepoint to UTF-8")
+    result.check_stdout("Error: Invalid surrogate pair")
+    result.check_stdout("Error: Parser exception: Invalid input <return \">: expected rule oC_RegularQuery (line: 1, offset: 7)")
+    result.check_stdout("Error: Null character not allowed")
+    result.check_stdout("Error: Invalid Unicode codepoint")
