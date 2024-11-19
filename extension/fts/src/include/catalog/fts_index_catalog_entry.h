@@ -28,8 +28,8 @@ public:
     std::unique_ptr<catalog::IndexCatalogEntry> copy() const override;
 
 private:
-    common::idx_t numDocs;
-    double avgDocLen;
+    common::idx_t numDocs = 0;
+    double avgDocLen = 0;
 };
 
 } // namespace fts_extension
