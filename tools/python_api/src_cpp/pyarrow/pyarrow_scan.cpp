@@ -35,6 +35,12 @@ PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value
     }
 }
 
+template<typename T>
+static bool moduleIsLoaded() {
+    auto dict = pybind11::module_::import("sys").attr("modules");
+    return dict.contains(py::str(T::name_));
+}
+
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     ScanTableFuncBindInput* input) {
     // TODO: This binding step could use some drastic improvements.
@@ -45,7 +51,8 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
     if (PyConnection::isPandasDataframe(table)) {
         table = importCache->pyarrow.lib.Table.from_pandas()(table);
-    } else if (py::isinstance(table, importCache->polars.DataFrame())) {
+    } else if (moduleIsLoaded<PolarsCachedItem>() &&
+               py::isinstance(table, importCache->polars.DataFrame())) {
         table = table.attr("to_arrow")();
     }
     std::vector<LogicalType> returnTypes;
