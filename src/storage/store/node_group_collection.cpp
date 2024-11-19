@@ -15,9 +15,9 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer)
+    Deserializer* deSer, const transaction::rollback_insert_func_t* rollbackInsertFunc)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH} {
+      dataFH{dataFH}, rollbackInsertFunc(rollbackInsertFunc) {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -261,7 +261,8 @@ void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transac
     storage::CSRNodeGroupScanSource source) {
     // we only append to the undo buffer if the node group collection is persistent
     if (dataFH && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushInsertInfo(this, nodeGroupIdx, startRow, numRows, source);
+        transaction->pushInsertInfo(this, nodeGroupIdx, startRow, numRows, source,
+            rollbackInsertFunc);
     }
     if (source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
         numTotalRows += numRows;

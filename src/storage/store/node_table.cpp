@@ -226,8 +226,9 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         return rollbackInsert(transaction, startRow, numRows_, nodeGroupIdx_);
     };
 
-    nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
-        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer);
+    nodeGroups =
+        std::make_unique<NodeGroupCollection>(*memoryManager, getNodeTableColumnTypes(*this),
+            enableCompression, storageManager->getDataFH(), deSer, &rollbackInsertFunc);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }

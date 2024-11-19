@@ -16,8 +16,8 @@ class MemoryManager;
 class NodeGroupCollection {
 public:
     NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
-        bool enableCompression, FileHandle* dataFH = nullptr,
-        common::Deserializer* deSer = nullptr);
+        bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
+        const transaction::rollback_insert_func_t* rollbackInsertFunc = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -106,6 +106,7 @@ private:
     GroupCollection<NodeGroup> nodeGroups;
     FileHandle* dataFH;
     TableStats stats;
+    const transaction::rollback_insert_func_t* rollbackInsertFunc;
 };
 
 } // namespace storage
