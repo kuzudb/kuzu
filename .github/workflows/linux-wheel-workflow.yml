@@ -35,7 +35,7 @@ jobs:
 
   build-linux-wheels-aarch64:
     # Make sure this job runs on the larger self-hosted Linux ARM64 machine
-    runs-on: [kuzu-self-hosted-linux-building-aarch64, ac3]
+    runs-on: [kuzu-self-hosted-linux-building-aarch64, ac8]
     steps:
       - uses: actions/checkout@v4
 

@@ -42,7 +42,7 @@ jobs:
           path: extension-artifacts
 
   build-mac-extensions-arm64:
-    runs-on: self-hosted-mac-arm
+    runs-on: self-hosted-mac-arm64
     steps:
       - uses: actions/checkout@v4
 
