@@ -81,6 +81,20 @@ struct NodeTableDeleteState final : TableDeleteState {
         : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
+struct PKColumnScanHelper {
+    explicit PKColumnScanHelper(PrimaryKeyIndex* pkIndex, common::table_id_t tableID)
+        : tableID(tableID), pkIndex(pkIndex) {}
+    virtual ~PKColumnScanHelper() = default;
+
+    virtual std::unique_ptr<NodeTableScanState> initPKScanState(common::DataChunk& dataChunk,
+        common::column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns);
+    virtual bool processScanOutput(const transaction::Transaction* transaction,
+        NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) = 0;
+
+    common::table_id_t tableID;
+    PrimaryKeyIndex* pkIndex;
+};
+
 class StorageManager;
 class NodeTable final : public Table {
 public:
@@ -192,18 +206,14 @@ public:
     }
 
 private:
-    void insertPK(const transaction::Transaction* transaction,
-        const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector) const;
     void validatePkNotExists(const transaction::Transaction* transaction,
         common::ValueVector* pkVector);
 
     void serialize(common::Serializer& serializer) const override;
 
-    std::unique_ptr<NodeTableScanState> initPKScanState(common::DataChunk& dataChunk,
-        TableScanSource source) const;
-
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;
+    void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper);
 
 private:
     std::vector<std::unique_ptr<Column>> columns;
