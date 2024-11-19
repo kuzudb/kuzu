@@ -221,10 +221,10 @@ void LocalFileSystem::createDir(const std::string& dir) const {
             // LCOV_EXCL_STOP
         }
         auto directoryToCreate = dir;
-        if (directoryToCreate.ends_with('/')) {
+        if (directoryToCreate.ends_with('/') || directoryToCreate.ends_with('\\')) {
             // This is a known issue with std::filesystem::create_directories. (link:
             // https://github.com/llvm/llvm-project/issues/60634). We have to manually remove the
-            // last '/' if the path ends with '/'.
+            // last '/' if the path ends with '/'. (Added the second one for windows)
             directoryToCreate = directoryToCreate.substr(0, directoryToCreate.size() - 1);
         }
         std::error_code errCode;
