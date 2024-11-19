@@ -475,7 +475,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-    #needs: [sanity-checks, python-lint-check, generate-binary-datasets]
+    needs: [sanity-checks, python-lint-check, generate-binary-datasets]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
