@@ -713,13 +713,11 @@ jobs:
       - name: Run clang-tidy analyzer
         run: make tidy-analyzer
 
-  macos-build-test-x86_64:
-    name: apple clang build & test (x86_64)
+  macos-build-test:
+    name: apple clang build & test
     needs: [sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets]
-    runs-on: self-hosted-mac-x64
+    runs-on: [self-hosted, macOS]
     env:
-      NUM_THREADS: 32
-      CMAKE_BUILD_PARALLEL_LEVEL: 32
       TEST_JOBS: 16
       GEN: Ninja
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
@@ -733,6 +731,16 @@ jobs:
       HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine NUM_THREADS
+        run: |
+          export NUM_THREADS=$(($(sysctl -n hw.logicalcpu) * 2 / 3))
+          if [ $NUM_THREADS -lt 12 ]; then
+            export NUM_THREADS=12
+          fi
+          echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=$NUM_THREADS" >> $GITHUB_ENV
+          echo "NUM_THREADS=$NUM_THREADS"
 
       - name: Download binary-demo
         uses: actions/download-artifact@v4
@@ -769,6 +777,8 @@ jobs:
           make test
 
       - name: Python test
+        env:
+          PYBIND11_PYTHON_VERSION: 3.12
         run: |
           ulimit -n 10240
           make pytest
@@ -786,6 +796,7 @@ jobs:
       - name: Java test
         run: |
           ulimit -n 10240
+          export JAVA_HOME=`/usr/libexec/java_home`
           make javatest
 
       - name: Rust test
@@ -882,10 +893,9 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    needs: [macos-build-test-x86_64]
-    runs-on: self-hosted-mac-x64
+    needs: [macos-build-test]
+    runs-on: [self-hosted, macOS]
     env:
-      NUM_THREADS: 32
       TEST_JOBS: 16
       GEN: Ninja
       UW_S3_ACCESS_KEY_ID: ${{ secrets.UW_S3_ACCESS_KEY_ID }}
@@ -899,6 +909,15 @@ jobs:
       HTTP_CACHE_FILE: TRUE
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine NUM_THREADS
+        run: |
+          export NUM_THREADS=$(($(sysctl -n hw.logicalcpu) * 2 / 3))
+          if [ $NUM_THREADS -lt 12 ]; then
+            export NUM_THREADS=12
+          fi
+          echo "NUM_THREADS=$NUM_THREADS" >> $GITHUB_ENV
+          echo "NUM_THREADS=$NUM_THREADS"
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
