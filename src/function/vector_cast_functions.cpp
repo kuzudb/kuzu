@@ -68,7 +68,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             auto resultTypes = StructType::getFieldTypes(*resultType);
 
             for (auto i = 0u; i < inputTypes.size(); i++) {
-                if (BuiltInFunctionsUtils::getCastCost(inputTypes[i]->getLogicalTypeID(), resultTypes[i]->getLogicalTypeID()) == UNDEFINED_CAST_COST) {
+                LogicalTypeID srcType = inputTypes[i]->getLogicalTypeID();
+                LogicalTypeID dstType = resultTypes[i]->getLogicalTypeID();
+                if (BuiltInFunctionsUtils::getCastCost(srcType, dstType) == UNDEFINED_CAST_COST) {
                     throw ConversionException{errorMsg};
                 }
             }
