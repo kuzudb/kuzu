@@ -123,7 +123,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(ListTransformFunction), SCALAR_FUNCTION(ListFilterFunction),
         SCALAR_FUNCTION(ListReduceFunction), SCALAR_FUNCTION(ListAnyFunction),
         SCALAR_FUNCTION(ListAllFunction), SCALAR_FUNCTION(ListNoneFunction),
-        SCALAR_FUNCTION(ListSingleFunction),
+        SCALAR_FUNCTION(ListSingleFunction), SCALAR_FUNCTION(ListHasAllFunction),
 
         // Cast functions
         SCALAR_FUNCTION(CastToDateFunction), SCALAR_FUNCTION_ALIAS(DateFunction),
