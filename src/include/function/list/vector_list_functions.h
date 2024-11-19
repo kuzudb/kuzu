@@ -203,5 +203,11 @@ struct ListSingleFunction {
     static function_set getFunctionSet();
 };
 
+struct ListHasAllFunction {
+    static constexpr const char* name = "LIST_HAS_ALL";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

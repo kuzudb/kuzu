@@ -2258,3 +2258,56 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11*a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12*a0eebc
 -STATEMENT RETURN [[23, 432], [], [NULL]];
 ---- 1
 [[23,432],[],[]]
+
+-CASE ListHasAllTest
+-STATEMENT RETURN list_has_all([4, 5, 6], [4, 6])
+---- 1
+True
+-STATEMENT RETURN list_has_all([4, 5, 6], [6, 4])
+---- 1
+True
+-STATEMENT RETURN list_has_all([4, 5, 6], [4])
+---- 1
+True
+-STATEMENT RETURN list_has_all([4, 5, 6], [4,5,6])
+---- 1
+True
+-STATEMENT RETURN list_has_all([TRUE, FALSE, FALSE], [FALSE, TRUE])
+---- 1
+True
+-STATEMENT RETURN list_has_all([[2,3], [1,2], [5,4]], [[5,4]])
+---- 1
+True
+-STATEMENT RETURN list_has_all([[2,3], [1,2], [5,4]], [[1,3]])
+---- 1
+False
+-STATEMENT RETURN list_has_all([{a: 5, b:3}, {c: 2, d: 4}], [{c:2, d:4}])
+---- 1
+True
+-STATEMENT RETURN list_has_all([{a: 5, b:3}, {c: 2, d: 4}], [{c:2, e:4}])
+---- 1
+True
+-STATEMENT RETURN list_has_all([5,6,12], [null])
+---- 1
+True
+-STATEMENT RETURN list_has_all([null], [null])
+---- 1
+True
+-STATEMENT RETURN list_has_all([], [null])
+---- 1
+True
+-STATEMENT RETURN list_has_all([], [])
+---- 1
+True
+-STATEMENT RETURN list_has_all([null], [])
+---- 1
+True
+-STATEMENT RETURN list_has_all(null, [1,3,2])
+---- 1
+
+-STATEMENT RETURN list_has_all([1,2], null)
+---- 1
+
+-STATEMENT RETURN list_has_all(null, null)
+---- 1
+
