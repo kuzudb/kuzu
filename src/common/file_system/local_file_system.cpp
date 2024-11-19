@@ -257,7 +257,8 @@ bool isSubdirectory(const std::string& base, const std::string& sub) {
         auto basePath = std::filesystem::canonical(base);
         auto subPath = std::filesystem::canonical(sub);
 
-        // Check if subPath starts with basePath and ensure proper boundaries, use generic_string to handle the special slash in windows
+        // Check if subPath starts with basePath and ensure proper boundaries, use generic_string to
+        // handle the special slash in windows
         auto baseStr = basePath.generic_string();
         auto subStr = subPath.generic_string();
 
@@ -268,9 +269,6 @@ bool isSubdirectory(const std::string& base, const std::string& sub) {
         return false;
     }
 }
-
-
-
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path)) {
