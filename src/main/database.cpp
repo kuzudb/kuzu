@@ -88,6 +88,9 @@ std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Databa
 }
 
 std::string expandPath(main::ClientContext* context, const std::string& path) {
+    if (DBConfig::isDBPathInMemory(path)) {
+        return path;
+    }
     auto fullPath = path;
     // Handle '~' for home directory expansion
     if (path.starts_with('~')) {
@@ -98,6 +101,7 @@ std::string expandPath(main::ClientContext* context, const std::string& path) {
     // Normalize the path to resolve '.' and '..'
     std::filesystem::path normalizedPath = std::filesystem::absolute(fullPath).lexically_normal();
     return normalizedPath.string();
+    
 }
 
 void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc) {
