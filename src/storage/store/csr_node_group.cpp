@@ -1,5 +1,6 @@
 #include "storage/store/csr_node_group.h"
 
+#include "common/constants.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/rel_table.h"
@@ -31,14 +32,19 @@ bool CSRNodeGroupScanState::tryScanCachedTuples(RelTableScanState& tableScanStat
     const auto numRowsToScan =
         std::min(nextRowToScan, startCSROffset + csrLength) - nextCachedRowToScan;
     const auto startCachedRow = nextCachedRowToScan - (nextRowToScan - numCachedRows);
-    auto numSelected = 0u;
-    tableScanState.outState->getSelVectorUnsafe().setToFiltered();
-    for (auto i = 0u; i < numRowsToScan; i++) {
-        const auto rowIdx = startCachedRow + i;
-        tableScanState.outState->getSelVectorUnsafe()[numSelected] = rowIdx;
-        numSelected += cachedScannedVectorsSelBitset[rowIdx];
+    if (cachedScannedVectorsSelBitset.has_value()) {
+        auto cachedScannedVectorsSelBitset = *this->cachedScannedVectorsSelBitset;
+        auto numSelected = 0u;
+        tableScanState.outState->getSelVectorUnsafe().setToFiltered();
+        for (auto i = 0u; i < numRowsToScan; i++) {
+            const auto rowIdx = startCachedRow + i;
+            tableScanState.outState->getSelVectorUnsafe()[numSelected] = rowIdx;
+            numSelected += cachedScannedVectorsSelBitset[rowIdx];
+        }
+        tableScanState.outState->getSelVectorUnsafe().setSelSize(numSelected);
+    } else {
+        tableScanState.outState->getSelVectorUnsafe().setRange(startCachedRow, numRowsToScan);
     }
-    tableScanState.outState->getSelVectorUnsafe().setSelSize(numSelected);
     tableScanState.setNodeIDVectorToFlat(
         tableScanState.cachedBoundNodeSelVector[tableScanState.currBoundNodeIdx]);
     nextCachedRowToScan += numRowsToScan;
@@ -181,11 +187,12 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithCache(const Transac
         nodeGroupScanState.numCachedRows = numToScan;
         nodeGroupScanState.nextRowToScan += numToScan;
         if (tableState.outState->getSelVector().isUnfiltered()) {
-            nodeGroupScanState.cachedScannedVectorsSelBitset.set();
-        } else {
             nodeGroupScanState.cachedScannedVectorsSelBitset.reset();
+        } else {
+            nodeGroupScanState.cachedScannedVectorsSelBitset =
+                std::bitset<DEFAULT_VECTOR_CAPACITY>();
             for (auto i = 0u; i < tableState.outState->getSelVector().getSelSize(); i++) {
-                nodeGroupScanState.cachedScannedVectorsSelBitset.set(
+                nodeGroupScanState.cachedScannedVectorsSelBitset->set(
                     tableState.outState->getSelVector()[i], true);
             }
         }

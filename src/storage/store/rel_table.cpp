@@ -105,7 +105,7 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
 
 void RelTableScanState::setNodeIDVectorToFlat(sel_t selPos) const {
     nodeIDVector->state->setToFlat();
-    nodeIDVector->state->getSelVectorShared()->setToFiltered(1);
+    nodeIDVector->state->getSelVectorUnsafe().setToFiltered(1);
     nodeIDVector->state->getSelVectorUnsafe()[0] = selPos;
 }
 
