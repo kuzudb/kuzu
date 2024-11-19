@@ -716,7 +716,7 @@ jobs:
   macos-build-test:
     name: apple clang build & test
     needs: [sanity-checks, rustfmt-check, python-lint-check, generate-binary-datasets]
-    runs-on: self-hosted-mac-arm64
+    runs-on: self-hosted-mac-x64
     env:
       TEST_JOBS: 16
       GEN: Ninja
@@ -894,7 +894,7 @@ jobs:
   macos-extension-test:
     name: macos extension test
     needs: [macos-build-test]
-    runs-on: self-hosted-mac-arm64
+    runs-on: self-hosted-mac-x64
     env:
       TEST_JOBS: 16
       GEN: Ninja
